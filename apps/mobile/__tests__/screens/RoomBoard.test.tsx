@@ -2,7 +2,8 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react-native";
 
 jest.mock("expo-router", () => ({
-  router: { push: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
+  useLocalSearchParams: () => ({}),
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: "en" } }),

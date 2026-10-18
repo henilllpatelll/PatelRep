@@ -1375,6 +1375,90 @@ class CreateLogbookEntryRequest(SanitizedBaseModel):
     acknowledgment_target_ids: List[UUID4] = Field(default_factory=list, max_length=100)
 
 
+_HANDOFF_COUNT_MAX = 5000
+_HANDOFF_ROOM_LIST_MAX = 30
+
+
+class HandoffRoomCounts(SanitizedBaseModel):
+    """Point-in-time room inventory from the Room Board when the supervisor reviewed the handoff."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    total: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    out_of_order: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    ready: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    awaiting_inspection: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    in_progress: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    to_clean: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+
+    @model_validator(mode="after")
+    def counts_fit_inventory(self):
+        in_service = self.total - self.out_of_order
+        if in_service < 0:
+            raise ValueError("out_of_order cannot exceed total")
+        if self.ready + self.awaiting_inspection + self.in_progress + self.to_clean > in_service:
+            raise ValueError("room status counts cannot exceed the in-service room count")
+        return self
+
+
+class HandoffInspectionCounts(SanitizedBaseModel):
+    """Completed inspections in the reporting window (activity, not a room snapshot)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    passed: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    failed: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    conditional: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+
+
+class HandoffUnresolved(SanitizedBaseModel):
+    """Open work the handoff points at. Counts are authoritative; the room lists are for reading."""
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    unassigned_rooms: int = Field(ge=0, le=_HANDOFF_COUNT_MAX)
+    unassigned_room_numbers: List[str] = Field(default_factory=list, max_length=_HANDOFF_ROOM_LIST_MAX)
+    awaiting_inspection_room_numbers: List[str] = Field(default_factory=list, max_length=_HANDOFF_ROOM_LIST_MAX)
+    # None = the blocked-task service could not be read; the report says "not verified" instead of "0".
+    blocked_tasks: Optional[int] = Field(default=None, ge=0, le=_HANDOFF_COUNT_MAX)
+
+    @field_validator("unassigned_room_numbers", "awaiting_inspection_room_numbers")
+    @classmethod
+    def room_numbers_are_short_labels(cls, value: List[str]) -> List[str]:
+        cleaned = [item.strip() for item in value]
+        if any(not item or len(item) > 12 for item in cleaned):
+            raise ValueError("room numbers must be 1-12 characters")
+        return cleaned
+
+
+class EndShiftSummaryRequest(SanitizedBaseModel):
+    """POST /housekeeping/end-shift-summary. Every metric is required: nothing defaults to zero.
+
+    Unknown fields are rejected so the pre-contract mobile payload (rooms_completed, rooms_failed,
+    supervisor_notes, ...) fails loudly instead of being saved as an all-zero report.
+    """
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    client_request_id: UUID4
+    # Hotel-local calendar day the report covers (a daily housekeeping handoff, not one person's shift).
+    report_date: date
+    rooms: HandoffRoomCounts
+    inspections: HandoffInspectionCounts
+    unresolved: HandoffUnresolved
+    notes: Optional[str] = Field(default=None, max_length=1000)
+
+    @model_validator(mode="after")
+    def lists_match_counts(self):
+        if len(self.unresolved.unassigned_room_numbers) > self.unresolved.unassigned_rooms:
+            raise ValueError("more unassigned room numbers than unassigned rooms")
+        if len(self.unresolved.awaiting_inspection_room_numbers) > self.rooms.awaiting_inspection:
+            raise ValueError("more awaiting-inspection room numbers than awaiting-inspection rooms")
+        if self.unresolved.unassigned_rooms > self.rooms.total:
+            raise ValueError("unassigned rooms cannot exceed total rooms")
+        return self
+
+
 class UpdateLogbookEntryRequest(SanitizedBaseModel):
     content: Optional[str] = Field(default=None, max_length=4000)
     category: Optional[Literal["guest", "room", "maintenance", "safety", "general"]] = None
@@ -1896,6 +1980,65 @@ class SupervisorBriefingRequest(SanitizedBaseModel):
     rooms: List[BriefingRoomItem] = Field(min_length=0, max_length=200)
     staff: List[StaffProgressItem] = Field(min_length=0, max_length=40)
     language: Literal["en", "es"] = "en"
+
+
+SUPERVISOR_SUMMARY_FACT_KINDS = (
+    "arrival_at_risk",
+    "readiness_risk",
+    "task_blocker",
+    "shift_ended_with_open_rooms",
+    "workload_over_assigned",
+    "unassigned_rooms",
+    "awaiting_inspection",
+    "access_restricted",
+)
+SUPERVISOR_SUMMARY_SOURCES = ("board", "staff", "roster", "inspections", "blockedTasks")
+_SUMMARY_ROOM_RE = re.compile(r"^[A-Za-z0-9-]{1,10}$")
+
+
+class SupervisorSummaryFact(SanitizedBaseModel):
+    """One verified condition from the supervisor's Today snapshot. Structured only: no free text reaches the model."""
+
+    kind: Literal[SUPERVISOR_SUMMARY_FACT_KINDS]
+    count: int = Field(ge=0, le=1000)
+    rooms: List[str] = Field(default_factory=list, max_length=8)
+
+    @field_validator("rooms", mode="after")
+    @classmethod
+    def validate_rooms(cls, value: List[str]) -> List[str]:
+        if any(not _SUMMARY_ROOM_RE.match(item) for item in value):
+            raise ValueError("invalid room number")
+        return value
+
+
+class SupervisorSummaryReadiness(SanitizedBaseModel):
+    in_service: int = Field(ge=0, le=2000)
+    ready: int = Field(ge=0, le=2000)
+    awaiting_inspection: int = Field(ge=0, le=2000)
+    in_progress: int = Field(ge=0, le=2000)
+    to_clean: int = Field(ge=0, le=2000)
+    out_of_order: int = Field(ge=0, le=2000)
+
+
+class SupervisorSummaryInspections(SanitizedBaseModel):
+    passed: int = Field(ge=0, le=5000)
+    failed: int = Field(ge=0, le=5000)
+    conditional: int = Field(ge=0, le=5000)
+
+
+class SupervisorSummaryRequest(SanitizedBaseModel):
+    """What the phone's own Today model verified, as numbers and room numbers; the answer is plain wording only.
+
+    ``readiness`` / ``inspections`` are omitted when that source could not be verified (never sent as zero), and
+    ``unverified`` names the sources that could not be checked so the wording never implies "all clear".
+    """
+
+    purpose: Literal["shift", "handoff"] = "shift"
+    language: Literal["en", "es"] = "en"
+    readiness: Optional[SupervisorSummaryReadiness] = None
+    inspections: Optional[SupervisorSummaryInspections] = None
+    facts: List[SupervisorSummaryFact] = Field(default_factory=list, max_length=12)
+    unverified: List[Literal[SUPERVISOR_SUMMARY_SOURCES]] = Field(default_factory=list, max_length=5)
 
 
 class WorkOrderBriefingItem(SanitizedBaseModel):

@@ -3906,6 +3906,230 @@
     "lateCoNoTime": "Salida tardía solicitada — hora no especificada",
     "vipBadge": "VIP"
   },
+  "supervisorHandoff": {
+    "title": "Entrega de turno",
+    "subtitle": "Revise los resultados de limpieza de hoy y el trabajo pendiente.",
+    "close": "Cerrar entrega",
+    "steps": {
+      "prepare": "Preparar",
+      "review": "Revisar",
+      "confirm": "Confirmar"
+    },
+    "stepLabel": "Paso {{current}} de {{total}}: {{name}}",
+    "summary": {
+      "title": "Resumen de limpieza",
+      "scope": "Los conteos de habitaciones son de este momento. Las inspecciones son las completadas hoy.",
+      "ready": "Habitaciones listas",
+      "readyOf": "de {{count}} en servicio",
+      "passed": "Inspecciones aprobadas",
+      "failed": "Inspecciones reprobadas",
+      "conditional": "Inspecciones condicionales",
+      "awaiting": "Esperando inspección",
+      "inProgress": "En proceso",
+      "toClean": "Por limpiar",
+      "outOfOrder": "Fuera de servicio",
+      "unverified": "Sin verificar"
+    },
+    "unfinished": {
+      "title": "Trabajo pendiente",
+      "none": "No se encontró trabajo pendiente.",
+      "awaiting": "{{count}} habitación esperando inspección",
+      "awaiting_plural": "{{count}} habitaciones esperando inspección",
+      "unassigned": "{{count}} habitación sin asignar",
+      "unassigned_plural": "{{count}} habitaciones sin asignar",
+      "blocked": "{{count}} tarea de limpieza bloqueada",
+      "blocked_plural": "{{count}} tareas de limpieza bloqueadas",
+      "blockedUnverified": "No se pudieron revisar las tareas bloqueadas, por eso no se muestra ninguna.",
+      "rooms": "Habitaciones: {{rooms}}",
+      "moreRooms": "+{{count}} más"
+    },
+    "notes": {
+      "label": "Notas del supervisor",
+      "placeholder": "Agregue información importante para el siguiente turno: habitaciones prioritarias, problemas sin resolver e instrucciones de seguimiento.",
+      "counter": "{{count}} / {{max}}",
+      "none": "No se agregaron notas."
+    },
+    "actions": {
+      "review": "Revisar entrega",
+      "cancel": "Cancelar",
+      "continue": "Continuar",
+      "backToEdit": "Volver a editar",
+      "submit": "Enviar entrega",
+      "backToReview": "Volver a revisar",
+      "refresh": "Actualizar cifras",
+      "checkAgain": "Volver a comprobar",
+      "done": "Listo",
+      "viewReport": "Ver informe guardado",
+      "notifyAgain": "Intentar avisar a los gerentes otra vez",
+      "edit": "Editar"
+    },
+    "review": {
+      "hint": "Revise lo que se guardará. Estas cifras vienen de registros en vivo y no se pueden editar aquí.",
+      "meta": "Detalles del informe",
+      "date": "Fecha del hotel",
+      "covers": "Entrega diaria de todo el día del hotel, no del turno de una persona",
+      "supervisor": "Enviado por",
+      "asOf": "Datos al",
+      "ack": "He revisado esta entrega y el trabajo pendiente.",
+      "changed": "Esto cambió mientras revisaba: {{what}}. Revíselo y confirme de nuevo.",
+      "changes": {
+        "rooms": "los conteos de habitaciones",
+        "inspections": "los resultados de inspección",
+        "unresolved": "el trabajo pendiente",
+        "date": "la fecha del informe"
+      }
+    },
+    "confirm": {
+      "title": "¿Enviar la entrega de turno?",
+      "description": "Este informe se guardará en la bitácora de limpieza para que la gerencia autorizada lo revise.",
+      "records": "Registra un resumen de la limpieza de hoy y las notas que haya agregado.",
+      "open": "Las tareas pendientes siguen abiertas, las inspecciones pendientes siguen pendientes y las habitaciones sin asignar siguen sin asignar.",
+      "clock": "Al enviar no se cierra su turno."
+    },
+    "saved": {
+      "title": "Entrega enviada",
+      "body": "Su informe de limpieza del turno se ha guardado.",
+      "previously": "Esta entrega ya se había enviado. Aquí está el informe guardado.",
+      "reference": "Referencia del informe",
+      "savedAt": "Guardado a las",
+      "date": "Fecha del hotel",
+      "stillOpen": "El trabajo pendiente sigue abierto. Al enviar no se cerró su turno.",
+      "managersComplete": "Se avisó a los gerentes.",
+      "managersNone": "No había gerentes a quienes avisar.",
+      "managersFailed": "Guardado, pero aún no se pudo avisar a los gerentes.",
+      "managersUnknown": "Guardado. No se confirmó si se avisó a los gerentes."
+    },
+    "blockers": {
+      "boardLoading": "Cargando datos de habitaciones…",
+      "boardUnavailable": "No se pudieron cargar los datos de habitaciones.",
+      "boardStale": "Los datos de habitaciones no están al día.",
+      "inspectionsLoading": "Cargando resultados de inspección…",
+      "inspectionsUnavailable": "No se pudieron verificar los resultados de inspección.",
+      "inspectionsStale": "Los resultados de inspección no están al día.",
+      "dayMismatch": "Las cifras son de días distintos. Actualice para continuar.",
+      "offline": "Conéctese a internet para enviar esta entrega.",
+      "hint": "Actualice las cifras para continuar."
+    },
+    "failure": {
+      "countsChanged": "Los resultados de inspección cambiaron mientras revisaba. Se actualizaron las cifras; revíselas de nuevo.",
+      "departmentMissing": "No se pudo identificar el departamento de limpieza.",
+      "departmentAmbiguous": "Este hotel tiene más de un departamento de limpieza, así que no se puede archivar el informe.",
+      "dateOutOfRange": "La fecha de esta entrega ya no es válida. Actualice y revise de nuevo.",
+      "forbidden": "No tiene permiso para enviar entregas de turno.",
+      "signedOut": "Su sesión terminó. Inicie sesión de nuevo; su nota se conserva.",
+      "rejected": "El servidor no pudo aceptar esta entrega. Revísela e inténtelo de nuevo.",
+      "unconfirmed": "No pudimos confirmar si esta entrega se guardó. No se ha vuelto a enviar.",
+      "verifying": "Comprobando si se guardó…",
+      "verifyFailed": "Aún no se pudo comprobar. Su nota se conserva; vuelva a comprobar cuando tenga conexión.",
+      "notSaved": "No se guardó. Puede enviarla de nuevo sin riesgo.",
+      "notifyFailed": "Todavía no se pudo avisar a los gerentes. Inténtelo más tarde."
+    }
+  },
+  "supervisorComms": {
+    "offline": "Sin conexión. Vuelve a conectarte para enviar. Tu borrador se conserva.",
+    "count": "{{count}} / {{max}}",
+    "retry": "Intentar de nuevo",
+    "errors": {
+      "rejected": "El servidor no pudo aceptar esto. Revísalo e intenta de nuevo.",
+      "forbidden": "Tu cuenta no tiene permiso para hacer esto.",
+      "signedOut": "Tu sesión terminó. Inicia sesión de nuevo. Tu borrador queda aqui hasta que cierres esto.",
+      "unconfirmed": "No recibimos respuesta, así que es posible que ya se haya enviado. Revisa antes de enviar de nuevo. Tu borrador se conserva."
+    },
+    "note": {
+      "title": "Agregar nota de turno",
+      "sub": "Registra una novedad importante para tu equipo o el siguiente turno.",
+      "label": "Nota",
+      "placeholder": "La habitación 308 necesita inspección prioritaria antes de la próxima llegada...",
+      "department": "Se archiva en {{department}}",
+      "departmentName": "Housekeeping",
+      "departmentLoading": "Buscando tu bitácora de Housekeeping...",
+      "departmentFailed": "No se pudieron cargar los departamentos del hotel, así que la nota aún no se puede archivar.",
+      "departmentMissing": "Este hotel no tiene un departamento de Housekeeping, así que no se puede archivar la nota. Pide a un gerente que lo configure.",
+      "departmentAmbiguous": "Este hotel tiene más de un departamento de Housekeeping, así que la app no sabe qué bitácora usar.",
+      "save": "Guardar nota",
+      "saved": "Nota de turno guardada."
+    },
+    "team": {
+      "title": "Mensaje al equipo",
+      "audienceLabel": "Se envía a",
+      "audience": "Todas las cuentas activas de camareras de este hotel",
+      "audienceHint": "Se agrega a la bandeja de notificaciones de cada persona. No se limita a quien marcó entrada, y la app no puede decirte quién lo leyó.",
+      "templatesLabel": "Mensajes rápidos",
+      "templates": {
+        "assignments": "Revisa tus asignaciones actualizadas.",
+        "priority": "Por favor revisa las habitaciones prioritarias.",
+        "shift": "Recordatorio de turno.",
+        "checkOut": "Habla con tu supervisor antes de irte."
+      },
+      "label": "Mensaje",
+      "placeholder": "Escribe un mensaje para todo el equipo...",
+      "send": "Enviar mensaje",
+      "delivered": "Mensaje agregado a {{count}} bandeja de camarera.",
+      "delivered_plural": "Mensaje agregado a {{count}} bandejas de camareras.",
+      "deliveredUnknown": "Mensaje enviado. El servidor no informó a cuántas bandejas llegó.",
+      "nobody": "No hay cuentas activas de camareras a quienes enviar, así que no se envió nada."
+    },
+    "dm": {
+      "title": "Mensaje a una persona",
+      "to": "Para",
+      "hint": "Llega a su bandeja de notificaciones. No verás si lo ha leído.",
+      "label": "Mensaje",
+      "placeholder": "p. ej. Salta la 207, empieza con la 310",
+      "send": "Enviar mensaje",
+      "sent": "Mensaje enviado a {{name}}.",
+      "noRecipient": "Primero elige a quién escribirle."
+    },
+    "picker": {
+      "title": "¿A quién escribirle?",
+      "search": "Buscar por nombre",
+      "searchLabel": "Buscar personal por nombre",
+      "loading": "Cargando tu personal...",
+      "failed": "No se pudo cargar tu lista de personal.",
+      "forbidden": "Tu cuenta no puede ver la lista de personal.",
+      "empty": "No se encontraron otras cuentas activas de personal de housekeeping.",
+      "noResults": "Nadie coincide con \"{{query}}\".",
+      "rooms": "{{count}} habitación hoy",
+      "rooms_plural": "{{count}} habitaciones hoy",
+      "noRooms": "Sin habitaciones hoy",
+      "pickA11y": "Escribir a {{name}}. {{role}}. {{status}}"
+    },
+    "quick": {
+      "title": "Persona del equipo",
+      "gone": "Esta persona ya no está en tu lista de equipo.",
+      "goneClose": "Cerrar",
+      "statusUnknown": "Disponibilidad desconocida",
+      "rosterStale": "El estado del turno es el último conocido, no confirmado ahora.",
+      "rosterUnknown": "No se pudo confirmar el estado del turno.",
+      "roles": {
+        "housekeeper": "Camarera",
+        "housekeeping_supervisor": "Supervisora de housekeeping"
+      },
+      "assigned": "{{count}} habitación asignada",
+      "assigned_plural": "{{count}} habitaciones asignadas",
+      "cleaned": "Limpias",
+      "cleanedHint": "Limpieza enviada o inspeccionada",
+      "inspected": "Inspección aprobada",
+      "awaiting": "Esperando inspección",
+      "remaining": "Pendientes",
+      "progress": "{{done}} de {{count}} habitación limpia",
+      "progress_plural": "{{done}} de {{count}} habitaciones limpias",
+      "remainingTitle": "Habitaciones pendientes",
+      "moreRooms": "+{{count}} habitación más",
+      "moreRooms_plural": "+{{count}} habitaciones más",
+      "noRooms": "Sin habitaciones asignadas hoy.",
+      "allCleaned": "Todas las habitaciones asignadas están limpias.",
+      "vip": "VIP",
+      "dnd": "No molestar",
+      "status": {
+        "DIRTY": "Por limpiar",
+        "OCCUPIED": "Por limpiar",
+        "PICKUP": "Recoger",
+        "IN_PROGRESS": "Limpiando ahora"
+      },
+      "message": "Mensaje",
+      "viewAll": "Ver todas las asignaciones"
+    }
+  },
   "supervisorTools": {
     "messageTeamTitle": "Mensaje al equipo",
     "messageTeamSub": "Se envía a todo el personal de limpieza en turno",
@@ -3923,20 +4147,13 @@
     "sending": "Enviando…",
     "sendError": "No se pudo enviar el mensaje. Inténtalo de nuevo."
   },
-  "endShift": {
-    "shortLabel": "Fin turno",
-    "title": "Resumen de Fin de Turno",
-    "subtitle": "Este resumen se enviará a la gerencia.",
-    "statReady": "Listo",
-    "statSubmitted": "Enviado",
-    "statOoo": "FdS",
-    "notesLabel": "Notas del supervisor",
-    "notesPlaceholder": "Algo para el turno entrante…",
-    "submit": "Enviar resumen",
-    "submitting": "Enviando…",
-    "submitError": "No se pudo enviar el resumen. Inténtalo de nuevo."
-  },
   "logbook": {
+    "report": {
+      "title": "Informe guardado",
+      "missing": "Informe no encontrado",
+      "missingBody": "Puede haberse eliminado, o pertenece a otro hotel.",
+      "error": "No se pudo cargar este informe."
+    },
     "title": "Bitácora de Turno",
     "newEntry": "Nueva Entrada",
     "aiSummary": "Resumen de Turno IA",
@@ -4430,6 +4647,390 @@
         "offline": "Sin conexión",
         "unavailable": "No disponible"
       }
+    }
+  },
+  "supervisorToday": {
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches",
+      "morningName": "Buenos días, {{name}}",
+      "afternoonName": "Buenas tardes, {{name}}",
+      "eveningName": "Buenas noches, {{name}}"
+    },
+    "header": {
+      "profile": "Abrir perfil"
+    },
+    "readiness": {
+      "title": "Estado de habitaciones",
+      "ready": "{{ready}} / {{total}} listas",
+      "a11y": "{{ready}} de {{total}} habitaciones en servicio listas",
+      "toClean": "Por limpiar",
+      "working": "En curso",
+      "inspect": "Inspeccionar",
+      "unavailable": "Datos de habitaciones no disponibles",
+      "unavailableHint": "No pudimos cargar el tablero de habitaciones. Inténtalo de nuevo.",
+      "empty": "Aún no hay habitaciones en el tablero.",
+      "emptyHint": "Las habitaciones aparecen tras la importación de la mañana.",
+      "open": "Abrir tablero de habitaciones",
+      "loading": "Cargando habitaciones",
+      "outOfOrder": "{{count}} habitación fuera de servicio no contada",
+      "outOfOrder_plural": "{{count}} habitaciones fuera de servicio no contadas"
+    },
+    "freshness": {
+      "justNow": "Actualizado ahora mismo",
+      "offline": "Sin conexión — actualizado por última vez a las {{time}}",
+      "refreshFailed": "No se pudo actualizar — última actualización a las {{time}}",
+      "age": "Última actualización a las {{time}}",
+      "updating": "Actualizando…",
+      "minutes": "Actualizado hace {{count}} minuto",
+      "minutes_plural": "Actualizado hace {{count}} minutos"
+    },
+    "attention": {
+      "title": "Requiere tu atención",
+      "viewAll": "Ver todo",
+      "caughtUp": "Todo al día.",
+      "caughtUpHint": "Ningún asunto urgente de limpieza requiere tu atención ahora mismo.",
+      "staleEmpty": "Sin elementos en la última actualización.",
+      "staleEmptyHint": "Reconéctate o actualiza para confirmar.",
+      "incomplete": "No se pudo revisar todo",
+      "incompleteHint": "Algunos datos no cargaron, así que esta lista puede estar incompleta.",
+      "urgent": "Urgente",
+      "high": "Prioridad alta",
+      "roomNeedsAttention": "La habitación {{room}} requiere atención",
+      "arrivalAt": "Llegada prevista {{time}} · No lista",
+      "arrivalNotReady": "Llegada hoy · No lista",
+      "roomAtRisk": "La habitación {{room}} podría no estar lista",
+      "roomAtRiskHint": "Marcada de alto riesgo por la predicción de preparación",
+      "taskBlocked": "{{task}} está bloqueada",
+      "shiftEndedTitle": "{{name}} terminó su turno",
+      "overAssignedTitle": "{{name}} podría tener demasiada carga",
+      "overAssignedHint": "El trabajo asignado supera un turno estándar",
+      "unassignedHint": "Revisa las asignaciones del equipo",
+      "awaitingInspectionHint": "Abrir la cola de inspección",
+      "accessRestrictedHint": "No molestar — verifica antes de limpiar",
+      "someone": "Una camarera o camarero",
+      "more": "{{count}} elemento más",
+      "more_plural": "{{count}} elementos más",
+      "shiftEndedHint": "{{count}} habitación asignada sigue abierta",
+      "shiftEndedHint_plural": "{{count}} habitaciones asignadas siguen abiertas",
+      "unassigned": "{{count}} habitación sin asignar",
+      "unassigned_plural": "{{count}} habitaciones sin asignar",
+      "awaitingInspection": "{{count}} habitación esperando inspección",
+      "awaitingInspection_plural": "{{count}} habitaciones esperando inspección",
+      "accessRestricted": "{{count}} habitación con restricción de acceso",
+      "accessRestricted_plural": "{{count}} habitaciones con restricción de acceso"
+    },
+    "team": {
+      "title": "Pulso del equipo",
+      "shiftUnknown": "Estado de turnos no disponible",
+      "manage": "Asignaciones",
+      "statusOnShift": "En turno",
+      "statusOnBreak": "En descanso",
+      "statusEnded": "Turno terminado",
+      "statusNotClockedIn": "Sin registrar entrada",
+      "concernEnded": "Turno terminado · habitaciones abiertas",
+      "concernOver": "Carga alta",
+      "more": "+{{count}} más",
+      "empty": "Aún no hay habitaciones asignadas",
+      "emptyHint": "Asigna las habitaciones de hoy para ver el avance del equipo.",
+      "unavailable": "Datos del equipo no disponibles",
+      "onShift": "{{count}} en turno",
+      "onShift_plural": "{{count}} en turno",
+      "onShiftStale": "{{count}} en turno (último dato)",
+      "onShiftStale_plural": "{{count}} en turno (último dato)",
+      "progress": "{{done}} de {{count}} habitación completada",
+      "progress_plural": "{{done}} de {{count}} habitaciones completadas",
+      "withoutRooms": "{{count}} camarera/o sin habitaciones",
+      "withoutRooms_plural": "{{count}} camareras/os sin habitaciones"
+    },
+    "actions": {
+      "title": "Acciones rápidas",
+      "shiftNote": "Nota de turno",
+      "messageTeam": "Mensaje al equipo",
+      "messageStaff": "Mensaje a una persona",
+      "handoff": "Entrega de turno",
+      "pickerTitle": "¿A quién le escribes?",
+      "offline": "Sin conexión. Reconéctate para enviar.",
+      "staffUnavailable": "Lista de personal no disponible. Desliza hacia abajo para actualizar."
+    },
+    "status": {
+      "offline": "Sin conexión — mostrando los últimos datos conocidos",
+      "partial": "Parte de la información no se pudo cargar",
+      "retry": "Reintentar"
+    }
+  },
+  "supervisorAttention": {
+    "title": "Requiere su atención",
+    "subtitle": "Prioridades de limpieza que requieren revisión",
+    "back": "Volver a Hoy",
+    "itemCount": "{{count}} elemento",
+    "itemCount_plural": "{{count}} elementos",
+    "filterBarA11y": "Filtrar elementos de atención",
+    "filterA11y": "{{label}}, {{count}}",
+    "filterSelectedA11y": "{{label}}, {{count}}, seleccionado",
+    "filter": {
+      "all": "Todos",
+      "urgent": "Urgentes",
+      "rooms": "Habitaciones",
+      "team": "Equipo",
+      "inspect": "Inspección",
+      "issues": "Problemas",
+      "messages": "Mensajes"
+    },
+    "severity": {
+      "critical": "Urgente",
+      "high": "Prioridad alta",
+      "normal": "Pendiente"
+    },
+    "category": {
+      "rooms": "Habitaciones",
+      "team": "Equipo",
+      "inspect": "Inspección",
+      "issues": "Problemas",
+      "messages": "Mensajes"
+    },
+    "cardA11y": "{{severity}}. {{title}}. {{subtitle}}. Abre los detalles.",
+    "lastVerified": "Verificado por última vez a las {{time}}",
+    "loading": "Cargando elementos de atención",
+    "empty": {
+      "title": "Todo al día",
+      "body": "Ningún elemento de limpieza requiere su atención en este momento."
+    },
+    "filterEmpty": {
+      "title": "No hay elementos en esta categoría",
+      "body": "Nada en {{label}} requiere atención. Elija Todos para ver el resto.",
+      "showAll": "Ver todos"
+    },
+    "staleEmpty": {
+      "title": "Sin elementos en la última actualización",
+      "body": "Vuelva a conectarse o actualice para confirmarlo."
+    },
+    "unavailable": {
+      "title": "No se pudieron cargar los elementos",
+      "body": "Revise su conexión e inténtelo de nuevo.",
+      "retry": "Reintentar"
+    },
+    "partial": "No se pudo revisar parte de la información, por lo que esta lista puede estar incompleta.",
+    "partialSource": {
+      "board": "Los datos de habitaciones no están disponibles.",
+      "blockedTasks": "Los bloqueos de tareas no están disponibles.",
+      "roster": "Los registros de turno no están disponibles."
+    },
+    "offline": "Sin conexión — mostrando los últimos datos conocidos",
+    "forbidden": "No tiene acceso a parte de esta información.",
+    "sheet": {
+      "close": "Cerrar",
+      "whyHeading": "Por qué importa",
+      "detailsHeading": "Detalles",
+      "roomsHeading": "Habitaciones",
+      "sourceHeading": "Fuente",
+      "sourceLine": "De {{sources}}",
+      "sourceStale": "Esta es la última información conocida, no confirmada en este momento.",
+      "sourceStaleAt": "Esta es la última información conocida (verificada a las {{time}}), no confirmada en este momento.",
+      "moreRooms": "+{{count}} habitación más",
+      "moreRooms_plural": "+{{count}} habitaciones más",
+      "restriction": "Una restricción no es permiso para entrar. Consulte con la camarista o con recepción antes de atender esta habitación.",
+      "offlineNote": "Está sin conexión. Esta información puede estar desactualizada.",
+      "goneTitle": "Este elemento ya no está activo",
+      "goneBody": "Se resolvió o cambió. La lista se actualizó.",
+      "goneClose": "Volver a la lista"
+    },
+    "source": {
+      "board": "el tablero de habitaciones",
+      "staff": "la lista de personal",
+      "roster": "los registros de turno",
+      "inspections": "el historial de inspecciones",
+      "blockedTasks": "los bloqueos de tareas"
+    },
+    "action": {
+      "viewRoom": "Ver habitación",
+      "reviewRooms": "Revisar habitaciones",
+      "reviewAssignments": "Revisar asignaciones",
+      "openInspect": "Abrir Inspección",
+      "reviewTask": "Revisar tarea",
+      "openTeam": "Abrir Equipo",
+      "openNotifications": "Abrir Notificaciones"
+    },
+    "why": {
+      "arrival_at_risk": "Se espera un huésped pronto y esta habitación aún no está lista. Limpiarla e inspeccionarla antes de la llegada evita un registro demorado.",
+      "readiness_risk": "La predicción de disponibilidad indica que es poco probable que esta habitación esté lista a tiempo. Es una predicción, no un retraso confirmado.",
+      "task_blocker": "Un miembro del personal reportó un problema que detiene esta tarea. Sigue abierta hasta que alguien la resuelva.",
+      "shift_ended_with_open_rooms": "Esta camarista terminó su turno con habitaciones asignadas que aún necesitan limpieza. Quizá haya que reasignarlas.",
+      "workload_over_assigned": "Las habitaciones asignadas a esta camarista suman más trabajo que un turno estándar. Tal vez quiera redistribuirlas.",
+      "unassigned_rooms": "Estas habitaciones aún necesitan limpieza y nadie está asignado, así que no se empezarán hasta que alguien lo esté.",
+      "awaiting_inspection": "Limpieza marcó estas habitaciones como limpias. No están listas para huéspedes hasta que se inspeccionen.",
+      "access_restricted": "Estas habitaciones tienen No Molestar, así que no se pueden atender hasta que se quite la restricción.",
+      "message": "Un mensaje requiere su atención."
+    },
+    "fact": {
+      "status": "Estado: {{status}}",
+      "arrival": "Llegada prevista {{time}}",
+      "arrivalIn": "Llega en unos {{count}} min",
+      "arrivalPassed": "La llegada prevista fue hace unos {{count}} min",
+      "assignedTo": "Asignada a {{name}}",
+      "assignedUnknown": "Asignada a una camarista",
+      "notAssigned": "Sin asignar",
+      "prediction": "De la predicción de disponibilidad (no es un retraso confirmado)",
+      "task": "Tarea: {{task}}",
+      "room": "Habitación {{room}}",
+      "location": "Ubicación: {{location}}",
+      "blocker": "Problema: {{reason}}",
+      "blockerDetails": "Nota: {{details}}",
+      "taskOwner": "Responsable de la tarea: {{name}}",
+      "taskNoOwner": "La tarea aún no tiene responsable",
+      "reportedByAt": "Reportado por {{name}} a las {{time}}",
+      "reportedBy": "Reportado por {{name}}",
+      "reportedAt": "Reportado a las {{time}}",
+      "priority": {
+        "urgent": "Marcada como urgente",
+        "normal": "Prioridad normal",
+        "low": "Prioridad baja"
+      },
+      "clockedOut": "{{name}} terminó su turno",
+      "openRooms": "{{count}} habitación asignada sigue abierta",
+      "openRooms_plural": "{{count}} habitaciones asignadas siguen abiertas",
+      "estimatedWork": "Se estiman unos {{count}} min de limpieza",
+      "count": {
+        "unassigned_rooms": "{{count}} habitación sin camarista",
+        "unassigned_rooms_plural": "{{count}} habitaciones sin camarista",
+        "awaiting_inspection": "{{count}} habitación esperando inspección",
+        "awaiting_inspection_plural": "{{count}} habitaciones esperando inspección",
+        "access_restricted": "{{count}} habitación con No Molestar",
+        "access_restricted_plural": "{{count}} habitaciones con No Molestar"
+      }
+    },
+    "record": {
+      "status": "{{status}}",
+      "statusAssigned": "{{status}} · {{name}}",
+      "statusUnassigned": "{{status}} · Sin asignar",
+      "doNotDisturb": "No Molestar"
+    },
+    "a11y": {
+      "room": "Habitación {{label}}"
+    },
+    "roomBoard": {
+      "missingTitle": "Habitación fuera del tablero",
+      "missingBody": "Esa habitación ya no está en el tablero de hoy. Pudo haberse retirado o puede que no tenga acceso."
+    }
+  },
+  "supervisorCopilot": {
+    "title": "PatelRep AI",
+    "role": "Supervisor de ama de llaves",
+    "headerLabel": "PatelRep AI · Supervisor de ama de llaves",
+    "backToOverview": "Volver al resumen",
+    "overview": {
+      "heading": "Resumen del turno",
+      "ready": "{{ready}} de {{total}} habitaciones en servicio están listas.",
+      "awaitingInspection_one": "{{count}} habitación espera inspección.",
+      "awaitingInspection_other": "{{count}} habitaciones esperan inspección.",
+      "unassigned_one": "{{count}} habitación por limpiar no tiene camarera.",
+      "unassigned_other": "{{count}} habitaciones por limpiar no tienen camarera.",
+      "allAssigned": "Todas las habitaciones por limpiar tienen camarera.",
+      "boardUnknown": "No se pudo revisar el tablero de habitaciones, así que no se conocen los conteos.",
+      "inspectionResults": "Inspecciones de hoy: {{passed}} aprobadas, {{failed}} reprobadas.",
+      "inspectionsUnknown": "No se pudieron revisar los resultados de inspección."
+    },
+    "observations": {
+      "heading": "Requiere su atención",
+      "none": "Nada requiere atención en las fuentes revisadas.",
+      "noneChecked": "No se encontraron problemas en lo que se pudo revisar. Algunas fuentes no están disponibles, así que esto no es una confirmación total."
+    },
+    "suggestions": {
+      "heading": "Próximos pasos sugeridos",
+      "draftTask": "Preparar una tarea de seguimiento para la habitación {{room}}",
+      "openHint": "Abre la pantalla. No cambia nada.",
+      "draftHint": "Abre un borrador editable. No se crea nada hasta que confirme."
+    },
+    "quick": {
+      "heading": "Acciones rápidas",
+      "rooms": "Revisar habitaciones prioritarias",
+      "unassigned": "Revisar habitaciones sin asignar",
+      "inspections": "Revisar inspecciones pendientes",
+      "blocked": "Revisar tareas bloqueadas",
+      "task": "Preparar tarea de seguimiento"
+    },
+    "sources": {
+      "heading": "Basado en",
+      "board": "Tablero de habitaciones",
+      "staff": "Lista de personal",
+      "roster": "Rol de turnos",
+      "inspections": "Registros de inspección",
+      "blockedTasks": "Bloqueos de tareas",
+      "verified": "{{name}} · verificado {{time}}",
+      "stale": "{{name}} · última verificación {{time}}",
+      "loading": "{{name}} · cargando",
+      "unavailable": "{{name}} · no disponible",
+      "notChecked": "No se pudo revisar: {{sources}}. Se desconocen; no son cero."
+    },
+    "context": {
+      "about": "Preguntando por la habitación {{room}}",
+      "gone": "La habitación {{room}} ya no está en el tablero",
+      "clear": "Dejar de preguntar por esta habitación"
+    },
+    "draft": {
+      "title": "Seguimiento de la habitación {{room}}",
+      "question": "Preparar una tarea de seguimiento para la habitación {{room}}",
+      "answer": "Este es un borrador de tarea para la habitación {{room}}. Revíselo y edítelo. No se crea nada hasta que confirme.",
+      "reason": {
+        "arrival_at_risk": "La habitación {{room}} no está lista y se espera una llegada pronto. Revise su estado y prepárela.",
+        "readiness_risk": "La habitación {{room}} no está lista. Revise su estado y dé seguimiento.",
+        "general": "Dar seguimiento a la habitación {{room}}."
+      }
+    },
+    "taskHint": {
+      "chip": "Borrador de tarea",
+      "placeholder": "Describa la tarea que preparar…",
+      "clear": "Cancelar borrador de tarea"
+    },
+    "ai": {
+      "heading": "Resumen con IA",
+      "ask": "Resumir con IA",
+      "refresh": "Actualizar resumen",
+      "retry": "Intentar de nuevo",
+      "pending": "Escribiendo resumen…",
+      "interpretation": "Redacción con IA de las cifras de arriba. Las cifras son los hechos.",
+      "writtenAt": "Escrito {{time}}",
+      "creditsUsed": "{{credits}} créditos de IA usados",
+      "outdated": "Las cifras cambiaron desde que se escribió esto. Actualice para ponerlo al día.",
+      "costNote": "Usa créditos de IA, solo cuando usted toca.",
+      "noBoard": "Disponible cuando cargue el tablero de habitaciones.",
+      "disabled": "Los resúmenes con IA no están activados en su hotel. El resumen de arriba siempre está disponible.",
+      "failure": {
+        "offline": "Sin conexión. No se envió nada.",
+        "disabled": "Los resúmenes con IA no están activados en su hotel.",
+        "credit_limit": "Este hotel usó sus créditos de IA del mes. Consulte con su gerente.",
+        "rate_limited": "Demasiadas solicitudes. Espere un momento e intente de nuevo.",
+        "unavailable": "La IA no está disponible ahora. El resumen de arriba no se ve afectado.",
+        "invalid": "No se pudo verificar el resumen con las cifras, así que no se mostró.",
+        "cooldown": "Espere un momento antes de volver a pedirlo.",
+        "no_data": "Aún no hay nada verificado que resumir."
+      }
+    },
+    "handoff": {
+      "help": "Ayuda con las notas",
+      "helpHint": "Escribe un borrador con las cifras verificadas de hoy. Usa créditos de IA, solo cuando usted toca.",
+      "pending": "Redactando notas…",
+      "needsFresh": "Actualice las cifras primero para que el borrador refleje lo verificado ahora.",
+      "heading": "Notas sugeridas",
+      "disclosure": "Escrito por IA con las cifras de arriba. Edítelo antes de usarlo. No se envía nada por usted.",
+      "use": "Agregar a mis notas",
+      "discard": "Descartar",
+      "creditsUsed": "{{credits}} créditos de IA usados",
+      "tooLong": "Sus notas quedarían demasiado largas con este borrador. Acorte sus notas o descarte el borrador.",
+      "failure": {
+        "offline": "Sin conexión. Escriba las notas usted o intente más tarde.",
+        "disabled": "La redacción con IA no está activada en su hotel. Puede escribir las notas usted.",
+        "credit_limit": "Este hotel usó sus créditos de IA del mes. Puede escribir las notas usted.",
+        "rate_limited": "Demasiadas solicitudes. Espere un momento e intente de nuevo.",
+        "unavailable": "La IA no está disponible ahora. Puede escribir las notas usted.",
+        "invalid": "No se pudo verificar el borrador con las cifras, así que no se mostró.",
+        "cooldown": "Espere un momento antes de volver a pedirlo.",
+        "no_data": "Aún no hay nada verificado para redactar."
+      }
+    },
+    "attention": {
+      "ask": "Preguntar a PatelRep sobre esta habitación"
     }
   }
 }

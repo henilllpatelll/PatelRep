@@ -3906,6 +3906,230 @@
     "lateCoNoTime": "Late checkout requested — time not specified",
     "vipBadge": "VIP"
   },
+  "supervisorHandoff": {
+    "title": "Shift handoff",
+    "subtitle": "Review today's housekeeping results and unfinished work.",
+    "close": "Close handoff",
+    "steps": {
+      "prepare": "Prepare",
+      "review": "Review",
+      "confirm": "Confirm"
+    },
+    "stepLabel": "Step {{current}} of {{total}}: {{name}}",
+    "summary": {
+      "title": "Housekeeping summary",
+      "scope": "Room counts are as of now. Inspections are the ones completed today.",
+      "ready": "Ready rooms",
+      "readyOf": "of {{count}} in service",
+      "passed": "Passed inspections",
+      "failed": "Failed inspections",
+      "conditional": "Conditional inspections",
+      "awaiting": "Awaiting inspection",
+      "inProgress": "In progress",
+      "toClean": "To clean",
+      "outOfOrder": "Out of order",
+      "unverified": "Not verified"
+    },
+    "unfinished": {
+      "title": "Unfinished work",
+      "none": "Nothing unfinished was found.",
+      "awaiting": "{{count}} room awaiting inspection",
+      "awaiting_plural": "{{count}} rooms awaiting inspection",
+      "unassigned": "{{count}} unassigned room",
+      "unassigned_plural": "{{count}} unassigned rooms",
+      "blocked": "{{count}} blocked housekeeping task",
+      "blocked_plural": "{{count}} blocked housekeeping tasks",
+      "blockedUnverified": "Blocked tasks could not be checked, so none are listed.",
+      "rooms": "Rooms: {{rooms}}",
+      "moreRooms": "+{{count}} more"
+    },
+    "notes": {
+      "label": "Supervisor notes",
+      "placeholder": "Add important information for the next shift, including priority rooms, unresolved issues, and follow-up instructions.",
+      "counter": "{{count}} / {{max}}",
+      "none": "No notes added."
+    },
+    "actions": {
+      "review": "Review handoff",
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "backToEdit": "Back to edit",
+      "submit": "Submit handoff",
+      "backToReview": "Back to review",
+      "refresh": "Refresh figures",
+      "checkAgain": "Check again",
+      "done": "Done",
+      "viewReport": "View saved report",
+      "notifyAgain": "Try notifying managers again",
+      "edit": "Edit"
+    },
+    "review": {
+      "hint": "Check what will be saved. These figures come from live records and can't be edited here.",
+      "meta": "Report details",
+      "date": "Hotel date",
+      "covers": "Daily handoff for the whole hotel day, not one person's shift",
+      "supervisor": "Submitted by",
+      "asOf": "Data as of",
+      "ack": "I have reviewed this handoff and the outstanding work.",
+      "changed": "These changed while you were reviewing: {{what}}. Look them over and confirm again.",
+      "changes": {
+        "rooms": "room counts",
+        "inspections": "inspection results",
+        "unresolved": "unfinished work",
+        "date": "report date"
+      }
+    },
+    "confirm": {
+      "title": "Submit shift handoff?",
+      "description": "This report will be saved to the housekeeping logbook for authorized management to review.",
+      "records": "It records a summary of today's housekeeping and any notes you added.",
+      "open": "Outstanding tasks stay open, pending inspections stay pending, and unassigned rooms stay unassigned.",
+      "clock": "You are not clocked out by submitting."
+    },
+    "saved": {
+      "title": "Handoff submitted",
+      "body": "Your housekeeping shift report has been saved.",
+      "previously": "This handoff was already submitted. Here is the saved report.",
+      "reference": "Report reference",
+      "savedAt": "Saved at",
+      "date": "Hotel date",
+      "stillOpen": "Unfinished work stays open. Submitting did not clock you out.",
+      "managersComplete": "Managers were notified.",
+      "managersNone": "There were no managers to notify.",
+      "managersFailed": "Saved, but managers could not be notified yet.",
+      "managersUnknown": "Saved. Whether managers were notified is not confirmed."
+    },
+    "blockers": {
+      "boardLoading": "Loading room data…",
+      "boardUnavailable": "Room data could not be loaded.",
+      "boardStale": "Room data isn't current.",
+      "inspectionsLoading": "Loading inspection results…",
+      "inspectionsUnavailable": "Inspection results could not be verified.",
+      "inspectionsStale": "Inspection results aren't current.",
+      "dayMismatch": "The figures come from different days. Refresh to continue.",
+      "offline": "Connect to the internet to submit this handoff.",
+      "hint": "Refresh the figures to continue."
+    },
+    "failure": {
+      "countsChanged": "Inspection results changed while you were reviewing. The figures were refreshed — review them again.",
+      "departmentMissing": "Housekeeping department could not be identified.",
+      "departmentAmbiguous": "This hotel has more than one Housekeeping department, so the report can't be filed.",
+      "dateOutOfRange": "This handoff's date is no longer valid. Refresh and review again.",
+      "forbidden": "You don't have permission to submit shift handoffs.",
+      "signedOut": "Your session ended. Sign in again; your note is kept.",
+      "rejected": "The server couldn't accept this handoff. Check it and try again.",
+      "unconfirmed": "We couldn't confirm whether this handoff was saved. It has not been sent again.",
+      "verifying": "Checking whether it was saved…",
+      "verifyFailed": "Couldn't check yet. Your note is kept — check again when you're online.",
+      "notSaved": "It was not saved. You can submit again safely.",
+      "notifyFailed": "Managers still could not be notified. Try again later."
+    }
+  },
+  "supervisorComms": {
+    "offline": "You're offline. Reconnect to send. Your draft is kept.",
+    "count": "{{count}} / {{max}}",
+    "retry": "Try again",
+    "errors": {
+      "rejected": "The server couldn't accept this. Check it and try again.",
+      "forbidden": "Your account isn't allowed to do this.",
+      "signedOut": "Your session ended. Sign in again. Your draft stays here until you close this.",
+      "unconfirmed": "We didn't get an answer, so it may already have been sent. Check before sending again. Your draft is kept."
+    },
+    "note": {
+      "title": "Add shift note",
+      "sub": "Record an important update for your team or the next shift.",
+      "label": "Note",
+      "placeholder": "Room 308 requires priority inspection before the next arrival...",
+      "department": "Filed under {{department}}",
+      "departmentName": "Housekeeping",
+      "departmentLoading": "Finding your Housekeeping logbook...",
+      "departmentFailed": "Couldn't load your hotel's departments, so the note can't be filed yet.",
+      "departmentMissing": "This hotel has no Housekeeping department, so a note can't be filed. Ask a manager to set one up.",
+      "departmentAmbiguous": "This hotel has more than one Housekeeping department, so the app can't tell which logbook to use.",
+      "save": "Save note",
+      "saved": "Shift note saved."
+    },
+    "team": {
+      "title": "Message team",
+      "audienceLabel": "Sends to",
+      "audience": "All active housekeeper accounts at this hotel",
+      "audienceHint": "Added to each person's notification inbox. It isn't limited to who is clocked in, and the app can't tell you who has read it.",
+      "templatesLabel": "Quick messages",
+      "templates": {
+        "assignments": "Check your updated assignments.",
+        "priority": "Please review priority rooms.",
+        "shift": "Shift reminder.",
+        "checkOut": "Check with your supervisor before leaving."
+      },
+      "label": "Message",
+      "placeholder": "Write a message for the whole team...",
+      "send": "Send message",
+      "delivered": "Message added to {{count}} housekeeper inbox.",
+      "delivered_plural": "Message added to {{count}} housekeeper inboxes.",
+      "deliveredUnknown": "Message sent. The server didn't report how many inboxes it reached.",
+      "nobody": "There are no active housekeeper accounts to send to, so nothing was sent."
+    },
+    "dm": {
+      "title": "Message staff member",
+      "to": "To",
+      "hint": "Goes to their notification inbox. You won't see whether they've read it.",
+      "label": "Message",
+      "placeholder": "e.g. Skip 207, start 310 first",
+      "send": "Send message",
+      "sent": "Message sent to {{name}}.",
+      "noRecipient": "Choose who to message first."
+    },
+    "picker": {
+      "title": "Message who?",
+      "search": "Search by name",
+      "searchLabel": "Search staff by name",
+      "loading": "Loading your staff...",
+      "failed": "Couldn't load your staff list.",
+      "forbidden": "Your account can't see the staff list.",
+      "empty": "No other active housekeeping staff accounts found.",
+      "noResults": "No one matches \"{{query}}\".",
+      "rooms": "{{count}} room today",
+      "rooms_plural": "{{count}} rooms today",
+      "noRooms": "No rooms today",
+      "pickA11y": "Message {{name}}. {{role}}. {{status}}"
+    },
+    "quick": {
+      "title": "Staff member",
+      "gone": "This person is no longer on your team list.",
+      "goneClose": "Close",
+      "statusUnknown": "Availability unknown",
+      "rosterStale": "Shift status is the last known, not confirmed now.",
+      "rosterUnknown": "Shift status couldn't be confirmed.",
+      "roles": {
+        "housekeeper": "Housekeeper",
+        "housekeeping_supervisor": "Housekeeping supervisor"
+      },
+      "assigned": "{{count}} room assigned",
+      "assigned_plural": "{{count}} rooms assigned",
+      "cleaned": "Cleaned",
+      "cleanedHint": "Cleaning submitted or inspected",
+      "inspected": "Passed inspection",
+      "awaiting": "Awaiting inspection",
+      "remaining": "Remaining",
+      "progress": "{{done}} of {{count}} room cleaned",
+      "progress_plural": "{{done}} of {{count}} rooms cleaned",
+      "remainingTitle": "Remaining rooms",
+      "moreRooms": "+{{count}} more room",
+      "moreRooms_plural": "+{{count}} more rooms",
+      "noRooms": "No rooms assigned today.",
+      "allCleaned": "Every assigned room has been cleaned.",
+      "vip": "VIP",
+      "dnd": "Do not disturb",
+      "status": {
+        "DIRTY": "To clean",
+        "OCCUPIED": "To clean",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "Cleaning now"
+      },
+      "message": "Message",
+      "viewAll": "View all assignments"
+    }
+  },
   "supervisorTools": {
     "messageTeamTitle": "Message Team",
     "messageTeamSub": "Sends to all housekeeping staff on shift",
@@ -3916,6 +4140,12 @@
     "avgMinutes": "~{{min}}m"
   },
   "logbook": {
+    "report": {
+      "title": "Saved report",
+      "missing": "Report not found",
+      "missingBody": "It may have been removed, or it belongs to another hotel.",
+      "error": "Couldn't load this report."
+    },
     "title": "Shift Logbook",
     "newEntry": "New Entry",
     "aiSummary": "AI Shift Summary",
@@ -3992,19 +4222,6 @@
     "send": "Send",
     "sending": "Sending…",
     "sendError": "Could not send message. Try again."
-  },
-  "endShift": {
-    "shortLabel": "End Shift",
-    "title": "End-of-Shift Summary",
-    "subtitle": "This summary will be sent to the GM.",
-    "statReady": "Ready",
-    "statSubmitted": "Submitted",
-    "statOoo": "OOO",
-    "notesLabel": "Supervisor notes",
-    "notesPlaceholder": "Anything for the incoming shift…",
-    "submit": "Submit Summary",
-    "submitting": "Submitting…",
-    "submitError": "Could not submit summary. Try again."
   },
   "picker": {
     "title": "Assign Room {{room}}",
@@ -4430,6 +4647,390 @@
         "offline": "Offline",
         "unavailable": "Unavailable"
       }
+    }
+  },
+  "supervisorToday": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "morningName": "Good morning, {{name}}",
+      "afternoonName": "Good afternoon, {{name}}",
+      "eveningName": "Good evening, {{name}}"
+    },
+    "header": {
+      "profile": "Open profile"
+    },
+    "readiness": {
+      "title": "Room readiness",
+      "ready": "{{ready}} / {{total}} ready",
+      "a11y": "{{ready}} of {{total}} in-service rooms ready",
+      "outOfOrder": "{{count}} out-of-order room not counted",
+      "outOfOrder_plural": "{{count}} out-of-order rooms not counted",
+      "toClean": "To clean",
+      "working": "Working",
+      "inspect": "Inspect",
+      "unavailable": "Room data unavailable",
+      "unavailableHint": "We couldn't load the room board. Try again.",
+      "empty": "No rooms on the board yet.",
+      "emptyHint": "Rooms appear after the morning import.",
+      "open": "Open Room Board",
+      "loading": "Loading rooms"
+    },
+    "freshness": {
+      "justNow": "Updated just now",
+      "minutes": "Updated {{count}} minute ago",
+      "minutes_plural": "Updated {{count}} minutes ago",
+      "offline": "Offline — last updated {{time}}",
+      "refreshFailed": "Couldn't refresh — last updated {{time}}",
+      "age": "Last updated {{time}}",
+      "updating": "Updating…"
+    },
+    "attention": {
+      "title": "Needs your attention",
+      "viewAll": "View all",
+      "more": "{{count}} more item",
+      "more_plural": "{{count}} more items",
+      "caughtUp": "You're all caught up.",
+      "caughtUpHint": "No urgent housekeeping items need your attention right now.",
+      "staleEmpty": "No items as of the last update.",
+      "staleEmptyHint": "Reconnect or refresh to confirm.",
+      "incomplete": "Couldn't check everything",
+      "incompleteHint": "Some data didn't load, so this list may be incomplete.",
+      "urgent": "Urgent",
+      "high": "High priority",
+      "roomNeedsAttention": "Room {{room}} needs attention",
+      "arrivalAt": "Arrival expected {{time}} · Not ready",
+      "arrivalNotReady": "Arrival today · Not ready",
+      "roomAtRisk": "Room {{room}} may not be ready",
+      "roomAtRiskHint": "Flagged high risk by readiness prediction",
+      "taskBlocked": "{{task}} is blocked",
+      "shiftEndedTitle": "{{name}} clocked out",
+      "shiftEndedHint": "{{count}} assigned room still open",
+      "shiftEndedHint_plural": "{{count}} assigned rooms still open",
+      "overAssignedTitle": "{{name}} may be overloaded",
+      "overAssignedHint": "Assigned work exceeds a standard shift",
+      "unassigned": "{{count}} room unassigned",
+      "unassigned_plural": "{{count}} rooms unassigned",
+      "unassignedHint": "Review team assignments",
+      "awaitingInspection": "{{count}} room awaiting inspection",
+      "awaitingInspection_plural": "{{count}} rooms awaiting inspection",
+      "awaitingInspectionHint": "Open inspection queue",
+      "accessRestricted": "{{count}} room with an access restriction",
+      "accessRestricted_plural": "{{count}} rooms with access restrictions",
+      "accessRestrictedHint": "Do not disturb — check before servicing",
+      "someone": "A housekeeper"
+    },
+    "team": {
+      "title": "Team pulse",
+      "onShift": "{{count}} on shift",
+      "onShift_plural": "{{count}} on shift",
+      "onShiftStale": "{{count}} on shift (last known)",
+      "onShiftStale_plural": "{{count}} on shift (last known)",
+      "shiftUnknown": "Shift status unavailable",
+      "manage": "Assignments",
+      "progress": "{{done}} of {{count}} room completed",
+      "progress_plural": "{{done}} of {{count}} rooms completed",
+      "statusOnShift": "On shift",
+      "statusOnBreak": "On break",
+      "statusEnded": "Clocked out",
+      "statusNotClockedIn": "Not clocked in",
+      "concernEnded": "Clocked out · rooms open",
+      "concernOver": "Heavy load",
+      "more": "+{{count}} more",
+      "withoutRooms": "{{count}} housekeeper has no rooms",
+      "withoutRooms_plural": "{{count}} housekeepers have no rooms",
+      "empty": "No rooms assigned yet",
+      "emptyHint": "Assign today's rooms to see team progress.",
+      "unavailable": "Team data unavailable"
+    },
+    "actions": {
+      "title": "Quick actions",
+      "shiftNote": "Shift note",
+      "messageTeam": "Message team",
+      "messageStaff": "Message staff",
+      "handoff": "Shift handoff",
+      "pickerTitle": "Message who?",
+      "offline": "You're offline. Reconnect to send.",
+      "staffUnavailable": "Staff list unavailable. Pull down to refresh."
+    },
+    "status": {
+      "offline": "Offline — showing last known data",
+      "partial": "Some information couldn't be loaded",
+      "retry": "Retry"
+    }
+  },
+  "supervisorAttention": {
+    "title": "Needs your attention",
+    "subtitle": "Housekeeping priorities requiring review",
+    "back": "Back to Today",
+    "itemCount": "{{count}} item",
+    "itemCount_plural": "{{count}} items",
+    "filterBarA11y": "Filter attention items",
+    "filterA11y": "{{label}}, {{count}}",
+    "filterSelectedA11y": "{{label}}, {{count}}, selected",
+    "filter": {
+      "all": "All",
+      "urgent": "Urgent",
+      "rooms": "Rooms",
+      "team": "Team",
+      "inspect": "Inspect",
+      "issues": "Issues",
+      "messages": "Messages"
+    },
+    "severity": {
+      "critical": "Urgent",
+      "high": "High priority",
+      "normal": "Pending"
+    },
+    "category": {
+      "rooms": "Rooms",
+      "team": "Team",
+      "inspect": "Inspect",
+      "issues": "Issues",
+      "messages": "Messages"
+    },
+    "cardA11y": "{{severity}}. {{title}}. {{subtitle}}. Opens details.",
+    "lastVerified": "Last verified {{time}}",
+    "loading": "Loading attention items",
+    "empty": {
+      "title": "You're all caught up",
+      "body": "No housekeeping items need your attention right now."
+    },
+    "filterEmpty": {
+      "title": "No items in this category",
+      "body": "Nothing in {{label}} needs attention. Choose All to see everything else.",
+      "showAll": "Show all"
+    },
+    "staleEmpty": {
+      "title": "No items as of the last update",
+      "body": "Reconnect or refresh to confirm."
+    },
+    "unavailable": {
+      "title": "Couldn't load attention items",
+      "body": "Check your connection and try again.",
+      "retry": "Retry"
+    },
+    "partial": "Some information couldn't be checked, so this list may be incomplete.",
+    "partialSource": {
+      "board": "Room data is unavailable.",
+      "blockedTasks": "Task blockers are unavailable.",
+      "roster": "Shift check-ins are unavailable."
+    },
+    "offline": "Offline — showing the last known data",
+    "forbidden": "You don't have access to some of this information.",
+    "sheet": {
+      "close": "Close",
+      "whyHeading": "Why this matters",
+      "detailsHeading": "Details",
+      "roomsHeading": "Rooms",
+      "sourceHeading": "Source",
+      "sourceLine": "From {{sources}}",
+      "sourceStale": "This is the last known information, not confirmed just now.",
+      "sourceStaleAt": "This is the last known information (verified {{time}}), not confirmed just now.",
+      "moreRooms": "+{{count}} more room",
+      "moreRooms_plural": "+{{count}} more rooms",
+      "restriction": "A restriction is not permission to enter. Check with the housekeeper or front desk before servicing this room.",
+      "offlineNote": "You're offline. This information may be out of date.",
+      "goneTitle": "This item is no longer active",
+      "goneBody": "It was resolved or changed. The list has been updated.",
+      "goneClose": "Back to the list"
+    },
+    "source": {
+      "board": "the room board",
+      "staff": "the staff list",
+      "roster": "shift check-ins",
+      "inspections": "inspection history",
+      "blockedTasks": "task blockers"
+    },
+    "action": {
+      "viewRoom": "View room",
+      "reviewRooms": "Review rooms",
+      "reviewAssignments": "Review assignments",
+      "openInspect": "Open Inspect",
+      "reviewTask": "Review task",
+      "openTeam": "Open Team",
+      "openNotifications": "Open Notifications"
+    },
+    "why": {
+      "arrival_at_risk": "A guest is expected soon and this room is not guest-ready yet. Getting it cleaned and inspected before arrival avoids a delayed check-in.",
+      "readiness_risk": "The readiness prediction flagged this room as unlikely to be ready in time. It is a prediction, not a confirmed delay.",
+      "task_blocker": "A staff member reported a problem that is stopping this task. It stays open until someone resolves it.",
+      "shift_ended_with_open_rooms": "This housekeeper clocked out while rooms assigned to them still need cleaning. Those rooms may need to be reassigned.",
+      "workload_over_assigned": "The rooms assigned to this housekeeper add up to more than a standard shift of work. You may want to rebalance.",
+      "unassigned_rooms": "These rooms still need cleaning and nobody is assigned to them, so they will not be started until someone is.",
+      "awaiting_inspection": "Housekeeping marked these rooms clean. They are not guest-ready until they are inspected.",
+      "access_restricted": "Do Not Disturb is set on these rooms, so they cannot be serviced until the restriction is cleared.",
+      "message": "A message needs your attention."
+    },
+    "fact": {
+      "status": "Status: {{status}}",
+      "arrival": "Expected arrival {{time}}",
+      "arrivalIn": "Arrives in about {{count}} min",
+      "arrivalPassed": "Expected arrival was about {{count}} min ago",
+      "assignedTo": "Assigned to {{name}}",
+      "assignedUnknown": "Assigned to a housekeeper",
+      "notAssigned": "Not assigned to anyone",
+      "prediction": "From the readiness prediction (not a confirmed delay)",
+      "task": "Task: {{task}}",
+      "room": "Room {{room}}",
+      "location": "Location: {{location}}",
+      "blocker": "Problem: {{reason}}",
+      "blockerDetails": "Note: {{details}}",
+      "taskOwner": "Task owner: {{name}}",
+      "taskNoOwner": "Task has no owner yet",
+      "reportedByAt": "Reported by {{name}} at {{time}}",
+      "reportedBy": "Reported by {{name}}",
+      "reportedAt": "Reported at {{time}}",
+      "priority": {
+        "urgent": "Marked urgent",
+        "normal": "Normal priority",
+        "low": "Low priority"
+      },
+      "clockedOut": "{{name}} has clocked out",
+      "openRooms": "{{count}} assigned room still open",
+      "openRooms_plural": "{{count}} assigned rooms still open",
+      "estimatedWork": "About {{count}} min of cleaning estimated",
+      "count": {
+        "unassigned_rooms": "{{count}} room has no housekeeper",
+        "unassigned_rooms_plural": "{{count}} rooms have no housekeeper",
+        "awaiting_inspection": "{{count}} room waiting for an inspector",
+        "awaiting_inspection_plural": "{{count}} rooms waiting for an inspector",
+        "access_restricted": "{{count}} room with Do Not Disturb",
+        "access_restricted_plural": "{{count}} rooms with Do Not Disturb"
+      }
+    },
+    "record": {
+      "status": "{{status}}",
+      "statusAssigned": "{{status}} · {{name}}",
+      "statusUnassigned": "{{status}} · Not assigned",
+      "doNotDisturb": "Do Not Disturb"
+    },
+    "a11y": {
+      "room": "Room {{label}}"
+    },
+    "roomBoard": {
+      "missingTitle": "Room not on the board",
+      "missingBody": "That room isn't on today's board any more. It may have been removed or you may not have access."
+    }
+  },
+  "supervisorCopilot": {
+    "title": "PatelRep AI",
+    "role": "Housekeeping Supervisor",
+    "headerLabel": "PatelRep AI · Housekeeping Supervisor",
+    "backToOverview": "Back to overview",
+    "overview": {
+      "heading": "Shift overview",
+      "ready": "{{ready}} of {{total}} in-service rooms are ready.",
+      "awaitingInspection_one": "{{count}} room is waiting for inspection.",
+      "awaitingInspection_other": "{{count}} rooms are waiting for inspection.",
+      "unassigned_one": "{{count}} room that needs cleaning has no housekeeper.",
+      "unassigned_other": "{{count}} rooms that need cleaning have no housekeeper.",
+      "allAssigned": "Every room that needs cleaning has a housekeeper.",
+      "boardUnknown": "The room board could not be checked, so room counts are unknown.",
+      "inspectionResults": "Inspections today: {{passed}} passed, {{failed}} failed.",
+      "inspectionsUnknown": "Inspection results could not be checked."
+    },
+    "observations": {
+      "heading": "Worth your attention",
+      "none": "Nothing needs attention in the sources checked.",
+      "noneChecked": "No issues found in what could be checked. Some sources are unavailable, so this is not an all-clear."
+    },
+    "suggestions": {
+      "heading": "Suggested next steps",
+      "draftTask": "Prepare a follow-up task for room {{room}}",
+      "openHint": "Opens the screen. Nothing changes.",
+      "draftHint": "Opens an editable draft. Nothing is created until you confirm."
+    },
+    "quick": {
+      "heading": "Quick actions",
+      "rooms": "Review priority rooms",
+      "unassigned": "Review unassigned rooms",
+      "inspections": "Review pending inspections",
+      "blocked": "Review blocked tasks",
+      "task": "Prepare follow-up task"
+    },
+    "sources": {
+      "heading": "Based on",
+      "board": "Room board",
+      "staff": "Staff list",
+      "roster": "Shift roster",
+      "inspections": "Inspection records",
+      "blockedTasks": "Task blockers",
+      "verified": "{{name}} · verified {{time}}",
+      "stale": "{{name}} · last verified {{time}}",
+      "loading": "{{name}} · loading",
+      "unavailable": "{{name}} · not available",
+      "notChecked": "Could not check: {{sources}}. These are unknown, not zero."
+    },
+    "context": {
+      "about": "Asking about room {{room}}",
+      "gone": "Room {{room}} is no longer on the board",
+      "clear": "Stop asking about this room"
+    },
+    "draft": {
+      "title": "Follow up on room {{room}}",
+      "question": "Prepare a follow-up task for room {{room}}",
+      "answer": "Here is a draft task for room {{room}}. Review and edit it. Nothing is created until you confirm.",
+      "reason": {
+        "arrival_at_risk": "Room {{room}} is not ready and a guest arrival is expected soon. Check its status and get it ready.",
+        "readiness_risk": "Room {{room}} is not ready. Check its status and follow up.",
+        "general": "Follow up on room {{room}}."
+      }
+    },
+    "taskHint": {
+      "chip": "Task draft",
+      "placeholder": "Describe the task to prepare…",
+      "clear": "Cancel task draft"
+    },
+    "ai": {
+      "heading": "AI summary",
+      "ask": "Summarize with AI",
+      "refresh": "Refresh summary",
+      "retry": "Try again",
+      "pending": "Writing summary…",
+      "interpretation": "AI wording of the figures above. The figures are the facts.",
+      "writtenAt": "Written {{time}}",
+      "creditsUsed": "{{credits}} AI credits used",
+      "outdated": "The figures have changed since this was written. Refresh to update it.",
+      "costNote": "Uses AI credits, only when you tap.",
+      "noBoard": "Available once the room board has loaded.",
+      "disabled": "AI summaries are not turned on for your hotel. The overview above is always available.",
+      "failure": {
+        "offline": "You are offline. Nothing was sent.",
+        "disabled": "AI summaries are not turned on for your hotel.",
+        "credit_limit": "This hotel has used its AI credits for the month. Ask your manager.",
+        "rate_limited": "Too many requests. Wait a moment and try again.",
+        "unavailable": "AI is unavailable right now. The overview above is unaffected.",
+        "invalid": "The summary could not be verified against the figures, so it was not shown.",
+        "cooldown": "Please wait a moment before asking again.",
+        "no_data": "There is nothing verified to summarize yet."
+      }
+    },
+    "handoff": {
+      "help": "Help draft notes",
+      "helpHint": "Writes a draft from today's verified figures. Uses AI credits, only when you tap.",
+      "pending": "Drafting notes…",
+      "needsFresh": "Refresh the figures first so the draft reflects what is verified now.",
+      "heading": "Suggested notes",
+      "disclosure": "Written by AI from the figures above. Edit before using. Nothing is submitted for you.",
+      "use": "Add to my notes",
+      "discard": "Discard",
+      "creditsUsed": "{{credits}} AI credits used",
+      "tooLong": "Your notes would be too long with this draft. Shorten your notes or discard the draft.",
+      "failure": {
+        "offline": "You are offline. Write the notes yourself or try again later.",
+        "disabled": "AI drafting is not turned on for your hotel. You can write the notes yourself.",
+        "credit_limit": "This hotel has used its AI credits for the month. You can write the notes yourself.",
+        "rate_limited": "Too many requests. Wait a moment and try again.",
+        "unavailable": "AI is unavailable right now. You can write the notes yourself.",
+        "invalid": "The draft could not be verified against the figures, so it was not shown.",
+        "cooldown": "Please wait a moment before asking again.",
+        "no_data": "There is nothing verified to draft from yet."
+      }
+    },
+    "attention": {
+      "ask": "Ask PatelRep about this room"
     }
   }
 }

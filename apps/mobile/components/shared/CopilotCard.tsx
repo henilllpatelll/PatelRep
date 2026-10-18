@@ -1,42 +1,51 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { darkTheme } from "@/components/shared/tokens";
 import { AssistantMessageView } from "@/components/ai/AssistantMessageView";
+import { ActionConfirmPanel } from "@/components/ai/ActionConfirmPanel";
+import { SupervisorCopilotBody } from "@/components/ai/SupervisorCopilotBody";
 import type { CopilotCardBrief } from "@/lib/ai/copilotCard";
+import type { SupervisorCopilotController } from "@/lib/ai/useSupervisorCopilot";
 import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
 
 const CARD_WIDTH = 306;
 const THREAD_MAX_HEIGHT = 260;
 
-export function CopilotCard({
-  onClose,
-  insetsBottom,
-  brief,
-  loading,
-  error,
-  reload,
-}: {
+export interface CopilotCardProps {
   onClose: () => void;
   insetsBottom: number;
   brief: CopilotCardBrief | null;
   loading: boolean;
   error: boolean;
   reload: () => void;
-}) {
+  /** Present only for the housekeeping supervisor: the overview replaces the generic brief, in this same card. */
+  supervisor?: SupervisorCopilotController;
+}
+
+export function CopilotCard({ onClose, insetsBottom, brief, loading, error, reload, supervisor }: CopilotCardProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
-  // The same controller the full-screen chat uses; the card's conversation is not saved.
-  const conversation = useAssistantConversation({ persist: false });
+  const inputRef = useRef<TextInput>(null);
+  // The same controller the full-screen chat uses; the card's conversation is not saved. A verified room in
+  // context is re-checked by the server before any message uses it.
+  const conversation = useAssistantConversation({ persist: false, context: supervisor?.chatContext });
   const { messages, sending, online, send } = conversation;
   const [input, setInput] = useState("");
+  // Supervisors use the same review/edit/confirm panel as the unified assistant. The compact card only
+  // opens it; it never creates a record from the initial proposed-action card.
+  const [reviewTarget, setReviewTarget] = useState<{ messageId: string; actionId: string } | null>(null);
+  // "Prepare follow-up task" with no room: the next message is a task description, not a free question.
+  const [taskHint, setTaskHint] = useState(false);
 
   function sendMessage(text: string) {
     if (!text.trim() || sending) return;
     setInput("");
-    void send(text);
+    const hinted = taskHint;
+    setTaskHint(false);
+    void send(text, hinted ? { intentHint: "task_creation" } : undefined);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }
 
@@ -59,6 +68,16 @@ export function CopilotCard({
 
   const chatting = messages.length > 0;
   const canSend = online && !sending && input.trim().length > 0;
+  const reviewedAction = useMemo(() => {
+    if (!reviewTarget) return null;
+    return messages.find((message) => message.id === reviewTarget.messageId)?.actions?.find((action) => action.id === reviewTarget.actionId) ?? null;
+  }, [messages, reviewTarget]);
+
+  // A new conversation, dismissed action, or session reset must not leave a confirmation view pointing at
+  // an absent action.
+  useEffect(() => {
+    if (reviewTarget && !reviewedAction) setReviewTarget(null);
+  }, [reviewTarget, reviewedAction]);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -80,7 +99,7 @@ export function CopilotCard({
             <Text style={styles.badgeText}>{t("copilot.card.badge")}</Text>
           </View>
           <Text style={styles.headerLabel} numberOfLines={1}>
-            {brief?.label ?? t("copilot.title")}
+            {supervisor ? t("supervisorCopilot.headerLabel") : brief?.label ?? t("copilot.title")}
           </Text>
           <View style={{ flex: 1 }} />
           {!chatting && brief?.confidence != null ? (
@@ -101,7 +120,34 @@ export function CopilotCard({
           </Pressable>
         </View>
 
-        {chatting ? (
+        {chatting && supervisor ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={conversation.startNewConversation}
+            style={styles.backRow}
+            testID="supervisor-copilot-back"
+          >
+            <Ionicons name="chevron-back" size={14} color={darkTheme.ai.primary} />
+            <Text style={styles.retryText}>{t("supervisorCopilot.backToOverview")}</Text>
+          </Pressable>
+        ) : null}
+
+        {chatting && supervisor && reviewTarget && reviewedAction ? (
+          <View style={styles.reviewPanel} testID="supervisor-copilot-review">
+            <ActionConfirmPanel
+              item={reviewedAction}
+              online={online}
+              palette={darkTheme}
+              onEdit={(patch) => conversation.editAction(reviewTarget.messageId, reviewTarget.actionId, patch)}
+              onConfirm={() => void conversation.confirm(reviewTarget.messageId, reviewTarget.actionId)}
+              onCancel={() => {
+                conversation.dismissAction(reviewTarget.messageId, reviewTarget.actionId);
+                setReviewTarget(null);
+              }}
+              onDone={() => setReviewTarget(null)}
+            />
+          </View>
+        ) : chatting ? (
           <ScrollView
             ref={scrollRef}
             style={styles.thread}
@@ -109,7 +155,18 @@ export function CopilotCard({
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             {messages.map((item) => (
-              <AssistantMessageView key={item.id} message={item} conversation={conversation} compact palette={darkTheme} />
+              <AssistantMessageView
+                key={item.id}
+                message={item}
+                conversation={conversation}
+                compact
+                palette={darkTheme}
+                onReviewAction={
+                  supervisor
+                    ? (messageId, actionId) => setReviewTarget({ messageId, actionId })
+                    : undefined
+                }
+              />
             ))}
             {sending ? (
               <View style={styles.loadingRow}>
@@ -118,6 +175,16 @@ export function CopilotCard({
               </View>
             ) : null}
           </ScrollView>
+        ) : supervisor ? (
+          <SupervisorCopilotBody
+            controller={supervisor}
+            conversation={conversation}
+            onClose={onClose}
+            onPrepareTask={() => {
+              setTaskHint(true);
+              setTimeout(() => inputRef.current?.focus(), 60);
+            }}
+          />
         ) : loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={darkTheme.ai.primary} />
@@ -193,10 +260,20 @@ export function CopilotCard({
           </Text>
         ) : null}
 
+        {taskHint ? (
+          <View style={styles.hintRow} testID="supervisor-copilot-task-hint">
+            <Text style={styles.hintText}>{t("supervisorCopilot.taskHint.chip")}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t("supervisorCopilot.taskHint.clear")} hitSlop={10} onPress={() => setTaskHint(false)}>
+              <Ionicons name="close" size={14} color="rgba(247,244,238,0.6)" />
+            </Pressable>
+          </View>
+        ) : null}
+
         <View style={styles.askRow}>
           <TextInput
+            ref={inputRef}
             style={styles.askInput}
-            placeholder={t("copilot.card.askPlaceholder")}
+            placeholder={taskHint ? t("supervisorCopilot.taskHint.placeholder") : t("copilot.card.askPlaceholder")}
             placeholderTextColor="rgba(247,244,238,0.42)"
             value={input}
             onChangeText={setInput}
@@ -270,6 +347,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 12.5, color: "rgba(247,244,238,0.55)" },
   thread: { maxHeight: THREAD_MAX_HEIGHT, marginTop: 8 },
   threadContent: { paddingHorizontal: 13, paddingBottom: 8, gap: 6 },
+  reviewPanel: { maxHeight: THREAD_MAX_HEIGHT, marginTop: 8, paddingHorizontal: 13, paddingBottom: 12 },
   brief: {
     marginTop: 10,
     paddingHorizontal: 13,
@@ -336,6 +414,9 @@ const styles = StyleSheet.create({
     maxWidth: CARD_WIDTH - 26,
   },
   chipText: { fontSize: 11.5, color: "rgba(247,244,238,0.85)" },
+  backRow: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 11, paddingTop: 8, minHeight: 36 },
+  hintRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, paddingTop: 8 },
+  hintText: { fontSize: 11.5, fontWeight: "600", color: darkTheme.ai.primary },
   unavailableBlock: { paddingHorizontal: 13, marginTop: 12, gap: 6 },
   unavailableText: { fontSize: 12.5, color: "rgba(247,244,238,0.6)" },
   retryText: { fontSize: 12.5, color: darkTheme.ai.primary, fontWeight: "600" },

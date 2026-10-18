@@ -1,111 +1,157 @@
-import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { MAX_FONT_SCALE } from "@/components/home/homeUi";
+import { SheetNotice } from "@/components/home/sheetParts";
 import { R } from "@/components/shared/tokens";
+import { Avatar } from "@/components/shared/mobileHandoff";
+import { DraftField, useSubmitGuard } from "@/components/supervisor/commsParts";
+import { Button } from "@/components/ui/Button";
 import { sendDirectMessage } from "@/lib/api/housekeepingSupervisor";
+import { MESSAGE_MAX, isMeaningfulDraft, type SendFailureKind } from "@/lib/housekeeping/supervisorComms";
+import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
 
 interface Props {
   visible: boolean;
   recipientId: string | null;
   recipientName: string | null;
+  /** Role · shift status · workload, already worded; null when nothing verified is known. */
+  recipientMeta?: string | null;
+  isOnline: boolean;
   onClose: () => void;
 }
 
-export default function DirectMessageModal({ visible, recipientId, recipientName, onClose }: Props) {
+/**
+ * Message one staff member (POST /notifications/direct): an inbox notification, not a chat.
+ * The composer is keyed by the recipient, so changing who it is for always starts from an empty draft
+ * and one person's words can never be sent to another.
+ */
+export default function DirectMessageModal({ visible, recipientId, recipientName, recipientMeta, isOnline, onClose }: Props) {
+  if (!visible) return null;
+  return (
+    <DirectMessageSheet
+      key={recipientId ?? "none"}
+      recipientId={recipientId}
+      recipientName={recipientName}
+      recipientMeta={recipientMeta ?? null}
+      isOnline={isOnline}
+      onClose={onClose}
+    />
+  );
+}
+
+function DirectMessageSheet({ recipientId, recipientName, recipientMeta, isOnline, onClose }: Omit<Props, "visible">) {
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
+  const { busy, run } = useSubmitGuard();
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState<SendFailureKind | null>(null);
 
-  const handleSend = async () => {
-    if (!recipientId || !text.trim() || sending) return;
-    setSending(true);
-    try {
-      await sendDirectMessage(recipientId, text.trim());
-      setText("");
+  const dirty = isMeaningfulDraft(text);
+  const requestClose = useDiscardGuard({ dirty, busy, onClose });
+  const hasRecipient = Boolean(recipientId);
+  const canSend = hasRecipient && dirty && isOnline && !busy;
+  const name = recipientName?.trim() || null;
+
+  const send = useCallback(async () => {
+    if (!recipientId || !dirty || !isOnline) return;
+    setFailure(null);
+    const result = await run(() => sendDirectMessage(recipientId, text));
+    if (!result) return; // a second tap while the first is in flight
+    if (result.ok) {
+      toast.success(t("supervisorComms.dm.sent", { name: name ?? "" }).trim());
       onClose();
-    } catch {
-      toast.error(t("directMessage.sendError"));
-    } finally {
-      setSending(false);
+    } else {
+      setFailure(result.kind);
     }
-  };
-
-  const handleClose = () => {
-    setText("");
-    onClose();
-  };
+  }, [recipientId, dirty, isOnline, run, text, toast, t, name, onClose]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: theme.background }]}>
-          <View style={[styles.grabber, { backgroundColor: theme.border }]} />
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{t("directMessage.title", { name: recipientName ?? "—" })}</Text>
-          <Text style={[styles.hint, { color: theme.textMuted }]}>{t("directMessage.hint")}</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-            value={text}
-            onChangeText={setText}
-            placeholder={t("directMessage.placeholder")}
-            placeholderTextColor={theme.textDisabled}
-            multiline
-            maxLength={300}
-            autoFocus
+    <BottomSheet
+      visible
+      title={t("supervisorComms.dm.title")}
+      onClose={requestClose}
+      grabber
+      testID="dm-sheet"
+      footer={
+        <View style={styles.footer}>
+          <Button label={t("common.cancel")} onPress={requestClose} variant="secondary" disabled={busy} style={styles.cancel} testID="dm-cancel" />
+          <Button
+            label={t("supervisorComms.dm.send")}
+            onPress={send}
+            loading={busy}
+            disabled={!canSend}
+            icon="send-outline"
+            style={styles.primary}
+            testID="dm-send"
           />
-          <View style={styles.actions}>
-            <Button label={t("common.cancel")} onPress={handleClose} variant="secondary" style={styles.cancelBtn} />
-            <Button
-              label={t("directMessage.send")}
-              onPress={handleSend}
-              disabled={!text.trim()}
-              loading={sending}
-              style={styles.sendBtn}
-            />
-          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      }
+    >
+      <View style={styles.body}>
+        {hasRecipient ? (
+          <View
+            style={[styles.recipient, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+            testID="dm-recipient"
+            accessible
+            accessibilityLabel={[t("supervisorComms.dm.to"), name, recipientMeta].filter(Boolean).join(". ")}
+          >
+            <Avatar name={name ?? "?"} size={42} />
+            <View style={styles.recipientText}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
+                {t("supervisorComms.dm.to")}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1} testID="dm-recipient-name">
+                {name ?? "—"}
+              </Text>
+              {recipientMeta ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textSecondary }]} testID="dm-recipient-meta">
+                  {recipientMeta}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <SheetNotice text={t("supervisorComms.dm.noRecipient")} tone="warn" testID="dm-no-recipient" />
+        )}
+
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+          {t("supervisorComms.dm.hint")}
+        </Text>
+
+        <DraftField
+          testID="dm-input"
+          label={t("supervisorComms.dm.label")}
+          value={text}
+          onChangeText={setText}
+          placeholder={t("supervisorComms.dm.placeholder")}
+          max={MESSAGE_MAX}
+          counterText={t("supervisorComms.count", { count: text.trim().length, max: MESSAGE_MAX })}
+          minHeight={110}
+          editable={hasRecipient && !busy}
+          autoFocus={hasRecipient}
+        />
+
+        {!isOnline ? <SheetNotice text={t("supervisorComms.offline")} tone="warn" testID="dm-offline" /> : null}
+        {failure ? <SheetNotice text={t(`supervisorComms.errors.${failure}`)} tone="error" testID="dm-error" /> : null}
+      </View>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 36,
-  },
-  grabber: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
-  hint: { fontSize: 12.5, marginBottom: 14 },
-  input: {
-    borderWidth: 1,
-    borderRadius: R.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    minHeight: 90,
-    textAlignVertical: "top",
-    marginBottom: 16,
-  },
-  actions: { flexDirection: "row", gap: 10 },
-  cancelBtn: {
-    flex: 1,
-  },
-  sendBtn: { flex: 2 },
+  body: { gap: 14 },
+  recipient: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderWidth: 1, borderRadius: R.md },
+  recipientText: { flex: 1, gap: 1 },
+  kicker: { fontSize: 12, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase" },
+  name: { fontSize: 17, fontWeight: "800" },
+  meta: { fontSize: 13, lineHeight: 18 },
+  hint: { fontSize: 13, lineHeight: 18 },
+  footer: { flexDirection: "row", gap: 10 },
+  cancel: { flex: 1 },
+  primary: { flex: 2 },
 });

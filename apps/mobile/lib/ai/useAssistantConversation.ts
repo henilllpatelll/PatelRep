@@ -18,7 +18,7 @@ import {
   type ConversationState,
   type LocalCard,
 } from "@/lib/ai/conversationState";
-import { isPreviewValid, type DraftPatch } from "@/lib/ai/drafts";
+import { isPreviewValid, type ActionPreview, type DraftPatch } from "@/lib/ai/drafts";
 import { clearHistory as clearSavedHistory, loadHistory, saveHistory } from "@/lib/ai/history";
 import { assistantScope, onAssistantSessionReset } from "@/lib/ai/session";
 
@@ -40,6 +40,11 @@ export interface AssistantConversation {
   dismissAction: (messageId: string, actionId: string) => void;
   /** Add a question and an answer the app composed from the person's own data. Nothing is sent anywhere. */
   showLocal: (question: string, answer: string, card: LocalCard) => void;
+  /**
+   * Put a draft the app composed (no model asked) in front of the person to review. It is the same editable,
+   * explicitly-confirmed preview a model reply produces: nothing exists until `confirm` and the server accepts it.
+   */
+  proposeDraft: (question: string, answer: string, preview: ActionPreview) => void;
   /** Stop waiting for the reply to the message in flight. Returns the question's text so it can be put back in the composer. */
   cancel: () => string | null;
   /** Forget the open conversation and its saved copy; the next message starts fresh. */
@@ -220,6 +225,28 @@ export function useAssistantConversation({ persist = false, context }: Options =
     });
   }, []);
 
+  const proposeDraft = useCallback((question: string, answer: string, preview: ActionPreview) => {
+    if (!scopeRef.current || sendingRef.current) return;
+    const at = Date.now();
+    dispatch({
+      type: "local",
+      messages: [
+        { id: nextId("m"), role: "user", content: question, at },
+        {
+          id: nextId("m"),
+          role: "assistant",
+          content: answer,
+          at,
+          kind: "actions",
+          provenance: "deterministic",
+          actions: [
+            { id: nextId("a"), preview, status: "ready", requestKey: newRequestKey(), failure: null, failureMessage: null, deduplicated: false },
+          ],
+        },
+      ],
+    });
+  }, []);
+
   const cancel = useCallback((): string | null => {
     const flight = abortFlight();
     if (!flight) return null;
@@ -313,10 +340,11 @@ export function useAssistantConversation({ persist = false, context }: Options =
       confirm,
       dismissAction,
       showLocal,
+      proposeDraft,
       cancel,
       startNewConversation,
       clearHistory,
     }),
-    [state.scope, state.messages, state.sending, scope, isOnline, send, chooseOption, editAction, confirm, dismissAction, showLocal, cancel, startNewConversation, clearHistory],
+    [state.scope, state.messages, state.sending, scope, isOnline, send, chooseOption, editAction, confirm, dismissAction, showLocal, proposeDraft, cancel, startNewConversation, clearHistory],
   );
 }
