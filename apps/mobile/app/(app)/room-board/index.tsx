@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
   FlatList,
   Platform,
@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -45,21 +44,19 @@ import { FloorJumpBar } from "@/components/supervisor/board/FloorJumpBar";
 import { RoomListRow } from "@/components/supervisor/board/RoomListRow";
 import { RoomTileRow } from "@/components/supervisor/board/RoomTile";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
-import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
-import { BoardEmpty, BoardSkeleton, type BoardEmptyKind } from "@/components/supervisor/board/BoardStates";
+import { RoomDetailSheet, type RoomDetailSheetContext } from "@/components/supervisor/RoomDetailSheet";
+import { BoardEmpty, BoardNotice, BoardSkeleton, type BoardEmptyKind } from "@/components/supervisor/board/BoardStates";
 
 /* ─── Room Board — the live floor ───────────────────────────────────────────
-   Compact header with an honest freshness line, one readiness card, attention chips, a status selector
-   and the board grouped by building/floor as readable room cards in a virtualised list. Tapping a card
-   opens the room sheet: flags, timing, the latest note, and the assign action. Everything shown comes from
-   the Phase 1 verified model (useRoomBoard); nothing here fetches or subscribes on its own. */
+   Header with an honest freshness line, readiness card, attention chips, search/filters and the board as room
+   cards in a virtualised list. A tap opens the room detail drawer. Everything shown comes from the verified
+   model (useRoomBoard); nothing here fetches or subscribes on its own. */
 
 export default function RoomBoardScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { width, fontScale } = useWindowDimensions();
-  const locale = i18n.language === "es" ? "es-MX" : "en-US";
 
   // Board, staff and roster are the same verified snapshot Supervisor Today reads; see useRoomBoard.
   const { model, gate, isOnline, refreshing: refreshingBackground, refresh } = useRoomBoard();
@@ -100,16 +97,13 @@ export default function RoomBoardScreen() {
 
   const nameById = useMemo(() => buildNameById(staff), [staff]);
   const teamLoads = useMemo(() => buildTeamLoads(rooms, nameById), [rooms, nameById]);
-  // A room tied to a person is ASSIGNED even when the staff list has no name for them (or failed to load).
-  const assigneeLabel = useCallback(
-    (room: FloorRoom): string | null =>
-      room.assignedTo ? (nameById.get(room.assignedTo) ?? t("roomBoard.assigneeUnknown")) : null,
-    [nameById, t],
+  // The drawer follows the room by id through every refresh, so a realtime update repaints it for the SAME room.
+  const selectedView = useMemo(
+    () => (views ?? []).find((view) => view.room.roomId === selectedRoomId) ?? null,
+    [views, selectedRoomId],
   );
-  const selectedRoom = useMemo(
-    () => rooms.find((room) => room.roomId === selectedRoomId) ?? null,
-    [rooms, selectedRoomId],
-  );
+  const selectedRoom = selectedView?.room ?? null;
+  const [roomGone, setRoomGone] = useState(false);
 
   // The link is single-use. It is only judged against a board that really loaded: a failed or offline load
   // proves nothing about the room, so the link waits for the next successful load.
@@ -120,6 +114,14 @@ export default function RoomBoardScreen() {
     else setLinkMissing(true);
     router.setParams({ roomId: undefined });
   }, [linkedRoomId, boardLoaded, rooms]);
+
+  // The open room left the verified board (realtime removal, or the board stopped being today's): close the drawer
+  // rather than keep showing a room the board no longer vouches for, and say so when the room is truly gone.
+  useEffect(() => {
+    if (selectedRoomId === null || selectedView !== null) return;
+    setSelectedRoomId(null);
+    if (views !== null) setRoomGone(true);
+  }, [selectedRoomId, selectedView, views]);
 
   // Headline numbers, segment counts and signals all come from the same verified rooms, so they cannot disagree.
   const metrics = useMemo(() => buildBoardSummary(views ?? []), [views]);
@@ -142,12 +144,19 @@ export default function RoomBoardScreen() {
     t,
   });
   const { query, search } = bq;
-  const onSelectRoom = useCallback((roomId: string) => setSelectedRoomId(roomId), []);
+  const onSelectRoom = useCallback((roomId: string) => {
+    setRoomGone(false);
+    setSelectedRoomId(roomId);
+  }, []);
+
+  // One write at a time: a second tap while a save is in flight is ignored, not queued.
+  const writing = useRef(false);
 
   const assignTo = useCallback(
     async (member: AssignableStaff) => {
       // Only a fresh, verified board may be changed; the date is the hotel's, not the phone's.
-      if (!pickerRoom || !gate.allowed) return;
+      if (!pickerRoom || !gate.allowed || writing.current) return;
+      writing.current = true;
       setSaving(true);
       try {
         await saveAssignments(model.hotelDate, [
@@ -158,6 +167,7 @@ export default function RoomBoardScreen() {
       } catch (err) {
         console.warn("Assign failed:", err);
       } finally {
+        writing.current = false;
         setSaving(false);
       }
     },
@@ -170,7 +180,8 @@ export default function RoomBoardScreen() {
       if (!room || !gate.allowed) return;
       // A dated row is deleted by id; a mirror-only assignment through its room (see planAssignmentRemoval).
       const plan = planAssignmentRemoval(room);
-      if (plan.kind === "none") return;
+      if (plan.kind === "none" || writing.current) return;
+      writing.current = true;
       setSaving(true);
       try {
         await removeAssignmentByPlan(plan);
@@ -178,6 +189,7 @@ export default function RoomBoardScreen() {
       } catch (err) {
         console.warn("Remove assignment failed:", err);
       } finally {
+        writing.current = false;
         setSaving(false);
       }
     },
@@ -221,6 +233,21 @@ export default function RoomBoardScreen() {
       : null;
   // A "no matches" answer is only as good as the board behind it; say so when that board is not freshly verified.
   const emptyStaleNote = availability.kind === "stale" ? t("roomBoard.empty.staleNote", { time: verifiedClock ?? "—" }) : null;
+
+  const detailContext = useMemo<RoomDetailSheetContext>(
+    () => ({
+      now: model.generatedAt,
+      timeZone: model.timeZone,
+      gate,
+      verifiedClock,
+      live: availability.kind === "ready" || availability.kind === "verified_empty",
+      rosterTrust: model.rosterTrust,
+      staff: model.staff,
+      staffNamesKnown: model.staffNamesKnown,
+      lateCheckoutsKnown: model.lateCheckoutsKnown,
+    }),
+    [model.generatedAt, model.timeZone, gate, verifiedClock, availability.kind, model.rosterTrust, model.staff, model.staffNamesKnown, model.lateCheckoutsKnown],
+  );
 
   const header = (
     <BoardHeader
@@ -276,25 +303,17 @@ export default function RoomBoardScreen() {
       ) : null}
 
       {linkMissing ? (
-        <View
-          style={[styles.notice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
-          accessibilityRole="alert"
+        <BoardNotice
+          title={t("supervisorAttention.roomBoard.missingTitle")}
+          body={t("supervisorAttention.roomBoard.missingBody")}
+          closeLabel={t("common.close")}
+          onClose={() => setLinkMissing(false)}
           testID="room-board-link-missing"
-        >
-          <View style={styles.noticeText}>
-            <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>{t("supervisorAttention.roomBoard.missingTitle")}</Text>
-            <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>{t("supervisorAttention.roomBoard.missingBody")}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setLinkMissing(false)}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.close")}
-            hitSlop={8}
-            testID="room-board-link-missing-close"
-          >
-            <Text style={[styles.noticeClose, { color: theme.primaryAction }]}>{t("common.close")}</Text>
-          </TouchableOpacity>
-        </View>
+        />
+      ) : null}
+
+      {roomGone ? (
+        <BoardNotice body={t("roomBoard.detail.roomGone")} closeLabel={t("common.close")} onClose={() => setRoomGone(false)} testID="room-board-room-gone" />
       ) : null}
 
       {staleNoticeKey || availability.kind === "previous_day" ? (
@@ -419,13 +438,12 @@ export default function RoomBoardScreen() {
         testID="room-board-list"
       />
 
-      {selectedRoom ? (
+      {selectedRoom && selectedView ? (
         <RoomDetailSheet
           room={selectedRoom}
-          assigneeName={assigneeLabel(selectedRoom)}
-          locale={locale}
+          view={selectedView}
+          context={detailContext}
           saving={saving}
-          actionsDisabled={!gate.allowed}
           onAssign={(room) => {
             setSelectedRoomId(null);
             setPickerRoom(room);
@@ -468,17 +486,14 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingBottom: 28, gap: GRID_GAP },
   rowWrap: { paddingHorizontal: GRID_GUTTER },
-
   notice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
   noticeText: { flex: 1, gap: 2 },
   noticeTitle: { fontSize: 14, fontWeight: "700" },
   noticeBody: { fontSize: 13, lineHeight: 18 },
-  noticeClose: { fontSize: 14, fontWeight: "700", minHeight: 44, textAlignVertical: "center" },
   pausedHint: { marginHorizontal: 16, marginBottom: 8, fontSize: 12 },
 
   building: { marginHorizontal: GRID_GUTTER, marginTop: 14, fontSize: 19, fontWeight: "800" },
   floorHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginHorizontal: GRID_GUTTER, marginTop: 10 },
   floorTitle: { fontSize: 15, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase" },
   floorCount: { fontSize: 12.5, fontWeight: "600" },
-
 });

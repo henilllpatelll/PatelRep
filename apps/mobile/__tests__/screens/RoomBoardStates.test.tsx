@@ -35,16 +35,16 @@ jest.mock("@/components/supervisor/RoomDetailSheet", () => {
   return {
     RoomDetailSheet: (props: {
       room: { roomNumber: string };
-      assigneeName: string | null;
-      actionsDisabled?: boolean;
+      view: { assignee: { name: string | null } | null };
+      context: { gate: { allowed: boolean } };
       onRemoveAssignment: (room: unknown) => void;
       onAssign: (room: unknown) => void;
     }) => {
       mockSheetProps.current = props as never;
       return (
         <View testID="room-sheet">
-          <Text testID="sheet-assignee">{props.assigneeName ?? "NONE"}</Text>
-          <Text testID="sheet-disabled">{String(Boolean(props.actionsDisabled))}</Text>
+          <Text testID="sheet-assignee">{props.view.assignee ? (props.view.assignee.name ?? "roomBoard.assigneeUnknown") : "NONE"}</Text>
+          <Text testID="sheet-disabled">{String(!props.context.gate.allowed)}</Text>
           <Pressable testID="sheet-assign" onPress={() => props.onAssign(props.room)}><Text>assign</Text></Pressable>
           <Pressable testID="sheet-remove" onPress={() => props.onRemoveAssignment(props.room)}><Text>remove</Text></Pressable>
         </View>
@@ -281,5 +281,67 @@ describe("Room Board — assignment correctness", () => {
       fireEvent.press(screen.getByTestId("sheet-remove"));
     });
     expect(removeAssignmentByPlan).not.toHaveBeenCalled();
+  });
+});
+
+describe("Room Board — the open room drawer", () => {
+  it("passes the verified view and the mutation gate, so a stale board pauses changes inside the drawer", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-102")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-102"));
+    const props = mockSheetProps.current as unknown as { view: { room: { roomId: string }; assignee: { name: string } | null }; context: { gate: { allowed: boolean }; timeZone: string } };
+    expect(props.view.room.roomId).toBe("room-102");
+    expect(props.view.assignee?.name).toBe("Ana Torres");
+    expect(props.context.gate.allowed).toBe(true);
+    expect(props.context.timeZone).toBe("America/Chicago");
+  });
+
+  it("closes the drawer and says so when the open room disappears from the verified board", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+
+    board.mockResolvedValue(hotelBoard().filter((row) => row.room_id !== "room-101"));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText("roomBoard.header.refresh"));
+    });
+    await waitFor(() => expect(screen.queryByTestId("room-sheet")).toBeNull());
+    expect(screen.getByTestId("room-board-room-gone")).toBeTruthy();
+    // A different room opens normally and clears the notice.
+    fireEvent.press(screen.getByTestId("board-tile-102"));
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+  });
+
+  it("keeps the same room open, with fresh data, across a refresh that still contains it", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    board.mockResolvedValue(hotelBoard().map((row) => (row.room_id === "room-101" ? { ...row, status: "IN_PROGRESS" } : row)));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText("roomBoard.header.refresh"));
+    });
+    await waitFor(() =>
+      expect((mockSheetProps.current as unknown as { room: { status: string } }).room.status).toBe("IN_PROGRESS"),
+    );
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+  });
+
+  it("ignores a second remove while the first is still saving (no duplicate submissions)", async () => {
+    board.mockResolvedValue([rawRoom("401", "DIRTY", { assigned_to: "hk-1", assignment_id: "as-401" })]);
+    let finish: (value: boolean) => void = () => undefined;
+    (removeAssignmentByPlan as jest.Mock).mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; }));
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-401")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-401"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("sheet-remove"));
+      fireEvent.press(screen.getByTestId("sheet-remove"));
+    });
+    expect(removeAssignmentByPlan).toHaveBeenCalledTimes(1);
+    await act(async () => finish(true));
   });
 });

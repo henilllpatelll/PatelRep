@@ -3825,6 +3825,136 @@
       "dndOverrideCreated": "Tarea de revisión creada.",
       "dndOverrideError": "No se pudo crear la tarea. Inténtalo de nuevo."
     },
+    "detail": {
+      "actionsTitle": "HABITACIÓN {{room}} · ACCIONES",
+      "moreActions": "Más acciones",
+      "todayAt": "Hoy, {{time}}",
+      "dayAt": "{{day}}, {{time}}",
+      "notAvailable": "No disponible",
+      "noteAt": "Anotado {{at}}",
+      "roomGone": "Esa habitación ya no está en el tablero, así que se cerraron sus detalles.",
+      "section": {
+        "status": "Estado de la habitación",
+        "assignment": "Asignación",
+        "cleaning": "Actividad de limpieza",
+        "issues": "Notas y problemas"
+      },
+      "flag": {
+        "vip": "VIP",
+        "dnd": "No molestar",
+        "declined": "Servicio rechazado",
+        "reclean": "Relimpieza solicitada",
+        "departure": "Salida",
+        "arrival": "Llegada {{time}}",
+        "lateApproved": "Salida tardía",
+        "latePending": "Salida tardía solicitada",
+        "priority": "Alta prioridad",
+        "risk": "Riesgo de preparación"
+      },
+      "row": {
+        "housekeeping": "Limpieza",
+        "occupancy": "Ocupación",
+        "frontDesk": "Recepción",
+        "cleanType": "Tipo de limpieza",
+        "checkout": "Salida",
+        "checkedOut": "Salió",
+        "arrival": "Próxima llegada",
+        "lateCheckout": "Salida tardía",
+        "inspection": "Inspección",
+        "reclean": "Relimpieza"
+      },
+      "occupancy": {
+        "occupied": "Ocupada",
+        "vacant": "Vacía",
+        "unknown": "Desconocida"
+      },
+      "discrepancy": "Recepción y limpieza no coinciden",
+      "late": {
+        "approved": "Aprobada",
+        "pending": "Pendiente de aprobación",
+        "unknown": "Estado no disponible"
+      },
+      "inspection": {
+        "required": "Requerida — aún sin inspeccionar",
+        "notRequired": "No requerida",
+        "unknown": "Requisito desconocido",
+        "doneAt": "Inspeccionada {{at}}",
+        "done": "Inspeccionada"
+      },
+      "recleanAt": "Solicitada {{at}}",
+      "assignment": {
+        "notApplicable": "No aplica fuera de servicio",
+        "nameUnavailable": "Asignada · Nombre no disponible",
+        "workload": "{{count}} habitación asignada hoy",
+        "workload_plural": "{{count}} habitaciones asignadas hoy"
+      },
+      "shift": {
+        "on_shift": "En turno",
+        "on_break": "En descanso",
+        "ended": "Turno terminado",
+        "not_clocked_in": "Sin turno registrado hoy",
+        "unknown": "Estado del turno no disponible"
+      },
+      "cleaning": {
+        "completed": "Completada",
+        "duration": "Duración",
+        "baseline": "referencia {{minutes}} min",
+        "minutes": "{{minutes}} min",
+        "checklist": "Lista de tareas",
+        "checklistNone": "Sin registro",
+        "photos": "Fotos",
+        "photosRecorded": "{{count}} registrada",
+        "photosRecorded_plural": "{{count}} registradas",
+        "inProgress": "Se está limpiando ahora. Los detalles aparecen cuando la camarera termine.",
+        "none": "No hay una limpieza completada hoy.",
+        "noneStale": "No hay una limpieza completada a las {{time}}. Este tablero no está en vivo."
+      },
+      "workOrder": {
+        "untitled": "Problema de mantenimiento",
+        "status": "Estado: {{status}}",
+        "priorityLabel": "Prioridad: {{priority}}",
+        "number": "Orden de trabajo #{{number}}",
+        "priority": {
+          "low": "Baja",
+          "medium": "Media",
+          "normal": "Normal",
+          "high": "Alta",
+          "urgent": "Urgente",
+          "critical": "Crítica",
+          "emergency": "Emergencia"
+        }
+      },
+      "exception": {
+        "dndTitle": "No molestar",
+        "dndBody": "El servicio normal está en pausa. No entres sin una revisión de bienestar.",
+        "declinedTitle": "El huésped rechazó el servicio",
+        "declinedBody": "El huésped rechazó la limpieza durante esta estadía.",
+        "riskTitle": "Podría no estar lista a tiempo",
+        "riskBody": "El pronóstico de preparación marca esta habitación. Es un pronóstico, no un hecho.",
+        "riskBodyAt": "Se pronostica lista cerca de las {{at}}. Es un pronóstico, no un hecho."
+      },
+      "action": {
+        "assign": "Asignar habitación",
+        "assignHint": "Elige una camarera",
+        "reassign": "Reasignar habitación",
+        "reassignHint": "Elige a otra camarera",
+        "remove": "Quitar asignación",
+        "removeHint": "Devolver la habitación a sin asignar",
+        "inspect": "Inspeccionar habitación",
+        "inspectHint": "Abrir la cola de inspección"
+      },
+      "paused": {
+        "loading": "Aún se carga el tablero. Los cambios están en pausa.",
+        "offline": "Sin conexión. Los cambios están en pausa hasta reconectar.",
+        "stale": "Este tablero no está en vivo (verificado a las {{time}}). Los cambios están en pausa.",
+        "unavailable": "No se pudo verificar el tablero. Los cambios están en pausa.",
+        "previous_day": "Este tablero es de un día anterior. Los cambios están en pausa."
+      },
+      "a11y": {
+        "assignedTo": "asignada a {{name}}",
+        "assignedUnnamed": "asignada, nombre no disponible"
+      }
+    },
     "header": {
       "kicker": "Housekeeping · Hoy",
       "loading": "Revisando el tablero…",

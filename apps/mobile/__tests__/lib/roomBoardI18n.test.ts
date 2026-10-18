@@ -33,9 +33,10 @@ const OWNED = [
   "roomBoard.empty",
   "roomBoard.segmentEmptyBody",
   "roomBoard.jump",
+  "roomBoard.detail",
 ];
 // Words that are the same in both languages on purpose.
-const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip", "roomBoard.filters.flag.vip", "roomBoard.filters.chipFloor"]);
+const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip", "roomBoard.filters.flag.vip", "roomBoard.filters.chipFloor", "roomBoard.detail.flag.vip", "roomBoard.detail.dayAt", "roomBoard.detail.cleaning.minutes", "roomBoard.detail.workOrder.priority.normal"]);
 const SINGLE = [
   "roomBoard.assigneeUnknown",
   "roomBoard.unassigned",
@@ -86,10 +87,14 @@ describe("every roomBoard key the code asks for exists", () => {
     "../../components/supervisor/board/FloorJumpBar.tsx",
     "../../components/supervisor/board/BoardStates.tsx",
     "../../components/supervisor/board/RoomListRow.tsx",
+    "../../lib/housekeeping/roomDetailView.ts",
+    "../../components/supervisor/RoomDetailSheet.tsx",
+    "../../components/supervisor/detail/RoomDetailParts.tsx",
+    "../../components/supervisor/detail/RoomActionsList.tsx",
   ]
     .map((file) => readFileSync(resolve(__dirname, file), "utf8"))
     .join("\n");
-  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|search|filters|sort|results|empty|segmentEmptyBody|jump|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty)[\w.${}]*)["'`]/g)].map((m) => m[1]);
+  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|search|filters|sort|results|empty|segmentEmptyBody|jump|detail|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty)[\w.${}]*)["'`]/g)].map((m) => m[1]);
 
   it("finds the keys in the source", () => {
     expect(literal.length).toBeGreaterThan(8);

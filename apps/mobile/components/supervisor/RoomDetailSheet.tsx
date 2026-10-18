@@ -1,356 +1,311 @@
-import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { R, monoFont } from "@/components/shared/tokens";
-import { StatusPill } from "@/components/shared/evening";
-import { Avatar } from "@/components/shared/mobileHandoff";
-import { isActionable, type FloorRoom } from "@/lib/housekeeping/supervisor";
+import { MAX_FONT_SCALE } from "@/components/home/homeUi";
+import { monoFont } from "@/components/shared/tokens";
+import { Button } from "@/components/ui/Button";
+import {
+  AssignmentCard,
+  CleaningCard,
+  ExceptionBlock,
+  FactRows,
+  FlagChips,
+  NoteCard,
+  Section,
+  StatusBadgeLarge,
+  WorkOrderCard,
+} from "@/components/supervisor/detail/RoomDetailParts";
+import { RoomActionsList } from "@/components/supervisor/detail/RoomActionsList";
 import { api } from "@/lib/api/client";
+import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
+import type { BoardRoomView } from "@/lib/housekeeping/roomBoardState";
+import { buildRoomDetail, type DetailActionKey, type RoomDetailContext } from "@/lib/housekeeping/roomDetailView";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
-import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 
-/* ─── Room detail sheet — what the supervisor needs before acting ──────────
-   Status, flags, timing, the latest staff note, the open work order, and
-   the assignment action. Status changes stay in the housekeeper and
-   inspection flows; this sheet is about who owns the room. */
+/* ─── Room detail drawer — what the supervisor needs before acting ─────────
+   ONE bottom-sheet Modal for the whole flow (Room → More actions), so there is never a second modal stacked on
+   top: Android back steps More actions → Room → closed. Everything shown comes from the verified Phase 1
+   `BoardRoomView` through `buildRoomDetail`; this component fetches nothing and subscribes to nothing, so a
+   realtime update to the board simply re-renders it for the same room.
 
-function formatClock(iso: string | null, locale: string): string | null {
-  if (!iso) return null;
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
-}
+   Actions here are the ones that already worked: assign / reassign / remove (the screen runs them behind the
+   mutation gate), the inspection queue, and the confirmed DND wellness-check task. The housekeeper picker,
+   remove confirmation redesign, notes, history and work-order detail are later phases. */
 
-const ROOM_STATUS_BADGE_KEY: Partial<Record<string, StatusKey>> = {
-  DIRTY: "dirty",
-  OCCUPIED: "occupied",
-  PICKUP: "pickup",
-  IN_PROGRESS: "inProgress",
-  CLEAN: "clean",
-  INSPECTED: "ready",
-  OOO: "outOfOrder",
-  OUT_OF_ORDER: "outOfOrder",
-  OUT_OF_SERVICE: "outOfOrder",
-};
+export type RoomDetailSheetContext = Omit<RoomDetailContext, "t" | "language">;
+
+type Mode = "detail" | "actions";
 
 export function RoomDetailSheet({
   room,
-  assigneeName,
-  locale,
+  view,
+  context,
   saving,
-  actionsDisabled = false,
   onAssign,
   onRemoveAssignment,
   onClose,
 }: {
-  room: FloorRoom | null;
-  assigneeName: string | null;
-  locale: string;
+  room: BoardRoom;
+  view: BoardRoomView;
+  context: RoomDetailSheetContext;
   saving: boolean;
-  /** The board is not fresh and verified (offline, stale, failed): reads stay, changes pause. */
-  actionsDisabled?: boolean;
-  onAssign: (room: FloorRoom) => void;
-  onRemoveAssignment: (room: FloorRoom) => void;
+  onAssign: (room: BoardRoom) => void;
+  onRemoveAssignment: (room: BoardRoom) => void;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
-  if (!room) return null;
+  const [mode, setMode] = useState<Mode>("detail");
+  const [wellnessBusy, setWellnessBusy] = useState(false);
+  const wellnessGuard = useRef(false);
 
-  const checkout = formatClock(room.checkoutTime, locale);
-  const checkin = formatClock(room.checkinTime, locale);
-  const canAssign = isActionable(room.status);
-  const statusBadgeKey = ROOM_STATUS_BADGE_KEY[room.status];
+  const language = i18n?.language ?? "en";
+  const detail = useMemo(
+    () => buildRoomDetail(view, { ...context, language, t }),
+    // The screen rebuilds `context` only when something it reads changes, so this recomputes on real changes.
+    [view, context, language, t],
+  );
+
+  // A realtime change can empty the menu while it is open (e.g. the room was inspected): fall back to the room.
+  useEffect(() => {
+    if (mode === "actions" && detail.menu.length === 0) setMode("detail");
+  }, [mode, detail.menu.length]);
+
+  const back = () => (mode === "actions" ? setMode("detail") : onClose());
 
   const confirmRemove = () => {
-    Alert.alert(
-      t("roomBoard.sheet.removeConfirmTitle", { room: room.roomNumber }),
-      t("roomBoard.sheet.removeConfirmBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("roomBoard.sheet.removeAssignment"),
-          style: "destructive",
-          onPress: () => onRemoveAssignment(room),
-        },
-      ],
-    );
+    Alert.alert(t("roomBoard.sheet.removeConfirmTitle", { room: room.roomNumber }), t("roomBoard.sheet.removeConfirmBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("roomBoard.sheet.removeAssignment"), style: "destructive", onPress: () => onRemoveAssignment(room) },
+    ]);
   };
 
+  const run = (key: DetailActionKey) => {
+    switch (key) {
+      case "assign":
+      case "reassign":
+        onAssign(room);
+        return;
+      case "remove":
+        confirmRemove();
+        return;
+      case "inspect":
+        onClose();
+        router.push("/(app)/inspect" as never);
+        return;
+    }
+  };
+
+  const createWellnessCheck = async () => {
+    if (wellnessGuard.current) return;
+    wellnessGuard.current = true;
+    setWellnessBusy(true);
+    try {
+      await api.post("/tasks", {
+        title: `Supervisor wellness check — Room ${room.roomNumber}`,
+        task_type: "housekeeping",
+        priority: "high",
+        room_id: room.roomId,
+      });
+      toast.success(t("roomBoard.sheet.dndOverrideCreated"));
+    } catch {
+      toast.error(t("roomBoard.sheet.dndOverrideError"));
+    } finally {
+      wellnessGuard.current = false;
+      setWellnessBusy(false);
+    }
+  };
+
+  const confirmWellnessCheck = () => {
+    Alert.alert(t("roomBoard.sheet.dndOverrideTitle", { room: room.roomNumber }), t("roomBoard.sheet.dndOverrideBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("roomBoard.sheet.dndOverrideConfirm"), onPress: () => void createWellnessCheck() },
+    ]);
+  };
+
+  const assignAction = [detail.primary, ...detail.menu].find((action) => action?.key === "assign" || action?.key === "reassign") ?? null;
+  const primaryIsAssign = detail.primary?.key === "assign" || detail.primary?.key === "reassign";
+  const hasIssues = detail.note !== null || detail.workOrder !== null || detail.exceptions.length > 0;
+
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+    <Modal visible transparent animationType="slide" onRequestClose={back} statusBarTranslucent>
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false} importantForAccessibility="no" testID="room-detail-backdrop" />
       <View
-        style={[
-          styles.sheet,
-          { paddingBottom: Math.max(30, insets.bottom + 16), backgroundColor: theme.background },
-        ]}
+        accessibilityViewIsModal
+        style={[styles.sheet, { paddingBottom: Math.max(16, insets.bottom + 8), backgroundColor: theme.background }]}
+        testID={mode === "detail" ? "room-detail-sheet" : "room-actions-sheet"}
       >
         <View style={[styles.grabber, { backgroundColor: theme.border }]} />
 
-        <View style={styles.titleRow}>
-          <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>{room.roomNumber}</Text>
-          <View style={styles.titleBody}>
-            {room.roomType ? (
-              <Text style={[styles.roomType, { color: theme.textSecondary }]} numberOfLines={1}>
-                {room.roomType}
+        {mode === "detail" ? (
+          <View style={styles.header}>
+            <View style={styles.headerBody} accessible accessibilityLabel={detail.accessibilityLabel} testID="room-detail-header">
+              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="room-detail-number">
+                {detail.roomNumber}
               </Text>
-            ) : null}
-            <Text style={[styles.floorText, { color: theme.textMuted }]}>{t("roomBoard.floor", { floor: room.floor })}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subtitle, { color: theme.textSecondary }]} testID="room-detail-subtitle">
+                {[detail.roomType, detail.location].filter(Boolean).join(" · ")}
+              </Text>
+            </View>
+            <CloseButton label={t("common.close")} onPress={onClose} />
           </View>
-          <TouchableOpacity onPress={onClose} hitSlop={10} accessibilityLabel={t("common.cancel")}>
-            <Ionicons name="close" size={22} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.chipRow}>
-          {statusBadgeKey ? (
-            <StatusBadge statusKey={statusBadgeKey} label={t(`roomBoard.statusLabels.${room.status}`)} />
-          ) : (
-            <StatusPill status={room.status} />
-          )}
-          {room.cleanTypeLabel ? (
-            <View
-              style={[
-                styles.flagChip,
-                room.cleanType === "DEP"
-                  ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
-                  : { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
-              ]}
+        ) : (
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => setMode("detail")}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back")}
+              hitSlop={6}
+              style={styles.iconButton}
+              testID="room-actions-back"
             >
-              <Text style={[styles.flagText, { color: room.cleanType === "DEP" ? theme.status.dirty : theme.status.pickup }]}>
-                {room.cleanTypeLabel}
-              </Text>
-            </View>
-          ) : null}
-          {room.dnd ? (
-            <View style={[styles.flagChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-              <Text style={[styles.flagText, { color: theme.textSecondary }]}>{t("roomBoard.sheet.dnd")}</Text>
-            </View>
-          ) : null}
-          {room.highRisk ? (
-            <View style={[styles.flagChip, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-              <Text style={[styles.flagText, { color: theme.status.dirty }]}>{t("roomBoard.sheet.highRisk")}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {/* Who owns this room today */}
-          <View style={[styles.assignCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {assigneeName ? (
-              <>
-                <Avatar name={assigneeName} size={36} />
-                <View style={styles.assignBody}>
-                  <Text style={[styles.assignLabel, { color: theme.textMuted }]}>{t("roomBoard.sheet.assignedTo")}</Text>
-                  <Text style={[styles.assignName, { color: theme.textPrimary }]} numberOfLines={1}>{assigneeName}</Text>
-                </View>
-                <Button
-                  label={t("roomBoard.sheet.reassign")}
-                  onPress={() => onAssign(room)}
-                  loading={saving}
-                  disabled={actionsDisabled}
-                  variant="secondary"
-                  size="sm"
-                />
-              </>
-            ) : (
-              <>
-                <View style={[styles.unassignedIcon, { backgroundColor: theme.surfaceSubtle }]}>
-                  <Ionicons name="person-add-outline" size={17} color={canAssign ? theme.status.dirty : theme.textDisabled} />
-                </View>
-                <View style={styles.assignBody}>
-                  <Text style={[styles.assignLabel, { color: theme.textMuted }]}>{t("roomBoard.sheet.assignedTo")}</Text>
-                  <Text style={[styles.assignName, { color: theme.textMuted }]}>{t("roomBoard.unassigned")}</Text>
-                </View>
-                {canAssign ? (
-                  <Button
-                    label={t("roomBoard.sheet.assign")}
-                    onPress={() => onAssign(room)}
-                    loading={saving}
-                    disabled={actionsDisabled}
-                    size="sm"
-                  />
-                ) : null}
-              </>
-            )}
+              <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
+            </Pressable>
+            <Text
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              accessibilityRole="header"
+              style={[styles.actionsTitle, { color: theme.textPrimary }]}
+              testID="room-actions-title"
+            >
+              {t("roomBoard.detail.actionsTitle", { room: detail.roomNumber })}
+            </Text>
+            <CloseButton label={t("common.close")} onPress={onClose} />
           </View>
+        )}
 
-          {/* Timing */}
-          {checkout || checkin ? (
-            <View style={[styles.infoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              {checkout ? (
-                <View style={styles.infoRow}>
-                  <Ionicons name="log-out-outline" size={14} color={theme.textMuted} />
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t("roomBoard.sheet.checkout")}</Text>
-                  <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{checkout}</Text>
-                </View>
-              ) : null}
-              {checkin ? (
-                <View style={styles.infoRow}>
-                  <Ionicons name="log-in-outline" size={14} color={theme.textMuted} />
-                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{t("roomBoard.sheet.arrival")}</Text>
-                  <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{checkin}</Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
+        {detail.paused ? (
+          <View style={[styles.paused, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} accessibilityRole="alert" testID="room-detail-paused">
+            <Ionicons name="cloud-offline-outline" size={16} color={theme.textSecondary} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.pausedText, { color: theme.textSecondary }]}>{detail.paused}</Text>
+          </View>
+        ) : null}
 
-          {/* Latest staff note */}
-          {room.latestNote ? (
-            <View style={[styles.noteCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-              <Ionicons name="chatbox-outline" size={14} color={theme.status.clean} />
-              <View style={styles.noteBody}>
-                <Text style={[styles.noteLabel, { color: theme.status.clean }]}>{t("roomBoard.sheet.latestNote")}</Text>
-                <Text style={[styles.noteText, { color: theme.textPrimary }]}>{room.latestNote}</Text>
+        {mode === "detail" ? (
+          <>
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              testID="room-detail-scroll"
+            >
+              <View style={styles.badges}>
+                <StatusBadgeLarge rawStatus={detail.rawStatus} label={detail.statusLabel} />
+                <FlagChips flags={detail.flags} />
               </View>
+
+              <Section title={t("roomBoard.detail.section.status")} testID="room-detail-section-status">
+                <FactRows rows={detail.statusRows} />
+              </Section>
+
+              <Section title={t("roomBoard.detail.section.assignment")} testID="room-detail-section-assignment">
+                <AssignmentCard
+                  assignment={detail.assignment}
+                  primaryIsAssignment={primaryIsAssign}
+                  saving={saving}
+                  onAssign={() => assignAction && run(assignAction.key)}
+                  action={assignAction}
+                  t={t}
+                />
+              </Section>
+
+              <Section title={t("roomBoard.detail.section.cleaning")} testID="room-detail-section-cleaning">
+                <CleaningCard cleaning={detail.cleaning} />
+              </Section>
+
+              {hasIssues ? (
+                <Section title={t("roomBoard.detail.section.issues")} testID="room-detail-section-issues">
+                  {detail.note ? <NoteCard note={detail.note} t={t} /> : null}
+                  {detail.workOrder ? <WorkOrderCard workOrder={detail.workOrder} t={t} /> : null}
+                  {detail.exceptions.map((exception) => (
+                    <ExceptionBlock key={exception.key} exception={exception} />
+                  ))}
+                  {detail.wellnessCheck ? (
+                    <Button
+                      label={t("roomBoard.sheet.dndOverride")}
+                      icon="moon-outline"
+                      variant="secondary"
+                      size="sm"
+                      onPress={confirmWellnessCheck}
+                      loading={wellnessBusy}
+                      disabled={!context.gate.allowed}
+                      testID="room-detail-wellness"
+                    />
+                  ) : null}
+                </Section>
+              ) : null}
+            </ScrollView>
+
+            <View style={styles.footer}>
+              {detail.primary ? (
+                <Button
+                  label={detail.primary.label}
+                  icon={detail.primary.key === "inspect" ? "shield-checkmark-outline" : "person-add-outline"}
+                  onPress={() => run((detail.primary as { key: DetailActionKey }).key)}
+                  loading={saving && primaryIsAssign}
+                  disabled={detail.primary.disabled}
+                  size="md"
+                  testID="room-detail-primary"
+                />
+              ) : null}
+              {detail.menu.length > 0 ? (
+                <Button
+                  label={t("roomBoard.detail.moreActions")}
+                  icon="ellipsis-horizontal"
+                  variant="secondary"
+                  size="md"
+                  onPress={() => setMode("actions")}
+                  testID="room-detail-more"
+                />
+              ) : null}
             </View>
-          ) : null}
-
-          {/* Open work order */}
-          {room.openWorkOrder ? (
-            <View style={[styles.noteCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-              <Ionicons name="construct-outline" size={14} color={theme.status.pickup} />
-              <View style={styles.noteBody}>
-                <Text style={[styles.noteLabel, { color: theme.status.pickup }]}>{t("roomBoard.sheet.openWorkOrder")}</Text>
-                <Text style={[styles.noteText, { color: theme.textPrimary }]}>{room.openWorkOrder}</Text>
-              </View>
-            </View>
-          ) : null}
-
-          {room.dnd ? (
-            <Button
-              label={t("roomBoard.sheet.dndOverride")}
-              icon="moon-outline"
-              variant="secondary"
-              size="sm"
-              onPress={() => {
-                Alert.alert(
-                  t("roomBoard.sheet.dndOverrideTitle", { room: room.roomNumber }),
-                  t("roomBoard.sheet.dndOverrideBody"),
-                  [
-                    { text: t("common.cancel"), style: "cancel" },
-                    {
-                      text: t("roomBoard.sheet.dndOverrideConfirm"),
-                      onPress: async () => {
-                        try {
-                          await api.post("/tasks", {
-                            title: `Supervisor wellness check — Room ${room.roomNumber}`,
-                            task_type: "housekeeping",
-                            priority: "high",
-                            room_id: room.roomId,
-                          });
-                          toast.success(t("roomBoard.sheet.dndOverrideCreated"));
-                        } catch {
-                          toast.error(t("roomBoard.sheet.dndOverrideError"));
-                        }
-                      },
-                    },
-                  ],
-                );
-              }}
-            />
-          ) : null}
-
-          {room.status === "CLEAN" ? (
-            <Button
-              label={t("roomBoard.sheet.inspectNow")}
-              icon="shield-checkmark-outline"
-              size="md"
-              onPress={() => { onClose(); router.push("/(app)/inspect" as never); }}
-            />
-          ) : null}
-
-          {room.assignmentId ? (
-            <Button
-              label={t("roomBoard.sheet.removeAssignment")}
-              icon="remove-circle-outline"
-              variant="destructive"
-              size="sm"
-              onPress={confirmRemove}
-              loading={saving}
-              disabled={actionsDisabled}
-            />
-          ) : null}
-        </ScrollView>
+          </>
+        ) : (
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <RoomActionsList actions={detail.menu} onSelect={run} />
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
 }
 
+function CloseButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+      style={[styles.iconButton, { backgroundColor: theme.surfaceSubtle }]}
+      testID="room-detail-close"
+    >
+      <Ionicons name="close" size={22} color={theme.textPrimary} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    maxHeight: "90%",
-  },
-  grabber: {
-    alignSelf: "center",
-    width: 38,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 12,
-  },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  roomNumber: { fontFamily: monoFont, fontSize: 34, lineHeight: 38, fontWeight: "800" },
-  titleBody: { flex: 1, minWidth: 0, gap: 1 },
-  roomType: { fontSize: 12.5, fontWeight: "700" },
-  floorText: { fontSize: 11.5 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 11 },
-  flagChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  flagText: { fontSize: 10.5, fontWeight: "800" },
-
-  scroll: { flexGrow: 0, marginTop: 14 },
-  scrollContent: { gap: 9 },
-  assignCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-    borderWidth: 1,
-    borderRadius: R.lg,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
-  },
-  unassignedIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  assignBody: { flex: 1, minWidth: 0, gap: 1 },
-  assignLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.7, textTransform: "uppercase" },
-  assignName: { fontSize: 14, fontWeight: "700" },
-
-  infoCard: {
-    borderWidth: 1,
-    borderRadius: R.lg,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    gap: 8,
-  },
-  infoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  infoLabel: { flex: 1, fontSize: 12.5 },
-  infoValue: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "700" },
-
-  noteCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 9,
-    borderWidth: 1,
-    borderRadius: R.lg,
-    padding: 12,
-  },
-  noteBody: { flex: 1, minWidth: 0, gap: 2 },
-  noteLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.7, textTransform: "uppercase" },
-  noteText: { fontSize: 12.5, lineHeight: 18 },
+  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 10, maxHeight: "92%" },
+  grabber: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, marginBottom: 10 },
+  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerBody: { flex: 1, minWidth: 0 },
+  roomNumber: { fontFamily: monoFont, fontSize: 34, lineHeight: 40, fontWeight: "800" },
+  subtitle: { fontSize: 13.5, fontWeight: "600" },
+  actionsTitle: { flex: 1, fontSize: 15, fontWeight: "800", letterSpacing: 0.4 },
+  iconButton: { minWidth: 44, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  paused: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, marginTop: 8 },
+  pausedText: { flex: 1, fontSize: 12.5, lineHeight: 17 },
+  scroll: { flexGrow: 0, marginTop: 10 },
+  scrollContent: { gap: 14, paddingBottom: 12 },
+  badges: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
+  footer: { gap: 8, paddingTop: 8 },
 });

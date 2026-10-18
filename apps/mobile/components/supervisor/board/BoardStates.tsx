@@ -7,6 +7,34 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
+/** A dismissible one-off notice above the board (a deep link or open room that is no longer there). */
+export function BoardNotice({
+  title,
+  body,
+  closeLabel,
+  onClose,
+  testID,
+}: {
+  title?: string;
+  body: string;
+  closeLabel: string;
+  onClose: () => void;
+  testID: string;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.notice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} accessibilityRole="alert" testID={testID}>
+      <View style={styles.noticeText}>
+        {title ? <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>{title}</Text> : null}
+        <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>{body}</Text>
+      </View>
+      <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={closeLabel} hitSlop={8} testID={`${testID}-close`}>
+        <Text style={[styles.noticeClose, { color: theme.primaryAction }]}>{closeLabel}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /** A secondary action under an empty state (Clear search, Show all, …). */
 export function EmptyAction({ label, onPress, testID }: { label: string; onPress: () => void; testID: string }) {
   const theme = useTheme();
@@ -143,6 +171,11 @@ export function BoardSkeleton() {
 }
 
 const styles = StyleSheet.create({
+  notice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
+  noticeText: { flex: 1, gap: 2 },
+  noticeTitle: { fontSize: 14, fontWeight: "700" },
+  noticeBody: { fontSize: 13, lineHeight: 18 },
+  noticeClose: { fontSize: 14, fontWeight: "700", minHeight: 44, textAlignVertical: "center" },
   action: { alignSelf: "center", minHeight: 48, paddingHorizontal: 22, borderWidth: 1, borderRadius: R.md, alignItems: "center", justifyContent: "center", marginTop: 8 },
   actionText: { fontSize: 14, fontWeight: "700" },
   skeleton: { paddingHorizontal: 16, gap: 14 },
