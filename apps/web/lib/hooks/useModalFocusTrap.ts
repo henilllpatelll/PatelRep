@@ -12,7 +12,7 @@ const FOCUSABLE_SELECTOR = [
 ].join(',')
 
 export function useModalFocusTrap(
-  ref: RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   active: boolean,
   onClose?: () => void,
 ) {

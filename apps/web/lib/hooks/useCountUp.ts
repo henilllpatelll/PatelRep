@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 
 export function useCountUp(target: number, duration = 800): number {
   const [count, setCount] = useState(0)
-  const frameRef = useRef<number>()
-  const startTimeRef = useRef<number>()
+  const frameRef = useRef<number | undefined>(undefined)
+  const startTimeRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     startTimeRef.current = undefined
