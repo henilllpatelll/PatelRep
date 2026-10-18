@@ -2,6 +2,7 @@ import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
 let mockParams: { roomId?: string } = {};
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
   useLocalSearchParams: () => mockParams,

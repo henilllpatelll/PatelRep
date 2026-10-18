@@ -239,7 +239,8 @@ export interface TeamLoad {
   overAssigned: boolean;
 }
 
-const MAX_SHIFT_MINUTES = 480;
+/** A working day's minutes; the line past which a person's remaining work reads as overloaded. */
+export const MAX_SHIFT_MINUTES = 480;
 
 export function buildTeamLoads(rooms: FloorRoom[], nameById: Map<string, string>): TeamLoad[] {
   const byHousekeeper = new Map<string, TeamLoad>();

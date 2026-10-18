@@ -1,5 +1,6 @@
 import { formatHotelTime, hotelDateKey, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
-import { DEFAULT_ROOM_PRIORITY, planAssignmentRemoval } from "@/lib/housekeeping/roomBoardModel";
+import { DEFAULT_ROOM_PRIORITY } from "@/lib/housekeeping/roomBoardModel";
+import { assignmentBlock, removalBlock } from "@/lib/housekeeping/roomAssignment";
 import type { BoardRoomView, BoardStaffMember, MutationGate, RosterTrust } from "@/lib/housekeeping/roomBoardState";
 import { isActionable } from "@/lib/housekeeping/supervisor";
 
@@ -382,10 +383,14 @@ function buildActions(view: BoardRoomView, ctx: RoomDetailContext): { primary: D
   if (stage === "to_clean") primary = action(assigned ? "reassign" : "assign", ctx);
   else if (stage === "awaiting_inspection") primary = action("inspect", ctx);
 
+  // A room being cleaned, submitted, inspected or out of service is not an unstarted assignment: it offers no
+  // assign / reassign / remove (see roomAssignment.assignmentBlock), so a live session is never handed over.
   const candidates: DetailAction[] = [];
-  if (assigned) candidates.push(action("reassign", ctx));
-  else if (isActionable(room.status)) candidates.push(action("assign", ctx));
-  if (planAssignmentRemoval(room).kind !== "none") candidates.push(action("remove", ctx, true));
+  if (assignmentBlock(room) === null) {
+    if (assigned) candidates.push(action("reassign", ctx));
+    else if (isActionable(room.status)) candidates.push(action("assign", ctx));
+  }
+  if (removalBlock(room) === null) candidates.push(action("remove", ctx, true));
   if (stage === "awaiting_inspection") candidates.push(action("inspect", ctx));
   return { primary, menu: candidates.filter((candidate) => candidate.key !== primary?.key) };
 }

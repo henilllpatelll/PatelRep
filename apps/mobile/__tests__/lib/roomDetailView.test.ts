@@ -335,10 +335,24 @@ describe("actions", () => {
     expect(detail.menu).toEqual([]);
   });
 
-  it("in progress: no primary, reassign and remove live in More actions", () => {
+  it("in progress: nothing to change — a live cleaning session is never handed to someone else or unassigned (Phase 5)", () => {
     const detail = buildRoomDetail(viewOf(rawRoom("104", "IN_PROGRESS", assigned), { assignee: MARIA }), ctx());
     expect(detail.primary).toBeNull();
-    expect(detail.menu.map((a) => a.key)).toEqual(["reassign", "remove"]);
+    expect(detail.menu).toEqual([]);
+    // The assignment itself is still shown.
+    expect(detail.assignment.kind).toBe("named");
+  });
+
+  it.each(["CLEAN", "INSPECTED", "OOO"])("%s with an assignment keeps it read-only: no reassign, no remove", (status) => {
+    const keys = [
+      ...(() => {
+        const detail = buildRoomDetail(viewOf(rawRoom("104", status, assigned), { assignee: MARIA }), ctx());
+        return [detail.primary?.key, ...detail.menu.map((a) => a.key)];
+      })(),
+    ];
+    expect(keys).not.toContain("reassign");
+    expect(keys).not.toContain("remove");
+    expect(keys).not.toContain("assign");
   });
 
   it("inspected and out-of-service rooms offer no status-changing primary action", () => {

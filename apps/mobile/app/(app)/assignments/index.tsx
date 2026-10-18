@@ -43,6 +43,7 @@ import { Avatar, SectionLabel } from "@/components/shared/mobileHandoff";
 import { ProgressBar, StatusRail } from "@/components/shared/evening";
 import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
+import { classifyFailure } from "@/lib/housekeeping/roomAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { Card } from "@/components/ui/Card";
@@ -207,37 +208,32 @@ export default function AssignmentsScreen() {
 
   const assignTo = useCallback(
     async (member: AssignableStaff) => {
-      if (floorPickerRooms) {
-        setSaving(true);
-        try {
-          await saveAssignments(
-            localDate(),
-            floorPickerRooms.map((room) => ({ room_id: room.roomId, housekeeper_id: member.userId })),
-          );
-          setFloorPickerRooms(null);
-          await loadData();
-        } catch (err) {
-          console.warn("Floor assign failed:", err);
-        } finally {
-          setSaving(false);
-        }
-        return;
-      }
-      if (!pickerRoom) return;
+      // One save at a time; "assigned" is announced only after the server accepted it.
+      if (saving) return;
+      const rooms = floorPickerRooms ?? (pickerRoom ? [pickerRoom] : []);
+      if (rooms.length === 0) return;
       setSaving(true);
       try {
-        await saveAssignments(localDate(), [
-          { room_id: pickerRoom.roomId, housekeeper_id: member.userId },
-        ]);
-        setPickerRoom(null);
-        await loadData();
+        await saveAssignments(
+          localDate(),
+          rooms.map((room) => ({ room_id: room.roomId, housekeeper_id: member.userId })),
+        );
       } catch (err) {
-        console.warn("Assign failed:", err);
-      } finally {
+        toast.error(t(`roomBoard.assign.error.${classifyFailure(err, isOnline).failure}`));
         setSaving(false);
+        return;
       }
+      setPickerRoom(null);
+      setFloorPickerRooms(null);
+      setSaving(false);
+      toast.success(
+        rooms.length === 1
+          ? t("roomBoard.assign.success.assign", { room: rooms[0].roomNumber, name: member.name })
+          : t("roomBoard.assign.success.floor", { count: rooms.length, name: member.name }),
+      );
+      await loadData();
     },
-    [pickerRoom, floorPickerRooms, loadData],
+    [saving, pickerRoom, floorPickerRooms, loadData, toast, t, isOnline],
   );
 
   const onAssignedRoomPress = useCallback(
@@ -251,16 +247,18 @@ export default function AssignmentsScreen() {
             if (!room.assignmentId) return;
             try {
               await removeAssignment(room.assignmentId);
-              await loadData();
             } catch (err) {
-              console.warn("Remove assignment failed:", err);
+              toast.error(t(`roomBoard.assign.error.${classifyFailure(err, isOnline).failure}`));
+              return;
             }
+            toast.success(t("roomBoard.assign.success.remove", { room: room.roomNumber }));
+            await loadData();
           },
         },
         { text: t("common.cancel"), style: "cancel" },
       ]);
     },
-    [t, loadData],
+    [t, loadData, toast, isOnline],
   );
 
   if (loading) {

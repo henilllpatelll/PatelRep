@@ -12,9 +12,8 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { removeAssignmentByPlan, saveAssignments } from "@/lib/api/housekeepingSupervisor";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
-import { planAssignmentRemoval, type BoardRoom } from "@/lib/housekeeping/roomBoardModel";
+import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
 import {
   buildAttentionSignals,
   buildBoardSummary,
@@ -29,8 +28,10 @@ import { removeChip, type BoardFilters } from "@/lib/housekeeping/roomBoardFilte
 import { MIN_FLOORS_FOR_JUMP, type QueryItem } from "@/lib/housekeeping/roomBoardQuery";
 import { DEFAULT_SORT } from "@/lib/housekeeping/roomBoardSort";
 import { useRoomBoardQuery } from "@/lib/housekeeping/useRoomBoardQuery";
+import { useRoomAssignment } from "@/lib/housekeeping/useRoomAssignment";
 import { useRoomBoard } from "@/lib/housekeeping/useRoomBoard";
-import { buildNameById, buildTeamLoads, type AssignableStaff, type FloorRoom } from "@/lib/housekeeping/supervisor";
+import { useAppStore } from "@/stores/appStore";
+import { useToast } from "@/lib/theme/useToast";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -43,7 +44,6 @@ import { BoardSegmentBar } from "@/components/supervisor/board/BoardSegmentBar";
 import { FloorJumpBar } from "@/components/supervisor/board/FloorJumpBar";
 import { RoomListRow } from "@/components/supervisor/board/RoomListRow";
 import { RoomTileRow } from "@/components/supervisor/board/RoomTile";
-import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import { RoomDetailSheet, type RoomDetailSheetContext } from "@/components/supervisor/RoomDetailSheet";
 import { BoardEmpty, BoardNotice, BoardSkeleton, type BoardEmptyKind } from "@/components/supervisor/board/BoardStates";
 
@@ -63,16 +63,10 @@ export default function RoomBoardScreen() {
   const { availability } = model;
   const views = model.rooms;
   const rooms = useMemo<BoardRoom[]>(() => (views ?? []).map((view) => view.room), [views]);
-  const staff = useMemo<AssignableStaff[]>(
-    () => model.staff.map((member) => ({ userId: member.userId, name: member.name, role: member.role })),
-    [model.staff],
-  );
   const [segment, setSegment] = useState<BoardSegmentKey>("all");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
-  const [saving, setSaving] = useState(false);
   // The header's age ("Updated 20 seconds ago") is read from the real clock at render; this tick only re-renders it.
   const [, setTick] = useState(0);
   // Deep link from the supervisor Attention Center: `?roomId=` opens that room once, or says it is gone.
@@ -95,8 +89,6 @@ export default function RoomBoardScreen() {
     }
   }, [refresh]);
 
-  const nameById = useMemo(() => buildNameById(staff), [staff]);
-  const teamLoads = useMemo(() => buildTeamLoads(rooms, nameById), [rooms, nameById]);
   // The drawer follows the room by id through every refresh, so a realtime update repaints it for the SAME room.
   const selectedView = useMemo(
     () => (views ?? []).find((view) => view.room.roomId === selectedRoomId) ?? null,
@@ -149,52 +141,20 @@ export default function RoomBoardScreen() {
     setSelectedRoomId(roomId);
   }, []);
 
-  // One write at a time: a second tap while a save is in flight is ignored, not queued.
-  const writing = useRef(false);
-
-  const assignTo = useCallback(
-    async (member: AssignableStaff) => {
-      // Only a fresh, verified board may be changed; the date is the hotel's, not the phone's.
-      if (!pickerRoom || !gate.allowed || writing.current) return;
-      writing.current = true;
-      setSaving(true);
-      try {
-        await saveAssignments(model.hotelDate, [
-          { room_id: pickerRoom.roomId, housekeeper_id: member.userId },
-        ]);
-        setPickerRoom(null);
-        await refresh();
-      } catch (err) {
-        console.warn("Assign failed:", err);
-      } finally {
-        writing.current = false;
-        setSaving(false);
-      }
-    },
-    [pickerRoom, gate.allowed, model.hotelDate, refresh],
-  );
-
-  const handleRemoveAssignment = useCallback(
-    async (target: FloorRoom) => {
-      const room = rooms.find((candidate) => candidate.roomId === target.roomId);
-      if (!room || !gate.allowed) return;
-      // A dated row is deleted by id; a mirror-only assignment through its room (see planAssignmentRemoval).
-      const plan = planAssignmentRemoval(room);
-      if (plan.kind === "none" || writing.current) return;
-      writing.current = true;
-      setSaving(true);
-      try {
-        await removeAssignmentByPlan(plan);
-        await refresh();
-      } catch (err) {
-        console.warn("Remove assignment failed:", err);
-      } finally {
-        writing.current = false;
-        setSaving(false);
-      }
-    },
-    [rooms, gate.allowed, refresh],
-  );
+  // The one assignment workflow (assign / reassign / remove): it follows the room through the live board, re-reads it
+  // before every write and reports only what the server confirmed. The drawer renders it; see useRoomAssignment.
+  const toast = useToast();
+  const tenantId = useAppStore((state) => state.user?.tenant_id ?? null);
+  const userId = useAppStore((state) => state.user?.id ?? null);
+  const assignment = useRoomAssignment({
+    model,
+    gate,
+    isOnline,
+    refresh,
+    scopeKey: tenantId && userId ? `${tenantId}:${userId}` : null,
+    t,
+    toast,
+  });
 
   // What the board may claim right now. Anything but a fresh, verified answer says so instead of looking live.
   const verifiedClock =
@@ -443,15 +403,7 @@ export default function RoomBoardScreen() {
           room={selectedRoom}
           view={selectedView}
           context={detailContext}
-          saving={saving}
-          onAssign={(room) => {
-            setSelectedRoomId(null);
-            setPickerRoom(room);
-          }}
-          onRemoveAssignment={(room) => {
-            setSelectedRoomId(null);
-            void handleRemoveAssignment(room);
-          }}
+          assignment={assignment}
           onClose={() => setSelectedRoomId(null)}
         />
       ) : null}
@@ -468,15 +420,6 @@ export default function RoomBoardScreen() {
         onClose={() => setFilterSheetOpen(false)}
       />
 
-      <HousekeeperPicker
-        visible={pickerRoom != null}
-        roomNumber={pickerRoom?.roomNumber ?? null}
-        staff={staff}
-        loads={teamLoads}
-        saving={saving}
-        onSelect={(member) => void assignTo(member)}
-        onClose={() => setPickerRoom(null)}
-      />
     </View>
   );
 }

@@ -7,6 +7,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true,
   default: () => mockSystemScheme,
 }));
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
   useLocalSearchParams: () => ({}),

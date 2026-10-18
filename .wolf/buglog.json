@@ -34156,6 +34156,30 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2073",
+      "timestamp": "2026-10-18T21:10:00-05:00",
+      "error_message": "HousekeeperPicker showed 'Assigned ✓' (and an Android toast) whenever its `saving` flag went true→false, even when the save failed; the Room Board and Assignments screens also swallowed assign/remove failures with console.warn.",
+      "file": "apps/mobile/components/supervisor/HousekeeperPicker.tsx",
+      "root_cause": "Success was inferred from a prop flipping, not from the server's answer; callers had no error feedback path.",
+      "fix": "The picker never claims success. The assignment controller (Room Board) and the Assignments screen announce success only after the write resolved, and show a translated reason on failure; unclear network outcomes are read back from the server first.",
+      "tags": ["mobile", "assignment", "false-success", "feedback"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T21:10:00-05:00"
+    },
+    {
+      "id": "bug-2074",
+      "timestamp": "2026-10-18T21:10:00-05:00",
+      "error_message": "Room Detail 'More actions' offered Reassign and Remove for rooms being cleaned, submitted or inspected.",
+      "file": "apps/mobile/lib/housekeeping/roomDetailView.ts",
+      "root_cause": "buildActions offered reassign whenever any assignment existed, and the backend upsert would silently hand a live cleaning session to someone else.",
+      "fix": "assign/reassign/remove are offered only when roomAssignment.assignmentBlock/removalBlock allow it (stage to_clean); the controller re-checks against the live board and a fresh server read.",
+      "tags": ["mobile", "assignment", "active-cleaning", "guard"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T21:10:00-05:00"
     }
   ]
 }

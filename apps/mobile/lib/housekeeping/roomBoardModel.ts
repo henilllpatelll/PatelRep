@@ -149,6 +149,8 @@ export interface BoardRoom extends FloorRoom {
   /** False when the backend sent no floor; `floor` is then the legacy 0 and must not be shown as a real floor. */
   floorKnown: boolean;
   statusInfo: RoomStatusInfo;
+  /** The room type's configured clean minutes; null when the backend sent none (`baseCleanMinutes` then holds a legacy 30). */
+  baseMinutes: number | null;
   occupancy: RoomOccupancy;
   assignment: BoardAssignment;
   serviceDeclined: BoardServiceDeclined;
@@ -276,6 +278,10 @@ function toBoardRoom(raw: BoardRoomRaw): BoardRoom | null {
     floorKnown,
     building: text(raw.rooms?.building),
     statusInfo,
+    baseMinutes: (() => {
+      const minutes = finite(raw.rooms?.room_types?.base_clean_minutes);
+      return minutes !== null && minutes > 0 ? minutes : null;
+    })(),
     occupancy,
     assignment: assignmentOf(raw),
     serviceDeclined: {

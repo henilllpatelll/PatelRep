@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
   useLocalSearchParams: () => ({}),
@@ -23,47 +24,29 @@ jest.mock("@/lib/api/housekeepingSupervisor", () => ({
   fetchShiftRoster: jest.fn(),
   fetchInspectionHistory: jest.fn(),
   fetchLateCheckoutsVerified: jest.fn(),
-  saveAssignments: jest.fn(),
-  removeAssignmentByPlan: jest.fn(),
 }));
 jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
 
 // The sheet and picker have their own tests; here they only expose the props the screen hands them.
 const mockSheetProps: { current: Record<string, unknown> | null } = { current: null };
 jest.mock("@/components/supervisor/RoomDetailSheet", () => {
-  const { Text, Pressable, View } = require("react-native");
+  const { Text, View } = require("react-native");
   return {
     RoomDetailSheet: (props: {
       room: { roomNumber: string };
       view: { assignee: { name: string | null } | null };
       context: { gate: { allowed: boolean } };
-      onRemoveAssignment: (room: unknown) => void;
-      onAssign: (room: unknown) => void;
     }) => {
       mockSheetProps.current = props as never;
       return (
         <View testID="room-sheet">
           <Text testID="sheet-assignee">{props.view.assignee ? (props.view.assignee.name ?? "roomBoard.assigneeUnknown") : "NONE"}</Text>
           <Text testID="sheet-disabled">{String(!props.context.gate.allowed)}</Text>
-          <Pressable testID="sheet-assign" onPress={() => props.onAssign(props.room)}><Text>assign</Text></Pressable>
-          <Pressable testID="sheet-remove" onPress={() => props.onRemoveAssignment(props.room)}><Text>remove</Text></Pressable>
         </View>
       );
     },
   };
 });
-jest.mock("@/components/supervisor/HousekeeperPicker", () => {
-  const { Pressable, Text } = require("react-native");
-  return {
-    HousekeeperPicker: ({ visible, staff, onSelect }: { visible: boolean; staff: Array<{ userId: string; name: string }>; onSelect: (m: unknown) => void }) =>
-      visible ? (
-        <Pressable testID="picker-select" onPress={() => onSelect(staff[0])}>
-          <Text>{staff.map((m) => m.name).join(",")}</Text>
-        </Pressable>
-      ) : null,
-  };
-});
-
 const mockAppState = {
   isOnline: true,
   hotelTimezone: "America/Chicago",
@@ -79,11 +62,8 @@ import {
   fetchInspectionHistory,
   fetchLateCheckoutsVerified,
   fetchShiftRoster,
-  removeAssignmentByPlan,
-  saveAssignments,
 } from "@/lib/api/housekeepingSupervisor";
 import { fetchBlockedTasks } from "@/lib/api/tasks";
-import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import RoomBoardScreen from "@/app/(app)/room-board/index";
 import { STAFF, hotelBoard, rawRoom } from "../helpers/roomBoardFixtures";
@@ -109,8 +89,6 @@ beforeEach(() => {
   (fetchInspectionHistory as jest.Mock).mockResolvedValue([]);
   (fetchLateCheckoutsVerified as jest.Mock).mockResolvedValue([]);
   (fetchBlockedTasks as jest.Mock).mockResolvedValue({ items: [] });
-  (saveAssignments as jest.Mock).mockResolvedValue(undefined);
-  (removeAssignmentByPlan as jest.Mock).mockResolvedValue(true);
 });
 
 describe("Room Board — what it claims", () => {
@@ -219,69 +197,6 @@ describe("Room Board — assignment correctness", () => {
     fireEvent.press(screen.getByTestId("board-tile-302"));
     expect(screen.getByTestId("sheet-assignee").props.children).toBe("NONE");
   });
-
-  it("assigns for the HOTEL's date, then re-reads the board", async () => {
-    const screen = renderBoard();
-    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("board-tile-101"));
-    fireEvent.press(screen.getByTestId("sheet-assign"));
-    const loads = board.mock.calls.length;
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("picker-select"));
-    });
-    const hotelToday = hotelDateKey(new Date(), "America/Chicago");
-    expect(saveAssignments).toHaveBeenCalledWith(hotelToday, [{ room_id: "room-101", housekeeper_id: "hk-1" }]);
-    await waitFor(() => expect(board.mock.calls.length).toBeGreaterThan(loads));
-  });
-
-  it("does not assign while the board cannot be trusted", async () => {
-    const screen = renderBoard();
-    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("board-tile-101"));
-    fireEvent.press(screen.getByTestId("sheet-assign"));
-    mockAppState.isOnline = false;
-    screen.rerender(ui());
-    await waitFor(() => expect(screen.getByTestId("room-board-not-live")).toBeTruthy());
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("picker-select"));
-    });
-    expect(saveAssignments).not.toHaveBeenCalled();
-  });
-
-  it("removes a dated assignment by id and a mirror-only assignment through its room", async () => {
-    board.mockResolvedValue([
-      rawRoom("401", "DIRTY", { assigned_to: "hk-1", assignment_id: "as-401" }),
-      rawRoom("402", "DIRTY", { assigned_to: "hk-2", assignment_id: null }),
-    ]);
-    const screen = renderBoard();
-    await waitFor(() => expect(screen.getByTestId("board-tile-401")).toBeTruthy());
-
-    fireEvent.press(screen.getByTestId("board-tile-401"));
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("sheet-remove"));
-    });
-    expect(removeAssignmentByPlan).toHaveBeenLastCalledWith({ kind: "assignment", assignmentId: "as-401" });
-
-    fireEvent.press(screen.getByTestId("board-tile-402"));
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("sheet-remove"));
-    });
-    expect(removeAssignmentByPlan).toHaveBeenLastCalledWith({ kind: "mirror", roomId: "room-402" });
-  });
-
-  it("does not remove anything while the board is not live", async () => {
-    board.mockResolvedValue([rawRoom("401", "DIRTY", { assigned_to: "hk-1", assignment_id: "as-401" })]);
-    const screen = renderBoard();
-    await waitFor(() => expect(screen.getByTestId("board-tile-401")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("board-tile-401"));
-    mockAppState.isOnline = false;
-    screen.rerender(ui());
-    await waitFor(() => expect(screen.getByTestId("room-board-not-live")).toBeTruthy());
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("sheet-remove"));
-    });
-    expect(removeAssignmentByPlan).not.toHaveBeenCalled();
-  });
 });
 
 describe("Room Board — the open room drawer", () => {
@@ -328,20 +243,5 @@ describe("Room Board — the open room drawer", () => {
     );
     expect(screen.getByTestId("room-sheet")).toBeTruthy();
     expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
-  });
-
-  it("ignores a second remove while the first is still saving (no duplicate submissions)", async () => {
-    board.mockResolvedValue([rawRoom("401", "DIRTY", { assigned_to: "hk-1", assignment_id: "as-401" })]);
-    let finish: (value: boolean) => void = () => undefined;
-    (removeAssignmentByPlan as jest.Mock).mockReturnValue(new Promise<boolean>((resolve) => { finish = resolve; }));
-    const screen = renderBoard();
-    await waitFor(() => expect(screen.getByTestId("board-tile-401")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("board-tile-401"));
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("sheet-remove"));
-      fireEvent.press(screen.getByTestId("sheet-remove"));
-    });
-    expect(removeAssignmentByPlan).toHaveBeenCalledTimes(1);
-    await act(async () => finish(true));
   });
 });

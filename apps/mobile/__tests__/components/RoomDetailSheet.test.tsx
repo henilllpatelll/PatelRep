@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { Alert, Modal } from "react-native";
+import type { AssignmentController } from "@/lib/housekeeping/useRoomAssignment";
 import { makeTranslator, type Language } from "../helpers/i18n";
 
 let mockLanguage: Language = "en";
@@ -50,11 +51,22 @@ function viewOf(raw: BoardRoomRaw, assignee: BoardRoomView["assignee"] = null): 
   return { room: normalizeBoardRecords([raw]).rooms[0], assignee };
 }
 
-function setup(view: BoardRoomView, context = contextOf(), saving = false) {
-  const handlers = { onAssign: jest.fn(), onRemoveAssignment: jest.fn(), onClose: jest.fn() };
+/** A closed assignment controller whose openers are spies: the sheet only has to call them. */
+function controllerOf(overrides: Partial<AssignmentController> = {}): AssignmentController {
+  return {
+    flow: null, room: null, intent: null, block: null, changedSinceReview: false, picker: null, review: null, removal: null,
+    busy: false, error: null, canConfirm: false,
+    openAssign: jest.fn(), openRemove: jest.fn(), setQuery: jest.fn(), setFilter: jest.fn(), select: jest.fn(), setAck: jest.fn(),
+    toReview: jest.fn(), back: jest.fn(), close: jest.fn(), confirm: jest.fn(),
+    ...overrides,
+  };
+}
+
+function setup(view: BoardRoomView, context = contextOf(), assignment = controllerOf()) {
+  const handlers = { onClose: jest.fn(), onAssign: assignment.openAssign as jest.Mock, onRemoveAssignment: assignment.openRemove as jest.Mock };
   const ui = (v: BoardRoomView, c: RoomDetailSheetContext) => (
     <ThemeProvider>
-      <RoomDetailSheet room={v.room} view={v} context={c} saving={saving} {...handlers} />
+      <RoomDetailSheet room={v.room} view={v} context={c} assignment={assignment} onClose={handlers.onClose} />
     </ThemeProvider>
   );
   const screen = render(ui(view, context));
@@ -232,7 +244,7 @@ describe("RoomDetailSheet — actions", () => {
   it("Assign / Reassign hand the room to the screen's existing flow", () => {
     const unassigned = setup(viewOf(rawRoom("201", "DIRTY")));
     pressed(unassigned.screen, "room-detail-primary");
-    expect(unassigned.handlers.onAssign).toHaveBeenCalledWith(expect.objectContaining({ roomId: "room-201" }));
+    expect(unassigned.handlers.onAssign).toHaveBeenCalledWith("room-201");
     unassigned.screen.unmount();
 
     const mine = setup(viewOf(rawRoom("201", "DIRTY", assigned), MARIA));
@@ -241,11 +253,24 @@ describe("RoomDetailSheet — actions", () => {
     expect(mine.handlers.onAssign).toHaveBeenCalledTimes(1);
   });
 
-  it("an in-progress assigned room offers 'Change assignment' in its assignment card", () => {
+  it("a room being cleaned offers no reassign, assign or remove: a live session is never handed over", () => {
     const { screen, handlers } = setup(viewOf(rawRoom("204", "IN_PROGRESS", assigned), MARIA));
     expect(screen.queryByTestId("room-detail-primary")).toBeNull();
-    pressed(screen, "room-detail-change-assignment");
-    expect(handlers.onAssign).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("room-detail-change-assignment")).toBeNull();
+    expect(screen.queryByTestId("room-detail-more")).toBeNull();
+    expect(handlers.onAssign).not.toHaveBeenCalled();
+    expect(handlers.onRemoveAssignment).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["submitted for inspection", "CLEAN"],
+    ["inspected", "INSPECTED"],
+    ["out of service", "OOO"],
+  ])("a room %s keeps its assignment and offers no way to change it", (_label, status) => {
+    const { screen } = setup(viewOf(rawRoom("206", status, assigned), MARIA));
+    expect(screen.queryByTestId("room-detail-change-assignment")).toBeNull();
+    expect(screen.queryByText("Reassign room")).toBeNull();
+    expect(screen.queryByText("Remove assignment")).toBeNull();
   });
 
   it("Inspect closes the drawer and opens the existing inspection queue", () => {
@@ -255,23 +280,12 @@ describe("RoomDetailSheet — actions", () => {
     expect(router.push).toHaveBeenCalledWith("/(app)/inspect");
   });
 
-  it("Remove assignment is a destructive confirmation; only the confirm button removes", () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
-    try {
-      const { screen, handlers } = setup(viewOf(rawRoom("201", "DIRTY", assigned), MARIA));
-      pressed(screen, "room-detail-more");
-      pressed(screen, "room-action-remove");
-      expect(handlers.onRemoveAssignment).not.toHaveBeenCalled();
-      expect(alertSpy).toHaveBeenCalledWith("Remove assignment for Room 201?", "The room will move back to unassigned.", expect.any(Array));
-      const buttons = alertSpy.mock.calls[0][2] as Array<{ text: string; style?: string; onPress?: () => void }>;
-      expect(buttons.find((b) => b.style === "cancel")?.onPress).toBeUndefined();
-      const confirm = buttons.find((b) => b.style === "destructive");
-      expect(confirm?.text).toBe("Remove assignment");
-      confirm?.onPress?.();
-      expect(handlers.onRemoveAssignment).toHaveBeenCalledWith(expect.objectContaining({ roomId: "room-201" }));
-    } finally {
-      alertSpy.mockRestore();
-    }
+  it("Remove opens the removal confirmation in the same modal; nothing is removed by opening it", () => {
+    const { screen, handlers } = setup(viewOf(rawRoom("201", "DIRTY", assigned), MARIA));
+    pressed(screen, "room-detail-more");
+    pressed(screen, "room-action-remove");
+    expect(handlers.onRemoveAssignment).toHaveBeenCalledWith("room-201");
+    expect(screen.UNSAFE_getAllByType(Modal)).toHaveLength(1);
   });
 
   it.each([

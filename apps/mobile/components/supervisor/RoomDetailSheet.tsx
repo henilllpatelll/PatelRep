@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,11 +18,13 @@ import {
   StatusBadgeLarge,
   WorkOrderCard,
 } from "@/components/supervisor/detail/RoomDetailParts";
+import { AssignmentPanel } from "@/components/supervisor/assignment/AssignmentPanel";
 import { RoomActionsList } from "@/components/supervisor/detail/RoomActionsList";
 import { api } from "@/lib/api/client";
 import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
 import type { BoardRoomView } from "@/lib/housekeeping/roomBoardState";
 import { buildRoomDetail, type DetailActionKey, type RoomDetailContext } from "@/lib/housekeeping/roomDetailView";
+import type { AssignmentController } from "@/lib/housekeeping/useRoomAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -32,9 +34,10 @@ import { useToast } from "@/lib/theme/useToast";
    `BoardRoomView` through `buildRoomDetail`; this component fetches nothing and subscribes to nothing, so a
    realtime update to the board simply re-renders it for the same room.
 
-   Actions here are the ones that already worked: assign / reassign / remove (the screen runs them behind the
-   mutation gate), the inspection queue, and the confirmed DND wellness-check task. The housekeeper picker,
-   remove confirmation redesign, notes, history and work-order detail are later phases. */
+   Assign / reassign / remove open the assignment panel IN THIS SAME Modal (picker → review, or the removal
+   confirmation) and hand control back to the room when it closes; the controller owns the one mutation state.
+   The inspection queue and the confirmed DND wellness-check task are unchanged. Notes, history and work-order
+   detail are later phases. */
 
 export type RoomDetailSheetContext = Omit<RoomDetailContext, "t" | "language">;
 
@@ -44,17 +47,13 @@ export function RoomDetailSheet({
   room,
   view,
   context,
-  saving,
-  onAssign,
-  onRemoveAssignment,
+  assignment,
   onClose,
 }: {
   room: BoardRoom;
   view: BoardRoomView;
   context: RoomDetailSheetContext;
-  saving: boolean;
-  onAssign: (room: BoardRoom) => void;
-  onRemoveAssignment: (room: BoardRoom) => void;
+  assignment: AssignmentController;
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -77,23 +76,28 @@ export function RoomDetailSheet({
     if (mode === "actions" && detail.menu.length === 0) setMode("detail");
   }, [mode, detail.menu.length]);
 
-  const back = () => (mode === "actions" ? setMode("detail") : onClose());
-
-  const confirmRemove = () => {
-    Alert.alert(t("roomBoard.sheet.removeConfirmTitle", { room: room.roomNumber }), t("roomBoard.sheet.removeConfirmBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("roomBoard.sheet.removeAssignment"), style: "destructive", onPress: () => onRemoveAssignment(room) },
-    ]);
+  const assigning = assignment.flow !== null && assignment.flow.roomId === room.roomId;
+  const saving = assignment.busy;
+  // Android back / swipe: one view at a time (assignment step → room/actions → closed). Never mid-write.
+  const back = () => {
+    if (assigning) assignment.back();
+    else if (mode === "actions") setMode("detail");
+    else onClose();
+  };
+  const dismiss = () => {
+    if (assigning && assignment.busy) return;
+    if (assigning) assignment.close();
+    onClose();
   };
 
   const run = (key: DetailActionKey) => {
     switch (key) {
       case "assign":
       case "reassign":
-        onAssign(room);
+        assignment.openAssign(room.roomId);
         return;
       case "remove":
-        confirmRemove();
+        assignment.openRemove(room.roomId);
         return;
       case "inspect":
         onClose();
@@ -135,7 +139,8 @@ export function RoomDetailSheet({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={back} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessible={false} importantForAccessibility="no" testID="room-detail-backdrop" />
+      <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Pressable style={styles.backdrop} onPress={dismiss} accessible={false} importantForAccessibility="no" testID="room-detail-backdrop" />
       <View
         accessibilityViewIsModal
         style={[styles.sheet, { paddingBottom: Math.max(16, insets.bottom + 8), backgroundColor: theme.background }]}
@@ -143,7 +148,9 @@ export function RoomDetailSheet({
       >
         <View style={[styles.grabber, { backgroundColor: theme.border }]} />
 
-        {mode === "detail" ? (
+        {assigning ? (
+          <AssignmentPanel controller={assignment} paused={detail.paused} bottomInset={0} />
+        ) : mode === "detail" ? (
           <View style={styles.header}>
             <View style={styles.headerBody} accessible accessibilityLabel={detail.accessibilityLabel} testID="room-detail-header">
               <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="room-detail-number">
@@ -179,14 +186,14 @@ export function RoomDetailSheet({
           </View>
         )}
 
-        {detail.paused ? (
+        {detail.paused && !assigning ? (
           <View style={[styles.paused, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} accessibilityRole="alert" testID="room-detail-paused">
             <Ionicons name="cloud-offline-outline" size={16} color={theme.textSecondary} />
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.pausedText, { color: theme.textSecondary }]}>{detail.paused}</Text>
           </View>
         ) : null}
 
-        {mode === "detail" ? (
+        {assigning ? null : mode === "detail" ? (
           <>
             <ScrollView
               style={styles.scroll}
@@ -272,6 +279,7 @@ export function RoomDetailSheet({
           </ScrollView>
         )}
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -293,6 +301,7 @@ function CloseButton({ label, onPress }: { label: string; onPress: () => void })
 }
 
 const styles = StyleSheet.create({
+  keyboard: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 10, maxHeight: "92%" },
   grabber: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, marginBottom: 10 },

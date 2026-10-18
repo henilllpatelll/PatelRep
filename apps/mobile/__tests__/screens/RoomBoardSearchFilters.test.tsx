@@ -8,6 +8,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 }));
 let mockParams: { roomId?: string } = {};
 const mockSetParams = jest.fn();
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), setParams: (...args: unknown[]) => mockSetParams(...args) },
   useLocalSearchParams: () => mockParams,
