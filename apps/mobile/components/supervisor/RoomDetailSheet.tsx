@@ -42,6 +42,7 @@ export function RoomDetailSheet({
   assigneeName,
   locale,
   saving,
+  actionsDisabled = false,
   onAssign,
   onRemoveAssignment,
   onClose,
@@ -50,6 +51,8 @@ export function RoomDetailSheet({
   assigneeName: string | null;
   locale: string;
   saving: boolean;
+  /** The board is not fresh and verified (offline, stale, failed): reads stay, changes pause. */
+  actionsDisabled?: boolean;
   onAssign: (room: FloorRoom) => void;
   onRemoveAssignment: (room: FloorRoom) => void;
   onClose: () => void;
@@ -152,6 +155,7 @@ export function RoomDetailSheet({
                   label={t("roomBoard.sheet.reassign")}
                   onPress={() => onAssign(room)}
                   loading={saving}
+                  disabled={actionsDisabled}
                   variant="secondary"
                   size="sm"
                 />
@@ -170,6 +174,7 @@ export function RoomDetailSheet({
                     label={t("roomBoard.sheet.assign")}
                     onPress={() => onAssign(room)}
                     loading={saving}
+                    disabled={actionsDisabled}
                     size="sm"
                   />
                 ) : null}
@@ -270,6 +275,7 @@ export function RoomDetailSheet({
               size="sm"
               onPress={confirmRemove}
               loading={saving}
+              disabled={actionsDisabled}
             />
           ) : null}
         </ScrollView>

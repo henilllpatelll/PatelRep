@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState } from "react-native";
 import { fetchBlockedTasks } from "@/lib/api/tasks";
 import {
   fetchAssignableStaff,
@@ -121,5 +122,26 @@ export function useSupervisorToday({
   }, [stored.sources]);
 
   const today = useMemo(() => composeSupervisorToday(sources, { now, timeZone, viewerId }), [sources, now, timeZone, viewerId]);
+
+  // The hotel's day rolled over (midnight in the hotel's zone, not the phone's): what is held was requested for
+  // yesterday, so ask again instead of waiting for the next pull or Realtime event.
+  const seenDate = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = seenDate.current;
+    seenDate.current = today.hotelDate;
+    if (previous !== null && previous !== today.hotelDate) void load(false);
+  }, [today.hotelDate, load]);
+
+  // Back from the background: re-read the clock now (the hotel date may have moved while suspended) and
+  // refresh when nothing verified is fresh any more. A fresh snapshot is left alone.
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      setNow(Date.now());
+      if (!isSnapshotFresh(sourcesFor(scopeKey), Date.now())) void load(false);
+    });
+    return () => subscription.remove();
+  }, [load, scopeKey]);
+
   return { today, refreshing: stored.refreshing, refresh };
 }

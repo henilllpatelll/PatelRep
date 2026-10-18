@@ -1,3 +1,5 @@
+import { hotelHourOf } from "@/lib/housekeeping/hotelTime";
+
 /* ─── Supervisor floor domain ───────────────────────────────────────────────
    Normalizes GET /housekeeping/board rows (room_status spread + nested
    `rooms` join) into a flat view model, and derives the counts, floor
@@ -14,18 +16,48 @@ export interface BoardRoomRaw {
   actual_checkout_at?: string | null;
   assigned_to?: string | null;
   assignment_id?: string | null;
+  /** The room_assignments row's date; null when the assignment comes only from the room_status mirror. */
+  assignment_date?: string | null;
+  assignment_shift_id?: string | null;
   clean_type?: string | null;
   clean_type_label?: string | null;
   latest_note?: string | null;
+  latest_note_at?: string | null;
   open_work_order_id?: string | null;
   open_work_order_number?: string | null;
   open_work_order_title?: string | null;
   open_work_order_status?: string | null;
-  prediction?: { risk_level?: "LOW" | "MEDIUM" | "HIGH" | null } | null;
+  open_work_order_priority?: string | null;
+  /** Guest declined housekeeping service for this stay (room_status.do_not_service). */
+  do_not_service?: boolean | null;
+  service_declined_reason?: string | null;
+  service_declined_note?: string | null;
+  service_declined_at?: string | null;
+  /** 1 (highest) .. 10 (lowest); the schema default is 5. */
+  priority?: number | null;
+  reclean_requested_at?: string | null;
+  inspection_required?: boolean | null;
+  last_inspected_at?: string | null;
+  updated_at?: string | null;
+  occupancy_discrepancy?: boolean | null;
+  last_session_id?: string | null;
+  last_clean_minutes?: number | null;
+  last_clean_base_minutes?: number | null;
+  last_clean_checklist_done?: number | null;
+  last_clean_checklist_total?: number | null;
+  last_clean_photo_count?: number | null;
+  last_clean_ended_at?: string | null;
+  prediction?: {
+    risk_level?: "LOW" | "MEDIUM" | "HIGH" | null;
+    predicted_ready_at?: string | null;
+    confidence_score?: number | string | null;
+    last_calculated_at?: string | null;
+  } | null;
   rooms?: {
     id?: string;
     room_number?: string | null;
     floor?: number | null;
+    building?: string | null;
     room_types?: { name?: string | null; code?: string | null; base_clean_minutes?: number | null } | null;
   } | null;
 }
@@ -117,7 +149,8 @@ export interface FloorSnapshot {
   behindSchedule: number;
 }
 
-export function isBehindSchedule(room: FloorRoom, nowMs: number): boolean {
+/** `timeZone`: the hotel's zone; the 1 PM cut-off is the hotel's clock, not the device's. Omitted = device clock. */
+export function isBehindSchedule(room: FloorRoom, nowMs: number, timeZone?: string | null): boolean {
   if (room.status === "INSPECTED" || room.status === "CLEAN" || isOutOfOrder(room.status)) return false;
   if (!isActionable(room.status) && room.status !== "DIRTY" && room.status !== "PICKUP") return false;
   // Departure rooms: behind if checkout_time < now
@@ -126,13 +159,13 @@ export function isBehindSchedule(room: FloorRoom, nowMs: number): boolean {
     if (!Number.isNaN(coMs) && coMs < nowMs) return true;
   }
   // Stayover/all rooms: behind if it's past 1 PM and room is still unstarted
-  const nowDate = new Date(nowMs);
-  if (nowDate.getHours() >= 13 && room.status !== "IN_PROGRESS") return true;
+  const hour = timeZone ? hotelHourOf(nowMs, timeZone) : new Date(nowMs).getHours();
+  if (hour >= 13 && room.status !== "IN_PROGRESS") return true;
   return false;
 }
 
-export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
-  const nowMs = Date.now();
+export function buildFloorSnapshot(rooms: FloorRoom[], options: { nowMs?: number; timeZone?: string | null } = {}): FloorSnapshot {
+  const nowMs = options.nowMs ?? Date.now();
   const snapshot: FloorSnapshot = {
     total: rooms.length,
     ready: 0,
@@ -154,7 +187,7 @@ export function buildFloorSnapshot(rooms: FloorRoom[]): FloorSnapshot {
     if (isActionable(room.status) && !room.assignedTo) snapshot.unassigned += 1;
     if (room.dnd && !isOutOfOrder(room.status)) snapshot.dnd += 1;
     if (room.vip && !isOutOfOrder(room.status)) snapshot.vip += 1;
-    if (isBehindSchedule(room, nowMs)) snapshot.behindSchedule += 1;
+    if (isBehindSchedule(room, nowMs, options.timeZone)) snapshot.behindSchedule += 1;
   }
   return snapshot;
 }

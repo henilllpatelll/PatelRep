@@ -3775,6 +3775,33 @@
     "signalUnassigned": "{{count}} sin asignar",
     "signalSubmitted": "{{count}} por inspeccionar",
     "signalDnd": "{{count}} No molestar",
+    "assigneeUnknown": "Asignada · nombre no disponible",
+    "assigneeUnknownShort": "Asignada",
+    "state": {
+      "notLiveTitle": "No está en vivo",
+      "staleOffline": "Sin conexión. Se muestra el tablero verificado por última vez a las {{time}}.",
+      "staleFailed": "No se pudo actualizar. Se muestra el tablero verificado por última vez a las {{time}}.",
+      "staleAge": "Este tablero se verificó por última vez a las {{time}}. Desliza hacia abajo para actualizar.",
+      "previousDay": "Este tablero es de un día anterior. Actualizando para hoy.",
+      "unavailableOffline": "Sin conexión y sin un tablero verificado que mostrar. Vuelve a conectarte e inténtalo de nuevo.",
+      "unavailableForbidden": "No tienes acceso al tablero de habitaciones.",
+      "unavailableError": "No se pudo cargar el tablero de habitaciones. No es un tablero vacío — inténtalo de nuevo.",
+      "verifiedEmpty": "No hay habitaciones en este tablero",
+      "retry": "Reintentar",
+      "actionsPaused": "Los cambios están en pausa hasta que el tablero se verifique de nuevo."
+    },
+    "statusMeaning": {
+      "DIRTY": "Vacante sucia — requiere limpieza",
+      "OCCUPIED": "Ocupada sucia — requiere limpieza",
+      "PICKUP": "Recogida / limpieza de estancia",
+      "IN_PROGRESS": "Limpiándose ahora",
+      "CLEAN": "Entregada — pendiente de inspección",
+      "INSPECTED": "Inspeccionada — lista para el huésped",
+      "OOO": "Fuera de orden",
+      "OUT_OF_ORDER": "Fuera de orden",
+      "OUT_OF_SERVICE": "Fuera de servicio",
+      "UNKNOWN": "Estado no reconocido"
+    },
     "signalVip": "{{count}} VIP",
     "statusLabels": {
       "DIRTY": "Vacante Sucio",

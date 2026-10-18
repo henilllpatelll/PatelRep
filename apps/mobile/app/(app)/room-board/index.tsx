@@ -10,22 +10,17 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
-import { useAppStore } from "@/stores/appStore";
-import { localDate } from "@/lib/utils/date";
-import {
-  fetchAssignableStaff,
-  fetchBoard,
-  removeAssignment,
-  saveAssignments,
-} from "@/lib/api/housekeepingSupervisor";
+import { removeAssignmentByPlan, saveAssignments } from "@/lib/api/housekeepingSupervisor";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { planAssignmentRemoval, type BoardRoom } from "@/lib/housekeeping/roomBoardModel";
+import { isLive } from "@/lib/housekeeping/roomBoardState";
+import { useRoomBoard } from "@/lib/housekeeping/useRoomBoard";
 import {
   buildFloorSnapshot,
   buildNameById,
   buildTeamLoads,
   filterBySegment,
   groupByFloor,
-  normalizeBoardRooms,
   type AssignableStaff,
   type BoardSegment,
   type FloorRoom,
@@ -100,71 +95,52 @@ const SEGMENT_LABEL_KEYS: Record<BoardSegment, string> = {
 export default function RoomBoardScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isOnline, user } = useAppStore();
   const theme = useTheme();
   const locale = i18n.language === "es" ? "es-MX" : "en-US";
 
-  const [rooms, setRooms] = useState<FloorRoom[]>([]);
-  const [staff, setStaff] = useState<AssignableStaff[]>([]);
+  // Board, staff and roster are the same verified snapshot Supervisor Today reads; see useRoomBoard.
+  const { model, gate, refresh } = useRoomBoard();
+  const { availability } = model;
+  const rooms = useMemo<BoardRoom[]>(() => (model.rooms ?? []).map((view) => view.room), [model.rooms]);
+  const staff = useMemo<AssignableStaff[]>(
+    () => model.staff.map((member) => ({ userId: member.userId, name: member.name, role: member.role })),
+    [model.staff],
+  );
   const [segment, setSegment] = useState<BoardSegment>("all");
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
   const [saving, setSaving] = useState(false);
   // Deep link from the supervisor Attention Center: `?roomId=` opens that room once, or says it is gone.
   const { roomId: linkedRoomId } = useLocalSearchParams<{ roomId?: string }>();
-  const [boardLoaded, setBoardLoaded] = useState(false);
   const [linkMissing, setLinkMissing] = useState(false);
-
-  const loadBoard = useCallback(async () => {
-    if (!isOnline) {
-      setLoading(false);
-      return;
-    }
-    const [boardRes, staffRes] = await Promise.allSettled([
-      fetchBoard(localDate()),
-      fetchAssignableStaff(),
-    ]);
-    if (boardRes.status === "fulfilled") {
-      setRooms(normalizeBoardRooms(boardRes.value));
-      setBoardLoaded(true);
-    }
-    if (staffRes.status === "fulfilled") setStaff(staffRes.value);
-    setLoading(false);
-  }, [isOnline]);
-
-  useEffect(() => {
-    loadBoard();
-  }, [loadBoard]);
-
-  useEffect(() => {
-    if (!user?.tenant_id) return;
-    const channel = supabase
-      .channel("room-board-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${user.tenant_id}` },
-        () => {
-          loadBoard();
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.tenant_id, loadBoard]);
+  // A link is judged only against a board the server verified just now; anything else proves nothing about the room.
+  const boardLoaded = availability.kind === "ready" || availability.kind === "verified_empty";
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadBoard();
-    setRefreshing(false);
-  }, [loadBoard]);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
 
   const nameById = useMemo(() => buildNameById(staff), [staff]);
   const teamLoads = useMemo(() => buildTeamLoads(rooms, nameById), [rooms, nameById]);
-  const snapshot = useMemo(() => buildFloorSnapshot(rooms), [rooms]);
+  const snapshot = useMemo(
+    () => buildFloorSnapshot(rooms, { nowMs: model.generatedAt, timeZone: model.timeZone }),
+    [rooms, model.generatedAt, model.timeZone],
+  );
   const floors = useMemo(() => groupByFloor(filterBySegment(rooms, segment)), [rooms, segment]);
+  // A room tied to a person is ASSIGNED even when the staff list has no name for them (or failed to load).
+  const assigneeLabel = useCallback(
+    (room: FloorRoom, short: boolean): string | null =>
+      room.assignedTo
+        ? (nameById.get(room.assignedTo) ?? t(short ? "roomBoard.assigneeUnknownShort" : "roomBoard.assigneeUnknown"))
+        : null,
+    [nameById, t],
+  );
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.roomId === selectedRoomId) ?? null,
     [rooms, selectedRoomId],
@@ -220,46 +196,78 @@ export default function RoomBoardScreen() {
 
   const assignTo = useCallback(
     async (member: AssignableStaff) => {
-      if (!pickerRoom) return;
+      // Only a fresh, verified board may be changed; the date is the hotel's, not the phone's.
+      if (!pickerRoom || !gate.allowed) return;
       setSaving(true);
       try {
-        await saveAssignments(localDate(), [
+        await saveAssignments(model.hotelDate, [
           { room_id: pickerRoom.roomId, housekeeper_id: member.userId },
         ]);
         setPickerRoom(null);
-        await loadBoard();
+        await refresh();
       } catch (err) {
         console.warn("Assign failed:", err);
       } finally {
         setSaving(false);
       }
     },
-    [pickerRoom, loadBoard],
+    [pickerRoom, gate.allowed, model.hotelDate, refresh],
   );
 
   const handleRemoveAssignment = useCallback(
-    async (room: FloorRoom) => {
-      if (!room.assignmentId) return;
+    async (target: FloorRoom) => {
+      const room = rooms.find((candidate) => candidate.roomId === target.roomId);
+      if (!room || !gate.allowed) return;
+      // A dated row is deleted by id; a mirror-only assignment through its room (see planAssignmentRemoval).
+      const plan = planAssignmentRemoval(room);
+      if (plan.kind === "none") return;
       setSaving(true);
       try {
-        await removeAssignment(room.assignmentId);
-        await loadBoard();
+        await removeAssignmentByPlan(plan);
+        await refresh();
       } catch (err) {
         console.warn("Remove assignment failed:", err);
       } finally {
         setSaving(false);
       }
     },
-    [loadBoard],
+    [rooms, gate.allowed, refresh],
   );
 
-  if (loading) {
+  if (availability.kind === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: theme.background }]}>
         <StateBlock status="loading" />
       </View>
     );
   }
+
+  // What the board may claim right now. Anything but a fresh, verified answer says so instead of looking live.
+  const verifiedClock =
+    availability.kind === "stale" || availability.kind === "previous_day" || availability.kind === "ready" || availability.kind === "verified_empty"
+      ? availability.verifiedAt !== null
+        ? formatHotelTime(new Date(availability.verifiedAt), model.timeZone, i18n.language)
+        : null
+      : null;
+  const staleNoticeKey =
+    availability.kind === "stale"
+      ? availability.reason === "offline"
+        ? "roomBoard.state.staleOffline"
+        : availability.reason === "refresh_failed"
+          ? "roomBoard.state.staleFailed"
+          : "roomBoard.state.staleAge"
+      : null;
+  const unavailableMessageKey =
+    availability.kind === "unavailable"
+      ? availability.cause === "offline"
+        ? "roomBoard.state.unavailableOffline"
+        : availability.cause === "forbidden"
+          ? "roomBoard.state.unavailableForbidden"
+          : "roomBoard.state.unavailableError"
+      : availability.kind === "previous_day"
+        ? "roomBoard.state.previousDay"
+        : null;
+  const boardKnown = model.rooms !== null && model.readiness !== null;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -272,50 +280,58 @@ export default function RoomBoardScreen() {
       >
         <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
         <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomBoard.kicker")}</Text>
-          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomBoard")}</Text>
-          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
-            {t("roomBoard.summary", {
-              ready: snapshot.ready,
-              total: snapshot.total,
-              working: snapshot.inProgress,
-            })}
+          {/* Only a board the server verified just now is a "live floor"; anything else says it is not. */}
+          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]} testID="room-board-kicker">
+            {isLive(availability) ? t("roomBoard.kicker") : t("roomBoard.state.notLiveTitle")}
           </Text>
-          <HeroSignalRow signals={signals} />
+          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomBoard")}</Text>
+          {boardKnown && model.readiness ? (
+            <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
+              {t("roomBoard.summary", {
+                ready: model.readiness.ready,
+                // Out-of-order rooms are not part of the sellable inventory, so they are not "left to clean".
+                total: model.readiness.inService,
+                working: model.readiness.inProgress,
+              })}
+            </Text>
+          ) : null}
+          {boardKnown ? <HeroSignalRow signals={signals} /> : null}
         </View>
 
-        <View style={[styles.segmented, { backgroundColor: theme.surfaceMuted }]}>
-          {SEGMENTS.map((key) => {
-            const isActive = segment === key;
-            const count = segmentCounts[key];
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.segment,
-                  isActive && [
-                    styles.segmentActive,
-                    { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
-                  ],
-                ]}
-                onPress={() => setSegment(key)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-              >
-                <Text
+        {boardKnown ? (
+          <View style={[styles.segmented, { backgroundColor: theme.surfaceMuted }]}>
+            {SEGMENTS.map((key) => {
+              const isActive = segment === key;
+              const count = segmentCounts[key];
+              return (
+                <TouchableOpacity
+                  key={key}
                   style={[
-                    styles.segmentLabel,
-                    { color: isActive ? theme.textPrimary : theme.textMuted },
+                    styles.segment,
+                    isActive && [
+                      styles.segmentActive,
+                      { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
+                    ],
                   ]}
+                  onPress={() => setSegment(key)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
                 >
-                  {t(SEGMENT_LABEL_KEYS[key])}
-                  {count > 0 ? ` ${count}` : ""}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.segmentLabel,
+                      { color: isActive ? theme.textPrimary : theme.textMuted },
+                    ]}
+                  >
+                    {t(SEGMENT_LABEL_KEYS[key])}
+                    {count > 0 ? ` ${count}` : ""}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
 
         {linkMissing ? (
           <View
@@ -339,9 +355,43 @@ export default function RoomBoardScreen() {
           </View>
         ) : null}
 
-        <ColorLegend t={t} theme={theme} />
+        {staleNoticeKey || availability.kind === "previous_day" ? (
+          <View
+            style={[styles.linkNotice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+            accessibilityRole="alert"
+            testID="room-board-not-live"
+          >
+            <View style={styles.linkNoticeText}>
+              <Text style={[styles.linkNoticeTitle, { color: theme.textPrimary }]}>{t("roomBoard.state.notLiveTitle")}</Text>
+              <Text style={[styles.linkNoticeBody, { color: theme.textSecondary }]}>
+                {availability.kind === "previous_day"
+                  ? t("roomBoard.state.previousDay")
+                  : t(staleNoticeKey as string, { time: verifiedClock ?? "—" })}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {!gate.allowed && boardKnown && availability.kind !== "stale" ? (
+          <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="room-board-actions-paused">
+            {t("roomBoard.state.actionsPaused")}
+          </Text>
+        ) : null}
+
+        {boardKnown ? <ColorLegend t={t} theme={theme} /> : null}
 
         <View style={styles.body}>
+          {!boardKnown ? (
+            // Nothing verified to show: say why. A failed or offline load is NOT an empty board.
+            <StateBlock
+              status="error"
+              errorIcon={availability.kind === "unavailable" && availability.cause === "offline" ? "cloud-offline-outline" : "alert-circle-outline"}
+              errorMessage={t(unavailableMessageKey ?? "roomBoard.state.unavailableError")}
+              onRetry={() => void onRefresh()}
+              retryLabel={t("roomBoard.state.retry")}
+            />
+          ) : null}
+
           {floors.map(({ floor, rooms: floorRooms }) => (
             <View key={floor}>
               <SectionLabel hint={t("roomBoard.roomCount", { count: floorRooms.length })}>
@@ -352,7 +402,7 @@ export default function RoomBoardScreen() {
                   <RoomStatusTile
                     key={room.roomId}
                     room={room}
-                    assigneeName={room.assignedTo ? nameById.get(room.assignedTo) ?? null : null}
+                    assigneeName={assigneeLabel(room, true)}
                     onPress={() => setSelectedRoomId(room.roomId)}
                   />
                 ))}
@@ -360,11 +410,11 @@ export default function RoomBoardScreen() {
             </View>
           ))}
 
-          {floors.length === 0 ? (
+          {boardKnown && floors.length === 0 ? (
             <StateBlock
               status="empty"
               emptyIcon="bed-outline"
-              emptyTitle={rooms.length === 0 ? t("roomBoard.noRoomsLoaded") : t("roomBoard.segmentEmpty")}
+              emptyTitle={rooms.length === 0 ? t("roomBoard.state.verifiedEmpty") : t("roomBoard.segmentEmpty")}
               emptyBody={t("roomBoard.pullToRefresh")}
             />
           ) : null}
@@ -374,9 +424,10 @@ export default function RoomBoardScreen() {
       {selectedRoom ? (
         <RoomDetailSheet
           room={selectedRoom}
-          assigneeName={selectedRoom.assignedTo ? nameById.get(selectedRoom.assignedTo) ?? null : null}
+          assigneeName={assigneeLabel(selectedRoom, false)}
           locale={locale}
           saving={saving}
+          actionsDisabled={!gate.allowed}
           onAssign={(room) => {
             setSelectedRoomId(null);
             setPickerRoom(room);
@@ -449,6 +500,7 @@ const styles = StyleSheet.create({
   },
   segmentLabel: { fontSize: 12, fontWeight: "700" },
 
+  pausedHint: { marginHorizontal: 18, marginBottom: 8, fontSize: 12 },
   linkNotice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 18, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
   linkNoticeText: { flex: 1, gap: 2 },
   linkNoticeTitle: { fontSize: 14, fontWeight: "700" },

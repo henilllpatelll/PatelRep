@@ -32,22 +32,29 @@ jest.mock("@/lib/api/client", () => ({
   },
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({
-  fetchBoard: jest.fn(),
+  fetchBoardVerified: jest.fn(),
   fetchAssignableStaff: jest.fn(),
+  fetchShiftRoster: jest.fn(),
+  fetchInspectionHistory: jest.fn(),
+  fetchLateCheckoutsVerified: jest.fn(),
   saveAssignments: jest.fn(),
-  removeAssignment: jest.fn(),
+  removeAssignmentByPlan: jest.fn(),
 }));
+jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
 jest.mock("@/lib/utils/date", () => ({
   localDate: () => "2026-06-09",
 }));
+const mockAppState = {
+  isOnline: true,
+  hotelTimezone: "America/Chicago",
+  user: { id: "u1", role: "housekeeping_supervisor", tenant_id: "h1" },
+};
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    isOnline: true,
-    user: { id: "u1", role: "housekeeping_supervisor", tenant_id: "h1" },
-  }),
+  useAppStore: (selector?: (state: unknown) => unknown) => (selector ? selector(mockAppState) : mockAppState),
 }));
 
-import { fetchAssignableStaff, fetchBoard } from "@/lib/api/housekeepingSupervisor";
+import { fetchAssignableStaff, fetchBoardVerified as fetchBoard, fetchShiftRoster, fetchInspectionHistory, fetchLateCheckoutsVerified } from "@/lib/api/housekeepingSupervisor";
+import { fetchBlockedTasks } from "@/lib/api/tasks";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import RoomBoardScreen from "@/app/(app)/room-board/index";
 
@@ -88,6 +95,10 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockFetchBoard.mockResolvedValue(rows);
   mockFetchAssignableStaff.mockResolvedValue([]);
+  (fetchShiftRoster as jest.Mock).mockResolvedValue([]);
+  (fetchInspectionHistory as jest.Mock).mockResolvedValue([]);
+  (fetchLateCheckoutsVerified as jest.Mock).mockResolvedValue([]);
+  (fetchBlockedTasks as jest.Mock).mockResolvedValue({ items: [] });
 });
 
 describe("RoomBoardScreen", () => {

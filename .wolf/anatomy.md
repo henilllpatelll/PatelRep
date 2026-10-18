@@ -841,3 +841,8 @@
 - apps/mobile/components/supervisor/attention/{SupervisorAttentionScreen,AttentionCard,AttentionFilters,SupervisorAttentionSheet,AttentionSheetHost}.tsx — full supervisor Attention Center + detail sheet (host shared with Today)
 - apps/mobile/app/(app)/supervisor-attention/index.tsx — supervisor-only route (Redirect home for other roles); housekeeper /attention route untouched
 - apps/mobile/__tests__/{lib/supervisorAttentionCenter,lib/supervisorTodayStore,screens/SupervisorAttentionCenter,screens/RoomBoardDeepLink}.test.ts(x)
+- apps/mobile/lib/housekeeping/roomBoardModel.ts — canonical Room Board domain: classifyRoomStatus (stage/guestReady/unavailable kind), BoardRoom (extends FloorRoom), the ONE board normaliser (normalizeBoardRecords, hotel-date stamp), late-checkout join, assignment-removal plan (dated vs status mirror). ~330 lines
+- apps/mobile/lib/housekeeping/roomBoardState.ts — BoardAvailability (loading/ready/verified_empty/stale/unavailable/previous_day), evaluateMutationGate, roster trust, assignee resolution, composeRoomBoard over the shared Today sources. ~260 lines
+- apps/mobile/lib/housekeeping/roomBoardSelectors.ts — pure selectors: building/floor grouping, stage/status/unassigned/awaiting-inspection filters, room-number search, recorded-fact urgency, deterministic priority sort, metrics, indicators, available staff. ~330 lines
+- apps/mobile/lib/housekeeping/useRoomBoard.ts — hook: shared Today snapshot + own late-checkout source, one realtime subscription, resume/rollover handling, mutation gate. ~140 lines
+- apps/mobile/__tests__/lib/roomBoard{Model,State,Selectors,I18n}.test.ts, useRoomBoard.test.tsx, supervisorRealtime.test.ts, screens/RoomBoardStates.test.tsx, helpers/roomBoardFixtures.ts — Room Board V2 Phase 1 tests.

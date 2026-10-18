@@ -89,6 +89,11 @@ export function hotelDateKey(value: string | Date | null | undefined, zone: stri
   return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
 }
 
+/** Hour of day (0-23) at the instant on the hotel's wall clock. */
+export function hotelHourOf(instantMs: number, zone: string | null | undefined): number {
+  return zonedParts(new Date(instantMs), resolveTimeZone(zone)).hour;
+}
+
 /** Offset of `zone` from UTC (ms) at the given instant — DST-aware. */
 function zoneOffsetMs(instant: number, zone: string): number {
   const p = zonedParts(new Date(instant), zone);

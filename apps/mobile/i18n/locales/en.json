@@ -3775,6 +3775,33 @@
     "signalUnassigned": "{{count}} unassigned",
     "signalSubmitted": "{{count}} to inspect",
     "signalDnd": "{{count}} DND",
+    "assigneeUnknown": "Assigned · name unavailable",
+    "assigneeUnknownShort": "Assigned",
+    "state": {
+      "notLiveTitle": "Not live",
+      "staleOffline": "You're offline. Showing the board as last verified at {{time}}.",
+      "staleFailed": "Couldn't refresh. Showing the board as last verified at {{time}}.",
+      "staleAge": "This board was last verified at {{time}}. Pull down to refresh.",
+      "previousDay": "This board is from an earlier day. Refreshing for today.",
+      "unavailableOffline": "You're offline and there's no verified board to show. Reconnect and try again.",
+      "unavailableForbidden": "You don't have access to the room board.",
+      "unavailableError": "Couldn't load the room board. This is not an empty board — try again.",
+      "verifiedEmpty": "No rooms on this board",
+      "retry": "Try again",
+      "actionsPaused": "Changes are paused until the board is verified again."
+    },
+    "statusMeaning": {
+      "DIRTY": "Vacant dirty — cleaning required",
+      "OCCUPIED": "Occupied dirty — housekeeping required",
+      "PICKUP": "Pickup / stayover cleaning",
+      "IN_PROGRESS": "Being cleaned now",
+      "CLEAN": "Submitted — awaiting inspection",
+      "INSPECTED": "Inspected — guest ready",
+      "OOO": "Out of order",
+      "OUT_OF_ORDER": "Out of order",
+      "OUT_OF_SERVICE": "Out of service",
+      "UNKNOWN": "Status not recognized"
+    },
     "signalVip": "{{count}} VIP",
     "statusLabels": {
       "DIRTY": "Vacant Dirty",

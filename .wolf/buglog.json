@@ -34084,6 +34084,78 @@
       "related_bugs": ["bug-2065"],
       "occurrences": 1,
       "last_seen": "2026-10-17T00:15:00-05:00"
+    },
+    {
+      "id": "bug-2067",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "Room Board: a failed or offline board load rendered as an empty board (no error), and old data read as live.",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "The screen kept its own rooms state and ignored a rejected fetchBoard, so failure, offline and 'no rooms' looked identical; it also used the device date and a private realtime channel.",
+      "fix": "Room Board now reads the shared Supervisor Today snapshot through useRoomBoard/composeRoomBoard: explicit loading/ready/verified_empty/stale/unavailable/previous_day states, hotel-local date, a mutation gate, and a 'Not live' header when the board is not verified.",
+      "tags": ["mobile", "room-board", "source-state", "offline", "stale"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2068",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "Room Board headline 'X of Y ready' counted out-of-order rooms in Y; Room Board and Supervisor Today disagreed.",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "It used FloorSnapshot.total (inventory) instead of the in-service denominator Today uses.",
+      "fix": "The headline now uses ReadinessSummary.inService from the shared model; a test asserts Room Board metrics equal Today's readiness.",
+      "tags": ["mobile", "room-board", "readiness", "denominator"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2069",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "A room assigned to a user with no display name showed as 'Unassigned' in the room sheet.",
+      "file": "apps/mobile/app/(app)/room-board/index.tsx",
+      "root_cause": "assigneeName (null when the staff list lacks the id or failed) was the only signal for assigned-vs-unassigned.",
+      "fix": "The screen passes an 'Assigned (name unavailable)' label whenever assignment.userId exists; assignment, name and attendance are separate in roomBoardState.",
+      "tags": ["mobile", "room-board", "assignment", "staff"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2070",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "isBehindSchedule used the device clock (getHours) for the 1 PM cut-off.",
+      "file": "apps/mobile/lib/housekeeping/supervisor.ts",
+      "root_cause": "The wall-clock hour came from the phone's timezone rather than the hotel's.",
+      "fix": "isBehindSchedule/buildFloorSnapshot accept a timeZone and use hotelHourOf; Today readiness and attention pass the hotel zone.",
+      "tags": ["mobile", "timezone", "supervisor-today"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2071",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "supervisorRealtime: a late event from a closed channel could still fire the previous hotel's listener.",
+      "file": "apps/mobile/lib/housekeeping/supervisorRealtime.ts",
+      "root_cause": "close() cleared the timer but left the channel handler live and its listener set intact.",
+      "fix": "Added a closed flag that blocks refresh scheduling and status handling; added reconnect catch-up. The new test fails without the guard.",
+      "tags": ["mobile", "realtime", "tenant-isolation"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
+    },
+    {
+      "id": "bug-2072",
+      "timestamp": "2026-10-18T10:30:00-05:00",
+      "error_message": "useRoomBoard looped ('Maximum update depth exceeded') when a caller passed an inline fetchLateCheckouts.",
+      "file": "apps/mobile/lib/housekeeping/useRoomBoard.ts",
+      "root_cause": "The fetcher was an effect dependency, so a new function each render re-ran the load effect, which set state.",
+      "fix": "The fetcher is read through a ref and no-op state writes are skipped.",
+      "tags": ["mobile", "hooks", "infinite-loop"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-18T10:30:00-05:00"
     }
   ]
 }
