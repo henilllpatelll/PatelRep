@@ -3909,7 +3909,80 @@
     "building": "Building {{building}}",
     "buildingNone": "Other rooms",
     "floorUnknown": "Floor not set",
-    "roomCountOf": "{{shown}} of {{total}} rooms"
+    "roomCountOf": "{{shown}} of {{total}} rooms",
+    "search": {
+      "placeholder": "Search room number…",
+      "label": "Search rooms by number",
+      "clear": "Clear search",
+      "openFilters": "Filter and sort",
+      "openFiltersActive": "Filter and sort, {{active}} active",
+      "noMatch": "No rooms match {{query}}."
+    },
+    "filters": {
+      "title": "Filter & Sort",
+      "reset": "Reset all",
+      "apply": "Apply filters",
+      "edit": "Edit filters",
+      "clearAll": "Clear all",
+      "removeChip": "Remove filter {{label}}",
+      "sortTitle": "Sort by",
+      "statusTitle": "Status",
+      "operationalTitle": "Operations",
+      "locationTitle": "Location",
+      "buildingTitle": "Building",
+      "floorsTitle": "Floors",
+      "allBuildings": "All buildings",
+      "noData": "No data on today's board",
+      "chipFloor": "{{where}} · {{level}}",
+      "unavailableApplied": "Not applied (no data on this board): {{filters}}.",
+      "status": {
+        "toClean": "To clean",
+        "working": "In progress",
+        "toInspect": "Awaiting inspection",
+        "ready": "Ready",
+        "outOfOrder": "Out of order",
+        "outOfService": "Out of service",
+        "unrecognized": "Unrecognized"
+      },
+      "flag": {
+        "unassigned": "Unassigned",
+        "arrivalsToday": "Arrivals today",
+        "departuresToday": "Departures today",
+        "vip": "VIP",
+        "dnd": "Do not disturb",
+        "workOrder": "Open work order",
+        "urgent": "High priority / urgent",
+        "risk": "Readiness risk"
+      }
+    },
+    "sort": {
+      "priority": "Priority first",
+      "roomNumber": "Room number",
+      "departure": "Departure time",
+      "arrival": "Arrival time",
+      "status": "Cleaning status",
+      "floor": "Floor, low to high"
+    },
+    "results": {
+      "showing": "Showing {{shown}} of {{total}} rooms",
+      "sortedBy": "Sorted by {{sort}}"
+    },
+    "empty": {
+      "filters": "No rooms match these filters.",
+      "searchFilters": "No rooms match {{query}} with these filters.",
+      "staleNote": "Based on the board last verified at {{time}}, so this may be out of date."
+    },
+    "segmentEmptyBody": {
+      "toClean": "No rooms need cleaning.",
+      "working": "No rooms are being cleaned right now.",
+      "toInspect": "No rooms are awaiting inspection.",
+      "ready": "No rooms are ready yet."
+    },
+    "jump": {
+      "title": "Jump to floor",
+      "caption": "Floor",
+      "item": "Jump to {{label}}"
+    }
   },
   "roomStatus": {
     "kicker": "Property",

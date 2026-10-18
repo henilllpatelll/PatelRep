@@ -43,9 +43,13 @@ export interface BuildingGroupOf<T> {
 
 /**
  * Building → floor → rooms. Buildings sort by name with "no building" last; floors ascend with "no floor"
- * last; rooms sort by number. A room with no floor is NOT placed on floor 0.
+ * last; rooms sort by number unless `order` is "given" (the caller already sorted them and the order inside
+ * each floor must be kept). A room with no floor is NOT placed on floor 0.
  */
-export function groupByBuildingAndFloor<T extends { room: BoardRoom } | BoardRoom>(rooms: readonly T[]): BuildingGroupOf<T>[] {
+export function groupByBuildingAndFloor<T extends { room: BoardRoom } | BoardRoom>(
+  rooms: readonly T[],
+  order: "number" | "given" = "number",
+): BuildingGroupOf<T>[] {
   const roomOf = (item: T): BoardRoom => ("room" in item ? item.room : item);
   const byBuilding = new Map<string | null, Map<number | null, T[]>>();
   for (const item of rooms) {
@@ -70,7 +74,10 @@ export function groupByBuildingAndFloor<T extends { room: BoardRoom } | BoardRoo
       building,
       floors: [...floors.entries()]
         .sort(([a], [b]) => nullsLast(a, b))
-        .map(([floor, list]) => ({ floor, rooms: [...list].sort((a, b) => compareRoomNumbers(roomOf(a), roomOf(b))) })),
+        .map(([floor, list]) => ({
+          floor,
+          rooms: order === "given" ? [...list] : [...list].sort((a, b) => compareRoomNumbers(roomOf(a), roomOf(b))),
+        })),
     }));
 }
 

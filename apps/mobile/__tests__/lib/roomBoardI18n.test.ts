@@ -26,9 +26,16 @@ const OWNED = [
   "roomBoard.card",
   "roomBoard.attention",
   "roomBoard.seg",
+  "roomBoard.search",
+  "roomBoard.filters",
+  "roomBoard.sort",
+  "roomBoard.results",
+  "roomBoard.empty",
+  "roomBoard.segmentEmptyBody",
+  "roomBoard.jump",
 ];
 // Words that are the same in both languages on purpose.
-const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip"]);
+const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip", "roomBoard.filters.flag.vip", "roomBoard.filters.chipFloor"]);
 const SINGLE = [
   "roomBoard.assigneeUnknown",
   "roomBoard.unassigned",
@@ -70,10 +77,19 @@ describe("every roomBoard key the code asks for exists", () => {
     "../../components/supervisor/board/BoardHeader.tsx",
     "../../components/supervisor/board/BoardReadinessCard.tsx",
     "../../components/supervisor/board/BoardSegmentBar.tsx",
+    "../../lib/housekeeping/roomBoardFilters.ts",
+    "../../lib/housekeeping/roomBoardQuery.ts",
+    "../../lib/housekeeping/roomBoardSort.ts",
+    "../../components/supervisor/board/BoardSearchBar.tsx",
+    "../../components/supervisor/board/BoardFilterSheet.tsx",
+    "../../components/supervisor/board/BoardActiveFilters.tsx",
+    "../../components/supervisor/board/FloorJumpBar.tsx",
+    "../../components/supervisor/board/BoardStates.tsx",
+    "../../components/supervisor/board/RoomListRow.tsx",
   ]
     .map((file) => readFileSync(resolve(__dirname, file), "utf8"))
     .join("\n");
-  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty)[\w.${}]*)["'`]/g)].map((m) => m[1]);
+  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|search|filters|sort|results|empty|segmentEmptyBody|jump|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty)[\w.${}]*)["'`]/g)].map((m) => m[1]);
 
   it("finds the keys in the source", () => {
     expect(literal.length).toBeGreaterThan(8);
@@ -82,6 +98,21 @@ describe("every roomBoard key the code asks for exists", () => {
   it.each([...new Set(literal)].filter((key) => !key.includes("${")))("%s is defined in en and es", (key) => {
     expect(typeof node(en, key)).toBe("string");
     expect(typeof node(es, key)).toBe("string");
+  });
+
+  it("covers every dynamic filter, sort and empty-segment key the code builds from a template", () => {
+    const groups: Record<string, string[]> = {
+      "roomBoard.filters.status": ["toClean", "working", "toInspect", "ready", "outOfOrder", "outOfService", "unrecognized"],
+      "roomBoard.filters.flag": ["unassigned", "arrivalsToday", "departuresToday", "vip", "dnd", "workOrder", "urgent", "risk"],
+      "roomBoard.sort": ["priority", "roomNumber", "departure", "arrival", "status", "floor"],
+      "roomBoard.segmentEmptyBody": ["toClean", "working", "toInspect", "ready"],
+    };
+    for (const [prefix, keys] of Object.entries(groups)) {
+      for (const key of keys) {
+        expect(typeof node(en, `${prefix}.${key}`)).toBe("string");
+        expect(typeof node(es, `${prefix}.${key}`)).toBe("string");
+      }
+    }
   });
 
   it("covers every status the model can classify (statusMeaning.<CODE> and UNKNOWN)", () => {

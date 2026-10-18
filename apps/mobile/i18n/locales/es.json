@@ -3909,7 +3909,80 @@
     "building": "Edificio {{building}}",
     "buildingNone": "Otros cuartos",
     "floorUnknown": "Piso sin definir",
-    "roomCountOf": "{{shown}} de {{total}} cuartos"
+    "roomCountOf": "{{shown}} de {{total}} cuartos",
+    "search": {
+      "placeholder": "Buscar número de cuarto…",
+      "label": "Buscar cuartos por número",
+      "clear": "Borrar búsqueda",
+      "openFilters": "Filtrar y ordenar",
+      "openFiltersActive": "Filtrar y ordenar, {{active}} activos",
+      "noMatch": "Ningún cuarto coincide con {{query}}."
+    },
+    "filters": {
+      "title": "Filtrar y ordenar",
+      "reset": "Restablecer todo",
+      "apply": "Aplicar filtros",
+      "edit": "Editar filtros",
+      "clearAll": "Borrar todo",
+      "removeChip": "Quitar el filtro {{label}}",
+      "sortTitle": "Ordenar por",
+      "statusTitle": "Estado",
+      "operationalTitle": "Operación",
+      "locationTitle": "Ubicación",
+      "buildingTitle": "Edificio",
+      "floorsTitle": "Pisos",
+      "allBuildings": "Todos los edificios",
+      "noData": "Sin datos en el tablero de hoy",
+      "chipFloor": "{{where}} · {{level}}",
+      "unavailableApplied": "No aplicado (sin datos en este tablero): {{filters}}.",
+      "status": {
+        "toClean": "Por limpiar",
+        "working": "En proceso",
+        "toInspect": "Esperando inspección",
+        "ready": "Listo",
+        "outOfOrder": "Fuera de orden",
+        "outOfService": "Fuera de servicio",
+        "unrecognized": "No reconocido"
+      },
+      "flag": {
+        "unassigned": "Sin asignar",
+        "arrivalsToday": "Llegadas hoy",
+        "departuresToday": "Salidas hoy",
+        "vip": "VIP",
+        "dnd": "No molestar",
+        "workOrder": "Orden de trabajo abierta",
+        "urgent": "Alta prioridad / urgente",
+        "risk": "Riesgo de no estar listo"
+      }
+    },
+    "sort": {
+      "priority": "Prioridad primero",
+      "roomNumber": "Número de cuarto",
+      "departure": "Hora de salida",
+      "arrival": "Hora de llegada",
+      "status": "Estado de limpieza",
+      "floor": "Piso, de menor a mayor"
+    },
+    "results": {
+      "showing": "Mostrando {{shown}} de {{total}} cuartos",
+      "sortedBy": "Ordenado por {{sort}}"
+    },
+    "empty": {
+      "filters": "Ningún cuarto coincide con estos filtros.",
+      "searchFilters": "Ningún cuarto coincide con {{query}} con estos filtros.",
+      "staleNote": "Según el tablero verificado por última vez a las {{time}}; puede estar desactualizado."
+    },
+    "segmentEmptyBody": {
+      "toClean": "Ningún cuarto necesita limpieza.",
+      "working": "Ningún cuarto se está limpiando ahora.",
+      "toInspect": "Ningún cuarto espera inspección.",
+      "ready": "Todavía no hay cuartos listos."
+    },
+    "jump": {
+      "title": "Ir al piso",
+      "caption": "Piso",
+      "item": "Ir a {{label}}"
+    }
   },
   "roomStatus": {
     "kicker": "Propiedad",

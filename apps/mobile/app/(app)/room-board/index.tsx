@@ -19,18 +19,17 @@ import { planAssignmentRemoval, type BoardRoom } from "@/lib/housekeeping/roomBo
 import {
   buildAttentionSignals,
   buildBoardSummary,
-  buildTileModel,
   describeBoardStatus,
-  flattenBoard,
   GRID_GAP,
   GRID_GUTTER,
   gridColumns,
-  groupBoard,
-  segmentCounts,
-  type BoardListItem,
   type BoardSegmentKey,
   type RoomTileModel,
 } from "@/lib/housekeeping/roomBoardView";
+import { removeChip, type BoardFilters } from "@/lib/housekeeping/roomBoardFilters";
+import { MIN_FLOORS_FOR_JUMP, type QueryItem } from "@/lib/housekeeping/roomBoardQuery";
+import { DEFAULT_SORT } from "@/lib/housekeeping/roomBoardSort";
+import { useRoomBoardQuery } from "@/lib/housekeeping/useRoomBoardQuery";
 import { useRoomBoard } from "@/lib/housekeeping/useRoomBoard";
 import { buildNameById, buildTeamLoads, type AssignableStaff, type FloorRoom } from "@/lib/housekeeping/supervisor";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
@@ -38,12 +37,16 @@ import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { BoardHeader } from "@/components/supervisor/board/BoardHeader";
 import { BoardAttentionChips, BoardReadinessCard } from "@/components/supervisor/board/BoardReadinessCard";
+import { BoardActiveFilters } from "@/components/supervisor/board/BoardActiveFilters";
+import { BoardFilterSheet } from "@/components/supervisor/board/BoardFilterSheet";
+import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { BoardSegmentBar } from "@/components/supervisor/board/BoardSegmentBar";
+import { FloorJumpBar } from "@/components/supervisor/board/FloorJumpBar";
+import { RoomListRow } from "@/components/supervisor/board/RoomListRow";
 import { RoomTileRow } from "@/components/supervisor/board/RoomTile";
 import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
 import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
-import { Skeleton } from "@/components/supervisor/today/TodayBlocks";
-import { StateBlock } from "@/components/ui/StateBlock";
+import { BoardEmpty, BoardSkeleton, type BoardEmptyKind } from "@/components/supervisor/board/BoardStates";
 
 /* ─── Room Board — the live floor ───────────────────────────────────────────
    Compact header with an honest freshness line, one readiness card, attention chips, a status selector
@@ -68,6 +71,7 @@ export default function RoomBoardScreen() {
     [model.staff],
   );
   const [segment, setSegment] = useState<BoardSegmentKey>("all");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
@@ -119,25 +123,25 @@ export default function RoomBoardScreen() {
 
   // Headline numbers, segment counts and signals all come from the same verified rooms, so they cannot disagree.
   const metrics = useMemo(() => buildBoardSummary(views ?? []), [views]);
-  const counts = useMemo(() => segmentCounts(metrics), [metrics]);
   const signals = useMemo(
     () => buildAttentionSignals(views ?? [], metrics, model.generatedAt, model.timeZone),
     [views, metrics, model.generatedAt, model.timeZone],
   );
 
+  // One pipeline: verified rooms → search → filters → segment counts → segment → sort (see useRoomBoardQuery).
+  // The readiness card above always describes the WHOLE board; the segment chips describe what search and filters leave.
   const columns = gridColumns(width, fontScale);
-  const groups = useMemo(() => groupBoard(views ?? []), [views]);
-  const items = useMemo(() => flattenBoard(groups, segment, columns), [groups, segment, columns]);
-  const tileModels = useMemo(() => {
-    const byId = new Map<string, RoomTileModel>();
-    for (const view of views ?? []) {
-      byId.set(
-        view.room.roomId,
-        buildTileModel(view, { now: model.generatedAt, timeZone: model.timeZone, language: i18n.language, t }),
-      );
-    }
-    return byId;
-  }, [views, model.generatedAt, model.timeZone, i18n.language, t]);
+  const bq = useRoomBoardQuery({
+    views,
+    rooms,
+    segment,
+    columns,
+    now: model.generatedAt,
+    timeZone: model.timeZone,
+    language: i18n.language,
+    t,
+  });
+  const { query, search } = bq;
   const onSelectRoom = useCallback((roomId: string) => setSelectedRoomId(roomId), []);
 
   const assignTo = useCallback(
@@ -208,6 +212,15 @@ export default function RoomBoardScreen() {
         ? "roomBoard.state.previousDay"
         : null;
   const boardKnown = views !== null && model.readiness !== null;
+  // A filter the board has no data for is named, not silently dropped to "0 rooms".
+  const unappliedNotice =
+    query.unavailableApplied.length > 0
+      ? t("roomBoard.filters.unavailableApplied", {
+          filters: query.unavailableApplied.map((key) => t(`roomBoard.filters.flag.${key}`)).join(", "),
+        })
+      : null;
+  // A "no matches" answer is only as good as the board behind it; say so when that board is not freshly verified.
+  const emptyStaleNote = availability.kind === "stale" ? t("roomBoard.empty.staleNote", { time: verifiedClock ?? "—" }) : null;
 
   const header = (
     <BoardHeader
@@ -236,7 +249,29 @@ export default function RoomBoardScreen() {
         <>
           <BoardReadinessCard metrics={metrics} t={t} />
           <BoardAttentionChips signals={signals} t={t} />
-          <BoardSegmentBar selected={segment} counts={counts} t={t} onSelect={setSegment} />
+          <BoardSearchBar
+            value={search}
+            onChangeText={bq.setSearch}
+            onClear={bq.clearSearch}
+            onOpenFilters={() => setFilterSheetOpen(true)}
+            activeCount={bq.activeBadge}
+            t={t}
+          />
+          {query.searching || query.filtering || bq.sort !== DEFAULT_SORT ? (
+            <BoardActiveFilters
+              chips={bq.chips}
+              shown={query.visible.length}
+              total={query.inventory}
+              notice={unappliedNotice}
+              sortLabel={bq.sort !== DEFAULT_SORT ? t(`roomBoard.sort.${bq.sort}`) : null}
+              onRemove={(chip) => bq.setFilters((current) => removeChip(current, chip))}
+              onClearAll={bq.clearFilters}
+              onEdit={() => setFilterSheetOpen(true)}
+              t={t}
+            />
+          ) : null}
+          <BoardSegmentBar selected={segment} counts={query.counts} t={t} onSelect={setSegment} />
+          {bq.floorJumps.length >= MIN_FLOORS_FOR_JUMP ? <FloorJumpBar jumps={bq.floorJumps} onJump={bq.jumpToFloor} t={t} /> : null}
         </>
       ) : null}
 
@@ -287,56 +322,40 @@ export default function RoomBoardScreen() {
     </View>
   );
 
-  let listEmpty: ReactElement | null = null;
-  if (!boardKnown) {
-    // Nothing verified to show: say why. A failed or offline load is NOT an empty board.
-    listEmpty = (
-      <StateBlock
-        status="error"
-        errorIcon={availability.kind === "unavailable" && availability.cause === "offline" ? "cloud-offline-outline" : "alert-circle-outline"}
-        errorMessage={t(unavailableMessageKey ?? "roomBoard.state.unavailableError")}
-        onRetry={() => void onRefresh()}
-        retryLabel={t("roomBoard.state.retry")}
-      />
-    );
-  } else if (rooms.length === 0) {
-    listEmpty = (
-      <View testID="room-board-empty">
-        <StateBlock
-          status="empty"
-          emptyIcon="bed-outline"
-          emptyTitle={t("roomBoard.state.verifiedEmpty")}
-          emptyBody={t("roomBoard.state.verifiedEmptyBody")}
-        />
-        <Pressable
-          onPress={() => void onRefresh()}
-          accessibilityRole="button"
-          accessibilityLabel={t("roomBoard.header.refresh")}
-          testID="room-board-empty-refresh"
-          style={[styles.emptyAction, { borderColor: theme.primaryLine, backgroundColor: theme.surface }]}
-        >
-          <Text style={[styles.emptyActionText, { color: theme.primaryAction }]}>{t("roomBoard.header.refresh")}</Text>
-        </Pressable>
-      </View>
-    );
-  } else if (items.length === 0) {
-    listEmpty = (
-      <View testID="room-board-segment-empty">
-        <StateBlock status="empty" emptyIcon="bed-outline" emptyTitle={t("roomBoard.segmentEmpty")} />
-        <Pressable
-          onPress={() => setSegment("all")}
-          accessibilityRole="button"
-          accessibilityLabel={t("roomBoard.showAll")}
-          testID="room-board-show-all"
-          style={[styles.emptyAction, { borderColor: theme.primaryLine, backgroundColor: theme.surface }]}
-        >
-          <Text style={[styles.emptyActionText, { color: theme.primaryAction }]}>{t("roomBoard.showAll")}</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  // Why there is nothing to list, if there is nothing: each reason has its own words and way out (BoardStates).
+  const emptyKind: BoardEmptyKind | null = !boardKnown
+    ? "unavailable"
+    : rooms.length === 0
+      ? "verifiedEmpty"
+      : query.emptyReason === "segment" || query.emptyReason === "search" || query.emptyReason === "filters"
+        ? query.emptyReason
+        : null;
+  const listEmpty: ReactElement | null = emptyKind ? (
+    <BoardEmpty
+      kind={emptyKind}
+      t={t}
+      segment={segment}
+      searchText={search.trim()}
+      searching={query.searching}
+      staleNote={emptyStaleNote}
+      unavailableKey={unavailableMessageKey}
+      offline={availability.kind === "unavailable" && availability.cause === "offline"}
+      onRefresh={() => void onRefresh()}
+      onShowAll={() => setSegment("all")}
+      onClearSearch={bq.clearSearch}
+      onClearFilters={bq.clearFilters}
+    />
+  ) : null;
 
-  const renderItem = ({ item }: { item: BoardListItem }) => {
+  const renderItem = ({ item }: { item: QueryItem }) => {
+    if (item.type === "result") {
+      const resultModel = bq.resultModels.get(item.view.room.roomId);
+      return resultModel ? (
+        <View style={styles.rowWrap}>
+          <RoomListRow model={resultModel} onSelect={onSelectRoom} />
+        </View>
+      ) : null;
+    }
     if (item.type === "building") {
       return (
         <Text
@@ -367,7 +386,7 @@ export default function RoomBoardScreen() {
       );
     }
     const models = item.views
-      .map((view) => tileModels.get(view.room.roomId))
+      .map((view) => bq.tileModels.get(view.room.roomId))
       .filter((model): model is RoomTileModel => model !== undefined);
     return (
       <View style={styles.rowWrap}>
@@ -379,7 +398,11 @@ export default function RoomBoardScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
-        data={items}
+        ref={bq.listRef}
+        data={bq.items}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onScrollToIndexFailed={bq.onScrollToIndexFailed}
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
@@ -415,6 +438,18 @@ export default function RoomBoardScreen() {
         />
       ) : null}
 
+      <BoardFilterSheet
+        visible={filterSheetOpen}
+        applied={bq.applied}
+        availability={bq.availability}
+        t={t}
+        onApply={(draft) => {
+          bq.applyDraft(draft);
+          setFilterSheetOpen(false);
+        }}
+        onClose={() => setFilterSheetOpen(false)}
+      />
+
       <HousekeeperPicker
         visible={pickerRoom != null}
         roomNumber={pickerRoom?.roomNumber ?? null}
@@ -424,34 +459,6 @@ export default function RoomBoardScreen() {
         onSelect={(member) => void assignTo(member)}
         onClose={() => setPickerRoom(null)}
       />
-    </View>
-  );
-}
-
-/** Lightweight placeholder while the first answer is in flight — no counts, nothing that reads as data. */
-function BoardSkeleton() {
-  const theme = useTheme();
-  return (
-    <View style={styles.skeleton} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.skeletonCard, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}>
-        <Skeleton height={12} width="35%" />
-        <Skeleton height={34} width="55%" />
-        <Skeleton height={10} />
-        <Skeleton height={36} />
-      </View>
-      <View style={styles.skeletonRow}>
-        {[0, 1, 2, 3].map((index) => (
-          <Skeleton key={index} height={44} width={84} />
-        ))}
-      </View>
-      <View style={styles.skeletonRow}>
-        <View style={styles.skeletonCell}>
-          <Skeleton height={116} />
-        </View>
-        <View style={styles.skeletonCell}>
-          <Skeleton height={116} />
-        </View>
-      </View>
     </View>
   );
 }
@@ -473,11 +480,5 @@ const styles = StyleSheet.create({
   floorHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginHorizontal: GRID_GUTTER, marginTop: 10 },
   floorTitle: { fontSize: 15, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase" },
   floorCount: { fontSize: 12.5, fontWeight: "600" },
-  emptyAction: { alignSelf: "center", minHeight: 48, paddingHorizontal: 22, borderWidth: 1, borderRadius: R.md, alignItems: "center", justifyContent: "center", marginTop: 8 },
-  emptyActionText: { fontSize: 14, fontWeight: "700" },
 
-  skeleton: { paddingHorizontal: 16, gap: 14 },
-  skeletonCard: { borderWidth: 1, borderRadius: R.xl, padding: 16, gap: 12 },
-  skeletonRow: { flexDirection: "row", gap: GRID_GAP },
-  skeletonCell: { flex: 1 },
 });

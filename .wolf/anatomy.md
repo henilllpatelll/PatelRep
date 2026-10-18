@@ -846,3 +846,11 @@
 - apps/mobile/lib/housekeeping/roomBoardSelectors.ts — pure selectors: building/floor grouping, stage/status/unassigned/awaiting-inspection filters, room-number search, recorded-fact urgency, deterministic priority sort, metrics, indicators, available staff. ~330 lines
 - apps/mobile/lib/housekeeping/useRoomBoard.ts — hook: shared Today snapshot + own late-checkout source, one realtime subscription, resume/rollover handling, mutation gate. ~140 lines
 - apps/mobile/__tests__/lib/roomBoard{Model,State,Selectors,I18n}.test.ts, useRoomBoard.test.tsx, supervisorRealtime.test.ts, screens/RoomBoardStates.test.tsx, helpers/roomBoardFixtures.ts — Room Board V2 Phase 1 tests.
+
+## Room Board V2 Phase 3 (apps/mobile)
+- lib/housekeeping/roomBoardFilters.ts — filter state/semantics, availability (no false zeros), chips, room-number search (~3k tok)
+- lib/housekeeping/roomBoardSort.ts — six deterministic sort modes + location tie-break, priority-first policy (~2k tok)
+- lib/housekeeping/roomBoardQuery.ts — search→filter→segment→sort pipeline, grid/list layout, floor totals + jump targets (~2k tok)
+- components/supervisor/board/BoardSearchBar.tsx — search field + filter button/badge; BoardFilterSheet.tsx — draft Filter & Sort drawer; BoardActiveFilters.tsx — chips + live result count; RoomListRow.tsx — compact result row; FloorJumpBar.tsx — floor jump strip
+- __tests__/lib/roomBoardFilters.test.ts, __tests__/screens/RoomBoardSearchFilters.test.tsx — Phase 3 tests
+- lib/housekeeping/useRoomBoardQuery.ts — hook owning search/filter/sort state + derived result/items/tile+row models/floor jump; components/supervisor/board/BoardStates.tsx — empty states (unavailable / verified empty / segment / search / filters) + skeleton

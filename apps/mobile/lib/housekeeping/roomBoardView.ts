@@ -329,3 +329,26 @@ export function buildTileModel(view: BoardRoomView, ctx: TileContext): RoomTileM
 export function buildBoardSummary(views: readonly BoardRoomView[]): BoardMetrics {
   return buildBoardMetrics(views.map((view) => view.room));
 }
+
+/* ─── Result rows (search / filtered / flat-sorted lists) ─────────────────── */
+
+export interface ResultRowModel extends RoomTileModel {
+  /** "Building A · Floor 2" — only the parts the backend actually sent. */
+  location: string;
+}
+
+/** The compact list row: the tile's facts plus where the room is, since a list is not grouped under a floor heading. */
+export function buildResultRowModel(view: BoardRoomView, ctx: TileContext): ResultRowModel {
+  const tile = buildTileModel(view, ctx);
+  const { room } = view;
+  const parts: string[] = [];
+  if (room.building) parts.push(ctx.t("roomBoard.building", { building: room.building }));
+  parts.push(room.floorKnown ? ctx.t("roomBoard.floor", { floor: room.floor }) : ctx.t("roomBoard.floorUnknown"));
+  const location = parts.join(" · ");
+  return {
+    ...tile,
+    location,
+    accessibilityLabel: `${tile.accessibilityLabel}, ${location}`,
+    signature: `${tile.signature}\u0001${location}`,
+  };
+}
