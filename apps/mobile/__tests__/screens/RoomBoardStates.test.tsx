@@ -120,7 +120,7 @@ describe("Room Board — what it claims", () => {
     await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableError")).toBeTruthy(), { timeout: 5000 });
     expect(screen.queryByText("roomBoard.state.verifiedEmpty")).toBeNull();
     expect(screen.queryByText("roomBoard.noRoomsLoaded")).toBeNull();
-    expect(screen.queryByTestId("color-legend")).toBeNull();
+    expect(screen.queryByTestId("room-board-readiness")).toBeNull();
     expect(screen.queryByTestId("board-tile-101")).toBeNull();
 
     // Retrying recovers the board.
@@ -135,17 +135,18 @@ describe("Room Board — what it claims", () => {
   it("only a verified board is called a live floor — a failed, stale or empty-by-failure board is not", async () => {
     const screen = renderBoard();
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
-    expect(screen.getByTestId("room-board-kicker").props.children).toBe("roomBoard.kicker");
+    expect(screen.getByTestId("room-board-status-text").props.children).toBe("roomBoard.header.liveNow");
     mockAppState.isOnline = false;
     screen.rerender(ui());
-    await waitFor(() => expect(screen.getByTestId("room-board-kicker").props.children).toBe("roomBoard.state.notLiveTitle"));
+    await waitFor(() => expect(String(screen.getByTestId("room-board-status-text").props.children)).toMatch(/^roomBoard.header.offline/));
+    expect(String(screen.getByTestId("room-board-status-text").props.children)).not.toMatch(/liveNow|live[A-Z]/);
   });
 
   it("a failed load does not say 'live floor' either", async () => {
     board.mockRejectedValue(Object.assign(new Error("down"), { status: 500 }));
     const screen = renderBoard();
     await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableError")).toBeTruthy(), { timeout: 5000 });
-    expect(screen.getByTestId("room-board-kicker").props.children).toBe("roomBoard.state.notLiveTitle");
+    expect(screen.getByTestId("room-board-status-text").props.children).toBe("roomBoard.header.unavailable");
   });
 
   it("offline with nothing verified says so and does not call the server", async () => {
@@ -173,7 +174,7 @@ describe("Room Board — what it claims", () => {
     const screen = renderBoard();
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
     // 10 rooms, 3 out of order → 7 in service, 1 inspected, 1 in progress.
-    expect(screen.getByText(`roomBoard.summary:${JSON.stringify({ ready: 1, total: 7, working: 1 })}`)).toBeTruthy();
+    expect(screen.getByTestId("room-board-readiness-headline").props.children).toBe(`roomBoard.card.headline:${JSON.stringify({ ready: 1, total: 7 })}`);
   });
 
   it("going offline after a good load keeps the rooms but says the board is not live and pauses changes", async () => {
@@ -198,7 +199,7 @@ describe("Room Board — assignment correctness", () => {
     staff.mockResolvedValue(STAFF); // ghost-user is not in the staff list
     const screen = renderBoard();
     await waitFor(() => expect(screen.getByTestId("board-tile-301")).toBeTruthy());
-    expect(screen.getByText("roomBoard.assigneeUnknownShort")).toBeTruthy();
+    expect(screen.getByTestId("board-tile-assignee-301").props.children).toBe("roomBoard.assigneeUnknown");
     fireEvent.press(screen.getByTestId("board-tile-301"));
     expect(screen.getByTestId("sheet-assignee").props.children).toBe("roomBoard.assigneeUnknown");
   });
@@ -208,7 +209,7 @@ describe("Room Board — assignment correctness", () => {
     staff.mockRejectedValue(new Error("staff down"));
     const screen = renderBoard();
     await waitFor(() => expect(screen.getByTestId("board-tile-301")).toBeTruthy());
-    expect(screen.getByText("roomBoard.assigneeUnknownShort")).toBeTruthy();
+    expect(screen.getByTestId("board-tile-assignee-301").props.children).toBe("roomBoard.assigneeUnknown");
   });
 
   it("an unassigned room has no assignee label", async () => {

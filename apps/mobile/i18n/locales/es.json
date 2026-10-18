@@ -3760,23 +3760,13 @@
     "schedulingSub": "Tus turnos y cobertura"
   },
   "roomBoard": {
-    "kicker": "Piso en vivo",
-    "summary": "{{ready}} de {{total}} listos · {{working}} en progreso",
-    "segAll": "Todos",
-    "segToClean": "Por limpiar",
-    "segWorking": "En curso",
-    "segReady": "Listos",
     "floor": "Piso {{floor}}",
     "roomCount": "{{count}} cuartos",
     "unassigned": "Sin asignar",
-    "segmentEmpty": "Nada en esta vista por ahora",
+    "segmentEmpty": "No hay cuartos en esta categoría",
     "noRoomsLoaded": "No hay cuartos cargados",
     "pullToRefresh": "Desliza hacia abajo para actualizar el tablero.",
-    "signalUnassigned": "{{count}} sin asignar",
-    "signalSubmitted": "{{count}} por inspeccionar",
-    "signalDnd": "{{count}} No molestar",
     "assigneeUnknown": "Asignada · nombre no disponible",
-    "assigneeUnknownShort": "Asignada",
     "state": {
       "notLiveTitle": "No está en vivo",
       "staleOffline": "Sin conexión. Se muestra el tablero verificado por última vez a las {{time}}.",
@@ -3788,7 +3778,8 @@
       "unavailableError": "No se pudo cargar el tablero de habitaciones. No es un tablero vacío — inténtalo de nuevo.",
       "verifiedEmpty": "No hay habitaciones en este tablero",
       "retry": "Reintentar",
-      "actionsPaused": "Los cambios están en pausa hasta que el tablero se verifique de nuevo."
+      "actionsPaused": "Los cambios están en pausa hasta que el tablero se verifique de nuevo.",
+      "verifiedEmptyBody": "El hotel no tiene cuartos en el tablero de hoy. Actualiza para revisar de nuevo."
     },
     "statusMeaning": {
       "DIRTY": "Vacante sucia — requiere limpieza",
@@ -3802,7 +3793,6 @@
       "OUT_OF_SERVICE": "Fuera de servicio",
       "UNKNOWN": "Estado no reconocido"
     },
-    "signalVip": "{{count}} VIP",
     "statusLabels": {
       "DIRTY": "Vacante Sucio",
       "IN_PROGRESS": "En Progreso",
@@ -3813,13 +3803,6 @@
       "OOO": "Fuera de Orden",
       "OUT_OF_ORDER": "Fuera de Orden",
       "OUT_OF_SERVICE": "Fuera de Servicio"
-    },
-    "legend": {
-      "dirty": "Sucio",
-      "pickup": "Recogida",
-      "submitted": "Enviado",
-      "ready": "Listo",
-      "ooo": "FDS"
     },
     "sheet": {
       "assignedTo": "Asignado a",
@@ -3841,7 +3824,92 @@
       "dndOverrideConfirm": "Crear tarea",
       "dndOverrideCreated": "Tarea de revisión creada.",
       "dndOverrideError": "No se pudo crear la tarea. Inténtalo de nuevo."
-    }
+    },
+    "header": {
+      "kicker": "Housekeeping · Hoy",
+      "loading": "Revisando el tablero…",
+      "updating": "Actualizando…",
+      "liveNow": "En vivo · Actualizado hace un momento",
+      "liveSeconds": "En vivo · Actualizado hace {{count}} segundo",
+      "liveSeconds_plural": "En vivo · Actualizado hace {{count}} segundos",
+      "liveMinutes": "En vivo · Actualizado hace {{count}} minuto",
+      "liveMinutes_plural": "En vivo · Actualizado hace {{count}} minutos",
+      "liveClock": "En vivo · Verificado a las {{time}}",
+      "stale": "Sin conexión en vivo · Última verificación {{time}}",
+      "offline": "Sin internet · Última verificación {{time}}",
+      "offlineNone": "Sin internet · Aún no hay nada verificado",
+      "previousDay": "Sin conexión en vivo · Se muestra un día anterior",
+      "unavailable": "No se pudo cargar el tablero",
+      "refresh": "Actualizar tablero"
+    },
+    "card": {
+      "title": "Cuartos listos",
+      "headline": "{{ready}} / {{total}} cuartos listos",
+      "noneInService": "Ningún cuarto en servicio",
+      "toClean": "Por limpiar",
+      "working": "En curso",
+      "toInspect": "Por inspeccionar",
+      "ready": "Listos",
+      "totalRooms": "{{count}} cuarto en total",
+      "totalRooms_plural": "{{count}} cuartos en total",
+      "outOfService": "{{count}} fuera de servicio o de orden",
+      "unrecognized": "{{count}} cuarto tiene un estado que la app no reconoce",
+      "unrecognized_plural": "{{count}} cuartos tienen un estado que la app no reconoce",
+      "roomLabel": "Cuarto {{room}}",
+      "status": {
+        "DIRTY": "Sucio",
+        "OCCUPIED": "Ocupado",
+        "PICKUP": "Repaso",
+        "IN_PROGRESS": "En curso",
+        "CLEAN": "Por inspeccionar",
+        "INSPECTED": "Listo",
+        "OOO": "Fuera de orden",
+        "OUT_OF_ORDER": "Fuera de orden",
+        "OUT_OF_SERVICE": "Fuera de servicio",
+        "UNKNOWN": "Desconocido"
+      },
+      "base": {
+        "DIRTY": "Vacío sucio",
+        "OCCUPIED": "Ocupado sucio",
+        "PICKUP": "Limpieza de repaso",
+        "IN_PROGRESS": "Limpieza en curso",
+        "CLEAN": "Esperando inspección",
+        "INSPECTED": "Inspeccionado",
+        "OOO": "No disponible",
+        "OUT_OF_ORDER": "No disponible",
+        "OUT_OF_SERVICE": "No disponible",
+        "UNKNOWN": "Estado no reconocido"
+      },
+      "detail": {
+        "reclean": "Relimpieza solicitada",
+        "vip": "VIP",
+        "arrival": "Llegada {{time}}",
+        "dnd": "No molestar",
+        "declined": "Servicio rechazado",
+        "lateCheckout": "Salida tardía",
+        "workOrder": "Orden de trabajo abierta",
+        "unavailable": "No disponible"
+      }
+    },
+    "attention": {
+      "unassigned": "{{count}} sin asignar",
+      "urgent": "{{count}} urgentes",
+      "dnd": "{{count}} No molestar",
+      "vip": "{{count}} VIP"
+    },
+    "seg": {
+      "all": "Todos",
+      "toClean": "Por limpiar",
+      "working": "En curso",
+      "toInspect": "Por inspeccionar",
+      "ready": "Listos",
+      "a11y": "{{label}}, {{count}} cuartos"
+    },
+    "showAll": "Mostrar todos los cuartos",
+    "building": "Edificio {{building}}",
+    "buildingNone": "Otros cuartos",
+    "floorUnknown": "Piso sin definir",
+    "roomCountOf": "{{shown}} de {{total}} cuartos"
   },
   "roomStatus": {
     "kicker": "Propiedad",

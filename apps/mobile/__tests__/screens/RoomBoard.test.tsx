@@ -117,10 +117,12 @@ describe("RoomBoardScreen", () => {
     expect(screen.getByTestId("board-tile-201")).toBeTruthy();
   });
 
-  it("renders the status color legend", async () => {
+  it("labels each room with its status in words (the old colour legend is replaced by on-card labels)", async () => {
     renderScreen();
 
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
-    expect(screen.getByTestId("color-legend")).toBeTruthy();
+    expect(screen.queryByTestId("color-legend")).toBeNull();
+    expect(screen.getByTestId("board-tile-status-101")).toHaveTextContent("roomBoard.card.status.DIRTY");
+    expect(screen.getByTestId("board-tile-status-201")).toHaveTextContent("roomBoard.card.status.CLEAN");
   });
 });

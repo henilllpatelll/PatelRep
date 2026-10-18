@@ -3760,23 +3760,13 @@
     "schedulingSub": "Your shifts and coverage"
   },
   "roomBoard": {
-    "kicker": "Live floor",
-    "summary": "{{ready}} of {{total}} ready · {{working}} in progress",
-    "segAll": "All",
-    "segToClean": "To clean",
-    "segWorking": "Working",
-    "segReady": "Ready",
     "floor": "Floor {{floor}}",
     "roomCount": "{{count}} rooms",
     "unassigned": "Unassigned",
-    "segmentEmpty": "Nothing in this view right now",
+    "segmentEmpty": "No rooms in this category",
     "noRoomsLoaded": "No rooms loaded",
     "pullToRefresh": "Pull down to refresh the board.",
-    "signalUnassigned": "{{count}} unassigned",
-    "signalSubmitted": "{{count}} to inspect",
-    "signalDnd": "{{count}} DND",
     "assigneeUnknown": "Assigned · name unavailable",
-    "assigneeUnknownShort": "Assigned",
     "state": {
       "notLiveTitle": "Not live",
       "staleOffline": "You're offline. Showing the board as last verified at {{time}}.",
@@ -3788,7 +3778,8 @@
       "unavailableError": "Couldn't load the room board. This is not an empty board — try again.",
       "verifiedEmpty": "No rooms on this board",
       "retry": "Try again",
-      "actionsPaused": "Changes are paused until the board is verified again."
+      "actionsPaused": "Changes are paused until the board is verified again.",
+      "verifiedEmptyBody": "The hotel has no rooms on today's board. Refresh to check again."
     },
     "statusMeaning": {
       "DIRTY": "Vacant dirty — cleaning required",
@@ -3802,7 +3793,6 @@
       "OUT_OF_SERVICE": "Out of service",
       "UNKNOWN": "Status not recognized"
     },
-    "signalVip": "{{count}} VIP",
     "statusLabels": {
       "DIRTY": "Vacant Dirty",
       "IN_PROGRESS": "In Progress",
@@ -3813,13 +3803,6 @@
       "OOO": "Out of Order",
       "OUT_OF_ORDER": "Out of Order",
       "OUT_OF_SERVICE": "Out of Service"
-    },
-    "legend": {
-      "dirty": "Dirty",
-      "pickup": "Pickup",
-      "submitted": "Submitted",
-      "ready": "Ready",
-      "ooo": "OOO"
     },
     "sheet": {
       "assignedTo": "Assigned to",
@@ -3841,7 +3824,92 @@
       "dndOverrideConfirm": "Create check task",
       "dndOverrideCreated": "Wellness check task created.",
       "dndOverrideError": "Could not create task. Try again."
-    }
+    },
+    "header": {
+      "kicker": "Housekeeping · Today",
+      "loading": "Checking the board…",
+      "updating": "Updating…",
+      "liveNow": "Live · Updated just now",
+      "liveSeconds": "Live · Updated {{count}} second ago",
+      "liveSeconds_plural": "Live · Updated {{count}} seconds ago",
+      "liveMinutes": "Live · Updated {{count}} minute ago",
+      "liveMinutes_plural": "Live · Updated {{count}} minutes ago",
+      "liveClock": "Live · Verified at {{time}}",
+      "stale": "Not live · Last verified {{time}}",
+      "offline": "Offline · Last verified {{time}}",
+      "offlineNone": "Offline · Nothing verified yet",
+      "previousDay": "Not live · Showing an earlier day",
+      "unavailable": "Unable to load the board",
+      "refresh": "Refresh board"
+    },
+    "card": {
+      "title": "Room readiness",
+      "headline": "{{ready}} / {{total}} rooms ready",
+      "noneInService": "No rooms in service",
+      "toClean": "To clean",
+      "working": "Working",
+      "toInspect": "To inspect",
+      "ready": "Ready",
+      "totalRooms": "{{count}} room total",
+      "totalRooms_plural": "{{count}} total rooms",
+      "outOfService": "{{count}} out of service or order",
+      "unrecognized": "{{count}} room has a status the app doesn't recognize",
+      "unrecognized_plural": "{{count}} rooms have a status the app doesn't recognize",
+      "roomLabel": "Room {{room}}",
+      "status": {
+        "DIRTY": "Dirty",
+        "OCCUPIED": "Occupied",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "In progress",
+        "CLEAN": "To inspect",
+        "INSPECTED": "Ready",
+        "OOO": "Out of order",
+        "OUT_OF_ORDER": "Out of order",
+        "OUT_OF_SERVICE": "Out of service",
+        "UNKNOWN": "Unknown"
+      },
+      "base": {
+        "DIRTY": "Vacant dirty",
+        "OCCUPIED": "Occupied dirty",
+        "PICKUP": "Pickup cleaning",
+        "IN_PROGRESS": "Cleaning underway",
+        "CLEAN": "Awaiting inspection",
+        "INSPECTED": "Inspected",
+        "OOO": "Unavailable",
+        "OUT_OF_ORDER": "Unavailable",
+        "OUT_OF_SERVICE": "Unavailable",
+        "UNKNOWN": "Status not recognized"
+      },
+      "detail": {
+        "reclean": "Reclean requested",
+        "vip": "VIP",
+        "arrival": "Arrival {{time}}",
+        "dnd": "Do not disturb",
+        "declined": "Service declined",
+        "lateCheckout": "Late checkout",
+        "workOrder": "Work order open",
+        "unavailable": "Unavailable"
+      }
+    },
+    "attention": {
+      "unassigned": "{{count}} unassigned",
+      "urgent": "{{count}} urgent",
+      "dnd": "{{count}} DND",
+      "vip": "{{count}} VIP"
+    },
+    "seg": {
+      "all": "All",
+      "toClean": "To clean",
+      "working": "Working",
+      "toInspect": "To inspect",
+      "ready": "Ready",
+      "a11y": "{{label}}, {{count}} rooms"
+    },
+    "showAll": "Show all rooms",
+    "building": "Building {{building}}",
+    "buildingNone": "Other rooms",
+    "floorUnknown": "Floor not set",
+    "roomCountOf": "{{shown}} of {{total}} rooms"
   },
   "roomStatus": {
     "kicker": "Property",
