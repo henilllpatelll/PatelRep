@@ -33,6 +33,8 @@ const ROLES: FixtureRole[] = [
   { key: 'supervisor', emailEnv: 'REGRESSION_SUP_EMAIL', passwordEnv: 'REGRESSION_SUP_PASSWORD', storageStatePath: join(AUTH_DIR, 'supervisor.json') },
 ]
 
+const LOGIN_PAGE_ATTEMPTS = 3
+
 function requireEnv(name: string): string {
   const value = process.env[name]
   if (!value) {
@@ -68,10 +70,19 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
       page.on('response', (response) => diagnostics.recordAuthResponse(response))
       page.on('pageerror', (error) => diagnostics.recordPageError(error))
       try {
-        await page.goto('/login')
-
         const emailField = page.locator('#email-pw').or(page.locator('input[type="email"]')).first()
-        await emailField.waitFor({ state: 'visible', timeout: 15000 })
+        // The live target can be slow to serve/hydrate /login (cold start), so
+        // retry the page load a bounded number of times before failing.
+        for (let attempt = 1; ; attempt++) {
+          try {
+            await page.goto('/login')
+            await emailField.waitFor({ state: 'visible', timeout: 15000 })
+            break
+          } catch (error) {
+            if (attempt >= LOGIN_PAGE_ATTEMPTS) throw error
+            console.warn(`REGRESSION_LOGIN_PAGE_RETRY role=${role.key} attempt=${attempt}`)
+          }
+        }
         await emailField.fill(email)
 
         const passwordField = page.locator('input[type="password"]').first()
