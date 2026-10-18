@@ -164,6 +164,15 @@ describe("useRoomAssignment — outcomes", () => {
     expect(hook.refresh).toHaveBeenCalled();
   });
 
+  it("the write carries what the supervisor reviewed so the server can refuse a stale one", async () => {
+    const hook = setup([rawRoom("101", "DIRTY")]);
+    reviewing(hook);
+    await act(async () => hook.result.current.confirm());
+    expect(save).toHaveBeenCalledWith(expect.any(String), [
+      expect.objectContaining({ room_id: "room-101", expect_unassigned: true }),
+    ]);
+  });
+
   it("the write is never sent while another is in flight, however often confirm is called", async () => {
     let finish: () => void = () => undefined;
     save.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));

@@ -17,6 +17,7 @@ import {
   type TodayFetchers,
   type TodaySources,
 } from "@/lib/housekeeping/supervisorToday";
+import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { useAppStore } from "@/stores/appStore";
 import { acquireTodayStore, requestTodayRefresh, sourcesFor, useSupervisorTodayStore } from "@/stores/supervisorTodayStore";
 
@@ -77,6 +78,7 @@ export function useSupervisorToday({
 }: UseSupervisorTodayOptions = {}): UseSupervisorToday {
   const isOnline = useAppStore((state) => state.isOnline);
   const timeZone = useAppStore((state) => state.hotelTimezone ?? null);
+  useHotelTimezone();
   const stored = useSupervisorTodayStore((state) => state);
   // A different hotel/person reads as "nothing loaded yet" until its own answer arrives.
   const sources = stored.scope === scopeKey ? stored.sources : INITIAL;

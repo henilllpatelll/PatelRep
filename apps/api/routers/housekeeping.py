@@ -1004,6 +1004,43 @@ async def _send_assignment_push(tenant_id: str, housekeeper_id: str, room_number
     )
 
 
+ASSIGNABLE_ROOM_STATUSES = {"DIRTY", "PICKUP", "OCCUPIED"}
+
+
+def _is_conditional(item) -> bool:
+    return bool(item.expect_unassigned or item.expected_assigned_to)
+
+
+def _check_expected_owners(request: CreateAssignmentsRequest, hotel_id: str) -> dict[str, Optional[str]]:
+    """Compare-and-set precheck for items that carry an expected owner (Room Board).
+
+    Returns {room_id: current dated-assignment owner or None} for conditional items. Raises 409 when the room
+    can no longer be (re)assigned (cleaning started/finished, out of service, unknown) or when its owner is not
+    who the caller reviewed. The owner follows the board's rule: the dated row, else the room_status mirror.
+    """
+    conditional = [a for a in request.assignments if _is_conditional(a)]
+    for a in conditional:
+        if a.expect_unassigned and a.expected_assigned_to:
+            raise HTTPException(status_code=422, detail="Send expected_assigned_to or expect_unassigned, not both.")
+    if not conditional:
+        return {}
+    room_ids = [str(a.room_id) for a in conditional]
+    dated_rows = supabase.table("room_assignments")        .select("room_id, assigned_to")        .eq("tenant_id", hotel_id)        .eq("assignment_date", request.date.isoformat())        .in_("room_id", room_ids)        .execute().data or []
+    dated = {r["room_id"]: r.get("assigned_to") for r in dated_rows}
+    status_rows = supabase.table("room_status")        .select("room_id, status, assigned_to")        .eq("tenant_id", hotel_id)        .in_("room_id", room_ids)        .execute().data or []
+    status_map = {r["room_id"]: r for r in status_rows}
+    for a in conditional:
+        room_id = str(a.room_id)
+        state = status_map.get(room_id)
+        if not state or state.get("status") not in ASSIGNABLE_ROOM_STATUSES:
+            raise HTTPException(status_code=409, detail="This room can no longer be assigned; refresh the board.")
+        current = dated[room_id] if room_id in dated else state.get("assigned_to")
+        expected = str(a.expected_assigned_to) if a.expected_assigned_to else None
+        if (str(current) if current else None) != expected:
+            raise HTTPException(status_code=409, detail="This room's assignment changed; refresh the board.")
+    return dated
+
+
 @router.post("/assignments")
 async def create_assignments(
     request: CreateAssignmentsRequest,
@@ -1019,6 +1056,7 @@ async def create_assignments(
     for assignment in request.assignments:
         _ensure_tenant_row("rooms", str(assignment.room_id), current_user.hotel_id, "Room")
         _ensure_housekeeper(str(assignment.housekeeper_id), current_user.hotel_id)
+    dated_owners = _check_expected_owners(request, current_user.hotel_id)
 
     # Preserve clean_type already set by PDF import; only overwrite if explicitly provided
     existing_clean = supabase.table("room_assignments")\
@@ -1069,11 +1107,31 @@ async def create_assignments(
 
     assignments_data = [_build_assignment_row(a) for a in request.assignments]
 
+    plain_rows = [row for a, row in zip(request.assignments, assignments_data) if not _is_conditional(a)]
+    saved_rows: list[dict] = []
     try:
-        result = supabase.table("room_assignments").upsert(
-            assignments_data,
-            on_conflict="room_id,assignment_date",
-        ).execute()
+        if plain_rows:
+            saved_rows.extend(supabase.table("room_assignments").upsert(
+                plain_rows,
+                on_conflict="room_id,assignment_date",
+            ).execute().data or [])
+        # Conditional items are written one at a time with the write itself carrying the expected owner, so a
+        # concurrent supervisor's commit between the precheck and here is a 409, never a silent overwrite.
+        for a, row in zip(request.assignments, assignments_data):
+            if not _is_conditional(a):
+                continue
+            room_id = str(a.room_id)
+            current = dated_owners.get(room_id)
+            if room_id in dated_owners and current:
+                changes = {k: v for k, v in row.items() if k not in {"tenant_id", "room_id", "assignment_date"}}
+                written = supabase.table("room_assignments")                    .update(changes)                    .eq("tenant_id", current_user.hotel_id)                    .eq("room_id", room_id)                    .eq("assignment_date", request.date.isoformat())                    .eq("assigned_to", str(current))                    .execute().data or []
+                if not written:
+                    raise HTTPException(status_code=409, detail="This room's assignment changed; refresh the board.")
+            else:
+                written = supabase.table("room_assignments").insert(row).execute().data or []
+            saved_rows.extend(written)
+    except HTTPException:
+        raise
     except Exception as e:
         err = str(e)
         if "23505" in err or "duplicate key" in err:
@@ -1122,7 +1180,7 @@ async def create_assignments(
         room_number = (room_info.data or {}).get("room_number", "")
         asyncio.create_task(_send_assignment_push(current_user.hotel_id, str(a.housekeeper_id), room_number, str(a.room_id)))
 
-    return {"data": result.data}
+    return {"data": saved_rows}
 
 
 # ---------------------------------------------------------------------------
@@ -2091,6 +2149,23 @@ async def submit_inspection(
     # performs the full template/evidence validation before this write path.
     if request.overall_result == "passed" and (not request.template_id or not request.items):
         raise HTTPException(status_code=422, detail="A passed inspection requires a completed checklist")
+    # A checklist from another hotel (or an item from a different checklist) must never be recorded on this
+    # hotel's inspection, whatever the client sends.
+    if request.template_id:
+        _ensure_tenant_row("inspection_templates", str(request.template_id), current_user.hotel_id, "Inspection checklist")
+    submitted_item_ids = {str(item.template_item_id) for item in request.items if item.template_item_id}
+    if submitted_item_ids:
+        items_query = (
+            supabase.table("inspection_template_items")
+            .select("id")
+            .eq("tenant_id", current_user.hotel_id)
+            .in_("id", list(submitted_item_ids))
+        )
+        if request.template_id:
+            items_query = items_query.eq("template_id", str(request.template_id))
+        known_items = items_query.execute().data or []
+        if submitted_item_ids - {row["id"] for row in known_items}:
+            raise HTTPException(status_code=422, detail="Inspection includes an item outside this checklist")
     # Capture current status and clean_type before the DB trigger changes them
     current_rs = (
         supabase.table("room_status")

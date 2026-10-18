@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, configure, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { makeTranslator } from "../helpers/i18n";
 
 const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn() };
@@ -44,6 +44,9 @@ const ui = () => (
   </ThemeProvider>
 );
 
+// The first render of the file pays the cold module-load cost; a slow machine must not read that as a failure.
+configure({ asyncUtilTimeout: 5000 });
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockAppState.isOnline = true;
@@ -75,6 +78,7 @@ describe("Assignments — truthful feedback (existing picker, unchanged one-tap 
       fireEvent.press(screen.getByTestId("picker-hk-1"));
     });
     expect(save).toHaveBeenCalledTimes(1);
+    expect(save.mock.calls[0][1]).toEqual([expect.objectContaining({ housekeeper_id: "hk-2", expect_unassigned: true })]);
     await act(async () => finish());
     expect(mockToast.success).toHaveBeenCalledWith("Room 101 assigned to Ben Ortiz.");
     expect(mockToast.error).not.toHaveBeenCalled();

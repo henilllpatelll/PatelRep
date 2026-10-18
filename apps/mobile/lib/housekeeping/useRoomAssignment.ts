@@ -388,7 +388,13 @@ export function useRoomAssignment({
         if (removing) {
           await removeAssignmentByPlan(planAssignmentRemoval(fresh as BoardRoom));
         } else {
-          await saveAssignments(held.hotelDate, [{ room_id: held.roomId, housekeeper_id: targetId as string }]);
+          await saveAssignments(held.hotelDate, [
+            {
+              room_id: held.roomId,
+              housekeeper_id: targetId as string,
+              ...(previousId ? { expected_assigned_to: previousId } : { expect_unassigned: true }),
+            },
+          ]);
         }
         outcome = "ok";
       } catch (writeError) {

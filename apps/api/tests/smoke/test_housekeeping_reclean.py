@@ -20,6 +20,7 @@ from .fake_supabase import FakeDB
 
 HOTEL = "hotel-a"
 ROOM_ID = "88a3bb25-8ca8-487d-aceb-a4a5a786ef5e"
+TEMPLATE_ID = "ef4ec74d-6127-4d35-91ee-8bbf0676a1c1"
 TEMPLATE_ITEM_TOWELS = "4090a13d-f8c8-4628-8513-b669f59c5954"
 TEMPLATE_ITEM_MIRROR = "a2fd0f18-4a5f-4bd9-a026-85b4cffb9617"
 
@@ -42,9 +43,10 @@ def make_db(room_overrides: dict | None = None, inspections: list[dict] | None =
         "room_status_history": [],
         "inspections": inspections or [],
         "inspection_results": results or [],
+        "inspection_templates": [{"id": TEMPLATE_ID, "tenant_id": HOTEL, "is_active": True}],
         "inspection_template_items": [
-            {"id": TEMPLATE_ITEM_TOWELS, "description": "Missing bath towels"},
-            {"id": TEMPLATE_ITEM_MIRROR, "description": "Mirror streaked"},
+            {"id": TEMPLATE_ITEM_TOWELS, "tenant_id": HOTEL, "template_id": TEMPLATE_ID, "description": "Missing bath towels"},
+            {"id": TEMPLATE_ITEM_MIRROR, "tenant_id": HOTEL, "template_id": TEMPLATE_ID, "description": "Mirror streaked"},
         ],
         "tasks": [],
     })
@@ -65,7 +67,7 @@ async def test_submit_inspection_pass_clears_pending_reclean_flag(monkeypatch):
 
     body = SubmitInspectionRequest(
         room_id=ROOM_ID,
-        template_id="ef4ec74d-6127-4d35-91ee-8bbf0676a1c1",
+        template_id=TEMPLATE_ID,
         overall_result="passed",
         items=[InspectionResultItem(template_item_id=TEMPLATE_ITEM_TOWELS, result="pass")],
     )

@@ -32,6 +32,12 @@ export async function fetchAssignableStaff(): Promise<AssignableStaff[]> {
 export interface AssignmentInput {
   room_id: string;
   housekeeper_id: string;
+  /**
+   * Compare-and-set: the housekeeper the supervisor saw on the room, or `expect_unassigned` when they saw none.
+   * The server answers 409 instead of overwriting a newer assignment or moving a room whose cleaning started.
+   */
+  expected_assigned_to?: string;
+  expect_unassigned?: boolean;
 }
 
 export async function saveAssignments(

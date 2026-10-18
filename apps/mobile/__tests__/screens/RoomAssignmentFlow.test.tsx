@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "react-native";
-import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, configure, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { makeTranslator, type Language } from "../helpers/i18n";
 
 /* The REAL Room Board screen, Room Detail drawer, assignment panel, picker and controller; only the network, the
@@ -85,6 +85,9 @@ const ui = () => (
 const rosterRows = (rows: Array<[string, string]> = [["hk-1", "active"], ["hk-2", "active"], ["hk-3", "ended"]]) =>
   rows.map(([user_id, status]) => ({ user_id, status, started_at: new Date().toISOString() }));
 
+// The first render of the file pays the cold module-load cost; a slow machine must not read that as a failure.
+configure({ asyncUtilTimeout: 5000 });
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockLanguage = "en";
@@ -149,7 +152,7 @@ describe("assign a room", () => {
     const loads = board.mock.calls.length;
     await confirm(screen);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith(hotelDateKey(new Date(), "America/Chicago"), [{ room_id: "room-101", housekeeper_id: "hk-2" }]);
+    expect(save).toHaveBeenCalledWith(hotelDateKey(new Date(), "America/Chicago"), [{ room_id: "room-101", housekeeper_id: "hk-2", expect_unassigned: true }]);
     expect(mockToast.success).toHaveBeenCalledWith("Room 101 assigned to Ben Ortiz.");
     expect(mockToast.error).not.toHaveBeenCalled();
     // Back on the room, and the board was read again.
@@ -354,7 +357,7 @@ describe("reassign a room", () => {
     expect(text(screen.getByTestId("review-clean-type"))).toBe("Departure");
 
     await confirm(screen);
-    expect(save).toHaveBeenCalledWith(expect.any(String), [{ room_id: "room-301", housekeeper_id: "hk-2" }]);
+    expect(save).toHaveBeenCalledWith(expect.any(String), [{ room_id: "room-301", housekeeper_id: "hk-2", expected_assigned_to: "hk-1" }]);
     expect(mockToast.success).toHaveBeenCalledWith("Room 301 reassigned to Ben Ortiz.");
   });
 

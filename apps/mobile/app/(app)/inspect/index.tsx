@@ -24,6 +24,7 @@ import { api } from "@/lib/api/client";
 import { fetchReadyForInspection, type InspectionTemplate, listInspectionTemplates, type ReadyRoom, submitInspection } from "@/lib/api/inspections";
 import { triggerReclean } from "@/lib/api/housekeepingSupervisor";
 import { hotelTodayKey } from "@/lib/housekeeping/supervisorToday";
+import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import {
   checkBeforeInspecting,
   isNoLongerAwaiting,
@@ -57,6 +58,7 @@ export default function InspectScreen() {
   const locale = i18n.language === "es" ? "es-MX" : "en-US";
 
   const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  useHotelTimezone();
   const tenantId = useAppStore((state) => state.user?.tenant_id ?? null);
   // `?roomId=` comes from the Room Board: the stable id picks the room, `roomNumber` is only the label.
   const params = useLocalSearchParams<{ roomId?: string | string[]; roomNumber?: string | string[] }>();

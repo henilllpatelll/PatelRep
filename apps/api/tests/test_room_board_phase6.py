@@ -28,6 +28,8 @@ INSPECTED_ROOM = str(uuid.uuid4())
 FOREIGN_ROOM = str(uuid.uuid4())
 TEMPLATE = str(uuid.uuid4())
 ITEM = str(uuid.uuid4())
+FOREIGN_TEMPLATE = str(uuid.uuid4())
+FOREIGN_ITEM = str(uuid.uuid4())
 
 
 def _auth(role="housekeeping_supervisor", hotel_id=HOTEL, user_id="sup-1"):
@@ -59,6 +61,14 @@ def db(monkeypatch):
             {"user_id": "sup-1", "tenant_id": HOTEL, "role": "housekeeping_supervisor", "is_active": True},
             {"user_id": "fd-1", "tenant_id": HOTEL, "role": "front_desk", "is_active": True},
             {"user_id": "sup-9", "tenant_id": OTHER_HOTEL, "role": "housekeeping_supervisor", "is_active": True},
+        ],
+        "inspection_templates": [
+            {"id": TEMPLATE, "tenant_id": HOTEL, "is_active": True},
+            {"id": FOREIGN_TEMPLATE, "tenant_id": OTHER_HOTEL, "is_active": True},
+        ],
+        "inspection_template_items": [
+            {"id": ITEM, "tenant_id": HOTEL, "template_id": TEMPLATE},
+            {"id": FOREIGN_ITEM, "tenant_id": OTHER_HOTEL, "template_id": FOREIGN_TEMPLATE},
         ],
         "tasks": [],
         "notifications": [],
@@ -194,6 +204,19 @@ class TestInspectionGuard:
         response = client.post("/v1/housekeeping/inspections", json=_inspection(FOREIGN_ROOM), headers=_auth())
         assert response.status_code == 404
         assert db.rows["inspections"] == []
+
+    def test_another_hotels_checklist_is_refused_and_nothing_is_written(self, client, db):
+        body = _inspection(CLEAN_ROOM, template_id=FOREIGN_TEMPLATE, items=[{"template_item_id": FOREIGN_ITEM, "result": "pass"}])
+        response = client.post("/v1/housekeeping/inspections", json=body, headers=_auth())
+        assert response.status_code == 404
+        assert db.rows["inspections"] == []
+
+    def test_an_item_from_a_different_checklist_is_refused(self, client, db):
+        body = _inspection(CLEAN_ROOM, items=[{"template_item_id": FOREIGN_ITEM, "result": "pass"}])
+        response = client.post("/v1/housekeeping/inspections", json=body, headers=_auth())
+        assert response.status_code == 422
+        assert db.rows["inspections"] == []
+        assert next(r for r in db.rows["room_status"] if r["room_id"] == CLEAN_ROOM)["status"] == "CLEAN"
 
     def test_a_failed_inspection_of_a_clean_room_is_still_recorded(self, client, db):
         body = _inspection(CLEAN_ROOM, overall_result="failed", items=[{"template_item_id": ITEM, "result": "fail"}], notes="Mirror")

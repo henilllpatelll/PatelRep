@@ -15,7 +15,9 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { localDate, dynamicShiftMeta } from "@/lib/utils/date";
+import { dynamicShiftMeta } from "@/lib/utils/date";
+import { hotelTodayKey } from "@/lib/housekeeping/supervisorToday";
+import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import {
   fetchAssignableStaff,
   fetchBoard,
@@ -61,6 +63,10 @@ export default function AssignmentsScreen() {
   const theme = useTheme();
   const toast = useToast();
   const { isOnline, user } = useAppStore();
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  useHotelTimezone();
+  // The hotel's calendar day, not the phone's: a supervisor in another zone, or near midnight, must not see or write another day.
+  const hotelDate = useCallback(() => hotelTodayKey(Date.now(), hotelTimezone), [hotelTimezone]);
 
   const [rooms, setRooms] = useState<FloorRoom[]>([]);
   const [staff, setStaff] = useState<AssignableStaff[]>([]);
@@ -81,7 +87,7 @@ export default function AssignmentsScreen() {
       return;
     }
     const [boardRes, staffRes, lateCoRes] = await Promise.allSettled([
-      fetchBoard(localDate()),
+      fetchBoard(hotelDate()),
       fetchAssignableStaff(),
       fetchLateCheckouts(),
     ]);
@@ -93,7 +99,7 @@ export default function AssignmentsScreen() {
       setLateCoByRoom(m);
     }
     setLoading(false);
-  }, [isOnline]);
+  }, [isOnline, hotelDate]);
 
   useEffect(() => {
     loadData();
@@ -163,7 +169,7 @@ export default function AssignmentsScreen() {
     setSuggesting(true);
     setSuggestNotice(null);
     try {
-      const result = await suggestAssignments(localDate());
+      const result = await suggestAssignments(hotelDate());
       if (result.suggestions.length > 0) {
         setSuggestions(result.suggestions);
       } else {
@@ -181,7 +187,7 @@ export default function AssignmentsScreen() {
     } finally {
       setSuggesting(false);
     }
-  }, [suggesting, t]);
+  }, [suggesting, hotelDate, t]);
 
   const applySuggestions = useCallback(async () => {
     if (!suggestions || applying) return;
@@ -193,7 +199,7 @@ export default function AssignmentsScreen() {
           housekeeper_id: suggestion.housekeeper.id,
         })),
       );
-      await saveAssignments(localDate(), assignments, true);
+      await saveAssignments(hotelDate(), assignments, true);
       setSuggestions(null);
       await loadData();
     } catch {
@@ -202,7 +208,7 @@ export default function AssignmentsScreen() {
     } finally {
       setApplying(false);
     }
-  }, [suggestions, applying, loadData, t]);
+  }, [suggestions, applying, hotelDate, loadData, t]);
 
   /* ── Single-room assign / reassign / remove ── */
 
@@ -215,11 +221,18 @@ export default function AssignmentsScreen() {
       setSaving(true);
       try {
         await saveAssignments(
-          localDate(),
-          rooms.map((room) => ({ room_id: room.roomId, housekeeper_id: member.userId })),
+          hotelDate(),
+          rooms.map((room) => ({
+            room_id: room.roomId,
+            housekeeper_id: member.userId,
+            // What this screen showed: the server refuses if the room moved on or its cleaning started since.
+            ...(room.assignedTo ? { expected_assigned_to: room.assignedTo } : { expect_unassigned: true }),
+          })),
         );
       } catch (err) {
-        toast.error(t(`roomBoard.assign.error.${classifyFailure(err, isOnline).failure}`));
+        const { failure } = classifyFailure(err, isOnline);
+        toast.error(t(`roomBoard.assign.error.${failure}`));
+        if (failure === "conflict" || failure === "room_unavailable") void loadData();
         setSaving(false);
         return;
       }
@@ -233,7 +246,7 @@ export default function AssignmentsScreen() {
       );
       await loadData();
     },
-    [saving, pickerRoom, floorPickerRooms, loadData, toast, t, isOnline],
+    [saving, pickerRoom, floorPickerRooms, hotelDate, loadData, toast, t, isOnline],
   );
 
   const onAssignedRoomPress = useCallback(
