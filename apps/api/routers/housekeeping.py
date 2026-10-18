@@ -2100,8 +2100,14 @@ async def submit_inspection(
         .maybe_single()
         .execute()
     )
-    from_status = (current_rs.data or {}).get("status", "CLEAN")
-    current_clean_type = (current_rs.data or {}).get("clean_type")
+    if not current_rs or not current_rs.data:
+        raise HTTPException(status_code=404, detail="Room status not found")
+    # Same rule as /inspections/complete: only a room awaiting inspection can be inspected, so a second
+    # supervisor (or a stale screen) cannot record a duplicate inspection or re-open a finished room.
+    if current_rs.data.get("status") != "CLEAN":
+        raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
+    from_status = current_rs.data.get("status", "CLEAN")
+    current_clean_type = current_rs.data.get("clean_type")
     to_status = "DIRTY" if request.overall_result == "failed" else "INSPECTED"
 
     inspection = supabase.table("inspections").insert({

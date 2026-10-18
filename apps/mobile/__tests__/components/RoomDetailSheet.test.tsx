@@ -1,6 +1,6 @@
 import React from "react";
 import { act, fireEvent, render } from "@testing-library/react-native";
-import { Alert, Modal } from "react-native";
+import { Modal } from "react-native";
 import type { AssignmentController } from "@/lib/housekeeping/useRoomAssignment";
 import { makeTranslator, type Language } from "../helpers/i18n";
 
@@ -18,7 +18,7 @@ jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("@/lib/theme/useToast", () => ({ useToast: () => mockToast }));
-jest.mock("@/lib/api/client", () => ({ api: { post: jest.fn() } }));
+jest.mock("@/lib/api/client", () => ({ api: { post: jest.fn(), get: jest.fn() } }));
 
 import { router } from "expo-router";
 import { api } from "@/lib/api/client";
@@ -30,6 +30,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { NOW, ZONE, rawRoom } from "../helpers/roomBoardFixtures";
 
 const mockPost = api.post as jest.Mock;
+const mockGet = api.get as jest.Mock;
 const ALLOWED: MutationGate = { allowed: true, blockedBy: null };
 const MARIA = { userId: "hk-1", name: "Maria Santos", availability: "on_shift" as const };
 const assigned = { assigned_to: "hk-1", assignment_id: "as-1", assignment_date: "2026-10-16" } as const;
@@ -66,7 +67,7 @@ function setup(view: BoardRoomView, context = contextOf(), assignment = controll
   const handlers = { onClose: jest.fn(), onAssign: assignment.openAssign as jest.Mock, onRemoveAssignment: assignment.openRemove as jest.Mock };
   const ui = (v: BoardRoomView, c: RoomDetailSheetContext) => (
     <ThemeProvider>
-      <RoomDetailSheet room={v.room} view={v} context={c} assignment={assignment} onClose={handlers.onClose} />
+      <RoomDetailSheet room={v.room} view={v} context={c} assignment={assignment} deps={{ scopeKey: "t:u", userId: "u", refresh: jest.fn().mockResolvedValue(undefined) }} onClose={handlers.onClose} />
     </ThemeProvider>
   );
   const screen = render(ui(view, context));
@@ -81,6 +82,7 @@ beforeEach(() => {
   mockLanguage = "en";
   mockScheme = "light";
   mockPost.mockResolvedValue({ data: {} });
+  mockGet.mockResolvedValue({ data: [] });
 });
 
 describe("RoomDetailSheet — structure", () => {
@@ -144,9 +146,10 @@ describe("RoomDetailSheet — content", () => {
     expect(screen.getByText("Bathroom faucet leaking")).toBeTruthy();
     expect(screen.getByText("Status: In progress")).toBeTruthy();
     expect(screen.getByText("Work order #WO-1042")).toBeTruthy();
-    // Display only: a supervisor has no work-order route yet, so nothing here is pressable.
+    // The summary card itself is not pressable; the read-only detail has its own button.
     expect(wo.props.onPress).toBeUndefined();
     expect(wo.props.accessibilityRole).toBeUndefined();
+    expect(screen.getByTestId("room-detail-work-order-open")).toBeTruthy();
     expect(screen.getByTestId("room-detail-exception-dnd")).toBeTruthy();
     expect(screen.getByTestId("room-detail-wellness")).toBeTruthy();
   });
@@ -212,22 +215,27 @@ describe("RoomDetailSheet — closing and the More actions drawer", () => {
     expect(handlers.onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("has no More actions button when no secondary action applies (no dead menu)", () => {
+  it("More actions lists only what applies to the room: note and cleaning history for any room, no placeholders", () => {
     const { screen } = setup(viewOf(rawRoom("201", "DIRTY")));
-    expect(screen.queryByTestId("room-detail-more")).toBeNull();
+    pressed(screen, "room-detail-more");
+    expect(screen.getByTestId("room-action-note")).toBeTruthy();
+    expect(screen.getByTestId("room-action-cleaningHistory")).toBeTruthy();
+    expect(screen.queryByTestId("room-action-wellness")).toBeNull();
+    expect(screen.queryByTestId("room-action-workOrder")).toBeNull();
+    expect(screen.queryByTestId("room-action-inspectionHistory")).toBeNull();
     const inspected = setup(viewOf(rawRoom("202", "INSPECTED")));
-    expect(inspected.screen.queryByTestId("room-detail-more")).toBeNull();
     expect(inspected.screen.queryByTestId("room-detail-primary")).toBeNull();
+    pressed(inspected.screen, "room-detail-more");
+    expect(inspected.screen.getByTestId("room-action-inspectionHistory")).toBeTruthy();
   });
 
-  it("falls back to the room if a realtime change empties the open menu", () => {
+  it("keeps the actions drawer open and re-evaluated when a realtime change alters the menu", () => {
     const { screen, rerenderWith } = setup(viewOf(rawRoom("201", "DIRTY", assigned), MARIA));
     pressed(screen, "room-detail-more");
-    expect(screen.getByTestId("room-actions-sheet")).toBeTruthy();
-    // The assignment was removed elsewhere: Remove no longer applies, only the primary Assign remains.
+    expect(screen.getByTestId("room-action-remove")).toBeTruthy();
     rerenderWith(viewOf(rawRoom("201", "DIRTY")));
-    expect(screen.getByTestId("room-detail-sheet")).toBeTruthy();
-    expect(screen.getByTestId("room-detail-primary")).toBeTruthy();
+    expect(screen.getByTestId("room-actions-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-action-remove")).toBeNull();
   });
 
   it("follows a realtime update for the same room without resetting (status, then actions, re-evaluated)", () => {
@@ -257,7 +265,10 @@ describe("RoomDetailSheet — actions", () => {
     const { screen, handlers } = setup(viewOf(rawRoom("204", "IN_PROGRESS", assigned), MARIA));
     expect(screen.queryByTestId("room-detail-primary")).toBeNull();
     expect(screen.queryByTestId("room-detail-change-assignment")).toBeNull();
-    expect(screen.queryByTestId("room-detail-more")).toBeNull();
+    pressed(screen, "room-detail-more");
+    expect(screen.queryByTestId("room-action-assign")).toBeNull();
+    expect(screen.queryByTestId("room-action-reassign")).toBeNull();
+    expect(screen.queryByTestId("room-action-remove")).toBeNull();
     expect(handlers.onAssign).not.toHaveBeenCalled();
     expect(handlers.onRemoveAssignment).not.toHaveBeenCalled();
   });
@@ -277,7 +288,8 @@ describe("RoomDetailSheet — actions", () => {
     const { screen, handlers } = setup(viewOf(rawRoom("205", "CLEAN", { inspection_required: true })));
     pressed(screen, "room-detail-primary");
     expect(handlers.onClose).toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledWith("/(app)/inspect");
+    // The room's stable id travels with the link, so Inspect opens THAT room (the number is only a label).
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect", params: { roomId: "room-205", roomNumber: "205" } });
   });
 
   it("Remove opens the removal confirmation in the same modal; nothing is removed by opening it", () => {
@@ -292,70 +304,88 @@ describe("RoomDetailSheet — actions", () => {
     ["offline", { allowed: false, blockedBy: "offline" }],
     ["stale", { allowed: false, blockedBy: "stale" }],
     ["unavailable", { allowed: false, blockedBy: "unavailable" }],
-  ] as const)("a %s board shows why and blocks assign, reassign, remove and the wellness task", (_n, gate) => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
-    try {
-      const { screen, handlers } = setup(viewOf(rawRoom("201", "DIRTY", { ...assigned, dnd_flag: true }), MARIA), contextOf({ gate: gate as MutationGate, live: false }));
-      expect(screen.getByTestId("room-detail-paused")).toBeTruthy();
-      pressed(screen, "room-detail-primary");
-      pressed(screen, "room-detail-wellness");
-      pressed(screen, "room-detail-more");
-      pressed(screen, "room-action-remove");
-      expect(handlers.onAssign).not.toHaveBeenCalled();
-      expect(handlers.onRemoveAssignment).not.toHaveBeenCalled();
-      expect(alertSpy).not.toHaveBeenCalled();
-      expect(mockPost).not.toHaveBeenCalled();
-    } finally {
-      alertSpy.mockRestore();
-    }
+  ] as const)("a %s board shows why and blocks assign, reassign, remove, notes and the wellness request", (_n, gate) => {
+    const { screen, handlers } = setup(viewOf(rawRoom("201", "DIRTY", { ...assigned, dnd_flag: true }), MARIA), contextOf({ gate: gate as MutationGate, live: false }));
+    expect(screen.getByTestId("room-detail-paused")).toBeTruthy();
+    pressed(screen, "room-detail-primary");
+    pressed(screen, "room-detail-wellness");
+    pressed(screen, "room-detail-more");
+    pressed(screen, "room-action-remove");
+    pressed(screen, "room-action-note");
+    pressed(screen, "room-action-wellness");
+    expect(handlers.onAssign).not.toHaveBeenCalled();
+    expect(handlers.onRemoveAssignment).not.toHaveBeenCalled();
+    expect(screen.getByTestId("room-actions-sheet")).toBeTruthy();
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
   it("a stale board still lets the supervisor read the room and open the inspection queue", () => {
     const { screen } = setup(viewOf(rawRoom("205", "CLEAN", { inspection_required: true })), contextOf({ gate: { allowed: false, blockedBy: "stale" }, live: false }));
     pressed(screen, "room-detail-primary");
-    expect(router.push).toHaveBeenCalledWith("/(app)/inspect");
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect", params: { roomId: "room-205", roomNumber: "205" } });
   });
 });
 
 describe("RoomDetailSheet — DND wellness check", () => {
-  it("is a confirmation first; confirming creates the task once, however many times it is tapped", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
-    try {
-      let resolve: (value: unknown) => void = () => undefined;
-      mockPost.mockReturnValueOnce(new Promise((r) => { resolve = r; }));
-      const { screen } = setup(viewOf(rawRoom("101", "OCCUPIED", { dnd_flag: true })));
-      pressed(screen, "room-detail-wellness");
-      expect(alertSpy).toHaveBeenCalledWith("Wellness check — Room 101", expect.any(String), expect.any(Array));
-      expect(mockPost).not.toHaveBeenCalled();
+  const open = (status = "OCCUPIED") => {
+    const ui = setup(viewOf(rawRoom("101", status, { dnd_flag: true })));
+    pressed(ui.screen, "room-detail-wellness");
+    return ui;
+  };
 
-      const confirm = (alertSpy.mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>)[1];
-      await act(async () => {
-        confirm.onPress?.();
-        confirm.onPress?.();
-      });
-      expect(mockPost).toHaveBeenCalledTimes(1);
-      expect(mockPost).toHaveBeenCalledWith("/tasks", {
-        title: "Supervisor wellness check — Room 101", task_type: "housekeeping", priority: "high", room_id: "room-101",
-      });
-      await act(async () => resolve({ data: {} }));
-      expect(mockToast.success).toHaveBeenCalledWith("Wellness check task created.");
-    } finally {
-      alertSpy.mockRestore();
-    }
+  it("opens a dedicated drawer first; nothing is requested until it is confirmed", () => {
+    const { screen } = open();
+    expect(screen.getByTestId("room-wellness-panel")).toBeTruthy();
+    expect(screen.getByText("ROOM 101 · DND")).toBeTruthy();
+    expect(screen.getByText("Do Not Disturb is active.")).toBeTruthy();
+    expect(screen.queryByText(/override/i)).toBeNull();
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(screen.UNSAFE_getAllByType(Modal)).toHaveLength(1);
   });
 
-  it("reports a failed request with an error toast", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
-    try {
-      mockPost.mockRejectedValueOnce(new Error("offline"));
-      const { screen } = setup(viewOf(rawRoom("101", "OCCUPIED", { dnd_flag: true })));
-      pressed(screen, "room-detail-wellness");
-      const confirm = (alertSpy.mock.calls[0][2] as Array<{ onPress?: () => void }>)[1];
-      await act(async () => confirm.onPress?.());
-      expect(mockToast.error).toHaveBeenCalledWith("Could not create task. Try again.");
-    } finally {
-      alertSpy.mockRestore();
-    }
+  it("confirming sends ONE request to the dedicated endpoint, however many times it is tapped, and never POST /tasks", async () => {
+    let resolve: (value: unknown) => void = () => undefined;
+    mockPost.mockReturnValueOnce(new Promise((r) => { resolve = r; }));
+    const { screen } = open();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("room-wellness-request"));
+      fireEvent.press(screen.getByTestId("room-wellness-request"));
+    });
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPost).toHaveBeenCalledWith("/rooms/room-101/welfare-check", {});
+    expect(screen.queryByTestId("room-wellness-done")).toBeNull();
+    await act(async () => resolve({ data: { task_id: "t-1", already_requested: false } }));
+    expect(screen.getByTestId("room-wellness-done")).toBeTruthy();
+    expect(screen.getByText("Do Not Disturb is still on.")).toBeTruthy();
+  });
+
+  it("says so when a request already existed instead of claiming a new one", async () => {
+    mockPost.mockResolvedValueOnce({ data: { task_id: "t-0", already_requested: true } });
+    const { screen } = open();
+    await act(async () => fireEvent.press(screen.getByTestId("room-wellness-request")));
+    expect(screen.getByText("A wellness check was already requested for this room. Nothing new was created.")).toBeTruthy();
+  });
+
+  it("an unclear outcome is never shown as success and can be retried safely", async () => {
+    mockPost.mockRejectedValueOnce(new Error("Network request failed"));
+    const { screen } = open();
+    await act(async () => fireEvent.press(screen.getByTestId("room-wellness-request")));
+    expect(screen.queryByTestId("room-wellness-done")).toBeNull();
+    expect(screen.getByTestId("room-wellness-error")).toBeTruthy();
+    expect(screen.getByText("Check and try again")).toBeTruthy();
+  });
+
+  it("a 409 from the server (DND already off) reports that nothing was requested", async () => {
+    mockPost.mockRejectedValueOnce(Object.assign(new Error("Do Not Disturb is not active for this room"), { status: 409 }));
+    const { screen } = open();
+    await act(async () => fireEvent.press(screen.getByTestId("room-wellness-request")));
+    expect(screen.getByText("Do Not Disturb is not active, so nothing was requested.")).toBeTruthy();
+  });
+
+  it("closes safely: Cancel returns to the room and Back never loses the sheet", () => {
+    const { screen } = open();
+    pressed(screen, "room-wellness-cancel");
+    expect(screen.getByTestId("room-detail-sheet")).toBeTruthy();
   });
 
   it("never offers to turn DND off", () => {

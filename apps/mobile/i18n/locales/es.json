@@ -2063,6 +2063,19 @@
       "passed": "Aprobado",
       "failed": "Reprobado",
       "conditional": "Condicional"
+    },
+    "focus": {
+      "heading": "Inspeccionando habitación {{room}}",
+      "showQueue": "Ver toda la cola",
+      "backToBoard": "Volver al tablero",
+      "notAwaiting": "La habitación {{room}} ya no está esperando inspección.",
+      "notAwaitingGeneric": "Esa habitación ya no está esperando inspección.",
+      "invalid": "Ese enlace de habitación no es válido.",
+      "unavailable": "No se pudo cargar la cola de inspección, así que no se puede confirmar la habitación."
+    },
+    "guard": {
+      "templateChanged": "La lista de inspección cambió. Vuelve a abrir la habitación e inténtalo de nuevo.",
+      "unavailable": "No se pudo confirmar que la habitación siga esperando inspección. No se envió nada."
     }
   },
   "tasks": {
@@ -3132,7 +3145,10 @@
         "server": "Algo salió mal de nuestro lado. Inténtalo de nuevo."
       }
     },
-    "security": { "title": "Seguridad e inicio de sesión", "subtitle": "Contraseña y seguridad del dispositivo" },
+    "security": {
+      "title": "Seguridad e inicio de sesión",
+      "subtitle": "Contraseña y seguridad del dispositivo"
+    },
     "notifications": {
       "title": "Notificaciones",
       "subtitle": "Alertas y recordatorios de trabajo",
@@ -3153,9 +3169,18 @@
       "sectionInbox": "Bandeja",
       "phoneOffHint": "Activa las notificaciones en este teléfono para recibir estas alertas. Tus opciones se guardan en tu cuenta.",
       "categories": {
-        "room_assignments": { "label": "Nuevas asignaciones", "description": "Te asignan una habitación o una salida está lista para limpiar" },
-        "work_orders": { "label": "Órdenes de trabajo", "description": "Te asignan una orden de trabajo" },
-        "tasks": { "label": "Actualizaciones de tareas", "description": "Te asignan una tarea, cambia, se cancela o se desbloquea" }
+        "room_assignments": {
+          "label": "Nuevas asignaciones",
+          "description": "Te asignan una habitación o una salida está lista para limpiar"
+        },
+        "work_orders": {
+          "label": "Órdenes de trabajo",
+          "description": "Te asignan una orden de trabajo"
+        },
+        "tasks": {
+          "label": "Actualizaciones de tareas",
+          "description": "Te asignan una tarea, cambia, se cancela o se desbloquea"
+        }
       },
       "criticalHint": "Las alertas de tareas urgentes siempre se entregan.",
       "inboxOnlyNotice": "Otras alertas de trabajo, como escalaciones y traspasos, aparecen en tu bandeja.",
@@ -3251,8 +3276,14 @@
       },
       "viewDetails": "Ver detalles"
     },
-    "help": { "title": "Ayuda y soporte", "subtitle": "Obtén ayuda o reporta un problema" },
-    "about": { "title": "Acerca de PatelRep", "subtitle": "Versión e información de la app" },
+    "help": {
+      "title": "Ayuda y soporte",
+      "subtitle": "Obtén ayuda o reporta un problema"
+    },
+    "about": {
+      "title": "Acerca de PatelRep",
+      "subtitle": "Versión e información de la app"
+    },
     "aiVoice": {
       "title": "IA y voz",
       "subtitle": "Idioma del asistente, entrada de voz, conversación guardada",
@@ -3320,7 +3351,11 @@
       "headline": "Novedades de PatelRep",
       "version": "Versión {{version}}",
       "emptyTitle": "Las notas de la versión no están disponibles para esta versión.",
-      "sections": { "features": "Nuevas funciones", "improvements": "Mejoras", "fixes": "Correcciones" }
+      "sections": {
+        "features": "Nuevas funciones",
+        "improvements": "Mejoras",
+        "fixes": "Correcciones"
+      }
     },
     "licenses": {
       "title": "Licencias de código abierto",
@@ -4051,7 +4086,17 @@
         "remove": "Quitar asignación",
         "removeHint": "Devolver la habitación a sin asignar",
         "inspect": "Inspeccionar habitación",
-        "inspectHint": "Abrir la cola de inspección"
+        "inspectHint": "Abrir la inspección de esta habitación",
+        "note": "Añadir nota de supervisor",
+        "noteHint": "Escribe una nota para esta habitación",
+        "cleaningHistory": "Historial de limpieza",
+        "cleaningHistoryHint": "Limpiezas anteriores y actividad",
+        "inspectionHistory": "Historial de inspecciones",
+        "inspectionHistoryHint": "Resultados de inspecciones anteriores",
+        "workOrder": "Ver orden de trabajo",
+        "workOrderHint": "Lee la solicitud de mantenimiento abierta",
+        "wellness": "Solicitar revisión de bienestar",
+        "wellnessHint": "Pide revisar una habitación con No molestar"
       },
       "paused": {
         "loading": "Aún se carga el tablero. Los cambios están en pausa.",
@@ -4222,6 +4267,176 @@
       "title": "Ir al piso",
       "caption": "Piso",
       "item": "Ir a {{label}}"
+    },
+    "panel": {
+      "retry": "Reintentar",
+      "done": "Listo",
+      "loading": "Cargando…",
+      "error": {
+        "network": {
+          "title": "No se puede conectar al servidor",
+          "body": "Revisa la conexión e inténtalo de nuevo. No se muestra nada hasta que cargue."
+        },
+        "unauthorized": {
+          "title": "No disponible para ti",
+          "body": "Tu rol no puede abrir esta información."
+        },
+        "not_found": {
+          "title": "No encontrado",
+          "body": "Este registro ya no está disponible."
+        },
+        "server": {
+          "title": "Algo salió mal",
+          "body": "El servidor no pudo cargar esto. Inténtalo de nuevo en un momento."
+        }
+      },
+      "note": {
+        "title": "AÑADIR NOTA · HABITACIÓN {{room}}",
+        "visibility": "Las notas las puede ver el personal autorizado de este hotel. Guardar una nota no cambia el estado de la habitación.",
+        "placeholder": "Escribe la nota de la habitación…",
+        "inputLabel": "Nota para la habitación {{room}}",
+        "remaining": "Quedan {{count}} caracteres",
+        "save": "Guardar nota",
+        "check": "Comprobar de nuevo",
+        "saved": "Nota guardada.",
+        "alreadySaved": "Esa nota ya estaba guardada.",
+        "boardBehind": "Guardada. El tablero aún no muestra la nota nueva.",
+        "error": {
+          "empty": "Escribe una nota primero.",
+          "too_long": "La nota es demasiado larga. Acórtala e inténtalo de nuevo.",
+          "forbidden": "No puedes añadir notas a esta habitación. Se conserva tu texto.",
+          "not_found": "Esta habitación ya no está disponible. Se conserva tu texto.",
+          "conflict": "La habitación cambió. Se conserva tu texto: inténtalo de nuevo.",
+          "invalid": "El servidor no pudo aceptar esa nota. Se conserva tu texto.",
+          "rejected": "La nota no se guardó. Se conserva tu texto.",
+          "uncertain": "La nota no se guardó. Se conserva tu texto: puedes guardarla de nuevo.",
+          "unconfirmed": "No pudimos confirmar si la nota se guardó. Comprueba antes de guardar para no duplicarla.",
+          "paused": "Los cambios están en pausa. Se conserva tu texto.",
+          "scope_changed": "Cambió la cuenta o el hotel. Vuelve a abrir la habitación para continuar."
+        }
+      },
+      "wellness": {
+        "title": "HABITACIÓN {{room}} · NO MOLESTAR",
+        "open": "Solicitar revisión de bienestar",
+        "active": "No molestar está activo.",
+        "notActive": "No molestar ya no está activo en esta habitación.",
+        "policy": "Se puede solicitar una revisión de bienestar cuando la política de seguridad del hotel lo requiera.",
+        "effect": "Esto crea una tarea autorizada y avisa al equipo. No desactiva No molestar ni autoriza la entrada a la habitación del huésped.",
+        "request": "Solicitar revisión de bienestar",
+        "tryAgain": "Comprobar y reintentar",
+        "requested": "Revisión de bienestar solicitada. Se avisó a supervisores y recepción.",
+        "already": "Ya se había solicitado una revisión de bienestar para esta habitación. No se creó nada nuevo.",
+        "stillOn": "No molestar sigue activo.",
+        "error": {
+          "dnd_off": "No molestar no está activo, así que no se solicitó nada.",
+          "paused": "Los cambios están en pausa. No se solicitó nada.",
+          "forbidden": "No puedes solicitar una revisión de bienestar. No se solicitó nada.",
+          "not_found": "Esta habitación ya no está disponible. No se solicitó nada.",
+          "uncertain": "No pudimos confirmar la solicitud. Reintentar es seguro: se reutiliza la solicitud existente, no se duplica.",
+          "failed": "Se rechazó la solicitud. No se creó nada.",
+          "scope_changed": "Cambió la cuenta o el hotel. Vuelve a abrir la habitación para continuar."
+        }
+      },
+      "cleaning": {
+        "title": "HABITACIÓN {{room}} · HISTORIAL DE LIMPIEZA",
+        "tabCleans": "Limpiezas",
+        "tabActivity": "Actividad",
+        "emptyTitle": "Sin limpiezas registradas",
+        "emptyBody": "Esta habitación no tiene sesiones de limpieza registradas.",
+        "todayHeading": "HOY · {{date}}",
+        "dateUnknown": "Fecha no registrada",
+        "type": {
+          "DEP": "Limpieza de salida",
+          "FULL": "Limpieza de estadía",
+          "LIGHT": "Limpieza ligera"
+        },
+        "typeUnknown": "Limpieza",
+        "state": {
+          "completed": "Completada",
+          "in_progress": "En curso",
+          "abandoned": "Detenida",
+          "unknown": "Desconocido"
+        },
+        "completedAt": "Completada {{time}}",
+        "startedAt": "Iniciada {{time}}",
+        "stoppedAt": "Detenida {{time}}",
+        "duration": "Duración: {{duration}}",
+        "durationMissing": "Duración: no registrada",
+        "checklist": "Lista: {{count}}",
+        "viewDetails": "Ver detalles",
+        "loadMore": "Cargar más",
+        "recentOnly": "Se muestran las {{count}} limpiezas más recientes.",
+        "notRecorded": "No registrada",
+        "row": {
+          "started": "Inicio",
+          "completed": "Completada",
+          "stopped": "Detenida",
+          "housekeeper": "Camarista"
+        }
+      },
+      "activity": {
+        "title": "HABITACIÓN {{room}} · ACTIVIDAD",
+        "emptyTitle": "Sin actividad registrada",
+        "emptyBody": "No hay cambios de estado ni notas desde que empezó esta estadía.",
+        "kind": {
+          "note": "Nota",
+          "status": "Estado"
+        },
+        "statusChange": "{{from}} → {{to}}",
+        "actorUnknown": "No registrado",
+        "scope": "Últimas 50 entradas desde que empezó la estadía actual."
+      },
+      "session": {
+        "title": "HABITACIÓN {{room}} · DETALLE DE LIMPIEZA",
+        "checklist": "Lista de verificación",
+        "noChecklist": "Sin lista registrada",
+        "done": "hecho",
+        "notDone": "pendiente",
+        "photos": "Fotos",
+        "noPhotos": "No hay fotos disponibles",
+        "photoLabel": "Foto de limpieza, {{time}}",
+        "photoUnavailable": "Foto no disponible",
+        "photoExpired": "Algunas fotos no cargaron. Sus enlaces pueden haber caducado.",
+        "reloadPhotos": "Recargar fotos"
+      },
+      "inspections": {
+        "title": "HABITACIÓN {{room}} · INSPECCIONES",
+        "range": "{{days}} días",
+        "emptyTitle": "Sin inspecciones",
+        "emptyBody": "No se registraron inspecciones de esta habitación en los últimos {{days}} días.",
+        "result": {
+          "passed": "Aprobada",
+          "failed": "Reprobada",
+          "conditional": "Condicional",
+          "unknown": "Desconocido"
+        },
+        "inspector": "Inspector: {{name}}",
+        "inspectorUnknown": "Inspector no registrado",
+        "notes": "Notas: {{notes}}"
+      },
+      "workOrder": {
+        "title": "HABITACIÓN {{room}} · ORDEN DE TRABAJO",
+        "description": "Descripción",
+        "noDescription": "Sin descripción registrada.",
+        "goneTitle": "Orden de trabajo no disponible",
+        "goneBody": "Puede haberse eliminado. Actualiza el tablero para ver lo que sigue abierto.",
+        "wrongRoomTitle": "La orden de trabajo no coincide",
+        "wrongRoomBody": "Esta orden pertenece a otra habitación, por eso no se muestra.",
+        "closedSince": "Esta orden de trabajo está cerrada. El tablero aún no se ha actualizado.",
+        "assigned": "Asignada",
+        "unassigned": "Sin asignar",
+        "resolution": "Resolución",
+        "parts": "Piezas usadas: {{parts}}",
+        "row": {
+          "room": "Habitación",
+          "reported": "Reportada",
+          "started": "Iniciada",
+          "due": "Vence",
+          "completed": "Completada",
+          "cancelled": "Cancelada",
+          "assignment": "Ingeniero"
+        }
+      }
     }
   },
   "roomStatus": {
@@ -4960,7 +5175,7 @@
       },
       "description": "¿Qué salió mal?",
       "placeholder": "Describe qué pasó y qué intentabas hacer.",
-      "count": "{{count}}\u00a0/\u00a0{{max}}",
+      "count": "{{count}} / {{max}}",
       "blocking": "Esto no me deja trabajar",
       "guestWarning": "Por favor no incluyas nombres de huéspedes, teléfonos ni datos de reservaciones.",
       "diagnostics": "Incluir diagnóstico técnico",

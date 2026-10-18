@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -20,24 +21,23 @@ import { useToast } from "@/lib/theme/useToast";
 import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { api } from "@/lib/api/client";
-import { type InspectionTemplate, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
+import { fetchReadyForInspection, type InspectionTemplate, listInspectionTemplates, type ReadyRoom, submitInspection } from "@/lib/api/inspections";
 import { triggerReclean } from "@/lib/api/housekeepingSupervisor";
-import { localDate, localTzOffset } from "@/lib/utils/date";
+import { hotelTodayKey } from "@/lib/housekeeping/supervisorToday";
+import {
+  checkBeforeInspecting,
+  isNoLongerAwaiting,
+  normalizeRoomIdParam,
+  resolveInspectionTarget,
+} from "@/lib/housekeeping/inspectionTarget";
+import { InspectFocus } from "@/components/supervisor/inspect/InspectFocus";
+import { InspectQueueCard } from "@/components/supervisor/inspect/InspectQueueCard";
+import { useAppStore } from "@/stores/appStore";
 import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
 
 /* ─── Inspect — the quality gate ────────────────────────────────────────────
    Dark shell hero with the day's inspection shape, a queue of submitted
    rooms with one-tap pass/fail, and today's completed inspections. */
-
-interface ReadyRoom {
-  room_id: string;
-  room_number: string;
-  floor: number | null;
-  cleaned_by: string;
-  cleaned_at: string | null;
-  housekeeper_id: string | null;
-  clean_type: string | null;
-}
 
 interface InspectionRecord {
   id: string;
@@ -56,7 +56,17 @@ export default function InspectScreen() {
   const toast = useToast();
   const locale = i18n.language === "es" ? "es-MX" : "en-US";
 
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  const tenantId = useAppStore((state) => state.user?.tenant_id ?? null);
+  // `?roomId=` comes from the Room Board: the stable id picks the room, `roomNumber` is only the label.
+  const params = useLocalSearchParams<{ roomId?: string | string[]; roomNumber?: string | string[] }>();
+  const roomIdParam = normalizeRoomIdParam(params.roomId);
+  const roomLabel = normalizeRoomIdParam(params.roomNumber);
   const [queue, setQueue] = useState<ReadyRoom[]>([]);
+  // True only while `queue` is the answer of a request that succeeded; a failed load proves nothing about a room.
+  const [queueVerified, setQueueVerified] = useState(false);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null);
+  const submittingRef = useRef(false);
   const [records, setRecords] = useState<InspectionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,24 +91,46 @@ export default function InspectScreen() {
     [theme],
   );
 
+  // The hotel's business date (not the phone's), on the same basis as the Room Board.
+  const businessDate = useCallback(() => hotelTodayKey(Date.now(), hotelTimezone), [hotelTimezone]);
+
   const load = useCallback(async () => {
-    const today = localDate();
+    const today = businessDate();
     const [queueRes, recordsRes, templatesRes] = await Promise.allSettled([
-      api.get<{ data: ReadyRoom[] }>(`/housekeeping/ready-for-inspection?date=${today}`),
-      api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}&tz_offset=${localTzOffset()}`),
+      fetchReadyForInspection(today),
+      api.get<{ data: InspectionRecord[] }>(`/housekeeping/inspections?date_from=${today}&date_to=${today}`),
       listInspectionTemplates(),
     ]);
-    if (queueRes.status === "fulfilled") setQueue(queueRes.value.data ?? []);
+    if (queueRes.status === "fulfilled") {
+      setQueue(queueRes.value);
+      setQueueVerified(true);
+    } else {
+      setQueueVerified(false);
+    }
     if (recordsRes.status === "fulfilled") setRecords(recordsRes.value.data ?? []);
     if (templatesRes.status === "fulfilled" && templatesRes.value.data.length > 0) {
       setTemplate(templatesRes.value.data[0]);
     }
     setLoading(false);
-  }, []);
+  }, [businessDate]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Another hotel: nothing from the previous one (its queue, a stale link or a half-written result) may carry over.
+  const lastTenant = useRef(tenantId);
+  useEffect(() => {
+    if (lastTenant.current === tenantId) return;
+    lastTenant.current = tenantId;
+    setQueue([]);
+    setRecords([]);
+    setQueueVerified(false);
+    setConfirm(null);
+    setStaleNotice(null);
+    setLoading(true);
+    router.setParams({ roomId: undefined, roomNumber: undefined });
+  }, [tenantId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -155,10 +187,39 @@ export default function InspectScreen() {
     setFailedItems({});
   }, []);
 
+  const dropFocus = useCallback(() => router.setParams({ roomId: undefined, roomNumber: undefined }), []);
+
   const handleConfirm = useCallback(async () => {
-    if (!confirm || submitting) return;
+    if (!confirm || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
+    const room = confirm.room;
+    const noLongerAwaiting = async () => {
+      setConfirm(null);
+      setStaleNotice(room.room_number);
+      await load();
+    };
     try {
+      // Re-read the queue and the checklist first: the room may have been inspected (or sent back) since it was opened.
+      const guard = await checkBeforeInspecting({
+        roomId: room.room_id,
+        templateId: template?.id,
+        date: businessDate(),
+        fetchQueue: fetchReadyForInspection,
+        fetchTemplates: listInspectionTemplates,
+      });
+      if (guard === "not_awaiting") return await noLongerAwaiting();
+      if (guard === "template_changed") {
+        setConfirm(null);
+        toast.error(t("inspect.guard.templateChanged"));
+        await load();
+        return;
+      }
+      if (guard === "unavailable") {
+        // Nothing was sent; the sheet stays open with its notes so the person can try again.
+        toast.error(t("inspect.guard.unavailable"));
+        return;
+      }
       const items = (template?.items ?? []).map((item) => ({
         template_item_id: item.id,
         result: (confirm.result === "passed" || confirm.result === "conditional"
@@ -166,27 +227,33 @@ export default function InspectScreen() {
           : failedItems[item.id] ? "fail" : "pass") as "pass" | "fail" | "na",
       }));
       const { id: inspectionId } = await submitInspection({
-        room_id: confirm.room.room_id,
+        room_id: room.room_id,
         template_id: template?.id,
         overall_result: confirm.result,
         notes: confirmNotes.trim() || undefined,
         items,
       });
-      const savedRoom = confirm.room;
       const savedNotes = confirmNotes.trim();
       const wasFailure = confirm.result === "failed" || confirm.result === "conditional";
-      setQueue((prev) => prev.filter((room) => room.room_id !== savedRoom.room_id));
+      setQueue((prev) => prev.filter((candidate) => candidate.room_id !== room.room_id));
       setConfirm(null);
+      if (roomIdParam === room.room_id) dropFocus();
       await load();
       if (wasFailure && inspectionId) {
-        setReclean({ room: savedRoom, inspectionId, notes: savedNotes });
+        setReclean({ room, inspectionId, notes: savedNotes });
       }
-    } catch {
-      toast.error(t("inspect.submitError"));
+    } catch (error) {
+      // 409 = the server says this room is not awaiting inspection any more (another supervisor got there first).
+      if (isNoLongerAwaiting(error)) await noLongerAwaiting();
+      else toast.error(t("inspect.submitError"));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [confirm, submitting, template, confirmNotes, failedItems, t, load, toast]);
+  }, [confirm, template, confirmNotes, failedItems, t, load, toast, businessDate, roomIdParam, dropFocus]);
+
+  const target = useMemo(() => resolveInspectionTarget(roomIdParam, queue, queueVerified && !loading), [roomIdParam, queue, queueVerified, loading]);
+  const listedQueue = useMemo(() => (target.kind === "ready" ? queue.filter((room) => room.room_id !== target.room.room_id) : queue), [queue, target]);
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "queue", label: t("inspect.toInspect"), count: queue.length },
@@ -249,8 +316,25 @@ export default function InspectScreen() {
         </View>
 
         <View style={styles.body}>
+          {staleNotice && target.kind !== "not_awaiting" ? (
+            <View style={[styles.staleNotice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} accessibilityRole="alert" testID="inspect-stale-notice">
+              <Text style={[styles.staleText, { color: theme.textPrimary }]}>{t("inspect.focus.notAwaiting", { room: staleNotice })}</Text>
+              <Button label={t("common.close")} variant="ghost" size="sm" onPress={() => setStaleNotice(null)} />
+            </View>
+          ) : null}
+          <InspectFocus
+            target={target}
+            roomLabel={roomLabel}
+            queueFailed={!loading && !queueVerified}
+            timeSince={timeSince}
+            onOutcome={openConfirm}
+            onShowQueue={dropFocus}
+            onBack={() => (router.canGoBack() ? router.back() : dropFocus())}
+            onRetry={() => void onRefresh()}
+            t={t}
+          />
           {tab === "queue" ? (
-            queue.length === 0 ? (
+            listedQueue.length === 0 && target.kind !== "ready" ? (
               <StateBlock
                 status="empty"
                 emptyIcon="shield-checkmark-outline"
@@ -258,62 +342,8 @@ export default function InspectScreen() {
                 emptyBody={t("inspect.queueEmptyHint")}
               />
             ) : (
-              queue.map((room) => (
-                <View
-                  key={room.room_id}
-                  style={[
-                    styles.queueCard,
-                    { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
-                  ]}
-                  testID={`inspect-${room.room_number}`}
-                >
-                  <View style={[styles.queueRail, { backgroundColor: theme.status.clean }]} />
-                  <View style={styles.queueBody}>
-                    <Text style={[styles.queueRoomNumber, { color: theme.textPrimary }]}>{room.room_number}</Text>
-                    <Text style={[styles.queueCleanedBy, { color: theme.textSecondary }]} numberOfLines={1}>
-                      {room.cleaned_by}
-                    </Text>
-                    <Text style={[styles.queueMeta, { color: theme.textMuted }]}>
-                      {t("inspect.doneAgo", { time: timeSince(room.cleaned_at) })}
-                      {room.clean_type ? ` · ${room.clean_type}` : ""}
-                    </Text>
-                  </View>
-                  <View style={styles.queueActions} collapsable={false}>
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: theme.status.ready, borderColor: theme.status.ready }]}
-                      onPress={() => openConfirm(room, "passed")}
-                      activeOpacity={0.78}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("inspect.confirmPass")}
-                    >
-                      <Ionicons name="checkmark" size={20} color={theme.onPrimary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionBtn,
-                        { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
-                      ]}
-                      onPress={() => openConfirm(room, "conditional")}
-                      activeOpacity={0.78}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("inspect.confirmTouchup")}
-                    >
-                      <Ionicons name="flash" size={17} color={theme.status.pickup} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionBtn,
-                        { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine },
-                      ]}
-                      onPress={() => openConfirm(room, "failed")}
-                      activeOpacity={0.78}
-                      accessibilityRole="button"
-                      accessibilityLabel={t("inspect.confirmFail")}
-                    >
-                      <Ionicons name="close" size={20} color={theme.status.dirty} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+              listedQueue.map((room) => (
+                <InspectQueueCard key={room.room_id} room={room} timeSince={timeSince} onOutcome={openConfirm} t={t} />
               ))
             )
           ) : records.length === 0 ? (
@@ -590,6 +620,8 @@ export default function InspectScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  staleNotice: { borderWidth: 1, borderRadius: R.lg, padding: 13, gap: 6 },
+  staleText: { fontSize: 14, lineHeight: 20, fontWeight: "600" },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
 
@@ -635,37 +667,6 @@ const styles = StyleSheet.create({
   segmentLabel: { fontSize: 12.5, fontWeight: "700" },
 
   body: { paddingHorizontal: 16, gap: 8 },
-
-  queueCard: {
-    position: "relative",
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: R.lg,
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingVertical: 13,
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  queueRail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
-  queueBody: { flex: 1, minWidth: 0, gap: 2 },
-  queueRoomNumber: { fontFamily: monoFont, fontSize: 24, lineHeight: 28, fontWeight: "800" },
-  queueCleanedBy: { fontSize: 12.5, fontWeight: "700" },
-  queueMeta: { fontSize: 11.5 },
-  queueActions: { flexDirection: "row", gap: 8 },
-  actionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
 
   doneRow: {
     minHeight: 44,

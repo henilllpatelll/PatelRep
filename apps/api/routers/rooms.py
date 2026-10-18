@@ -44,6 +44,8 @@ def _parse_dt(value):
 
 ROOM_NOTE_MAX_LENGTH = 1000
 NOTE_RETRY_WINDOW = timedelta(minutes=2)
+# An open welfare-check task younger than this answers a repeat request (see request_welfare_check).
+WELFARE_DEDUPE_WINDOW = timedelta(hours=12)
 
 
 class AddRoomNoteRequest(BaseModel):
@@ -930,6 +932,9 @@ async def request_welfare_check(
     )
     if not current_row or not current_row.data:
         raise HTTPException(status_code=404, detail="Room status record not found")
+    # A welfare check is only meaningful while Do Not Disturb is actually on; a stale screen must not raise one.
+    if not current_row.data.get("dnd_flag"):
+        raise HTTPException(status_code=409, detail="Do Not Disturb is not active for this room")
 
     room_result = (
         supabase.table("rooms")
@@ -944,6 +949,25 @@ async def request_welfare_check(
 
     room_number = room_result.data.get("room_number") or ""
     now = datetime.now(timezone.utc)
+
+    # One open request per room: a double tap, a retry after a lost response or a second supervisor gets the
+    # existing task back instead of a second task and a second round of notifications.
+    open_tasks = (
+        supabase.table("tasks")
+        .select("id, title, created_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("room_id", room_id)
+        .eq("task_type", "housekeeping")
+        .not_.in_("status", ["completed", "cancelled"])
+        .execute()
+    ).data or []
+    for task in open_tasks:
+        created = _parse_dt(task.get("created_at"))
+        title = str(task.get("title") or "").lower()
+        is_welfare = title.startswith("welfare check") or title.startswith("supervisor wellness check")
+        # A task whose age cannot be read still counts as open: never raise a second alert on doubt.
+        if is_welfare and (created is None or now - created <= WELFARE_DEDUPE_WINDOW):
+            return {"data": {"room_id": room_id, "task_id": task["id"], "notified": False, "already_requested": True}}
 
     # Find a supervisor to assign to
     supervisor_result = (
@@ -995,7 +1019,7 @@ async def request_welfare_check(
                 "push_sent": False,
             }).execute()
 
-    return {"data": {"room_id": room_id, "task_id": task_id, "notified": True}}
+    return {"data": {"room_id": room_id, "task_id": task_id, "notified": True, "already_requested": False}}
 
 
 # ---------------------------------------------------------------------------

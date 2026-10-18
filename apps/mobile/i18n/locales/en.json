@@ -2063,6 +2063,19 @@
       "passed": "Passed",
       "failed": "Failed",
       "conditional": "Conditional"
+    },
+    "focus": {
+      "heading": "Inspecting Room {{room}}",
+      "showQueue": "Show full queue",
+      "backToBoard": "Back to Room Board",
+      "notAwaiting": "Room {{room}} is no longer awaiting inspection.",
+      "notAwaitingGeneric": "That room is no longer awaiting inspection.",
+      "invalid": "That room link isn't valid.",
+      "unavailable": "Couldn't load the inspection queue, so the room can't be confirmed."
+    },
+    "guard": {
+      "templateChanged": "The inspection checklist changed. Reopen the room and try again.",
+      "unavailable": "Couldn't confirm the room is still awaiting inspection. Nothing was sent."
     }
   },
   "tasks": {
@@ -3132,7 +3145,10 @@
         "server": "Something went wrong on our side. Please try again."
       }
     },
-    "security": { "title": "Security & Sign-in", "subtitle": "Password and device security" },
+    "security": {
+      "title": "Security & Sign-in",
+      "subtitle": "Password and device security"
+    },
     "notifications": {
       "title": "Notifications",
       "subtitle": "Work alerts and reminders",
@@ -3153,9 +3169,18 @@
       "sectionInbox": "Inbox",
       "phoneOffHint": "Turn on notifications on this phone to receive these alerts. Your choices are saved to your account.",
       "categories": {
-        "room_assignments": { "label": "New Assignments", "description": "A room is assigned to you or a departure is ready to clean" },
-        "work_orders": { "label": "Work Order Updates", "description": "A work order is assigned to you" },
-        "tasks": { "label": "Task Updates", "description": "A task is assigned to you, changed, cancelled or unblocked" }
+        "room_assignments": {
+          "label": "New Assignments",
+          "description": "A room is assigned to you or a departure is ready to clean"
+        },
+        "work_orders": {
+          "label": "Work Order Updates",
+          "description": "A work order is assigned to you"
+        },
+        "tasks": {
+          "label": "Task Updates",
+          "description": "A task is assigned to you, changed, cancelled or unblocked"
+        }
       },
       "criticalHint": "Urgent task alerts are always delivered.",
       "inboxOnlyNotice": "Other work alerts, like escalations and handoffs, appear in your inbox.",
@@ -3251,8 +3276,14 @@
       },
       "viewDetails": "View Details"
     },
-    "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
-    "about": { "title": "About PatelRep", "subtitle": "Version and app information" },
+    "help": {
+      "title": "Help & Support",
+      "subtitle": "Get help or report a problem"
+    },
+    "about": {
+      "title": "About PatelRep",
+      "subtitle": "Version and app information"
+    },
     "aiVoice": {
       "title": "AI & voice",
       "subtitle": "Assistant language, voice input, saved conversation",
@@ -3320,7 +3351,11 @@
       "headline": "What’s New in PatelRep",
       "version": "Version {{version}}",
       "emptyTitle": "Release notes aren’t available for this version.",
-      "sections": { "features": "New features", "improvements": "Improvements", "fixes": "Fixes" }
+      "sections": {
+        "features": "New features",
+        "improvements": "Improvements",
+        "fixes": "Fixes"
+      }
     },
     "licenses": {
       "title": "Open-source licenses",
@@ -4051,7 +4086,17 @@
         "remove": "Remove assignment",
         "removeHint": "Return the room to unassigned",
         "inspect": "Inspect room",
-        "inspectHint": "Open the inspection queue"
+        "inspectHint": "Open the inspection for this room",
+        "note": "Add supervisor note",
+        "noteHint": "Write a note for this room",
+        "cleaningHistory": "Cleaning history",
+        "cleaningHistoryHint": "Past cleans and room activity",
+        "inspectionHistory": "Inspection history",
+        "inspectionHistoryHint": "Past inspection results",
+        "workOrder": "View work order",
+        "workOrderHint": "Read the open maintenance request",
+        "wellness": "Request wellness check",
+        "wellnessHint": "Ask for a check on a Do Not Disturb room"
       },
       "paused": {
         "loading": "Still loading the board. Changes are paused.",
@@ -4222,6 +4267,176 @@
       "title": "Jump to floor",
       "caption": "Floor",
       "item": "Jump to {{label}}"
+    },
+    "panel": {
+      "retry": "Try again",
+      "done": "Done",
+      "loading": "Loading…",
+      "error": {
+        "network": {
+          "title": "Can't reach the server",
+          "body": "Check the connection and try again. Nothing is shown until it loads."
+        },
+        "unauthorized": {
+          "title": "Not available to you",
+          "body": "Your role can't open this information."
+        },
+        "not_found": {
+          "title": "Not found",
+          "body": "This record is no longer available."
+        },
+        "server": {
+          "title": "Something went wrong",
+          "body": "The server couldn't load this. Try again in a moment."
+        }
+      },
+      "note": {
+        "title": "ADD NOTE · ROOM {{room}}",
+        "visibility": "Notes are visible to authorized staff at this hotel. Saving a note does not change the room's status.",
+        "placeholder": "Enter room note…",
+        "inputLabel": "Note for room {{room}}",
+        "remaining": "{{count}} characters left",
+        "save": "Save note",
+        "check": "Check again",
+        "saved": "Note saved.",
+        "alreadySaved": "That note was already saved.",
+        "boardBehind": "Saved. The board hasn't shown the new note yet.",
+        "error": {
+          "empty": "Write a note first.",
+          "too_long": "That note is too long. Shorten it and try again.",
+          "forbidden": "You can't add notes to this room. Your text is kept.",
+          "not_found": "This room is no longer available. Your text is kept.",
+          "conflict": "The room changed. Your text is kept — try again.",
+          "invalid": "The server couldn't accept that note. Your text is kept.",
+          "rejected": "The note wasn't saved. Your text is kept.",
+          "uncertain": "The note was not saved. Your text is kept — you can save it again.",
+          "unconfirmed": "We couldn't confirm whether the note was saved. Check again before saving, so it isn't duplicated.",
+          "paused": "Changes are paused. Your text is kept.",
+          "scope_changed": "The account or hotel changed. Reopen the room to continue."
+        }
+      },
+      "wellness": {
+        "title": "ROOM {{room}} · DND",
+        "open": "Request wellness check",
+        "active": "Do Not Disturb is active.",
+        "notActive": "Do Not Disturb is no longer active for this room.",
+        "policy": "A wellness check may be requested when required by hotel safety policy.",
+        "effect": "This creates an authorized task and notifies the team. It does not turn off Do Not Disturb or authorize entry into the guest's room.",
+        "request": "Request wellness check",
+        "tryAgain": "Check and try again",
+        "requested": "Wellness check requested. The supervisors and front desk were notified.",
+        "already": "A wellness check was already requested for this room. Nothing new was created.",
+        "stillOn": "Do Not Disturb is still on.",
+        "error": {
+          "dnd_off": "Do Not Disturb is not active, so nothing was requested.",
+          "paused": "Changes are paused. Nothing was requested.",
+          "forbidden": "You can't request a wellness check. Nothing was requested.",
+          "not_found": "This room is no longer available. Nothing was requested.",
+          "uncertain": "We couldn't confirm the request. Trying again is safe: an existing request is reused, not duplicated.",
+          "failed": "The request was refused. Nothing was created.",
+          "scope_changed": "The account or hotel changed. Reopen the room to continue."
+        }
+      },
+      "cleaning": {
+        "title": "ROOM {{room}} · CLEANING HISTORY",
+        "tabCleans": "Cleans",
+        "tabActivity": "Activity",
+        "emptyTitle": "No cleans recorded",
+        "emptyBody": "This room has no clean sessions on record.",
+        "todayHeading": "TODAY · {{date}}",
+        "dateUnknown": "Date not recorded",
+        "type": {
+          "DEP": "Departure clean",
+          "FULL": "Stayover clean",
+          "LIGHT": "Light clean"
+        },
+        "typeUnknown": "Clean",
+        "state": {
+          "completed": "Completed",
+          "in_progress": "In progress",
+          "abandoned": "Stopped",
+          "unknown": "Unknown"
+        },
+        "completedAt": "Completed {{time}}",
+        "startedAt": "Started {{time}}",
+        "stoppedAt": "Stopped {{time}}",
+        "duration": "Duration: {{duration}}",
+        "durationMissing": "Duration: not recorded",
+        "checklist": "Checklist: {{count}}",
+        "viewDetails": "View details",
+        "loadMore": "Load more",
+        "recentOnly": "Showing the {{count}} most recent cleans.",
+        "notRecorded": "Not recorded",
+        "row": {
+          "started": "Started",
+          "completed": "Completed",
+          "stopped": "Stopped",
+          "housekeeper": "Housekeeper"
+        }
+      },
+      "activity": {
+        "title": "ROOM {{room}} · ACTIVITY",
+        "emptyTitle": "No activity recorded",
+        "emptyBody": "No status changes or notes since this stay began.",
+        "kind": {
+          "note": "Note",
+          "status": "Status"
+        },
+        "statusChange": "{{from}} → {{to}}",
+        "actorUnknown": "Not recorded",
+        "scope": "Latest 50 entries since the current stay began."
+      },
+      "session": {
+        "title": "ROOM {{room}} · CLEAN DETAILS",
+        "checklist": "Checklist",
+        "noChecklist": "No checklist recorded",
+        "done": "done",
+        "notDone": "not done",
+        "photos": "Photos",
+        "noPhotos": "No photos available",
+        "photoLabel": "Cleaning photo, {{time}}",
+        "photoUnavailable": "Photo unavailable",
+        "photoExpired": "Some photos couldn't load. Their links may have expired.",
+        "reloadPhotos": "Reload photos"
+      },
+      "inspections": {
+        "title": "ROOM {{room}} · INSPECTIONS",
+        "range": "{{days}} days",
+        "emptyTitle": "No inspections",
+        "emptyBody": "No inspections were recorded for this room in the last {{days}} days.",
+        "result": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "conditional": "Conditional",
+          "unknown": "Unknown"
+        },
+        "inspector": "Inspector: {{name}}",
+        "inspectorUnknown": "Inspector not recorded",
+        "notes": "Notes: {{notes}}"
+      },
+      "workOrder": {
+        "title": "ROOM {{room}} · WORK ORDER",
+        "description": "Description",
+        "noDescription": "No description recorded.",
+        "goneTitle": "Work order not available",
+        "goneBody": "It may have been removed. Refresh the board to see what is open.",
+        "wrongRoomTitle": "Work order doesn't match",
+        "wrongRoomBody": "This work order belongs to a different room, so it isn't shown.",
+        "closedSince": "This work order is closed. The board hasn't caught up yet.",
+        "assigned": "Assigned",
+        "unassigned": "Not assigned",
+        "resolution": "Resolution",
+        "parts": "Parts used: {{parts}}",
+        "row": {
+          "room": "Room",
+          "reported": "Reported",
+          "started": "Started",
+          "due": "Due",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "assignment": "Engineer"
+        }
+      }
     }
   },
   "roomStatus": {
@@ -4960,7 +5175,7 @@
       },
       "description": "What went wrong?",
       "placeholder": "Describe what happened and what you were trying to do.",
-      "count": "{{count}}\u00a0/\u00a0{{max}}",
+      "count": "{{count}} / {{max}}",
       "blocking": "This is stopping me from working",
       "guestWarning": "Please don't include guest names, phone numbers or reservation details.",
       "diagnostics": "Include technical diagnostics",

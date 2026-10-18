@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,13 +20,19 @@ import {
 } from "@/components/supervisor/detail/RoomDetailParts";
 import { AssignmentPanel } from "@/components/supervisor/assignment/AssignmentPanel";
 import { RoomActionsList } from "@/components/supervisor/detail/RoomActionsList";
-import { api } from "@/lib/api/client";
 import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
 import type { BoardRoomView } from "@/lib/housekeeping/roomBoardState";
 import { buildRoomDetail, type DetailActionKey, type RoomDetailContext } from "@/lib/housekeeping/roomDetailView";
 import type { AssignmentController } from "@/lib/housekeeping/useRoomAssignment";
+import { CleaningHistoryPanel, InspectionHistoryPanel, SessionPanel, WorkOrderPanel, type HistoryTab } from "@/components/supervisor/panels/HistoryPanels";
+import { NotePanel, WellnessPanel } from "@/components/supervisor/panels/NoteAndWellnessPanels";
+import { PanelHeader } from "@/components/supervisor/panels/PanelParts";
+import type { HistoryContext } from "@/lib/housekeeping/roomCleaningHistory";
+import { useRoomNote } from "@/lib/housekeeping/useRoomNote";
+import { useRoomWellness } from "@/lib/housekeeping/useRoomWellness";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
+
 
 /* ─── Room detail drawer — what the supervisor needs before acting ─────────
    ONE bottom-sheet Modal for the whole flow (Room → More actions), so there is never a second modal stacked on
@@ -36,33 +42,48 @@ import { useToast } from "@/lib/theme/useToast";
 
    Assign / reassign / remove open the assignment panel IN THIS SAME Modal (picker → review, or the removal
    confirmation) and hand control back to the room when it closes; the controller owns the one mutation state.
-   The inspection queue and the confirmed DND wellness-check task are unchanged. Notes, history and work-order
-   detail are later phases. */
+   Phase 6 adds the note, wellness-check, cleaning-history (+ activity), session, inspection-history and read-only
+   work-order views to the SAME Modal as a small stack: Back pops one, nothing opens a second Modal, and a write in
+   flight (assignment, note, wellness) cannot be dismissed. "Inspect room" closes the drawer and opens the
+   inspection queue already focused on THIS room (by id). */
 
 export type RoomDetailSheetContext = Omit<RoomDetailContext, "t" | "language">;
 
-type Mode = "detail" | "actions";
+/** The views stacked over the room. An empty stack is the room itself. */
+type PanelView = "actions" | "note" | "wellness" | "cleaning" | "session" | "inspections" | "workOrder";
+
+/** What the drawer needs from the screen to write and to refresh (kept out of the pure context). */
+export interface RoomDetailDeps {
+  scopeKey: string | null;
+  userId: string | null;
+  refresh: () => Promise<void>;
+}
 
 export function RoomDetailSheet({
   room,
   view,
   context,
   assignment,
+  deps,
   onClose,
 }: {
   room: BoardRoom;
   view: BoardRoomView;
   context: RoomDetailSheetContext;
   assignment: AssignmentController;
+  deps: RoomDetailDeps;
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
-  const [mode, setMode] = useState<Mode>("detail");
-  const [wellnessBusy, setWellnessBusy] = useState(false);
-  const wellnessGuard = useRef(false);
+  const [stack, setStack] = useState<PanelView[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [historyTab, setHistoryTab] = useState<HistoryTab>("cleans");
+  const top: PanelView | "detail" = (stack[stack.length - 1] as PanelView | undefined) ?? "detail";
+  const push = (next: PanelView) => setStack((current) => [...current, next]);
+  const pop = () => setStack((current) => current.slice(0, -1));
 
   const language = i18n?.language ?? "en";
   const detail = useMemo(
@@ -71,23 +92,46 @@ export function RoomDetailSheet({
     [view, context, language, t],
   );
 
-  // A realtime change can empty the menu while it is open (e.g. the room was inspected): fall back to the room.
-  useEffect(() => {
-    if (mode === "actions" && detail.menu.length === 0) setMode("detail");
-  }, [mode, detail.menu.length]);
+  const note = useRoomNote({ room, gate: context.gate, scopeKey: deps.scopeKey, userId: deps.userId, refresh: deps.refresh, onSaved: pop, t, toast });
+  const wellness = useRoomWellness({ room, gate: context.gate, scopeKey: deps.scopeKey, refresh: deps.refresh });
+  const historyCtx = useMemo<HistoryContext>(
+    () => ({
+      now: context.now,
+      timeZone: context.timeZone,
+      language,
+      t,
+      nameOf: (userId) => {
+        const name = context.staffNamesKnown ? context.staff.find((member) => member.userId === userId)?.name?.trim() : undefined;
+        return name && name !== "—" ? name : null;
+      },
+    }),
+    [context.now, context.timeZone, context.staff, context.staffNamesKnown, language, t],
+  );
 
   const assigning = assignment.flow !== null && assignment.flow.roomId === room.roomId;
   const saving = assignment.busy;
-  // Android back / swipe: one view at a time (assignment step → room/actions → closed). Never mid-write.
+  // Never dismiss mid-write; never let a stray tap on the backdrop throw away a typed note.
+  const writing = assignment.busy || note.busy || wellness.busy;
+  const draftOpen = top === "note" && note.draft.trim().length > 0;
+  // Android back / swipe: one view at a time (assignment step → panel → room → closed). Never mid-write.
   const back = () => {
+    if (writing) return;
     if (assigning) assignment.back();
-    else if (mode === "actions") setMode("detail");
+    else if (stack.length > 0) pop();
     else onClose();
   };
   const dismiss = () => {
-    if (assigning && assignment.busy) return;
+    if (writing || draftOpen) return;
     if (assigning) assignment.close();
     onClose();
+  };
+  const cancelNote = () => {
+    note.reset();
+    pop();
+  };
+  const cancelWellness = () => {
+    wellness.reset();
+    pop();
   };
 
   const run = (key: DetailActionKey) => {
@@ -100,42 +144,86 @@ export function RoomDetailSheet({
         assignment.openRemove(room.roomId);
         return;
       case "inspect":
+        // Close first, then open the queue focused on this room by its stable id (the number is display only).
         onClose();
-        router.push("/(app)/inspect" as never);
+        router.push({ pathname: "/(app)/inspect", params: { roomId: room.roomId, roomNumber: room.roomNumber } } as never);
+        return;
+      case "note":
+        push("note");
+        return;
+      case "wellness":
+        push("wellness");
+        return;
+      case "cleaningHistory":
+        setHistoryTab("cleans");
+        push("cleaning");
+        return;
+      case "inspectionHistory":
+        push("inspections");
+        return;
+      case "workOrder":
+        push("workOrder");
         return;
     }
   };
 
-  const createWellnessCheck = async () => {
-    if (wellnessGuard.current) return;
-    wellnessGuard.current = true;
-    setWellnessBusy(true);
-    try {
-      await api.post("/tasks", {
-        title: `Supervisor wellness check — Room ${room.roomNumber}`,
-        task_type: "housekeeping",
-        priority: "high",
-        room_id: room.roomId,
-      });
-      toast.success(t("roomBoard.sheet.dndOverrideCreated"));
-    } catch {
-      toast.error(t("roomBoard.sheet.dndOverrideError"));
-    } finally {
-      wellnessGuard.current = false;
-      setWellnessBusy(false);
+  const titleOf = (view: PanelView): string => {
+    const params = { room: detail.roomNumber };
+    switch (view) {
+      case "actions":
+        return t("roomBoard.detail.actionsTitle", params);
+      case "note":
+        return t("roomBoard.panel.note.title", params);
+      case "wellness":
+        return t("roomBoard.panel.wellness.title", params);
+      case "cleaning":
+        return t(historyTab === "activity" ? "roomBoard.panel.activity.title" : "roomBoard.panel.cleaning.title", params);
+      case "session":
+        return t("roomBoard.panel.session.title", params);
+      case "inspections":
+        return t("roomBoard.panel.inspections.title", params);
+      case "workOrder":
+        return t("roomBoard.panel.workOrder.title", params);
     }
-  };
-
-  const confirmWellnessCheck = () => {
-    Alert.alert(t("roomBoard.sheet.dndOverrideTitle", { room: room.roomNumber }), t("roomBoard.sheet.dndOverrideBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      { text: t("roomBoard.sheet.dndOverrideConfirm"), onPress: () => void createWellnessCheck() },
-    ]);
   };
 
   const assignAction = [detail.primary, ...detail.menu].find((action) => action?.key === "assign" || action?.key === "reassign") ?? null;
   const primaryIsAssign = detail.primary?.key === "assign" || detail.primary?.key === "reassign";
   const hasIssues = detail.note !== null || detail.workOrder !== null || detail.exceptions.length > 0;
+  const scrollProps = { style: styles.scroll, contentContainerStyle: styles.scrollContent, showsVerticalScrollIndicator: false, keyboardShouldPersistTaps: "handled" as const };
+
+  const panelBody = () => {
+    switch (top) {
+      case "note":
+        return <NotePanel roomNumber={detail.roomNumber} controller={note} t={t} onCancel={cancelNote} />;
+      case "wellness":
+        return <WellnessPanel controller={wellness} t={t} onDone={cancelWellness} onCancel={cancelWellness} />;
+      case "cleaning":
+        return (
+          <CleaningHistoryPanel
+            roomId={room.roomId}
+            ctx={historyCtx}
+            tab={historyTab}
+            onTab={setHistoryTab}
+            onOpenSession={(id) => {
+              setSessionId(id);
+              push("session");
+            }}
+            t={t}
+          />
+        );
+      case "session":
+        return sessionId ? <SessionPanel sessionId={sessionId} ctx={historyCtx} t={t} /> : null;
+      case "inspections":
+        return <InspectionHistoryPanel roomId={room.roomId} ctx={historyCtx} t={t} />;
+      case "workOrder":
+        return detail.workOrder?.id ? (
+          <WorkOrderPanel workOrderId={detail.workOrder.id} roomId={room.roomId} roomNumber={detail.roomNumber} boardOpen ctx={historyCtx} t={t} />
+        ) : null;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={back} statusBarTranslucent>
@@ -144,13 +232,13 @@ export function RoomDetailSheet({
       <View
         accessibilityViewIsModal
         style={[styles.sheet, { paddingBottom: Math.max(16, insets.bottom + 8), backgroundColor: theme.background }]}
-        testID={mode === "detail" ? "room-detail-sheet" : "room-actions-sheet"}
+        testID={top === "detail" ? "room-detail-sheet" : top === "actions" ? "room-actions-sheet" : `room-panel-${top}`}
       >
         <View style={[styles.grabber, { backgroundColor: theme.border }]} />
 
         {assigning ? (
           <AssignmentPanel controller={assignment} paused={detail.paused} bottomInset={0} />
-        ) : mode === "detail" ? (
+        ) : top === "detail" ? (
           <View style={styles.header}>
             <View style={styles.headerBody} accessible accessibilityLabel={detail.accessibilityLabel} testID="room-detail-header">
               <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="room-detail-number">
@@ -162,10 +250,10 @@ export function RoomDetailSheet({
             </View>
             <CloseButton label={t("common.close")} onPress={onClose} />
           </View>
-        ) : (
+        ) : top === "actions" ? (
           <View style={styles.header}>
             <Pressable
-              onPress={() => setMode("detail")}
+              onPress={pop}
               accessibilityRole="button"
               accessibilityLabel={t("common.back")}
               hitSlop={6}
@@ -180,10 +268,12 @@ export function RoomDetailSheet({
               style={[styles.actionsTitle, { color: theme.textPrimary }]}
               testID="room-actions-title"
             >
-              {t("roomBoard.detail.actionsTitle", { room: detail.roomNumber })}
+              {titleOf("actions")}
             </Text>
             <CloseButton label={t("common.close")} onPress={onClose} />
           </View>
+        ) : (
+          <PanelHeader title={titleOf(top)} onBack={back} onClose={() => (writing ? undefined : onClose())} backDisabled={writing} />
         )}
 
         {detail.paused && !assigning ? (
@@ -193,7 +283,7 @@ export function RoomDetailSheet({
           </View>
         ) : null}
 
-        {assigning ? null : mode === "detail" ? (
+        {assigning ? null : top === "detail" ? (
           <>
             <ScrollView
               style={styles.scroll}
@@ -230,17 +320,19 @@ export function RoomDetailSheet({
                 <Section title={t("roomBoard.detail.section.issues")} testID="room-detail-section-issues">
                   {detail.note ? <NoteCard note={detail.note} t={t} /> : null}
                   {detail.workOrder ? <WorkOrderCard workOrder={detail.workOrder} t={t} /> : null}
+                  {detail.workOrder?.id ? (
+                    <Button label={t("roomBoard.detail.action.workOrder")} icon="construct-outline" variant="secondary" size="sm" onPress={() => run("workOrder")} testID="room-detail-work-order-open" />
+                  ) : null}
                   {detail.exceptions.map((exception) => (
                     <ExceptionBlock key={exception.key} exception={exception} />
                   ))}
                   {detail.wellnessCheck ? (
                     <Button
-                      label={t("roomBoard.sheet.dndOverride")}
+                      label={t("roomBoard.panel.wellness.open")}
                       icon="moon-outline"
                       variant="secondary"
                       size="sm"
-                      onPress={confirmWellnessCheck}
-                      loading={wellnessBusy}
+                      onPress={() => run("wellness")}
                       disabled={!context.gate.allowed}
                       testID="room-detail-wellness"
                     />
@@ -267,15 +359,19 @@ export function RoomDetailSheet({
                   icon="ellipsis-horizontal"
                   variant="secondary"
                   size="md"
-                  onPress={() => setMode("actions")}
+                  onPress={() => push("actions")}
                   testID="room-detail-more"
                 />
               ) : null}
             </View>
           </>
-        ) : (
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        ) : top === "actions" ? (
+          <ScrollView {...scrollProps}>
             <RoomActionsList actions={detail.menu} onSelect={run} />
+          </ScrollView>
+        ) : (
+          <ScrollView {...scrollProps} testID="room-panel-scroll">
+            {panelBody()}
           </ScrollView>
         )}
       </View>

@@ -62,6 +62,8 @@ export interface DetailNote {
 }
 
 export interface DetailWorkOrder {
+  /** The id the read-only detail drawer fetches; null when the board did not send one. */
+  id: string | null;
   title: string;
   number: string | null;
   status: string | null;
@@ -76,7 +78,19 @@ export interface DetailException {
   body: string;
 }
 
-export type DetailActionKey = "assign" | "reassign" | "remove" | "inspect";
+export type DetailActionKey =
+  | "assign"
+  | "reassign"
+  | "remove"
+  | "inspect"
+  | "note"
+  | "cleaningHistory"
+  | "inspectionHistory"
+  | "workOrder"
+  | "wellness";
+
+/** Actions that change something on the server and so need a fresh, verified board. */
+const MUTATING: ReadonlySet<DetailActionKey> = new Set(["assign", "reassign", "remove", "note", "wellness"]);
 
 export interface DetailAction {
   key: DetailActionKey;
@@ -330,7 +344,7 @@ function buildWorkOrder(view: BoardRoomView, ctx: RoomDetailContext): DetailWork
   const { t } = ctx;
   const status = wo.status ? (WORK_ORDER_STATUS.has(wo.status) ? t(`workOrders.status.${wo.status}`) : wo.status.replace(/_/g, " ")) : null;
   const priority = wo.priority ? (WORK_ORDER_PRIORITY.has(wo.priority) ? t(`roomBoard.detail.workOrder.priority.${wo.priority}`) : wo.priority) : null;
-  return { title: wo.title ?? t("roomBoard.detail.workOrder.untitled"), number: wo.number, status, priority };
+  return { id: wo.id, title: wo.title ?? t("roomBoard.detail.workOrder.untitled"), number: wo.number, status, priority };
 }
 
 function buildExceptions(view: BoardRoomView, ctx: RoomDetailContext): DetailException[] {
@@ -358,7 +372,7 @@ function buildExceptions(view: BoardRoomView, ctx: RoomDetailContext): DetailExc
 }
 
 function action(key: DetailActionKey, ctx: RoomDetailContext, destructive = false): DetailAction {
-  const mutates = key !== "inspect";
+  const mutates = MUTATING.has(key);
   return {
     key,
     label: ctx.t(`roomBoard.detail.action.${key}`),
@@ -392,6 +406,12 @@ function buildActions(view: BoardRoomView, ctx: RoomDetailContext): { primary: D
   }
   if (removalBlock(room) === null) candidates.push(action("remove", ctx, true));
   if (stage === "awaiting_inspection") candidates.push(action("inspect", ctx));
+  // Read-only and note actions apply to any room; the rest only when the board holds the facts they need.
+  candidates.push(action("note", ctx));
+  candidates.push(action("cleaningHistory", ctx));
+  if (stage === "guest_ready" || room.lastInspectedAt !== null || room.recleanRequestedAt !== null) candidates.push(action("inspectionHistory", ctx));
+  if (room.workOrder?.id) candidates.push(action("workOrder", ctx));
+  if (room.dnd) candidates.push(action("wellness", ctx));
   return { primary, menu: candidates.filter((candidate) => candidate.key !== primary?.key) };
 }
 

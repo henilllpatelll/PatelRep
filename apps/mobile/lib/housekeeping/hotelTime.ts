@@ -193,3 +193,10 @@ export function shiftDateKeyOf(value: string | Date | null | undefined, zone: st
   if (!date) return null;
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
+
+/** A calendar date (YYYY-MM-DD) moved by whole days. Pure date arithmetic, so a DST change cannot shift it. */
+export function addDaysToYmd(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const moved = new Date(Date.UTC(year, month - 1, day + days));
+  return `${moved.getUTCFullYear()}-${String(moved.getUTCMonth() + 1).padStart(2, "0")}-${String(moved.getUTCDate()).padStart(2, "0")}`;
+}

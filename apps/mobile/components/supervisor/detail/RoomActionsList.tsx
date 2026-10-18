@@ -14,6 +14,11 @@ const ICON: Record<DetailActionKey, React.ComponentProps<typeof Ionicons>["name"
   reassign: "swap-horizontal-outline",
   remove: "remove-circle-outline",
   inspect: "shield-checkmark-outline",
+  note: "create-outline",
+  cleaningHistory: "time-outline",
+  inspectionHistory: "clipboard-outline",
+  workOrder: "construct-outline",
+  wellness: "moon-outline",
 };
 
 export function RoomActionsList({ actions, onSelect }: { actions: DetailAction[]; onSelect: (key: DetailActionKey) => void }) {

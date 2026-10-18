@@ -156,6 +156,9 @@ export default function RoomBoardScreen() {
     toast,
   });
 
+  const sheetScope = tenantId && userId ? `${tenantId}:${userId}` : null;
+  const sheetDeps = useMemo(() => ({ scopeKey: sheetScope, userId, refresh }), [sheetScope, userId, refresh]);
+
   // What the board may claim right now. Anything but a fresh, verified answer says so instead of looking live.
   const verifiedClock =
     availability.kind === "stale" || availability.kind === "previous_day" || availability.kind === "ready" || availability.kind === "verified_empty"
@@ -404,6 +407,7 @@ export default function RoomBoardScreen() {
           view={selectedView}
           context={detailContext}
           assignment={assignment}
+          deps={sheetDeps}
           onClose={() => setSelectedRoomId(null)}
         />
       ) : null}

@@ -105,7 +105,7 @@ describe("status and occupancy", () => {
     expect(detail.statusLabel).toBe("Unknown");
     expect(row(detail, "housekeeping")?.value).toBe("Status not recognized");
     expect(detail.primary).toBeNull();
-    expect(detail.menu).toEqual([]);
+    expect(detail.menu.map((a) => a.key)).toEqual(["note", "cleaningHistory"]);
   });
 
   it("front-office occupancy is its own row, separate from the housekeeping status, with an honest unknown", () => {
@@ -293,10 +293,10 @@ describe("notes, work order and service exceptions", () => {
   it("an open work order shows title, status, priority and number — and nothing it was not given", () => {
     const wo = { open_work_order_id: "wo-1", open_work_order_number: "WO-1042", open_work_order_title: "Bathroom faucet leaking", open_work_order_status: "in_progress", open_work_order_priority: "high" };
     expect(buildRoomDetail(viewOf(rawRoom("101", "OOO", wo)), ctx()).workOrder).toEqual({
-      title: "Bathroom faucet leaking", number: "WO-1042", status: "In progress", priority: "High",
+      id: "wo-1", title: "Bathroom faucet leaking", number: "WO-1042", status: "In progress", priority: "High",
     });
     expect(buildRoomDetail(viewOf(rawRoom("101", "OOO", { open_work_order_id: "wo-2" })), ctx()).workOrder).toEqual({
-      title: "Maintenance issue", number: null, status: null, priority: null,
+      id: "wo-2", title: "Maintenance issue", number: null, status: null, priority: null,
     });
     expect(buildRoomDetail(viewOf(rawRoom("101", "DIRTY")), ctx()).workOrder).toBeNull();
   });
@@ -321,24 +321,24 @@ describe("actions", () => {
   it("to-clean + unassigned: primary Assign; assigned: primary Reassign with Remove in More actions", () => {
     const unassigned = buildRoomDetail(viewOf(rawRoom("101", "DIRTY")), ctx());
     expect(unassigned.primary).toMatchObject({ key: "assign", label: "Assign room", disabled: false });
-    expect(unassigned.menu).toEqual([]);
+    expect(unassigned.menu.map((a) => a.key)).toEqual(["note", "cleaningHistory"]);
 
     const mine = buildRoomDetail(viewOf(rawRoom("101", "DIRTY", assigned), { assignee: MARIA }), ctx());
     expect(mine.primary?.key).toBe("reassign");
-    expect(mine.menu.map((a) => a.key)).toEqual(["remove"]);
+    expect(mine.menu.map((a) => a.key)).toEqual(["remove", "note", "cleaningHistory"]);
     expect(mine.menu[0].destructive).toBe(true);
   });
 
   it("awaiting inspection: primary Inspect, never a status change", () => {
     const detail = buildRoomDetail(viewOf(rawRoom("101", "CLEAN")), ctx());
     expect(detail.primary).toMatchObject({ key: "inspect", disabled: false });
-    expect(detail.menu).toEqual([]);
+    expect(detail.menu.map((a) => a.key)).toEqual(["note", "cleaningHistory"]);
   });
 
   it("in progress: nothing to change — a live cleaning session is never handed to someone else or unassigned (Phase 5)", () => {
     const detail = buildRoomDetail(viewOf(rawRoom("104", "IN_PROGRESS", assigned), { assignee: MARIA }), ctx());
     expect(detail.primary).toBeNull();
-    expect(detail.menu).toEqual([]);
+    expect(detail.menu.map((a) => a.key)).toEqual(["note", "cleaningHistory"]);
     // The assignment itself is still shown.
     expect(detail.assignment.kind).toBe("named");
   });
@@ -365,10 +365,15 @@ describe("actions", () => {
     expect(detail.menu.map((a) => a.key)).toContain("remove");
   });
 
-  it("offers nothing that does not exist yet: no history, note, or work-order actions", () => {
-    const wo = { open_work_order_id: "wo-1", open_work_order_title: "Faucet" };
-    const detail = buildRoomDetail(viewOf(rawRoom("101", "DIRTY", { ...assigned, ...wo }), { assignee: MARIA }), ctx());
-    for (const a of [detail.primary, ...detail.menu]) expect(["assign", "reassign", "remove", "inspect"]).toContain(a?.key);
+  it("offers only actions that apply: a work order action needs a work order id, wellness needs DND, inspection history needs a record", () => {
+    const keys = (raw: Parameters<typeof rawRoom>[2], status = "DIRTY") => buildRoomDetail(viewOf(rawRoom("101", status, raw)), ctx()).menu.map((a) => a.key);
+    expect(keys({})).not.toContain("workOrder");
+    expect(keys({})).not.toContain("wellness");
+    expect(keys({})).not.toContain("inspectionHistory");
+    expect(keys({ open_work_order_id: "wo-1", open_work_order_title: "Faucet" })).toContain("workOrder");
+    expect(keys({ dnd_flag: true }, "OCCUPIED")).toContain("wellness");
+    expect(keys({ last_inspected_at: "2026-10-16T15:00:00Z" })).toContain("inspectionHistory");
+    expect(keys({}, "INSPECTED")).toContain("inspectionHistory");
   });
 
   it.each([
@@ -381,7 +386,10 @@ describe("actions", () => {
     const detail = buildRoomDetail(view, ctx({ gate: gate as MutationGate }));
     expect(detail.paused).toBe(message);
     expect(detail.primary?.disabled).toBe(true);
-    expect(detail.menu.every((a) => a.disabled)).toBe(true);
+    // Writes pause; reading history and work orders does not need a fresh board.
+    for (const a of detail.menu) {
+      expect(a.disabled).toBe(["assign", "reassign", "remove", "note", "wellness"].includes(a.key));
+    }
     expect(buildRoomDetail(viewOf(rawRoom("102", "CLEAN")), ctx({ gate: gate as MutationGate })).primary?.disabled).toBe(false);
   });
 

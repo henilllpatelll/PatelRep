@@ -34,9 +34,10 @@ const OWNED = [
   "roomBoard.segmentEmptyBody",
   "roomBoard.jump",
   "roomBoard.detail",
+  "roomBoard.panel",
 ];
 // Words that are the same in both languages on purpose.
-const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip", "roomBoard.filters.flag.vip", "roomBoard.filters.chipFloor", "roomBoard.detail.flag.vip", "roomBoard.detail.dayAt", "roomBoard.detail.cleaning.minutes", "roomBoard.detail.workOrder.priority.normal"]);
+const SAME_IN_SPANISH = new Set(["roomBoard.attention.vip", "roomBoard.card.detail.vip", "roomBoard.filters.flag.vip", "roomBoard.filters.chipFloor", "roomBoard.detail.flag.vip", "roomBoard.detail.dayAt", "roomBoard.detail.cleaning.minutes", "roomBoard.detail.workOrder.priority.normal", "roomBoard.panel.activity.statusChange", "roomBoard.panel.inspections.inspector"]);
 const SINGLE = [
   "roomBoard.assigneeUnknown",
   "roomBoard.unassigned",
@@ -91,10 +92,16 @@ describe("every roomBoard key the code asks for exists", () => {
     "../../components/supervisor/RoomDetailSheet.tsx",
     "../../components/supervisor/detail/RoomDetailParts.tsx",
     "../../components/supervisor/detail/RoomActionsList.tsx",
+    "../../components/supervisor/panels/PanelParts.tsx",
+    "../../components/supervisor/panels/NoteAndWellnessPanels.tsx",
+    "../../components/supervisor/panels/HistoryPanels.tsx",
+    "../../lib/housekeeping/roomCleaningHistory.ts",
+    "../../lib/housekeeping/roomInspectionHistory.ts",
+    "../../lib/housekeeping/roomWorkOrderDetail.ts",
   ]
     .map((file) => readFileSync(resolve(__dirname, file), "utf8"))
     .join("\n");
-  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|search|filters|sort|results|empty|segmentEmptyBody|jump|detail|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty)[\w.${}]*)["'`]/g)].map((m) => m[1]);
+  const literal = [...source.matchAll(/["'`](roomBoard\.(?:state|statusMeaning|header|card|attention|seg|search|filters|sort|results|empty|segmentEmptyBody|jump|detail|assigneeUnknown\w*|unassigned|showAll|building\w*|floorUnknown|roomCountOf|segmentEmpty|panel)[\w.${}]*)["'`]/g)].map((m) => m[1]);
 
   it("finds the keys in the source", () => {
     expect(literal.length).toBeGreaterThan(8);
@@ -116,6 +123,25 @@ describe("every roomBoard key the code asks for exists", () => {
       for (const key of keys) {
         expect(typeof node(en, `${prefix}.${key}`)).toBe("string");
         expect(typeof node(es, `${prefix}.${key}`)).toBe("string");
+      }
+    }
+  });
+
+  it("covers every dynamic panel key the drawers build from a template", () => {
+    const groups: Record<string, string[]> = {
+      "roomBoard.panel.error": ["network", "unauthorized", "not_found", "server"],
+      "roomBoard.panel.note.error": ["empty", "too_long", "forbidden", "not_found", "conflict", "invalid", "rejected", "uncertain", "unconfirmed", "paused", "scope_changed"],
+      "roomBoard.panel.wellness.error": ["dnd_off", "paused", "forbidden", "not_found", "uncertain", "failed", "scope_changed"],
+      "roomBoard.panel.cleaning.state": ["completed", "in_progress", "abandoned", "unknown"],
+      "roomBoard.panel.cleaning.type": ["DEP", "FULL", "LIGHT"],
+      "roomBoard.panel.activity.kind": ["note", "status"],
+      "roomBoard.panel.inspections.result": ["passed", "failed", "conditional", "unknown"],
+    };
+    for (const [prefix, keys] of Object.entries(groups)) {
+      for (const key of keys) {
+        const target = prefix.includes(".error") && prefix.endsWith("panel.error") ? `${prefix}.${key}.title` : `${prefix}.${key}`;
+        expect(typeof node(en, target)).toBe("string");
+        expect(typeof node(es, target)).toBe("string");
       }
     }
   });
