@@ -47,7 +47,7 @@ jobs:
           CONTROL_PLANE_SHA: ${{ github.sha }}
           RESULT_DIR: ${{ runner.temp }}/production-release-audit
       - name: Upload production release audit evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-release-audit
           path: ${{ runner.temp }}/production-release-audit/context.json

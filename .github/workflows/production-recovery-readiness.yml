@@ -47,7 +47,7 @@ jobs:
           CONTROL_PLANE_SHA: ${{ github.sha }}
           RESULT_DIR: ${{ runner.temp }}/production-recovery-readiness
       - name: Upload recovery readiness evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-recovery-readiness
           path: ${{ runner.temp }}/production-recovery-readiness/context.json

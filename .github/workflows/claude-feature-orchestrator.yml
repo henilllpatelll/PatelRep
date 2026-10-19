@@ -53,7 +53,7 @@ jobs:
           FEATURE_REQUIREMENTS: ${{ inputs.requirements }}
           DISPATCH_OUTPUT_DIR: ${{ runner.temp }}/feature-orchestrator-dispatch
       - name: Upload dispatch provenance
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: feature-orchestrator-dispatch
           path: ${{ runner.temp }}/feature-orchestrator-dispatch/context.json

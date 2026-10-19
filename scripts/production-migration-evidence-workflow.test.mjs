@@ -10,7 +10,7 @@ test('production migration evidence workflow is production-scoped, read-only, an
   assert.match(workflow, /environment: production/);
   assert.match(workflow, /production-target-guard\.mjs/);
   assert.match(workflow, /audit-production-migration-evidence\.mjs --report/);
-  assert.match(workflow, /actions\/upload-artifact@v4/);
+  assert.match(workflow, /actions\/upload-artifact@v\d+/);
   assert.match(workflow, /if: always\(\)/);
   assert.match(workflow, /if-no-files-found: warn/);
   assert.doesNotMatch(workflow, /supabase db push|migration repair|supabase migration|railway|\b(?:UPDATE|INSERT|DELETE|ALTER|CREATE|DROP)\s+(?:public|storage|supabase_migrations)\./i);
