@@ -1,174 +1,101 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
+  FlatList,
+  Platform,
+  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
+import {
+  buildAttentionSignals,
+  buildBoardSummary,
+  describeBoardStatus,
+  GRID_GAP,
+  GRID_GUTTER,
+  gridColumns,
+  type BoardSegmentKey,
+  type RoomTileModel,
+} from "@/lib/housekeeping/roomBoardView";
+import { removeChip, type BoardFilters } from "@/lib/housekeeping/roomBoardFilters";
+import { MIN_FLOORS_FOR_JUMP, type QueryItem } from "@/lib/housekeeping/roomBoardQuery";
+import { DEFAULT_SORT } from "@/lib/housekeeping/roomBoardSort";
+import { useRoomBoardQuery } from "@/lib/housekeeping/useRoomBoardQuery";
+import { useRoomAssignment } from "@/lib/housekeeping/useRoomAssignment";
+import { useRoomBoard } from "@/lib/housekeeping/useRoomBoard";
 import { useAppStore } from "@/stores/appStore";
-import { localDate } from "@/lib/utils/date";
-import {
-  fetchAssignableStaff,
-  fetchBoard,
-  removeAssignment,
-  saveAssignments,
-} from "@/lib/api/housekeepingSupervisor";
-import {
-  buildFloorSnapshot,
-  buildNameById,
-  buildTeamLoads,
-  filterBySegment,
-  groupByFloor,
-  normalizeBoardRooms,
-  type AssignableStaff,
-  type BoardSegment,
-  type FloorRoom,
-} from "@/lib/housekeeping/supervisor";
+import { useToast } from "@/lib/theme/useToast";
+import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
-import { SectionLabel } from "@/components/shared/mobileHandoff";
-import { HeroSignalRow, RoomStatusTile, type HeroSignal } from "@/components/supervisor/atoms";
-import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
-import { RoomDetailSheet } from "@/components/supervisor/RoomDetailSheet";
-import { StateBlock } from "@/components/ui/StateBlock";
-import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { BoardHeader } from "@/components/supervisor/board/BoardHeader";
+import { BoardAttentionChips, BoardReadinessCard } from "@/components/supervisor/board/BoardReadinessCard";
+import { BoardActiveFilters } from "@/components/supervisor/board/BoardActiveFilters";
+import { BoardFilterSheet } from "@/components/supervisor/board/BoardFilterSheet";
+import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
+import { BoardSegmentBar } from "@/components/supervisor/board/BoardSegmentBar";
+import { FloorJumpBar } from "@/components/supervisor/board/FloorJumpBar";
+import { RoomListRow } from "@/components/supervisor/board/RoomListRow";
+import { RoomTileRow } from "@/components/supervisor/board/RoomTile";
+import { RoomDetailSheet, type RoomDetailSheetContext } from "@/components/supervisor/RoomDetailSheet";
+import { BoardEmpty, BoardNotice, BoardSkeleton, type BoardEmptyKind } from "@/components/supervisor/board/BoardStates";
 
-/* ─── Room Board — the live floor, one tile per room ────────────────────────
-   Dark shell hero with the day's shape, a status segmented, and the board
-   grouped by floor in the protected status colors. Tapping a tile opens
-   the room sheet: flags, timing, the latest note, and the assign action. */
-
-type ThemeTokens = ReturnType<typeof useTheme>;
-
-const SEGMENTS: BoardSegment[] = ["all", "toClean", "working", "ready"];
-
-/* ─── Status color legend ───────────────────────────────────────────────────
-   5 grouped entries matching the tile color contract, rendered via
-   StatusBadge so the room StatusKey mapping stays the single source of
-   truth for chip color/icon/label. Shown once below the segmented control
-   so supervisors can read the board without prior context. */
-
-const LEGEND_ENTRIES: { key: string; statusKey: StatusKey; labelKey: string }[] = [
-  { key: "dirty", statusKey: "dirty", labelKey: "roomBoard.legend.dirty" },
-  { key: "pickup", statusKey: "pickup", labelKey: "roomBoard.legend.pickup" },
-  { key: "submitted", statusKey: "clean", labelKey: "roomBoard.legend.submitted" },
-  { key: "ready", statusKey: "ready", labelKey: "roomBoard.legend.ready" },
-  { key: "ooo", statusKey: "outOfOrder", labelKey: "roomBoard.legend.ooo" },
-];
-
-function ColorLegend({ t, theme }: { t: (key: string) => string; theme: ThemeTokens }) {
-  return (
-    <View
-      style={[
-        legendStyles.row,
-        { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background },
-      ]}
-      testID="color-legend"
-    >
-      {LEGEND_ENTRIES.map(({ key, statusKey, labelKey }) => (
-        <StatusBadge key={key} statusKey={statusKey} label={t(labelKey)} />
-      ))}
-    </View>
-  );
-}
-
-const legendStyles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-  },
-});
-
-const SEGMENT_LABEL_KEYS: Record<BoardSegment, string> = {
-  all: "roomBoard.segAll",
-  toClean: "roomBoard.segToClean",
-  working: "roomBoard.segWorking",
-  ready: "roomBoard.segReady",
-};
+/* ─── Room Board — the live floor ───────────────────────────────────────────
+   Header with an honest freshness line, readiness card, attention chips, search/filters and the board as room
+   cards in a virtualised list. A tap opens the room detail drawer. Everything shown comes from the verified
+   model (useRoomBoard); nothing here fetches or subscribes on its own. */
 
 export default function RoomBoardScreen() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { isOnline, user } = useAppStore();
   const theme = useTheme();
-  const locale = i18n.language === "es" ? "es-MX" : "en-US";
+  const { width, fontScale } = useWindowDimensions();
 
-  const [rooms, setRooms] = useState<FloorRoom[]>([]);
-  const [staff, setStaff] = useState<AssignableStaff[]>([]);
-  const [segment, setSegment] = useState<BoardSegment>("all");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Board, staff and roster are the same verified snapshot Supervisor Today reads; see useRoomBoard.
+  const { model, gate, isOnline, refreshing: refreshingBackground, refresh } = useRoomBoard();
+  const { availability } = model;
+  const views = model.rooms;
+  const rooms = useMemo<BoardRoom[]>(() => (views ?? []).map((view) => view.room), [views]);
+  const [segment, setSegment] = useState<BoardSegmentKey>("all");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [pulling, setPulling] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
-  const [saving, setSaving] = useState(false);
+  // The header's age ("Updated 20 seconds ago") is read from the real clock at render; this tick only re-renders it.
+  const [, setTick] = useState(0);
   // Deep link from the supervisor Attention Center: `?roomId=` opens that room once, or says it is gone.
   const { roomId: linkedRoomId } = useLocalSearchParams<{ roomId?: string }>();
-  const [boardLoaded, setBoardLoaded] = useState(false);
   const [linkMissing, setLinkMissing] = useState(false);
-
-  const loadBoard = useCallback(async () => {
-    if (!isOnline) {
-      setLoading(false);
-      return;
-    }
-    const [boardRes, staffRes] = await Promise.allSettled([
-      fetchBoard(localDate()),
-      fetchAssignableStaff(),
-    ]);
-    if (boardRes.status === "fulfilled") {
-      setRooms(normalizeBoardRooms(boardRes.value));
-      setBoardLoaded(true);
-    }
-    if (staffRes.status === "fulfilled") setStaff(staffRes.value);
-    setLoading(false);
-  }, [isOnline]);
+  // A link is judged only against a board the server verified just now; anything else proves nothing about the room.
+  const boardLoaded = availability.kind === "ready" || availability.kind === "verified_empty";
 
   useEffect(() => {
-    loadBoard();
-  }, [loadBoard]);
-
-  useEffect(() => {
-    if (!user?.tenant_id) return;
-    const channel = supabase
-      .channel("room-board-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${user.tenant_id}` },
-        () => {
-          loadBoard();
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.tenant_id, loadBoard]);
+    const id = setInterval(() => setTick((n) => n + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadBoard();
-    setRefreshing(false);
-  }, [loadBoard]);
+    setPulling(true);
+    try {
+      await refresh();
+    } finally {
+      setPulling(false);
+    }
+  }, [refresh]);
 
-  const nameById = useMemo(() => buildNameById(staff), [staff]);
-  const teamLoads = useMemo(() => buildTeamLoads(rooms, nameById), [rooms, nameById]);
-  const snapshot = useMemo(() => buildFloorSnapshot(rooms), [rooms]);
-  const floors = useMemo(() => groupByFloor(filterBySegment(rooms, segment)), [rooms, segment]);
-  const selectedRoom = useMemo(
-    () => rooms.find((room) => room.roomId === selectedRoomId) ?? null,
-    [rooms, selectedRoomId],
+  // The drawer follows the room by id through every refresh, so a realtime update repaints it for the SAME room.
+  const selectedView = useMemo(
+    () => (views ?? []).find((view) => view.room.roomId === selectedRoomId) ?? null,
+    [views, selectedRoomId],
   );
+  const selectedRoom = selectedView?.room ?? null;
+  const [roomGone, setRoomGone] = useState(false);
 
   // The link is single-use. It is only judged against a board that really loaded: a failed or offline load
   // proves nothing about the room, so the link waits for the next successful load.
@@ -180,281 +107,340 @@ export default function RoomBoardScreen() {
     router.setParams({ roomId: undefined });
   }, [linkedRoomId, boardLoaded, rooms]);
 
-  const signals = useMemo<HeroSignal[]>(
-    () =>
-      [
-        snapshot.unassigned > 0 && {
-          key: "unassigned",
-          label: t("roomBoard.signalUnassigned", { count: snapshot.unassigned }),
-          fg: theme.status.dirty,
-          bg: theme.status.dirtySoft,
-          line: theme.status.dirtyLine,
-        },
-        snapshot.submitted > 0 && {
-          key: "submitted",
-          label: t("roomBoard.signalSubmitted", { count: snapshot.submitted }),
-          fg: theme.status.clean,
-          bg: theme.status.cleanSoft,
-          line: theme.status.cleanLine,
-        },
-        snapshot.dnd > 0 && {
-          key: "dnd",
-          label: t("roomBoard.signalDnd", { count: snapshot.dnd }),
-          fg: theme.textSecondary,
-          bg: theme.surfaceMuted,
-          line: theme.border,
-        },
-      ].filter(Boolean) as HeroSignal[],
-    [snapshot, t, theme],
+  // The open room left the verified board (realtime removal, or the board stopped being today's): close the drawer
+  // rather than keep showing a room the board no longer vouches for, and say so when the room is truly gone.
+  useEffect(() => {
+    if (selectedRoomId === null || selectedView !== null) return;
+    setSelectedRoomId(null);
+    if (views !== null) setRoomGone(true);
+  }, [selectedRoomId, selectedView, views]);
+
+  // Headline numbers, segment counts and signals all come from the same verified rooms, so they cannot disagree.
+  const metrics = useMemo(() => buildBoardSummary(views ?? []), [views]);
+  const signals = useMemo(
+    () => buildAttentionSignals(views ?? [], metrics, model.generatedAt, model.timeZone),
+    [views, metrics, model.generatedAt, model.timeZone],
   );
 
-  const segmentCounts = useMemo<Record<BoardSegment, number>>(
+  // One pipeline: verified rooms → search → filters → segment counts → segment → sort (see useRoomBoardQuery).
+  // The readiness card above always describes the WHOLE board; the segment chips describe what search and filters leave.
+  const columns = gridColumns(width, fontScale);
+  const bq = useRoomBoardQuery({
+    views,
+    rooms,
+    segment,
+    columns,
+    now: model.generatedAt,
+    timeZone: model.timeZone,
+    language: i18n.language,
+    t,
+  });
+  const { query, search } = bq;
+  const onSelectRoom = useCallback((roomId: string) => {
+    setRoomGone(false);
+    setSelectedRoomId(roomId);
+  }, []);
+
+  // The one assignment workflow (assign / reassign / remove): it follows the room through the live board, re-reads it
+  // before every write and reports only what the server confirmed. The drawer renders it; see useRoomAssignment.
+  const toast = useToast();
+  const tenantId = useAppStore((state) => state.user?.tenant_id ?? null);
+  const userId = useAppStore((state) => state.user?.id ?? null);
+  const assignment = useRoomAssignment({
+    model,
+    gate,
+    isOnline,
+    refresh,
+    scopeKey: tenantId && userId ? `${tenantId}:${userId}` : null,
+    t,
+    toast,
+  });
+
+  const sheetScope = tenantId && userId ? `${tenantId}:${userId}` : null;
+  const sheetDeps = useMemo(() => ({ scopeKey: sheetScope, userId, refresh }), [sheetScope, userId, refresh]);
+
+  // What the board may claim right now. Anything but a fresh, verified answer says so instead of looking live.
+  const verifiedClock =
+    availability.kind === "stale" || availability.kind === "previous_day" || availability.kind === "ready" || availability.kind === "verified_empty"
+      ? availability.verifiedAt !== null
+        ? formatHotelTime(new Date(availability.verifiedAt), model.timeZone, i18n.language)
+        : null
+      : null;
+  const busy = pulling || refreshingBackground;
+  const statusLine = describeBoardStatus(availability, { refreshing: busy, isOnline, now: Date.now() });
+  const staleNoticeKey =
+    availability.kind === "stale"
+      ? availability.reason === "offline"
+        ? "roomBoard.state.staleOffline"
+        : availability.reason === "refresh_failed"
+          ? "roomBoard.state.staleFailed"
+          : "roomBoard.state.staleAge"
+      : null;
+  const unavailableMessageKey =
+    availability.kind === "unavailable"
+      ? availability.cause === "offline"
+        ? "roomBoard.state.unavailableOffline"
+        : availability.cause === "forbidden"
+          ? "roomBoard.state.unavailableForbidden"
+          : "roomBoard.state.unavailableError"
+      : availability.kind === "previous_day"
+        ? "roomBoard.state.previousDay"
+        : null;
+  const boardKnown = views !== null && model.readiness !== null;
+  // A filter the board has no data for is named, not silently dropped to "0 rooms".
+  const unappliedNotice =
+    query.unavailableApplied.length > 0
+      ? t("roomBoard.filters.unavailableApplied", {
+          filters: query.unavailableApplied.map((key) => t(`roomBoard.filters.flag.${key}`)).join(", "),
+        })
+      : null;
+  // A "no matches" answer is only as good as the board behind it; say so when that board is not freshly verified.
+  const emptyStaleNote = availability.kind === "stale" ? t("roomBoard.empty.staleNote", { time: verifiedClock ?? "—" }) : null;
+
+  const detailContext = useMemo<RoomDetailSheetContext>(
     () => ({
-      all: snapshot.total,
-      toClean: filterBySegment(rooms, "toClean").length,
-      working: filterBySegment(rooms, "working").length,
-      ready: snapshot.ready,
+      now: model.generatedAt,
+      timeZone: model.timeZone,
+      gate,
+      verifiedClock,
+      live: availability.kind === "ready" || availability.kind === "verified_empty",
+      rosterTrust: model.rosterTrust,
+      staff: model.staff,
+      staffNamesKnown: model.staffNamesKnown,
+      lateCheckoutsKnown: model.lateCheckoutsKnown,
     }),
-    [rooms, snapshot],
+    [model.generatedAt, model.timeZone, gate, verifiedClock, availability.kind, model.rosterTrust, model.staff, model.staffNamesKnown, model.lateCheckoutsKnown],
   );
 
-  const assignTo = useCallback(
-    async (member: AssignableStaff) => {
-      if (!pickerRoom) return;
-      setSaving(true);
-      try {
-        await saveAssignments(localDate(), [
-          { room_id: pickerRoom.roomId, housekeeper_id: member.userId },
-        ]);
-        setPickerRoom(null);
-        await loadBoard();
-      } catch (err) {
-        console.warn("Assign failed:", err);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [pickerRoom, loadBoard],
+  const header = (
+    <BoardHeader
+      status={statusLine}
+      verifiedClock={verifiedClock}
+      refreshing={busy}
+      topInset={insets.top}
+      t={t}
+      onRefresh={() => void onRefresh()}
+    />
   );
 
-  const handleRemoveAssignment = useCallback(
-    async (room: FloorRoom) => {
-      if (!room.assignmentId) return;
-      setSaving(true);
-      try {
-        await removeAssignment(room.assignmentId);
-        await loadBoard();
-      } catch (err) {
-        console.warn("Remove assignment failed:", err);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [loadBoard],
-  );
-
-  if (loading) {
+  if (availability.kind === "loading") {
     return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <StateBlock status="loading" />
+      <View style={[styles.container, { backgroundColor: theme.background }]} testID="room-board-loading">
+        {header}
+        <BoardSkeleton />
       </View>
     );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />
-        }
-      >
-        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
-        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomBoard.kicker")}</Text>
-          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomBoard")}</Text>
-          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
-            {t("roomBoard.summary", {
-              ready: snapshot.ready,
-              total: snapshot.total,
-              working: snapshot.inProgress,
-            })}
-          </Text>
-          <HeroSignalRow signals={signals} />
-        </View>
-
-        <View style={[styles.segmented, { backgroundColor: theme.surfaceMuted }]}>
-          {SEGMENTS.map((key) => {
-            const isActive = segment === key;
-            const count = segmentCounts[key];
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.segment,
-                  isActive && [
-                    styles.segmentActive,
-                    { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
-                  ],
-                ]}
-                onPress={() => setSegment(key)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-              >
-                <Text
-                  style={[
-                    styles.segmentLabel,
-                    { color: isActive ? theme.textPrimary : theme.textMuted },
-                  ]}
-                >
-                  {t(SEGMENT_LABEL_KEYS[key])}
-                  {count > 0 ? ` ${count}` : ""}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {linkMissing ? (
-          <View
-            style={[styles.linkNotice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
-            accessibilityRole="alert"
-            testID="room-board-link-missing"
-          >
-            <View style={styles.linkNoticeText}>
-              <Text style={[styles.linkNoticeTitle, { color: theme.textPrimary }]}>{t("supervisorAttention.roomBoard.missingTitle")}</Text>
-              <Text style={[styles.linkNoticeBody, { color: theme.textSecondary }]}>{t("supervisorAttention.roomBoard.missingBody")}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setLinkMissing(false)}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.close")}
-              hitSlop={8}
-              testID="room-board-link-missing-close"
-            >
-              <Text style={[styles.linkNoticeClose, { color: theme.primaryAction }]}>{t("common.close")}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
-
-        <ColorLegend t={t} theme={theme} />
-
-        <View style={styles.body}>
-          {floors.map(({ floor, rooms: floorRooms }) => (
-            <View key={floor}>
-              <SectionLabel hint={t("roomBoard.roomCount", { count: floorRooms.length })}>
-                {t("roomBoard.floor", { floor })}
-              </SectionLabel>
-              <View style={styles.grid}>
-                {floorRooms.map((room) => (
-                  <RoomStatusTile
-                    key={room.roomId}
-                    room={room}
-                    assigneeName={room.assignedTo ? nameById.get(room.assignedTo) ?? null : null}
-                    onPress={() => setSelectedRoomId(room.roomId)}
-                  />
-                ))}
-              </View>
-            </View>
-          ))}
-
-          {floors.length === 0 ? (
-            <StateBlock
-              status="empty"
-              emptyIcon="bed-outline"
-              emptyTitle={rooms.length === 0 ? t("roomBoard.noRoomsLoaded") : t("roomBoard.segmentEmpty")}
-              emptyBody={t("roomBoard.pullToRefresh")}
+  const listHeader = (
+    <View>
+      {header}
+      {boardKnown ? (
+        <>
+          <BoardReadinessCard metrics={metrics} t={t} />
+          <BoardAttentionChips signals={signals} t={t} />
+          <BoardSearchBar
+            value={search}
+            onChangeText={bq.setSearch}
+            onClear={bq.clearSearch}
+            onOpenFilters={() => setFilterSheetOpen(true)}
+            activeCount={bq.activeBadge}
+            t={t}
+          />
+          {query.searching || query.filtering || bq.sort !== DEFAULT_SORT ? (
+            <BoardActiveFilters
+              chips={bq.chips}
+              shown={query.visible.length}
+              total={query.inventory}
+              notice={unappliedNotice}
+              sortLabel={bq.sort !== DEFAULT_SORT ? t(`roomBoard.sort.${bq.sort}`) : null}
+              onRemove={(chip) => bq.setFilters((current) => removeChip(current, chip))}
+              onClearAll={bq.clearFilters}
+              onEdit={() => setFilterSheetOpen(true)}
+              t={t}
             />
           ) : null}
-        </View>
-      </ScrollView>
+          <BoardSegmentBar selected={segment} counts={query.counts} t={t} onSelect={setSegment} />
+          {bq.floorJumps.length >= MIN_FLOORS_FOR_JUMP ? <FloorJumpBar jumps={bq.floorJumps} onJump={bq.jumpToFloor} t={t} /> : null}
+        </>
+      ) : null}
 
-      {selectedRoom ? (
+      {linkMissing ? (
+        <BoardNotice
+          title={t("supervisorAttention.roomBoard.missingTitle")}
+          body={t("supervisorAttention.roomBoard.missingBody")}
+          closeLabel={t("common.close")}
+          onClose={() => setLinkMissing(false)}
+          testID="room-board-link-missing"
+        />
+      ) : null}
+
+      {roomGone ? (
+        <BoardNotice body={t("roomBoard.detail.roomGone")} closeLabel={t("common.close")} onClose={() => setRoomGone(false)} testID="room-board-room-gone" />
+      ) : null}
+
+      {staleNoticeKey || availability.kind === "previous_day" ? (
+        <View
+          style={[styles.notice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+          accessibilityRole="alert"
+          testID="room-board-not-live"
+        >
+          <View style={styles.noticeText}>
+            <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>{t("roomBoard.state.notLiveTitle")}</Text>
+            <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>
+              {availability.kind === "previous_day"
+                ? t("roomBoard.state.previousDay")
+                : t(staleNoticeKey as string, { time: verifiedClock ?? "—" })}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {!gate.allowed && boardKnown && availability.kind !== "stale" ? (
+        <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="room-board-actions-paused">
+          {t("roomBoard.state.actionsPaused")}
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  // Why there is nothing to list, if there is nothing: each reason has its own words and way out (BoardStates).
+  const emptyKind: BoardEmptyKind | null = !boardKnown
+    ? "unavailable"
+    : rooms.length === 0
+      ? "verifiedEmpty"
+      : query.emptyReason === "segment" || query.emptyReason === "search" || query.emptyReason === "filters"
+        ? query.emptyReason
+        : null;
+  const listEmpty: ReactElement | null = emptyKind ? (
+    <BoardEmpty
+      kind={emptyKind}
+      t={t}
+      segment={segment}
+      searchText={search.trim()}
+      searching={query.searching}
+      staleNote={emptyStaleNote}
+      unavailableKey={unavailableMessageKey}
+      offline={availability.kind === "unavailable" && availability.cause === "offline"}
+      onRefresh={() => void onRefresh()}
+      onShowAll={() => setSegment("all")}
+      onClearSearch={bq.clearSearch}
+      onClearFilters={bq.clearFilters}
+    />
+  ) : null;
+
+  const renderItem = ({ item }: { item: QueryItem }) => {
+    if (item.type === "result") {
+      const resultModel = bq.resultModels.get(item.view.room.roomId);
+      return resultModel ? (
+        <View style={styles.rowWrap}>
+          <RoomListRow model={resultModel} onSelect={onSelectRoom} />
+        </View>
+      ) : null;
+    }
+    if (item.type === "building") {
+      return (
+        <Text
+          maxFontSizeMultiplier={MAX_FONT_SCALE}
+          accessibilityRole="header"
+          style={[styles.building, { color: theme.textPrimary }]}
+          testID={`room-board-building-${item.key}`}
+        >
+          {item.building ? t("roomBoard.building", { building: item.building }) : t("roomBoard.buildingNone")}
+        </Text>
+      );
+    }
+    if (item.type === "floor") {
+      const label = item.floor === null ? t("roomBoard.floorUnknown") : t("roomBoard.floor", { floor: item.floor });
+      const count =
+        item.shown === item.total
+          ? t("roomBoard.roomCount", { count: item.total })
+          : t("roomBoard.roomCountOf", { shown: item.shown, total: item.total });
+      return (
+        <View style={styles.floorHeader} testID={`room-board-floor-${item.key}`}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.floorTitle, { color: theme.textPrimary }]}>
+            {label}
+          </Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.floorCount, { color: theme.textMuted }]}>
+            {count}
+          </Text>
+        </View>
+      );
+    }
+    const models = item.views
+      .map((view) => bq.tileModels.get(view.room.roomId))
+      .filter((model): model is RoomTileModel => model !== undefined);
+    return (
+      <View style={styles.rowWrap}>
+        <RoomTileRow models={models} columns={item.columns} onSelect={onSelectRoom} />
+      </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <FlatList
+        ref={bq.listRef}
+        data={bq.items}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        onScrollToIndexFailed={bq.onScrollToIndexFailed}
+        keyExtractor={(item) => item.key}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        // `columns` changes the row shape, so a rotation or a font-size change rebuilds the rows cleanly.
+        extraData={columns}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === "android"}
+        refreshControl={<RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
+        testID="room-board-list"
+      />
+
+      {selectedRoom && selectedView ? (
         <RoomDetailSheet
           room={selectedRoom}
-          assigneeName={selectedRoom.assignedTo ? nameById.get(selectedRoom.assignedTo) ?? null : null}
-          locale={locale}
-          saving={saving}
-          onAssign={(room) => {
-            setSelectedRoomId(null);
-            setPickerRoom(room);
-          }}
-          onRemoveAssignment={(room) => {
-            setSelectedRoomId(null);
-            void handleRemoveAssignment(room);
-          }}
+          view={selectedView}
+          context={detailContext}
+          assignment={assignment}
+          deps={sheetDeps}
           onClose={() => setSelectedRoomId(null)}
         />
       ) : null}
 
-      <HousekeeperPicker
-        visible={pickerRoom != null}
-        roomNumber={pickerRoom?.roomNumber ?? null}
-        staff={staff}
-        loads={teamLoads}
-        saving={saving}
-        onSelect={(member) => void assignTo(member)}
-        onClose={() => setPickerRoom(null)}
+      <BoardFilterSheet
+        visible={filterSheetOpen}
+        applied={bq.applied}
+        availability={bq.availability}
+        t={t}
+        onApply={(draft) => {
+          bq.applyDraft(draft);
+          setFilterSheetOpen(false);
+        }}
+        onClose={() => setFilterSheetOpen(false)}
       />
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 28 },
+  list: { flex: 1 },
+  listContent: { paddingBottom: 28, gap: GRID_GAP },
+  rowWrap: { paddingHorizontal: GRID_GUTTER },
+  notice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
+  noticeText: { flex: 1, gap: 2 },
+  noticeTitle: { fontSize: 14, fontWeight: "700" },
+  noticeBody: { fontSize: 13, lineHeight: 18 },
+  pausedHint: { marginHorizontal: 16, marginBottom: 8, fontSize: 12 },
 
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-  },
-  heroKicker: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { fontSize: 13, marginTop: 7 },
-
-  segmented: {
-    flexDirection: "row",
-    marginHorizontal: 18,
-    marginTop: 14,
-    marginBottom: 12,
-    borderRadius: R.md,
-    padding: 3,
-    gap: 3,
-  },
-  segment: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: R.md - 3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentActive: {
-    borderWidth: 1,
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  segmentLabel: { fontSize: 12, fontWeight: "700" },
-
-  linkNotice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 18, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
-  linkNoticeText: { flex: 1, gap: 2 },
-  linkNoticeTitle: { fontSize: 14, fontWeight: "700" },
-  linkNoticeBody: { fontSize: 13, lineHeight: 18 },
-  linkNoticeClose: { fontSize: 14, fontWeight: "700", minHeight: 44, textAlignVertical: "center" },
-
-  body: { paddingHorizontal: 16, gap: 14 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  building: { marginHorizontal: GRID_GUTTER, marginTop: 14, fontSize: 19, fontWeight: "800" },
+  floorHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginHorizontal: GRID_GUTTER, marginTop: 10 },
+  floorTitle: { fontSize: 15, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase" },
+  floorCount: { fontSize: 12.5, fontWeight: "600" },
 });

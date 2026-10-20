@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react-native";
 
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
   useLocalSearchParams: () => ({}),
@@ -32,22 +33,29 @@ jest.mock("@/lib/api/client", () => ({
   },
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({
-  fetchBoard: jest.fn(),
+  fetchBoardVerified: jest.fn(),
   fetchAssignableStaff: jest.fn(),
+  fetchShiftRoster: jest.fn(),
+  fetchInspectionHistory: jest.fn(),
+  fetchLateCheckoutsVerified: jest.fn(),
   saveAssignments: jest.fn(),
-  removeAssignment: jest.fn(),
+  removeAssignmentByPlan: jest.fn(),
 }));
+jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
 jest.mock("@/lib/utils/date", () => ({
   localDate: () => "2026-06-09",
 }));
+const mockAppState = {
+  isOnline: true,
+  hotelTimezone: "America/Chicago",
+  user: { id: "u1", role: "housekeeping_supervisor", tenant_id: "h1" },
+};
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({
-    isOnline: true,
-    user: { id: "u1", role: "housekeeping_supervisor", tenant_id: "h1" },
-  }),
+  useAppStore: (selector?: (state: unknown) => unknown) => (selector ? selector(mockAppState) : mockAppState),
 }));
 
-import { fetchAssignableStaff, fetchBoard } from "@/lib/api/housekeepingSupervisor";
+import { fetchAssignableStaff, fetchBoardVerified as fetchBoard, fetchShiftRoster, fetchInspectionHistory, fetchLateCheckoutsVerified } from "@/lib/api/housekeepingSupervisor";
+import { fetchBlockedTasks } from "@/lib/api/tasks";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import RoomBoardScreen from "@/app/(app)/room-board/index";
 
@@ -88,6 +96,10 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockFetchBoard.mockResolvedValue(rows);
   mockFetchAssignableStaff.mockResolvedValue([]);
+  (fetchShiftRoster as jest.Mock).mockResolvedValue([]);
+  (fetchInspectionHistory as jest.Mock).mockResolvedValue([]);
+  (fetchLateCheckoutsVerified as jest.Mock).mockResolvedValue([]);
+  (fetchBlockedTasks as jest.Mock).mockResolvedValue({ items: [] });
 });
 
 describe("RoomBoardScreen", () => {
@@ -106,10 +118,12 @@ describe("RoomBoardScreen", () => {
     expect(screen.getByTestId("board-tile-201")).toBeTruthy();
   });
 
-  it("renders the status color legend", async () => {
+  it("labels each room with its status in words (the old colour legend is replaced by on-card labels)", async () => {
     renderScreen();
 
     await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
-    expect(screen.getByTestId("color-legend")).toBeTruthy();
+    expect(screen.queryByTestId("color-legend")).toBeNull();
+    expect(screen.getByTestId("board-tile-status-101")).toHaveTextContent("roomBoard.card.status.DIRTY");
+    expect(screen.getByTestId("board-tile-status-201")).toHaveTextContent("roomBoard.card.status.CLEAN");
   });
 });

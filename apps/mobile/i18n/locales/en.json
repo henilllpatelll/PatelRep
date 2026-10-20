@@ -2063,6 +2063,19 @@
       "passed": "Passed",
       "failed": "Failed",
       "conditional": "Conditional"
+    },
+    "focus": {
+      "heading": "Inspecting Room {{room}}",
+      "showQueue": "Show full queue",
+      "backToBoard": "Back to Room Board",
+      "notAwaiting": "Room {{room}} is no longer awaiting inspection.",
+      "notAwaitingGeneric": "That room is no longer awaiting inspection.",
+      "invalid": "That room link isn't valid.",
+      "unavailable": "Couldn't load the inspection queue, so the room can't be confirmed."
+    },
+    "guard": {
+      "templateChanged": "The inspection checklist changed. Reopen the room and try again.",
+      "unavailable": "Couldn't confirm the room is still awaiting inspection. Nothing was sent."
     }
   },
   "tasks": {
@@ -3132,7 +3145,10 @@
         "server": "Something went wrong on our side. Please try again."
       }
     },
-    "security": { "title": "Security & Sign-in", "subtitle": "Password and device security" },
+    "security": {
+      "title": "Security & Sign-in",
+      "subtitle": "Password and device security"
+    },
     "notifications": {
       "title": "Notifications",
       "subtitle": "Work alerts and reminders",
@@ -3153,9 +3169,18 @@
       "sectionInbox": "Inbox",
       "phoneOffHint": "Turn on notifications on this phone to receive these alerts. Your choices are saved to your account.",
       "categories": {
-        "room_assignments": { "label": "New Assignments", "description": "A room is assigned to you or a departure is ready to clean" },
-        "work_orders": { "label": "Work Order Updates", "description": "A work order is assigned to you" },
-        "tasks": { "label": "Task Updates", "description": "A task is assigned to you, changed, cancelled or unblocked" }
+        "room_assignments": {
+          "label": "New Assignments",
+          "description": "A room is assigned to you or a departure is ready to clean"
+        },
+        "work_orders": {
+          "label": "Work Order Updates",
+          "description": "A work order is assigned to you"
+        },
+        "tasks": {
+          "label": "Task Updates",
+          "description": "A task is assigned to you, changed, cancelled or unblocked"
+        }
       },
       "criticalHint": "Urgent task alerts are always delivered.",
       "inboxOnlyNotice": "Other work alerts, like escalations and handoffs, appear in your inbox.",
@@ -3251,8 +3276,14 @@
       },
       "viewDetails": "View Details"
     },
-    "help": { "title": "Help & Support", "subtitle": "Get help or report a problem" },
-    "about": { "title": "About PatelRep", "subtitle": "Version and app information" },
+    "help": {
+      "title": "Help & Support",
+      "subtitle": "Get help or report a problem"
+    },
+    "about": {
+      "title": "About PatelRep",
+      "subtitle": "Version and app information"
+    },
     "aiVoice": {
       "title": "AI & voice",
       "subtitle": "Assistant language, voice input, saved conversation",
@@ -3320,7 +3351,11 @@
       "headline": "What’s New in PatelRep",
       "version": "Version {{version}}",
       "emptyTitle": "Release notes aren’t available for this version.",
-      "sections": { "features": "New features", "improvements": "Improvements", "fixes": "Fixes" }
+      "sections": {
+        "features": "New features",
+        "improvements": "Improvements",
+        "fixes": "Fixes"
+      }
     },
     "licenses": {
       "title": "Open-source licenses",
@@ -3760,22 +3795,149 @@
     "schedulingSub": "Your shifts and coverage"
   },
   "roomBoard": {
-    "kicker": "Live floor",
-    "summary": "{{ready}} of {{total}} ready · {{working}} in progress",
-    "segAll": "All",
-    "segToClean": "To clean",
-    "segWorking": "Working",
-    "segReady": "Ready",
+    "assign": {
+      "scopeChanged": "The hotel or day changed. Reopen the room to continue.",
+      "roomGone": "That room is no longer on the board.",
+      "refreshFailed": "Saved, but the board couldn't refresh. Pull down to update it.",
+      "alreadyUnassigned": "Room {{room}} is already unassigned.",
+      "alreadyAssigned": "Room {{room}} is already assigned to {{name}}.",
+      "thisPerson": "this person",
+      "checkAgain": "Check again",
+      "reviewAgain": "Review again",
+      "saving": "Saving…",
+      "success": {
+        "assign": "Room {{room}} assigned to {{name}}.",
+        "reassign": "Room {{room}} reassigned to {{name}}.",
+        "remove": "Room {{room}} is now unassigned.",
+        "floor": "{{count}} rooms assigned to {{name}}."
+      },
+      "availability": {
+        "on_shift": "On shift",
+        "on_break": "On break",
+        "ended": "Shift ended",
+        "not_clocked_in": "Not clocked in",
+        "unknown": "Availability unknown"
+      },
+      "picker": {
+        "titleAssign": "ASSIGN ROOM {{room}}",
+        "titleReassign": "REASSIGN ROOM {{room}}",
+        "subtitle": "Choose a housekeeper",
+        "search": "Search employee…",
+        "searchLabel": "Search employees by name",
+        "filterOnShift": "On shift · {{count}}",
+        "filterAll": "All staff · {{count}}",
+        "select": "Select",
+        "selected": "Selected",
+        "current": "Current",
+        "currentA11y": "Currently assigned to this room",
+        "nameUnavailable": "Name unavailable",
+        "rooms": "{{count}} room",
+        "rooms_plural": "{{count}} rooms",
+        "noRooms": "No rooms yet",
+        "remaining": "~{{minutes}} min remaining",
+        "remainingAtLeast": "At least {{minutes}} min remaining",
+        "noEstimate": "Time estimate unavailable",
+        "nothingLeft": "Nothing left to clean",
+        "floorOne": "Rooms on floor {{floors}}",
+        "floorMany": "Rooms on floors {{floors}}",
+        "overload": "Over a full day of work",
+        "unverified": "Shift status couldn't be verified, so everyone is listed without it. Choosing someone asks you to confirm.",
+        "reviewCta": "Review assignment",
+        "reviewCtaReassign": "Review reassignment",
+        "empty": {
+          "no_staff": "No housekeeping staff found.",
+          "no_on_shift": "Nobody is on shift right now. Switch to All staff to choose someone else.",
+          "no_match": "No one matches \"{{query}}\"."
+        }
+      },
+      "review": {
+        "titleAssign": "ASSIGN ROOM {{room}}?",
+        "titleReassign": "REASSIGN ROOM {{room}}?",
+        "room": "Room",
+        "employee": "Employee",
+        "from": "From",
+        "to": "To",
+        "cleanType": "Clean type",
+        "status": "Room status",
+        "unnamed": "Name unavailable",
+        "currentWorkload": "Current workload",
+        "roomEstimate": "Room {{room}} estimate",
+        "projected": "Projected remaining work",
+        "minutes": "~{{minutes}} min",
+        "estimateNote": "This is an estimate, not a guaranteed completion time.",
+        "noEstimate": "No time estimate is available for this room, so projected work isn't shown.",
+        "overload": "This would put {{name}} over a full day of work.",
+        "ackUnverified": "Shift status couldn't be verified. Assign anyway.",
+        "ackNotOnShift": "{{name}} isn't on shift ({{state}}). Assign anyway.",
+        "confirmAssign": "Confirm assignment",
+        "confirmReassign": "Confirm reassignment",
+        "back": "Back"
+      },
+      "remove": {
+        "title": "REMOVE ASSIGNMENT?",
+        "body": "Room {{room}} will no longer be assigned to {{name}}.",
+        "bodyUnnamed": "Room {{room}} will no longer be assigned.",
+        "outcome": "The room will return to the unassigned queue.",
+        "statusKept": "Its cleaning status will not change.",
+        "confirm": "Remove assignment"
+      },
+      "error": {
+        "offline": "You're offline. Reconnect to change assignments.",
+        "permission": "Your account can't change room assignments.",
+        "conflict": "The assignment changed since this screen opened. Review the room and try again.",
+        "employee_ineligible": "This employee can no longer be assigned rooms.",
+        "room_unavailable": "This room is no longer available for assignment.",
+        "save_failed": "The assignment wasn't saved. Nothing changed — you can try again.",
+        "session": "Your session expired. Sign in again.",
+        "unknown_outcome": "We couldn't confirm whether this saved. Check again before trying a second time.",
+        "revalidate_failed": "Couldn't confirm the room's current state. Check your connection and try again.",
+        "paused": "Changes are paused until the board is live and you're online.",
+        "scope_changed": "The hotel or day changed. Reopen the room to continue.",
+        "room_missing": "That room is no longer on the board.",
+        "not_assignable": "The room's status changed, so it can't be assigned now.",
+        "assignee_changed": "Someone changed this room's assignment while you were reviewing. Review it again.",
+        "already_assigned": "This room is already assigned to that person.",
+        "in_progress": "This room is being cleaned, so its assignment can't be changed.",
+        "awaiting_inspection": "This room was submitted for inspection, so its assignment can't be changed.",
+        "guest_ready": "This room is already inspected, so its assignment can't be changed.",
+        "unavailable": "This room is out of service, so it can't be assigned.",
+        "unknown_status": "This room's status isn't recognized, so it can't be assigned from here.",
+        "nothing_to_remove": "This room has no assignment to remove."
+      }
+    },
     "floor": "Floor {{floor}}",
     "roomCount": "{{count}} rooms",
     "unassigned": "Unassigned",
-    "segmentEmpty": "Nothing in this view right now",
+    "segmentEmpty": "No rooms in this category",
     "noRoomsLoaded": "No rooms loaded",
     "pullToRefresh": "Pull down to refresh the board.",
-    "signalUnassigned": "{{count}} unassigned",
-    "signalSubmitted": "{{count}} to inspect",
-    "signalDnd": "{{count}} DND",
-    "signalVip": "{{count}} VIP",
+    "assigneeUnknown": "Assigned · name unavailable",
+    "state": {
+      "notLiveTitle": "Not live",
+      "staleOffline": "You're offline. Showing the board as last verified at {{time}}.",
+      "staleFailed": "Couldn't refresh. Showing the board as last verified at {{time}}.",
+      "staleAge": "This board was last verified at {{time}}. Pull down to refresh.",
+      "previousDay": "This board is from an earlier day. Refreshing for today.",
+      "unavailableOffline": "You're offline and there's no verified board to show. Reconnect and try again.",
+      "unavailableForbidden": "You don't have access to the room board.",
+      "unavailableError": "Couldn't load the room board. This is not an empty board — try again.",
+      "verifiedEmpty": "No rooms on this board",
+      "retry": "Try again",
+      "actionsPaused": "Changes are paused until the board is verified again.",
+      "verifiedEmptyBody": "The hotel has no rooms on today's board. Refresh to check again."
+    },
+    "statusMeaning": {
+      "DIRTY": "Vacant dirty — cleaning required",
+      "OCCUPIED": "Occupied dirty — housekeeping required",
+      "PICKUP": "Pickup / stayover cleaning",
+      "IN_PROGRESS": "Being cleaned now",
+      "CLEAN": "Submitted — awaiting inspection",
+      "INSPECTED": "Inspected — guest ready",
+      "OOO": "Out of order",
+      "OUT_OF_ORDER": "Out of order",
+      "OUT_OF_SERVICE": "Out of service",
+      "UNKNOWN": "Status not recognized"
+    },
     "statusLabels": {
       "DIRTY": "Vacant Dirty",
       "IN_PROGRESS": "In Progress",
@@ -3786,13 +3948,6 @@
       "OOO": "Out of Order",
       "OUT_OF_ORDER": "Out of Order",
       "OUT_OF_SERVICE": "Out of Service"
-    },
-    "legend": {
-      "dirty": "Dirty",
-      "pickup": "Pickup",
-      "submitted": "Submitted",
-      "ready": "Ready",
-      "ooo": "OOO"
     },
     "sheet": {
       "assignedTo": "Assigned to",
@@ -3814,6 +3969,474 @@
       "dndOverrideConfirm": "Create check task",
       "dndOverrideCreated": "Wellness check task created.",
       "dndOverrideError": "Could not create task. Try again."
+    },
+    "detail": {
+      "actionsTitle": "ROOM {{room}} · ACTIONS",
+      "moreActions": "More actions",
+      "todayAt": "Today, {{time}}",
+      "dayAt": "{{day}}, {{time}}",
+      "notAvailable": "Not available",
+      "noteAt": "Noted {{at}}",
+      "roomGone": "That room is no longer on the board, so its details were closed.",
+      "section": {
+        "status": "Room status",
+        "assignment": "Assignment",
+        "cleaning": "Cleaning activity",
+        "issues": "Notes & issues"
+      },
+      "flag": {
+        "vip": "VIP",
+        "dnd": "DND",
+        "declined": "Service declined",
+        "reclean": "Reclean requested",
+        "departure": "Departure",
+        "arrival": "Arrival {{time}}",
+        "lateApproved": "Late checkout",
+        "latePending": "Late checkout requested",
+        "priority": "High priority",
+        "risk": "Readiness risk"
+      },
+      "row": {
+        "housekeeping": "Housekeeping",
+        "occupancy": "Occupancy",
+        "frontDesk": "Front desk",
+        "cleanType": "Clean type",
+        "checkout": "Checkout",
+        "checkedOut": "Checked out",
+        "arrival": "Next arrival",
+        "lateCheckout": "Late checkout",
+        "inspection": "Inspection",
+        "reclean": "Reclean"
+      },
+      "occupancy": {
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "unknown": "Unknown"
+      },
+      "discrepancy": "Front desk and housekeeping disagree",
+      "late": {
+        "approved": "Approved",
+        "pending": "Pending approval",
+        "unknown": "Status unavailable"
+      },
+      "inspection": {
+        "required": "Required — not yet inspected",
+        "notRequired": "Not required",
+        "unknown": "Requirement unknown",
+        "doneAt": "Inspected {{at}}",
+        "done": "Inspected"
+      },
+      "recleanAt": "Requested {{at}}",
+      "assignment": {
+        "notApplicable": "Not applicable while out of service",
+        "nameUnavailable": "Assigned · Name unavailable",
+        "workload": "{{count}} room assigned today",
+        "workload_plural": "{{count}} rooms assigned today"
+      },
+      "shift": {
+        "on_shift": "On shift",
+        "on_break": "On break",
+        "ended": "Shift ended",
+        "not_clocked_in": "Not clocked in today",
+        "unknown": "Shift status unavailable"
+      },
+      "cleaning": {
+        "completed": "Completed",
+        "duration": "Duration",
+        "baseline": "baseline {{minutes}} min",
+        "minutes": "{{minutes}} min",
+        "checklist": "Checklist",
+        "checklistNone": "Not recorded",
+        "photos": "Photos",
+        "photosRecorded": "{{count}} recorded",
+        "photosRecorded_plural": "{{count}} recorded",
+        "inProgress": "Being cleaned now. Details appear when the housekeeper finishes.",
+        "none": "No completed cleaning session today.",
+        "noneStale": "No completed cleaning session as of {{time}}. This board is not live."
+      },
+      "workOrder": {
+        "untitled": "Maintenance issue",
+        "status": "Status: {{status}}",
+        "priorityLabel": "Priority: {{priority}}",
+        "number": "Work order #{{number}}",
+        "priority": {
+          "low": "Low",
+          "medium": "Medium",
+          "normal": "Normal",
+          "high": "High",
+          "urgent": "Urgent",
+          "critical": "Critical",
+          "emergency": "Emergency"
+        }
+      },
+      "exception": {
+        "dndTitle": "Do not disturb",
+        "dndBody": "Normal room service is on hold. Do not enter without a wellness check.",
+        "declinedTitle": "Guest declined service",
+        "declinedBody": "The guest declined housekeeping for this stay.",
+        "riskTitle": "May not be ready in time",
+        "riskBody": "The readiness forecast flags this room. It is a forecast, not a fact.",
+        "riskBodyAt": "Forecast ready around {{at}}. It is a forecast, not a fact."
+      },
+      "action": {
+        "assign": "Assign room",
+        "assignHint": "Choose a housekeeper",
+        "reassign": "Reassign room",
+        "reassignHint": "Choose another housekeeper",
+        "remove": "Remove assignment",
+        "removeHint": "Return the room to unassigned",
+        "inspect": "Inspect room",
+        "inspectHint": "Open the inspection for this room",
+        "note": "Add supervisor note",
+        "noteHint": "Write a note for this room",
+        "cleaningHistory": "Cleaning history",
+        "cleaningHistoryHint": "Past cleans and room activity",
+        "inspectionHistory": "Inspection history",
+        "inspectionHistoryHint": "Past inspection results",
+        "workOrder": "View work order",
+        "workOrderHint": "Read the open maintenance request",
+        "wellness": "Request wellness check",
+        "wellnessHint": "Ask for a check on a Do Not Disturb room"
+      },
+      "paused": {
+        "loading": "Still loading the board. Changes are paused.",
+        "offline": "You're offline. Changes are paused until you reconnect.",
+        "stale": "This board is not live (last verified {{time}}). Changes are paused.",
+        "unavailable": "The board could not be verified. Changes are paused.",
+        "previous_day": "This board is from a previous day. Changes are paused."
+      },
+      "a11y": {
+        "assignedTo": "assigned to {{name}}",
+        "assignedUnnamed": "assigned, name unavailable"
+      }
+    },
+    "header": {
+      "kicker": "Housekeeping · Today",
+      "loading": "Checking the board…",
+      "updating": "Updating…",
+      "liveNow": "Live · Updated just now",
+      "liveSeconds": "Live · Updated {{count}} second ago",
+      "liveSeconds_plural": "Live · Updated {{count}} seconds ago",
+      "liveMinutes": "Live · Updated {{count}} minute ago",
+      "liveMinutes_plural": "Live · Updated {{count}} minutes ago",
+      "liveClock": "Live · Verified at {{time}}",
+      "stale": "Not live · Last verified {{time}}",
+      "offline": "Offline · Last verified {{time}}",
+      "offlineNone": "Offline · Nothing verified yet",
+      "previousDay": "Not live · Showing an earlier day",
+      "unavailable": "Unable to load the board",
+      "refresh": "Refresh board"
+    },
+    "card": {
+      "title": "Room readiness",
+      "headline": "{{ready}} / {{total}} rooms ready",
+      "noneInService": "No rooms in service",
+      "toClean": "To clean",
+      "working": "Working",
+      "toInspect": "To inspect",
+      "ready": "Ready",
+      "totalRooms": "{{count}} room total",
+      "totalRooms_plural": "{{count}} total rooms",
+      "outOfService": "{{count}} out of service or order",
+      "unrecognized": "{{count}} room has a status the app doesn't recognize",
+      "unrecognized_plural": "{{count}} rooms have a status the app doesn't recognize",
+      "roomLabel": "Room {{room}}",
+      "status": {
+        "DIRTY": "Dirty",
+        "OCCUPIED": "Occupied",
+        "PICKUP": "Pickup",
+        "IN_PROGRESS": "In progress",
+        "CLEAN": "To inspect",
+        "INSPECTED": "Ready",
+        "OOO": "Out of order",
+        "OUT_OF_ORDER": "Out of order",
+        "OUT_OF_SERVICE": "Out of service",
+        "UNKNOWN": "Unknown"
+      },
+      "base": {
+        "DIRTY": "Vacant dirty",
+        "OCCUPIED": "Occupied dirty",
+        "PICKUP": "Pickup cleaning",
+        "IN_PROGRESS": "Cleaning underway",
+        "CLEAN": "Awaiting inspection",
+        "INSPECTED": "Inspected",
+        "OOO": "Unavailable",
+        "OUT_OF_ORDER": "Unavailable",
+        "OUT_OF_SERVICE": "Unavailable",
+        "UNKNOWN": "Status not recognized"
+      },
+      "detail": {
+        "reclean": "Reclean requested",
+        "vip": "VIP",
+        "arrival": "Arrival {{time}}",
+        "dnd": "Do not disturb",
+        "declined": "Service declined",
+        "lateCheckout": "Late checkout",
+        "workOrder": "Work order open",
+        "unavailable": "Unavailable"
+      }
+    },
+    "attention": {
+      "unassigned": "{{count}} unassigned",
+      "urgent": "{{count}} urgent",
+      "dnd": "{{count}} DND",
+      "vip": "{{count}} VIP"
+    },
+    "seg": {
+      "all": "All",
+      "toClean": "To clean",
+      "working": "Working",
+      "toInspect": "To inspect",
+      "ready": "Ready",
+      "a11y": "{{label}}, {{count}} rooms"
+    },
+    "showAll": "Show all rooms",
+    "building": "Building {{building}}",
+    "buildingNone": "Other rooms",
+    "floorUnknown": "Floor not set",
+    "roomCountOf": "{{shown}} of {{total}} rooms",
+    "search": {
+      "placeholder": "Search room number…",
+      "label": "Search rooms by number",
+      "clear": "Clear search",
+      "openFilters": "Filter and sort",
+      "openFiltersActive": "Filter and sort, {{active}} active",
+      "noMatch": "No rooms match {{query}}."
+    },
+    "filters": {
+      "title": "Filter & Sort",
+      "reset": "Reset all",
+      "apply": "Apply filters",
+      "edit": "Edit filters",
+      "clearAll": "Clear all",
+      "removeChip": "Remove filter {{label}}",
+      "sortTitle": "Sort by",
+      "statusTitle": "Status",
+      "operationalTitle": "Operations",
+      "locationTitle": "Location",
+      "buildingTitle": "Building",
+      "floorsTitle": "Floors",
+      "allBuildings": "All buildings",
+      "noData": "No data on today's board",
+      "chipFloor": "{{where}} · {{level}}",
+      "unavailableApplied": "Not applied (no data on this board): {{filters}}.",
+      "status": {
+        "toClean": "To clean",
+        "working": "In progress",
+        "toInspect": "Awaiting inspection",
+        "ready": "Ready",
+        "outOfOrder": "Out of order",
+        "outOfService": "Out of service",
+        "unrecognized": "Unrecognized"
+      },
+      "flag": {
+        "unassigned": "Unassigned",
+        "arrivalsToday": "Arrivals today",
+        "departuresToday": "Departures today",
+        "vip": "VIP",
+        "dnd": "Do not disturb",
+        "workOrder": "Open work order",
+        "urgent": "High priority / urgent",
+        "risk": "Readiness risk"
+      }
+    },
+    "sort": {
+      "priority": "Priority first",
+      "roomNumber": "Room number",
+      "departure": "Departure time",
+      "arrival": "Arrival time",
+      "status": "Cleaning status",
+      "floor": "Floor, low to high"
+    },
+    "results": {
+      "showing": "Showing {{shown}} of {{total}} rooms",
+      "sortedBy": "Sorted by {{sort}}"
+    },
+    "empty": {
+      "filters": "No rooms match these filters.",
+      "searchFilters": "No rooms match {{query}} with these filters.",
+      "staleNote": "Based on the board last verified at {{time}}, so this may be out of date."
+    },
+    "segmentEmptyBody": {
+      "toClean": "No rooms need cleaning.",
+      "working": "No rooms are being cleaned right now.",
+      "toInspect": "No rooms are awaiting inspection.",
+      "ready": "No rooms are ready yet."
+    },
+    "jump": {
+      "title": "Jump to floor",
+      "caption": "Floor",
+      "item": "Jump to {{label}}"
+    },
+    "panel": {
+      "retry": "Try again",
+      "done": "Done",
+      "loading": "Loading…",
+      "error": {
+        "network": {
+          "title": "Can't reach the server",
+          "body": "Check the connection and try again. Nothing is shown until it loads."
+        },
+        "unauthorized": {
+          "title": "Not available to you",
+          "body": "Your role can't open this information."
+        },
+        "not_found": {
+          "title": "Not found",
+          "body": "This record is no longer available."
+        },
+        "server": {
+          "title": "Something went wrong",
+          "body": "The server couldn't load this. Try again in a moment."
+        }
+      },
+      "note": {
+        "title": "ADD NOTE · ROOM {{room}}",
+        "visibility": "Notes are visible to authorized staff at this hotel. Saving a note does not change the room's status.",
+        "placeholder": "Enter room note…",
+        "inputLabel": "Note for room {{room}}",
+        "remaining": "{{count}} characters left",
+        "save": "Save note",
+        "check": "Check again",
+        "saved": "Note saved.",
+        "alreadySaved": "That note was already saved.",
+        "boardBehind": "Saved. The board hasn't shown the new note yet.",
+        "error": {
+          "empty": "Write a note first.",
+          "too_long": "That note is too long. Shorten it and try again.",
+          "forbidden": "You can't add notes to this room. Your text is kept.",
+          "not_found": "This room is no longer available. Your text is kept.",
+          "conflict": "The room changed. Your text is kept — try again.",
+          "invalid": "The server couldn't accept that note. Your text is kept.",
+          "rejected": "The note wasn't saved. Your text is kept.",
+          "uncertain": "The note was not saved. Your text is kept — you can save it again.",
+          "unconfirmed": "We couldn't confirm whether the note was saved. Check again before saving, so it isn't duplicated.",
+          "paused": "Changes are paused. Your text is kept.",
+          "scope_changed": "The account or hotel changed. Reopen the room to continue."
+        }
+      },
+      "wellness": {
+        "title": "ROOM {{room}} · DND",
+        "open": "Request wellness check",
+        "active": "Do Not Disturb is active.",
+        "notActive": "Do Not Disturb is no longer active for this room.",
+        "policy": "A wellness check may be requested when required by hotel safety policy.",
+        "effect": "This creates an authorized task and notifies the team. It does not turn off Do Not Disturb or authorize entry into the guest's room.",
+        "request": "Request wellness check",
+        "tryAgain": "Check and try again",
+        "requested": "Wellness check requested. The supervisors and front desk were notified.",
+        "already": "A wellness check was already requested for this room. Nothing new was created.",
+        "stillOn": "Do Not Disturb is still on.",
+        "error": {
+          "dnd_off": "Do Not Disturb is not active, so nothing was requested.",
+          "paused": "Changes are paused. Nothing was requested.",
+          "forbidden": "You can't request a wellness check. Nothing was requested.",
+          "not_found": "This room is no longer available. Nothing was requested.",
+          "uncertain": "We couldn't confirm the request. Trying again is safe: an existing request is reused, not duplicated.",
+          "failed": "The request was refused. Nothing was created.",
+          "scope_changed": "The account or hotel changed. Reopen the room to continue."
+        }
+      },
+      "cleaning": {
+        "title": "ROOM {{room}} · CLEANING HISTORY",
+        "tabCleans": "Cleans",
+        "tabActivity": "Activity",
+        "emptyTitle": "No cleans recorded",
+        "emptyBody": "This room has no clean sessions on record.",
+        "todayHeading": "TODAY · {{date}}",
+        "dateUnknown": "Date not recorded",
+        "type": {
+          "DEP": "Departure clean",
+          "FULL": "Stayover clean",
+          "LIGHT": "Light clean"
+        },
+        "typeUnknown": "Clean",
+        "state": {
+          "completed": "Completed",
+          "in_progress": "In progress",
+          "abandoned": "Stopped",
+          "unknown": "Unknown"
+        },
+        "completedAt": "Completed {{time}}",
+        "startedAt": "Started {{time}}",
+        "stoppedAt": "Stopped {{time}}",
+        "duration": "Duration: {{duration}}",
+        "durationMissing": "Duration: not recorded",
+        "checklist": "Checklist: {{count}}",
+        "viewDetails": "View details",
+        "loadMore": "Load more",
+        "recentOnly": "Showing the {{count}} most recent cleans.",
+        "notRecorded": "Not recorded",
+        "row": {
+          "started": "Started",
+          "completed": "Completed",
+          "stopped": "Stopped",
+          "housekeeper": "Housekeeper"
+        }
+      },
+      "activity": {
+        "title": "ROOM {{room}} · ACTIVITY",
+        "emptyTitle": "No activity recorded",
+        "emptyBody": "No status changes or notes since this stay began.",
+        "kind": {
+          "note": "Note",
+          "status": "Status"
+        },
+        "statusChange": "{{from}} → {{to}}",
+        "actorUnknown": "Not recorded",
+        "scope": "Latest 50 entries since the current stay began."
+      },
+      "session": {
+        "title": "ROOM {{room}} · CLEAN DETAILS",
+        "checklist": "Checklist",
+        "noChecklist": "No checklist recorded",
+        "done": "done",
+        "notDone": "not done",
+        "photos": "Photos",
+        "noPhotos": "No photos available",
+        "photoLabel": "Cleaning photo, {{time}}",
+        "photoUnavailable": "Photo unavailable",
+        "photoExpired": "Some photos couldn't load. Their links may have expired.",
+        "reloadPhotos": "Reload photos"
+      },
+      "inspections": {
+        "title": "ROOM {{room}} · INSPECTIONS",
+        "range": "{{days}} days",
+        "emptyTitle": "No inspections",
+        "emptyBody": "No inspections were recorded for this room in the last {{days}} days.",
+        "result": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "conditional": "Conditional",
+          "unknown": "Unknown"
+        },
+        "inspector": "Inspector: {{name}}",
+        "inspectorUnknown": "Inspector not recorded",
+        "notes": "Notes: {{notes}}"
+      },
+      "workOrder": {
+        "title": "ROOM {{room}} · WORK ORDER",
+        "description": "Description",
+        "noDescription": "No description recorded.",
+        "goneTitle": "Work order not available",
+        "goneBody": "It may have been removed. Refresh the board to see what is open.",
+        "wrongRoomTitle": "Work order doesn't match",
+        "wrongRoomBody": "This work order belongs to a different room, so it isn't shown.",
+        "closedSince": "This work order is closed. The board hasn't caught up yet.",
+        "assigned": "Assigned",
+        "unassigned": "Not assigned",
+        "resolution": "Resolution",
+        "parts": "Parts used: {{parts}}",
+        "row": {
+          "room": "Room",
+          "reported": "Reported",
+          "started": "Started",
+          "due": "Due",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "assignment": "Engineer"
+        }
+      }
     }
   },
   "roomStatus": {
@@ -4552,7 +5175,7 @@
       },
       "description": "What went wrong?",
       "placeholder": "Describe what happened and what you were trying to do.",
-      "count": "{{count}}\u00a0/\u00a0{{max}}",
+      "count": "{{count}} / {{max}}",
       "blocking": "This is stopping me from working",
       "guestWarning": "Please don't include guest names, phone numbers or reservation details.",
       "diagnostics": "Include technical diagnostics",

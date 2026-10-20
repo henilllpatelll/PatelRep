@@ -577,6 +577,12 @@ class RoomAssignmentItem(SanitizedBaseModel):
     # Walking order (1-based) within this housekeeper's day, as computed by
     # ai-suggest-assignments' room sequencing. Null for manual assignments.
     sequence_order: Optional[int] = Field(default=None, ge=1, le=500)
+    # Opt-in compare-and-set for clients that show the current owner (Room Board). Send the housekeeper the
+    # supervisor saw on the room as `expected_assigned_to`, or `expect_unassigned: true` when they saw it
+    # unassigned. The server then refuses with 409 if the owner changed or the work already started, instead of
+    # silently overwriting. Omit both for the original unconditional upsert (web, AI assignment).
+    expected_assigned_to: Optional[UUID4] = None
+    expect_unassigned: bool = False
 
 
 class CreateAssignmentsRequest(SanitizedBaseModel):

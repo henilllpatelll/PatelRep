@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { R, monoFont } from "@/components/shared/tokens";
 import { getTileVisual } from "@/components/home/CompanionHome";
-import { getStatusMeta, ProgressBar, StatusRail } from "@/components/shared/evening";
+import { ProgressBar } from "@/components/shared/evening";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import type { FloorRoom, TeamLoad } from "@/lib/housekeeping/supervisor";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -62,49 +62,6 @@ export function FloorMosaic({
         );
       })}
     </View>
-  );
-}
-
-/* ─── Room status tile — the paper board cell ──────────────────────────────── */
-
-export function RoomStatusTile({
-  room,
-  assigneeName,
-  onPress,
-}: {
-  room: FloorRoom;
-  assigneeName: string | null;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const meta = getStatusMeta(room.status, theme);
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.tile,
-        { backgroundColor: meta.bg, borderColor: meta.border },
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${room.roomNumber} — ${meta.label}`}
-      testID={`board-tile-${room.roomNumber}`}
-    >
-      <StatusRail status={room.status} />
-      <View style={styles.tileBody}>
-        <View style={styles.tileTopRow}>
-          <Text style={[styles.tileNumber, { color: meta.fg }]}>{room.roomNumber}</Text>
-          <View style={styles.tileIcons}>
-            {room.dnd ? <Ionicons name="moon" size={10} color={theme.textMuted} /> : null}
-            {room.openWorkOrder ? <Ionicons name="construct" size={10} color={theme.status.pickup} /> : null}
-            {room.latestNote ? <Ionicons name="chatbox" size={10} color={theme.status.clean} /> : null}
-          </View>
-        </View>
-        <Text style={[styles.tileAssignee, { color: theme.textMuted }]} numberOfLines={1}>
-          {assigneeName ? assigneeName.split(/\s+/)[0] : "—"}
-        </Text>
-      </View>
-    </Pressable>
   );
 }
 
@@ -219,21 +176,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   mosaicText: { fontFamily: monoFont, fontSize: 11.5, fontWeight: "800" },
-
-  tile: {
-    width: "31.5%",
-    flexGrow: 1,
-    maxWidth: "33%",
-    position: "relative",
-    overflow: "hidden",
-    borderWidth: 1,
-    borderRadius: R.md,
-  },
-  tileBody: { paddingLeft: 12, paddingRight: 8, paddingVertical: 9, gap: 3 },
-  tileTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 },
-  tileNumber: { fontFamily: monoFont, fontSize: 16, fontWeight: "800" },
-  tileIcons: { flexDirection: "row", alignItems: "center", gap: 3 },
-  tileAssignee: { fontSize: 10.5, fontWeight: "600" },
 
   loadRow: {
     flexDirection: "row",

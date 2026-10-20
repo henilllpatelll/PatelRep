@@ -1,0 +1,247 @@
+import React from "react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
+jest.mock("expo-router", () => ({
+  router: { push: jest.fn(), back: jest.fn(), setParams: jest.fn() },
+  useLocalSearchParams: () => ({}),
+}));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
+    i18n: { language: "en" },
+  }),
+}));
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
+jest.mock("@/lib/supabase", () => ({
+  supabase: { channel: jest.fn().mockReturnValue({ on: jest.fn().mockReturnThis(), subscribe: jest.fn().mockReturnValue({}) }), removeChannel: jest.fn() },
+}));
+jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn(), post: jest.fn(), patch: jest.fn(), delete: jest.fn() } }));
+jest.mock("@/lib/api/housekeepingSupervisor", () => ({
+  fetchBoardVerified: jest.fn(),
+  fetchAssignableStaff: jest.fn(),
+  fetchShiftRoster: jest.fn(),
+  fetchInspectionHistory: jest.fn(),
+  fetchLateCheckoutsVerified: jest.fn(),
+}));
+jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
+
+// The sheet and picker have their own tests; here they only expose the props the screen hands them.
+const mockSheetProps: { current: Record<string, unknown> | null } = { current: null };
+jest.mock("@/components/supervisor/RoomDetailSheet", () => {
+  const { Text, View } = require("react-native");
+  return {
+    RoomDetailSheet: (props: {
+      room: { roomNumber: string };
+      view: { assignee: { name: string | null } | null };
+      context: { gate: { allowed: boolean } };
+    }) => {
+      mockSheetProps.current = props as never;
+      return (
+        <View testID="room-sheet">
+          <Text testID="sheet-assignee">{props.view.assignee ? (props.view.assignee.name ?? "roomBoard.assigneeUnknown") : "NONE"}</Text>
+          <Text testID="sheet-disabled">{String(!props.context.gate.allowed)}</Text>
+        </View>
+      );
+    },
+  };
+});
+const mockAppState = {
+  isOnline: true,
+  hotelTimezone: "America/Chicago",
+  user: { id: "sup-1", role: "housekeeping_supervisor", tenant_id: "h1" },
+};
+jest.mock("@/stores/appStore", () => ({
+  useAppStore: (selector?: (state: unknown) => unknown) => (selector ? selector(mockAppState) : mockAppState),
+}));
+
+import {
+  fetchAssignableStaff,
+  fetchBoardVerified,
+  fetchInspectionHistory,
+  fetchLateCheckoutsVerified,
+  fetchShiftRoster,
+} from "@/lib/api/housekeepingSupervisor";
+import { fetchBlockedTasks } from "@/lib/api/tasks";
+import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import RoomBoardScreen from "@/app/(app)/room-board/index";
+import { STAFF, hotelBoard, rawRoom } from "../helpers/roomBoardFixtures";
+
+const board = fetchBoardVerified as jest.Mock;
+const staff = fetchAssignableStaff as jest.Mock;
+
+// A NEW element each call: re-rendering the very same element object would be skipped by React.
+const ui = () => (
+  <ThemeProvider>
+    <RoomBoardScreen />
+  </ThemeProvider>
+);
+const renderBoard = () => render(ui());
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockSheetProps.current = null;
+  mockAppState.isOnline = true;
+  board.mockResolvedValue(hotelBoard());
+  staff.mockResolvedValue(STAFF);
+  (fetchShiftRoster as jest.Mock).mockResolvedValue([]);
+  (fetchInspectionHistory as jest.Mock).mockResolvedValue([]);
+  (fetchLateCheckoutsVerified as jest.Mock).mockResolvedValue([]);
+  (fetchBlockedTasks as jest.Mock).mockResolvedValue({ items: [] });
+});
+
+describe("Room Board — what it claims", () => {
+  it("a failed load is an error with a retry — never 'no rooms' and never a board", async () => {
+    board.mockRejectedValue(Object.assign(new Error("down"), { status: 503 }));
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableError")).toBeTruthy(), { timeout: 5000 });
+    expect(screen.queryByText("roomBoard.state.verifiedEmpty")).toBeNull();
+    expect(screen.queryByText("roomBoard.noRoomsLoaded")).toBeNull();
+    expect(screen.queryByTestId("room-board-readiness")).toBeNull();
+    expect(screen.queryByTestId("board-tile-101")).toBeNull();
+
+    // Retrying recovers the board.
+    board.mockResolvedValue(hotelBoard());
+    await act(async () => {
+      fireEvent.press(screen.getByText("roomBoard.state.retry"));
+    });
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    expect(screen.queryByText("roomBoard.state.unavailableError")).toBeNull();
+  });
+
+  it("only a verified board is called a live floor — a failed, stale or empty-by-failure board is not", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    expect(screen.getByTestId("room-board-status-text").props.children).toBe("roomBoard.header.liveNow");
+    mockAppState.isOnline = false;
+    screen.rerender(ui());
+    await waitFor(() => expect(String(screen.getByTestId("room-board-status-text").props.children)).toMatch(/^roomBoard.header.offline/));
+    expect(String(screen.getByTestId("room-board-status-text").props.children)).not.toMatch(/liveNow|live[A-Z]/);
+  });
+
+  it("a failed load does not say 'live floor' either", async () => {
+    board.mockRejectedValue(Object.assign(new Error("down"), { status: 500 }));
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableError")).toBeTruthy(), { timeout: 5000 });
+    expect(screen.getByTestId("room-board-status-text").props.children).toBe("roomBoard.header.unavailable");
+  });
+
+  it("offline with nothing verified says so and does not call the server", async () => {
+    mockAppState.isOnline = false;
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableOffline")).toBeTruthy());
+    expect(board).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("board-tile-101")).toBeNull();
+  });
+
+  it("a forbidden answer is its own message", async () => {
+    board.mockRejectedValue(Object.assign(new Error("no"), { status: 403 }));
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByText("roomBoard.state.unavailableForbidden")).toBeTruthy());
+  });
+
+  it("a verified empty hotel is a distinct message", async () => {
+    board.mockResolvedValue([]);
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByText("roomBoard.state.verifiedEmpty")).toBeTruthy());
+    expect(screen.queryByText("roomBoard.state.unavailableError")).toBeNull();
+  });
+
+  it("the headline counts ready rooms against IN-SERVICE rooms (out-of-order rooms are not 'left to clean')", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    // 10 rooms, 3 out of order → 7 in service, 1 inspected, 1 in progress.
+    expect(screen.getByTestId("room-board-readiness-headline").props.children).toBe(`roomBoard.card.headline:${JSON.stringify({ ready: 1, total: 7 })}`);
+  });
+
+  it("going offline after a good load keeps the rooms but says the board is not live and pauses changes", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    expect(screen.queryByTestId("room-board-not-live")).toBeNull();
+
+    mockAppState.isOnline = false;
+    screen.rerender(ui());
+    await waitFor(() => expect(screen.getByTestId("room-board-not-live")).toBeTruthy());
+    expect(screen.getByText(/roomBoard\.state\.staleOffline/)).toBeTruthy();
+    expect(screen.getByTestId("board-tile-101")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    expect(screen.getByTestId("sheet-disabled").props.children).toBe("true");
+  });
+});
+
+describe("Room Board — assignment correctness", () => {
+  it("a room assigned to someone with no known name is still ASSIGNED (never 'unassigned')", async () => {
+    board.mockResolvedValue([rawRoom("301", "DIRTY", { assigned_to: "ghost-user", assignment_id: null })]);
+    staff.mockResolvedValue(STAFF); // ghost-user is not in the staff list
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-301")).toBeTruthy());
+    expect(screen.getByTestId("board-tile-assignee-301").props.children).toBe("roomBoard.assigneeUnknown");
+    fireEvent.press(screen.getByTestId("board-tile-301"));
+    expect(screen.getByTestId("sheet-assignee").props.children).toBe("roomBoard.assigneeUnknown");
+  });
+
+  it("a failed staff list does not turn assigned rooms into unassigned ones", async () => {
+    board.mockResolvedValue([rawRoom("301", "DIRTY", { assigned_to: "hk-1", assignment_id: "as-1" })]);
+    staff.mockRejectedValue(new Error("staff down"));
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-301")).toBeTruthy());
+    expect(screen.getByTestId("board-tile-assignee-301").props.children).toBe("roomBoard.assigneeUnknown");
+  });
+
+  it("an unassigned room has no assignee label", async () => {
+    board.mockResolvedValue([rawRoom("302", "DIRTY")]);
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-302")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-302"));
+    expect(screen.getByTestId("sheet-assignee").props.children).toBe("NONE");
+  });
+});
+
+describe("Room Board — the open room drawer", () => {
+  it("passes the verified view and the mutation gate, so a stale board pauses changes inside the drawer", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-102")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-102"));
+    const props = mockSheetProps.current as unknown as { view: { room: { roomId: string }; assignee: { name: string } | null }; context: { gate: { allowed: boolean }; timeZone: string } };
+    expect(props.view.room.roomId).toBe("room-102");
+    expect(props.view.assignee?.name).toBe("Ana Torres");
+    expect(props.context.gate.allowed).toBe(true);
+    expect(props.context.timeZone).toBe("America/Chicago");
+  });
+
+  it("closes the drawer and says so when the open room disappears from the verified board", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+
+    board.mockResolvedValue(hotelBoard().filter((row) => row.room_id !== "room-101"));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText("roomBoard.header.refresh"));
+    });
+    await waitFor(() => expect(screen.queryByTestId("room-sheet")).toBeNull());
+    expect(screen.getByTestId("room-board-room-gone")).toBeTruthy();
+    // A different room opens normally and clears the notice.
+    fireEvent.press(screen.getByTestId("board-tile-102"));
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+  });
+
+  it("keeps the same room open, with fresh data, across a refresh that still contains it", async () => {
+    const screen = renderBoard();
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    board.mockResolvedValue(hotelBoard().map((row) => (row.room_id === "room-101" ? { ...row, status: "IN_PROGRESS" } : row)));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText("roomBoard.header.refresh"));
+    });
+    await waitFor(() =>
+      expect((mockSheetProps.current as unknown as { room: { status: string } }).room.status).toBe("IN_PROGRESS"),
+    );
+    expect(screen.getByTestId("room-sheet")).toBeTruthy();
+    expect(screen.queryByTestId("room-board-room-gone")).toBeNull();
+  });
+});

@@ -15,12 +15,18 @@ interface Shared {
   channel: ReturnType<typeof supabase.channel>;
   listeners: Set<Refresh>;
   timer: ReturnType<typeof setTimeout> | null;
+  /** The channel dropped (error / timeout / closed) since it last delivered; events may have been missed. */
+  interrupted: boolean;
+  /** Closed channels never refresh: a late event from a hotel we have left must not reach anyone. */
+  closed: boolean;
 }
 
 let shared: Shared | null = null;
 
 function close(current: Shared) {
+  current.closed = true;
   if (current.timer) clearTimeout(current.timer);
+  current.timer = null;
   supabase.removeChannel(current.channel);
 }
 
@@ -32,19 +38,30 @@ export function subscribeSupervisorRealtime(tenantId: string, refresh: Refresh):
   }
   if (!shared) {
     const listeners = new Set<Refresh>();
-    const next: Shared = { tenantId, listeners, timer: null, channel: undefined as never };
+    const next: Shared = { tenantId, listeners, timer: null, interrupted: false, closed: false, channel: undefined as never };
+    const scheduleRefresh = () => {
+      if (next.closed) return;
+      if (next.timer) clearTimeout(next.timer);
+      next.timer = setTimeout(() => {
+        next.timer = null;
+        // The newest registration; they all refresh the same shared store.
+        const latest = Array.from(listeners).pop();
+        void latest?.();
+      }, REALTIME_DEBOUNCE_MS);
+    };
     next.channel = supabase
       .channel("supervisor-home-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${tenantId}` }, () => {
-        if (next.timer) clearTimeout(next.timer);
-        next.timer = setTimeout(() => {
-          next.timer = null;
-          // The newest registration; they all refresh the same shared store.
-          const latest = Array.from(listeners).pop();
-          void latest?.();
-        }, REALTIME_DEBOUNCE_MS);
-      })
-      .subscribe();
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${tenantId}` }, scheduleRefresh)
+      .subscribe((status: string) => {
+        if (next.closed) return;
+        // Freshness never depends on this channel (an old answer is shown as stale by age), so a drop is
+        // harmless on its own. When the channel is back, catch up on whatever it missed with one refresh.
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") next.interrupted = true;
+        else if (status === "SUBSCRIBED" && next.interrupted) {
+          next.interrupted = false;
+          scheduleRefresh();
+        }
+      });
     shared = next;
   }
   const current = shared;

@@ -53,16 +53,22 @@ jest.mock("@/lib/api/client", () => ({
 jest.mock("@/lib/api/inspections", () => ({
   listInspectionTemplates: jest.fn(),
   submitInspection: jest.fn(),
+  fetchReadyForInspection: jest.fn(),
+}));
+jest.mock("expo-router", () => ({
+  router: { setParams: jest.fn(), back: jest.fn(), canGoBack: () => true },
+  useLocalSearchParams: () => ({}),
 }));
 
 import { api } from "@/lib/api/client";
-import { listInspectionTemplates } from "@/lib/api/inspections";
+import { fetchReadyForInspection, listInspectionTemplates } from "@/lib/api/inspections";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import InspectScreen from "@/app/(app)/inspect";
 
 const mockGet = api.get as jest.Mock;
 const mockTemplates = listInspectionTemplates as jest.Mock;
+const mockQueueFetch = fetchReadyForInspection as jest.Mock;
 
 // InspectScreen consumes useTheme()/useToast(), both of which throw outside their
 // providers — wrap every render the same way _layout.tsx nests them at runtime.
@@ -84,9 +90,8 @@ const mockQueue = [
 beforeEach(() => {
   jest.clearAllMocks();
   mockTemplates.mockResolvedValue({ data: [{ id: "tmpl-1", name: "Standard", items: [] }] });
-  mockGet
-    .mockResolvedValueOnce({ data: mockQueue })
-    .mockResolvedValueOnce({ data: [] });
+  mockQueueFetch.mockResolvedValue(mockQueue);
+  mockGet.mockResolvedValue({ data: [] });
 });
 
 describe("InspectScreen", () => {

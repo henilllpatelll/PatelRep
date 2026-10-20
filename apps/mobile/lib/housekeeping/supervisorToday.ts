@@ -3,11 +3,11 @@ import type { InspectionRecordRaw, ShiftRosterRowRaw } from "@/lib/api/housekeep
 import { hotelDateKey, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import {
   buildFloorSnapshot,
-  normalizeBoardRooms,
   type AssignableStaff,
   type BoardRoomRaw,
   type FloorRoom,
 } from "@/lib/housekeeping/supervisor";
+import { normalizeBoardRecords, type BoardSnapshot } from "@/lib/housekeeping/roomBoardModel";
 import { buildTeamPulse, normalizeRoster, type RosterEntry, type TeamPulse } from "@/lib/housekeeping/supervisorTeam";
 import {
   type SourceState,
@@ -47,13 +47,7 @@ import { buildSupervisorAttention, type SupervisorAttention } from "@/lib/housek
 
 /* ─── Source data ─────────────────────────────────────────────────────────── */
 
-export interface BoardSnapshot {
-  rooms: FloorRoom[];
-  /** Raw rows dropped because they had no room id or room number. */
-  invalidRows: number;
-  /** Raw rows dropped because the same room id appeared twice (first one wins). */
-  duplicateRows: number;
-}
+export type { BoardSnapshot } from "@/lib/housekeeping/roomBoardModel";
 
 export interface TodaySources {
   board: SourceState<BoardSnapshot>;
@@ -75,21 +69,12 @@ export function initialTodaySources(): TodaySources {
 
 /* ─── Normalisers ─────────────────────────────────────────────────────────── */
 
-/** Board rows → rooms, dropping rows that cannot be tied to a room and de-duplicating by room id. */
-export function normalizeBoard(raw: BoardRoomRaw[]): BoardSnapshot {
-  const normalized = normalizeBoardRooms(raw);
-  const seen = new Set<string>();
-  const rooms: FloorRoom[] = [];
-  for (const room of normalized) {
-    if (seen.has(room.roomId)) continue;
-    seen.add(room.roomId);
-    rooms.push(room);
-  }
-  return {
-    rooms,
-    invalidRows: raw.length - normalized.length,
-    duplicateRows: normalized.length - rooms.length,
-  };
+/**
+ * Board rows → rooms. The one board normaliser lives in roomBoardModel.ts so Today and the Room Board can
+ * never disagree about which rows count; `forDate` stamps the snapshot with the hotel date it was asked for.
+ */
+export function normalizeBoard(raw: BoardRoomRaw[], forDate?: string): BoardSnapshot {
+  return normalizeBoardRecords(raw, forDate);
 }
 
 /* ─── Hotel-local date ────────────────────────────────────────────────────── */
@@ -119,8 +104,11 @@ export interface ReadinessSummary {
   progress: number | null;
 }
 
-export function buildReadinessSummary(rooms: FloorRoom[]): ReadinessSummary {
-  const snap = buildFloorSnapshot(rooms);
+export function buildReadinessSummary(
+  rooms: FloorRoom[],
+  options: { nowMs?: number; timeZone?: string | null } = {},
+): ReadinessSummary {
+  const snap = buildFloorSnapshot(rooms, options);
   const inService = snap.total - snap.ooo;
   const unclassified = Math.max(0, inService - snap.ready - snap.submitted - snap.inProgress - snap.toClean);
   const progress = inService > 0 ? Math.min(1, Math.max(0, snap.ready / inService)) : null;
@@ -206,7 +194,7 @@ export function composeSupervisorToday(
     generatedAt: now,
     hotelDate: hotelTodayKey(now, timeZone),
     timeZone,
-    readiness: derive(aged.board, EMPTY_BOARD, (snapshot) => buildReadinessSummary(snapshot.rooms)),
+    readiness: derive(aged.board, EMPTY_BOARD, (snapshot) => buildReadinessSummary(snapshot.rooms, { nowMs: now, timeZone })),
     inspections: derive(aged.inspections, [], buildInspectionMetrics),
     team: derive(aged.board, EMPTY_BOARD, (snapshot) => buildTeamPulse(snapshot.rooms, staff, aged.roster, options.viewerId)),
     attention: buildSupervisorAttention(aged, { now, timeZone }),
@@ -247,7 +235,7 @@ export async function loadTodaySources(
   const date = hotelTodayKey(now, options.timeZone);
   const [board, staff, roster, inspections, blockedTasks] = await Promise.allSettled([
     fetchers.board(date).then((raw) => {
-      const snapshot = normalizeBoard(raw);
+      const snapshot = normalizeBoard(raw, date);
       // Rows came back but none is usable: that is a broken answer, not an empty hotel.
       if (raw.length > 0 && snapshot.rooms.length === 0) throw new Error("Board returned no usable rooms");
       return snapshot;

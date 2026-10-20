@@ -11,6 +11,7 @@ import {
   buildShiftNotePayload,
   readBroadcastResult,
 } from "@/lib/housekeeping/supervisorComms";
+import type { AssignmentRemovalPlan, LateCheckoutRecord } from "@/lib/housekeeping/roomBoardModel";
 import { readSavedHandoff, type EndShiftSummaryPayload, type SavedHandoff } from "@/lib/housekeeping/supervisorHandoff";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
@@ -31,6 +32,12 @@ export async function fetchAssignableStaff(): Promise<AssignableStaff[]> {
 export interface AssignmentInput {
   room_id: string;
   housekeeper_id: string;
+  /**
+   * Compare-and-set: the housekeeper the supervisor saw on the room, or `expect_unassigned` when they saw none.
+   * The server answers 409 instead of overwriting a newer assignment or moving a room whose cleaning started.
+   */
+  expected_assigned_to?: string;
+  expect_unassigned?: boolean;
 }
 
 export async function saveAssignments(
@@ -48,6 +55,28 @@ export async function saveAssignments(
 
 export async function removeAssignment(assignmentId: string): Promise<void> {
   await api.delete(`/housekeeping/assignments/${assignmentId}`);
+}
+
+/**
+ * DELETE /housekeeping/room-assignment/{room_id}: clears the room_status.assigned_to mirror for a room the
+ * board shows as assigned WITHOUT a dated room_assignments row (so there is no assignment id to delete).
+ * gm + housekeeping_supervisor only; tenant-scoped by the server.
+ */
+export async function removeRoomMirrorAssignment(roomId: string): Promise<void> {
+  await api.delete(`/housekeeping/room-assignment/${encodeURIComponent(roomId)}`);
+}
+
+/** Runs the removal `planAssignmentRemoval` chose. A room with nothing to remove is a no-op that says so. */
+export async function removeAssignmentByPlan(plan: AssignmentRemovalPlan): Promise<boolean> {
+  if (plan.kind === "assignment") {
+    await removeAssignment(plan.assignmentId);
+    return true;
+  }
+  if (plan.kind === "mirror") {
+    await removeRoomMirrorAssignment(plan.roomId);
+    return true;
+  }
+  return false;
 }
 
 /* ─── AI workload balancing (suggest → review → commit) ───────────────────── */
@@ -95,6 +124,14 @@ export async function fetchLateCheckouts(): Promise<LateCheckoutRequest[]> {
     "/late-checkout/requests?status=pending&status=approved",
   );
   return res.data ?? [];
+}
+
+/** Strict variant for the Room Board: a payload that is not the documented shape THROWS (never a false "none"). */
+export async function fetchLateCheckoutsVerified(): Promise<LateCheckoutRecord[]> {
+  return requireArray<LateCheckoutRecord>(
+    await api.get("/late-checkout/requests?status=pending&status=approved"),
+    "late checkouts",
+  );
 }
 
 /* ─── Re-clean after failed inspection ────────────────────────────────────── */
