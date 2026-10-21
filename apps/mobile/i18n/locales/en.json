@@ -2076,6 +2076,14 @@
     "guard": {
       "templateChanged": "The inspection checklist changed. Reopen the room and try again.",
       "unavailable": "Couldn't confirm the room is still awaiting inspection. Nothing was sent."
+    },
+    "template": {
+      "unavailable": "Couldn't load the inspection checklists, so this room can't be inspected yet. Pull to refresh and try again.",
+      "no_templates": "This hotel has no inspection checklist yet. Ask a manager to set one up in Settings.",
+      "no_usable_template": "Every inspection checklist is switched off or empty. Ask a manager to fix it in Settings.",
+      "no_default": "No checklist matches this room type and no default checklist is set. Ask a manager to choose one in Settings.",
+      "room_type_unknown": "This room's type isn't known, so the right checklist can't be chosen. Refresh and try again.",
+      "invalid_templates": "The inspection checklists couldn't be read. Refresh and try again."
     }
   },
   "tasks": {

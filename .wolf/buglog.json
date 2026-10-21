@@ -34266,6 +34266,27 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-18T00:00:00Z"
+    },
+    {
+      "id": "bug-2076",
+      "timestamp": "2026-10-21T05:40:00Z",
+      "error_message": "Inspection audit: legacy 'conditional' (touch-up) marked the room INSPECTED, releasing it with the defect outstanding, relying on a dismissible send-back prompt; a failed inspection left no correction task/flag unless that prompt was confirmed; two supervisors could both pass the CLEAN check and inspect one room; complete endpoint could return 500 after the inspection committed (task creation) and had no retry safety",
+      "file": "supabase/migrations/219_inspection_workflow_foundation.sql; apps/api/routers/housekeeping.py; apps/api/services/reclean_corrections.py",
+      "root_cause": "handle_inspection_complete() treated conditional like a pass; correction creation lived only in the separate /reclean endpoint; check-then-insert on room_status with no lock; no idempotency key on the inspection write",
+      "fix": "Trigger now blocks the room (DIRTY) for conditional; every non-pass result creates exactly one correction task (unique tenant_id+source_inspection_id) at submit time; BEFORE INSERT guard trigger locks room_status FOR UPDATE; /complete uses client_submission_id as the inspection id (replay-safe, partial-commit resume); /reclean is idempotent",
+      "tags": [
+        "inspections",
+        "idempotency",
+        "race",
+        "correction",
+        "migration-219",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [
+        "bug-2075"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T05:40:00Z"
     }
   ]
 }

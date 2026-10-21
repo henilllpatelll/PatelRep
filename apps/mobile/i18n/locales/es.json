@@ -2076,6 +2076,14 @@
     "guard": {
       "templateChanged": "La lista de inspección cambió. Vuelve a abrir la habitación e inténtalo de nuevo.",
       "unavailable": "No se pudo confirmar que la habitación siga esperando inspección. No se envió nada."
+    },
+    "template": {
+      "unavailable": "No se pudieron cargar las listas de inspección, así que esta habitación aún no se puede inspeccionar. Desliza para actualizar e inténtalo de nuevo.",
+      "no_templates": "Este hotel aún no tiene una lista de inspección. Pide a un gerente que la configure en Ajustes.",
+      "no_usable_template": "Todas las listas de inspección están desactivadas o vacías. Pide a un gerente que lo corrija en Ajustes.",
+      "no_default": "Ninguna lista corresponde a este tipo de habitación y no hay una lista predeterminada. Pide a un gerente que elija una en Ajustes.",
+      "room_type_unknown": "No se conoce el tipo de esta habitación, así que no se puede elegir la lista correcta. Actualiza e inténtalo de nuevo.",
+      "invalid_templates": "No se pudieron leer las listas de inspección. Actualiza e inténtalo de nuevo."
     }
   },
   "tasks": {

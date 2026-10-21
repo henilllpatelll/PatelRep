@@ -2087,8 +2087,9 @@ async def list_ready_for_inspection(
 
 def _previous_failures_for_reinspection(hotel_id: str, flagged_room_ids: list[str]) -> dict[str, dict]:
     """For rooms with an open correction, the failed inspection they are being re-checked against."""
-    details = load_reclean_details(supabase, hotel_id, flagged_room_ids)
-    failed = {room_id: d for room_id, d in details.items() if d.get("overall_result") == "failed"}
+    # `reclean_requested_at` is only set by a correction, so a flagged room's latest failed/conditional inspection
+    # is the one being corrected (a conditional since migration 219 is a touch-up that blocks the room).
+    failed = load_reclean_details(supabase, hotel_id, flagged_room_ids)
     if not failed:
         return {}
     kinds = {
@@ -2234,17 +2235,21 @@ async def submit_inspection(
         raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
     from_status = current_rs.data.get("status", "CLEAN")
     current_clean_type = current_rs.data.get("clean_type")
-    to_status = "DIRTY" if request.overall_result == "failed" else "INSPECTED"
+    # Only a pass releases the room. A failure and the legacy "conditional" (minor touch-up) both block it.
+    to_status = "INSPECTED" if request.overall_result == "passed" else "DIRTY"
 
+    legacy_row = {
+        "tenant_id": current_user.hotel_id,
+        "room_id": str(request.room_id),
+        "template_id": str(request.template_id) if request.template_id else None,
+        "inspected_by": current_user.user_id,
+        "overall_result": request.overall_result,
+        "notes": request.notes,
+    }
+    if request.overall_result != "passed":
+        legacy_row["correction_kind"] = "touch_up" if request.overall_result == "conditional" else "reclean"
     try:
-        inspection = supabase.table("inspections").insert({
-            "tenant_id": current_user.hotel_id,
-            "room_id": str(request.room_id),
-            "template_id": str(request.template_id) if request.template_id else None,
-            "inspected_by": current_user.user_id,
-            "overall_result": request.overall_result,
-            "notes": request.notes,
-        }).execute()
+        inspection = supabase.table("inspections").insert(legacy_row).execute()
     except Exception as exc:  # noqa: BLE001
         # The DB guard (migration 219) fires when another supervisor inspected the room between our check and insert.
         if getattr(exc, "code", None) == "P0001" or "room_not_awaiting_inspection" in str(exc):
@@ -2296,6 +2301,15 @@ async def submit_inspection(
             .eq("room_id", str(request.room_id))\
             .eq("tenant_id", current_user.hotel_id)\
             .execute()
+    else:
+        # A failure and the legacy "conditional" touch-up both block the room (see migration 219) and so both own
+        # exactly one correction task, created now rather than depending on a later, dismissible prompt. The
+        # screen's "send back" step finds this task and returns it instead of creating a second one.
+        _correction_for_inspection(
+            {**inspection.data[0], "correction_kind": legacy_row.get("correction_kind")},
+            current_user,
+            _room_number(current_user.hotel_id, str(request.room_id)),
+        )
 
     return {"data": inspection.data[0]}
 
@@ -2563,7 +2577,7 @@ async def _complete_inspection(
         open_failure = None
         if room_status.get("reclean_requested_at"):
             details = load_reclean_details(supabase, hotel_id, [room_id]).get(room_id)
-            if details and details.get("overall_result") == "failed":
+            if details:
                 open_failure = details["inspection_id"]
         if request.reinspection_of and str(request.reinspection_of) != open_failure:
             raise RuleViolation("correction_changed", "The correction for this room changed since you opened it. Review it again.", 409)

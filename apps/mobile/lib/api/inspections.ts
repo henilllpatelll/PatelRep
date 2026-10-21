@@ -1,9 +1,37 @@
-import { api } from "./client";
+import { api, ApiError } from "./client";
+
+/* ─── Inspection API ────────────────────────────────────────────────────────
+   Two pathways exist on the server:
+
+   • POST /housekeeping/inspections            — legacy, JSON. The shipped Inspect screen still uses it.
+   • POST /housekeeping/inspections/complete   — validated, multipart, idempotent. The redesigned workflow uses it
+     (`completeInspection` below). The client mints `client_submission_id`; the server stores it AS the inspection's
+     id, so resubmitting the same id can never record a second inspection.
+
+   Everything here is a thin, typed wrapper. Rules and decisions live in lib/inspections/*. */
+
+export interface InspectionTemplateItem {
+  id: string;
+  section: string;
+  description: string;
+  is_required: boolean;
+  /** A failed result needs linked photo evidence. Absent on very old servers → treated as false. */
+  requires_photo_on_fail?: boolean;
+  /** Explicit per-item N/A policy. Absent on older servers → N/A allowed (the previous behaviour). */
+  allows_na?: boolean;
+  sort_order?: number;
+}
 
 export interface InspectionTemplate {
   id: string;
   name: string;
-  items: { id: string; section: string; description: string; is_required: boolean }[];
+  /** null = applies to every room type. */
+  room_type_id?: string | null;
+  is_default?: boolean;
+  is_active?: boolean;
+  /** Opaque digest of the checklist. Echo it back on completion so a mid-inspection edit is detected by the server. */
+  fingerprint?: string;
+  items: InspectionTemplateItem[];
 }
 
 export async function listInspectionTemplates(): Promise<{ data: InspectionTemplate[] }> {
@@ -15,6 +43,7 @@ export interface InspectionItem {
   result: "pass" | "fail" | "na";
 }
 
+/** Legacy JSON submit — kept for the shipped screen. New work uses `completeInspection`. */
 export async function submitInspection(payload: {
   room_id: string;
   template_id?: string;
@@ -29,6 +58,18 @@ export async function submitInspection(payload: {
   return { id: res.data?.id ?? "" };
 }
 
+export type CorrectionKind = "touch_up" | "reclean";
+
+/** What failed last time, for a room that is back in the queue to be re-checked. */
+export interface PreviousFailure {
+  inspection_id: string;
+  inspected_at: string | null;
+  overall_result: string;
+  notes: string | null;
+  correction_kind: CorrectionKind | null;
+  items: { id: string | null; label: string; note: string | null }[];
+}
+
 /** A room waiting for inspection, as GET /housekeeping/ready-for-inspection returns it (this hotel only). */
 export interface ReadyRoom {
   room_id: string;
@@ -38,10 +79,157 @@ export interface ReadyRoom {
   cleaned_at: string | null;
   housekeeper_id: string | null;
   clean_type: string | null;
+  /** Which checklist applies. Absent on servers older than migration 219. */
+  room_type_id?: string | null;
+  /** Identifies this "cleaned, awaiting inspection" cycle; null when it cannot be determined (then not checked). */
+  clean_cycle_id?: string | null;
+  /** Set when this room is being re-checked after a failed inspection. */
+  previous_failure?: PreviousFailure | null;
 }
 
 /** `date` is the hotel's business date; the server uses it to find who was assigned to each room. */
 export async function fetchReadyForInspection(date: string): Promise<ReadyRoom[]> {
   const res = await api.get<{ data: ReadyRoom[] | null }>(`/housekeeping/ready-for-inspection?date=${encodeURIComponent(date)}`);
   return res.data ?? [];
+}
+
+/** Strict read for the redesigned flow: a body that is not the documented list THROWS instead of reading as "nothing to inspect". */
+export async function fetchReadyForInspectionVerified(date: string): Promise<ReadyRoom[]> {
+  const res = await api.get<{ data?: unknown }>(`/housekeeping/ready-for-inspection?date=${encodeURIComponent(date)}`);
+  if (!res || !Array.isArray(res.data)) throw new Error("Malformed inspection queue response");
+  return res.data as ReadyRoom[];
+}
+
+/* ─── Validated completion ─────────────────────────────────────────────── */
+
+export type ItemSeverity = "minor" | "major";
+
+export interface CompletionItem {
+  template_item_id: string;
+  result: "pass" | "fail" | "na";
+  note?: string;
+  /** Only on failed items. Unset = not classified (the server treats it as major). */
+  severity?: ItemSeverity;
+}
+
+/** The JSON half of the multipart request. Every field after `items` is a guard the server checks. */
+export interface CompletionBody {
+  room_id: string;
+  template_id: string;
+  overall_result: "passed" | "failed";
+  notes?: string;
+  items: CompletionItem[];
+  client_submission_id: string;
+  template_fingerprint?: string;
+  expected_hotel_id?: string;
+  expected_clean_cycle_id?: string;
+  reinspection_of?: string;
+}
+
+export interface CompletionPhoto {
+  itemId: string;
+  uri: string;
+}
+
+/**
+ * Send a completed checklist. Resolves with the raw body (parse it with `parseCompletionResponse`: a 200 with an
+ * unexpected body is NOT a success). Rejects with `ApiError` when the server answered with an error, or a plain
+ * `Error` when there was no answer at all — in which case the inspection MAY have been recorded.
+ */
+export async function completeInspection(body: CompletionBody, photos: readonly CompletionPhoto[] = []): Promise<unknown> {
+  const form = new FormData();
+  form.append("inspection", JSON.stringify(body));
+  // The server pairs photo_item_ids[i] with photos[i], so they are appended in lock step.
+  for (const photo of photos) {
+    form.append("photo_item_ids", photo.itemId);
+    form.append("photos", { uri: photo.uri, type: "image/jpeg", name: `${photo.itemId}.jpg` } as unknown as Blob);
+  }
+  return api.postForm<unknown>("/housekeeping/inspections/complete", form);
+}
+
+/* ─── Reads ─────────────────────────────────────────────────────────────── */
+
+export type CorrectionStatus =
+  | "correction_missing"
+  | "unassigned"
+  | "assigned"
+  | "in_progress"
+  | "escalated"
+  | "resubmitted"
+  | "verified"
+  | "superseded"
+  | "cancelled";
+
+export interface InspectionDetailItem {
+  template_item_id: string | null;
+  section: string | null;
+  description: string | null;
+  is_required: boolean | null;
+  requires_photo_on_fail: boolean | null;
+  result: "pass" | "fail" | "na" | string;
+  note: string | null;
+  severity: ItemSeverity | null;
+  photo_url: string | null;
+}
+
+export interface InspectionCorrection {
+  status: CorrectionStatus;
+  reinspection_id: string | null;
+  kind: CorrectionKind | null;
+  task: {
+    id: string;
+    status: string;
+    priority: string | null;
+    assigned_to: string | null;
+    assigned_name: string | null;
+    due_at: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+  } | null;
+}
+
+export interface InspectionDetail {
+  id: string;
+  room_id: string;
+  room_number: string | null;
+  floor: number | null;
+  room_type_id: string | null;
+  template_id: string | null;
+  template_name: string | null;
+  /** `conditional` only appears on historical rows. */
+  overall_result: "passed" | "failed" | "conditional" | string;
+  notes: string | null;
+  completed_at: string | null;
+  inspected_by: string | null;
+  inspector_name: string | null;
+  correction_kind: CorrectionKind | null;
+  reinspection_of: string | null;
+  items: InspectionDetailItem[];
+  correction: InspectionCorrection | null;
+}
+
+export async function fetchInspectionDetail(inspectionId: string): Promise<InspectionDetail> {
+  const res = await api.get<{ data: InspectionDetail }>(`/housekeeping/inspections/${encodeURIComponent(inspectionId)}`);
+  if (!res?.data || typeof res.data.id !== "string") throw new Error("Malformed inspection response");
+  return res.data;
+}
+
+export type SubmissionReadBack = { status: "found"; detail: InspectionDetail } | { status: "not_found" };
+
+/**
+ * "Did my submission land?" The only authoritative answer after a lost response. `not_found` is definitive for
+ * now (nothing recorded under that id by this person in this hotel); any other failure throws and leaves the
+ * caller uncertain.
+ */
+export async function fetchInspectionSubmission(submissionId: string): Promise<SubmissionReadBack> {
+  try {
+    const res = await api.get<{ data: InspectionDetail }>(
+      `/housekeeping/inspections/submissions/${encodeURIComponent(submissionId)}`,
+    );
+    if (!res?.data || typeof res.data.id !== "string") throw new Error("Malformed inspection response");
+    return { status: "found", detail: res.data };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return { status: "not_found" };
+    throw error;
+  }
 }

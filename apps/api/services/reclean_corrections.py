@@ -362,8 +362,10 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
         )
 
     correction = None
-    if insp.get("overall_result") == "failed":
-        task = fetch_correction_task(client, hotel_id, inspection_id)
+    task = fetch_correction_task(client, hotel_id, inspection_id)
+    if insp.get("overall_result") == "failed" or (
+        insp.get("overall_result") == "conditional" and (insp.get("correction_kind") or task is not None)
+    ):
         status_row = (
             client.table("room_status")
             .select("status, reclean_requested_at")

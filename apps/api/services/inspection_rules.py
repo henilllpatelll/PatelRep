@@ -167,6 +167,10 @@ def validate_answers(
     if missing:
         raise RuleViolation("required_items_unanswered", f"{len(missing)} required items still need review.", missing_item_ids=[str(m) for m in missing])
 
+    if not answers:
+        # A checklist whose items are all optional must still be reviewed: zero answers is not evidence of a pass.
+        raise RuleViolation("no_answers", "Review at least one checklist item before completing the inspection")
+
     for item_id, answer in answers.items():
         if answer["result"] != "na":
             continue
@@ -236,10 +240,14 @@ def derive_correction_status(
     """Where a failed inspection's correction stands, from persisted facts only.
 
     ``followups`` are the room's inspections completed after ``inspection``. Returns ``None`` for
-    inspections that did not fail (including historical ``conditional`` rows, which never created a
-    blocking correction). ``reinspection_id`` is the verifying/superseding inspection when there is one.
+    inspections that did not need correcting (passes, and historical ``conditional`` rows, which released the room
+    and never created a correction). ``reinspection_id`` is the verifying/superseding inspection when there is one.
     """
-    if inspection.get("overall_result") != "failed":
+    result = inspection.get("overall_result")
+    # Historical `conditional` rows released the room and never owned a correction. Since migration 219 a conditional
+    # (touch-up) blocks the room and records its kind, so one with a kind - or a task - has a correction to report.
+    correctable = result == "failed" or (result == "conditional" and (inspection.get("correction_kind") or task is not None))
+    if not correctable:
         return None
 
     ordered = sorted(followups, key=lambda f: str(f.get("completed_at") or ""))
@@ -271,7 +279,8 @@ def correction_task_fields(kind: str, room_number: str, failed_labels: list[str]
     """Title / description / SLA for the correction task of a failed inspection."""
     verb = "Touch-up" if kind == "touch_up" else "Re-clean"
     lines = [f"- {label}" for label in failed_labels]
-    description = "Inspection failed." + (f" {notes.strip()}" if notes and notes.strip() else "")
+    lead = "Touch-up needed after inspection." if kind == "touch_up" else "Inspection failed."
+    description = lead + (f" {notes.strip()}" if notes and notes.strip() else "")
     if lines:
         description += "\nFix:\n" + "\n".join(lines)
     return {

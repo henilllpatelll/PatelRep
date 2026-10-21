@@ -45,9 +45,10 @@ class _TriggerQuery(FakeQuery):
                 raise PgError("room_not_awaiting_inspection", "P0001")
             # the column default the real table applies, strictly increasing so "later inspection" is well defined
             self.db.clock += 1
-            self.payload = {"completed_at": f"2026-10-20T10:{self.db.clock:02d}:00+00:00", **payload}
+            self.payload = {"id": str(uuid4()), "completed_at": f"2026-10-20T10:{self.db.clock:02d}:00+00:00", **payload}
             result = super().execute()
-            room_status["status"] = "DIRTY" if payload["overall_result"] == "failed" else "INSPECTED"
+            # handle_inspection_complete() as of migration 219: only a pass releases the room
+            room_status["status"] = "INSPECTED" if payload["overall_result"] == "passed" else "DIRTY"
             return result
         if self.action == "insert" and self.table_name == "tasks":
             self.payload = {"status": "open", **self.payload}  # the column default the real table applies
@@ -646,8 +647,40 @@ def test_legacy_conditional_cannot_carry_a_failed_item_or_release_a_defect(clien
     assert env.db.rows["inspections"] == []
 
 
-def test_legacy_conditional_without_failures_is_unchanged(client, env):
-    assert _legacy(client, env, overall_result="conditional").status_code == 200
+def test_legacy_conditional_touch_up_blocks_the_room_and_owns_one_correction(client, env):
+    res = _legacy(client, env, overall_result="conditional", notes="Smudge on the desk")
+    assert res.status_code == 200
+    # It used to mark the room INSPECTED and rely on a prompt the supervisor could dismiss.
+    assert env.db.rows["room_status"][0]["status"] == "DIRTY" and env.db.rows["room_status"][0]["reclean_requested_at"]
+    inspection = env.db.rows["inspections"][0]
+    assert inspection["overall_result"] == "conditional" and inspection["correction_kind"] == "touch_up"
+    task = env.db.rows["tasks"][0]
+    assert task["title"] == "Touch-up Room 204" and task["source_inspection_id"] == inspection["id"] and task["assigned_to"] == "hk-1"
+    assert "Smudge on the desk" in task["description"]
+    # the screen's own "send back" step finds the task instead of making another
+    again = client.post(f"/v1/housekeeping/inspections/{inspection['id']}/reclean", json={}, headers=_auth())
+    assert again.status_code == 200 and again.json()["data"]["created"] is False and len(env.db.rows["tasks"]) == 1
+    read = client.get(f"/v1/housekeeping/inspections/{inspection['id']}", headers=_auth())
+    assert read.status_code == 200, read.text
+    detail = read.json()["data"]
+    assert detail["correction"]["status"] == "assigned" and detail["correction"]["kind"] == "touch_up"
+
+
+def test_legacy_failure_creates_its_correction_without_waiting_for_the_prompt(client, env):
+    items = [{"template_item_id": i, "result": "pass"} for i in env.items.values()]
+    items[0]["result"] = "fail"
+    assert _legacy(client, env, overall_result="failed", items=items).status_code == 200
+    assert len(env.db.rows["tasks"]) == 1 and env.db.rows["inspections"][0]["correction_kind"] == "reclean"
+
+
+def test_a_room_back_in_the_queue_after_a_touch_up_is_a_reinspection_of_it(client, env):
+    _legacy(client, env, overall_result="conditional")
+    inspection_id = env.db.rows["inspections"][0]["id"]
+    env.db.rows["room_status"][0]["status"] = "CLEAN"
+    res = _post(client, env, _payload(env))
+    assert res.status_code == 200 and res.json()["data"]["reinspection_of"] == inspection_id
+    assert env.db.rows["tasks"][0]["status"] == "completed"
+    assert env.db.rows["room_status"][0]["status"] == "INSPECTED"
 
 
 def test_legacy_failed_then_reclean_creates_one_task_and_never_two(client, env):

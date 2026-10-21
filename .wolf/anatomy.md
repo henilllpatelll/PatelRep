@@ -716,7 +716,12 @@
 - `components/housekeeping/roomDetail/*.tsx` — Phase 4 Room Detail pieces: header, before/needs-attention/active/submitted/ready/unavailable views, checklist, timer, linen sheet, complete sheet, info sheet, report/more sheet, sticky actions, BottomSheet. (~20k tok)
 - `components/housekeeping/KnockModal.tsx` — knock protocol: per-step acknowledgement, restricted stop notice, cancel, can't-enter hand-off. (~1.5k tok)
 - `supabase/migrations/208_clean_session_linen_counts.sql` — nullable jsonb room_clean_sessions.linen_counts. (~0.2k tok)
-- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist. (~1k tok)
+- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist, plus the supervisor-side lifecycle: ensure_correction_task (one per failed inspection, retry-safe), resolve_correction_task, latest_clean_cycles, load_inspection_detail. (~3k tok)
+- `apps/api/services/inspection_rules.py` — pure inspection rules shared by the completion endpoint and read models: template fingerprint/applicability, validate_answers/validate_photo_links, touch-up vs re-clean, derive_correction_status. Conformance table: apps/api/tests/fixtures/inspection_rules.json. (~3k tok)
+- `apps/api/core/errors.py` — CodedHTTPException: plain-string detail + stable `code`/extras in the body (handler in main.py). (~0.2k tok)
+- `supabase/migrations/219_inspection_workflow_foundation.sql` — additive: severity, allows_na, correction_kind, reinspection_of, template_fingerprint, tasks.source_inspection_id (unique), guard_inspection_room_state trigger, conditional now blocks the room. (~1.5k tok)
+- `apps/mobile/lib/inspections/` — Supervisor Inspections foundation (pure): types, templates (normalise/select/edit detection), checklist, validation (mirror of server rules), submission (payload, idempotent submit, outcome classification, read-back), workflow (phase state machine), corrections, draft, queue, useInspectionQueue hook. (~12k tok total)
+- `apps/mobile/lib/api/inspections.ts` — typed inspection API: templates (fingerprint, allows_na), queue (room_type_id, clean_cycle_id, previous_failure), completeInspection (multipart), fetchInspectionDetail/Submission. (~2k tok)
 
 ## apps/api/routers/ (Housekeeper Tasks Phase 1)
 - `task_lifecycle.py` - GET /tasks/mine|available|mine/completed (cursor, deterministic sort), POST /tasks/{id}/start|complete (replay-safe, audited). Include before tasks.router. (~4k tok)

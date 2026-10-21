@@ -18,6 +18,10 @@
 --                                      can never create a second one
 --   * guard_inspection_room_state()    serialises concurrent inspections of one
 --                                      room under a row lock
+--   * handle_inspection_complete()     a legacy "conditional" (touch-up) result no
+--                                      longer releases the room: it blocks it (DIRTY)
+--                                      exactly like a failure, so no result with an
+--                                      outstanding defect can mark a room INSPECTED
 --
 -- inspections.id itself is the client-supplied submission id on the completion
 -- endpoint (same pattern as tasks / work orders), so no extra idempotency
@@ -107,3 +111,26 @@ DROP TRIGGER IF EXISTS guard_inspection_room_state ON public.inspections;
 CREATE TRIGGER guard_inspection_room_state
   BEFORE INSERT ON public.inspections
   FOR EACH ROW EXECUTE FUNCTION public.guard_inspection_room_state();
+
+-- ---------------------------------------------------------------------------
+-- A "conditional" (minor touch-up) result used to move the room to INSPECTED,
+-- i.e. release it with the defect still outstanding, relying on a prompt the
+-- supervisor could dismiss. It now blocks the room exactly like a failure; the
+-- API creates the matching touch-up correction. Only passes release a room.
+-- Same signature, SECURITY INVOKER and search_path as migration 036.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.handle_inspection_complete()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
+BEGIN
+  IF NEW.overall_result = 'passed' THEN
+    UPDATE room_status SET
+      status = 'INSPECTED', last_inspected_at = NOW(),
+      last_inspected_by = NEW.inspected_by, updated_at = NOW()
+    WHERE room_id = NEW.room_id;
+  ELSIF NEW.overall_result IN ('failed', 'conditional') THEN
+    UPDATE room_status SET status = 'DIRTY', updated_at = NOW()
+    WHERE room_id = NEW.room_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;

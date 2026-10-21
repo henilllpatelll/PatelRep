@@ -27,7 +27,7 @@ import { router as mockRouter } from "expo-router";
 import { api } from "@/lib/api/client";
 import { fetchReadyForInspection, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
-import { ToastProvider } from "@/lib/theme/ToastProvider";
+import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useAppStore } from "@/stores/appStore";
 import InspectScreen from "@/app/(app)/inspect";
 
@@ -38,12 +38,23 @@ const mockSubmit = submitInspection as jest.Mock;
 const t = makeTranslator("en");
 
 const room = (n: string) => ({ room_id: `room-${n}`, room_number: n, floor: 1, cleaned_by: `Cleaner ${n}`, cleaned_at: null, housekeeper_id: null, clean_type: null });
+/** A checklist as the API returns it: the property default with at least one item (an empty checklist can approve nothing). */
+const standard = (id: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  name: "Standard",
+  room_type_id: null,
+  is_default: true,
+  is_active: true,
+  items: [{ id: `${id}-bed`, section: "General", description: "Bed made", is_required: true }],
+  ...extra,
+});
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
 function renderScreen() {
   return render(
     <ThemeProvider>
       <ToastProvider>
+        <ToastViewport topOffset={0} />
         <InspectScreen />
       </ToastProvider>
     </ThemeProvider>,
@@ -55,7 +66,7 @@ beforeEach(() => {
   mockParams = {};
   mockQueue.mockResolvedValue([room("103"), room("203")]);
   mockGet.mockResolvedValue({ data: [] });
-  mockTemplates.mockResolvedValue({ data: [{ id: "t1", name: "Standard", items: [] }] });
+  mockTemplates.mockResolvedValue({ data: [standard("t1")] });
   mockSubmit.mockResolvedValue({ id: "insp-1" });
   useAppStore.setState({ hotelTimezone: "America/Chicago" } as never);
 });
@@ -210,7 +221,7 @@ describe("safety before an inspection is sent", () => {
     const screen = renderScreen();
     await flush();
     await startPass(screen);
-    mockTemplates.mockResolvedValue({ data: [{ id: "t2", name: "New", items: [] }] });
+    mockTemplates.mockResolvedValue({ data: [standard("t2")] });
     await act(async () => fireEvent.press(confirmButton(screen)));
     await flush();
     expect(mockSubmit).not.toHaveBeenCalled();
@@ -243,5 +254,85 @@ describe("hotel date", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe("which checklist a room gets", () => {
+  const typedRoom = (n: string, typeId: string | null) => ({ ...room(n), room_type_id: typeId });
+  const press = async (screen: ReturnType<typeof renderScreen>, testId: string, label: string) => {
+    await act(async () => fireEvent.press(within(screen.getByTestId(testId)).getByLabelText(label)));
+    await flush();
+  };
+  const confirmPass = async (screen: ReturnType<typeof renderScreen>) => {
+    const all = screen.getAllByLabelText("Confirm Pass");
+    await act(async () => fireEvent.press(all[all.length - 1]));
+    await flush();
+  };
+
+  it("uses the checklist configured for the room's own type, not whichever the server listed first", async () => {
+    mockQueue.mockResolvedValue([typedRoom("203", "type-suite")]);
+    mockTemplates.mockResolvedValue({
+      data: [
+        standard("t-default"),
+        standard("t-king", { name: "King", is_default: false, room_type_id: "type-king" }),
+        standard("t-suite", { name: "Suite", is_default: false, room_type_id: "type-suite" }),
+      ],
+    });
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    await confirmPass(screen);
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ room_id: "room-203", template_id: "t-suite" }));
+  });
+
+  it("falls back to the property default when nothing matches the room type", async () => {
+    mockQueue.mockResolvedValue([typedRoom("203", "type-suite")]);
+    mockTemplates.mockResolvedValue({ data: [standard("t-king", { is_default: false, room_type_id: "type-king" }), standard("t-default")] });
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    await confirmPass(screen);
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ template_id: "t-default" }));
+  });
+
+  it("with no usable checklist it says why and does not open a sheet that could send a result", async () => {
+    mockQueue.mockResolvedValue([typedRoom("203", "type-suite")]);
+    mockTemplates.mockResolvedValue({ data: [standard("t-default", { is_active: false })] });
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    expect(screen.queryByText("Pass Room 203?")).toBeNull();
+    expect(screen.getByText(t("inspect.template.no_usable_template"))).toBeTruthy();
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not guess when the room type is unknown and a type-specific checklist exists", async () => {
+    mockQueue.mockResolvedValue([typedRoom("203", null)]);
+    mockTemplates.mockResolvedValue({ data: [standard("t-default"), standard("t-suite", { is_default: false, room_type_id: "type-suite" })] });
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    expect(screen.queryByText("Pass Room 203?")).toBeNull();
+    expect(screen.getByText(t("inspect.template.room_type_unknown"))).toBeTruthy();
+  });
+
+  it("when the checklists could not be loaded it says so instead of 'no checklist'", async () => {
+    mockTemplates.mockRejectedValue(new Error("offline"));
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    expect(screen.queryByText("Pass Room 203?")).toBeNull();
+    expect(screen.getByText(t("inspect.template.unavailable"))).toBeTruthy();
+  });
+
+  it("a checklist edited while the sheet was open (same id, new digest) stops the send", async () => {
+    mockTemplates.mockResolvedValue({ data: [standard("t1", { fingerprint: "fp-1" })] });
+    const screen = renderScreen();
+    await flush();
+    await press(screen, "inspect-203", "Confirm Pass");
+    mockTemplates.mockResolvedValue({ data: [standard("t1", { fingerprint: "fp-2" })] });
+    await confirmPass(screen);
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText(t("inspect.guard.templateChanged"))).toBeTruthy();
   });
 });

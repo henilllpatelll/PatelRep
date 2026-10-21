@@ -21,7 +21,9 @@ import { useToast } from "@/lib/theme/useToast";
 import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { api } from "@/lib/api/client";
-import { fetchReadyForInspection, type InspectionTemplate, listInspectionTemplates, type ReadyRoom, submitInspection } from "@/lib/api/inspections";
+import { fetchReadyForInspection, listInspectionTemplates, type ReadyRoom, submitInspection } from "@/lib/api/inspections";
+import { normalizeTemplates, selectTemplate } from "@/lib/inspections/templates";
+import type { ChecklistTemplate } from "@/lib/inspections/types";
 import { triggerReclean } from "@/lib/api/housekeepingSupervisor";
 import { hotelTodayKey } from "@/lib/housekeeping/supervisorToday";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
@@ -73,7 +75,10 @@ export default function InspectScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<Tab>("queue");
-  const [template, setTemplate] = useState<InspectionTemplate | undefined>();
+  // Every checklist the hotel has, and the one chosen for the room whose confirmation is open. A room gets its own
+  // room type's checklist or the property default (lib/inspections/templates); never simply "the first one returned".
+  const [catalog, setCatalog] = useState<{ templates: ChecklistTemplate[]; unreadable: number; loaded: boolean }>({ templates: [], unreadable: 0, loaded: false });
+  const [template, setTemplate] = useState<ChecklistTemplate | undefined>();
   const [confirm, setConfirm] = useState<{ room: ReadyRoom; result: "passed" | "failed" | "conditional" } | null>(null);
   const [confirmNotes, setConfirmNotes] = useState("");
   const [failedItems, setFailedItems] = useState<Record<string, boolean>>({});
@@ -110,8 +115,9 @@ export default function InspectScreen() {
       setQueueVerified(false);
     }
     if (recordsRes.status === "fulfilled") setRecords(recordsRes.value.data ?? []);
-    if (templatesRes.status === "fulfilled" && templatesRes.value.data.length > 0) {
-      setTemplate(templatesRes.value.data[0]);
+    if (templatesRes.status === "fulfilled") {
+      const { templates, invalid } = normalizeTemplates(templatesRes.value.data);
+      setCatalog({ templates, unreadable: invalid, loaded: true });
     }
     setLoading(false);
   }, [businessDate]);
@@ -183,11 +189,25 @@ export default function InspectScreen() {
     [queue.length, loading, t, theme],
   );
 
-  const openConfirm = useCallback((room: ReadyRoom, result: "passed" | "failed" | "conditional") => {
-    setConfirm({ room, result });
-    setConfirmNotes("");
-    setFailedItems({});
-  }, []);
+  const openConfirm = useCallback(
+    (room: ReadyRoom, result: "passed" | "failed" | "conditional") => {
+      // No checklist, no inspection: an unusable or ambiguous configuration is named, never papered over with a guess.
+      if (!catalog.loaded) {
+        toast.error(t("inspect.template.unavailable"));
+        return;
+      }
+      const selection = selectTemplate(catalog.templates, room.room_type_id, { unreadable: catalog.unreadable });
+      if (!selection.ok) {
+        toast.error(t(`inspect.template.${selection.reason}`));
+        return;
+      }
+      setTemplate(selection.template);
+      setConfirm({ room, result });
+      setConfirmNotes("");
+      setFailedItems({});
+    },
+    [catalog, toast, t],
+  );
 
   const dropFocus = useCallback(() => router.setParams({ roomId: undefined, roomNumber: undefined }), []);
 
@@ -206,6 +226,7 @@ export default function InspectScreen() {
       const guard = await checkBeforeInspecting({
         roomId: room.room_id,
         templateId: template?.id,
+        templateFingerprint: template?.fingerprint ?? undefined,
         date: businessDate(),
         fetchQueue: fetchReadyForInspection,
         fetchTemplates: listInspectionTemplates,

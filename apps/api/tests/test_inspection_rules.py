@@ -131,9 +131,18 @@ def _status(task=None, room=None, followups=()):
     return derive_correction_status(FAILED, task, room, followups)
 
 
-def test_passed_and_conditional_inspections_have_no_correction():
+def test_passes_and_historical_conditional_rows_have_no_correction():
     assert derive_correction_status({"id": "x", "overall_result": "passed"}, None, None, []) is None
+    # released the room and never owned a correction
     assert derive_correction_status({"id": "x", "overall_result": "conditional"}, None, None, []) is None
+
+
+def test_a_touch_up_conditional_since_migration_219_has_a_correction_like_a_failure():
+    touch_up = {"id": "x", "overall_result": "conditional", "correction_kind": "touch_up", "completed_at": "2026-10-20T10:00:00+00:00"}
+    assert derive_correction_status(touch_up, None, None, [])["status"] == "correction_missing"
+    assert derive_correction_status(touch_up, {"status": "open", "assigned_to": "hk-1"}, None, [])["status"] == "assigned"
+    # a conditional with a task but no kind (task created by the old send-back prompt) is correctable too
+    assert derive_correction_status({"id": "x", "overall_result": "conditional"}, {"status": "open"}, None, [])["status"] == "unassigned"
 
 
 def test_failed_inspection_without_a_task_needs_repair():

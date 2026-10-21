@@ -77,10 +77,10 @@ async def test_submit_inspection_pass_clears_pending_reclean_flag(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_submit_inspection_fail_does_not_touch_reclean_flag_directly(monkeypatch):
-    # The flag is set by the separate /reclean endpoint, not by submit_inspection
-    # itself -- a failed inspection alone (without triggering reclean) should not
-    # silently flip the flag.
+async def test_submit_inspection_fail_creates_its_correction_and_flags_the_room(monkeypatch):
+    # Contract change (inspection redesign, phase 1): a failed inspection used to leave the room unflagged and
+    # task-less until a supervisor confirmed a separate "send back" prompt - which they could dismiss. A failure now
+    # owns exactly one correction task from the moment it is recorded; the later /reclean call returns that same task.
     db = make_db()
     monkeypatch.setattr(hk_router, "supabase", db)
 
@@ -93,10 +93,15 @@ async def test_submit_inspection_fail_does_not_touch_reclean_flag_directly(monke
             InspectionResultItem(template_item_id=TEMPLATE_ITEM_MIRROR, result="fail", note=None),
         ],
     )
-    await hk_router.submit_inspection(body, SUPERVISOR)
+    result = await hk_router.submit_inspection(body, SUPERVISOR)
 
-    assert current_room(db)["reclean_requested_at"] is None
+    assert current_room(db)["reclean_requested_at"] is not None
     assert len(db.rows["inspection_results"]) == 2
+    tasks = [t for t in db.rows.get("tasks", []) if t.get("source_inspection_id") == result["data"]["id"]]
+    assert len(tasks) == 1
+    again = await hk_router.trigger_reclean(result["data"]["id"], SUPERVISOR)
+    assert again["data"]["created"] is False
+    assert len([t for t in db.rows.get("tasks", []) if t.get("source_inspection_id") == result["data"]["id"]]) == 1
 
 
 @pytest.mark.asyncio
