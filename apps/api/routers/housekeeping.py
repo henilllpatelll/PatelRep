@@ -9,6 +9,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from dateutil import tz
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
+    CompleteInspectionRequest,
     CreateAssignmentsRequest,
     RoomAssignmentItem,
     SubmitInspectionRequest,
@@ -16,7 +17,24 @@ from models.requests import (
     EndShiftSummaryRequest,
 )
 from core.database import supabase
-from services.reclean_corrections import load_reclean_details
+from core.errors import CodedHTTPException
+from services.reclean_corrections import (
+    ensure_correction_task,
+    fetch_correction_task,
+    is_unique_violation,
+    latest_clean_cycles,
+    load_inspection_detail,
+    load_reclean_details,
+    resolve_correction_task,
+)
+from services.inspection_rules import (
+    RuleViolation,
+    sort_template_items,
+    template_applies_to_room,
+    template_fingerprint,
+    validate_answers,
+    validate_photo_links,
+)
 from services.notify import send_push
 from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
@@ -1993,7 +2011,7 @@ async def list_ready_for_inspection(
 
     result = (
         supabase.table("room_status")
-        .select("room_id, status, updated_at, rooms!inner(room_number, floor)")
+        .select("room_id, status, updated_at, reclean_requested_at, rooms!inner(room_number, floor, room_type_id)")
         .eq("tenant_id", current_user.hotel_id)
         .eq("status", "CLEAN")
         .execute()
@@ -2004,6 +2022,10 @@ async def list_ready_for_inspection(
         return {"data": []}
 
     room_ids = [r["room_id"] for r in clean_rooms]
+    clean_cycles = latest_clean_cycles(supabase, current_user.hotel_id, room_ids)
+    previous_failures = _previous_failures_for_reinspection(
+        current_user.hotel_id, [r["room_id"] for r in clean_rooms if r.get("reclean_requested_at")]
+    )
 
     # Resolve assigned_to UUIDs from today's assignments
     assignments_res = (
@@ -2050,11 +2072,36 @@ async def list_ready_for_inspection(
             "cleaned_at": room.get("updated_at"),
             "housekeeper_id": assigned_to,
             "clean_type": clean_type_map.get(room["room_id"]),
+            # Authoritative facts the mobile inspection flow needs and must not guess:
+            # which template applies (room type), which clean cycle this row is (staleness),
+            # and, for a room being re-checked after a failure, exactly what failed.
+            "room_type_id": room_info.get("room_type_id"),
+            "clean_cycle_id": clean_cycles.get(room["room_id"]),
+            "previous_failure": previous_failures.get(room["room_id"]),
         })
 
     output.sort(key=lambda r: (r["floor"] or 0, r["room_number"]))
     _attach_last_clean_session(output, current_user.hotel_id, today)
     return {"data": output}
+
+
+def _previous_failures_for_reinspection(hotel_id: str, flagged_room_ids: list[str]) -> dict[str, dict]:
+    """For rooms with an open correction, the failed inspection they are being re-checked against."""
+    details = load_reclean_details(supabase, hotel_id, flagged_room_ids)
+    failed = {room_id: d for room_id, d in details.items() if d.get("overall_result") == "failed"}
+    if not failed:
+        return {}
+    kinds = {
+        row["id"]: row.get("correction_kind")
+        for row in (
+            supabase.table("inspections")
+            .select("id, correction_kind")
+            .eq("tenant_id", hotel_id)
+            .in_("id", [d["inspection_id"] for d in failed.values()])
+            .execute()
+        ).data or []
+    }
+    return {room_id: {**d, "correction_kind": kinds.get(d["inspection_id"])} for room_id, d in failed.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -2149,6 +2196,10 @@ async def submit_inspection(
     # performs the full template/evidence validation before this write path.
     if request.overall_result == "passed" and (not request.template_id or not request.items):
         raise HTTPException(status_code=422, detail="A passed inspection requires a completed checklist")
+    # A pass (or the historical "conditional" pass-with-notes) must never carry a failed item: that would
+    # release a room with a recorded defect. Historical conditional rows stay readable; new ones cannot hide a fail.
+    if request.overall_result in ("passed", "conditional") and any(item.result == "fail" for item in request.items):
+        raise HTTPException(status_code=422, detail="An inspection with a failed item cannot be recorded as passed")
     # A checklist from another hotel (or an item from a different checklist) must never be recorded on this
     # hotel's inspection, whatever the client sends.
     if request.template_id:
@@ -2185,14 +2236,20 @@ async def submit_inspection(
     current_clean_type = current_rs.data.get("clean_type")
     to_status = "DIRTY" if request.overall_result == "failed" else "INSPECTED"
 
-    inspection = supabase.table("inspections").insert({
-        "tenant_id": current_user.hotel_id,
-        "room_id": str(request.room_id),
-        "template_id": str(request.template_id) if request.template_id else None,
-        "inspected_by": current_user.user_id,
-        "overall_result": request.overall_result,
-        "notes": request.notes,
-    }).execute()
+    try:
+        inspection = supabase.table("inspections").insert({
+            "tenant_id": current_user.hotel_id,
+            "room_id": str(request.room_id),
+            "template_id": str(request.template_id) if request.template_id else None,
+            "inspected_by": current_user.user_id,
+            "overall_result": request.overall_result,
+            "notes": request.notes,
+        }).execute()
+    except Exception as exc:  # noqa: BLE001
+        # The DB guard (migration 219) fires when another supervisor inspected the room between our check and insert.
+        if getattr(exc, "code", None) == "P0001" or "room_not_awaiting_inspection" in str(exc):
+            raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
+        raise
 
     inspection_id = inspection.data[0]["id"]
 
@@ -2243,6 +2300,112 @@ async def submit_inspection(
     return {"data": inspection.data[0]}
 
 
+INSPECTION_PHOTO_BUCKET = "work-order-photos"
+_PHOTO_EXTENSIONS = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}
+
+
+def _discard_uploads(paths: list[str]) -> None:
+    """Best effort: a failed attempt must not leave evidence for an inspection that never existed."""
+    if not paths:
+        return
+    try:
+        supabase.storage.from_(INSPECTION_PHOTO_BUCKET).remove(paths)
+    except Exception:  # noqa: BLE001 - orphaned objects are harmless; the attempt's error is what matters
+        logger.warning("Could not remove %d orphaned inspection photo(s)", len(paths), exc_info=True)
+
+
+def _find_submitted_inspection(inspection_id: str, current_user: CurrentUser, room_id: str) -> Optional[dict]:
+    """The inspection already stored under this submission id, for THIS supervisor, hotel and room.
+
+    Looked up by id alone first: a row that belongs to another hotel/user/room is a 409 (the id is spent),
+    never a replay and never a leak of that row.
+    """
+    found = supabase.table("inspections").select("*").eq("id", inspection_id).limit(1).execute()
+    row = (found.data or [None])[0] if found else None
+    if row is None:
+        return None
+    if (
+        row.get("tenant_id") != current_user.hotel_id
+        or row.get("inspected_by") != current_user.user_id
+        or str(row.get("room_id")) != room_id
+    ):
+        raise RuleViolation("submission_conflict", "This submission id has already been used", 409)
+    return row
+
+
+def _assignment_date_today(hotel_id: str) -> str:
+    return datetime.now(_hotel_zone(hotel_id)).date().isoformat()
+
+
+def _failed_labels(hotel_id: str, inspection_id: str) -> list[str]:
+    rows = (
+        supabase.table("inspection_results")
+        .select("template_item_id, note")
+        .eq("inspection_id", inspection_id)
+        .eq("tenant_id", hotel_id)
+        .eq("result", "fail")
+        .execute()
+    ).data or []
+    ids = [r["template_item_id"] for r in rows if r.get("template_item_id")]
+    names = {}
+    if ids:
+        names = {
+            i["id"]: i["description"]
+            for i in (
+                supabase.table("inspection_template_items").select("id, description").eq("tenant_id", hotel_id).in_("id", ids).execute()
+            ).data or []
+        }
+    return [names.get(r.get("template_item_id")) or (r.get("note") or "").strip() for r in rows if names.get(r.get("template_item_id")) or (r.get("note") or "").strip()]
+
+
+def _correction_for_inspection(insp: dict, current_user: CurrentUser, room_number: str) -> dict:
+    """Make sure a failed inspection has its correction task; never raises.
+
+    The inspection is already committed, so a failure here must not turn into an error response that
+    makes the client think nothing was saved. It is reported as `status: "failed"` and healed by the
+    next retry of the same submission (or by POST /inspections/{id}/reclean), which dedupes.
+    """
+    try:
+        outcome = ensure_correction_task(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            user_id=current_user.user_id,
+            inspection_id=insp["id"],
+            room_id=str(insp["room_id"]),
+            room_number=room_number,
+            kind=insp.get("correction_kind") or "reclean",
+            failed_labels=_failed_labels(current_user.hotel_id, insp["id"]),
+            notes=insp.get("notes"),
+            assignment_date=_assignment_date_today(current_user.hotel_id),
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Correction task could not be created for inspection %s", insp.get("id"))
+        return {"status": "failed", "task": None}
+    task = outcome.get("task")
+    if task is None:
+        return {"status": "failed", "task": None}
+    return {"status": "created" if outcome["created"] else "existing", "task": task}
+
+
+def _completion_payload(insp: dict, *, replayed: bool, correction: Optional[dict]) -> dict:
+    failed = insp.get("overall_result") == "failed"
+    return {
+        "data": {
+            "id": insp["id"],
+            "overall_result": insp.get("overall_result"),
+            "reclean_requested": failed,
+            "inspection": insp,
+            "replayed": replayed,
+            "correction_kind": insp.get("correction_kind"),
+            "reinspection_of": insp.get("reinspection_of"),
+            "correction": correction,
+            # False means the inspection is saved but a follow-up step (the correction task) is still
+            # missing; resubmitting the same client_submission_id finishes it without duplicating anything.
+            "followup_complete": (not failed) or bool(correction and correction.get("status") in ("created", "existing")),
+        }
+    }
+
+
 @router.post("/inspections/complete")
 async def complete_inspection(
     inspection: str = Form(...),
@@ -2252,127 +2415,295 @@ async def complete_inspection(
 ):
     """Finalize a checklist inspection only after all required evidence uploads.
 
-    Evidence is written before the inspection row so a storage failure can never
-    transition the room or dispatch a re-clean. The row is inserted only once
-    the checklist and its evidence are complete.
+    Order of operations, and what each failure leaves behind:
+
+    1. Validate everything that can be validated without writing (checklist, template, photos, room).
+    2. Upload evidence to storage (deterministic paths, so a retry overwrites instead of duplicating).
+       A failure here discards what was uploaded and writes nothing else.
+    3. Insert the inspection row. Its id is the client's submission id, so the same submission can only
+       exist once; a BEFORE INSERT trigger re-checks the room under a row lock, so two supervisors cannot
+       both inspect one clean room. The existing AFTER INSERT trigger moves the room to INSPECTED / DIRTY.
+    4. Insert the item results. If this fails the inspection exists without answers; the next retry of the
+       same submission sees that and finishes it instead of starting over.
+    5. Follow-ups (history, clearing the old correction on a pass, creating the correction task on a failure)
+       are idempotent and never turn a committed inspection into an error response.
+
+    Storage and Postgres cannot share a transaction, so steps 2 and 3 are not atomic; the ordering above
+    guarantees the only possible leftovers are orphaned photo objects (harmless) or a committed inspection
+    that a retry completes.
     """
     try:
-        request = SubmitInspectionRequest.model_validate(json.loads(inspection))
+        request = CompleteInspectionRequest.model_validate(json.loads(inspection))
     except Exception as exc:
         raise HTTPException(status_code=422, detail="Invalid inspection checklist payload") from exc
+    try:
+        return await _complete_inspection(request, photo_item_ids, photos, current_user)
+    except RuleViolation as violation:
+        # detail stays a plain string (the web drawer renders it); `code` + extras ride along in the body.
+        raise CodedHTTPException(violation.status_code, violation.message, violation.code, **violation.extra) from violation
 
+
+async def _complete_inspection(
+    request: CompleteInspectionRequest,
+    photo_item_ids: list[str],
+    photos: list[UploadFile],
+    current_user: CurrentUser,
+):
+    hotel_id = current_user.hotel_id
+    room_id = str(request.room_id)
+    if request.expected_hotel_id and str(request.expected_hotel_id) != str(hotel_id):
+        raise RuleViolation("hotel_mismatch", "You are signed in to a different hotel than this inspection was started for", 409)
+
+    inspection_id = str(request.client_submission_id) if request.client_submission_id else str(uuid4())
+    existing = _find_submitted_inspection(inspection_id, current_user, room_id)
+    stored_item_ids: set[str] = set()
+    if existing is not None:
+        stored = (
+            supabase.table("inspection_results")
+            .select("template_item_id")
+            .eq("inspection_id", inspection_id)
+            .eq("tenant_id", hotel_id)
+            .execute()
+        ).data or []
+        stored_item_ids = {r["template_item_id"] for r in stored if r.get("template_item_id")}
+        if stored_item_ids:
+            # Fully committed earlier (our reply was lost, or the person tapped twice): read it back as-is.
+            # The checklist is not re-validated - it may have legitimately changed since.
+            correction = None
+            if existing.get("overall_result") == "failed":
+                correction = {"status": "existing", "task": fetch_correction_task(supabase, hotel_id, inspection_id)}
+                if correction["task"] is None and not _has_followup_inspection(hotel_id, existing):
+                    correction = _correction_for_inspection(existing, current_user, _room_number(hotel_id, room_id))
+            return _completion_payload(existing, replayed=True, correction=correction)
+
+    room = (
+        supabase.table("rooms")
+        .select("room_number, room_type_id")
+        .eq("id", room_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_row = room.data if room else None
+    if not room_row:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    template_id = str(request.template_id) if request.template_id else None
     template = (
         supabase.table("inspection_templates")
-        .select("id")
-        .eq("id", str(request.template_id))
-        .eq("tenant_id", current_user.hotel_id)
+        .select("id, room_type_id, is_default")
+        .eq("id", template_id)
+        .eq("tenant_id", hotel_id)
         .eq("is_active", True)
         .maybe_single()
         .execute()
-    ) if request.template_id else None
+    ) if template_id else None
     if not template or not template.data:
-        raise HTTPException(status_code=422, detail="No inspection checklist is configured for this room")
+        raise RuleViolation("no_checklist", "No inspection checklist is configured for this room")
+    if not template_applies_to_room(template.data, room_row.get("room_type_id")):
+        raise RuleViolation("template_not_applicable", "This checklist is not meant for this room type")
 
-    template_items_result = (
+    template_items = sort_template_items(
         supabase.table("inspection_template_items")
-        .select("id, is_required, requires_photo_on_fail")
-        .eq("template_id", str(request.template_id))
-        .eq("tenant_id", current_user.hotel_id)
+        .select("id, section, description, is_required, requires_photo_on_fail, allows_na, sort_order")
+        .eq("template_id", template_id)
+        .eq("tenant_id", hotel_id)
         .execute()
+        .data
+        or []
     )
-    template_items = template_items_result.data or []
-    if not template_items:
-        raise HTTPException(status_code=422, detail="No inspection checklist is configured for this room")
+    fingerprint = template_fingerprint(template.data, template_items)
+    if request.template_fingerprint and request.template_fingerprint != fingerprint:
+        raise RuleViolation("template_changed", "The checklist changed while you were inspecting. Reload it and review the room again.", 409)
 
-    template_item_ids = {item["id"] for item in template_items}
-    submitted_by_id = {str(item.template_item_id): item for item in request.items if item.template_item_id}
-    unknown_ids = set(submitted_by_id) - template_item_ids
-    if unknown_ids:
-        raise HTTPException(status_code=422, detail="Inspection includes an item outside this checklist")
-    missing_required = [item["id"] for item in template_items if item.get("is_required") and item["id"] not in submitted_by_id]
-    if missing_required:
-        raise HTTPException(status_code=422, detail=f"{len(missing_required)} required items still need review.")
-
-    failed_ids = {item_id for item_id, item in submitted_by_id.items() if item.result == "fail"}
-    derived_result = "failed" if failed_ids else "passed"
-    if request.overall_result != derived_result:
-        raise HTTPException(status_code=422, detail="Inspection result must match checklist results")
-
-    if len(photo_item_ids) != len(photos) or len(set(photo_item_ids)) != len(photo_item_ids):
-        raise HTTPException(status_code=422, detail="Each inspection photo must be linked to one checklist item")
-    photos_by_item = dict(zip(photo_item_ids, photos))
-    required_photo_ids = {
-        item["id"] for item in template_items
-        if item.get("requires_photo_on_fail") and item["id"] in failed_ids
-    }
-    if not required_photo_ids.issubset(photos_by_item):
-        raise HTTPException(status_code=422, detail="Required failed-item photos must finish uploading before submission")
-    if not set(photos_by_item).issubset(failed_ids):
-        raise HTTPException(status_code=422, detail="Inspection photos can only be attached to failed items")
-
-    current_rs = (
-        supabase.table("room_status")
-        .select("status, clean_type")
-        .eq("room_id", str(request.room_id))
-        .eq("tenant_id", current_user.hotel_id)
-        .maybe_single()
-        .execute()
+    validated = validate_answers(
+        template_items,
+        [item.model_dump(mode="json") for item in request.items],
+        claimed_result=request.overall_result,
     )
-    if not current_rs or not current_rs.data:
-        raise HTTPException(status_code=404, detail="Room status not found")
-    if current_rs.data.get("status") != "CLEAN":
-        raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
+    validate_photo_links(template_items, validated.failed_item_ids, photo_item_ids, len(photos))
+    if existing is not None and existing.get("overall_result") != validated.result:
+        raise RuleViolation("submission_conflict", "This submission id was already used for a different result", 409)
 
-    inspection_id = str(uuid4())
-    photo_urls: dict[str, str] = {}
-    for template_item_id, photo in photos_by_item.items():
+    prepared_photos: dict[str, tuple[bytes, str]] = {}
+    for item_id, photo in zip(photo_item_ids, photos):
         if photo.content_type not in ALLOWED_INSPECTION_PHOTO_TYPES:
             raise HTTPException(status_code=400, detail="Only JPEG, PNG, or WebP images are allowed")
         file_bytes = await photo.read(MAX_INSPECTION_PHOTO_BYTES + 1)
         if len(file_bytes) > MAX_INSPECTION_PHOTO_BYTES:
             raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
-        extension = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}[photo.content_type]
-        path = f"{current_user.hotel_id}/inspections/{inspection_id}/{template_item_id}.{extension}"
-        supabase.storage.from_("work-order-photos").upload(path, file_bytes, {"content-type": photo.content_type, "upsert": "false"})
-        photo_urls[template_item_id] = supabase.storage.from_("work-order-photos").get_public_url(path)
+        prepared_photos[item_id] = (file_bytes, photo.content_type)
 
-    from_status = current_rs.data.get("status", "CLEAN")
-    current_clean_type = current_rs.data.get("clean_type")
-    completed = supabase.table("inspections").insert({
-        "id": inspection_id,
-        "tenant_id": current_user.hotel_id,
-        "room_id": str(request.room_id),
-        "template_id": str(request.template_id),
-        "inspected_by": current_user.user_id,
-        "overall_result": derived_result,
-        "notes": request.notes,
-    }).execute()
-    result_rows = [{
-        "inspection_id": inspection_id,
-        "template_item_id": item_id,
-        "tenant_id": current_user.hotel_id,
-        "result": item.result,
-        "note": item.note,
-        **({"photo_url": photo_urls[item_id]} if item_id in photo_urls else {}),
-    } for item_id, item in submitted_by_id.items()]
-    if result_rows:
-        supabase.table("inspection_results").insert(result_rows).execute()
+    status_row = (
+        supabase.table("room_status")
+        .select("status, clean_type, reclean_requested_at")
+        .eq("room_id", room_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_status = status_row.data if status_row else None
+    if not room_status:
+        raise HTTPException(status_code=404, detail="Room status not found")
 
-    to_status = "DIRTY" if derived_result == "failed" else "INSPECTED"
-    supabase.table("room_status_history").insert({
-        "room_id": str(request.room_id), "tenant_id": current_user.hotel_id,
-        "from_status": from_status, "to_status": to_status,
-        "changed_by": current_user.user_id, "change_source": "app", "notes": request.notes,
-    }).execute()
-    if derived_result == "passed":
-        update_data = {"reclean_requested_at": None}
-        if current_clean_type == "DEP":
+    reinspection_of = existing.get("reinspection_of") if existing is not None else None
+    if existing is None:
+        if room_status.get("status") != "CLEAN":
+            raise RuleViolation(
+                "room_not_awaiting_inspection",
+                "Room must be clean before it can be inspected",
+                409,
+                room_status=room_status.get("status"),
+            )
+        if request.expected_clean_cycle_id:
+            current_cycle = latest_clean_cycles(supabase, hotel_id, [room_id]).get(room_id)
+            # No recorded cycle means it cannot be checked, not that it is stale.
+            if current_cycle is not None and current_cycle != str(request.expected_clean_cycle_id):
+                raise RuleViolation("room_changed_since_review", "This room was cleaned again after you opened it. Review it again.", 409)
+        open_failure = None
+        if room_status.get("reclean_requested_at"):
+            details = load_reclean_details(supabase, hotel_id, [room_id]).get(room_id)
+            if details and details.get("overall_result") == "failed":
+                open_failure = details["inspection_id"]
+        if request.reinspection_of and str(request.reinspection_of) != open_failure:
+            raise RuleViolation("correction_changed", "The correction for this room changed since you opened it. Review it again.", 409)
+        reinspection_of = open_failure
+
+    uploaded_paths: list[str] = []
+    photo_urls: dict[str, str] = {}
+    try:
+        for item_id, (file_bytes, content_type) in prepared_photos.items():
+            path = f"{hotel_id}/inspections/{inspection_id}/{item_id}.{_PHOTO_EXTENSIONS[content_type]}"
+            # upsert: the path is unique to this submission, so a retry overwrites its own earlier upload.
+            supabase.storage.from_(INSPECTION_PHOTO_BUCKET).upload(path, file_bytes, {"content-type": content_type, "upsert": "true"})
+            uploaded_paths.append(path)
+            photo_urls[item_id] = supabase.storage.from_(INSPECTION_PHOTO_BUCKET).get_public_url(path)
+    except Exception:  # noqa: BLE001
+        logger.exception("Inspection photo upload failed for submission %s", inspection_id)
+        _discard_uploads(uploaded_paths)
+        raise RuleViolation("photo_upload_failed", "Photos could not be uploaded, so nothing was recorded. Try again.", 502)
+
+    if existing is None:
+        row = {
+            "id": inspection_id,
+            "tenant_id": hotel_id,
+            "room_id": room_id,
+            "template_id": template_id,
+            "inspected_by": current_user.user_id,
+            "overall_result": validated.result,
+            "notes": request.notes,
+            "template_fingerprint": fingerprint,
+        }
+        if validated.correction_kind:
+            row["correction_kind"] = validated.correction_kind
+        if reinspection_of:
+            row["reinspection_of"] = reinspection_of
+        try:
+            inserted = supabase.table("inspections").insert(row).execute()
+        except Exception as exc:  # noqa: BLE001
+            if is_unique_violation(exc):
+                # The same submission is already being written by another request. Leave its photos alone.
+                raise RuleViolation("submission_in_progress", "This inspection is already being saved. Check the room before submitting again.", 409)
+            _discard_uploads(uploaded_paths)
+            if getattr(exc, "code", None) == "P0001" or "room_not_awaiting_inspection" in str(exc):
+                raise RuleViolation("room_not_awaiting_inspection", "Room must be clean before it can be inspected", 409)
+            raise
+        existing = (inserted.data or [row])[0]
+
+    result_rows = [
+        {
+            "inspection_id": inspection_id,
+            "template_item_id": item_id,
+            "tenant_id": hotel_id,
+            "result": answer["result"],
+            "note": answer["note"],
+            **({"severity": answer["severity"]} if answer["severity"] else {}),
+            **({"photo_url": photo_urls[item_id]} if item_id in photo_urls else {}),
+        }
+        for item_id, answer in validated.answers.items()
+        if item_id not in stored_item_ids
+    ]
+    try:
+        if result_rows:
+            supabase.table("inspection_results").insert(result_rows).execute()
+    except Exception:  # noqa: BLE001
+        logger.exception("Inspection %s saved but its results were not", inspection_id)
+        raise RuleViolation(
+            "inspection_incomplete",
+            "The inspection was saved but its checklist answers were not. Submit again to finish it.",
+            500,
+        )
+
+    # -- follow-ups: idempotent, and never an error once the inspection is committed -----------------------
+    to_status = "DIRTY" if validated.result == "failed" else "INSPECTED"
+    try:
+        supabase.table("room_status_history").insert({
+            "room_id": room_id, "tenant_id": hotel_id,
+            "from_status": "CLEAN", "to_status": to_status,
+            "changed_by": current_user.user_id, "change_source": "app", "notes": request.notes,
+        }).execute()
+    except Exception:  # noqa: BLE001 - audit trail only; the room status itself is set by the DB trigger
+        logger.exception("Room status history not written for inspection %s", inspection_id)
+
+    correction = None
+    if validated.result == "passed":
+        update_data: dict = {"reclean_requested_at": None}
+        if room_status.get("clean_type") == "DEP":
             update_data["stay_reset_at"] = datetime.now(timezone.utc).isoformat()
-        supabase.table("room_status").update(update_data).eq("room_id", str(request.room_id)).eq("tenant_id", current_user.hotel_id).execute()
+        try:
+            supabase.table("room_status").update(update_data).eq("room_id", room_id).eq("tenant_id", hotel_id).execute()
+            if reinspection_of:
+                resolve_correction_task(supabase, hotel_id, reinspection_of)
+        except Exception:  # noqa: BLE001
+            logger.exception("Post-pass room cleanup failed for inspection %s", inspection_id)
     else:
-        await trigger_reclean(inspection_id, current_user)
+        correction = _correction_for_inspection(existing, current_user, room_row.get("room_number") or room_id)
 
-    return {"data": {"id": inspection_id, "overall_result": derived_result, "reclean_requested": derived_result == "failed", "inspection": completed.data[0] if completed.data else None}}
+    return _completion_payload(existing, replayed=False, correction=correction)
+
+
+def _room_number(hotel_id: str, room_id: str) -> str:
+    row = supabase.table("rooms").select("room_number").eq("id", room_id).eq("tenant_id", hotel_id).maybe_single().execute()
+    return ((row.data if row else None) or {}).get("room_number") or room_id
+
+
+def _has_followup_inspection(hotel_id: str, insp: dict) -> bool:
+    later = (
+        supabase.table("inspections")
+        .select("id")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", str(insp["room_id"]))
+        .gte("completed_at", insp.get("completed_at") or "")
+        .neq("id", insp["id"])
+        .limit(1)
+        .execute()
+    ).data or []
+    return bool(later)
+
+
+@router.get("/inspections/submissions/{client_submission_id}")
+async def read_back_inspection_submission(
+    client_submission_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Authoritative answer to "did my submission land?" after a lost response.
+
+    200 with the stored inspection when it committed, 404 when nothing was recorded under this id for this
+    supervisor in this hotel. Because the id is the inspection's primary key, a 404 followed by a resubmit
+    of the same id cannot produce a duplicate even if the original request is still in flight.
+    """
+    try:
+        UUID(client_submission_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Inspection submission not found")
+    found = supabase.table("inspections").select("id, inspected_by").eq("id", client_submission_id).eq("tenant_id", current_user.hotel_id).limit(1).execute()
+    row = (found.data or [None])[0] if found else None
+    if row is None or row.get("inspected_by") != current_user.user_id:
+        raise HTTPException(status_code=404, detail="Inspection submission not found")
+    detail = load_inspection_detail(supabase, current_user.hotel_id, client_submission_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Inspection submission not found")
+    return {"data": detail}
 
 
 # ---------------------------------------------------------------------------
@@ -2386,10 +2717,15 @@ async def trigger_reclean(
         require_role("gm", "housekeeping_supervisor")
     ),
 ):
-    """After a failed inspection, reset room to DIRTY and create a re-clean task."""
+    """Send a failed/conditional inspection's room back for correction. Safe to repeat.
+
+    A failed inspection owns exactly one correction task (unique per inspection in the database). A second
+    call, a retry, or a call after the completion endpoint already created it returns that task and leaves the
+    room alone, so it can never reset a room whose correction is already under way.
+    """
     inspection_row = (
         supabase.table("inspections")
-        .select("room_id, overall_result, notes, inspected_by")
+        .select("room_id, overall_result, notes, inspected_by, correction_kind")
         .eq("id", inspection_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -2397,56 +2733,28 @@ async def trigger_reclean(
     )
     if not inspection_row or not inspection_row.data:
         raise HTTPException(status_code=404, detail="Inspection not found")
-    insp = inspection_row.data
+    insp = {**inspection_row.data, "id": inspection_id}
     if insp.get("overall_result") not in ("failed", "conditional"):
         raise HTTPException(status_code=400, detail="Only failed/conditional inspections can trigger re-clean")
 
     room_id = insp["room_id"]
+    hotel_id = current_user.hotel_id
+    already = fetch_correction_task(supabase, hotel_id, inspection_id)
+    if already is not None:
+        return {"data": {"room_id": room_id, "task": already, "created": False}}
 
-    # Find today's housekeeper assignment for this room
-    today_iso = date.today().isoformat()
-    assign_row = (
-        supabase.table("room_assignments")
-        .select("assigned_to")
-        .eq("tenant_id", current_user.hotel_id)
-        .eq("room_id", room_id)
-        .eq("assignment_date", today_iso)
-        .maybe_single()
-        .execute()
+    # First request for this inspection. A conditional pass released the room (INSPECTED); a failed one is
+    # already DIRTY. Only a room that is still released is pulled back - never one already being corrected.
+    current = (
+        supabase.table("room_status").select("status").eq("room_id", room_id).eq("tenant_id", hotel_id).maybe_single().execute()
     )
-    original_housekeeper = (assign_row.data or {}).get("assigned_to") if assign_row else None
+    if current and current.data and current.data.get("status") in ("CLEAN", "INSPECTED"):
+        supabase.table("room_status").update({"status": "DIRTY"}).eq("room_id", room_id).eq("tenant_id", hotel_id).execute()
 
-    # Reset room status to DIRTY and flag the room as a re-clean so My
-    # Rooms/Team Plan can surface it (roomState.ts reads reclean_requested_at).
-    supabase.table("room_status").update({
-        "status": "DIRTY",
-        "reclean_requested_at": datetime.now(timezone.utc).isoformat(),
-    })\
-        .eq("room_id", room_id)\
-        .eq("tenant_id", current_user.hotel_id)\
-        .execute()
-
-    room_row = supabase.table("rooms").select("room_number").eq("id", room_id).maybe_single().execute()
-    room_number = (room_row.data or {}).get("room_number", room_id) if room_row else room_id
-    fail_notes = insp.get("notes") or ""
-    task_title = f"Re-clean Room {room_number}"
-    task_desc = f"Inspection failed. {fail_notes}".strip() if fail_notes else "Inspection failed — room needs re-cleaning."
-
-    task_data = {
-        "tenant_id": current_user.hotel_id,
-        "title": task_title,
-        "description": task_desc,
-        "task_type": "housekeeping",
-        "priority": "urgent",
-        "room_id": room_id,
-        "assigned_to": original_housekeeper,
-        "created_by": current_user.user_id,
-        "sla_minutes": 60,
-        "due_at": datetime.now(timezone.utc).isoformat(),
-    }
-    task = supabase.table("tasks").insert(task_data).execute()
-
-    return {"data": {"room_id": room_id, "task": task.data[0] if task.data else None}}
+    outcome = _correction_for_inspection(insp, current_user, _room_number(hotel_id, room_id))
+    if outcome["task"] is None:
+        raise HTTPException(status_code=500, detail="The correction task could not be created. Try again.")
+    return {"data": {"room_id": room_id, "task": outcome["task"], "created": outcome["status"] == "created"}}
 
 
 # ---------------------------------------------------------------------------
@@ -2551,7 +2859,7 @@ async def list_inspection_templates(
     for tmpl in template_rows:
         items = (
             supabase.table("inspection_template_items")
-            .select("id, section, description, is_required, requires_photo_on_fail, sort_order")
+            .select("id, section, description, is_required, requires_photo_on_fail, allows_na, sort_order")
             .eq("template_id", tmpl["id"])
             .eq("tenant_id", current_user.hotel_id)
             .order("sort_order")
@@ -2565,7 +2873,33 @@ async def list_inspection_templates(
     if not any(template.get("items") for template in result):
         result.insert(0, _create_standard_inspection_template(current_user.hotel_id))
 
-    return {"data": result}
+    # `fingerprint` is opaque to clients: they echo it back on completion so a checklist edited while an
+    # inspection was in progress is detected by the server rather than guessed at on the phone.
+    return {"data": [{**t, "fingerprint": template_fingerprint(t, t.get("items") or [])} for t in result]}
+
+
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/{inspection_id}
+# ---------------------------------------------------------------------------
+
+@router.get("/inspections/{inspection_id}")
+async def get_inspection(
+    inspection_id: str,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """One inspection with every answer, its evidence and the state of its correction.
+
+    Registered after the fixed `/inspections/templates` and `/inspections/submissions/...` GET routes so
+    those literal paths are never captured as an id.
+    """
+    try:
+        UUID(inspection_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    detail = load_inspection_detail(supabase, current_user.hotel_id, inspection_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    return {"data": detail}
 
 
 # ---------------------------------------------------------------------------
