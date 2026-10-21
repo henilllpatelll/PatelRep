@@ -2062,7 +2062,8 @@
     "result": {
       "passed": "Aprobado",
       "failed": "Reprobado",
-      "conditional": "Condicional"
+      "conditional": "Condicional",
+      "unknown": "Registrada"
     },
     "focus": {
       "heading": "Inspeccionando habitación {{room}}",
@@ -2084,6 +2085,218 @@
       "no_default": "Ninguna lista corresponde a este tipo de habitación y no hay una lista predeterminada. Pide a un gerente que elija una en Ajustes.",
       "room_type_unknown": "No se conoce el tipo de esta habitación, así que no se puede elegir la lista correcta. Actualiza e inténtalo de nuevo.",
       "invalid_templates": "No se pudieron leer las listas de inspección. Actualiza e inténtalo de nuevo."
+    },
+    "header": {
+      "kicker": "Limpieza · Hoy",
+      "refresh": "Actualizar",
+      "refreshing": "Actualizando…",
+      "refreshA11y": "Actualizar inspecciones"
+    },
+    "status": {
+      "loading": "Revisando la cola…",
+      "liveNow": "En vivo · Actualizado ahora",
+      "liveSeconds": "En vivo · Actualizado hace {{count}} s",
+      "liveMinutes": "En vivo · Actualizado hace {{count}} min",
+      "liveClock": "En vivo · Actualizado {{time}}",
+      "stale": "Desactualizado · Última revisión {{time}}",
+      "offline": "Sin conexión · Última revisión {{time}}",
+      "offlineNone": "Sin conexión · Aún no se ha revisado nada",
+      "unavailable": "No se pudo revisar la cola"
+    },
+    "metric": {
+      "waiting": "En espera",
+      "corrections": "Correcciones",
+      "passed": "Aprobadas",
+      "unavailable": "—",
+      "unavailableA11y": "no disponible",
+      "atLeast": "{{count}}+",
+      "atLeastA11y": "al menos {{count}}",
+      "a11y": "{{label}}: {{value}}"
+    },
+    "search": {
+      "placeholder": "Buscar habitación…",
+      "label": "Buscar por número de habitación",
+      "clear": "Borrar búsqueda",
+      "openFilters": "Filtrar y ordenar",
+      "openFiltersActive": "Filtrar y ordenar, {{active}} activos"
+    },
+    "tabs": {
+      "label": "Listas de inspección",
+      "queue": "Por inspeccionar",
+      "corrections": "Correcciones",
+      "done": "Hechas",
+      "a11y": "{{label}}, {{count}}",
+      "a11yUnknown": "{{label}}, cantidad no disponible"
+    },
+    "chips": {
+      "showing": "Mostrando {{shown}} de {{total}} habitaciones",
+      "showingOne": "Mostrando {{shown}} de {{total}} habitación",
+      "clearAll": "Borrar todo",
+      "remove": "Quitar filtro {{label}}",
+      "ignored": "Un filtro seleccionado no tiene datos registrados por ahora, así que no se aplica.",
+      "sortLabel": "Ordenado por {{sort}}"
+    },
+    "filter": {
+      "title": "Filtrar y ordenar",
+      "close": "Cerrar",
+      "reset": "Restablecer",
+      "show": "Mostrar {{count}} habitación",
+      "show_plural": "Mostrar {{count}} habitaciones",
+      "priorityTitle": "Prioridad",
+      "floorTitle": "Piso",
+      "typeTitle": "Tipo de inspección",
+      "sortTitle": "Ordenar por",
+      "all": "Todas",
+      "allFloors": "Todos los pisos",
+      "floor": "Piso {{floor}}",
+      "floorUnknown": "Piso no registrado",
+      "buildingFloor": "{{building}} · Piso {{floor}}",
+      "buildingNone": "Sin edificio",
+      "noData": "Aún no hay datos registrados",
+      "priority": {
+        "arrival": "Prioridad de llegada",
+        "vip": "VIP",
+        "overdue": "Atrasada"
+      },
+      "review": {
+        "initial": "Inicial",
+        "reinspection": "Reinspección"
+      },
+      "clean": {
+        "departure": "Salida",
+        "stayover": "Estancia"
+      },
+      "sort": {
+        "priority": "Prioridad primero",
+        "waiting": "Más tiempo en espera",
+        "room": "Número de habitación",
+        "floor": "Piso"
+      }
+    },
+    "card": {
+      "room": "Habitación {{room}}",
+      "floor": "Piso {{floor}}",
+      "building": "Edificio {{building}}",
+      "floorUnknown": "Piso no registrado",
+      "clean": {
+        "departure": "Salida",
+        "stayover": "Estancia"
+      },
+      "cleanedAgo": "{{name}} · Limpió {{time}}",
+      "cleanTimeUnknown": "{{name}} · Hora de limpieza no registrada",
+      "housekeeperUnknown": "Camarista no registrada",
+      "agoNow": "ahora mismo",
+      "agoMinutes": "hace {{count}} min",
+      "agoHours": "hace {{hours}} h",
+      "agoHoursMinutes": "hace {{hours}} h {{minutes}} min",
+      "arrival": "Llegada {{time}}",
+      "arrivalPassed": "La llegada fue a las {{time}}",
+      "neededByPassed": "Ya pasó la hora límite",
+      "vipLine": "Huésped VIP",
+      "resubmitted": "{{name}} · Reenviada {{time}}",
+      "failedItems": "{{count}} elemento reprobado original",
+      "failedItems_plural": "{{count}} elementos reprobados originales",
+      "start": "Iniciar inspección",
+      "reinspect": "Reinspeccionar habitación",
+      "unavailable": "Lista de verificación no disponible",
+      "a11y": "{{action}}, habitación {{room}}. {{details}}",
+      "badge": {
+        "overdue": "Atrasada",
+        "arrival": "Prioridad de llegada",
+        "vip": "VIP",
+        "priority": "Prioridad alta",
+        "reinspection": "Reinspección"
+      }
+    },
+    "correction": {
+      "status": {
+        "needs_action": "Requiere acción",
+        "with_housekeeper": "Con la camarista",
+        "awaiting_reinspection": "Lista para reinspección"
+      },
+      "detail": {
+        "correction_missing": "Aún no existe una tarea de corrección",
+        "unassigned": "Nadie está asignado",
+        "assigned": "Asignada, sin iniciar",
+        "in_progress": "En curso",
+        "escalated": "Escalada",
+        "resubmitted": "Reenviada, esperando tu revisión",
+        "cancelled": "Cancelada sin una reinspección aprobada",
+        "verified": "Verificada por una reinspección aprobada",
+        "superseded": "Reemplazada por una inspección más reciente"
+      },
+      "kind": {
+        "touch_up": "Retoque",
+        "reclean": "Limpieza repetida"
+      },
+      "owner": "Responsable: {{name}}",
+      "ownerUnnamed": "Responsable: nombre no registrado",
+      "unassigned": "Sin asignar",
+      "failedCount": "{{count}} elemento reprobado",
+      "failedCount_plural": "{{count}} elementos reprobados",
+      "failedNone": "Elementos reprobados no registrados",
+      "updated": "Actualizado {{time}}",
+      "viewRoom": "Ver habitación",
+      "reinspect": "Reinspeccionar habitación",
+      "a11y": "{{action}}, habitación {{room}}. {{status}}. {{details}}",
+      "truncated": "Existen más correcciones de las que se muestran aquí.",
+      "unreadable": "No se pudo leer {{count}} corrección.",
+      "unreadable_plural": "No se pudieron leer {{count}} correcciones."
+    },
+    "done": {
+      "inspectorUnknown": "Inspector no registrado",
+      "reinspection": "Reinspección",
+      "at": "{{time}}",
+      "a11y": "Habitación {{room}}, {{result}}, {{inspector}}, {{time}}",
+      "unreadable": "No se pudo leer {{count}} inspección.",
+      "unreadable_plural": "No se pudieron leer {{count}} inspecciones."
+    },
+    "states": {
+      "loadingA11y": "Cargando inspecciones",
+      "emptyTitle": "Todo al día",
+      "emptyBody": "Ninguna habitación espera inspección por ahora.",
+      "noSearchTitle": "Ninguna habitación coincide con tu búsqueda",
+      "noSearchBody": "Revisa el número de habitación e inténtalo de nuevo.",
+      "clearSearch": "Borrar búsqueda",
+      "noFilterTitle": "Ninguna habitación coincide con estos filtros",
+      "noFilterBody": "Quita un filtro para ver más habitaciones.",
+      "clearFilters": "Borrar filtros",
+      "errorTitle": "No se pudieron cargar las inspecciones",
+      "errorBody": "No se pudieron revisar las habitaciones por inspeccionar, así que no se muestra ninguna.",
+      "retry": "Intentar de nuevo",
+      "correctionsEmptyTitle": "No hay correcciones pendientes",
+      "correctionsEmptyBody": "Las inspecciones reprobadas que aún requieren trabajo aparecen aquí.",
+      "correctionsErrorTitle": "No se pudieron cargar las correcciones",
+      "correctionsErrorBody": "No se pudieron revisar las correcciones pendientes, así que no se muestra ninguna.",
+      "doneEmptyTitle": "Hoy no se ha completado ninguna inspección",
+      "doneEmptyBody": "Las inspecciones que termines hoy aparecen aquí.",
+      "doneErrorTitle": "No se pudieron cargar las inspecciones de hoy",
+      "doneErrorBody": "No se pudieron revisar las inspecciones de hoy, así que no se muestra ninguna.",
+      "noMatchCorrectionsTitle": "Ninguna corrección coincide con tu búsqueda",
+      "noMatchDoneTitle": "Ninguna inspección coincide con tu búsqueda"
+    },
+    "banner": {
+      "offline": "Sin conexión. Mostrando datos de {{time}}. Iniciar una inspección requiere conexión para confirmar que la habitación sigue en espera.",
+      "stale": "Desactualizado. Mostrando datos de {{time}}.",
+      "refreshFailed": "No se pudo actualizar. Mostrando datos de {{time}}.",
+      "retry": "Actualizar ahora"
+    },
+    "record": {
+      "loading": "Cargando detalles…",
+      "failed": "No se pudieron cargar los detalles de la inspección.",
+      "retry": "Intentar de nuevo",
+      "inspector": "Inspector",
+      "completed": "Completada",
+      "notes": "Notas",
+      "failedItems": "Elementos reprobados",
+      "noFailedItems": "No se registraron elementos reprobados.",
+      "correction": "Corrección",
+      "viewRoom": "Ver habitación",
+      "close": "Cerrar",
+      "reinspectionOf": "Reinspección de una inspección reprobada anterior"
+    },
+    "start": {
+      "needsConnection": "No se puede iniciar una inspección con información desactualizada. Actualizando ahora; inténtalo de nuevo en un momento."
     }
   },
   "tasks": {

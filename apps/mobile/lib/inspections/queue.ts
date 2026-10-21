@@ -1,4 +1,5 @@
 import type { ReadyRoom } from "@/lib/api/inspections";
+import { normalizeQuery, searchRank } from "@/lib/housekeeping/roomBoardFilters";
 import { STALE_AFTER_MS } from "@/lib/housekeeping/roomsFreshness";
 import type { SourceState } from "@/lib/housekeeping/supervisorSources";
 import { reinspectionContext, type ReinspectionContext } from "@/lib/inspections/corrections";
@@ -13,6 +14,7 @@ export interface QueueItem {
   roomId: string;
   roomNumber: string;
   floor: number | null;
+  building: string | null;
   /** When the room became CLEAN (epoch ms), or null when unknown / unparseable. */
   cleanedAtMs: number | null;
   cleanedBy: string;
@@ -21,6 +23,12 @@ export interface QueueItem {
   roomTypeId: string | null;
   cleanCycleId: string | null;
   reinspection: ReinspectionContext;
+  /** Recorded operational facts. `vip` is null when the server does not send the flag (so "not VIP" is never assumed). */
+  vip: boolean | null;
+  arrivalAtMs: number | null;
+  /** 1 (highest) .. 10, or null when not recorded. */
+  priority: number | null;
+  neededByMs: number | null;
   /** The row as the server returned it; handed to the inspection flow untouched. */
   room: ReadyRoom;
 }
@@ -48,6 +56,7 @@ export function buildQueue(rooms: readonly ReadyRoom[]): QueueItem[] {
       roomId: room.room_id,
       roomNumber: room.room_number,
       floor: room.floor ?? null,
+      building: room.building?.trim() || null,
       cleanedAtMs: parseMs(room.cleaned_at),
       cleanedBy: room.cleaned_by ?? "",
       housekeeperId: room.housekeeper_id ?? null,
@@ -55,6 +64,10 @@ export function buildQueue(rooms: readonly ReadyRoom[]): QueueItem[] {
       roomTypeId: room.room_type_id ?? null,
       cleanCycleId: room.clean_cycle_id ?? null,
       reinspection: reinspectionContext(room),
+      vip: typeof room.vip === "boolean" ? room.vip : null,
+      arrivalAtMs: parseMs(room.arrival_at),
+      priority: typeof room.priority === "number" && Number.isFinite(room.priority) ? room.priority : null,
+      neededByMs: parseMs(room.priority_needed_by),
       room,
     });
   }
@@ -66,16 +79,16 @@ export function waitingMinutes(item: Pick<QueueItem, "cleanedAtMs">, now: number
   return item.cleanedAtMs === null ? null : Math.max(0, Math.floor((now - item.cleanedAtMs) / 60_000));
 }
 
-/** Room-number search: a typed number matches rooms that start with it, then rooms that contain it. */
-export function searchQueue<T extends Pick<QueueItem, "roomNumber" | "cleanedBy">>(items: readonly T[], query: string): T[] {
-  const needle = query.trim().toLowerCase();
+/** Room-number search: exact, then prefix, then contains (case- and whitespace-insensitive). Never matches people or guests. */
+export function searchQueue<T extends Pick<QueueItem, "roomNumber">>(items: readonly T[], query: string): T[] {
+  const needle = normalizeQuery(query);
   if (!needle) return [...items];
-  const starts = items.filter((item) => item.roomNumber.toLowerCase().startsWith(needle));
-  const rest = items.filter(
-    (item) =>
-      !starts.includes(item) && (item.roomNumber.toLowerCase().includes(needle) || item.cleanedBy.toLowerCase().includes(needle)),
-  );
-  return [...starts, ...rest];
+  const ranked: T[][] = [[], [], []];
+  for (const item of items) {
+    const rank = searchRank(item.roomNumber, needle);
+    if (rank !== null) ranked[rank].push(item);
+  }
+  return [...ranked[0], ...ranked[1], ...ranked[2]];
 }
 
 /* ─── Freshness ─────────────────────────────────────────────────────────── */

@@ -85,6 +85,14 @@ export interface ReadyRoom {
   clean_cycle_id?: string | null;
   /** Set when this room is being re-checked after a failed inspection. */
   previous_failure?: PreviousFailure | null;
+  /* Recorded operational facts the queue is ordered by (absent on servers that predate Phase 2). Never predictions. */
+  building?: string | null;
+  vip?: boolean;
+  /** The recorded guest arrival (check-in) time. */
+  arrival_at?: string | null;
+  /** 1 (highest) .. 10; the schema default is 5. */
+  priority?: number | null;
+  priority_needed_by?: string | null;
 }
 
 /** `date` is the hotel's business date; the server uses it to find who was assigned to each room. */
@@ -232,4 +240,71 @@ export async function fetchInspectionSubmission(submissionId: string): Promise<S
     if (error instanceof ApiError && error.status === 404) return { status: "not_found" };
     throw error;
   }
+}
+
+/* ─── Today's completed inspections and the hotel's open corrections ──────── */
+
+/** One row of GET /housekeeping/inspections (today's records). Fields added in Phase 2 are optional for older servers. */
+export interface InspectionRecordRow {
+  id: string;
+  room_id?: string | null;
+  room_number: string;
+  floor?: number | null;
+  building?: string | null;
+  /** Legacy: carries an id prefix when no name is on file. Never display it - use `inspector_display_name`. */
+  inspector_name?: string | null;
+  /** The real name, or null when none is recorded. */
+  inspector_display_name?: string | null;
+  overall_result: string;
+  notes?: string | null;
+  completed_at: string | null;
+  reinspection_of?: string | null;
+  correction_kind?: CorrectionKind | null;
+}
+
+/** Strict read: a body that is not the documented list THROWS instead of reading as "nothing was inspected". */
+export async function fetchInspectionRecords(date: string): Promise<InspectionRecordRow[]> {
+  const day = encodeURIComponent(date);
+  const res = await api.get<{ data?: unknown }>(`/housekeeping/inspections?date_from=${day}&date_to=${day}`);
+  if (!res || !Array.isArray(res.data)) throw new Error("Malformed inspections response");
+  return res.data as InspectionRecordRow[];
+}
+
+/** A failed inspection whose correction is not settled, as GET /housekeeping/inspections/corrections returns it. */
+export interface OpenCorrectionRow {
+  inspection_id: string;
+  room_id: string | null;
+  room_number: string | null;
+  floor: number | null;
+  building: string | null;
+  inspected_at: string | null;
+  overall_result: string;
+  kind: CorrectionKind | null;
+  status: CorrectionStatus | string;
+  notes: string | null;
+  inspector_name: string | null;
+  failed_count: number;
+  failed_items: { id: string | null; label: string; note: string | null }[];
+  task: {
+    id: string | null;
+    status: string | null;
+    assigned_to: string | null;
+    assigned_name: string | null;
+    due_at: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+  } | null;
+}
+
+export interface OpenCorrections {
+  rows: OpenCorrectionRow[];
+  /** More corrections exist than were returned: the list is a lower bound. */
+  truncated: boolean;
+}
+
+/** One bounded, tenant-scoped read for every unsettled correction - never a request per room. */
+export async function fetchOpenCorrections(): Promise<OpenCorrections> {
+  const res = await api.get<{ data?: unknown; meta?: { truncated?: unknown } }>("/housekeeping/inspections/corrections");
+  if (!res || !Array.isArray(res.data)) throw new Error("Malformed corrections response");
+  return { rows: res.data as OpenCorrectionRow[], truncated: res.meta?.truncated === true };
 }

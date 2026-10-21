@@ -421,3 +421,183 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
         "items": answers,
         "correction": correction,
     }
+
+
+# ── Hotel-wide list of corrections that still need someone ───────────────────
+
+#: How far back an unresolved correction is looked for. When more exist than fit, ``meta.truncated`` says so
+#: instead of the list silently looking complete.
+OPEN_CORRECTIONS_WINDOW_DAYS = 60
+OPEN_CORRECTIONS_LIMIT = 300
+_IN_CHUNK = 100
+#: Correction statuses a later inspection already settled - nothing is left for the supervisor.
+CLOSED_CORRECTION_STATUSES = frozenset({"verified", "superseded"})
+_FAILED_ITEMS_SHOWN = 3
+
+
+def _chunks(values: list[str], size: int = _IN_CHUNK):
+    for start in range(0, len(values), size):
+        yield values[start : start + size]
+
+
+def list_open_corrections(
+    client: Any,
+    hotel_id: str,
+    *,
+    window_days: int = OPEN_CORRECTIONS_WINDOW_DAYS,
+    limit: int = OPEN_CORRECTIONS_LIMIT,
+    now: Optional[datetime] = None,
+) -> dict:
+    """Every failed inspection (and touch-up) in this hotel whose correction is not settled yet.
+
+    One bounded pass: the recent failed inspections, then batched reads for their correction tasks, their rooms'
+    current status, the follow-up inspections, the failed items, the rooms and the people - never one request per
+    inspection. Each row's ``status`` comes from the same ``derive_correction_status`` the single-inspection read
+    uses, so the list and the detail cannot disagree. ``verified`` and ``superseded`` corrections are dropped.
+    """
+    since = ((now or datetime.now(timezone.utc)) - timedelta(days=window_days)).isoformat()
+    fetched = (
+        client.table("inspections")
+        .select("id, room_id, overall_result, notes, completed_at, inspected_by, correction_kind, reinspection_of")
+        .eq("tenant_id", hotel_id)
+        .in_("overall_result", ["failed", "conditional"])
+        .gte("completed_at", since)
+        .order("completed_at", desc=True)
+        .limit(limit + 1)
+        .execute()
+    ).data or []
+    truncated = len(fetched) > limit
+    failures = fetched[:limit]
+    meta = {"window_days": window_days, "truncated": truncated}
+    if not failures:
+        return {"data": [], "meta": meta}
+
+    inspection_ids = [f["id"] for f in failures]
+    room_ids = sorted({f["room_id"] for f in failures if f.get("room_id")})
+    earliest = min(str(f.get("completed_at") or "") for f in failures)
+
+    tasks: dict[str, dict] = {}
+    for chunk in _chunks(inspection_ids):
+        for task in (
+            client.table("tasks").select("*").eq("tenant_id", hotel_id).in_("source_inspection_id", chunk).execute()
+        ).data or []:
+            tasks.setdefault(task["source_inspection_id"], task)
+
+    room_status: dict[str, dict] = {}
+    rooms: dict[str, dict] = {}
+    followups_by_room: dict[str, list[dict]] = {}
+    for chunk in _chunks(room_ids):
+        for row in (
+            client.table("room_status")
+            .select("room_id, status, reclean_requested_at")
+            .eq("tenant_id", hotel_id)
+            .in_("room_id", chunk)
+            .execute()
+        ).data or []:
+            room_status[row["room_id"]] = row
+        for row in (
+            client.table("rooms").select("id, room_number, floor, building").eq("tenant_id", hotel_id).in_("id", chunk).execute()
+        ).data or []:
+            rooms[row["id"]] = row
+        for row in (
+            client.table("inspections")
+            .select("id, room_id, overall_result, completed_at, reinspection_of")
+            .eq("tenant_id", hotel_id)
+            .in_("room_id", chunk)
+            .gte("completed_at", earliest)
+            .execute()
+        ).data or []:
+            followups_by_room.setdefault(row["room_id"], []).append(row)
+
+    rows: list[dict] = []
+    for insp in failures:
+        task = tasks.get(insp["id"])
+        followups = [
+            f
+            for f in followups_by_room.get(insp.get("room_id"), [])
+            if f["id"] != insp["id"] and str(f.get("completed_at") or "") >= str(insp.get("completed_at") or "")
+        ]
+        derived = derive_correction_status(insp, task, room_status.get(insp.get("room_id")), followups)
+        if derived is None or derived["status"] in CLOSED_CORRECTION_STATUSES:
+            continue
+        rows.append({"insp": insp, "task": task, "derived": derived})
+    if not rows:
+        return {"data": [], "meta": meta}
+
+    fail_rows: list[dict] = []
+    for chunk in _chunks([r["insp"]["id"] for r in rows]):
+        fail_rows += (
+            client.table("inspection_results")
+            .select("inspection_id, template_item_id, note")
+            .eq("tenant_id", hotel_id)
+            .in_("inspection_id", chunk)
+            .eq("result", "fail")
+            .execute()
+        ).data or []
+    item_ids = sorted({r["template_item_id"] for r in fail_rows if r.get("template_item_id")})
+    labels: dict[str, str] = {}
+    for chunk in _chunks(item_ids):
+        for item in client.table("inspection_template_items").select("id, description").in_("id", chunk).execute().data or []:
+            labels[item["id"]] = item["description"]
+    failed_by_inspection: dict[str, list[dict]] = {}
+    for result in fail_rows:
+        note = (result.get("note") or "").strip()
+        label = labels.get(result.get("template_item_id")) or note
+        if label:
+            failed_by_inspection.setdefault(result["inspection_id"], []).append(
+                {"id": result.get("template_item_id"), "label": label, "note": note if note and note != label else None}
+            )
+
+    people = sorted(
+        {r["insp"].get("inspected_by") for r in rows if r["insp"].get("inspected_by")}
+        | {r["task"].get("assigned_to") for r in rows if r["task"] and r["task"].get("assigned_to")}
+    )
+    names: dict[str, str] = {}
+    for chunk in _chunks(people):
+        for profile in (
+            client.table("user_profiles")
+            .select("id, preferred_name, full_name")
+            .eq("tenant_id", hotel_id)
+            .in_("id", chunk)
+            .execute()
+        ).data or []:
+            name = profile.get("preferred_name") or profile.get("full_name")
+            if name:
+                names[profile["id"]] = name
+
+    data = []
+    for entry in rows:
+        insp, task, derived = entry["insp"], entry["task"], entry["derived"]
+        room = rooms.get(insp.get("room_id")) or {}
+        failed_items = failed_by_inspection.get(insp["id"], [])
+        data.append(
+            {
+                "inspection_id": insp["id"],
+                "room_id": insp.get("room_id"),
+                "room_number": room.get("room_number"),
+                "floor": room.get("floor"),
+                "building": room.get("building"),
+                "inspected_at": insp.get("completed_at"),
+                "overall_result": insp.get("overall_result"),
+                "kind": insp.get("correction_kind"),
+                "status": derived["status"],
+                "notes": (insp.get("notes") or "").strip() or None,
+                "inspector_name": names.get(insp.get("inspected_by")),
+                "failed_count": len(failed_items),
+                "failed_items": failed_items[:_FAILED_ITEMS_SHOWN],
+                "task": (
+                    {
+                        "id": task.get("id"),
+                        "status": task.get("status"),
+                        "assigned_to": task.get("assigned_to"),
+                        "assigned_name": names.get(task.get("assigned_to")),
+                        "due_at": task.get("due_at"),
+                        "started_at": task.get("started_at"),
+                        "completed_at": task.get("completed_at"),
+                    }
+                    if task
+                    else None
+                ),
+            }
+        )
+    return {"data": data, "meta": meta}

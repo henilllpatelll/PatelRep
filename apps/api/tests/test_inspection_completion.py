@@ -699,3 +699,124 @@ def test_legacy_submit_race_is_a_409_not_a_500(client, env):
     # status check passes (CLEAN), then the DB guard fires
     res = _legacy(client, env)
     assert res.status_code == 409
+
+
+# --- the supervisor Inspections lists (Phase 2) ---------------------------------------
+
+
+def _fail_another_room(env, number, *, minutes, assigned="hk-1", status="DIRTY"):
+    """A second room with its own failed inspection, written the way the completion endpoint leaves it."""
+    room = str(uuid4())
+    inspection = str(uuid4())
+    env.db.rows["rooms"].append({"id": room, "tenant_id": HOTEL, "room_number": number, "floor": 3, "building": "B", "room_type_id": env.room_type})
+    env.db.rows["room_status"].append(
+        {"room_id": room, "tenant_id": HOTEL, "status": status, "reclean_requested_at": "2026-10-20T09:00:00+00:00"}
+    )
+    env.db.rows["inspections"].append(
+        {"id": inspection, "tenant_id": HOTEL, "room_id": room, "template_id": env.template, "inspected_by": USER,
+         "overall_result": "failed", "correction_kind": "reclean", "notes": "", "completed_at": f"2026-10-20T11:{minutes:02d}:00+00:00"}
+    )
+    env.db.rows["inspection_results"].append(
+        {"tenant_id": HOTEL, "inspection_id": inspection, "template_item_id": env.items["bed"], "result": "fail", "note": ""}
+    )
+    env.db.rows["tasks"].append(
+        {"id": str(uuid4()), "tenant_id": HOTEL, "source_inspection_id": inspection, "status": "open", "assigned_to": assigned,
+         "due_at": None, "started_at": None, "completed_at": None}
+    )
+    return room, inspection
+
+
+def _corrections(client, **kw):
+    return client.get("/v1/housekeeping/inspections/corrections", headers=kw.get("headers") or _auth())
+
+
+def test_corrections_list_is_hotel_wide_with_the_real_status_owner_and_failed_items(client, env):
+    failed_id = _seed_failed_room(client, env)  # room 204 is CLEAN again: the housekeeper resubmitted
+    _fail_another_room(env, "305", minutes=30)
+    rows = {r["room_number"]: r for r in _corrections(client).json()["data"]}
+    assert set(rows) == {"204", "305"}
+    assert rows["204"]["inspection_id"] == failed_id and rows["204"]["status"] == "resubmitted"
+    assert rows["305"]["status"] == "assigned" and rows["305"]["task"]["assigned_name"] == "Hana Housekeeper"
+    assert rows["305"]["failed_items"][0]["label"] == "Bed made" and rows["305"]["failed_count"] == 1
+    assert rows["305"]["floor"] == 3 and rows["305"]["building"] == "B" and rows["305"]["inspector_name"] == "Sam Supervisor"
+    assert _corrections(client).json()["meta"] == {"window_days": 60, "truncated": False}
+
+
+def test_a_verified_or_superseded_correction_is_not_outstanding(client, env):
+    _seed_failed_room(client, env)
+    assert len(_corrections(client).json()["data"]) == 1
+    assert _post(client, env, _payload(env)).status_code == 200  # a passing reinspection verifies it
+    assert _corrections(client).json()["data"] == []
+
+
+def test_a_failed_reinspection_replaces_the_old_correction_instead_of_doubling_it(client, env):
+    _seed_failed_room(client, env)
+    assert _post(client, env, _payload(env, result="failed", fails=("floor",), severity="major")).status_code == 200
+    rows = _corrections(client).json()["data"]
+    assert len(rows) == 1 and rows[0]["failed_items"][0]["label"] == "Floor vacuumed"  # one room, one outstanding correction
+
+
+def test_historical_conditional_rows_without_a_correction_are_not_listed(client, env):
+    env.db.rows["inspections"].append(
+        {"id": str(uuid4()), "tenant_id": HOTEL, "room_id": env.room, "template_id": env.template, "inspected_by": USER,
+         "overall_result": "conditional", "notes": "smudge", "completed_at": "2026-10-19T10:00:00+00:00"}
+    )
+    assert _corrections(client).json()["data"] == []
+
+
+def test_corrections_are_tenant_scoped_and_role_gated(client, env):
+    _seed_failed_room(client, env)
+    assert _corrections(client, headers=_auth(hotel_id=OTHER_HOTEL)).json()["data"] == []
+    assert _corrections(client, headers=_auth(role="housekeeper")).status_code == 403
+    assert _corrections(client, headers=_auth(role="engineer")).status_code == 403
+
+
+def test_corrections_never_issue_a_request_per_inspection(client, env):
+    calls = []
+    original = env.db.table
+    env.db.table = lambda name: (calls.append(name), original(name))[1]
+    _fail_another_room(env, "301", minutes=1)
+    _corrections(client)
+    few = len(calls)
+    calls.clear()
+    for n in range(2, 25):
+        _fail_another_room(env, f"3{n:02d}", minutes=n)
+    assert len(_corrections(client).json()["data"]) == 24
+    assert len(calls) == few  # the number of reads does not grow with the number of failed inspections
+
+
+def test_corrections_report_when_more_exist_than_are_returned(client, env, monkeypatch):
+    monkeypatch.setattr(corrections, "OPEN_CORRECTIONS_LIMIT", 2)
+    monkeypatch.setattr(hk_router, "list_open_corrections", lambda db, hotel: corrections.list_open_corrections(db, hotel, limit=2))
+    for n in range(1, 4):
+        _fail_another_room(env, f"40{n}", minutes=n)
+    body = _corrections(client).json()
+    assert len(body["data"]) == 2 and body["meta"]["truncated"] is True
+
+
+def test_the_done_list_carries_room_identity_and_never_an_id_as_a_name(client, env):
+    env.db.rows["rooms"][0]["building"] = "A"
+    ghost = str(uuid4())
+    env.db.rows["inspections"] += [
+        {"id": str(uuid4()), "tenant_id": HOTEL, "room_id": env.room, "inspected_by": USER, "overall_result": "passed",
+         "completed_at": "2026-10-20T15:00:00+00:00", "rooms": {"room_number": "204", "floor": 2, "building": "A"}},
+        {"id": str(uuid4()), "tenant_id": HOTEL, "room_id": env.room, "inspected_by": ghost, "overall_result": "failed",
+         "completed_at": "2026-10-20T14:00:00+00:00", "rooms": {"room_number": "204", "floor": 2, "building": "A"}},
+    ]
+    rows = client.get("/v1/housekeeping/inspections?date_from=2026-10-20&date_to=2026-10-20", headers=_auth()).json()["data"]
+    named = next(r for r in rows if r["inspector_display_name"])
+    anonymous = next(r for r in rows if not r["inspector_display_name"])
+    assert named["inspector_display_name"] == "Sam Supervisor" and named["room_id"] == env.room and named["floor"] == 2
+    assert anonymous["inspector_display_name"] is None  # the legacy field still carries an id prefix; this one never does
+
+
+def test_the_queue_carries_recorded_priority_facts_and_no_id_as_a_housekeeper_name(client, env):
+    env.db.rows["room_status"][0].update(
+        {"rooms": {"room_number": "204", "floor": 2, "building": "A", "room_type_id": env.room_type},
+         "vip_flag": True, "checkin_time": "2026-10-20T20:00:00+00:00", "priority": 2, "priority_needed_by": None}
+    )
+    env.db.rows["user_profiles"] = [p for p in env.db.rows["user_profiles"] if p["id"] != "hk-1"] + [{"id": "hk-1", "tenant_id": HOTEL}]
+    row = client.get("/v1/housekeeping/ready-for-inspection?date=" + Env.today(), headers=_auth()).json()["data"][0]
+    assert row["vip"] is True and row["arrival_at"] == "2026-10-20T20:00:00+00:00" and row["priority"] == 2
+    assert row["priority_needed_by"] is None and row["building"] == "A"
+    assert row["cleaned_by"] == "" and row["housekeeper_id"] == "hk-1"  # unnamed stays blank, never "hk-1"

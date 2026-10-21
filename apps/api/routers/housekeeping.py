@@ -23,6 +23,7 @@ from services.reclean_corrections import (
     fetch_correction_task,
     is_unique_violation,
     latest_clean_cycles,
+    list_open_corrections,
     load_inspection_detail,
     load_reclean_details,
     resolve_correction_task,
@@ -2011,7 +2012,10 @@ async def list_ready_for_inspection(
 
     result = (
         supabase.table("room_status")
-        .select("room_id, status, updated_at, reclean_requested_at, rooms!inner(room_number, floor, room_type_id)")
+        .select(
+            "room_id, status, updated_at, reclean_requested_at, vip_flag, checkin_time, priority, priority_needed_by, "
+            "rooms!inner(room_number, floor, building, room_type_id)"
+        )
         .eq("tenant_id", current_user.hotel_id)
         .eq("status", "CLEAN")
         .execute()
@@ -2058,7 +2062,10 @@ async def list_ready_for_inspection(
             .execute()
         )
         for p in (profiles.data or []):
-            name_map[p["id"]] = p.get("preferred_name") or p.get("full_name") or p["id"]
+            # No name on file stays "" - the app shows "not recorded", never an id standing in for a person.
+            name = p.get("preferred_name") or p.get("full_name")
+            if name:
+                name_map[p["id"]] = name
 
     output = []
     for room in clean_rooms:
@@ -2078,6 +2085,12 @@ async def list_ready_for_inspection(
             "room_type_id": room_info.get("room_type_id"),
             "clean_cycle_id": clean_cycles.get(room["room_id"]),
             "previous_failure": previous_failures.get(room["room_id"]),
+            # Recorded operational facts the queue is ordered by. Nothing is predicted: an unset value is null.
+            "building": room_info.get("building"),
+            "vip": bool(room.get("vip_flag")),
+            "arrival_at": room.get("checkin_time"),
+            "priority": room.get("priority"),
+            "priority_needed_by": room.get("priority_needed_by"),
         })
 
     output.sort(key=lambda r: (r["floor"] or 0, r["room_number"]))
@@ -2798,8 +2811,8 @@ async def list_inspections(
     query = (
         supabase.table("inspections")
         .select(
-            "id, overall_result, notes, completed_at, inspected_by, "
-            "rooms!inner(room_number)"
+            "id, room_id, overall_result, notes, completed_at, inspected_by, reinspection_of, correction_kind, "
+            "rooms!inner(room_number, floor, building)"
         )
         .eq("tenant_id", current_user.hotel_id)
         .gte("completed_at", start_str)
@@ -2827,7 +2840,9 @@ async def list_inspections(
             .execute()
         )
         for p in (profiles.data or []):
-            name_map[p["id"]] = p.get("preferred_name") or p.get("full_name") or p["id"]
+            name = p.get("preferred_name") or p.get("full_name")
+            if name:
+                name_map[p["id"]] = name
 
     # Flatten for convenience
     output = []
@@ -2837,11 +2852,19 @@ async def list_inspections(
         inspector_fallback = inspector_id[:8] if inspector_id else "Unknown"
         output.append({
             "id": row.get("id"),
+            "room_id": row.get("room_id"),
             "room_number": room.get("room_number", ""),
+            "floor": room.get("floor"),
+            "building": room.get("building"),
             "inspector_name": name_map.get(inspector_id, inspector_fallback),
+            # The real name or null: `inspector_name` above keeps its legacy id-prefix fallback for older clients,
+            # which must never be shown as a person's name.
+            "inspector_display_name": name_map.get(inspector_id),
             "overall_result": row.get("overall_result"),
             "notes": row.get("notes"),
             "completed_at": row.get("completed_at"),
+            "reinspection_of": row.get("reinspection_of"),
+            "correction_kind": row.get("correction_kind"),
         })
 
     return {"data": output}
@@ -2890,6 +2913,22 @@ async def list_inspection_templates(
     # `fingerprint` is opaque to clients: they echo it back on completion so a checklist edited while an
     # inspection was in progress is detected by the server rather than guessed at on the phone.
     return {"data": [{**t, "fingerprint": template_fingerprint(t, t.get("items") or [])} for t in result]}
+
+
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/corrections
+# ---------------------------------------------------------------------------
+
+@router.get("/inspections/corrections")
+async def list_inspection_corrections(
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Failed-inspection corrections in this hotel that are not settled yet, in one bounded read.
+
+    Registered before `/inspections/{inspection_id}` so the literal path is never captured as an id.
+    ``meta.truncated`` is true when more exist than are returned.
+    """
+    return list_open_corrections(supabase, current_user.hotel_id)
 
 
 # ---------------------------------------------------------------------------

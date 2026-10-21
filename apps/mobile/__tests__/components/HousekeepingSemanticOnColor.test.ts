@@ -13,6 +13,13 @@ const HOUSEKEEPING_SOURCES = {
   knock: "../../components/housekeeping/KnockModal.tsx",
   checklist: "../../components/housekeeping/roomDetail/CleaningChecklist.tsx",
   inspect: "../../app/(app)/inspect/index.tsx",
+  // The Inspect screen's confirm sheet moved out of the screen unchanged, and its list surfaces are new.
+  inspectOutcome: "../../components/supervisor/inspect/OutcomeSheets.tsx",
+  inspectCard: "../../components/supervisor/inspect/InspectionQueueCard.tsx",
+  inspectCorrection: "../../components/supervisor/inspect/CorrectionCard.tsx",
+  inspectFilter: "../../components/supervisor/inspect/InspectFilterSheet.tsx",
+  inspectTabs: "../../components/supervisor/inspect/InspectTabs.tsx",
+  inspectSearch: "../../components/supervisor/inspect/InspectSearchBar.tsx",
 } as const;
 
 const sources = Object.fromEntries(
@@ -74,7 +81,11 @@ describe("housekeeping and inspection semantic on-colors", () => {
   });
 
   it("uses tested primary and destructive on-colors for inspection controls", () => {
-    expect(sources.inspect).toContain("theme.onPrimary");
-    expect(sources.inspect).toContain("theme.onDestructive");
+    expect(sources.inspectOutcome).toContain("theme.onPrimary");
+    expect(sources.inspectOutcome).toContain("theme.onDestructive");
+    // the new list controls draw their filled states from the same tested tokens
+    expect(sources.inspectCard).toContain("theme.onPrimary");
+    expect(sources.inspectFilter).toContain("theme.onPrimary");
+    expect(sources.inspectSearch).toContain("theme.onPrimary");
   });
 });

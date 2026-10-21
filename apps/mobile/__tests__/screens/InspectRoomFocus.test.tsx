@@ -3,36 +3,62 @@ import { act, fireEvent, render, waitFor, within } from "@testing-library/react-
 import { makeTranslator } from "../helpers/i18n";
 
 let mockParams: Record<string, string | undefined> = {};
+const mockParamListeners = new Set<() => void>();
+const mockSetParams = jest.fn((next: Record<string, string | undefined>) => {
+  mockParams = Object.fromEntries(Object.entries({ ...mockParams, ...next }).filter(([, value]) => value !== undefined));
+  mockParamListeners.forEach((listener) => listener());
+});
 
 jest.mock("react-i18next", () => {
   const { makeTranslator: translator } = require("../helpers/i18n");
   const t = translator("en");
   return { useTranslation: () => ({ t, i18n: { language: "en" } }) };
 });
-jest.mock("expo-router", () => ({
-  router: { setParams: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), push: jest.fn() },
-  useLocalSearchParams: () => mockParams,
-}));
+jest.mock("expo-router", () => {
+  const react = require("react");
+  return {
+    router: { setParams: (...args: [Record<string, string | undefined>]) => mockSetParams(...args), back: jest.fn(), canGoBack: jest.fn(() => true), push: jest.fn() },
+    useLocalSearchParams: () => {
+      const [, force] = react.useState(0);
+      react.useEffect(() => {
+        const listener = () => force((n: number) => n + 1);
+        mockParamListeners.add(listener);
+        return () => {
+          mockParamListeners.delete(listener);
+        };
+      }, []);
+      return mockParams;
+    },
+  };
+});
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
+jest.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: jest.fn(), refreshSession: jest.fn() } } }));
+jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({ subscribeSupervisorRealtime: jest.fn(() => jest.fn()) }));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn() } }));
+// The hook's strict queue read and the pre-send re-check read the same server queue.
+const mockQueue = jest.fn();
 jest.mock("@/lib/api/inspections", () => ({
   listInspectionTemplates: jest.fn(),
   submitInspection: jest.fn(),
-  fetchReadyForInspection: jest.fn(),
+  fetchReadyForInspection: (...args: unknown[]) => mockQueue(...args),
+  fetchReadyForInspectionVerified: (...args: unknown[]) => mockQueue(...args),
+  fetchOpenCorrections: jest.fn(),
+  fetchInspectionRecords: jest.fn(),
+  fetchInspectionDetail: jest.fn(),
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({ triggerReclean: jest.fn() }));
 
 import { router as mockRouter } from "expo-router";
 import { api } from "@/lib/api/client";
-import { fetchReadyForInspection, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
+import { fetchInspectionRecords, fetchOpenCorrections, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useAppStore } from "@/stores/appStore";
 import InspectScreen from "@/app/(app)/inspect";
 
 const mockGet = api.get as jest.Mock;
-const mockQueue = fetchReadyForInspection as jest.Mock;
+const mockRecords = fetchInspectionRecords as jest.Mock;
 const mockTemplates = listInspectionTemplates as jest.Mock;
 const mockSubmit = submitInspection as jest.Mock;
 const t = makeTranslator("en");
@@ -49,6 +75,13 @@ const standard = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+/** The ordinary path: tap the queue card, which hands that room (by id) to the room-specific controls. */
+async function openRoom(screen: ReturnType<typeof renderScreen>, number: string) {
+  if (!screen.queryByTestId(`inspect-${number}`)) {
+    await act(async () => fireEvent.press(screen.getByTestId(`queue-card-room-${number}`)));
+    await flush();
+  }
+}
 
 function renderScreen() {
   return render(
@@ -65,10 +98,12 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockParams = {};
   mockQueue.mockResolvedValue([room("103"), room("203")]);
-  mockGet.mockResolvedValue({ data: [] });
+  mockGet.mockResolvedValue({});
+  mockRecords.mockResolvedValue([]);
+  (fetchOpenCorrections as jest.Mock).mockResolvedValue({ rows: [], truncated: false });
   mockTemplates.mockResolvedValue({ data: [standard("t1")] });
   mockSubmit.mockResolvedValue({ id: "insp-1" });
-  useAppStore.setState({ hotelTimezone: "America/Chicago" } as never);
+  useAppStore.setState({ hotelTimezone: "America/Chicago", isOnline: true, user: { id: "sup-1", tenant_id: "hotel-1", role: "housekeeping_supervisor" } as never });
 });
 
 describe("room-specific inspection", () => {
@@ -80,7 +115,8 @@ describe("room-specific inspection", () => {
     expect(screen.getByTestId("inspect-focus")).toBeTruthy();
     // the focused room is not repeated in the list below it
     expect(screen.getAllByTestId("inspect-203")).toHaveLength(1);
-    expect(screen.getByTestId("inspect-103")).toBeTruthy();
+    expect(screen.queryByTestId("queue-card-room-203")).toBeNull();
+    expect(screen.getByTestId("queue-card-room-103")).toBeTruthy();
     expect(mockSubmit).not.toHaveBeenCalled();
     expect(screen.queryByText("Pass Room 203?")).toBeNull();
   });
@@ -101,9 +137,9 @@ describe("room-specific inspection", () => {
     fireEvent.press(screen.getByTestId("inspect-focus-back"));
     expect(mockRouter.back).toHaveBeenCalled();
     fireEvent.press(screen.getByTestId("inspect-focus-queue"));
-    expect(mockRouter.setParams).toHaveBeenCalledWith({ roomId: undefined, roomNumber: undefined });
+    expect(mockSetParams).toHaveBeenCalledWith({ roomId: undefined, roomNumber: undefined });
     // the ordinary queue is still there
-    expect(screen.getByTestId("inspect-103")).toBeTruthy();
+    expect(screen.getByTestId("queue-card-room-103")).toBeTruthy();
   });
 
   it("an invalid id selects nothing", async () => {
@@ -131,13 +167,17 @@ describe("room-specific inspection", () => {
     await flush();
     expect(screen.queryByTestId("inspect-focus")).toBeNull();
     expect(screen.queryByTestId("inspect-focus-notice")).toBeNull();
-    expect(screen.getByTestId("inspect-103")).toBeTruthy();
-    expect(screen.getByTestId("inspect-203")).toBeTruthy();
+    expect(screen.getByTestId("queue-card-room-103")).toBeTruthy();
+    expect(screen.getByTestId("queue-card-room-203")).toBeTruthy();
+    // the queue itself carries no outcome controls
+    expect(screen.queryByTestId("inspect-103")).toBeNull();
+    expect(screen.queryAllByLabelText("Confirm Pass")).toHaveLength(0);
   });
 });
 
 describe("safety before an inspection is sent", () => {
   async function startPass(screen: ReturnType<typeof renderScreen>) {
+    await openRoom(screen, "203");
     await act(async () => fireEvent.press(within(screen.getByTestId("inspect-203")).getByLabelText("Confirm Pass")));
     await flush();
   }
@@ -179,9 +219,10 @@ describe("safety before an inspection is sent", () => {
     expect(screen.getByText("Room 203 is no longer awaiting inspection.")).toBeTruthy();
   });
 
-  it("from the generic queue the same race shows the notice in place and sends nothing", async () => {
+  it("opened from a queue card, the same race says so in the room block and sends nothing", async () => {
     const screen = renderScreen();
     await flush();
+    await openRoom(screen, "203");
     await act(async () => fireEvent.press(within(screen.getByTestId("inspect-203")).getByLabelText("Confirm Pass")));
     await flush();
     mockQueue.mockResolvedValue([room("103")]);
@@ -189,8 +230,9 @@ describe("safety before an inspection is sent", () => {
     await act(async () => fireEvent.press(all[all.length - 1]));
     await flush();
     expect(mockSubmit).not.toHaveBeenCalled();
-    expect(screen.getByTestId("inspect-stale-notice")).toBeTruthy();
-    expect(screen.queryByTestId("inspect-203")).toBeNull();
+    expect(screen.getByTestId("inspect-focus-notice")).toBeTruthy();
+    expect(screen.getByText("Room 203 is no longer awaiting inspection.")).toBeTruthy();
+    expect(screen.queryByTestId("queue-card-room-203")).toBeNull();
   });
 
   it("a server 409 on write is reported the same way and the queue reloads", async () => {
@@ -232,6 +274,7 @@ describe("safety before an inspection is sent", () => {
     mockSubmit.mockResolvedValueOnce({ id: "insp-9" });
     const screen = renderScreen();
     await flush();
+    await openRoom(screen, "103");
     await act(async () => fireEvent.press(within(screen.getByTestId("inspect-103")).getByLabelText("Confirm Fail")));
     await flush();
     const confirm = screen.getAllByLabelText("Confirm Fail");
@@ -249,8 +292,8 @@ describe("hotel date", () => {
       const screen = renderScreen();
       await flush();
       expect(mockQueue).toHaveBeenCalledWith("2026-10-16");
-      expect(mockGet).toHaveBeenCalledWith("/housekeeping/inspections?date_from=2026-10-16&date_to=2026-10-16");
-      expect(screen.getByTestId("inspect-103")).toBeTruthy();
+      expect(mockRecords).toHaveBeenCalledWith("2026-10-16");
+      expect(screen.getByTestId("queue-card-room-103")).toBeTruthy();
     } finally {
       spy.mockRestore();
     }
@@ -260,7 +303,13 @@ describe("hotel date", () => {
 describe("which checklist a room gets", () => {
   const typedRoom = (n: string, typeId: string | null) => ({ ...room(n), room_type_id: typeId });
   const press = async (screen: ReturnType<typeof renderScreen>, testId: string, label: string) => {
+    await openRoom(screen, testId.replace("inspect-", ""));
     await act(async () => fireEvent.press(within(screen.getByTestId(testId)).getByLabelText(label)));
+    await flush();
+  };
+  /** A room whose checklist is known to be unusable never reaches the outcome controls: the card says why. */
+  const tapBlockedCard = async (screen: ReturnType<typeof renderScreen>, number: string) => {
+    await act(async () => fireEvent.press(screen.getByTestId(`queue-card-room-${number}`)));
     await flush();
   };
   const confirmPass = async (screen: ReturnType<typeof renderScreen>) => {
@@ -300,9 +349,11 @@ describe("which checklist a room gets", () => {
     mockTemplates.mockResolvedValue({ data: [standard("t-default", { is_active: false })] });
     const screen = renderScreen();
     await flush();
-    await press(screen, "inspect-203", "Confirm Pass");
+    await tapBlockedCard(screen, "203");
+    expect(screen.queryByTestId("inspect-203")).toBeNull();
     expect(screen.queryByText("Pass Room 203?")).toBeNull();
-    expect(screen.getByText(t("inspect.template.no_usable_template"))).toBeTruthy();
+    expect(screen.getByTestId("queue-card-blocked-room-203").props.children).toBe(t("inspect.template.no_usable_template")); // on the card...
+    expect(screen.getAllByText(t("inspect.template.no_usable_template")).length).toBeGreaterThanOrEqual(2); // ...and as the toast
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
@@ -311,9 +362,11 @@ describe("which checklist a room gets", () => {
     mockTemplates.mockResolvedValue({ data: [standard("t-default"), standard("t-suite", { is_default: false, room_type_id: "type-suite" })] });
     const screen = renderScreen();
     await flush();
-    await press(screen, "inspect-203", "Confirm Pass");
+    await tapBlockedCard(screen, "203");
+    expect(screen.queryByTestId("inspect-203")).toBeNull();
     expect(screen.queryByText("Pass Room 203?")).toBeNull();
-    expect(screen.getByText(t("inspect.template.room_type_unknown"))).toBeTruthy();
+    expect(screen.getByTestId("queue-card-blocked-room-203").props.children).toBe(t("inspect.template.room_type_unknown")); // on the card...
+    expect(screen.getAllByText(t("inspect.template.room_type_unknown")).length).toBeGreaterThanOrEqual(2); // ...and as the toast
   });
 
   it("when the checklists could not be loaded it says so instead of 'no checklist'", async () => {

@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 
 jest.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: jest.fn(), refreshSession: jest.fn() } } }));
+jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({ subscribeSupervisorRealtime: jest.fn(() => jest.fn()) }));
 
 const mockState: {
   user: { id: string; tenant_id: string } | null;
@@ -28,8 +29,17 @@ function deferred<T>() {
 
 const templates = { data: [rawTemplate("standard", { is_default: true }), { id: "broken", items: [{}] }] };
 
-function fetchersOf(queue: InspectionFetchers["queue"], tpl: InspectionFetchers["templates"] = async () => templates): InspectionFetchers {
-  return { queue, templates: tpl };
+function fetchersOf(
+  queue: InspectionFetchers["queue"],
+  tpl: InspectionFetchers["templates"] = async () => templates,
+  rest: Partial<Pick<InspectionFetchers, "corrections" | "records">> = {},
+): InspectionFetchers {
+  return {
+    queue,
+    templates: tpl,
+    corrections: rest.corrections ?? (async () => ({ rows: [], truncated: false })),
+    records: rest.records ?? (async () => []),
+  };
 }
 
 beforeEach(() => {

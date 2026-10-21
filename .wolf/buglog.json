@@ -34287,6 +34287,55 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-10-21T05:40:00Z"
+    },
+    {
+      "id": "bug-2077",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Inspect list showed a truncated user id as the inspector's name (GET /housekeeping/inspections fell back to inspector_id[:8]) and a user id as the housekeeper name on the queue (ready-for-inspection fell back to p['id'])",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "name_map fell back to the id when a profile had no preferred_name/full_name, and the list endpoint substituted an id prefix when no profile matched",
+      "fix": "Only real names enter name_map; list rows gain inspector_display_name (name or null); queue cleaned_by is '' when unnamed; the app shows 'Inspector not recorded' / 'Housekeeper not recorded'",
+      "tags": [
+        "inspections",
+        "privacy",
+        "display-name",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2078",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "PAGEERROR Error: findNodeHandle is not supported on web (Filter & Sort sheet, found in the Expo web visual check)",
+      "file": "apps/mobile/components/supervisor/inspect/InspectFilterSheet.tsx",
+      "root_cause": "findNodeHandle was called outside the try/catch around AccessibilityInfo.setAccessibilityFocus",
+      "fix": "Both calls are inside the try/catch; focus management is best-effort",
+      "tags": [
+        "web",
+        "accessibility",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2079",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Sorting/filtering 600 rooms took ~34ms per pass in Jest (budget 25ms)",
+      "file": "apps/mobile/lib/housekeeping/hotelTime.ts; apps/mobile/lib/inspections/queueView.ts",
+      "root_cause": "hotelDateKey built a new Intl.DateTimeFormat on every call and priorityFacts recomputed the hotel's today per room",
+      "fix": "One cached formatter per zone; today's key memoised per clock reading",
+      "tags": [
+        "performance",
+        "intl",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
     }
   ]
 }

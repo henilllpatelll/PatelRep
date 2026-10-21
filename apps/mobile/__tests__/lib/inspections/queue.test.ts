@@ -60,7 +60,8 @@ describe("waiting time and search", () => {
   it("ranks rooms that start with the query before ones that merely contain it", () => {
     const rooms = buildQueue([readyRoom("a", { room_number: "112" }), readyRoom("b", { room_number: "211" }), readyRoom("c", { room_number: "311", cleaned_by: "Maria" })]);
     expect(searchQueue(rooms, "11").map((r) => r.roomNumber)).toEqual(["112", "211", "311"]);
-    expect(searchQueue(rooms, "maria").map((r) => r.roomNumber)).toEqual(["311"]);
+    // room numbers only: a housekeeper's name is not a room
+    expect(searchQueue(rooms, "maria")).toEqual([]);
     expect(searchQueue(rooms, "  ").length).toBe(3);
     expect(searchQueue(rooms, "zzz")).toEqual([]);
   });
