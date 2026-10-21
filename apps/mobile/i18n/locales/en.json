@@ -2297,6 +2297,279 @@
     },
     "start": {
       "needsConnection": "Can't start an inspection from out-of-date information. Refreshing now - try again in a moment."
+    },
+    "workspace": {
+      "title": "Inspect Room {{room}}",
+      "back": "Inspections",
+      "backA11y": "Back to Inspections",
+      "moreA11y": "More options",
+      "roomKicker": "ROOM",
+      "loading": "Opening inspection…",
+      "retry": "Try again",
+      "backToQueue": "Back to Inspections",
+      "viewRoom": "View room",
+      "floor": "Floor {{floor}}",
+      "building": "Building {{building}}",
+      "cleanedByAt": "Cleaned by {{name}} · {{time}}",
+      "cleanedBy": "Cleaned by {{name}}",
+      "cleanedAt": "Cleaned at {{time}}",
+      "checklist": "Checklist: {{name}}",
+      "recheck": "{{count}} item failed last time",
+      "recheck_plural": "{{count}} items failed last time",
+      "offline": "Offline: saving on this phone",
+      "next": "Go to next item",
+      "status": {
+        "awaiting": "Awaiting inspection",
+        "reinspection": "Reinspection"
+      },
+      "progress": {
+        "title": "INSPECTION PROGRESS",
+        "fraction": "{{answered}} of {{total}}",
+        "reviewedOf": "{{answered}} of {{total}} items reviewed",
+        "requiredLeft": "{{count}} required item left",
+        "requiredLeft_plural": "{{count}} required items left",
+        "requiredDone": "All required items reviewed",
+        "issues": "{{count}} issue found",
+        "issues_plural": "{{count}} issues found",
+        "noIssues": "No issues so far",
+        "a11y": "Progress: {{fraction}} reviewed. {{remaining}}. {{issues}}. Progress is not a result."
+      },
+      "section": {
+        "requiredLeft": "{{count}} required left",
+        "requiredLeft_plural": "{{count}} required left",
+        "done": "Done",
+        "optionalLeft": "Optional items left",
+        "issues": "{{count}} issue",
+        "issues_plural": "{{count}} issues",
+        "a11y": "{{name}}, {{answered}} of {{total}} reviewed",
+        "expanded": "expanded",
+        "collapsed": "collapsed"
+      },
+      "answer": {
+        "pass": "Pass",
+        "fail": "Issue",
+        "na": "N/A",
+        "a11y": "{{answer}} for {{item}}",
+        "clearHint": "Selected. Double tap to clear."
+      },
+      "na": {
+        "notAllowed": "N/A isn't allowed for this check."
+      },
+      "item": {
+        "required": "Required",
+        "optional": "Optional",
+        "photoNeeded": "Photo needed if it fails",
+        "failedBefore": "Failed last time",
+        "guidanceA11y": "View the standard for {{item}}",
+        "detailsNeeded": "Issue details still needed before approval",
+        "issueRecorded": "Issue recorded"
+      },
+      "note": {
+        "add": "Add note",
+        "addA11y": "Add a note to {{item}}",
+        "placeholder": "Note (optional)",
+        "requiredPlaceholder": "Why is this not applicable?",
+        "required": "A note is required for N/A.",
+        "a11y": "Note for {{item}}"
+      },
+      "save": {
+        "none": "Answers are saved on this phone as you go",
+        "saving": "Saving draft…",
+        "saved": "Draft saved · {{time}}",
+        "savedNoTime": "Draft saved",
+        "failed": "Couldn't save the draft",
+        "retry": "Try again",
+        "retryA11y": "Try saving the draft again"
+      },
+      "review": {
+        "cta": "Review inspection",
+        "missing": "{{count}} required item still needs an answer",
+        "missing_plural": "{{count}} required items still need an answer",
+        "naNote": "Add a note to the N/A answer before reviewing.",
+        "naNotAllowed": "N/A isn't allowed for one of the items. Choose another answer.",
+        "noAnswers": "Review at least one item first."
+      },
+      "reviewScreen": {
+        "title": "Review · Room {{room}}",
+        "readOnly": "This is a read-only summary. Nothing has been submitted and the room's status hasn't changed.",
+        "count": {
+          "passA11y": "{{count}} passed",
+          "failA11y": "{{count}} with issues",
+          "naA11y": "{{count}} not applicable"
+        },
+        "issues": "Issues",
+        "noIssues": "No issues recorded so far.",
+        "notApplicable": "Not applicable",
+        "needsDetails": "Issue details are still needed.",
+        "needsPhoto": "A photo is still needed.",
+        "optionalLeft": "{{count}} optional item not reviewed",
+        "optionalLeft_plural": "{{count}} optional items not reviewed",
+        "outstanding": "{{count}} issue still needs details before this inspection can be approved.",
+        "outstanding_plural": "{{count}} issues still need details before this inspection can be approved.",
+        "back": "Back to checklist"
+      },
+      "saveExit": {
+        "title": "Save inspection draft?",
+        "room": "Room {{room}}",
+        "keep": "Keep inspecting",
+        "save": "Save & exit",
+        "discard": "Discard draft",
+        "exitUnsaved": "Exit without saving",
+        "failed": "Couldn't save the draft on this phone. Your answers are still here. Try again, or exit without saving."
+      },
+      "discard": {
+        "title": "Discard this draft?",
+        "body": "Your answers for Room {{room}} will be deleted from this phone. This can't be undone.",
+        "keep": "Keep draft",
+        "confirm": "Discard draft",
+        "failed": "Couldn't delete the draft. Nothing was changed."
+      },
+      "resume": {
+        "title": "Resume inspection?",
+        "resume": "Resume inspection",
+        "startOver": "Start over",
+        "lastSaved": "Last saved {{time}}",
+        "error": "Couldn't check the room just now. Check your connection and try again."
+      },
+      "startOver": {
+        "title": "Start over?",
+        "body": "This clears the {{count}} answer saved for Room {{room}} and starts a fresh inspection.",
+        "body_plural": "This clears the {{count}} answers saved for Room {{room}} and starts a fresh inspection.",
+        "keep": "Keep draft",
+        "confirm": "Start over"
+      },
+      "more": {
+        "title": "Inspection options",
+        "context": "Room context",
+        "contextHint": "Room details, notes, work orders and last inspection",
+        "saveExit": "Save & exit",
+        "saveExitHint": "Save this draft and go back"
+      },
+      "context": {
+        "title": "Room {{room}} · Context",
+        "roomInfo": "Room information",
+        "roomType": "Room type",
+        "location": "Location",
+        "cleanType": "Clean type",
+        "status": "Status",
+        "statusValue": "Clean · awaiting inspection",
+        "cleaning": "Cleaning details",
+        "cleaner": "Cleaned by",
+        "notRecorded": "Not recorded",
+        "completed": "Completed",
+        "duration": "Time spent",
+        "minutes": "{{count}} min",
+        "minutes_plural": "{{count}} min",
+        "cleanChecklist": "Cleaning checklist",
+        "cleanChecklistValue": "{{done}} of {{total}} done",
+        "noSession": "No matching cleaning session was recorded.",
+        "notes": "Recent notes",
+        "noNotes": "No notes on this room.",
+        "moreNotes": "{{count}} older note not shown",
+        "moreNotes_plural": "{{count}} older notes not shown",
+        "orders": "Open work orders",
+        "noOrders": "No open work orders.",
+        "noOrdersMaybe": "No open work orders in the latest records. Older ones may exist.",
+        "moreOrders": "{{count}} more open work order",
+        "moreOrders_plural": "{{count}} more open work orders",
+        "orderNumber": "#{{number}}",
+        "orderStatus": {
+          "open": "Open",
+          "escalated": "Escalated",
+          "in_progress": "In progress",
+          "on_hold": "On hold"
+        },
+        "previous": "Previous inspection",
+        "noPrevious": "No inspection recorded in the last {{days}} days.",
+        "previousResult": "Result",
+        "previousWhen": "When",
+        "previousBy": "Inspector",
+        "viewRoom": "View room",
+        "loading": "Loading…",
+        "notAvailable": "Not available",
+        "error": {
+          "network": "Couldn't load this. Check your connection.",
+          "unauthorized": "You don't have access to this.",
+          "server": "Couldn't load this right now."
+        }
+      },
+      "guidance": {
+        "title": "Checklist standard",
+        "standard": "Standard",
+        "required": "Required item",
+        "optional": "Optional item",
+        "photo": "A photo is needed if this fails.",
+        "naAllowed": "N/A is allowed.",
+        "naNotAllowed": "N/A is not allowed."
+      },
+      "notice": {
+        "stale_draft_cleared": "A saved draft for an earlier cleaning of this room was cleared because it no longer applies.",
+        "draft_corrupt": "A saved draft couldn't be read and was removed."
+      },
+      "unavailable": {
+        "signed_out": {
+          "title": "Signed out",
+          "body": "Sign in to inspect rooms."
+        },
+        "invalid_link": {
+          "title": "This link isn't valid",
+          "body": "Open the room from the Inspections list."
+        },
+        "queue_failed": {
+          "title": "Couldn't check this room",
+          "body": "The room's status couldn't be verified right now. Check your connection and try again."
+        },
+        "needs_connection": {
+          "title": "Connect to start",
+          "body": "Starting or resuming an inspection needs a live check that the room is still waiting. Saved drafts stay on this phone."
+        },
+        "not_awaiting": {
+          "title": "Not waiting for inspection",
+          "body": "This room may already be inspected, or it's being cleaned again. Nothing was changed."
+        },
+        "templates_failed": {
+          "title": "Couldn't load the checklist",
+          "body": "The checklist couldn't be loaded right now. Check your connection and try again."
+        },
+        "template": {
+          "title": "Checklist unavailable"
+        },
+        "read_failed": {
+          "title": "Couldn't check for a saved draft",
+          "body": "Saved progress on this phone couldn't be read. Try again, or continue without it. A draft already saved for this room could be replaced.",
+          "continue": "Continue without it"
+        }
+      },
+      "blocked": {
+        "not_awaiting": {
+          "title": "Room {{room}} isn't waiting any more",
+          "body": "Another supervisor may have inspected it, or it's being cleaned again. Your draft stays on this phone. Nothing was sent."
+        },
+        "room_changed": {
+          "title": "Room {{room}} has changed",
+          "body": "It was cleaned again, or the failure being re-checked changed, so these answers no longer apply. Your draft stays on this phone."
+        },
+        "template_changed": {
+          "title": "The checklist isn't available",
+          "body": "The checklist for this room was removed or can't be used. Your draft stays on this phone. Nothing was sent."
+        },
+        "other_day": {
+          "title": "A new day has started",
+          "body": "This inspection began on an earlier day, so it can't be continued. Your draft stays on this phone."
+        }
+      },
+      "templateChanged": {
+        "title": "The checklist changed",
+        "body": "The checklist for this room was edited, so your answers can't count toward the new one as they are. Review what carries over.",
+        "carried": "{{count}} answer still matches",
+        "carried_plural": "{{count}} answers still match",
+        "dropped": "{{count}} answer no longer applies",
+        "dropped_plural": "{{count}} answers no longer apply",
+        "needed": "{{count}} required item still needs an answer",
+        "needed_plural": "{{count}} required items still need an answer",
+        "keep": "Keep matching answers",
+        "continue": "Continue with the new checklist"
+      }
     }
   },
   "tasks": {

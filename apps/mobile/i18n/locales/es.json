@@ -2297,6 +2297,279 @@
     },
     "start": {
       "needsConnection": "No se puede iniciar una inspección con información desactualizada. Actualizando ahora; inténtalo de nuevo en un momento."
+    },
+    "workspace": {
+      "title": "Inspeccionar habitación {{room}}",
+      "back": "Inspecciones",
+      "backA11y": "Volver a Inspecciones",
+      "moreA11y": "Más opciones",
+      "roomKicker": "HABITACIÓN",
+      "loading": "Abriendo la inspección…",
+      "retry": "Reintentar",
+      "backToQueue": "Volver a Inspecciones",
+      "viewRoom": "Ver habitación",
+      "floor": "Piso {{floor}}",
+      "building": "Edificio {{building}}",
+      "cleanedByAt": "Limpiada por {{name}} · {{time}}",
+      "cleanedBy": "Limpiada por {{name}}",
+      "cleanedAt": "Limpiada a las {{time}}",
+      "checklist": "Lista: {{name}}",
+      "recheck": "{{count}} punto falló la última vez",
+      "recheck_plural": "{{count}} puntos fallaron la última vez",
+      "offline": "Sin conexión: se guarda en este teléfono",
+      "next": "Ir al siguiente punto",
+      "status": {
+        "awaiting": "Pendiente de inspección",
+        "reinspection": "Reinspección"
+      },
+      "progress": {
+        "title": "PROGRESO DE LA INSPECCIÓN",
+        "fraction": "{{answered}} de {{total}}",
+        "reviewedOf": "{{answered}} de {{total}} puntos revisados",
+        "requiredLeft": "Falta {{count}} punto obligatorio",
+        "requiredLeft_plural": "Faltan {{count}} puntos obligatorios",
+        "requiredDone": "Todos los puntos obligatorios revisados",
+        "issues": "{{count}} problema encontrado",
+        "issues_plural": "{{count}} problemas encontrados",
+        "noIssues": "Sin problemas hasta ahora",
+        "a11y": "Progreso: {{fraction}} revisados. {{remaining}}. {{issues}}. El progreso no es un resultado."
+      },
+      "section": {
+        "requiredLeft": "Falta {{count}} obligatorio",
+        "requiredLeft_plural": "Faltan {{count}} obligatorios",
+        "done": "Listo",
+        "optionalLeft": "Quedan puntos opcionales",
+        "issues": "{{count}} problema",
+        "issues_plural": "{{count}} problemas",
+        "a11y": "{{name}}, {{answered}} de {{total}} revisados",
+        "expanded": "expandida",
+        "collapsed": "contraída"
+      },
+      "answer": {
+        "pass": "Aprobado",
+        "fail": "Problema",
+        "na": "N/A",
+        "a11y": "{{answer}} para {{item}}",
+        "clearHint": "Seleccionado. Toque dos veces para borrar."
+      },
+      "na": {
+        "notAllowed": "N/A no se permite en este punto."
+      },
+      "item": {
+        "required": "Obligatorio",
+        "optional": "Opcional",
+        "photoNeeded": "Se necesita foto si falla",
+        "failedBefore": "Falló la última vez",
+        "guidanceA11y": "Ver el estándar de {{item}}",
+        "detailsNeeded": "Faltan los detalles del problema antes de aprobar",
+        "issueRecorded": "Problema registrado"
+      },
+      "note": {
+        "add": "Agregar nota",
+        "addA11y": "Agregar una nota a {{item}}",
+        "placeholder": "Nota (opcional)",
+        "requiredPlaceholder": "¿Por qué no aplica?",
+        "required": "Se requiere una nota para N/A.",
+        "a11y": "Nota de {{item}}"
+      },
+      "save": {
+        "none": "Las respuestas se guardan en este teléfono mientras avanza",
+        "saving": "Guardando borrador…",
+        "saved": "Borrador guardado · {{time}}",
+        "savedNoTime": "Borrador guardado",
+        "failed": "No se pudo guardar el borrador",
+        "retry": "Reintentar",
+        "retryA11y": "Reintentar guardar el borrador"
+      },
+      "review": {
+        "cta": "Revisar inspección",
+        "missing": "Falta responder {{count}} punto obligatorio",
+        "missing_plural": "Faltan por responder {{count}} puntos obligatorios",
+        "naNote": "Agregue una nota a la respuesta N/A antes de revisar.",
+        "naNotAllowed": "N/A no se permite en uno de los puntos. Elija otra respuesta.",
+        "noAnswers": "Revise al menos un punto primero."
+      },
+      "reviewScreen": {
+        "title": "Revisión · Habitación {{room}}",
+        "readOnly": "Este es un resumen de solo lectura. No se ha enviado nada y el estado de la habitación no ha cambiado.",
+        "count": {
+          "passA11y": "{{count}} aprobados",
+          "failA11y": "{{count}} con problemas",
+          "naA11y": "{{count}} no aplican"
+        },
+        "issues": "Problemas",
+        "noIssues": "Todavía no hay problemas registrados.",
+        "notApplicable": "No aplica",
+        "needsDetails": "Aún faltan los detalles del problema.",
+        "needsPhoto": "Aún falta una foto.",
+        "optionalLeft": "{{count}} punto opcional sin revisar",
+        "optionalLeft_plural": "{{count}} puntos opcionales sin revisar",
+        "outstanding": "{{count}} problema aún necesita detalles antes de poder aprobar esta inspección.",
+        "outstanding_plural": "{{count}} problemas aún necesitan detalles antes de poder aprobar esta inspección.",
+        "back": "Volver a la lista"
+      },
+      "saveExit": {
+        "title": "¿Guardar el borrador de la inspección?",
+        "room": "Habitación {{room}}",
+        "keep": "Seguir inspeccionando",
+        "save": "Guardar y salir",
+        "discard": "Descartar borrador",
+        "exitUnsaved": "Salir sin guardar",
+        "failed": "No se pudo guardar el borrador en este teléfono. Sus respuestas siguen aquí. Reintente o salga sin guardar."
+      },
+      "discard": {
+        "title": "¿Descartar este borrador?",
+        "body": "Sus respuestas de la habitación {{room}} se borrarán de este teléfono. No se puede deshacer.",
+        "keep": "Conservar borrador",
+        "confirm": "Descartar borrador",
+        "failed": "No se pudo borrar el borrador. No se cambió nada."
+      },
+      "resume": {
+        "title": "¿Reanudar la inspección?",
+        "resume": "Reanudar inspección",
+        "startOver": "Empezar de nuevo",
+        "lastSaved": "Último guardado {{time}}",
+        "error": "No se pudo verificar la habitación ahora. Revise su conexión e intente de nuevo."
+      },
+      "startOver": {
+        "title": "¿Empezar de nuevo?",
+        "body": "Esto borra la {{count}} respuesta guardada de la habitación {{room}} y empieza una inspección nueva.",
+        "body_plural": "Esto borra las {{count}} respuestas guardadas de la habitación {{room}} y empieza una inspección nueva.",
+        "keep": "Conservar borrador",
+        "confirm": "Empezar de nuevo"
+      },
+      "more": {
+        "title": "Opciones de inspección",
+        "context": "Contexto de la habitación",
+        "contextHint": "Detalles de la habitación, notas, órdenes de trabajo y última inspección",
+        "saveExit": "Guardar y salir",
+        "saveExitHint": "Guarda este borrador y regresa"
+      },
+      "context": {
+        "title": "Habitación {{room}} · Contexto",
+        "roomInfo": "Información de la habitación",
+        "roomType": "Tipo de habitación",
+        "location": "Ubicación",
+        "cleanType": "Tipo de limpieza",
+        "status": "Estado",
+        "statusValue": "Limpia · pendiente de inspección",
+        "cleaning": "Detalles de la limpieza",
+        "cleaner": "Limpiada por",
+        "notRecorded": "No registrado",
+        "completed": "Terminada",
+        "duration": "Tiempo empleado",
+        "minutes": "{{count}} min",
+        "minutes_plural": "{{count}} min",
+        "cleanChecklist": "Lista de limpieza",
+        "cleanChecklistValue": "{{done}} de {{total}} hechos",
+        "noSession": "No se registró una sesión de limpieza correspondiente.",
+        "notes": "Notas recientes",
+        "noNotes": "No hay notas en esta habitación.",
+        "moreNotes": "{{count}} nota anterior no se muestra",
+        "moreNotes_plural": "{{count}} notas anteriores no se muestran",
+        "orders": "Órdenes de trabajo abiertas",
+        "noOrders": "No hay órdenes de trabajo abiertas.",
+        "noOrdersMaybe": "No hay órdenes abiertas en los registros más recientes. Puede haber anteriores.",
+        "moreOrders": "{{count}} orden de trabajo abierta más",
+        "moreOrders_plural": "{{count}} órdenes de trabajo abiertas más",
+        "orderNumber": "N.º {{number}}",
+        "orderStatus": {
+          "open": "Abierta",
+          "escalated": "Escalada",
+          "in_progress": "En curso",
+          "on_hold": "En espera"
+        },
+        "previous": "Inspección anterior",
+        "noPrevious": "No hay inspecciones registradas en los últimos {{days}} días.",
+        "previousResult": "Resultado",
+        "previousWhen": "Cuándo",
+        "previousBy": "Inspector",
+        "viewRoom": "Ver habitación",
+        "loading": "Cargando…",
+        "notAvailable": "No disponible",
+        "error": {
+          "network": "No se pudo cargar. Revise su conexión.",
+          "unauthorized": "No tiene acceso a esto.",
+          "server": "No se pudo cargar en este momento."
+        }
+      },
+      "guidance": {
+        "title": "Estándar de la lista",
+        "standard": "Estándar",
+        "required": "Punto obligatorio",
+        "optional": "Punto opcional",
+        "photo": "Se necesita una foto si esto falla.",
+        "naAllowed": "Se permite N/A.",
+        "naNotAllowed": "No se permite N/A."
+      },
+      "notice": {
+        "stale_draft_cleared": "Se borró un borrador guardado de una limpieza anterior de esta habitación porque ya no aplica.",
+        "draft_corrupt": "No se pudo leer un borrador guardado y se eliminó."
+      },
+      "unavailable": {
+        "signed_out": {
+          "title": "Sesión cerrada",
+          "body": "Inicie sesión para inspeccionar habitaciones."
+        },
+        "invalid_link": {
+          "title": "Este enlace no es válido",
+          "body": "Abra la habitación desde la lista de Inspecciones."
+        },
+        "queue_failed": {
+          "title": "No se pudo verificar la habitación",
+          "body": "No se pudo confirmar el estado de la habitación ahora. Revise su conexión e intente de nuevo."
+        },
+        "needs_connection": {
+          "title": "Conéctese para empezar",
+          "body": "Para empezar o reanudar una inspección hay que confirmar en vivo que la habitación sigue esperando. Los borradores guardados se quedan en este teléfono."
+        },
+        "not_awaiting": {
+          "title": "No está pendiente de inspección",
+          "body": "Es posible que ya se haya inspeccionado o que se esté limpiando de nuevo. No se cambió nada."
+        },
+        "templates_failed": {
+          "title": "No se pudo cargar la lista",
+          "body": "La lista de verificación no se pudo cargar ahora. Revise su conexión e intente de nuevo."
+        },
+        "template": {
+          "title": "Lista no disponible"
+        },
+        "read_failed": {
+          "title": "No se pudo buscar un borrador guardado",
+          "body": "No se pudo leer el avance guardado en este teléfono. Reintente o continúe sin él. Un borrador ya guardado de esta habitación podría reemplazarse.",
+          "continue": "Continuar sin él"
+        }
+      },
+      "blocked": {
+        "not_awaiting": {
+          "title": "La habitación {{room}} ya no está pendiente",
+          "body": "Otro supervisor pudo haberla inspeccionado o se está limpiando de nuevo. Su borrador se queda en este teléfono. No se envió nada."
+        },
+        "room_changed": {
+          "title": "La habitación {{room}} cambió",
+          "body": "Se limpió de nuevo, o cambió la falla que se está revisando, así que estas respuestas ya no aplican. Su borrador se queda en este teléfono."
+        },
+        "template_changed": {
+          "title": "La lista no está disponible",
+          "body": "La lista de esta habitación se eliminó o no se puede usar. Su borrador se queda en este teléfono. No se envió nada."
+        },
+        "other_day": {
+          "title": "Empezó un nuevo día",
+          "body": "Esta inspección empezó en un día anterior, así que no se puede continuar. Su borrador se queda en este teléfono."
+        }
+      },
+      "templateChanged": {
+        "title": "La lista cambió",
+        "body": "La lista de esta habitación se editó, así que sus respuestas no pueden contar para la nueva tal como están. Revise lo que se conserva.",
+        "carried": "{{count}} respuesta sigue coincidiendo",
+        "carried_plural": "{{count}} respuestas siguen coincidiendo",
+        "dropped": "{{count}} respuesta ya no aplica",
+        "dropped_plural": "{{count}} respuestas ya no aplican",
+        "needed": "Falta responder {{count}} punto obligatorio",
+        "needed_plural": "Faltan por responder {{count}} puntos obligatorios",
+        "keep": "Conservar respuestas que coinciden",
+        "continue": "Continuar con la lista nueva"
+      }
     }
   },
   "tasks": {

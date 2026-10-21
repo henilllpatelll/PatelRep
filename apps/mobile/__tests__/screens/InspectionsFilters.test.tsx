@@ -53,6 +53,7 @@ jest.mock("@/lib/api/inspections", () => ({
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({ triggerReclean: jest.fn() }));
 
 import { fetchInspectionRecords, fetchOpenCorrections, listInspectionTemplates } from "@/lib/api/inspections";
+import { router } from "expo-router";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { useAppStore } from "@/stores/appStore";
@@ -199,9 +200,8 @@ describe("search", () => {
     await type(screen, "30");
     await press(screen, "queue-card-room-301");
     await settle();
-    expect(screen.getByText("Inspecting Room 301")).toBeTruthy();
-    expect(screen.getByTestId("inspect-search").props.value).toBe("30");
-    await press(screen, "inspect-focus-queue");
+    // the room opens in its own screen; this one stays mounted underneath, exactly as it was left
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-301", from: "queue", roomNumber: "301" } });
     expect(screen.getByTestId("inspect-search").props.value).toBe("30");
     expect(shownRooms(screen).sort()).toEqual(["301", "302"]);
   });
@@ -455,9 +455,7 @@ describe("applied filters and chips", () => {
     await apply(screen, ["inspect-filter-floor-~|3"]);
     await press(screen, "queue-card-room-301");
     await settle();
-    expect(screen.getByText("Inspecting Room 301")).toBeTruthy();
-    expect(screen.getByTestId("inspect-chip-floor:~|3")).toBeTruthy();
-    await press(screen, "inspect-focus-queue");
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-301", from: "queue", roomNumber: "301" } });
     expect(screen.getByTestId("inspect-chip-floor:~|3")).toBeTruthy();
     expect(shownRooms(screen).sort()).toEqual(["301", "302"]);
   });

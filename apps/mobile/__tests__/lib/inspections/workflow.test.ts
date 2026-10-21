@@ -113,3 +113,37 @@ describe("workflow phases are not room statuses", () => {
     expect(expectedRoomStatus({ phase: "blocked", reason: "room_changed" })).toBeNull();
   });
 });
+
+describe("what the active inspection workspace added", () => {
+  it("going back from the read-only review reopens the checklist and sends nothing", () => {
+    expect(run([{ type: "reopen" }], { phase: "reviewed" })).toEqual({ phase: "in_progress" });
+    expect(transition({ phase: "in_progress" }, { type: "reopen" }).accepted).toBe(false);
+    expect(transition({ phase: "queued" }, { type: "reopen" }).accepted).toBe(false);
+  });
+
+  it("unfinished work is blocked when the room, checklist or day moved on, and may resume", () => {
+    for (const from of [{ phase: "queued" }, { phase: "in_progress" }, { phase: "reviewed" }] as WorkflowState[]) {
+      expect(transition(from, { type: "invalidate", reason: "room_changed" })).toEqual({ state: { phase: "blocked", reason: "room_changed" }, accepted: true });
+    }
+    expect(run([{ type: "resume" }], { phase: "blocked", reason: "template_changed" })).toEqual({ phase: "in_progress" });
+  });
+
+  it("a recorded result, a write in flight and an unresolved write can never be invalidated by the screen", () => {
+    const states: WorkflowState[] = [
+      { phase: "submitting" },
+      { phase: "uncertain", reason: "no_response" } as WorkflowState,
+      { phase: "passed" },
+      { phase: "correction_required", followUpPending: false },
+      { phase: "blocked", reason: "room_changed" },
+    ];
+    for (const state of states) {
+      const result = transition(state, { type: "invalidate", reason: "room_changed" });
+      if (state.phase === "blocked") expect(result.accepted).toBe(false);
+      else expect(result).toEqual({ state, accepted: false });
+    }
+  });
+
+  it("a blocked inspection can still be discarded", () => {
+    expect(run([{ type: "discard" }], { phase: "blocked", reason: "room_changed" })).toEqual({ phase: "queued" });
+  });
+});

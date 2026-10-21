@@ -35,6 +35,10 @@ export type WorkflowEvent =
   | { type: "start" }
   | { type: "answer" }
   | { type: "review"; canSubmit: boolean }
+  /** Back from the read-only review to the checklist (nothing was sent). */
+  | { type: "reopen" }
+  /** The room, checklist, day or account moved on under an unfinished inspection. Nothing is sent from here on. */
+  | { type: "invalidate"; reason: RejectionReason }
   | { type: "submit" }
   | { type: "outcome"; outcome: SubmissionOutcome }
   | { type: "resolved"; resolution: UncertainResolution }
@@ -122,6 +126,16 @@ export function transition(state: WorkflowState, event: WorkflowEvent): Transiti
     case "review":
       // Only a checklist that can legitimately conclude may be reviewed.
       return state.phase === "in_progress" && event.canSubmit ? to({ phase: "reviewed" }) : keep(state);
+
+    case "reopen":
+      return state.phase === "reviewed" ? to({ phase: "in_progress" }) : keep(state);
+
+    case "invalidate":
+      // Only unfinished work can be invalidated. A recorded result, a write in flight and an unresolved write are
+      // settled by the server's answer, never by this screen's opinion of the room.
+      return state.phase === "queued" || state.phase === "in_progress" || state.phase === "reviewed"
+        ? to({ phase: "blocked", reason: event.reason })
+        : keep(state);
 
     case "submit":
       if (state.phase === "reviewed" || state.phase === "uncertain") return to({ phase: "submitting" });

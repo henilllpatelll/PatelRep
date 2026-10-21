@@ -81,6 +81,8 @@ export interface ReadyRoom {
   clean_type: string | null;
   /** Which checklist applies. Absent on servers older than migration 219. */
   room_type_id?: string | null;
+  /** That room type's own name, for display only. Absent on older servers; null when not recorded. */
+  room_type_name?: string | null;
   /** Identifies this "cleaned, awaiting inspection" cycle; null when it cannot be determined (then not checked). */
   clean_cycle_id?: string | null;
   /** Set when this room is being re-checked after a failed inspection. */

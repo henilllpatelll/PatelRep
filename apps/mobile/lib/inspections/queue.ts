@@ -21,6 +21,8 @@ export interface QueueItem {
   housekeeperId: string | null;
   cleanType: string | null;
   roomTypeId: string | null;
+  /** The room type's recorded name, for display; null when the server did not send one (never guessed). */
+  roomTypeName: string | null;
   cleanCycleId: string | null;
   reinspection: ReinspectionContext;
   /** Recorded operational facts. `vip` is null when the server does not send the flag (so "not VIP" is never assumed). */
@@ -62,6 +64,7 @@ export function buildQueue(rooms: readonly ReadyRoom[]): QueueItem[] {
       housekeeperId: room.housekeeper_id ?? null,
       cleanType: room.clean_type ?? null,
       roomTypeId: room.room_type_id ?? null,
+      roomTypeName: room.room_type_name?.trim() || null,
       cleanCycleId: room.clean_cycle_id ?? null,
       reinspection: reinspectionContext(room),
       vip: typeof room.vip === "boolean" ? room.vip : null,

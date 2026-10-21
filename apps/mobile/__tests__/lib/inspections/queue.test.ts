@@ -90,3 +90,15 @@ describe("freshness", () => {
     expect(queueRooms({ status: "failed", failure: { kind: "offline", status: null } })).toBeNull();
   });
 });
+
+describe("the room type's name", () => {
+  it("is kept when the server sends one and is null otherwise - never guessed from the id", () => {
+    const [named] = buildQueue([readyRoom("a", { room_type_id: "type-king", room_type_name: "  Standard King " })]);
+    expect(named.roomTypeName).toBe("Standard King");
+    const [blank] = buildQueue([readyRoom("b", { room_type_id: "type-king", room_type_name: "   " })]);
+    expect(blank.roomTypeName).toBeNull();
+    const [absent] = buildQueue([readyRoom("c", { room_type_id: "type-king" })]);
+    expect(absent.roomTypeName).toBeNull();
+    expect(absent.roomTypeId).toBe("type-king");
+  });
+});

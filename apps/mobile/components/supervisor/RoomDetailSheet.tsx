@@ -30,6 +30,7 @@ import { PanelHeader } from "@/components/supervisor/panels/PanelParts";
 import type { HistoryContext } from "@/lib/housekeeping/roomCleaningHistory";
 import { useRoomNote } from "@/lib/housekeeping/useRoomNote";
 import { useRoomWellness } from "@/lib/housekeeping/useRoomWellness";
+import { inspectionHref } from "@/lib/inspections/route";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -144,9 +145,10 @@ export function RoomDetailSheet({
         assignment.openRemove(room.roomId);
         return;
       case "inspect":
-        // Close first, then open the queue focused on this room by its stable id (the number is display only).
+        // Close first, then open the active inspection for this room by its stable id (the number is display only).
+        // The workspace itself decides whether the room can be inspected; opening it starts nothing.
         onClose();
-        router.push({ pathname: "/(app)/inspect", params: { roomId: room.roomId, roomNumber: room.roomNumber } } as never);
+        router.push(inspectionHref(room.roomId, room.roomNumber, "board") as never);
         return;
       case "note":
         push("note");

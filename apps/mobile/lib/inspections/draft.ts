@@ -28,11 +28,22 @@ export interface InspectionDraft {
   templateSignature: string;
   submissionId: string;
   answers: Record<string, ItemAnswer>;
+  /**
+   * item id → the question as it was worded when answered (section + description) — for answered items only. Settings
+   * replaces item ids on every checklist edit, and the old checklist is gone from the server by then; this snapshot is
+   * what lets `carryOverAnswers` recognise the SAME question later, even after a restart. Never guest data.
+   */
+  questions: Record<string, AnsweredQuestion>;
   /** item id → local file uri */
   photos: Record<string, string>;
   notes: string;
   startedAt: number;
   updatedAt: number;
+}
+
+export interface AnsweredQuestion {
+  section: string;
+  description: string;
 }
 
 export function createDraft(input: {
@@ -59,6 +70,7 @@ export function createDraft(input: {
     templateSignature: checklistSignature(input.template),
     submissionId: input.submissionId,
     answers: {},
+    questions: {},
     photos: {},
     notes: "",
     startedAt: input.now,
@@ -169,6 +181,15 @@ export function carryOverAnswers(
   return carried;
 }
 
+/** The answered questions of a stored draft, as checklist items, so a changed checklist can be matched against them. */
+export function answeredItemsOf(draft: Pick<InspectionDraft, "answers" | "questions">): ChecklistItem[] {
+  return Object.keys(draft.answers).flatMap((id, index) => {
+    const question = draft.questions[id];
+    if (!question) return [];
+    return [{ id, section: question.section, description: question.description, isRequired: true, requiresPhotoOnFail: false, allowsNa: true, sortOrder: index }];
+  });
+}
+
 /* ─── Reading a stored draft ────────────────────────────────────────────── */
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -186,6 +207,15 @@ export function parseDraft(raw: unknown): InspectionDraft | null {
     if (!isRecord(answer) || !["pass", "fail", "na"].includes(String(answer.result))) return null;
   }
   for (const uri of Object.values(raw.photos)) if (typeof uri !== "string") return null;
+  // Optional (absent before the workspace existed). A malformed entry is dropped, not trusted: it only costs a carry-over.
+  const questions: Record<string, AnsweredQuestion> = {};
+  if (isRecord(raw.questions)) {
+    for (const [id, question] of Object.entries(raw.questions)) {
+      if (isRecord(question) && typeof question.section === "string" && typeof question.description === "string") {
+        questions[id] = { section: question.section, description: question.description };
+      }
+    }
+  }
   return {
     version: DRAFT_VERSION,
     hotelId: raw.hotelId as string,
@@ -199,6 +229,7 @@ export function parseDraft(raw: unknown): InspectionDraft | null {
     templateSignature: raw.templateSignature as string,
     submissionId: raw.submissionId as string,
     answers: raw.answers as Record<string, ItemAnswer>,
+    questions,
     photos: raw.photos as Record<string, string>,
     notes: raw.notes as string,
     startedAt: raw.startedAt,

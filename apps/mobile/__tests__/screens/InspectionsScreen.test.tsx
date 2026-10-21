@@ -207,7 +207,7 @@ describe("not live when it cannot be shown to be", () => {
     await act(async () => useAppStore.setState({ isOnline: false }));
     await settle();
     await act(async () => fireEvent.press(screen.getByTestId("queue-card-room-203")));
-    expect(mockSetParams).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
     expect(screen.getByText(en("inspect.start.needsConnection"))).toBeTruthy();
   });
 
@@ -346,13 +346,12 @@ describe("queue cards", () => {
     const screen = renderScreen();
     await settle();
     await act(async () => fireEvent.press(screen.getByTestId("queue-card-tower-b-101")));
-    expect(mockSetParams).toHaveBeenCalledWith({ roomId: "tower-b-101", roomNumber: "101" });
-    await settle();
-    expect(screen.getByText("Inspecting Room 101")).toBeTruthy();
-    expect(screen.getByTestId("inspect-focus")).toBeTruthy();
-    // the other tower's room 101 is still listed; the chosen one is not repeated
+    // the stable id travels to the active inspection; the number is only a label
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "tower-b-101", from: "queue", roomNumber: "101" } });
+    // this screen stays as it was: both towers' room 101 are still listed
     expect(screen.getByTestId("queue-card-tower-a-101")).toBeTruthy();
-    expect(screen.queryByTestId("queue-card-tower-b-101")).toBeNull();
+    expect(screen.getByTestId("queue-card-tower-b-101")).toBeTruthy();
   });
 
   it("opening a room sends nothing", async () => {
@@ -363,22 +362,23 @@ describe("queue cards", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  it("a Room Board deep link still opens that room by id, whatever the label says", async () => {
+  it("an older room link is handed to the active inspection by its id, whatever the label says", async () => {
     mockParams = { roomId: "room-103", roomNumber: "999" };
-    const screen = renderScreen();
+    renderScreen();
     await settle();
-    expect(screen.getByText("Inspecting Room 103")).toBeTruthy();
+    // cleared from THIS screen first, so it cannot fire twice, then opened in the workspace
+    expect(mockSetParams).toHaveBeenCalledWith({ roomId: undefined, roomNumber: undefined });
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-103", from: "queue", roomNumber: "999" } });
+    expect(mockSetParams.mock.invocationCallOrder[0]).toBeLessThan(push.mock.invocationCallOrder[0]);
   });
 
-  it("a room that has left the queue gets the existing explanation and a way back", async () => {
+  it("a link naming a room that is not queued is still only handed on: the workspace explains, this screen never judges it", async () => {
     mockParams = { roomId: "room-555", roomNumber: "555" };
-    const screen = renderScreen();
+    renderScreen();
     await settle();
-    expect(screen.getByText("Room 555 is no longer awaiting inspection.")).toBeTruthy();
-    fireEvent.press(screen.getByTestId("inspect-focus-back"));
-    expect(router.back).toHaveBeenCalled();
-    fireEvent.press(screen.getByTestId("inspect-focus-queue"));
-    expect(mockSetParams).toHaveBeenCalledWith({ roomId: undefined, roomNumber: undefined });
+    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-555", from: "queue", roomNumber: "555" } });
+    expect(mockSubmit).not.toHaveBeenCalled();
   });
 
   it("a room whose checklist cannot be used stays visible, says why on the card and on tap, and opens nothing", async () => {
@@ -392,7 +392,7 @@ describe("queue cards", () => {
     expect(screen.getByTestId("queue-card-blocked-room-203").props.children).toBe(en("inspect.template.no_usable_template"));
     await act(async () => fireEvent.press(screen.getByTestId("queue-card-room-203")));
     expect(screen.getAllByText(en("inspect.template.no_usable_template")).length).toBeGreaterThanOrEqual(2); // card + toast
-    expect(mockSetParams).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("orders by priority: an overdue arrival, then an elevated priority, then the rest by wait", async () => {
@@ -457,7 +457,7 @@ describe("corrections tab", () => {
     await act(async () => fireEvent.press(screen.getByTestId("correction-card-room-305")));
     expect(push).toHaveBeenCalledWith({ pathname: "/(app)/room-board", params: { roomId: "room-305" } });
     await act(async () => fireEvent.press(screen.getByTestId("correction-card-room-307")));
-    expect(mockSetParams).toHaveBeenCalledWith({ roomId: "room-307", roomNumber: "307" });
+    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-307", from: "queue", roomNumber: "307" } });
   });
 
   it("resubmitted but not in the queue (state moved on) is not offered for reinspection", async () => {
@@ -596,8 +596,7 @@ describe("hotel and account switching", () => {
     expect(screen.getByTestId("queue-card-room-900")).toBeTruthy();
   });
 
-  it("clears search, filters and the open room when the hotel changes", async () => {
-    mockParams = { roomId: "room-203", roomNumber: "203" };
+  it("clears search and filters, and any link still on this screen, when the hotel changes", async () => {
     const screen = renderScreen();
     await settle();
     fireEvent.changeText(screen.getByTestId("inspect-search"), "20");

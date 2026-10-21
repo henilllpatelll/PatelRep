@@ -7,7 +7,7 @@ import es from "@/i18n/locales/es.json";
    same placeholders, real Spanish rather than a copy of the English, and no key the code asks for is missing. */
 
 type Tree = { [key: string]: string | Tree };
-const NEW_GROUPS = ["header", "status", "metric", "search", "tabs", "chips", "filter", "card", "correction", "done", "states", "banner", "record", "start"];
+const NEW_GROUPS = ["header", "status", "metric", "search", "tabs", "chips", "filter", "card", "correction", "done", "states", "banner", "record", "start", "workspace"];
 
 function leaves(tree: Tree, prefix = ""): Record<string, string> {
   return Object.entries(tree).reduce<Record<string, string>>((all, [key, value]) => {
@@ -32,6 +32,10 @@ const SAME_IN_BOTH = new Set([
   "inspect.done.at", // "{{time}}"
   "inspect.tabs.a11y", // "{{label}}, {{count}}"
   "inspect.record.inspector", // the same word in both
+  "inspect.workspace.answer.na", // "N/A"
+  "inspect.workspace.context.minutes", // "{{count}} min"
+  "inspect.workspace.context.minutes_plural",
+  "inspect.workspace.context.previousBy", // "Inspector" in both
 ]);
 
 describe("Inspections screen copy", () => {
@@ -83,7 +87,7 @@ describe("every key the screen asks for exists", () => {
   }
 
   it("found the code to scan", () => {
-    expect(files.length).toBeGreaterThan(15);
+    expect(files.length).toBeGreaterThan(25);
     expect(literal.size).toBeGreaterThan(60);
   });
 
@@ -106,6 +110,12 @@ describe("every key the screen asks for exists", () => {
     ...["queue", "corrections", "done"].map((k) => `inspect.tabs.${k}`),
     ...["waiting", "corrections", "passed"].map((k) => `inspect.metric.${k}`),
     ...["errorTitle", "errorBody", "correctionsErrorTitle", "correctionsErrorBody", "doneErrorTitle", "doneErrorBody"].map((k) => `inspect.states.${k}`),
+    ...["not_awaiting", "room_changed", "template_changed", "other_day"].flatMap((k) => [`inspect.workspace.blocked.${k}.title`, `inspect.workspace.blocked.${k}.body`]),
+    ...["network", "unauthorized", "server"].map((k) => `inspect.workspace.context.error.${k}`),
+    ...["open", "escalated", "in_progress", "on_hold"].map((k) => `inspect.workspace.context.orderStatus.${k}`),
+    ...["stale_draft_cleared", "draft_corrupt"].map((k) => `inspect.workspace.notice.${k}`),
+    ...["pass", "fail", "na"].flatMap((k) => [`inspect.workspace.answer.${k}`, `inspect.workspace.reviewScreen.count.${k}A11y`]),
+    ...["signed_out", "invalid_link", "queue_failed", "needs_connection", "not_awaiting", "templates_failed", "read_failed"].flatMap((k) => [`inspect.workspace.unavailable.${k}.title`, `inspect.workspace.unavailable.${k}.body`]),
   ];
   it.each(dynamic)("%s exists in English and Spanish", (key) => {
     expect(inspectEn[key]).toBeDefined();

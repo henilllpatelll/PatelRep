@@ -820,3 +820,17 @@ def test_the_queue_carries_recorded_priority_facts_and_no_id_as_a_housekeeper_na
     assert row["vip"] is True and row["arrival_at"] == "2026-10-20T20:00:00+00:00" and row["priority"] == 2
     assert row["priority_needed_by"] is None and row["building"] == "A"
     assert row["cleaned_by"] == "" and row["housekeeper_id"] == "hk-1"  # unnamed stays blank, never "hk-1"
+
+
+def test_the_queue_names_the_room_type_only_when_one_is_recorded(client, env):
+    rooms = {"room_number": "204", "floor": 2, "room_type_id": env.room_type}
+    env.db.rows["room_status"][0]["rooms"] = {**rooms, "room_types": {"name": "Standard King"}}
+    named = client.get("/v1/housekeeping/ready-for-inspection?date=" + Env.today(), headers=_auth()).json()["data"][0]
+    assert named["room_type_name"] == "Standard King" and named["room_type_id"] == env.room_type
+    # no embedded type (or a blank name): null, never a made-up label
+    env.db.rows["room_status"][0]["rooms"] = {**rooms, "room_types": {"name": ""}}
+    blank = client.get("/v1/housekeeping/ready-for-inspection?date=" + Env.today(), headers=_auth()).json()["data"][0]
+    assert blank["room_type_name"] is None
+    env.db.rows["room_status"][0]["rooms"] = rooms
+    absent = client.get("/v1/housekeeping/ready-for-inspection?date=" + Env.today(), headers=_auth()).json()["data"][0]
+    assert absent["room_type_name"] is None

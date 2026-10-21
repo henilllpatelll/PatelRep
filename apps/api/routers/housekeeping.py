@@ -2014,7 +2014,7 @@ async def list_ready_for_inspection(
         supabase.table("room_status")
         .select(
             "room_id, status, updated_at, reclean_requested_at, vip_flag, checkin_time, priority, priority_needed_by, "
-            "rooms!inner(room_number, floor, building, room_type_id)"
+            "rooms!inner(room_number, floor, building, room_type_id, room_types(name))"
         )
         .eq("tenant_id", current_user.hotel_id)
         .eq("status", "CLEAN")
@@ -2083,6 +2083,8 @@ async def list_ready_for_inspection(
             # which template applies (room type), which clean cycle this row is (staleness),
             # and, for a room being re-checked after a failure, exactly what failed.
             "room_type_id": room_info.get("room_type_id"),
+            # The room type's own name, for display only (the id still picks the checklist). Null when not recorded.
+            "room_type_name": ((room_info.get("room_types") or {}).get("name") or None),
             "clean_cycle_id": clean_cycles.get(room["room_id"]),
             "previous_failure": previous_failures.get(room["room_id"]),
             # Recorded operational facts the queue is ordered by. Nothing is predicted: an unset value is null.
