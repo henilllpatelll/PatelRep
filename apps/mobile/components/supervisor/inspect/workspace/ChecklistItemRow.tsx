@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -16,9 +16,18 @@ interface Props {
   failedBefore: boolean;
   policy: RequiredNaPolicy;
   t: Translate;
-  onAnswer: (itemId: string, result: Answer) => AnswerRefusal | "blocked" | null;
+  /** The photo the draft holds for this item (only ever a failed item's). */
+  photoUri: string | null;
+  /** …whose file is no longer on the phone. */
+  photoLost: boolean;
+  onAnswer: (itemId: string, result: Answer) => AnswerRefusal | "blocked" | "confirm_loss" | null;
   onNote: (itemId: string, note: string) => void;
   onGuidance: (itemId: string) => void;
+  /** Open the issue drawer for this item. */
+  onEditIssue: (itemId: string) => void;
+  /** Changing an issue that has details to `choice` needs the supervisor's say-so first. */
+  onConfirmChange: (itemId: string, choice: Answer) => void;
+  onPhotoUnreadable: (itemId: string) => void;
 }
 
 const CHOICES: { result: Answer; label: string }[] = [
@@ -29,10 +38,10 @@ const CHOICES: { result: Answer; label: string }[] = [
 
 /**
  * One checklist question. Pass / Issue / N/A record an explicit answer (tap the chosen one again to undo it); nothing
- * is ever answered for the supervisor. An Issue is only marked here — its details come in a later step, and the row
- * says so rather than pretending it is finished.
+ * is ever answered for the supervisor. Pass and N/A are one tap. Choosing Issue opens the issue drawer; the row then
+ * summarises what was recorded (severity, description, photo) and says plainly what is still missing.
  */
-function ChecklistItemRowView({ item, answer, failedBefore, policy, t, onAnswer, onNote, onGuidance }: Props) {
+function ChecklistItemRowView({ item, answer, failedBefore, policy, photoUri, photoLost, t, onAnswer, onNote, onGuidance, onEditIssue, onConfirmChange, onPhotoUnreadable }: Props) {
   const theme = useTheme();
   const [noteOpen, setNoteOpen] = useState(false);
   const [text, setText] = useState(answer?.note ?? "");
@@ -57,8 +66,14 @@ function ChecklistItemRowView({ item, answer, failedBefore, policy, t, onAnswer,
   const choose = (choice: Answer) => {
     setHint(null);
     const outcome = onAnswer(item.id, choice);
+    if (outcome === "confirm_loss") {
+      onConfirmChange(item.id, choice);
+      return;
+    }
     if (outcome === "na_not_allowed") setHint(t("inspect.workspace.na.notAllowed"));
     if (choice === "na" && outcome === null && naNeedsNote(item, policy)) setNoteOpen(true);
+    // A new issue asks for its details straight away; a plain Pass or N/A never does.
+    if (choice === "fail" && outcome === null && result !== "fail") onEditIssue(item.id);
   };
 
   const tone = (choice: Answer) => {
@@ -138,12 +153,54 @@ function ChecklistItemRowView({ item, answer, failedBefore, policy, t, onAnswer,
         ) : null}
 
         {result === "fail" ? (
-          <View style={styles.issueRow} testID={`workspace-issue-${item.id}`}>
-            <Ionicons name="alert-circle" size={16} color={theme.status.dirty} />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: theme.status.dirty }]}>
-              {answer?.severity === undefined ? t("inspect.workspace.item.detailsNeeded") : t("inspect.workspace.item.issueRecorded")}
+          <Pressable
+            onPress={() => onEditIssue(item.id)}
+            accessibilityRole="button"
+            accessibilityLabel={t("inspect.workspace.item.editIssueA11y", { item: item.description })}
+            style={[styles.issueBox, { borderColor: theme.status.dirtyLine, backgroundColor: theme.status.dirtySoft }]}
+            testID={`workspace-issue-edit-${item.id}`}
+          >
+            <View style={styles.issueRow}>
+              <Ionicons name="alert-circle" size={16} color={theme.status.dirty} />
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: theme.status.dirty }]} testID={`workspace-issue-${item.id}`}>
+                {answer?.severity === undefined ? t("inspect.workspace.item.detailsNeeded") : t("inspect.workspace.item.issueRecorded")}
+              </Text>
+            </View>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: answer?.severity ? theme.textPrimary : theme.status.pickup }]} testID={`workspace-issue-severity-text-${item.id}`}>
+              {answer?.severity ? t(`inspect.workspace.issue.severity.${answer.severity}`) : t("inspect.workspace.item.severityNeeded")}
             </Text>
-          </View>
+            {answer?.note ? (
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noteText, { color: theme.textPrimary }]} numberOfLines={2} testID={`workspace-has-note-${item.id}`}>
+                {answer.note}
+              </Text>
+            ) : null}
+            {photoUri && !photoLost ? (
+              <View style={styles.photoLine}>
+                <Image
+                  source={{ uri: photoUri }}
+                  style={styles.thumb}
+                  resizeMode="cover"
+                  accessibilityLabel={t("inspect.workspace.item.photoThumbA11y", { item: item.description })}
+                  onError={() => onPhotoUnreadable(item.id)}
+                  testID={`workspace-issue-thumb-${item.id}`}
+                />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noteText, { color: theme.textSecondary }]}>
+                  {t("inspect.workspace.item.photoAttached")}
+                </Text>
+              </View>
+            ) : photoLost ? (
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: theme.status.pickup }]} testID={`workspace-issue-photo-state-${item.id}`}>
+                {t("inspect.workspace.item.photoLost")}
+              </Text>
+            ) : item.requiresPhotoOnFail ? (
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: theme.status.pickup }]} testID={`workspace-issue-photo-state-${item.id}`}>
+                {t("inspect.workspace.item.photoRequiredMissing")}
+              </Text>
+            ) : null}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.editLink, { color: theme.primaryAction }]}>
+              {t("inspect.workspace.item.editIssue")}
+            </Text>
+          </Pressable>
         ) : null}
 
         {answer && result !== "fail" ? (
@@ -184,14 +241,6 @@ function ChecklistItemRowView({ item, answer, failedBefore, policy, t, onAnswer,
             </Pressable>
           )
         ) : null}
-        {result === "fail" && answer?.note ? (
-          <View style={styles.issueRow} testID={`workspace-has-note-${item.id}`}>
-            <Ionicons name="document-text-outline" size={16} color={theme.textSecondary} />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueText, { color: theme.textSecondary }]} numberOfLines={2}>
-              {answer.note}
-            </Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -224,7 +273,12 @@ const styles = StyleSheet.create({
   choice: { flex: 1, minHeight: MIN_TARGET, borderWidth: 1.5, borderRadius: R.md, paddingHorizontal: 6, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
   choiceText: { fontSize: 15, fontWeight: "800", flexShrink: 1 },
   hint: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
+  issueBox: { borderWidth: 1, borderRadius: R.sm, paddingHorizontal: 10, paddingVertical: 8, gap: 4, minHeight: MIN_TARGET },
   issueRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  noteText: { fontSize: 14, lineHeight: 19, fontWeight: "600" },
+  photoLine: { flexDirection: "row", alignItems: "center", gap: 8 },
+  thumb: { width: 44, height: 44, borderRadius: R.sm },
+  editLink: { fontSize: 13.5, fontWeight: "800", marginTop: 2 },
   issueText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "700" },
   noteBox: { gap: 4 },
   input: { minHeight: 44, maxHeight: 120, borderWidth: 1, borderRadius: R.sm, paddingHorizontal: 10, paddingVertical: 8, fontSize: 15, textAlignVertical: "top" },

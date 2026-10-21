@@ -149,7 +149,8 @@ export interface CompletionPhoto {
 export async function completeInspection(body: CompletionBody, photos: readonly CompletionPhoto[] = []): Promise<unknown> {
   const form = new FormData();
   form.append("inspection", JSON.stringify(body));
-  // The server pairs photo_item_ids[i] with photos[i], so they are appended in lock step.
+  // The server pairs photo_item_ids[i] with photos[i], so they are appended in lock step. Every kept photo was
+  // re-encoded as a JPEG by lib/inspections/evidence, so the type and name sent here are what the bytes really are.
   for (const photo of photos) {
     form.append("photo_item_ids", photo.itemId);
     form.append("photos", { uri: photo.uri, type: "image/jpeg", name: `${photo.itemId}.jpg` } as unknown as Blob);

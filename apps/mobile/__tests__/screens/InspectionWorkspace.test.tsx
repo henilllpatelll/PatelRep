@@ -319,7 +319,7 @@ describe("reviewing", () => {
     expect(text("workspace-review-count-pass")).toContain("3");
     expect(text("workspace-review-count-fail")).toContain("1");
     expect(text("workspace-review-count-na")).toContain("1");
-    expect(within(screen.getByTestId("workspace-review-issue-mirror")).getByText("Issue details are still needed.")).toBeTruthy();
+    expect(within(screen.getByTestId("workspace-review-issue-mirror")).getByText("Severity still needed.")).toBeTruthy();
     expect(text("workspace-review-outstanding")).toBe("1 issue still needs details before this inspection can be approved.");
     expect(text("workspace-review-readonly")).toContain("Nothing has been submitted");
     // no submit, approve, send-back or pass/fail outcome control exists

@@ -13,6 +13,7 @@ import {
   type ChecklistTemplate,
   type ItemAnswer,
   type RequiredNaPolicy,
+  type Severity,
 } from "@/lib/inspections/types";
 import { canAnswerNa, evaluateChecklist, naNeedsNote, type ChecklistEvaluation } from "@/lib/inspections/validation";
 
@@ -111,7 +112,10 @@ export function draftContext(input: { hotelId: string; userId: string; businessD
 
 export type AnswerRefusal = "unknown_item" | "na_not_allowed";
 
-export type AnswerResult = { ok: true; draft: InspectionDraft } | { ok: false; refusal: AnswerRefusal };
+export type AnswerResult =
+  /** `released` = photo files the new draft no longer refers to; delete them once the draft is safely stored. */
+  | { ok: true; draft: InspectionDraft; released: string[] }
+  | { ok: false; refusal: AnswerRefusal };
 
 function touch(draft: InspectionDraft, patch: Partial<InspectionDraft>, now: number): InspectionDraft {
   return { ...draft, ...patch, updatedAt: now };
@@ -125,8 +129,9 @@ function without<T>(record: Readonly<Record<string, T>>, key: string): Record<st
 
 /**
  * Record an explicit answer. Choosing the answer already selected clears it again (back to "not reviewed"), which is how
- * an accidental tap is undone; any other choice replaces it. A written note stays with the item; a severity belongs to
- * a failure only, so it goes when the answer is no longer one.
+ * an accidental tap is undone; any other choice replaces it. A note stays with the item, except that an issue's
+ * description, severity and photo belong to the failure alone: once the answer is no longer a failure they go too, so
+ * stale issue text can never be sent against a passed item.
  */
 export function chooseAnswer(
   draft: InspectionDraft,
@@ -141,12 +146,15 @@ export function chooseAnswer(
   const current = draft.answers[itemId];
   if (current?.result === result) return clearAnswer(draft, itemId, now);
   if (result === "na" && !canAnswerNa(item, policy)) return { ok: false, refusal: "na_not_allowed" };
+  const leavingFail = current?.result === "fail" && result !== "fail";
   const next: ItemAnswer = { result };
-  if (current?.note) next.note = current.note;
+  if (current?.note && !leavingFail) next.note = current.note;
   if (result === "fail" && current?.severity) next.severity = current.severity;
   const photos = result === "fail" ? draft.photos : without(draft.photos, itemId);
+  const released = result !== "fail" && draft.photos[itemId] ? [draft.photos[itemId]] : [];
   return {
     ok: true,
+    released,
     draft: touch(
       draft,
       {
@@ -160,9 +168,10 @@ export function chooseAnswer(
 }
 
 export function clearAnswer(draft: InspectionDraft, itemId: string, now: number): AnswerResult {
-  if (!draft.answers[itemId]) return { ok: true, draft };
+  if (!draft.answers[itemId]) return { ok: true, draft, released: [] };
   return {
     ok: true,
+    released: draft.photos[itemId] ? [draft.photos[itemId]] : [],
     draft: touch(draft, { answers: without(draft.answers, itemId), questions: without(draft.questions, itemId), photos: without(draft.photos, itemId) }, now),
   };
 }
@@ -300,13 +309,24 @@ export function reviewReadiness(template: ChecklistTemplate, draft: Pick<Inspect
 export interface ReviewFailure {
   item: ChecklistItem;
   note: string | null;
-  /** A failed item is not finished until its details exist. Severity is recorded in a later step. */
-  needsDetails: boolean;
+  /** null = the supervisor has not chosen one; the server would treat that conservatively as major. */
+  severity: Severity | null;
+  needsSeverity: boolean;
+  /** A photo is attached AND its file is still on the phone. */
+  hasPhoto: boolean;
+  /** An attached photo's file has disappeared; it counts as no photo. */
+  photoFileLost: boolean;
   photoRequired: boolean;
+  /** The standard needs a photo and there is none usable. */
   photoMissing: boolean;
+  /** A failed item is not finished until its severity is chosen and any required photo is present. */
+  needsDetails: boolean;
 }
 
 export interface ReviewModel {
+  /** Items with an answer / items on the checklist. */
+  reviewed: number;
+  total: number;
   passed: number;
   failed: number;
   na: number;
@@ -314,13 +334,15 @@ export interface ReviewModel {
   optionalUnreviewed: number;
   failures: ReviewFailure[];
   naItems: { item: ChecklistItem; note: string | null }[];
-  /** Why the inspection cannot be finished yet (always at least one while issue details cannot be entered). */
+  /** Failed items still missing something (severity or a required photo). */
   outstanding: number;
 }
 
-export function buildReview(template: ChecklistTemplate, draft: Pick<InspectionDraft, "answers" | "photos">): ReviewModel {
+/** `lost` = item ids whose photo file is gone from the phone: those count as having no photo. */
+export function buildReview(template: ChecklistTemplate, draft: Pick<InspectionDraft, "answers" | "photos">, lost: ReadonlySet<string> = new Set()): ReviewModel {
   let passed = 0;
   let na = 0;
+  let reviewed = 0;
   let optionalUnreviewed = 0;
   const failures: ReviewFailure[] = [];
   const naItems: ReviewModel["naItems"] = [];
@@ -330,17 +352,31 @@ export function buildReview(template: ChecklistTemplate, draft: Pick<InspectionD
       if (!item.isRequired) optionalUnreviewed += 1;
       continue;
     }
+    reviewed += 1;
     if (answer.result === "pass") passed += 1;
     else if (answer.result === "na") {
       na += 1;
       naItems.push({ item, note: answer.note?.trim() || null });
     } else {
-      const photoRequired = item.requiresPhotoOnFail;
-      const photoMissing = photoRequired && !draft.photos[item.id];
-      failures.push({ item, note: answer.note?.trim() || null, needsDetails: answer.severity === undefined || photoMissing, photoRequired, photoMissing });
+      const attached = Boolean(draft.photos[item.id]);
+      const photoFileLost = attached && lost.has(item.id);
+      const hasPhoto = attached && !photoFileLost;
+      const photoMissing = item.requiresPhotoOnFail && !hasPhoto;
+      const needsSeverity = answer.severity === undefined;
+      failures.push({
+        item,
+        note: answer.note?.trim() || null,
+        severity: answer.severity ?? null,
+        needsSeverity,
+        hasPhoto,
+        photoFileLost,
+        photoRequired: item.requiresPhotoOnFail,
+        photoMissing,
+        needsDetails: needsSeverity || photoMissing,
+      });
     }
   }
-  return { passed, failed: failures.length, na, optionalUnreviewed, failures, naItems, outstanding: failures.filter((f) => f.needsDetails).length };
+  return { reviewed, total: template.items.length, passed, failed: failures.length, na, optionalUnreviewed, failures, naItems, outstanding: failures.filter((f) => f.needsDetails).length };
 }
 
 /* ─── Surviving a checklist edit ────────────────────────────────────────── */

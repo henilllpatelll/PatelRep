@@ -871,3 +871,9 @@
 - lib/housekeeping/useRoomAssignment.ts — the ONE assign/reassign/remove controller (flow state, busy guard, fresh server read before each write, read-back after an unclear failure, closes on hotel/person/hotel-day change); passed to RoomDetailSheet as `assignment`
 - components/supervisor/assignment/AssignmentPanel.tsx — picker/review/remove steps rendered inside the detail drawer's single Modal. components/supervisor/HousekeeperPicker.tsx — `HousekeeperPickerBody` (search, On shift/All staff chips, radio rows) + the legacy Modal wrapper the Assignments screen still uses
 - __tests__/lib/{roomAssignment,useRoomAssignment,roomAssignmentI18n}.test.ts(x), __tests__/screens/{RoomAssignmentFlow,RoomAssignmentConsistency,AssignmentsFeedback}.test.tsx, __tests__/components/HousekeeperPicker.test.tsx — Phase 5 tests
+- apps/mobile/lib/inspections/issue.ts - pure issue form: validate, applyIssue (one item, one photo), details-at-stake, photo status (~1.4k tok)
+- apps/mobile/lib/inspections/evidence.ts - photo capture/encode/keep/verify/delete behind an injectable port; owned-URI checks (~3.6k tok)
+- apps/mobile/lib/inspections/correctionPlan.ts - read-only preview of the server-created housekeeping correction (~0.7k tok)
+- apps/mobile/components/supervisor/inspect/workspace/IssueSheet.tsx - report/edit issue bottom drawer (note, severity, one photo) (~4k tok)
+- apps/mobile/components/supervisor/inspect/workspace/IssueSheets.tsx - change-answer confirm + correction plan sheets (~1.6k tok)
+- apps/mobile/components/supervisor/inspect/workspace/PhotoViewer.tsx - full-size photo viewer modal (~0.9k tok)

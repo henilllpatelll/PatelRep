@@ -2,7 +2,19 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { fetchReadyForInspectionVerified, listInspectionTemplates } from "@/lib/api/inspections";
 import { checklistProgress, groupSections } from "@/lib/inspections/checklist";
 import { createDraft, judgeDraft, type InspectionDraft } from "@/lib/inspections/draft";
-import { readDraft, removeDraft, sweepStaleDrafts, writeDraft, type DraftRead } from "@/lib/inspections/draftStore";
+import { draftRoomIds, readDraft, removeDraft, sweepStaleDrafts, writeDraft, type DraftRead } from "@/lib/inspections/draftStore";
+import {
+  captureEvidence,
+  deleteEvidence,
+  deleteRoomEvidence,
+  findMissingEvidence,
+  pruneEvidence,
+  sweepEvidence,
+  type CaptureResult,
+  type CaptureSource,
+  type EvidenceScope,
+} from "@/lib/inspections/evidence";
+import { applyIssue, issueDetailsAtStake, referencedPhotos, type ApplyIssueResult, type IssueForm } from "@/lib/inspections/issue";
 import type { QueueItem } from "@/lib/inspections/queue";
 import { reverifyDraft, type ReverifyFetchers } from "@/lib/inspections/reverify";
 import { newSubmissionId } from "@/lib/inspections/submission";
@@ -91,8 +103,23 @@ export interface ActiveInspection {
   goTo: (itemId: string) => void;
   goToNext: () => void;
   mode: WorkspaceMode;
-  answer: (itemId: string, result: Answer) => AnswerRefusal | "blocked" | null;
+  /**
+   * "confirm_loss": the item is an issue with details (a description, severity or photo) and this choice would throw
+   * them away. Nothing changed; ask, then call again with { confirmed: true }.
+   */
+  answer: (itemId: string, result: Answer, options?: { confirmed?: boolean }) => AnswerRefusal | "blocked" | "confirm_loss" | null;
   setNote: (itemId: string, note: string) => void;
+  /** Photos that are really usable: those whose file is gone are left out, so an old address never satisfies a rule. */
+  photos: Readonly<Record<string, string>>;
+  /** Item ids whose photo file has disappeared from the phone. */
+  lostPhotos: ReadonlySet<string>;
+  /** Commit one issue's description, severity and photo. Nothing is stored unless it validates. */
+  saveIssue: (itemId: string, form: IssueForm) => { ok: true } | { ok: false; reason: "blocked" | Extract<ApplyIssueResult, { ok: false }>["reason"]; errors: Extract<ApplyIssueResult, { ok: false }>["errors"] };
+  capturePhoto: (source: CaptureSource, itemId: string) => Promise<CaptureResult>;
+  /** Delete a photo taken in the issue drawer that the draft never adopted. A photo the draft uses is never deleted. */
+  discardCapture: (uri: string) => Promise<void>;
+  /** A photo failed to open: treat it as missing from now on. */
+  photoUnreadable: (itemId: string) => void;
   openReview: () => ReviewReadiness | null;
   closeReview: () => void;
   requestLeave: () => Promise<LeaveVerdict>;
@@ -124,6 +151,10 @@ export function useActiveInspection(
   const userId = user?.id ?? null;
   const key = hotelId && userId && roomId ? `${hotelId}:${userId}:${roomId}` : null;
 
+  const scope: EvidenceScope | null = useMemo(() => (hotelId && userId && roomId ? { hotelId, userId, roomId } : null), [hotelId, userId, roomId]);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+
   const queue = useInspectionQueue();
   const businessDate = queue.businessDate;
   const writer = useDraftWriter({ write });
@@ -153,6 +184,8 @@ export function useActiveInspection(
   const [busy, setBusy] = useState(false);
   const [workflow, dispatchFlow] = useReducer(reduceFlow, INITIAL_WORKFLOW);
   const [skipRead, setSkipRead] = useState<string | null>(null);
+  const [lost, setLost] = useState<{ key: string; ids: ReadonlySet<string> } | null>(null);
+  const capturing = useRef(false);
 
   const busyRef = useRef(false);
   const keyRef = useRef(key);
@@ -187,6 +220,7 @@ export function useActiveInspection(
     setExpanded(null);
     setFocus(null);
     setSkipRead(null);
+    setLost(null);
     dispatchFlow({ type: "discard" });
     changeRev.current = 0;
     ackRev.current = 0;
@@ -211,8 +245,16 @@ export function useActiveInspection(
     // `readNonce` re-reads on demand (retry); the key is the scope.
   }, [key, readNonce, hotelId, userId, roomId]);
   useEffect(() => {
-    if (hotelId && userId) void sweepStaleDrafts(hotelId, userId, businessDateRef.current);
-  }, [hotelId, userId]);
+    if (!hotelId || !userId) return;
+    void sweepStaleDrafts(hotelId, userId, businessDateRef.current)
+      .then(() => draftRoomIds(hotelId, userId))
+      .then((rooms) => {
+        // Photos belong to a draft: once its draft is gone nothing can ever use them. The room on screen is always kept.
+        if (rooms) return sweepEvidence(hotelId, userId, roomId ? new Set([...rooms, roomId]) : rooms);
+        return undefined;
+      })
+      .catch(() => undefined);
+  }, [hotelId, userId, roomId]);
 
   const fresh = isVerifiedFresh(queue.queue);
 
@@ -304,10 +346,34 @@ export function useActiveInspection(
 
   /* ─── Derived checklist facts ─── */
   const answers = active?.answers;
-  const evaluation = useMemo(
-    () => (active && template ? evaluateChecklist(template, active.answers, active.photos, NA_POLICY) : null),
-    [active, template],
+  const lostIds = useMemo<ReadonlySet<string>>(() => (lost && lost.key === key ? lost.ids : new Set<string>()), [lost, key]);
+  // A photo counts only while its file is really there.
+  const photos = useMemo<Readonly<Record<string, string>>>(
+    () => Object.fromEntries(Object.entries(active?.photos ?? {}).filter(([id]) => !lostIds.has(id))),
+    [active, lostIds],
   );
+  const evaluation = useMemo(
+    () => (active && template ? evaluateChecklist(template, active.answers, photos, NA_POLICY) : null),
+    [active, template, photos],
+  );
+
+  // When an inspection begins (or is re-based on an edited checklist) find out which of its photos survived, and
+  // tidy files nothing refers to. Runs per inspection, never per edit, so a photo just taken is never mistaken for an orphan.
+  const evidenceId = active ? `${key}:${active.submissionId}` : null;
+  useEffect(() => {
+    const current = sessionRef.current;
+    const where = scopeRef.current;
+    if (!evidenceId || !current || !where) return undefined;
+    let live = true;
+    void (async () => {
+      const missing = await findMissingEvidence(current.photos, where).catch(() => [] as string[]);
+      if (live && keyRef.current === `${where.hotelId}:${where.userId}:${where.roomId}`) setLost({ key: keyRef.current, ids: new Set(missing) });
+      await pruneEvidence(where, referencedPhotos(current)).catch(() => 0);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [evidenceId]);
   const sections = useMemo(() => (template ? groupSections(template) : []), [template]);
   const summaries = useMemo(() => (answers ? summarizeSections(sections, answers) : []), [sections, answers]);
   const progress = useMemo(() => (template && answers ? checklistProgress(template, answers) : null), [template, answers]);
@@ -337,19 +403,90 @@ export function useActiveInspection(
   const phaseKindRef = useRef(phase.kind);
   phaseKindRef.current = phase.kind;
 
+  /** Delete photo files once the draft that stopped using them is safely on the phone. */
+  const releaseFiles = useCallback(
+    (uris: readonly string[]) => {
+      const where = scopeRef.current;
+      if (!where || uris.length === 0) return;
+      void writer
+        .flush()
+        .then((stored) => (stored ? Promise.all(uris.map((uri) => deleteEvidence(uri, where))) : undefined))
+        .catch(() => undefined);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const forgetLost = useCallback((itemId: string) => {
+    setLost((previous) => (previous && previous.ids.has(itemId) ? { key: previous.key, ids: new Set([...previous.ids].filter((id) => id !== itemId)) } : previous));
+  }, []);
+
   const answer = useCallback(
-    (itemId: string, result: Answer) => {
+    (itemId: string, result: Answer, options?: { confirmed?: boolean }) => {
       const current = sessionRef.current;
       const tpl = templateRef.current;
       if (!current || !tpl || phaseKindRef.current !== "active") return "blocked" as const;
+      // An issue's description, severity and photo are not thrown away by one tap.
+      if (current.answers[itemId]?.result === "fail" && !options?.confirmed && issueDetailsAtStake(current, itemId)) return "confirm_loss" as const;
       const outcome = chooseAnswer(current, tpl, itemId, result, Date.now());
       if (!outcome.ok) return outcome.refusal;
       lastTouched.current = itemId;
-      if (outcome.draft !== current) commit(outcome.draft);
+      if (outcome.draft !== current) {
+        commit(outcome.draft);
+        forgetLost(itemId);
+        releaseFiles(outcome.released);
+      }
       return null;
     },
-    [commit],
+    [commit, releaseFiles, forgetLost],
   );
+
+  const saveIssue = useCallback(
+    (itemId: string, form: IssueForm) => {
+      const current = sessionRef.current;
+      const tpl = templateRef.current;
+      if (!current || !tpl || phaseKindRef.current !== "active") return { ok: false as const, reason: "blocked" as const, errors: {} };
+      const outcome = applyIssue(current, tpl, itemId, form, Date.now());
+      if (!outcome.ok) return outcome;
+      lastTouched.current = itemId;
+      commit(outcome.draft);
+      forgetLost(itemId);
+      releaseFiles(outcome.releasedPhoto ? [outcome.releasedPhoto] : []);
+      return { ok: true as const };
+    },
+    [commit, releaseFiles, forgetLost],
+  );
+
+  const capturePhoto = useCallback(async (source: CaptureSource, itemId: string): Promise<CaptureResult> => {
+    const where = scopeRef.current;
+    if (!where || capturing.current) return { ok: false, reason: "cancelled" };
+    capturing.current = true;
+    try {
+      return await captureEvidence(source, where, itemId);
+    } catch {
+      return { ok: false, reason: "save_failed" };
+    } finally {
+      capturing.current = false;
+    }
+  }, []);
+
+  const discardCapture = useCallback(async (uri: string) => {
+    const where = scopeRef.current;
+    const current = sessionRef.current;
+    if (!where || (current && referencedPhotos(current).includes(uri))) return;
+    await deleteEvidence(uri, where);
+  }, []);
+
+  const photoUnreadable = useCallback((itemId: string) => {
+    setLost((previous) => {
+      const k = keyRef.current;
+      if (!k) return previous;
+      const ids = new Set(previous && previous.key === k ? previous.ids : []);
+      if (ids.has(itemId)) return previous;
+      ids.add(itemId);
+      return { key: k, ids };
+    });
+  }, []);
 
   const setNote = useCallback(
     (itemId: string, note: string) => {
@@ -439,7 +576,12 @@ export function useActiveInspection(
   const forget = useCallback(async (): Promise<boolean> => {
     if (!hotelId || !userId || !roomId) return false;
     const removed = await removeDraft(hotelId, userId, roomId);
-    if (removed) writer.reset();
+    if (removed) {
+      writer.reset();
+      // The photos were only ever part of this draft.
+      await deleteRoomEvidence({ hotelId, userId, roomId });
+      setLost(null);
+    }
     return removed;
   }, [writer, hotelId, userId, roomId]);
 
@@ -566,6 +708,12 @@ export function useActiveInspection(
     mode,
     answer,
     setNote,
+    photos,
+    lostPhotos: lostIds,
+    saveIssue,
+    capturePhoto,
+    discardCapture,
+    photoUnreadable,
     openReview,
     closeReview,
     requestLeave,

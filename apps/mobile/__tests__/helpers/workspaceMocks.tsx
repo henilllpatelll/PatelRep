@@ -64,6 +64,27 @@ jest.mock("@/lib/inspections/useDraftWriter", () => {
   return { ...actual, useDraftWriter: (options: object = {}) => actual.useDraftWriter({ delayMs: 15, ...options }) };
 });
 
+// Photo evidence touches the camera and the phone's file system; the rules around it are tested on their own in
+// evidence.test. Here only the calls the screen makes are observed. Pure helpers stay real.
+export const mockCapture = jest.fn();
+export const mockDeleteEvidence = jest.fn();
+export const mockDeleteRoomEvidence = jest.fn();
+export const mockFindMissing = jest.fn();
+export const mockPrune = jest.fn();
+export const mockSweepEvidence = jest.fn();
+jest.mock("@/lib/inspections/evidence", () => {
+  const actual = jest.requireActual("@/lib/inspections/evidence");
+  return {
+    ...actual,
+    captureEvidence: (...args: unknown[]) => mockCapture(...args),
+    deleteEvidence: (...args: unknown[]) => mockDeleteEvidence(...args),
+    deleteRoomEvidence: (...args: unknown[]) => mockDeleteRoomEvidence(...args),
+    findMissingEvidence: (...args: unknown[]) => mockFindMissing(...args),
+    pruneEvidence: (...args: unknown[]) => mockPrune(...args),
+    sweepEvidence: (...args: unknown[]) => mockSweepEvidence(...args),
+  };
+});
+
 import { router } from "expo-router";
 import * as inspectionsApi from "@/lib/api/inspections";
 import * as roomPanels from "@/lib/api/roomPanels";
@@ -89,6 +110,7 @@ export const room205 = (over = {}) =>
     room_type_id: "type-king", room_type_name: "Standard King", clean_cycle_id: "cycle-1", ...over,
   });
 
+let captureCount = 0;
 export const SUPERVISOR = { id: "sup-1", tenant_id: "hotel-1", role: "housekeeping_supervisor" };
 
 /** Reset every fake to the ordinary, healthy hotel: one supervisor, two rooms waiting, one default checklist. */
@@ -110,6 +132,21 @@ export async function resetWorld(): Promise<jest.SpyInstance> {
   mockPrevious.mockResolvedValue([]);
   mockOrders.mockResolvedValue([]);
   mockSubscribe.mockImplementation(() => jest.fn());
+  mockCapture.mockReset();
+  mockCapture.mockImplementation(async (_source: string, scope: { hotelId: string; userId: string; roomId: string }, itemId: string) => ({
+    ok: true,
+    photo: { uri: `file:///docs/inspection-evidence/${scope.hotelId}/${scope.userId}/${scope.roomId}/${itemId}-t${++captureCount}.jpg`, bytes: 120000, width: 1600, height: 1200 },
+  }));
+  mockDeleteEvidence.mockReset();
+  mockDeleteEvidence.mockResolvedValue(true);
+  mockDeleteRoomEvidence.mockReset();
+  mockDeleteRoomEvidence.mockResolvedValue(true);
+  mockFindMissing.mockReset();
+  mockFindMissing.mockResolvedValue([]);
+  mockPrune.mockReset();
+  mockPrune.mockResolvedValue(0);
+  mockSweepEvidence.mockReset();
+  mockSweepEvidence.mockResolvedValue(0);
   useAppStore.setState({ hotelTimezone: "America/Chicago", isOnline: true, user: SUPERVISOR as never });
   return dateNow;
 }

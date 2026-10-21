@@ -75,7 +75,7 @@ describe("answers", () => {
     expect(cleared.ok && cleared.draft.questions.mirror).toBeUndefined();
   });
 
-  it("keeps a written note across answers, and drops a severity once the item is not a failure", () => {
+  it("keeps a written note across Pass and N/A, and drops a severity once the item is not a failure", () => {
     let draft = answered(fresh(), "mirror", "pass", "streak on the left");
     draft = answered(draft, "mirror", "na");
     expect(draft.answers.mirror).toEqual({ result: "na", note: "streak on the left" });
@@ -113,7 +113,7 @@ describe("answers", () => {
 
   it("clearing an unanswered item changes nothing", () => {
     const draft = fresh();
-    expect(clearAnswer(draft, "toilet", NOW)).toEqual({ ok: true, draft });
+    expect(clearAnswer(draft, "toilet", NOW)).toEqual({ ok: true, draft, released: [] });
   });
 
   it("an untouched draft has no progress; one answer or note is progress", () => {
@@ -242,6 +242,27 @@ describe("review readiness", () => {
     const base = answered(fresh(), "mirror", "fail");
     const withSeverity: InspectionDraft = { ...base, answers: { ...base.answers, mirror: { result: "fail", severity: "minor" } } };
     expect(buildReview(checklist, withSeverity).outstanding).toBe(0);
+  });
+
+  it("reports reviewed/total, the chosen severity, and whether a usable photo is attached", () => {
+    let draft = answered(fresh(), "door", "fail");
+    draft = { ...draft, answers: { ...draft.answers, door: { result: "fail", severity: "major", note: "Lock sticks" } }, photos: { door: "file:///d.jpg" } };
+    const review = buildReview(checklist, draft);
+    expect(review).toMatchObject({ reviewed: 1, total: checklist.items.length, outstanding: 0 });
+    expect(review.failures[0]).toMatchObject({ severity: "major", needsSeverity: false, hasPhoto: true, photoMissing: false, photoFileLost: false, needsDetails: false });
+  });
+
+  it("a photo whose file is gone counts as no photo: the required-photo rule is not satisfied by an old address", () => {
+    let draft = answered(fresh(), "door", "fail");
+    draft = { ...draft, answers: { ...draft.answers, door: { result: "fail", severity: "major" } }, photos: { door: "file:///gone.jpg" } };
+    const review = buildReview(checklist, draft, new Set(["door"]));
+    expect(review.failures[0]).toMatchObject({ hasPhoto: false, photoFileLost: true, photoMissing: true, needsDetails: true });
+    expect(review.outstanding).toBe(1);
+  });
+
+  it("an unchosen severity is reported as needed, never as minor", () => {
+    const review = buildReview(checklist, answered(fresh(), "mirror", "fail"));
+    expect(review.failures[0]).toMatchObject({ severity: null, needsSeverity: true, needsDetails: true });
   });
 });
 

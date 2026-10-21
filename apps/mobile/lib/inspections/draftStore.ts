@@ -91,3 +91,13 @@ export async function sweepStaleDrafts(hotelId: string, userId: string, business
   }
   return removed;
 }
+
+/** The rooms this account holds a stored draft for. `null` when storage cannot be read (then nothing may be swept). */
+export async function draftRoomIds(hotelId: string, userId: string): Promise<Set<string> | null> {
+  const prefix = `${DRAFT_KEY_PREFIX}${hotelId}:${userId}:`;
+  try {
+    return new Set((await AsyncStorage.getAllKeys()).filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length)));
+  } catch {
+    return null;
+  }
+}

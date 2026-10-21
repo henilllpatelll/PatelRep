@@ -36,6 +36,7 @@ const SAME_IN_BOTH = new Set([
   "inspect.workspace.context.minutes", // "{{count}} min"
   "inspect.workspace.context.minutes_plural",
   "inspect.workspace.context.previousBy", // "Inspector" in both
+  "inspect.workspace.issue.severity.a11y", // "{{severity}}. {{hint}}"
 ]);
 
 describe("Inspections screen copy", () => {

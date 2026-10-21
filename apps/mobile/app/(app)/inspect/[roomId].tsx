@@ -11,6 +11,9 @@ import { ChecklistItemRow } from "@/components/supervisor/inspect/workspace/Chec
 import { ContextSheet } from "@/components/supervisor/inspect/workspace/ContextSheet";
 import { DiscardSheet, ResumeSheet, SaveExitSheet, StartOverSheet } from "@/components/supervisor/inspect/workspace/DraftSheets";
 import { GuidanceSheet } from "@/components/supervisor/inspect/workspace/GuidanceSheet";
+import { IssueSheet } from "@/components/supervisor/inspect/workspace/IssueSheet";
+import { ChangeAnswerSheet, CorrectionSheet } from "@/components/supervisor/inspect/workspace/IssueSheets";
+import { PhotoViewer } from "@/components/supervisor/inspect/workspace/PhotoViewer";
 import { MoreSheet } from "@/components/supervisor/inspect/workspace/MoreSheet";
 import { ProgressCard } from "@/components/supervisor/inspect/workspace/ProgressCard";
 import { ReviewView } from "@/components/supervisor/inspect/workspace/ReviewView";
@@ -23,6 +26,8 @@ import { normalizeRoomIdParam } from "@/lib/housekeeping/inspectionTarget";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { itemsToRecheck } from "@/lib/inspections/corrections";
+import { planCorrection } from "@/lib/inspections/correctionPlan";
+import type { Answer } from "@/lib/inspections/types";
 import { originHref, parseOrigin } from "@/lib/inspections/route";
 import { useActiveInspection } from "@/lib/inspections/useActiveInspection";
 import { NA_POLICY, buildReview, failedCount, hasProgress } from "@/lib/inspections/workspace";
@@ -35,7 +40,8 @@ import { useAppStore } from "@/stores/appStore";
    One full-screen route for every way into an inspection. It resolves the room by its stable id against the verified
    queue, shows the hotel's configured checklist, and keeps the supervisor's answers durable on the phone. It sends
    NOTHING to the server and changes no room status: finishing and approving arrive in a later phase, and the review
-   step below is read-only. The screen is only mounted while focused, so leaving it always releases its timers and
+   step below is read-only. Reporting an issue (description, severity, one photo) happens in a bottom drawer and is saved
+   into the same on-phone draft. The screen is only mounted while focused, so leaving it always releases its timers and
    subscriptions, and coming back starts from what is saved. */
 
 type Sheet = null | "more" | "context" | "saveExit" | "discard" | "startOver";
@@ -77,7 +83,12 @@ function ActiveInspectionScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [guidanceId, setGuidanceId] = useState<string | null>(null);
   const [failure, setFailure] = useState<null | "save" | "discard" | "resume">(null);
+  const [issueId, setIssueId] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ uri: string; itemId: string } | null>(null);
+  const [pendingChange, setPendingChange] = useState<{ itemId: string; choice: Answer } | null>(null);
+  const [correctionOpen, setCorrectionOpen] = useState(false);
   const leaving = useRef(false);
+  const handledFocus = useRef(0);
   const listRef = useRef<FlatList>(null);
 
   const leave = useCallback(() => {
@@ -93,12 +104,16 @@ function ActiveInspectionScreen() {
     firstScope.current = scopeKey;
     setSheet(null);
     setGuidanceId(null);
+    setIssueId(null);
+    setViewing(null);
+    setPendingChange(null);
+    setCorrectionOpen(false);
     leave();
   }, [scopeKey, leave]);
 
   /* ─── Leaving ─── */
   const requestBack = useCallback(async () => {
-    if (sheet !== null) return;
+    if (sheet !== null || issueId !== null || viewing !== null || pendingChange !== null || correctionOpen) return;
     if (phase.kind !== "active") return leave();
     if (mode === "review") return inspection.closeReview();
     const verdict = await inspection.requestLeave();
@@ -107,7 +122,7 @@ function ActiveInspectionScreen() {
       setFailure(null);
       setSheet("saveExit");
     }
-  }, [sheet, phase.kind, mode, inspection, leave]);
+  }, [sheet, issueId, viewing, pendingChange, correctionOpen, phase.kind, mode, inspection, leave]);
 
   // Registered once per focus; the handler always calls the latest `requestBack`.
   const requestBackRef = useRef(requestBack);
@@ -172,7 +187,10 @@ function ActiveInspectionScreen() {
     [inspection.progress, draft, t],
   );
   const recheck = useMemo(() => (item ? itemsToRecheck(item.reinspection) : new Set<string>()), [item]);
-  const reviewModel = useMemo(() => (mode === "review" && template && draft ? buildReview(template, draft) : null), [mode, template, draft]);
+  const reviewModel = useMemo(() => (mode === "review" && template && draft ? buildReview(template, draft, inspection.lostPhotos) : null), [mode, template, draft, inspection.lostPhotos]);
+  const plan = useMemo(() => (mode === "review" && template && draft && item ? planCorrection(template, draft.answers, item) : null), [mode, template, draft, item]);
+  const issueItem = useMemo(() => template?.items.find((candidate) => candidate.id === issueId) ?? null, [template, issueId]);
+  const viewingItem = useMemo(() => template?.items.find((candidate) => candidate.id === viewing?.itemId) ?? null, [template, viewing]);
   const guidanceItem = useMemo(() => template?.items.find((candidate) => candidate.id === guidanceId) ?? null, [template, guidanceId]);
   const save = saveText(inspection.save, draft && hasProgress(draft) && inspection.save.status === "idle" ? draft.updatedAt : null, ctx, t);
   const total = template?.items.length ?? 0;
@@ -181,11 +199,27 @@ function ActiveInspectionScreen() {
   /* ─── Scrolling to an item the supervisor was sent to ─── */
   const focusNonce = inspection.focus?.nonce;
   useEffect(() => {
-    if (!inspection.focus) return;
+    // The checklist is not mounted while the review is showing; a request made from there waits for it.
+    if (!inspection.focus || mode !== "checklist" || inspection.focus.nonce === handledFocus.current) return;
+    handledFocus.current = inspection.focus.nonce;
     const index = inspection.rows.findIndex((row) => row.kind === "item" && row.item.id === inspection.focus?.itemId);
     if (index >= 0) listRef.current?.scrollToIndex({ index, viewPosition: 0.15, animated: true });
     // Only a new request scrolls; rows changing while answering must not.
-  }, [focusNonce]);
+  }, [focusNonce, mode]);
+
+  const goToFromReview = useCallback(
+    (itemId: string) => {
+      inspection.closeReview();
+      inspection.goTo(itemId);
+    },
+    [inspection],
+  );
+
+  const confirmChange = useCallback(() => {
+    if (!pendingChange) return;
+    inspection.answer(pendingChange.itemId, pendingChange.choice, { confirmed: true });
+    setPendingChange(null);
+  }, [inspection, pendingChange]);
 
   const renderRow = useCallback(
     ({ item: row }: ListRenderItemInfo<(typeof inspection.rows)[number]>) =>
@@ -200,13 +234,18 @@ function ActiveInspectionScreen() {
           failedBefore={recheck.has(row.item.id)}
           policy={NA_POLICY}
           t={t}
+          photoUri={draft?.photos[row.item.id] ?? null}
+          photoLost={inspection.lostPhotos.has(row.item.id)}
           onAnswer={inspection.answer}
           onNote={inspection.setNote}
           onGuidance={setGuidanceId}
+          onEditIssue={setIssueId}
+          onConfirmChange={(itemId, choice) => setPendingChange({ itemId, choice })}
+          onPhotoUnreadable={inspection.photoUnreadable}
         />
       ),
     // `inspection` changes every render; only the stable callbacks it carries are used.
-    [recheck, t, inspection.toggleSection, inspection.answer, inspection.setNote],
+    [recheck, t, draft?.photos, inspection.lostPhotos, inspection.toggleSection, inspection.answer, inspection.setNote, inspection.photoUnreadable],
   );
 
   const intro = (
@@ -257,7 +296,7 @@ function ActiveInspectionScreen() {
   } else if (mode === "review" && reviewModel) {
     body = (
       <Pad>
-        <ReviewView model={reviewModel} room={room} t={t} />
+        <ReviewView model={reviewModel} plan={plan} room={room} t={t} onGoToItem={goToFromReview} onOpenCorrection={() => setCorrectionOpen(true)} />
       </Pad>
     );
     footer = (
@@ -268,6 +307,7 @@ function ActiveInspectionScreen() {
       <FlatList
         ref={listRef}
         data={inspection.rows}
+        extraData={inspection.lostPhotos}
         keyExtractor={(row) => row.key}
         renderItem={renderRow}
         ListHeaderComponent={intro}
@@ -345,6 +385,24 @@ function ActiveInspectionScreen() {
         onConfirm={() => void confirmStartOver()}
       />
       <GuidanceSheet item={guidanceItem} policy={NA_POLICY} t={t} onClose={() => setGuidanceId(null)} />
+      <IssueSheet
+        item={phase.kind === "active" && issueItem && draft?.answers[issueItem.id]?.result === "fail" ? issueItem : null}
+        room={room}
+        answer={issueItem && draft ? draft.answers[issueItem.id] : undefined}
+        photoUri={issueItem && draft ? (draft.photos[issueItem.id] ?? null) : null}
+        photoLost={issueItem ? inspection.lostPhotos.has(issueItem.id) : false}
+        hidden={viewing !== null}
+        t={t}
+        onSave={inspection.saveIssue}
+        onCapture={inspection.capturePhoto}
+        onDiscardCapture={inspection.discardCapture}
+        onUnreadable={inspection.photoUnreadable}
+        onView={(uri) => issueItem && setViewing({ uri, itemId: issueItem.id })}
+        onClose={() => setIssueId(null)}
+      />
+      <PhotoViewer uri={viewing?.uri ?? null} label={viewingItem?.description ?? ""} t={t} onClose={() => setViewing(null)} />
+      <ChangeAnswerSheet visible={pendingChange !== null} busy={false} t={t} onKeep={() => setPendingChange(null)} onConfirm={confirmChange} />
+      <CorrectionSheet plan={correctionOpen ? plan : null} t={t} onClose={() => setCorrectionOpen(false)} />
     </KeyboardAvoidingView>
   );
 }
