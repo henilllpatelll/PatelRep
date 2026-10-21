@@ -52,6 +52,9 @@ class _TriggerQuery(FakeQuery):
             return result
         if self.action == "insert" and self.table_name == "tasks":
             self.payload = {"status": "open", **self.payload}  # the column default the real table applies
+        if self.action == "insert" and self.table_name in ("tasks", "operational_audit_events"):
+            self.db.clock += 1  # created_at DEFAULT now(), strictly increasing so event order is well defined
+            self.payload = {"created_at": f"2026-10-20T10:{self.db.clock:02d}:30+00:00", **self.payload}
         if self.table_name in self.db.fail_inserts and self.action == "insert":
             remaining = self.db.fail_inserts[self.table_name]
             if remaining > 0:

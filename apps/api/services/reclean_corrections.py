@@ -17,7 +17,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from services.inspection_rules import correction_task_fields, derive_correction_status, sort_template_items
+from services.inspection_rules import RuleViolation, correction_task_fields, derive_correction_status, sort_template_items
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +268,7 @@ def resolve_correction_task(client: Any, hotel_id: str, failed_inspection_id: st
     ).execute()
 
 
-def _profile_name(client: Any, hotel_id: str, user_id: Optional[str]) -> Optional[str]:
+def profile_name(client: Any, hotel_id: str, user_id: Optional[str]) -> Optional[str]:
     if not user_id:
         return None
     row = (
@@ -281,6 +281,109 @@ def _profile_name(client: Any, hotel_id: str, user_id: Optional[str]) -> Optiona
     )
     profile = (row.data if row else None) or {}
     return profile.get("preferred_name") or profile.get("full_name")
+
+
+def correction_state(client: Any, hotel_id: str, insp: dict, task: Optional[dict]) -> tuple[Optional[dict], Optional[dict], list[dict]]:
+    """``(derived status, the room's current status row, the room's later inspections)`` for one failed inspection.
+
+    The one place the detail read and the correction mutations get their answer from, so the drawer, the list and
+    the reassign / escalate guards cannot disagree about whether a correction is still open.
+    """
+    status_row = (
+        client.table("room_status")
+        .select("status, reclean_requested_at")
+        .eq("room_id", insp["room_id"])
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    room_state = status_row.data if status_row else None
+    followups = (
+        client.table("inspections")
+        .select("id, overall_result, completed_at, reinspection_of")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", insp["room_id"])
+        .gte("completed_at", insp.get("completed_at") or "")
+        .neq("id", insp["id"])
+        .execute()
+    ).data or []
+    return derive_correction_status(insp, task, room_state, followups), room_state, followups
+
+
+def _latest_resubmission(client: Any, hotel_id: str, insp: dict) -> Optional[dict]:
+    """When the housekeeper last finished cleaning this room after the failure: the real "corrected work submitted" fact."""
+    sessions = (
+        client.table("room_clean_sessions")
+        .select("housekeeper_id, ended_at")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", insp["room_id"])
+        .eq("status", "completed")
+        .gte("ended_at", insp.get("completed_at") or "")
+        .order("ended_at", desc=True)
+        .limit(1)
+        .execute()
+    ).data or []
+    if not sessions or not sessions[0].get("ended_at"):
+        return None
+    return {
+        "at": sessions[0]["ended_at"],
+        "housekeeper_id": sessions[0].get("housekeeper_id"),
+        "housekeeper_name": profile_name(client, hotel_id, sessions[0].get("housekeeper_id")),
+    }
+
+
+def _correction_activity(
+    client: Any,
+    hotel_id: str,
+    insp: dict,
+    task: Optional[dict],
+    resubmission: Optional[dict],
+    followups: list[dict],
+) -> list[dict]:
+    """Known events only, oldest first, each with the timestamp the database recorded - nothing is synthesised.
+
+    Reassignments and manual escalations come from the append-only audit trail (they have no column of their own),
+    so who did them and when is real. A task completed some other way than the housekeeper submitting the room still shows.
+    """
+    events: list[dict] = []
+    if insp.get("completed_at"):
+        events.append({"type": "inspection_failed", "at": insp["completed_at"], "actor_name": profile_name(client, hotel_id, insp.get("inspected_by"))})
+    if task is None:
+        return events
+    if task.get("created_at"):
+        events.append({"type": "correction_created", "at": task["created_at"], "actor_name": None})
+    audit = (
+        client.table("operational_audit_events")
+        .select("action, actor_id, new_state, created_at")
+        .eq("tenant_id", hotel_id)
+        .eq("resource_type", "task")
+        .eq("resource_id", task["id"])
+        .in_("action", [ACTION_REASSIGNED, ACTION_ESCALATED])
+        .order("created_at")
+        .execute()
+    ).data or []
+    manual_escalation = False
+    for row in audit:
+        actor = profile_name(client, hotel_id, row.get("actor_id"))
+        if row["action"] == ACTION_REASSIGNED:
+            assignee = (row.get("new_state") or {}).get("assigned_to")
+            events.append({"type": "reassigned", "at": row["created_at"], "actor_name": actor, "assignee_name": profile_name(client, hotel_id, assignee)})
+        else:
+            manual_escalation = True
+            events.append({"type": "escalated", "at": row["created_at"], "actor_name": actor})
+    if task.get("escalated_at") and not manual_escalation:
+        events.append({"type": "escalated", "at": task["escalated_at"], "actor_name": None})
+    if task.get("started_at"):
+        events.append({"type": "work_started", "at": task["started_at"], "actor_name": profile_name(client, hotel_id, task.get("assigned_to"))})
+    linked = [f for f in followups if f.get("reinspection_of") == insp.get("id") and f.get("completed_at")]
+    if resubmission:
+        events.append({"type": "work_submitted", "at": resubmission["at"], "actor_name": resubmission.get("housekeeper_name")})
+    elif task.get("completed_at") and not linked:
+        # Closed some other way than the housekeeper submitting the room. When a reinspection closed it, that IS the event.
+        events.append({"type": "task_completed", "at": task["completed_at"], "actor_name": None})
+    for follow in linked:
+        events.append({"type": "reinspection_passed" if follow.get("overall_result") == "passed" else "reinspection_failed", "at": follow["completed_at"], "actor_name": None})
+    return sorted(events, key=lambda e: str(e["at"]))
 
 
 def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Optional[dict]:
@@ -366,41 +469,30 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
     if insp.get("overall_result") == "failed" or (
         insp.get("overall_result") == "conditional" and (insp.get("correction_kind") or task is not None)
     ):
-        status_row = (
-            client.table("room_status")
-            .select("status, reclean_requested_at")
-            .eq("room_id", insp["room_id"])
-            .eq("tenant_id", hotel_id)
-            .maybe_single()
-            .execute()
-        )
-        followups = (
-            client.table("inspections")
-            .select("id, overall_result, completed_at, reinspection_of")
-            .eq("tenant_id", hotel_id)
-            .eq("room_id", insp["room_id"])
-            .gte("completed_at", insp.get("completed_at") or "")
-            .neq("id", inspection_id)
-            .execute()
-        ).data or []
-        derived = derive_correction_status(insp, task, status_row.data if status_row else None, followups)
+        derived, room_state, followups = correction_state(client, hotel_id, insp, task)
+        resubmission = _latest_resubmission(client, hotel_id, insp)
         correction = {
             **(derived or {}),
             "kind": insp.get("correction_kind"),
+            "room_status": (room_state or {}).get("status"),
             "task": (
                 {
                     "id": task.get("id"),
                     "status": task.get("status"),
                     "priority": task.get("priority"),
                     "assigned_to": task.get("assigned_to"),
-                    "assigned_name": _profile_name(client, hotel_id, task.get("assigned_to")),
+                    "assigned_name": profile_name(client, hotel_id, task.get("assigned_to")),
                     "due_at": task.get("due_at"),
+                    "created_at": task.get("created_at"),
                     "started_at": task.get("started_at"),
                     "completed_at": task.get("completed_at"),
+                    "escalated_at": task.get("escalated_at"),
                 }
                 if task
                 else None
             ),
+            "resubmission": resubmission,
+            "activity": _correction_activity(client, hotel_id, insp, task, resubmission, followups),
         }
 
     return {
@@ -415,7 +507,7 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
         "notes": insp.get("notes"),
         "completed_at": insp.get("completed_at"),
         "inspected_by": insp.get("inspected_by"),
-        "inspector_name": _profile_name(client, hotel_id, insp.get("inspected_by")),
+        "inspector_name": profile_name(client, hotel_id, insp.get("inspected_by")),
         "correction_kind": insp.get("correction_kind"),
         "reinspection_of": insp.get("reinspection_of"),
         "items": answers,
@@ -581,6 +673,8 @@ def list_open_corrections(
                 "overall_result": insp.get("overall_result"),
                 "kind": insp.get("correction_kind"),
                 "status": derived["status"],
+                # The room's own status: a task marked done while the room is not CLEAN is not ready to re-check.
+                "room_status": (room_status.get(insp.get("room_id")) or {}).get("status"),
                 "notes": (insp.get("notes") or "").strip() or None,
                 "inspector_name": names.get(insp.get("inspected_by")),
                 "failed_count": len(failed_items),
@@ -592,8 +686,10 @@ def list_open_corrections(
                         "assigned_to": task.get("assigned_to"),
                         "assigned_name": names.get(task.get("assigned_to")),
                         "due_at": task.get("due_at"),
+                        "created_at": task.get("created_at"),
                         "started_at": task.get("started_at"),
                         "completed_at": task.get("completed_at"),
+                        "escalated_at": task.get("escalated_at"),
                     }
                     if task
                     else None
@@ -601,3 +697,188 @@ def list_open_corrections(
             }
         )
     return {"data": data, "meta": meta}
+
+
+# ── Managing an open correction: reassign, escalate, close on resubmission ───
+
+ACTION_REASSIGNED = "task.correction_reassigned"
+ACTION_ESCALATED = "task.correction_escalated"
+#: Who can own a correction: the people who clean rooms. A supervisor may take one on, a front-desk agent or
+#: engineer may not - the same eligibility drives the picker and the check, so they cannot disagree.
+CORRECTION_OWNER_ROLES = ("housekeeper", "housekeeping_supervisor")
+OPEN_TASK_STATUSES = ("open", "in_progress", "escalated")
+#: Statuses in which the supervisor can still change who owns the correction or push it along.
+_ACTIVE_CORRECTION_STATES = frozenset({"unassigned", "assigned", "in_progress", "escalated"})
+
+
+def list_correction_owners(client: Any, hotel_id: str) -> list[dict]:
+    """People in THIS hotel who may be given a correction, with real names only (a person with no name is not listed)."""
+    roles = (
+        client.table("user_roles")
+        .select("user_id, role")
+        .eq("tenant_id", hotel_id)
+        .eq("is_active", True)
+        .in_("role", list(CORRECTION_OWNER_ROLES))
+        .execute()
+    ).data or []
+    ids = sorted({r["user_id"] for r in roles if r.get("user_id")})
+    if not ids:
+        return []
+    role_of: dict[str, str] = {}
+    for row in roles:
+        # A person who is both is listed once, as a housekeeper (the more specific duty).
+        if row["user_id"] not in role_of or row["role"] == "housekeeper":
+            role_of[row["user_id"]] = row["role"]
+    owners = []
+    for profile in (
+        client.table("user_profiles")
+        .select("id, preferred_name, full_name")
+        .eq("tenant_id", hotel_id)
+        .in_("id", ids)
+        .execute()
+    ).data or []:
+        name = profile.get("preferred_name") or profile.get("full_name")
+        if name:
+            owners.append({"id": profile["id"], "name": name, "role": role_of.get(profile["id"])})
+    return sorted(owners, key=lambda o: (o["name"].casefold(), o["id"]))
+
+
+def _open_correction(client: Any, hotel_id: str, inspection_id: str) -> tuple[dict, dict, dict]:
+    """``(inspection, task, derived)`` for a correction that still exists, or the rule that says why not."""
+    inspection = (
+        client.table("inspections")
+        .select("*")
+        .eq("tenant_id", hotel_id)
+        .eq("id", inspection_id)
+        .maybe_single()
+        .execute()
+    )
+    insp = inspection.data if inspection else None
+    if not insp:
+        raise RuleViolation("inspection_not_found", "Inspection not found", 404)
+    task = fetch_correction_task(client, hotel_id, inspection_id)
+    derived, _room, _followups = correction_state(client, hotel_id, insp, task)
+    if derived is None:
+        raise RuleViolation("no_correction", "This inspection has no correction to manage", 409)
+    if task is None:
+        raise RuleViolation("correction_missing", "The correction task was never created. Request the correction again first.", 409)
+    if derived["status"] not in _ACTIVE_CORRECTION_STATES:
+        raise RuleViolation(
+            "correction_closed",
+            "This correction is no longer open",
+            409,
+            correction_status=derived["status"],
+        )
+    return insp, task, derived
+
+
+def record_correction_audit(
+    client: Any,
+    *,
+    hotel_id: str,
+    actor_id: str,
+    actor_role: str,
+    task: dict,
+    action: str,
+    new_state: dict,
+    note: Optional[str] = None,
+) -> None:
+    """Append-only: who changed this correction and how. Written after the change committed; never turns it into an error."""
+    try:
+        client.table("operational_audit_events").insert(
+            {
+                "tenant_id": hotel_id,
+                "resource_type": "task",
+                "resource_id": task["id"],
+                "action": action,
+                "actor_id": actor_id,
+                "actor_role": actor_role,
+                "old_state": {"status": task.get("status"), "assigned_to": task.get("assigned_to")},
+                "new_state": new_state,
+                "reason_note": note,
+                "source": "mobile",
+            }
+        ).execute()
+    except Exception:  # noqa: BLE001 - the committed change stands; the failure is logged loudly
+        logger.error("CORRECTION_AUDIT_WRITE_FAILED task=%s action=%s", task.get("id"), action, exc_info=True)
+
+
+def reassign_correction(
+    client: Any,
+    *,
+    hotel_id: str,
+    inspection_id: str,
+    assignee_id: str,
+    check_expected: bool = False,
+    expected_assignee_id: Optional[str] = None,
+) -> dict:
+    """Give an open correction to another eligible person. Returns ``{task, previous_assigned_to, changed}``.
+
+    Never overwrites work that moved on: the update is conditional on the task still being open (and, when the client
+    says who it saw as owner, still being owned by them), so a correction completed or reassigned a moment earlier is
+    a 409, not a silent overwrite. Giving it to its current owner is a no-op, so a retry cannot double-notify.
+    """
+    _insp, task, _derived = _open_correction(client, hotel_id, inspection_id)
+    previous = task.get("assigned_to")
+    if check_expected and (previous or None) != (expected_assignee_id or None):
+        raise RuleViolation("correction_changed", "Someone already changed who owns this correction. Review it again.", 409)
+    if previous == assignee_id:
+        return {"task": task, "previous_assigned_to": previous, "changed": False}
+    if assignee_id not in {owner["id"] for owner in list_correction_owners(client, hotel_id)}:
+        raise RuleViolation("owner_ineligible", "That person cannot be given this correction", 422)
+
+    query = (
+        client.table("tasks")
+        .update({"assigned_to": assignee_id})
+        .eq("id", task["id"])
+        .eq("tenant_id", hotel_id)
+        .in_("status", list(OPEN_TASK_STATUSES))
+    )
+    query = query.eq("assigned_to", previous) if previous else query.is_("assigned_to", "null")
+    updated = query.execute().data or []
+    if not updated:
+        raise RuleViolation("correction_changed", "This correction changed while you were assigning it. Review it again.", 409)
+    return {"task": updated[0], "previous_assigned_to": previous, "changed": True}
+
+
+def escalate_correction(client: Any, *, hotel_id: str, inspection_id: str) -> dict:
+    """Escalate an open correction on a supervisor's say-so. Returns ``{task, changed}``.
+
+    Priority is already urgent for every inspection correction, and no deadline is invented. Escalating an
+    already-escalated task changes nothing, so a double tap or a retry never records the escalation twice.
+    """
+    _insp, task, derived = _open_correction(client, hotel_id, inspection_id)
+    if derived["status"] == "escalated":
+        return {"task": task, "changed": False}
+    updated = (
+        client.table("tasks")
+        .update({"status": "escalated", "escalated_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", task["id"])
+        .eq("tenant_id", hotel_id)
+        .in_("status", ["open", "in_progress"])
+        .execute()
+    ).data or []
+    if not updated:
+        raise RuleViolation("correction_changed", "This correction changed while you were escalating it. Review it again.", 409)
+    return {"task": updated[0], "changed": True}
+
+
+def complete_correction_on_resubmission(client: Any, hotel_id: str, room_id: str) -> bool:
+    """The housekeeper finished the correction clean: close the correction TASK, never approve the room.
+
+    The room is back to CLEAN and waits for a supervisor's reinspection; only a passing reinspection verifies it.
+    Returns whether a task was closed. Best effort by design: the caller has already moved the room, and a failure
+    here must not undo that (the correction still reads as resubmitted because the room is CLEAN).
+    """
+    details = load_reclean_details(client, hotel_id, [room_id]).get(room_id)
+    if not details:
+        return False
+    updated = (
+        client.table("tasks")
+        .update({"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()})
+        .eq("tenant_id", hotel_id)
+        .eq("source_inspection_id", details["inspection_id"])
+        .in_("status", list(OPEN_TASK_STATUSES))
+        .execute()
+    ).data or []
+    return bool(updated)

@@ -11,6 +11,8 @@ from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CompleteInspectionRequest,
     CreateAssignmentsRequest,
+    EscalateCorrectionRequest,
+    ReassignCorrectionRequest,
     RoomAssignmentItem,
     SubmitInspectionRequest,
     BatchRoomReadinessRequest,
@@ -19,14 +21,21 @@ from models.requests import (
 from core.database import supabase
 from core.errors import CodedHTTPException
 from services.reclean_corrections import (
+    ACTION_ESCALATED,
+    ACTION_REASSIGNED,
     ensure_correction_task,
+    escalate_correction,
     fetch_correction_task,
     is_unique_violation,
     latest_clean_cycles,
+    list_correction_owners,
     list_open_corrections,
     load_inspection_detail,
     load_reclean_details,
+    reassign_correction,
+    record_correction_audit,
     resolve_correction_task,
+    profile_name,
 )
 from services.inspection_rules import (
     RuleViolation,
@@ -2416,6 +2425,15 @@ def _correction_for_inspection(insp: dict, current_user: CurrentUser, room_numbe
     return {"status": "created" if outcome["created"] else "existing", "task": task}
 
 
+def _with_owner_name(correction: Optional[dict], hotel_id: str) -> Optional[dict]:
+    """The correction task as stored plus the owner's real name (or None), so the success screen states who was
+    given the work from the server's own record rather than from the app's guess."""
+    task = (correction or {}).get("task")
+    if not task:
+        return correction
+    return {**correction, "task": {**task, "assigned_name": profile_name(supabase, hotel_id, task.get("assigned_to"))}}
+
+
 def _completion_payload(insp: dict, *, replayed: bool, correction: Optional[dict]) -> dict:
     failed = insp.get("overall_result") == "failed"
     return {
@@ -2503,7 +2521,7 @@ async def _complete_inspection(
                 correction = {"status": "existing", "task": fetch_correction_task(supabase, hotel_id, inspection_id)}
                 if correction["task"] is None and not _has_followup_inspection(hotel_id, existing):
                     correction = _correction_for_inspection(existing, current_user, _room_number(hotel_id, room_id))
-            return _completion_payload(existing, replayed=True, correction=correction)
+            return _completion_payload(existing, replayed=True, correction=_with_owner_name(correction, hotel_id))
 
     room = (
         supabase.table("rooms")
@@ -2597,6 +2615,8 @@ async def _complete_inspection(
         if request.reinspection_of and str(request.reinspection_of) != open_failure:
             raise RuleViolation("correction_changed", "The correction for this room changed since you opened it. Review it again.", 409)
         reinspection_of = open_failure
+        if reinspection_of:
+            _require_failed_items_reverified(hotel_id, reinspection_of, {str(i["id"]) for i in template_items}, validated.answers)
 
     uploaded_paths: list[str] = []
     photo_urls: dict[str, str] = {}
@@ -2688,7 +2708,33 @@ async def _complete_inspection(
     else:
         correction = _correction_for_inspection(existing, current_user, room_row.get("room_number") or room_id)
 
-    return _completion_payload(existing, replayed=False, correction=correction)
+    return _completion_payload(existing, replayed=False, correction=_with_owner_name(correction, hotel_id))
+
+
+def _require_failed_items_reverified(hotel_id: str, failed_inspection_id: str, checklist_item_ids: set[str], answers: dict) -> None:
+    """A reinspection verifies the correction: every item that failed last time must be explicitly answered now.
+
+    Required items are already enforced for every inspection; this adds the earlier failures even when the standard is
+    optional, so a focused re-check can never pass a room without looking at what was wrong. Items the checklist no
+    longer contains (it was edited) cannot be asked about; the full current checklist is the verification then.
+    """
+    failed = (
+        supabase.table("inspection_results")
+        .select("template_item_id")
+        .eq("inspection_id", failed_inspection_id)
+        .eq("tenant_id", hotel_id)
+        .eq("result", "fail")
+        .execute()
+    ).data or []
+    owed = {str(r["template_item_id"]) for r in failed if r.get("template_item_id")} & checklist_item_ids
+    missing = sorted(owed - set(answers))
+    if missing:
+        raise RuleViolation(
+            "reinspection_items_unverified",
+            "Re-check every item that failed last time before completing the reinspection",
+            422,
+            missing_item_ids=missing,
+        )
 
 
 def _room_number(hotel_id: str, room_id: str) -> str:
@@ -2931,6 +2977,108 @@ async def list_inspection_corrections(
     ``meta.truncated`` is true when more exist than are returned.
     """
     return list_open_corrections(supabase, current_user.hotel_id)
+
+
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/correction-owners
+# ---------------------------------------------------------------------------
+
+@router.get("/inspections/correction-owners")
+async def get_correction_owners(
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Who in this hotel can be given a correction (registered before `/inspections/{inspection_id}`)."""
+    return {"data": list_correction_owners(supabase, current_user.hotel_id)}
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/inspections/{inspection_id}/correction/reassign | escalate
+# ---------------------------------------------------------------------------
+
+def _raise_coded(violation: RuleViolation):
+    raise CodedHTTPException(violation.status_code, violation.message, violation.code, **violation.extra) from violation
+
+
+@router.post("/inspections/{inspection_id}/correction/reassign")
+async def reassign_inspection_correction(
+    inspection_id: str,
+    request: ReassignCorrectionRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Give the open correction of a failed inspection to another eligible person in this hotel.
+
+    Reuses the inspection's ONE correction task (never a second one). Refused when the correction is already settled,
+    when the person is not an active housekeeper / supervisor here, or when it changed under the caller.
+    """
+    from routers.tasks import notify_task_event  # local: routers.tasks is a sibling router, not a dependency of this module
+
+    try:
+        UUID(inspection_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    try:
+        outcome = reassign_correction(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            inspection_id=inspection_id,
+            assignee_id=str(request.assigned_to),
+            check_expected="expected_assigned_to" in request.model_fields_set,
+            expected_assignee_id=str(request.expected_assigned_to) if request.expected_assigned_to else None,
+        )
+    except RuleViolation as violation:
+        _raise_coded(violation)
+    task = outcome["task"]
+    if outcome["changed"]:
+        record_correction_audit(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            actor_id=current_user.user_id,
+            actor_role=current_user.role,
+            task={**task, "assigned_to": outcome["previous_assigned_to"]},
+            action=ACTION_REASSIGNED,
+            new_state={"assigned_to": task.get("assigned_to"), "status": task.get("status")},
+        )
+        await notify_task_event(current_user, task.get("assigned_to"), "task_assigned_urgent", task)
+        await notify_task_event(current_user, outcome["previous_assigned_to"], "task_reassigned", task)
+    return {"data": {"inspection_id": inspection_id, "changed": outcome["changed"], "task": {**task, "assigned_name": profile_name(supabase, current_user.hotel_id, task.get("assigned_to"))}}}
+
+
+@router.post("/inspections/{inspection_id}/correction/escalate")
+async def escalate_inspection_correction(
+    inspection_id: str,
+    request: EscalateCorrectionRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Escalate an open correction. Records who did it and when; escalating twice records it once."""
+    try:
+        UUID(inspection_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    try:
+        outcome = escalate_correction(supabase, hotel_id=current_user.hotel_id, inspection_id=inspection_id)
+    except RuleViolation as violation:
+        _raise_coded(violation)
+    task = outcome["task"]
+    if outcome["changed"]:
+        note = (request.note or "").strip() or None
+        record_correction_audit(
+            supabase,
+            hotel_id=current_user.hotel_id,
+            actor_id=current_user.user_id,
+            actor_role=current_user.role,
+            task={**task, "status": "open" if not task.get("started_at") else "in_progress"},
+            action=ACTION_ESCALATED,
+            new_state={"status": "escalated", "assigned_to": task.get("assigned_to")},
+            note=note,
+        )
+        if note:
+            try:
+                supabase.table("task_comments").insert(
+                    {"task_id": task["id"], "tenant_id": current_user.hotel_id, "user_id": current_user.user_id, "comment": note}
+                ).execute()
+            except Exception:  # noqa: BLE001 - the escalation is recorded; the note also lives in the audit trail
+                logger.error("CORRECTION_ESCALATION_NOTE_FAILED task=%s", task.get("id"), exc_info=True)
+    return {"data": {"inspection_id": inspection_id, "changed": outcome["changed"], "task": task}}
 
 
 # ---------------------------------------------------------------------------

@@ -628,6 +628,18 @@ class CompleteInspectionRequest(SubmitInspectionRequest):
     reinspection_of: Optional[UUID4] = None
 
 
+class ReassignCorrectionRequest(SanitizedBaseModel):
+    """Give an open inspection correction to another person. `expected_assigned_to` is who the screen saw as owner
+    (null = nobody); when sent, a different current owner is a 409 instead of a silent overwrite."""
+
+    assigned_to: UUID4
+    expected_assigned_to: Optional[UUID4] = None
+
+
+class EscalateCorrectionRequest(SanitizedBaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
 # --- SOP ---
 class SOPQueryRequest(SanitizedBaseModel):
     query: str = Field(min_length=1, max_length=LONG_TEXT_MAX)

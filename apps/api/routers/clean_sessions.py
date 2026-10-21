@@ -17,7 +17,7 @@ from models.requests import (
 from core.database import supabase
 from core.roles import MANAGER_ROLES
 from routers.cleaning_checklists import get_checklist_template_for_clean_type
-from services.reclean_corrections import correction_checklist, load_reclean_details
+from services.reclean_corrections import complete_correction_on_resubmission, correction_checklist, load_reclean_details
 from services.cleaning_estimates import build_estimates
 from services.housekeeping_assignments import effective_room_status
 from services.room_status_transitions import (
@@ -878,6 +878,16 @@ async def complete_clean_session(
     )
     rows = result.data or []
     updated = rows[0] if rows else {**session, **update_payload}
+
+    # A correction clean (the room was flagged by a failed inspection) closes the correction TASK: the work is
+    # done and the room is back to CLEAN, waiting for a supervisor. It never approves the room - only a passing
+    # reinspection does. Best effort: the room and session are already saved, and a room that is CLEAN still
+    # reads as "resubmitted" to the supervisor even if this write fails.
+    if room_status.get("reclean_requested_at"):
+        try:
+            complete_correction_on_resubmission(supabase, current_user.hotel_id, room_id)
+        except Exception:
+            logger.warning("Could not close the correction task for session=%s", session_id, exc_info=True)
 
     # Rolling average uses the TRUE session duration
     try:
