@@ -24,7 +24,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from services.inspection_evidence import LEGACY_BUCKET, PRIVATE_BUCKET, evidence_location  # noqa: E402
+from services.inspection_evidence import LEGACY_BUCKET, PRIVATE_BUCKET, evidence_location, sniff_image_type  # noqa: E402
 
 BATCH = 200
 
@@ -60,7 +60,13 @@ def backfill(client: Any, *, apply: bool = False, remove_legacy: bool = False) -
             path = location[1]
             try:
                 data = client.storage.from_(LEGACY_BUCKET).download(path)
-                client.storage.from_(PRIVATE_BUCKET).upload(path, data, {"upsert": "true"})
+                # The private bucket only accepts images and storage defaults an upload to text/plain, so the type
+                # must be sent explicitly - taken from the bytes, never from the file name.
+                content_type = sniff_image_type(data)
+                if content_type is None:
+                    counts["failed"] += 1
+                    continue
+                client.storage.from_(PRIVATE_BUCKET).upload(path, data, {"upsert": "true", "content-type": content_type})
                 client.table("inspection_results").update({"photo_path": path, "photo_url": None}).eq("id", row["id"]).eq(
                     "tenant_id", row["tenant_id"]
                 ).execute()

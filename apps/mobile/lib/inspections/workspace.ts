@@ -296,10 +296,11 @@ export function recheckItemIds(template: Pick<ChecklistTemplate, "items">, faile
   return template.items.filter((item) => failedItemIds.has(item.id)).map((item) => item.id);
 }
 
-/** Previously failed items nobody has answered yet. */
+/** Previously failed items with no pass/fail judgement yet (unanswered, or marked N/A). */
 export function unverifiedRecheck(template: Pick<ChecklistTemplate, "items">, answers: AnswerMap, recheck: readonly string[]): string[] {
   const onChecklist = new Set(template.items.map((item) => item.id));
-  return recheck.filter((id) => onChecklist.has(id) && !answers[id]);
+  // N/A is not a verification of a fixed defect: the server refuses it too (reinspection_items_unverified).
+  return recheck.filter((id) => onChecklist.has(id) && (!answers[id] || answers[id].result === "na"));
 }
 
 /** How a previously failed item stands now: fixed (passed), still failing, not applicable, or not yet checked. */

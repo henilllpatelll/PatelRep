@@ -349,6 +349,19 @@ def test_a_failing_reinspection_keeps_the_room_blocked_and_makes_a_new_linked_co
     assert first["status"] == "superseded" and first["reinspection_id"] == second["client_submission_id"]
     open_rows = client.get("/v1/housekeeping/inspections/corrections", headers=_auth()).json()["data"]
     assert [r["inspection_id"] for r in open_rows] == [second["client_submission_id"]]  # one active correction, not two
+    # The housekeeper's own list must not show the stale earlier instruction beside the current one.
+    by_source = {t["source_inspection_id"]: t["status"] for t in tasks}
+    assert by_source[inspection] == "cancelled" and by_source[second["client_submission_id"]] == "open"
+
+
+def test_a_repeat_failure_leaves_a_task_someone_already_started_alone(client, env, people):
+    inspection = _fail(client, env)
+    _rows(env, "tasks")[0]["status"] = "in_progress"
+    _back_to_clean(env)
+    second = _payload(env, result="failed", fails=("bed",), severity="minor", reinspection_of=inspection)
+    assert _post(client, env, second).status_code == 200
+    by_source = {t["source_inspection_id"]: t["status"] for t in _rows(env, "tasks")}
+    assert by_source[inspection] == "in_progress"
 
 
 def test_a_reinspection_must_explicitly_answer_every_item_that_failed_even_if_optional(client, env, people):
@@ -360,6 +373,21 @@ def test_a_reinspection_must_explicitly_answer_every_item_that_failed_even_if_op
             item["is_required"] = False  # the failed standard became optional since
     payload = _payload(env, reinspection_of=inspection)
     payload["items"] = [i for i in payload["items"] if i["template_item_id"] != bed]  # skipped: nobody looked
+    res = _post(client, env, payload)
+    assert res.status_code == 422 and res.json()["code"] == "reinspection_items_unverified"
+    assert res.json()["missing_item_ids"] == [bed]
+    assert env.db.rows["room_status"][0]["status"] == "CLEAN" and len(_rows(env, "inspections")) == 1
+
+
+def test_marking_the_failed_item_not_applicable_does_not_verify_the_correction(client, env, people):
+    """Phase 7 audit: against a real database a reinspection that answered N/A for the failed item released the room."""
+    inspection = _fail(client, env)
+    _back_to_clean(env)
+    bed = env.items["bed"]
+    payload = _payload(env, reinspection_of=inspection)
+    for item in payload["items"]:
+        if item["template_item_id"] == bed:
+            item["result"] = "na"
     res = _post(client, env, payload)
     assert res.status_code == 422 and res.json()["code"] == "reinspection_items_unverified"
     assert res.json()["missing_item_ids"] == [bed]

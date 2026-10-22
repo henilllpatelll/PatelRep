@@ -69,7 +69,11 @@ async def test_submit_inspection_pass_clears_pending_reclean_flag(monkeypatch):
         room_id=ROOM_ID,
         template_id=TEMPLATE_ID,
         overall_result="passed",
-        items=[InspectionResultItem(template_item_id=TEMPLATE_ITEM_TOWELS, result="pass")],
+        # A pass must answer every required checklist item (phase 7: the legacy route enforces the same rules).
+        items=[
+            InspectionResultItem(template_item_id=TEMPLATE_ITEM_TOWELS, result="pass"),
+            InspectionResultItem(template_item_id=TEMPLATE_ITEM_MIRROR, result="pass"),
+        ],
     )
     await hk_router.submit_inspection(body, SUPERVISOR)
 

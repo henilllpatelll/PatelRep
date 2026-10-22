@@ -14,7 +14,14 @@ class FakeStorageBucket:
         self.db = db
         self.bucket = bucket
 
+    # Mirrors the real bucket configuration (migration 220): the private evidence bucket accepts images only, and
+    # storage treats an upload with no content-type as text/plain. Without this a missing header passed every test.
+    _IMAGE_ONLY = {"inspection-evidence": {"image/jpeg", "image/png", "image/webp"}}
+
     def upload(self, path, contents, _options=None):
+        allowed = self._IMAGE_ONLY.get(self.bucket)
+        if allowed is not None and (_options or {}).get("content-type", "text/plain") not in allowed:
+            raise RuntimeError("mime type is not supported")
         self.db.storage_uploads.append((self.bucket, path, contents))
         return SimpleNamespace(path=path)
 

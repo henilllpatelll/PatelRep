@@ -20,6 +20,8 @@ from services import reclean_corrections as corrections
 from services.inspection_rules import template_fingerprint
 from tests.smoke.fake_supabase import FakeDB, FakeQuery
 
+JPEG_BYTES = b"\xff\xd8\xff\xe0jpegbytes"  # real JPEG magic: uploads are validated by their bytes
+
 HOTEL = "hotel-a"
 OTHER_HOTEL = "hotel-b"
 USER = "user-1"
@@ -176,7 +178,7 @@ def _payload(env, *, result="passed", fails=(), severity=None, submission=None, 
 
 
 def _post(client, env, payload, photos=None, headers=None):
-    files = [("photos", (f"{key}.jpg", b"jpegbytes", "image/jpeg")) for key in (photos or [])]
+    files = [("photos", (f"{key}.jpg", JPEG_BYTES, "image/jpeg")) for key in (photos or [])]
     data = {"inspection": json.dumps(payload), "photo_item_ids": [env.items[k] for k in (photos or [])]}
     return client.post("/v1/housekeeping/inspections/complete", data=data, files=files or None, headers=headers or _auth())
 
@@ -290,6 +292,40 @@ def test_non_image_and_oversize_photos_are_rejected_without_uploading(client, en
     data = {"inspection": json.dumps(payload), "photo_item_ids": [env.items["mirror"]]}
     bad = client.post("/v1/housekeeping/inspections/complete", data=data, files=[("photos", ("x.pdf", b"x", "application/pdf"))], headers=_auth())
     assert bad.status_code == 400 and env.db.storage_uploads == [] and env.db.rows["inspections"] == []
+
+
+def test_a_file_that_only_claims_to_be_an_image_is_rejected_by_its_bytes(client, env):
+    """Phase 7 audit: the declared content-type is the client's word; the bytes decide."""
+    payload = _payload(env, result="failed", fails=("mirror",))
+    data = {"inspection": json.dumps(payload), "photo_item_ids": [env.items["mirror"]]}
+    for disguised in (b"<?php echo 1; ?>", b"%PDF-1.7 fake", b""):
+        bad = client.post(
+            "/v1/housekeeping/inspections/complete", data=data,
+            files=[("photos", ("x.jpg", disguised, "image/jpeg"))], headers=_auth(),
+        )
+        assert bad.status_code == 400, bad.text
+    assert env.db.storage_uploads == [] and env.db.rows["inspections"] == []
+
+
+def test_the_stored_content_type_follows_the_bytes_not_the_claim(client, env):
+    png = bytes([0x89]) + b"PNG" + bytes([0x0D, 0x0A, 0x1A, 0x0A]) + b"rest"
+    payload = _payload(env, result="failed", fails=("mirror",))
+    data = {"inspection": json.dumps(payload), "photo_item_ids": [env.items["mirror"]]}
+    res = client.post("/v1/housekeeping/inspections/complete", data=data, files=[("photos", ("x.jpg", png, "image/jpeg"))], headers=_auth())
+    assert res.status_code == 200, res.text
+    stored = _rows(env, "inspection_results", result="fail")[0]
+    assert stored["photo_path"].endswith(".png")
+
+
+def test_the_single_photo_route_refuses_a_traversal_item_id_and_a_fake_image(client, env):
+    inspection_id = str(uuid4())
+    for item_id in ("../../other-hotel/secret", "not-a-uuid"):
+        res = client.post(
+            f"/v1/housekeeping/inspections/{inspection_id}/photos",
+            data={"template_item_id": item_id}, files={"photo": ("x.jpg", JPEG_BYTES, "image/jpeg")}, headers=_auth(),
+        )
+        assert res.status_code == 422
+    assert env.db.storage_uploads == []
 
 
 def test_na_is_refused_for_an_item_that_forbids_it(client, env):
@@ -643,6 +679,33 @@ def _legacy(client, env, **overrides):
 def test_legacy_pass_still_works(client, env):
     res = _legacy(client, env)
     assert res.status_code == 200 and env.db.rows["room_status"][0]["status"] == "INSPECTED"
+
+
+def test_legacy_pass_cannot_skip_required_items(client, env):
+    """Phase 7 audit: one "pass" row used to release a room whose template has three required items."""
+    first = next(iter(env.items.values()))
+    res = _legacy(client, env, items=[{"template_item_id": first, "result": "pass"}])
+    assert res.status_code == 422 and res.json()["code"] == "required_items_unanswered"
+    assert env.db.rows["inspections"] == []
+    assert env.db.rows["room_status"][0]["status"] == "CLEAN"
+
+
+def test_legacy_pass_cannot_use_na_where_the_item_forbids_it(client, env):
+    for item in env.db.rows["inspection_template_items"]:
+        item["allows_na"] = False
+    items = [{"template_item_id": i, "result": "pass"} for i in env.items.values()]
+    items[0]["result"] = "na"
+    res = _legacy(client, env, items=items)
+    assert res.status_code == 422 and res.json()["code"] == "na_not_allowed"
+    assert env.db.rows["inspections"] == []
+
+
+def test_legacy_pass_rejects_duplicate_answers(client, env):
+    items = [{"template_item_id": i, "result": "pass"} for i in env.items.values()]
+    items.append(dict(items[0]))
+    res = _legacy(client, env, items=items)
+    assert res.status_code == 422 and res.json()["code"] == "duplicate_item_answer"
+    assert env.db.rows["inspections"] == []
 
 
 def test_legacy_conditional_cannot_carry_a_failed_item_or_release_a_defect(client, env):

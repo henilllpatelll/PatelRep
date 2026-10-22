@@ -269,6 +269,19 @@ def resolve_correction_task(client: Any, hotel_id: str, failed_inspection_id: st
     ).execute()
 
 
+def retire_superseded_correction_task(client: Any, hotel_id: str, failed_inspection_id: str) -> None:
+    """A reinspection failed again and its own correction task took over: cancel the earlier task if nobody started it.
+
+    Two open tasks for one room would show the housekeeper a stale instruction beside the current one. A task already
+    in progress is left alone (someone is working on it); the supervisor's read model reports it as ``superseded`` either way.
+    """
+    client.table("tasks").update(
+        {"status": "cancelled"}
+    ).eq("tenant_id", hotel_id).eq("source_inspection_id", failed_inspection_id).in_(
+        "status", ["open", "escalated"]
+    ).execute()
+
+
 def profile_name(client: Any, hotel_id: str, user_id: Optional[str]) -> Optional[str]:
     if not user_id:
         return None

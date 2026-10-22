@@ -36,6 +36,7 @@ from services.reclean_corrections import (
     reassign_correction,
     record_correction_audit,
     resolve_correction_task,
+    retire_superseded_correction_task,
     profile_name,
 )
 from services.inspection_evidence import (
@@ -44,6 +45,7 @@ from services.inspection_evidence import (
     evidence_location,
     evidence_path,
     sign_location,
+    sniff_image_type,
 )
 from services.inspection_history import (
     INSIGHT_ROW_LIMIT,
@@ -2229,6 +2231,35 @@ async def list_ready_to_strip(
 # POST /housekeeping/inspections
 # ---------------------------------------------------------------------------
 
+def _require_complete_legacy_pass(request: SubmitInspectionRequest, hotel_id: str) -> None:
+    """Apply the validated-completion rules to a legacy JSON pass; raises a coded error on the first broken rule."""
+    room = (
+        supabase.table("rooms").select("room_type_id").eq("id", str(request.room_id)).eq("tenant_id", hotel_id)
+        .maybe_single().execute()
+    )
+    template = (
+        supabase.table("inspection_templates").select("id, room_type_id, is_default")
+        .eq("id", str(request.template_id)).eq("tenant_id", hotel_id).eq("is_active", True)
+        .maybe_single().execute()
+    )
+    try:
+        if not room or not room.data:
+            raise HTTPException(status_code=404, detail="Room not found")
+        if not template or not template.data:
+            raise RuleViolation("no_checklist", "No inspection checklist is configured for this room")
+        if not template_applies_to_room(template.data, room.data.get("room_type_id")):
+            raise RuleViolation("template_not_applicable", "This checklist is not meant for this room type")
+        template_items = sort_template_items(
+            supabase.table("inspection_template_items")
+            .select("id, section, description, is_required, requires_photo_on_fail, allows_na, sort_order")
+            .eq("template_id", str(request.template_id)).eq("tenant_id", hotel_id)
+            .execute().data or []
+        )
+        validate_answers(template_items, [item.model_dump(mode="json") for item in request.items], claimed_result="passed")
+    except RuleViolation as violation:
+        raise CodedHTTPException(violation.status_code, violation.message, violation.code, **violation.extra) from violation
+
+
 @router.post("/inspections")
 async def submit_inspection(
     request: SubmitInspectionRequest,
@@ -2278,6 +2309,11 @@ async def submit_inspection(
     # supervisor (or a stale screen) cannot record a duplicate inspection or re-open a finished room.
     if current_rs.data.get("status") != "CLEAN":
         raise HTTPException(status_code=409, detail="Room must be clean before it can be inspected")
+    if request.overall_result == "passed":
+        # A pass releases the room, so it gets exactly the checks /inspections/complete applies: the checklist must
+        # apply to this room type, every required item must be answered, and N/A must be allowed. Without this a
+        # caller could pass a room by sending one "pass" row. (Failures only ever block a room, so they stay lenient.)
+        _require_complete_legacy_pass(request, current_user.hotel_id)
     from_status = current_rs.data.get("status", "CLEAN")
     current_clean_type = current_rs.data.get("clean_type")
     # Only a pass releases the room. A failure and the legacy "conditional" (minor touch-up) both block it.
@@ -2600,7 +2636,10 @@ async def _complete_inspection(
         file_bytes = await photo.read(MAX_INSPECTION_PHOTO_BYTES + 1)
         if len(file_bytes) > MAX_INSPECTION_PHOTO_BYTES:
             raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
-        prepared_photos[item_id] = (file_bytes, photo.content_type)
+        real_type = sniff_image_type(file_bytes)
+        if real_type is None:
+            raise HTTPException(status_code=400, detail="The file is not a valid JPEG, PNG, or WebP image")
+        prepared_photos[item_id] = (file_bytes, real_type)
 
     status_row = (
         supabase.table("room_status")
@@ -2728,12 +2767,17 @@ async def _complete_inspection(
             logger.exception("Post-pass room cleanup failed for inspection %s", inspection_id)
     else:
         correction = _correction_for_inspection(existing, current_user, room_row.get("room_number") or room_id)
+        if reinspection_of:
+            try:
+                retire_superseded_correction_task(supabase, hotel_id, reinspection_of)
+            except Exception:  # noqa: BLE001 - the inspection is committed; a stale task is a nuisance, not an error
+                logger.exception("Could not retire the superseded correction task for inspection %s", inspection_id)
 
     return _completion_payload(existing, replayed=False, correction=_with_owner_name(correction, hotel_id))
 
 
 def _require_failed_items_reverified(hotel_id: str, failed_inspection_id: str, checklist_item_ids: set[str], answers: dict) -> None:
-    """A reinspection verifies the correction: every item that failed last time must be explicitly answered now.
+    """A reinspection verifies the correction: every item that failed last time must be explicitly judged pass or fail now (N/A does not count).
 
     Required items are already enforced for every inspection; this adds the earlier failures even when the standard is
     optional, so a focused re-check can never pass a room without looking at what was wrong. Items the checklist no
@@ -2748,7 +2792,8 @@ def _require_failed_items_reverified(hotel_id: str, failed_inspection_id: str, c
         .execute()
     ).data or []
     owed = {str(r["template_item_id"]) for r in failed if r.get("template_item_id")} & checklist_item_ids
-    missing = sorted(owed - set(answers))
+    # "Not applicable" is not a verification: it would let a reinspection wave through the very defect that blocked the room.
+    missing = sorted(item_id for item_id in owed if (answers.get(item_id) or {}).get("result") not in ("pass", "fail"))
     if missing:
         raise RuleViolation(
             "reinspection_items_unverified",
@@ -3372,11 +3417,12 @@ async def update_inspection_template(
 @router.post("/inspections/{inspection_id}/photos")
 async def upload_inspection_photo(
     inspection_id: str,
-    template_item_id: str = Form(...),
+    template_item_id: UUID = Form(...),
     photo: UploadFile = File(...),
     current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
 ):
     """Upload evidence and attach it to one inspection checklist result."""
+    template_item_id = str(template_item_id)  # a UUID, so it can never carry path separators into the object name
     insp = (
         supabase.table("inspections")
         .select("id")
@@ -3406,19 +3452,17 @@ async def upload_inspection_photo(
     if len(file_bytes) > MAX_INSPECTION_PHOTO_BYTES:
         raise HTTPException(status_code=413, detail="Photo must be 5 MB or smaller")
 
-    extension = {
-        "image/jpeg": "jpg",
-        "image/jpg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-    }[photo.content_type]
+    real_type = sniff_image_type(file_bytes)
+    if real_type is None:
+        raise HTTPException(status_code=400, detail="The file is not a valid JPEG, PNG, or WebP image")
+    extension = _PHOTO_EXTENSIONS[real_type]
     timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
     path = evidence_path(current_user.hotel_id, inspection_id, f"{template_item_id}-{timestamp}", extension)
 
     supabase.storage.from_(INSPECTION_PHOTO_BUCKET).upload(
         path,
         file_bytes,
-        {"content-type": photo.content_type, "upsert": "false"},
+        {"content-type": real_type, "upsert": "false"},
     )
     supabase.table("inspection_results").update({"photo_path": path, "photo_url": None}) \
         .eq("id", result.data["id"]) \

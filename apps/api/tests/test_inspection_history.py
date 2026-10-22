@@ -20,6 +20,7 @@ from tests.test_inspection_completion import HOTEL, OTHER_HOTEL, Env, _auth
 
 INSPECTOR_A = str(uuid4())
 INSPECTOR_B = str(uuid4())
+PNG_BYTES = bytes([0x89]) + b"PNG" + bytes([0x0D, 0x0A, 0x1A, 0x0A])  # real image header: the backfill sniffs bytes
 CHICAGO = tz.gettz("America/Chicago")
 
 
@@ -540,7 +541,7 @@ def test_backfill_is_a_dry_run_by_default_and_moves_only_this_hotels_own_objects
 
     mine = _insp(env, _at(9), "failed", fingerprint=None)
     legacy_path = _path(mine, env)
-    env.db.storage_uploads.append(("work-order-photos", legacy_path, b"jpeg"))
+    env.db.storage_uploads.append(("work-order-photos", legacy_path, PNG_BYTES + b"jpeg"))
     _fail_answer(env, mine, "mirror", photo_url=f"https://p.supabase.co/storage/v1/object/public/work-order-photos/{legacy_path}")
     forged = _insp(env, _at(10), "failed", fingerprint=None)
     _fail_answer(env, forged, "mirror", photo_url=f"https://p.supabase.co/storage/v1/object/public/work-order-photos/{OTHER_HOTEL}/inspections/{forged['id']}/x.jpg")
@@ -554,15 +555,28 @@ def test_backfill_is_a_dry_run_by_default_and_moves_only_this_hotels_own_objects
     assert done["copied"] == 1 and done["skipped_foreign_path"] == 1 and done["removed"] == 0
     row = env.db.rows["inspection_results"][0]
     assert row["photo_path"] == legacy_path and row["photo_url"] is None
-    assert ("inspection-evidence", legacy_path, b"jpeg") in env.db.storage_uploads
+    assert ("inspection-evidence", legacy_path, PNG_BYTES + b"jpeg") in env.db.storage_uploads
     assert env.db.storage_removed == []  # the public original is only removed on request
     assert backfill(env.db, apply=True)["seen"] == 1  # idempotent: the forged row is the only one left, still skipped
 
     again = _insp(env, _at(12), "failed", fingerprint=None)
-    env.db.storage_uploads.append(("work-order-photos", _path(again, env), b"two"))
+    env.db.storage_uploads.append(("work-order-photos", _path(again, env), PNG_BYTES + b"two"))
     _fail_answer(env, again, "mirror", photo_url=f"https://p.supabase.co/storage/v1/object/public/work-order-photos/{_path(again, env)}")
     assert backfill(env.db, apply=True, remove_legacy=True)["removed"] == 1
     assert env.db.storage_removed == [("work-order-photos", _path(again, env))]
+
+
+
+def test_backfill_refuses_a_legacy_object_that_is_not_an_image_and_leaves_it_alone(env):
+    from scripts.backfill_inspection_evidence import backfill
+
+    row = _insp(env, _at(9), "failed", fingerprint=None)
+    path = _path(row, env)
+    env.db.storage_uploads.append(("work-order-photos", path, b"<html>not an image</html>"))
+    _fail_answer(env, row, "mirror", photo_url=f"https://p.supabase.co/storage/v1/object/public/work-order-photos/{path}")
+    done = backfill(env.db, apply=True, remove_legacy=True)
+    assert done["failed"] == 1 and done["copied"] == 0 and done["removed"] == 0
+    assert env.db.rows["inspection_results"][0]["photo_path"] is None and env.db.storage_removed == []
 
 
 # ── performance & signed-link lifetime ───────────────────────────────────────────

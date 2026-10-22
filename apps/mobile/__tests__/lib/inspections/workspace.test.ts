@@ -219,6 +219,13 @@ describe("review readiness", () => {
     expect(reviewReadiness(checklist, na, "forbid")).toEqual({ kind: "invalid", code: "na_not_allowed", itemId: "bed" });
   });
 
+  it("a previously failed item marked N/A does not verify the correction (the server refuses it too)", () => {
+    const draft = answered(all(fresh(), ["toilet", "towels", "bed", "door"]), "mirror", "na");
+    expect(reviewReadiness(checklist, draft, "allow", ["mirror"])).toEqual({ kind: "unanswered", itemId: "mirror", remaining: 1 });
+    const judged = answered(draft, "mirror", "pass");
+    expect(reviewReadiness(checklist, judged, "allow", ["mirror"]).kind).toBe("ready");
+  });
+
   it("a failed item whose photo or details only a later step can supply still lets the supervisor REVIEW", () => {
     const draft = answered(all(fresh(), ["toilet", "mirror", "towels", "bed"]), "door", "fail");
     const ready = reviewReadiness(checklist, draft);

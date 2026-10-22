@@ -35,7 +35,7 @@ async def test_inspection_photo_is_stored_on_its_matching_result(monkeypatch):
     monkeypatch.setattr(housekeeping_router, "supabase", db)
     photo = UploadFile(
         filename="evidence.png",
-        file=BytesIO(b"png-bytes"),
+        file=BytesIO(b"\x89PNG\r\n\x1a\npng-bytes"),
         headers=Headers({"content-type": "image/png"}),
     )
 
