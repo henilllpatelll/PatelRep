@@ -20,7 +20,8 @@ export default defineConfig({
     // ("@vercel/turbopack-next/internal/font/google/font"), so /login never serves.
     command: `npm run dev -- --webpack --hostname localhost --port ${webPort}`,
     url: `${baseURL}/login`,
-    timeout: 120_000,
+    // Cold webpack dev compile of /login on a fresh CI runner can exceed 2 min.
+    timeout: 300_000,
     reuseExistingServer: !process.env.CI,
     env: {
       ...process.env,
