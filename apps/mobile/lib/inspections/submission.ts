@@ -116,7 +116,17 @@ export interface CompletionReceipt {
   reinspectionOf: string | null;
   /** False = recorded, but the correction task is still missing; resubmitting the same id finishes it. */
   followUpComplete: boolean;
-  correction: { status: "created" | "existing" | "failed"; taskId: string | null } | null;
+  /** When the server recorded the inspection (its own clock), or null if the reply did not say. */
+  completedAt: string | null;
+  correction: {
+    status: "created" | "existing" | "failed";
+    taskId: string | null;
+    taskStatus: string | null;
+    priority: string | null;
+    assignedTo: string | null;
+    /** The owner's real name from the server, or null (shown as Unassigned / not named - never an id). */
+    assignedName: string | null;
+  } | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -143,9 +153,17 @@ export function parseCompletionResponse(body: unknown, submissionId: string): Co
     reinspectionOf: typeof data.reinspection_of === "string" ? data.reinspection_of : null,
     // An older body without the flag is a pass or a failure whose task state we cannot see: only trust an explicit true.
     followUpComplete: outcome === "passed" ? true : data.followup_complete === true,
+    completedAt: isRecord(data.inspection) && typeof data.inspection.completed_at === "string" ? data.inspection.completed_at : null,
     correction:
       status === "created" || status === "existing" || status === "failed"
-        ? { status, taskId: task && typeof task.id === "string" ? task.id : null }
+        ? {
+            status,
+            taskId: task && typeof task.id === "string" ? task.id : null,
+            taskStatus: task && typeof task.status === "string" ? task.status : null,
+            priority: task && typeof task.priority === "string" ? task.priority : null,
+            assignedTo: task && typeof task.assigned_to === "string" ? task.assigned_to : null,
+            assignedName: task && typeof task.assigned_name === "string" && task.assigned_name.trim() ? task.assigned_name.trim() : null,
+          }
         : null,
   };
 }

@@ -1,4 +1,4 @@
-import { act, fireEvent } from "@testing-library/react-native";
+import { act, fireEvent, within } from "@testing-library/react-native";
 import {
   AsyncStorage,
   mockCapture,
@@ -602,8 +602,9 @@ describe("the review of a failed inspection", () => {
     expect(o.text("workspace-correction-step-mirror")).toContain("Streaks on glass");
     expect(o.text("workspace-correction-limits")).toContain("can't be changed from here");
     // it is a preview: no inputs, no save, no send
-    expect(o.screen.UNSAFE_queryAllByType(require("react-native").TextInput)).toHaveLength(0);
-    expect(o.screen.queryAllByRole("button", { name: /save|send|assign|submit|create/i })).toEqual([]);
+    const sheet = within(o.screen.getByTestId("workspace-correction"));
+    expect(sheet.UNSAFE_queryAllByType(require("react-native").TextInput)).toHaveLength(0);
+    expect(sheet.queryAllByRole("button", { name: /save|send|assign|submit|create/i })).toEqual([]);
     await o.press("workspace-correction-done");
     expect(o.has("workspace-correction")).toBe(false);
   });
@@ -644,9 +645,10 @@ describe("the review of a failed inspection", () => {
     expect(o.has("workspace-review-correction")).toBe(false);
   });
 
-  it("never approves, submits or contacts the server", async () => {
+  it("reviewing a failed inspection offers 'Submit & request correction' (never 'Approve room') and contacts the server only when pressed", async () => {
     const o = await failedInspection();
-    expect(o.screen.queryAllByRole("button", { name: /submit|approve|finish|complete|release/i })).toEqual([]);
+    expect(o.screen.queryByText("Approve room")).toBeNull();
+    expect(o.screen.getByText("Submit & request correction")).toBeTruthy();
     expect(mockComplete).not.toHaveBeenCalled();
     expect(mockSubmitLegacy).not.toHaveBeenCalled();
   });

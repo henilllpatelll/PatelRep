@@ -7,7 +7,7 @@ import es from "@/i18n/locales/es.json";
    same placeholders, real Spanish rather than a copy of the English, and no key the code asks for is missing. */
 
 type Tree = { [key: string]: string | Tree };
-const NEW_GROUPS = ["header", "status", "metric", "search", "tabs", "chips", "filter", "card", "correction", "done", "states", "banner", "record", "start", "workspace"];
+const NEW_GROUPS = ["header", "status", "metric", "search", "tabs", "chips", "filter", "card", "correction", "done", "states", "banner", "record", "start", "workspace", "drawer", "reassign", "activity", "reinspect", "correctionsSummary"];
 
 function leaves(tree: Tree, prefix = ""): Record<string, string> {
   return Object.entries(tree).reduce<Record<string, string>>((all, [key, value]) => {
@@ -18,7 +18,7 @@ function leaves(tree: Tree, prefix = ""): Record<string, string> {
 
 const inspectEn = leaves((en as unknown as { inspect: Tree }).inspect, "inspect");
 const inspectEs = leaves((es as unknown as { inspect: Tree }).inspect, "inspect");
-const isNew = (key: string) => NEW_GROUPS.includes(key.split(".")[1]) || key === "inspect.result.unknown";
+const isNew = (key: string) => NEW_GROUPS.includes(key.split(".")[1]) || key === "inspect.result.unknown" || key.startsWith("inspect.result.");
 const newKeys = Object.keys(inspectEn).filter(isNew);
 const placeholders = (text: string) => [...text.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]).sort();
 
@@ -37,6 +37,9 @@ const SAME_IN_BOTH = new Set([
   "inspect.workspace.context.minutes_plural",
   "inspect.workspace.context.previousBy", // "Inspector" in both
   "inspect.workspace.issue.severity.a11y", // "{{severity}}. {{hint}}"
+  "inspect.drawer.priorityValue.normal", // "Normal" in both
+  "inspect.reassign.role.housekeeping_supervisor", // "Supervisor" in both
+  "inspect.reinspect.originalNote", // "Original: {{note}}" in both
 ]);
 
 describe("Inspections screen copy", () => {

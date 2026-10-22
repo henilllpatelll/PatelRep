@@ -2,7 +2,7 @@ import type { SubmissionOutcome } from "@/lib/inspections/submission";
 import { INITIAL_WORKFLOW, expectedRoomStatus, isConcluded, transition, type WorkflowEvent, type WorkflowState } from "@/lib/inspections/workflow";
 
 const receipt = (outcome: "passed" | "failed") => ({
-  id: "x", outcome, replayed: false, correctionKind: null, reinspectionOf: null, followUpComplete: true, correction: null,
+  id: "x", outcome, replayed: false, correctionKind: null, reinspectionOf: null, followUpComplete: true, completedAt: null, correction: null,
 });
 const committed = (outcome: "passed" | "failed"): SubmissionOutcome => ({ kind: "committed", receipt: receipt(outcome) });
 

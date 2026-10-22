@@ -10,7 +10,10 @@ import { normalizeRoomIdParam } from "@/lib/housekeeping/inspectionTarget";
 import { inspectionHref } from "@/lib/inspections/route";
 import type { QueueItem } from "@/lib/inspections/queue";
 import { useInspectionQueue } from "@/lib/inspections/useInspectionQueue";
-import { searchByRoomNumber, type CorrectionItem, type DoneItem } from "@/lib/inspections/lists";
+import { escalateCorrection, reassignCorrection, requestCorrectionAgain, type InspectionDetail } from "@/lib/api/inspections";
+import { classifyActionError, shouldReload, type ActionFailure } from "@/lib/inspections/correctionActions";
+import { groupCorrections, searchByRoomNumber, type CorrectionAction, type CorrectionItem, type DoneItem } from "@/lib/inspections/lists";
+import { pokeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import {
   DEFAULT_QUEUE_DRAFT,
   EMPTY_QUEUE_FILTERS,
@@ -32,6 +35,9 @@ import { InspectTabs, type InspectTab } from "@/components/supervisor/inspect/In
 import { InspectActiveFilters } from "@/components/supervisor/inspect/InspectActiveFilters";
 import { InspectionQueueCard } from "@/components/supervisor/inspect/InspectionQueueCard";
 import { CorrectionCard } from "@/components/supervisor/inspect/CorrectionCard";
+import { CorrectionDetailSheet } from "@/components/supervisor/inspect/CorrectionDetailSheet";
+import { CorrectionSummary } from "@/components/supervisor/inspect/CorrectionSummary";
+import { ReassignSheet } from "@/components/supervisor/inspect/ReassignSheet";
 import { DoneRow } from "@/components/supervisor/inspect/DoneRow";
 import { InspectFilterSheet } from "@/components/supervisor/inspect/InspectFilterSheet";
 import { InspectionRecordSheet } from "@/components/supervisor/inspect/InspectionRecordSheet";
@@ -43,6 +49,9 @@ import { InspectNotice, InspectSkeleton, StaleBanner } from "@/components/superv
    stable id; this screen stays mounted underneath, so its tab, search, filters and scroll are exactly as left. */
 
 type Row = QueueItem | CorrectionItem | DoneItem;
+
+/** One drawer at a time: the correction's details, or the owner picker (which returns to the details). */
+type Drawer = null | { kind: "detail"; item: CorrectionItem } | { kind: "assign"; item: CorrectionItem; ownerId: string | null; backTo: "detail" | "none" };
 
 interface ViewState {
   tab: InspectTab;
@@ -66,7 +75,8 @@ export default function InspectScreen() {
   const scopeKey = useAppStore((state) => (state.user?.tenant_id && state.user?.id ? `${state.user.tenant_id}:${state.user.id}` : null));
   // A link that still names a room here (`?roomId=`, from before the workspace had its own route) is handed on to the
   // active inspection. The room is resolved there, by its stable id; nothing is started merely by arriving.
-  const params = useLocalSearchParams<{ roomId?: string | string[]; roomNumber?: string | string[] }>();
+  const params = useLocalSearchParams<{ roomId?: string | string[]; roomNumber?: string | string[]; tab?: string | string[] }>();
+  const tabParam = normalizeRoomIdParam(params.tab);
   const roomIdParam = normalizeRoomIdParam(params.roomId);
   const roomLabel = normalizeRoomIdParam(params.roomNumber);
 
@@ -76,6 +86,11 @@ export default function InspectScreen() {
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [record, setRecord] = useState<DoneItem | null>(null);
+  const [drawer, setDrawer] = useState<Drawer>(null);
+  const [drawerBusy, setDrawerBusy] = useState(false);
+  const [drawerFailure, setDrawerFailure] = useState<ActionFailure | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const acting = useRef(false);
 
   const dropFocus = useCallback(() => router.setParams({ roomId: undefined, roomNumber: undefined }), []);
 
@@ -87,8 +102,17 @@ export default function InspectScreen() {
     setView(INITIAL_VIEW);
     setFiltersOpen(false);
     setRecord(null);
+    setDrawer(null);
+    setDrawerFailure(null);
     dropFocus();
   }, [scopeKey, dropFocus]);
+
+  // "View corrections" from a result screen lands on that tab. Cleared at once so it applies only the one time.
+  useEffect(() => {
+    if (tabParam !== "corrections") return;
+    setView((previous) => ({ ...previous, tab: "corrections" }));
+    router.setParams({ tab: undefined });
+  }, [tabParam]);
 
   // Hand an older room link on to the workspace: clear it from THIS screen first (so it cannot fire twice), then open.
   useEffect(() => {
@@ -175,14 +199,111 @@ export default function InspectScreen() {
     },
     [blockedByType, queue.status, refresh, t, toast],
   );
-  const openCorrection = useCallback(
-    (correction: CorrectionItem, intent: "reinspect" | "view") => {
-      const queued = itemById.get(correction.roomId);
-      if (intent === "reinspect" && queued) startInspection(queued);
-      else openRoomBoard(correction.roomId);
+  /* ─── Corrections ───────────────────────────────────────────────────── */
+
+  const afterChange = useCallback(async () => {
+    setReloadToken((token) => token + 1);
+    pokeSupervisorRealtime();
+    await refresh();
+  }, [refresh]);
+
+  /** Run one change to a correction: one at a time, with the server's refusal explained and the picture reloaded. */
+  const act = useCallback(
+    async (work: () => Promise<void>, onDone?: () => void) => {
+      if (acting.current) return;
+      acting.current = true;
+      setDrawerBusy(true);
+      setDrawerFailure(null);
+      try {
+        await work();
+        await afterChange();
+        onDone?.();
+      } catch (error) {
+        const failure = classifyActionError(error);
+        setDrawerFailure(failure);
+        if (shouldReload(failure)) await afterChange();
+      } finally {
+        acting.current = false;
+        setDrawerBusy(false);
+      }
     },
-    [itemById, openRoomBoard, startInspection],
+    [afterChange],
   );
+
+  const startReinspection = useCallback(
+    (correction: CorrectionItem) => {
+      const queued = itemById.get(correction.roomId);
+      if (!queued) {
+        toast.error(t("inspect.correction.notInQueue"));
+        void refresh();
+        return;
+      }
+      setDrawer(null);
+      startInspection(queued);
+    },
+    [itemById, refresh, startInspection, t, toast],
+  );
+
+  const repairCorrection = useCallback(
+    (correction: CorrectionItem) =>
+      act(async () => {
+        await requestCorrectionAgain(correction.inspectionId);
+        toast.success(t("inspect.correction.requestedAgain"));
+      }),
+    [act, t, toast],
+  );
+
+  const openAssign = useCallback((correction: CorrectionItem, backTo: "detail" | "none") => {
+    setDrawerFailure(null);
+    setDrawer({ kind: "assign", item: correction, ownerId: correction.assignedTo, backTo });
+  }, []);
+
+  const assign = useCallback(
+    (ownerId: string) => {
+      if (drawer?.kind !== "assign") return;
+      const { item, backTo, ownerId: seen } = drawer;
+      void act(
+        async () => {
+          await reassignCorrection(item.inspectionId, ownerId, seen);
+          toast.success(t("inspect.reassign.done"));
+        },
+        () => setDrawer(backTo === "detail" ? { kind: "detail", item } : null),
+      );
+    },
+    [drawer, act, t, toast],
+  );
+
+  const escalate = useCallback(
+    (correction: CorrectionItem) =>
+      act(async () => {
+        await escalateCorrection(correction.inspectionId);
+        toast.success(t("inspect.drawer.escalated"));
+      }),
+    [act, t, toast],
+  );
+
+  const onCorrectionAction = useCallback(
+    (correction: CorrectionItem, action: CorrectionAction) => {
+      if (action === "reinspect") startReinspection(correction);
+      else if (action === "assign") openAssign(correction, "none");
+      else if (action === "repair") {
+        setDrawer({ kind: "detail", item: correction });
+        void repairCorrection(correction);
+      } else setDrawer({ kind: "detail", item: correction });
+    },
+    [startReinspection, openAssign, repairCorrection],
+  );
+
+  const openDetail = useCallback((correction: CorrectionItem) => {
+    setDrawerFailure(null);
+    setDrawer({ kind: "detail", item: correction });
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    if (acting.current) return;
+    setDrawer(null);
+    setDrawerFailure(null);
+  }, []);
 
   /* ─── Rows ────────────────────────────────────────────────────────────── */
 
@@ -205,11 +326,11 @@ export default function InspectScreen() {
       }
       if (view.tab === "corrections") {
         const correction = item as CorrectionItem;
-        return <CorrectionCard item={correction} now={minute} canReinspect={queuedIds.has(correction.roomId) && correction.stage === "awaiting_reinspection"} t={t} onPress={openCorrection} />;
+        return <CorrectionCard item={correction} now={minute} roomAwaitingInspection={queuedIds.has(correction.roomId)} t={t} onOpen={openDetail} onAction={onCorrectionAction} />;
       }
       return <DoneRow item={item as DoneItem} timeZone={hotelTimezone} language={language} t={t} onPress={setRecord} />;
     },
-    [view.tab, minute, hotelTimezone, language, showBuilding, blockedByType, t, startInspection, queuedIds, openCorrection],
+    [view.tab, minute, hotelTimezone, language, showBuilding, blockedByType, t, startInspection, queuedIds, openDetail, onCorrectionAction],
   );
   const keyOf = useCallback(
     (row: Row) => (view.tab === "queue" ? (row as QueueItem).roomId : view.tab === "corrections" ? (row as CorrectionItem).inspectionId : (row as DoneItem).id),
@@ -251,6 +372,7 @@ export default function InspectScreen() {
   const listHeader = (
     <View style={styles.listHeader}>
       {banner ? <StaleBanner message={banner} actionLabel={t("inspect.banner.retry")} onAction={() => void refresh()} /> : null}
+      {view.tab === "corrections" && correctionList ? <CorrectionSummary groups={groupCorrections(correctionList.items, queuedIds)} atLeast={correctionList.truncated} t={t} /> : null}
       {view.tab === "corrections" && correctionList?.truncated ? <MutedLine text={t("inspect.correction.truncated")} color={theme.textMuted} /> : null}
       {view.tab === "corrections" && correctionList && correctionList.unreadable > 0 ? <MutedLine text={t("inspect.correction.unreadable", { count: correctionList.unreadable })} color={theme.textMuted} /> : null}
       {view.tab === "done" && doneList && doneList.unreadable > 0 ? <MutedLine text={t("inspect.done.unreadable", { count: doneList.unreadable })} color={theme.textMuted} /> : null}
@@ -292,6 +414,42 @@ export default function InspectScreen() {
       />
 
       <InspectFilterSheet visible={filtersOpen} applied={view.applied} availability={availability} previewCount={countFor} t={t} onApply={applyDraft} onClose={() => setFiltersOpen(false)} />
+      <CorrectionDetailSheet
+        correction={drawer?.kind === "detail" ? drawer.item : null}
+        reloadToken={reloadToken}
+        roomAwaitingInspection={drawer?.kind === "detail" ? queuedIds.has(drawer.item.roomId) : false}
+        busy={drawerBusy}
+        failure={drawerFailure}
+        timeZone={hotelTimezone}
+        language={language}
+        t={t}
+        onReassign={(item: CorrectionItem, detail: InspectionDetail) => {
+          setDrawer({ kind: "assign", item, ownerId: detail.correction?.task?.assigned_to ?? null, backTo: "detail" });
+          setDrawerFailure(null);
+        }}
+        onEscalate={(item) => void escalate(item)}
+        onReinspect={startReinspection}
+        onRepair={(item) => void repairCorrection(item)}
+        onViewRoom={(item) => {
+          setDrawer(null);
+          openRoomBoard(item.roomId);
+        }}
+        onClose={closeDrawer}
+      />
+      <ReassignSheet
+        roomNumber={drawer?.kind === "assign" ? drawer.item.roomNumber : ""}
+        open={drawer?.kind === "assign"}
+        currentOwnerId={drawer?.kind === "assign" ? drawer.ownerId : null}
+        busy={drawerBusy}
+        failure={drawerFailure}
+        t={t}
+        onAssign={assign}
+        onClose={() => {
+          if (acting.current) return;
+          setDrawerFailure(null);
+          setDrawer(drawer?.kind === "assign" && drawer.backTo === "detail" ? { kind: "detail", item: drawer.item } : null);
+        }}
+      />
       <InspectionRecordSheet
         record={record}
         timeZone={hotelTimezone}

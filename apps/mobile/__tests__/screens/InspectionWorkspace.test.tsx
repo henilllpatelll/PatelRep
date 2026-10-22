@@ -306,7 +306,7 @@ describe("reviewing", () => {
     expect(has("workspace-item-mirror")).toBe(true); // its section was reopened
   });
 
-  it("with everything answered it opens a read-only review: counts, findings, outstanding details - and no way to submit", async () => {
+  it("with everything answered it opens the review: counts, findings, notes and an explicit send - nothing is sent by opening it", async () => {
     const { screen, answer, press, text, has } = await open();
     for (const id of ["toilet", "towels"]) await answer(id, "pass");
     await answer("mirror", "fail");
@@ -321,9 +321,10 @@ describe("reviewing", () => {
     expect(text("workspace-review-count-na")).toContain("1");
     expect(within(screen.getByTestId("workspace-review-issue-mirror")).getByText("Severity still needed.")).toBeTruthy();
     expect(text("workspace-review-outstanding")).toBe("1 issue still needs details before this inspection can be approved.");
-    expect(text("workspace-review-readonly")).toContain("Nothing has been submitted");
-    // no submit, approve, send-back or pass/fail outcome control exists
-    expect(screen.queryAllByRole("button", { name: /submit|approve|send back|confirm|finish|complete/i })).toEqual([]);
+    // an issue with no severity cannot be sent yet, and says why
+    expect(screen.getByTestId("workspace-submit").props.accessibilityState).toMatchObject({ disabled: true });
+    expect(text("workspace-footer-hint")).toContain("Finish every required standard");
+    expect(has("workspace-review-notes-input")).toBe(true);
     expect(mockSubmitLegacy).not.toHaveBeenCalled();
     expect(mockComplete).not.toHaveBeenCalled();
   });

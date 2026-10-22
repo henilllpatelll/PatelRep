@@ -5,7 +5,6 @@ Builds on the completion test harness (same FakeDB + trigger model) so the whole
 escalate, housekeeper resubmits, reinspect - runs against the real routers.
 """
 
-import json
 from uuid import uuid4
 
 import pytest
@@ -17,6 +16,7 @@ from routers import housekeeping as hk_router
 from routers import tasks as tasks_router
 from services import reclean_corrections as corrections
 from tests.test_inspection_completion import HOTEL, OTHER_HOTEL, USER, Env, _auth, _payload, _post, _rows
+from tests.test_reports_views import reset_rate_limits
 
 HK1 = "hk-1"  # Hana, assigned to the room by the Env
 HK2 = "hk-2"
@@ -45,6 +45,13 @@ class CorrectionEnv(Env):
         rows["operational_audit_events"] = []
         rows["task_comments"] = []
         rows["notifications"] = []
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits():
+    reset_rate_limits()
+    yield
+    reset_rate_limits()
 
 
 @pytest.fixture
@@ -283,7 +290,7 @@ def test_corrections_list_carries_the_rooms_own_status(client, env, people):
 
 
 def test_a_completed_task_with_the_room_not_clean_is_still_not_a_clean_room(client, env, people):
-    inspection = _fail(client, env)
+    _fail(client, env)
     _rows(env, "tasks")[0]["status"] = "completed"  # completed some other way; no clean session, room stays DIRTY
     row = client.get("/v1/housekeeping/inspections/corrections", headers=_auth()).json()["data"][0]
     assert row["status"] == "resubmitted" and row["room_status"] == "DIRTY"  # the app must not offer a reinspection
@@ -293,7 +300,7 @@ def test_a_completed_task_with_the_room_not_clean_is_still_not_a_clean_room(clie
 # --- the housekeeper's resubmission closes the task, never approves the room -------------------------------
 
 def test_completing_the_correction_clean_closes_the_task_and_leaves_the_room_awaiting_inspection(client, env, people):
-    inspection = _fail(client, env)
+    _fail(client, env)
     room = env.db.rows["room_status"][0]
     assert corrections.complete_correction_on_resubmission(env.db, HOTEL, env.room) is True
     task = _rows(env, "tasks")[0]
@@ -399,3 +406,24 @@ def test_the_partial_commit_repair_path_still_creates_the_task_once_and_names_th
     repaired = _post(client, env, payload)
     assert repaired.json()["data"]["followup_complete"] is True and len(_rows(env, "tasks")) == 1
     assert repaired.json()["data"]["correction"]["task"]["assigned_name"] == "Hana Housekeeper"
+
+
+# --- repairing a missing correction must not disturb a room that was already re-inspected -----------------------
+
+def test_requesting_the_correction_again_creates_the_missing_task_once(client, env, people):
+    inspection = _fail(client, env)
+    env.db.rows["tasks"].clear()
+    res = client.post(f"/v1/housekeeping/inspections/{inspection}/reclean", headers=_auth())
+    assert res.status_code == 200 and res.json()["data"]["created"] is True
+    again = client.post(f"/v1/housekeeping/inspections/{inspection}/reclean", headers=_auth())
+    assert again.json()["data"]["created"] is False and len(_rows(env, "tasks")) == 1
+
+
+def test_a_stale_repair_cannot_pull_a_verified_room_back_to_dirty(client, env, people):
+    inspection = _fail(client, env)
+    _back_to_clean(env)
+    assert _post(client, env, _payload(env, reinspection_of=inspection)).status_code == 200
+    env.db.rows["tasks"].clear()  # the failed inspection has no task, and a later pass verified the room
+    res = client.post(f"/v1/housekeeping/inspections/{inspection}/reclean", headers=_auth())
+    assert res.status_code == 409 and res.json()["code"] == "correction_closed"
+    assert env.db.rows["room_status"][0]["status"] == "INSPECTED"

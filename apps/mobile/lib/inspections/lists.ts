@@ -56,6 +56,14 @@ export interface CorrectionItem {
   /** The most recent thing that happened to this correction (inspection, task start, task completion). */
   latestAtMs: number | null;
   owner: CorrectionOwner;
+  /** The correction task, when one exists. */
+  taskId: string | null;
+  /** Who owns it (id), or null. The server needs this back to detect a concurrent reassignment. */
+  assignedTo: string | null;
+  /** The room's own status as the server reported it (null = not reported). */
+  roomStatus: string | null;
+  /** The work is marked done but the room is NOT back in CLEAN: nothing was resubmitted, so it cannot be re-checked yet. */
+  roomNotClean: boolean;
 }
 
 export interface CorrectionList {
@@ -88,8 +96,13 @@ export function buildCorrections(rows: readonly OpenCorrectionRow[], truncated =
       unreadable += 1;
       continue;
     }
-    const stage = correctionStage(status as CorrectionStatus);
-    if (stage === "closed") continue; // settled by a later inspection: nothing is outstanding
+    const baseStage = correctionStage(status as CorrectionStatus);
+    if (baseStage === "closed") continue; // settled by a later inspection: nothing is outstanding
+    // "Done" with the room not back to CLEAN is a task that says completed while no clean was resubmitted. It cannot
+    // be re-checked (the room is not awaiting inspection) and a clean-room event is never invented for it.
+    const roomStatus = realName(row.room_status);
+    const roomNotClean = status === "resubmitted" && roomStatus !== null && roomStatus !== "CLEAN";
+    const stage = roomNotClean ? "needs_action" : baseStage;
     const task = row.task;
     const inspectedAtMs = parseMs(row.inspected_at);
     const times = [inspectedAtMs, parseMs(task?.started_at), parseMs(task?.completed_at)].filter((ms): ms is number => ms !== null);
@@ -109,12 +122,55 @@ export function buildCorrections(rows: readonly OpenCorrectionRow[], truncated =
       inspectedAtMs,
       latestAtMs: times.length > 0 ? Math.max(...times) : null,
       owner: name ? { kind: "named", name } : task?.assigned_to ? { kind: "unnamed" } : { kind: "none" },
+      taskId: task?.id ?? null,
+      assignedTo: task?.assigned_to ?? null,
+      roomStatus,
+      roomNotClean,
     };
     // One room has one outstanding correction: if the server ever sends two, only the newer is counted.
     const existing = byRoom.get(item.roomId);
     if (!existing || (item.inspectedAtMs ?? 0) >= (existing.inspectedAtMs ?? 0)) byRoom.set(item.roomId, item);
   }
   return { items: [...byRoom.values()].sort(compareCorrections), unreadable, truncated };
+}
+
+/* ─── What the supervisor can do about a correction ─────────────────────────── */
+
+export type CorrectionAction =
+  /** Back from the housekeeper and the room is awaiting inspection. */
+  | "reinspect"
+  /** The task was never created: ask the server to create it. */
+  | "repair"
+  /** Nobody owns it. */
+  | "assign"
+  | "view";
+
+/** The one thing worth offering on the card. Opening the details is always possible by tapping the card. */
+export function correctionAction(item: Pick<CorrectionItem, "status" | "stage" | "assignedTo" | "roomNotClean">, roomAwaitingInspection: boolean): CorrectionAction {
+  if (item.stage === "awaiting_reinspection" && roomAwaitingInspection) return "reinspect";
+  if (item.status === "correction_missing") return "repair";
+  if (item.roomNotClean) return "view";
+  if ((item.status === "unassigned" || item.status === "escalated" || item.status === "cancelled") && !item.assignedTo) return "assign";
+  return "view";
+}
+
+export interface CorrectionGroups {
+  needsAttention: number;
+  withHousekeepers: number;
+  readyToReinspect: number;
+}
+
+/** The three counts at the top of the Corrections tab. A room that cannot be re-checked yet is not "ready". */
+export function groupCorrections(items: readonly CorrectionItem[], awaitingIds: ReadonlySet<string>): CorrectionGroups {
+  const groups: CorrectionGroups = { needsAttention: 0, withHousekeepers: 0, readyToReinspect: 0 };
+  for (const item of items) {
+    if (item.stage === "awaiting_reinspection") {
+      if (awaitingIds.has(item.roomId)) groups.readyToReinspect += 1;
+      else groups.needsAttention += 1;
+    } else if (item.stage === "needs_action") groups.needsAttention += 1;
+    else groups.withHousekeepers += 1;
+  }
+  return groups;
 }
 
 /* ─── Done ──────────────────────────────────────────────────────────────────── */

@@ -183,10 +183,32 @@ export interface InspectionDetailItem {
   photo_url: string | null;
 }
 
+export type CorrectionActivityType =
+  | "inspection_failed"
+  | "correction_created"
+  | "reassigned"
+  | "escalated"
+  | "work_started"
+  | "work_submitted"
+  | "task_completed"
+  | "reinspection_passed"
+  | "reinspection_failed";
+
+/** One recorded event. Only things the database timestamped appear; nothing is estimated. */
+export interface CorrectionActivity {
+  type: CorrectionActivityType | string;
+  at: string;
+  actor_name: string | null;
+  /** Reassignments: who it was given to. */
+  assignee_name?: string | null;
+}
+
 export interface InspectionCorrection {
   status: CorrectionStatus;
   reinspection_id: string | null;
   kind: CorrectionKind | null;
+  /** The room's own status now. Absent on servers older than Phase 5. */
+  room_status?: string | null;
   task: {
     id: string;
     status: string;
@@ -194,9 +216,14 @@ export interface InspectionCorrection {
     assigned_to: string | null;
     assigned_name: string | null;
     due_at: string | null;
+    created_at?: string | null;
     started_at: string | null;
     completed_at: string | null;
+    escalated_at?: string | null;
   } | null;
+  /** When the housekeeper last finished cleaning the room after the failure, if they did. */
+  resubmission?: { at: string; housekeeper_id: string | null; housekeeper_name: string | null } | null;
+  activity?: CorrectionActivity[];
 }
 
 export interface InspectionDetail {
@@ -284,6 +311,8 @@ export interface OpenCorrectionRow {
   overall_result: string;
   kind: CorrectionKind | null;
   status: CorrectionStatus | string;
+  /** The room's own status; a task can be done while the room is not CLEAN. Absent on older servers. */
+  room_status?: string | null;
   notes: string | null;
   inspector_name: string | null;
   failed_count: number;
@@ -294,8 +323,10 @@ export interface OpenCorrectionRow {
     assigned_to: string | null;
     assigned_name: string | null;
     due_at: string | null;
+    created_at?: string | null;
     started_at: string | null;
     completed_at: string | null;
+    escalated_at?: string | null;
   } | null;
 }
 
@@ -310,4 +341,63 @@ export async function fetchOpenCorrections(): Promise<OpenCorrections> {
   const res = await api.get<{ data?: unknown; meta?: { truncated?: unknown } }>("/housekeeping/inspections/corrections");
   if (!res || !Array.isArray(res.data)) throw new Error("Malformed corrections response");
   return { rows: res.data as OpenCorrectionRow[], truncated: res.meta?.truncated === true };
+}
+
+/* ─── Managing an open correction ───────────────────────────────────────── */
+
+export interface CorrectionOwner {
+  id: string;
+  name: string;
+  role: string | null;
+}
+
+/** Everyone in this hotel who may be given a correction. The server enforces the same list when assigning. */
+export async function fetchCorrectionOwners(): Promise<CorrectionOwner[]> {
+  const res = await api.get<{ data?: unknown }>("/housekeeping/inspections/correction-owners");
+  if (!res || !Array.isArray(res.data)) throw new Error("Malformed correction owners response");
+  return (res.data as CorrectionOwner[]).filter((owner) => owner && typeof owner.id === "string" && typeof owner.name === "string" && owner.name.trim());
+}
+
+export interface CorrectionChange {
+  inspection_id: string;
+  /** False when nothing needed changing (already owned by them / already escalated): a safe retry. */
+  changed: boolean;
+  task: { id: string; status: string; assigned_to: string | null; assigned_name?: string | null };
+}
+
+function parseChange(res: { data?: unknown } | null | undefined): CorrectionChange {
+  const data = res?.data as Partial<CorrectionChange> | undefined;
+  if (!data || typeof data.inspection_id !== "string" || typeof data.changed !== "boolean" || !data.task || typeof data.task.id !== "string") {
+    throw new Error("Malformed correction response");
+  }
+  return data as CorrectionChange;
+}
+
+/**
+ * Give the open correction to someone else. `expectedAssignedTo` is who the screen believed owned it (null = nobody): a
+ * different current owner is refused (409 `correction_changed`) instead of being overwritten.
+ */
+export async function reassignCorrection(inspectionId: string, assignedTo: string, expectedAssignedTo: string | null): Promise<CorrectionChange> {
+  return parseChange(
+    await api.post<{ data?: unknown }>(`/housekeeping/inspections/${encodeURIComponent(inspectionId)}/correction/reassign`, {
+      assigned_to: assignedTo,
+      expected_assigned_to: expectedAssignedTo,
+    }),
+  );
+}
+
+export async function escalateCorrection(inspectionId: string, note?: string): Promise<CorrectionChange> {
+  return parseChange(
+    await api.post<{ data?: unknown }>(`/housekeeping/inspections/${encodeURIComponent(inspectionId)}/correction/escalate`, note?.trim() ? { note: note.trim() } : {}),
+  );
+}
+
+/**
+ * Ask the server to create the correction task a failed inspection is missing (safe to repeat: it finds the one that
+ * exists). Refused with 409 `correction_closed` when a later inspection already settled the failure.
+ */
+export async function requestCorrectionAgain(inspectionId: string): Promise<{ created: boolean }> {
+  const res = await api.post<{ data?: { created?: unknown; task?: { id?: unknown } } }>(`/housekeeping/inspections/${encodeURIComponent(inspectionId)}/reclean`, {});
+  if (!res?.data?.task || typeof res.data.task.id !== "string") throw new Error("Malformed correction response");
+  return { created: res.data.created === true };
 }

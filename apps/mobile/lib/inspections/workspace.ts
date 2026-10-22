@@ -190,6 +190,13 @@ export function setItemNote(draft: InspectionDraft, itemId: string, note: string
   return touch(draft, { answers: { ...draft.answers, [itemId]: next } }, now);
 }
 
+/** The inspector's overall note (optional). Whitespace-only is no note; returns the draft unchanged when nothing differs. */
+export function setInspectionNotes(draft: InspectionDraft, text: string, now: number): InspectionDraft {
+  const next = text.slice(0, NOTE_MAX_LENGTH);
+  if (draft.notes === next) return draft;
+  return touch(draft, { notes: next }, now);
+}
+
 /** Has the supervisor done anything worth keeping? An untouched checklist is never stored or prompted about. */
 export function hasProgress(draft: Pick<InspectionDraft, "answers" | "notes">): boolean {
   return Object.keys(draft.answers).length > 0 || draft.notes.trim().length > 0;
@@ -278,6 +285,34 @@ export function hasGuidance(item: ChecklistItem): boolean {
   return item.description.length > LONG_DESCRIPTION || item.description.includes("\n") || item.requiresPhotoOnFail || !item.allowsNa;
 }
 
+/* ─── Reinspection ──────────────────────────────────────────────────────── */
+
+/**
+ * The items of THIS checklist that failed last time, in checklist order, so they are looked at first. Matched by id
+ * (labels are display only); a failed standard that has since been removed from the checklist cannot be asked about.
+ * The full checklist is always completed: nothing here lets an untouched item count as a pass.
+ */
+export function recheckItemIds(template: Pick<ChecklistTemplate, "items">, failedItemIds: ReadonlySet<string>): string[] {
+  return template.items.filter((item) => failedItemIds.has(item.id)).map((item) => item.id);
+}
+
+/** Previously failed items nobody has answered yet. */
+export function unverifiedRecheck(template: Pick<ChecklistTemplate, "items">, answers: AnswerMap, recheck: readonly string[]): string[] {
+  const onChecklist = new Set(template.items.map((item) => item.id));
+  return recheck.filter((id) => onChecklist.has(id) && !answers[id]);
+}
+
+/** How a previously failed item stands now: fixed (passed), still failing, not applicable, or not yet checked. */
+export type RecheckStanding = "fixed" | "still_failing" | "not_applicable" | "unchecked";
+
+export function recheckStanding(answers: AnswerMap, itemId: string): RecheckStanding {
+  const result = answers[itemId]?.result;
+  if (result === "pass") return "fixed";
+  if (result === "fail") return "still_failing";
+  if (result === "na") return "not_applicable";
+  return "unchecked";
+}
+
 /* ─── Review readiness ──────────────────────────────────────────────────── */
 
 export type ReviewReadiness =
@@ -294,10 +329,18 @@ export type ReviewReadiness =
  * Anything only a later step can supply — an issue's details, a photo — does not block REVIEWING; it is listed in the
  * review as outstanding and keeps the inspection from being finished.
  */
-export function reviewReadiness(template: ChecklistTemplate, draft: Pick<InspectionDraft, "answers" | "photos">, policy: RequiredNaPolicy = NA_POLICY): ReviewReadiness {
+export function reviewReadiness(
+  template: ChecklistTemplate,
+  draft: Pick<InspectionDraft, "answers" | "photos">,
+  policy: RequiredNaPolicy = NA_POLICY,
+  /** Items that failed last time: a reinspection must look at each of them, required or not. */
+  recheck: readonly string[] = [],
+): ReviewReadiness {
   const evaluation = evaluateChecklist(template, draft.answers, draft.photos, policy);
   const missing = evaluation.unanswered;
   if (missing.length > 0) return { kind: "unanswered", itemId: missing[0].id, remaining: missing.length };
+  const unverified = unverifiedRecheck(template, draft.answers, recheck);
+  if (unverified.length > 0) return { kind: "unanswered", itemId: unverified[0], remaining: unverified.length };
   const blocker = evaluation.blocker;
   if (blocker && (blocker.code === "na_not_allowed" || blocker.code === "na_note_required") && blocker.itemId) {
     return { kind: "invalid", code: blocker.code, itemId: blocker.itemId };

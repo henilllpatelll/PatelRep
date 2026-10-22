@@ -45,7 +45,8 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
 jest.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: jest.fn(), refreshSession: jest.fn() } } }));
 const mockSubscribe = jest.fn((..._args: unknown[]) => jest.fn());
-jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({ subscribeSupervisorRealtime: (...args: unknown[]) => mockSubscribe(...args) }));
+jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({ subscribeSupervisorRealtime: (...args: unknown[]) => mockSubscribe(...args), pokeSupervisorRealtime: jest.fn() }));
+jest.setTimeout(30000); // the first render loads the whole screen graph
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({}) } }));
 const mockQueue = jest.fn();
 jest.mock("@/lib/api/inspections", () => ({
@@ -56,6 +57,10 @@ jest.mock("@/lib/api/inspections", () => ({
   fetchOpenCorrections: jest.fn(),
   fetchInspectionRecords: jest.fn(),
   fetchInspectionDetail: jest.fn(),
+  fetchCorrectionOwners: jest.fn(),
+  reassignCorrection: jest.fn(),
+  escalateCorrection: jest.fn(),
+  requestCorrectionAgain: jest.fn(),
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({ triggerReclean: jest.fn() }));
 
@@ -446,17 +451,18 @@ describe("corrections tab", () => {
     ]);
   });
 
-  it("a room that is back in the verified queue can be reinspected; one still with the housekeeper can only be viewed", async () => {
+  it("a room that is back in the verified queue can be reinspected; one still with the housekeeper opens its correction", async () => {
     mockQueue.mockResolvedValue([room("307")]);
     mockCorrections.mockResolvedValue({ rows: [openCorrection("307", { status: "resubmitted" }), openCorrection("305")], truncated: false });
     const screen = renderScreen();
     await settle();
     await open()(screen);
-    expect(within(screen.getByTestId("correction-card-room-307")).getByText("Reinspect room")).toBeTruthy();
-    expect(within(screen.getByTestId("correction-card-room-305")).getByText("View room")).toBeTruthy();
-    await act(async () => fireEvent.press(screen.getByTestId("correction-card-room-305")));
-    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/room-board", params: { roomId: "room-305" } });
-    await act(async () => fireEvent.press(screen.getByTestId("correction-card-room-307")));
+    expect(within(screen.getByTestId("correction-card-room-307")).getByText("Start reinspection")).toBeTruthy();
+    expect(within(screen.getByTestId("correction-card-room-305")).getByText("View correction")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByTestId("correction-action-room-305")));
+    expect(screen.getByTestId("correction-sheet")).toBeTruthy(); // the correction opens in its drawer; no navigation
+    expect(push).not.toHaveBeenCalled();
+    await act(async () => fireEvent.press(screen.getByTestId("correction-action-room-307")));
     expect(push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-307", from: "queue", roomNumber: "307" } });
   });
 
@@ -466,7 +472,8 @@ describe("corrections tab", () => {
     const screen = renderScreen();
     await settle();
     await open()(screen);
-    expect(within(screen.getByTestId("correction-card-room-307")).getByText("View room")).toBeTruthy();
+    expect(within(screen.getByTestId("correction-card-room-307")).getByText("View correction")).toBeTruthy();
+    expect(within(screen.getByTestId("correction-card-room-307")).queryByText("Start reinspection")).toBeNull();
   });
 
   it("has its own empty and error states", async () => {

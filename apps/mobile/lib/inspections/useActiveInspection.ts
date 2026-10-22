@@ -17,9 +17,13 @@ import {
 import { applyIssue, issueDetailsAtStake, referencedPhotos, type ApplyIssueResult, type IssueForm } from "@/lib/inspections/issue";
 import type { QueueItem } from "@/lib/inspections/queue";
 import { reverifyDraft, type ReverifyFetchers } from "@/lib/inspections/reverify";
+import { itemsToRecheck } from "@/lib/inspections/corrections";
+import { nextRoomToInspect } from "@/lib/inspections/outcome";
 import { newSubmissionId } from "@/lib/inspections/submission";
 import type { ChecklistTemplate, Answer } from "@/lib/inspections/types";
 import { useDraftWriter, type SaveState } from "@/lib/inspections/useDraftWriter";
+import { useInspectionSubmit, type SubmissionView, type SubmitRefusal } from "@/lib/inspections/useInspectionSubmit";
+import { pokeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useInspectionQueue, type UseInspectionQueue } from "@/lib/inspections/useInspectionQueue";
 import { evaluateChecklist, type ChecklistEvaluation } from "@/lib/inspections/validation";
 import { INITIAL_WORKFLOW, transition, type WorkflowEvent, type WorkflowState } from "@/lib/inspections/workflow";
@@ -34,8 +38,10 @@ import {
   nextToReview,
   reconcileTemplate,
   resolveGate,
+  recheckItemIds,
   reviewReadiness,
   sectionOf,
+  setInspectionNotes,
   sessionIssue,
   setItemNote,
   summarizeSections,
@@ -122,6 +128,21 @@ export interface ActiveInspection {
   photoUnreadable: (itemId: string) => void;
   openReview: () => ReviewReadiness | null;
   closeReview: () => void;
+  /** The inspector's overall note (optional), kept in the draft. */
+  notes: string;
+  setNotes: (text: string) => void;
+  /** Items that failed last time, in checklist order. Empty unless this is a reinspection. */
+  recheckIds: readonly string[];
+  /** What the submission is doing and what the server confirmed. Nothing is shown as approved before this says so. */
+  submission: SubmissionView;
+  /** Approve the room or request the correction. Resolves with why it was refused, or null once it was sent. */
+  submit: () => Promise<SubmitRefusal | null>;
+  /** After an unknown outcome: ask the server whether the submission landed. */
+  checkSubmission: () => Promise<void>;
+  /** Back from a refusal to the review. */
+  dismissProblem: () => void;
+  /** The next room waiting, from the verified queue (never the one just finished); null = nothing else. */
+  nextRoom: () => QueueItem | null;
   requestLeave: () => Promise<LeaveVerdict>;
   keepInspecting: () => void;
   saveAndExit: () => Promise<boolean>;
@@ -183,13 +204,19 @@ export function useActiveInspection(
   const [focus, setFocus] = useState<{ itemId: string; nonce: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [workflow, dispatchFlow] = useReducer(reduceFlow, INITIAL_WORKFLOW);
+  const workflowRef = useRef(workflow);
+  workflowRef.current = workflow;
   const [skipRead, setSkipRead] = useState<string | null>(null);
+  const probeRef = useRef<string | null>(null);
+  const [probing, setProbing] = useState(false);
   const [lost, setLost] = useState<{ key: string; ids: ReadonlySet<string> } | null>(null);
   const capturing = useRef(false);
 
   const busyRef = useRef(false);
   const keyRef = useRef(key);
   keyRef.current = key;
+  const zoneRef = useRef(useAppStore.getState().hotelTimezone ?? null);
+  zoneRef.current = useAppStore.getState().hotelTimezone ?? null;
   const businessDateRef = useRef(businessDate);
   businessDateRef.current = businessDate;
   const lastReady = useRef<{ key: string; item: QueueItem; template: ChecklistTemplate } | null>(null);
@@ -271,7 +298,7 @@ export function useActiveInspection(
 
   /* ─── Decide what to do with what was found ─── */
   useEffect(() => {
-    if (active || pending || !key || !hotelId || !userId) return;
+    if (active || pending || settledRef.current || probing || !key || !hotelId || !userId) return;
     if (gate.kind !== "ready" || !readForKey || !fresh) return;
     if (readForKey.status === "error" && skipRead !== key) return;
     const ctx = draftContext({ hotelId, userId, businessDate, item: gate.item, template: gate.template });
@@ -308,12 +335,72 @@ export function useActiveInspection(
         now: Date.now(),
       }),
     );
-  }, [active, pending, key, hotelId, userId, gate, readForKey, fresh, businessDate, skipRead, begin]);
+  }, [active, pending, probing, key, hotelId, userId, gate, readForKey, fresh, businessDate, skipRead, begin]);
+
+  /* ─── A stored draft may be an inspection that already landed (the app died before the reply came) ─── */
+  useEffect(() => {
+    if (!key || !readForKey || readForKey.status !== "found" || !isOnline || settledRef.current) return;
+    const stored = readForKey.draft;
+    if (!hasProgress(stored) || probeRef.current === `${key}:${stored.submissionId}`) return;
+    probeRef.current = `${key}:${stored.submissionId}`;
+    setProbing(true);
+    void submit.probeStored(stored).finally(() => {
+      if (keyRef.current === key) setProbing(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, readForKey, isOnline]);
 
   /* ─── What the screen is in ─── */
   const issue = active && hotelId && userId ? sessionIssue({ draft: active, gate, hotelId, userId, businessDate }) : null;
+  const issueRef = useRef(issue);
+  issueRef.current = issue;
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+
+  /* ─── Sending ─── */
+  const photosRef = useRef<Readonly<Record<string, string>>>({});
+  const submit = useInspectionSubmit({
+    scopeKey: key,
+    hotelId,
+    userId,
+    isOnline,
+    getDraft: () => sessionRef.current,
+    getTemplate: () => templateRef.current,
+    getItem: () => lastReady.current?.item ?? null,
+    getPhotos: () => photosRef.current,
+    getWorkflow: () => workflowRef.current,
+    dispatch: dispatchFlow,
+    flushDraft: () => writer.flush(),
+    forgetDraft: () => forget(),
+    afterRecorded: () => {
+      void queue.refresh();
+      pokeSupervisorRealtime();
+    },
+    rekey: () => {
+      const current = sessionRef.current;
+      if (!current) return;
+      const next = { ...current, submissionId: newSubmissionId(), updatedAt: Date.now() };
+      sessionRef.current = next;
+      setSession(next);
+      writer.track(next);
+      void writer.flush();
+    },
+    afterRefusal: (refresh) => {
+      if (refresh !== "none") void queue.refresh();
+    },
+    templateSame: () => issueRef.current !== "template_changed",
+    roomStillAwaiting: () => (gateRef.current.kind === "ready" ? true : gateRef.current.kind === "unavailable" && gateRef.current.reason === "not_awaiting" ? false : null),
+  });
+  const submissionView = submit.view;
+  const settledView = submissionView.kind === "submitting" || submissionView.kind === "uncertain" || submissionView.kind === "done";
+  const settledRef = useRef(settledView);
+  settledRef.current = settledView;
 
   const phase: WorkspacePhase = useMemo(() => {
+    // Once an inspection is being sent, awaiting a reply, or recorded, the room no longer being "awaiting inspection"
+    // is the RESULT, not a reason to block: the screen shows the submission, not the room's new state.
+    if (settledView) return { kind: "active" };
+    if (probing) return { kind: "loading" };
     if (active) {
       if (issue === "template_changed" && gate.kind === "ready") {
         const plan = reconcileTemplate(active, gate.template, { now: 0, submissionId: "preview" });
@@ -331,7 +418,7 @@ export function useActiveInspection(
       return { kind: "template_changed", plan: reconcileTemplate(pending.stored, pending.template, { now: 0, submissionId: "preview" }) };
     }
     return { kind: "loading" };
-  }, [active, issue, gate, fresh, readForKey, pending, skipRead, key]);
+  }, [settledView, probing, active, issue, gate, fresh, readForKey, pending, skipRead, key]);
 
   // The state machine follows what the screen found.
   useEffect(() => {
@@ -352,10 +439,17 @@ export function useActiveInspection(
     () => Object.fromEntries(Object.entries(active?.photos ?? {}).filter(([id]) => !lostIds.has(id))),
     [active, lostIds],
   );
+  photosRef.current = photos;
   const evaluation = useMemo(
     () => (active && template ? evaluateChecklist(template, active.answers, photos, NA_POLICY) : null),
     [active, template, photos],
   );
+  const recheckIds = useMemo(
+    () => (template && shown ? recheckItemIds(template, itemsToRecheck(shown.item.reinspection)) : []),
+    [template, shown],
+  );
+  const recheckRef = useRef(recheckIds);
+  recheckRef.current = recheckIds;
 
   // When an inspection begins (or is re-based on an edited checklist) find out which of its photos survived, and
   // tidy files nothing refers to. Runs per inspection, never per edit, so a photo just taken is never mistaken for an orphan.
@@ -488,6 +582,31 @@ export function useActiveInspection(
     });
   }, []);
 
+  const setNotes = useCallback(
+    (text: string) => {
+      const current = sessionRef.current;
+      if (!current || phaseKindRef.current !== "active") return;
+      const next = setInspectionNotes(current, text, Date.now());
+      if (next === current) return;
+      // The overall note is written on the review itself: unlike an answer it does not reopen the review, or the
+      // inspection would stop being sendable the moment a note is typed.
+      sessionRef.current = next;
+      setSession(next);
+      changeRev.current += 1;
+      writer.track(next);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const nextRoom = useCallback((): QueueItem | null => {
+    const finished = lastReady.current?.item.roomId ?? roomId ?? "";
+    return nextRoomToInspect(queue.items, finished, { now: Date.now(), timeZone: zoneRef.current }, (candidate) => {
+      const selected = queue.selectionFor(candidate.roomTypeId);
+      return selected !== null && selected.ok;
+    });
+  }, [queue, roomId]);
+
   const setNote = useCallback(
     (itemId: string, note: string) => {
       const current = sessionRef.current;
@@ -522,7 +641,7 @@ export function useActiveInspection(
     const tpl = templateRef.current;
     const current = sessionRef.current;
     if (!tpl || !current || phaseKindRef.current !== "active") return null;
-    const readiness = reviewReadiness(tpl, current, NA_POLICY);
+    const readiness = reviewReadiness(tpl, current, NA_POLICY, recheckRef.current);
     if (readiness.kind === "ready") {
       dispatchFlow({ type: "review", canSubmit: readiness.evaluation.canSubmit });
       setMode("review");
@@ -539,6 +658,9 @@ export function useActiveInspection(
   /* ─── Leaving ─── */
   const requestLeave = useCallback(async (): Promise<LeaveVerdict> => {
     const current = sessionRef.current;
+    // A recorded or in-flight inspection is not an unsaved draft: leaving cannot lose anything (the draft stays on the
+    // phone under its submission id until the server confirms it).
+    if (settledRef.current) return "leave";
     if (!current || !hasProgress(current)) return "leave";
     if (changeRev.current > ackRev.current) return "prompt";
     // Nothing changed since the supervisor last decided: only a draft that is really on the phone may be left silently.
@@ -654,11 +776,12 @@ export function useActiveInspection(
         setSession(null);
         setMode("checklist");
         setExpanded(null);
+        submit.reset();
         dispatchFlow({ type: "discard" });
         if (key) setReadState({ key, read: { status: "none" } });
         return true;
       }, false),
-    [guarded, pending, forget, key],
+    [guarded, pending, forget, key, submit],
   );
 
   const applyCarryOver = useCallback(async () => {
@@ -674,9 +797,10 @@ export function useActiveInspection(
     void writer.flush();
     setExpanded(null);
     setMode("checklist");
+    submit.reset();
     dispatchFlow({ type: "resume" });
     dispatchFlow({ type: "start" });
-  }, [pending, gate, writer]);
+  }, [pending, gate, writer, submit]);
 
   const retryRead = useCallback(() => setReadNonce((n) => n + 1), []);
   const continueWithoutDraft = useCallback(() => setSkipRead(key), [key]);
@@ -716,6 +840,14 @@ export function useActiveInspection(
     photoUnreadable,
     openReview,
     closeReview,
+    notes: active?.notes ?? "",
+    setNotes,
+    recheckIds,
+    submission: submissionView,
+    submit: submit.submit,
+    checkSubmission: submit.check,
+    dismissProblem: submit.dismissProblem,
+    nextRoom,
     requestLeave,
     keepInspecting,
     saveAndExit,

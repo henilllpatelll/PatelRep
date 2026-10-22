@@ -1,39 +1,61 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import type { CorrectionPlan } from "@/lib/inspections/correctionPlan";
-import type { ReviewModel } from "@/lib/inspections/workspace";
+import type { RecheckStanding, ReviewModel } from "@/lib/inspections/workspace";
 import type { Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
 
+/** A previously failed item, re-checked: how it stands now (never assumed). */
+export interface RecheckLine {
+  id: string;
+  label: string;
+  standing: RecheckStanding;
+}
+
 /**
- * A read-only look at the findings so far. Nothing here can be submitted, approved or sent back; it exists so the
- * supervisor can see what they have recorded and what is still outstanding before going on. Leaving it changes
- * nothing. An inspection with an issue is never shown as approved: the room stays blocked until a passing reinspection.
+ * The final look before the inspection is sent. The findings are read-only here (change them in the checklist); the
+ * only things editable are the inspector's overall note and, through the footer, the decision to send. Nothing is
+ * approved by looking at this: the room is approved only when the server records a pass. An inspection with an issue
+ * is never described as approved - the room stays blocked until a passing reinspection.
  */
 export function ReviewView({
   model,
   plan,
   room,
+  outcome,
+  notes,
+  notesEditable,
+  recheck,
   t,
+  onNotes,
   onGoToItem,
   onOpenCorrection,
 }: {
   model: ReviewModel;
   plan: CorrectionPlan | null;
   room: string;
+  /** What the checklist as answered would record. */
+  outcome: "passed" | "failed";
+  notes: string;
+  notesEditable: boolean;
+  /** Present on a reinspection: the earlier failures, and whether each is now fixed. */
+  recheck: readonly RecheckLine[];
   t: Translate;
+  onNotes: (text: string) => void;
   /** Return to the checklist at this item. */
   onGoToItem: (itemId: string) => void;
   onOpenCorrection: () => void;
 }) {
   const theme = useTheme();
+  const missingEvidence = model.failures.filter((failure) => failure.photoMissing).length;
   const counts = [
     { key: "pass", value: model.passed, fg: theme.status.ready, bg: theme.status.readySoft, line: theme.status.readyLine },
     { key: "fail", value: model.failed, fg: theme.status.dirty, bg: theme.status.dirtySoft, line: theme.status.dirtyLine },
     { key: "na", value: model.na, fg: theme.textPrimary, bg: theme.surfaceMuted, line: theme.border },
+    { key: "missing", value: missingEvidence, fg: missingEvidence > 0 ? theme.status.pickup : theme.textPrimary, bg: theme.surfaceMuted, line: missingEvidence > 0 ? theme.status.pickupLine : theme.border },
   ] as const;
   const owner = plan?.owner.name ? t("inspect.workspace.correction.summary", { name: plan.owner.name }) : t("inspect.workspace.correction.summaryUnknown");
   return (
@@ -41,12 +63,14 @@ export function ReviewView({
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heading, { color: theme.textPrimary }]}>
         {t("inspect.workspace.reviewScreen.title", { room })}
       </Text>
-      <View style={[styles.notice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} testID="workspace-review-readonly">
-        <Ionicons name="eye-outline" size={18} color={theme.textSecondary} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeText, { color: theme.textSecondary }]}>
-          {t("inspect.workspace.reviewScreen.readOnly")}
-        </Text>
-      </View>
+      {outcome === "passed" ? (
+        <View style={[styles.notice, { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine }]} testID="workspace-review-passed">
+          <Ionicons name="checkmark-circle-outline" size={18} color={theme.status.ready} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noticeTitle, styles.flex, { color: theme.textPrimary }]}>
+            {t("inspect.workspace.reviewScreen.passedBanner")}
+          </Text>
+        </View>
+      ) : null}
 
       {model.failed > 0 ? (
         <View style={[styles.notice, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]} accessibilityRole="alert" testID="workspace-review-blocked">
@@ -79,7 +103,7 @@ export function ReviewView({
               {count.value}
             </Text>
             <Text maxFontSizeMultiplier={1.3} style={[styles.countLabel, { color: theme.textSecondary }]}>
-              {t(`inspect.workspace.answer.${count.key}`)}
+              {t(count.key === "missing" ? "inspect.workspace.reviewScreen.count.missing" : `inspect.workspace.answer.${count.key}`)}
             </Text>
           </View>
         ))}
@@ -184,6 +208,42 @@ export function ReviewView({
         </Section>
       ) : null}
 
+      {recheck.length > 0 ? (
+        <Section title={t("inspect.workspace.reviewScreen.recheck")} testID="workspace-review-recheck">
+          {recheck.map((line) => (
+            <View key={line.id} style={[styles.row, { borderColor: theme.border, backgroundColor: theme.surface }]} accessible accessibilityLabel={`${line.label}. ${t(`inspect.workspace.reviewScreen.standing.${line.standing}`)}`}>
+              <View style={styles.rowTop}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowTitle, styles.flex, { color: theme.textPrimary }]}>
+                  {line.label}
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={MAX_FONT_SCALE}
+                  style={[styles.severity, { color: line.standing === "fixed" ? theme.status.ready : line.standing === "still_failing" ? theme.status.dirty : theme.status.pickup, borderColor: theme.border }]}
+                  testID={`workspace-review-standing-${line.id}`}
+                >
+                  {t(`inspect.workspace.reviewScreen.standing.${line.standing}`)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </Section>
+      ) : null}
+
+      <Section title={t("inspect.workspace.reviewScreen.notes")} testID="workspace-review-notes">
+        <TextInput
+          value={notes}
+          onChangeText={onNotes}
+          editable={notesEditable}
+          multiline
+          maxLength={500}
+          placeholder={t("inspect.workspace.reviewScreen.notesPlaceholder")}
+          placeholderTextColor={theme.textMuted}
+          accessibilityLabel={t("inspect.workspace.reviewScreen.notes")}
+          style={[styles.notesInput, { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.surface }]}
+          testID="workspace-review-notes-input"
+        />
+      </Section>
+
       {model.optionalUnreviewed > 0 ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textSecondary }]} testID="workspace-review-optional">
           {t("inspect.workspace.reviewScreen.optionalLeft", { count: model.optionalUnreviewed })}
@@ -222,8 +282,8 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 15, lineHeight: 21, fontWeight: "800" },
   noticeText: { flex: 1, fontSize: 13.5, lineHeight: 19, fontWeight: "600" },
   reviewed: { fontSize: 14, lineHeight: 20, fontWeight: "700" },
-  counts: { flexDirection: "row", gap: 8 },
-  count: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: R.md, paddingVertical: 10, paddingHorizontal: 12 },
+  counts: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  count: { flexGrow: 1, flexBasis: "22%", minWidth: 72, borderWidth: 1, borderRadius: R.md, paddingVertical: 10, paddingHorizontal: 12 },
   countValue: { fontSize: 26, lineHeight: 30, fontWeight: "800" },
   countLabel: { fontSize: 12, fontWeight: "700" },
   section: { gap: 8 },
@@ -235,5 +295,6 @@ const styles = StyleSheet.create({
   rowAction: { alignSelf: "flex-start", marginTop: 6 },
   severity: { fontSize: 12, fontWeight: "800", borderWidth: 1, borderRadius: R.sm, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },
   flag: { fontSize: 13, lineHeight: 18, fontWeight: "800", marginTop: 2 },
+  notesInput: { minHeight: 84, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, lineHeight: 21, textAlignVertical: "top" },
   empty: { fontSize: 14, lineHeight: 20, fontWeight: "600" },
 });

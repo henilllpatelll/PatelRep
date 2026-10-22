@@ -16,7 +16,9 @@ import { ChangeAnswerSheet, CorrectionSheet } from "@/components/supervisor/insp
 import { PhotoViewer } from "@/components/supervisor/inspect/workspace/PhotoViewer";
 import { MoreSheet } from "@/components/supervisor/inspect/workspace/MoreSheet";
 import { ProgressCard } from "@/components/supervisor/inspect/workspace/ProgressCard";
-import { ReviewView } from "@/components/supervisor/inspect/workspace/ReviewView";
+import { ReinspectionPanel } from "@/components/supervisor/inspect/workspace/ReinspectionPanel";
+import { ReviewView, type RecheckLine } from "@/components/supervisor/inspect/workspace/ReviewView";
+import { ApprovedView, CorrectionRequestedView, PROBLEM_REASONS, ProblemBanner, UncertainView } from "@/components/supervisor/inspect/workspace/ResultViews";
 import { RoomSummary } from "@/components/supervisor/inspect/workspace/RoomSummary";
 import { SectionHeader } from "@/components/supervisor/inspect/workspace/SectionHeader";
 import { BlockedView, TemplateChangedView, UnavailableView, WorkspaceLoading } from "@/components/supervisor/inspect/workspace/StateViews";
@@ -28,9 +30,9 @@ import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { itemsToRecheck } from "@/lib/inspections/corrections";
 import { planCorrection } from "@/lib/inspections/correctionPlan";
 import type { Answer } from "@/lib/inspections/types";
-import { originHref, parseOrigin } from "@/lib/inspections/route";
+import { inspectionHref, originHref, parseOrigin } from "@/lib/inspections/route";
 import { useActiveInspection } from "@/lib/inspections/useActiveInspection";
-import { NA_POLICY, buildReview, failedCount, hasProgress } from "@/lib/inspections/workspace";
+import { NA_POLICY, buildReview, failedCount, hasProgress, recheckStanding } from "@/lib/inspections/workspace";
 import { progressText, reviewedLine, roomFacts, saveText } from "@/lib/inspections/workspaceText";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -38,9 +40,10 @@ import { useAppStore } from "@/stores/appStore";
 
 /* ─── Inspect a room — the active inspection workspace ──────────────────────
    One full-screen route for every way into an inspection. It resolves the room by its stable id against the verified
-   queue, shows the hotel's configured checklist, and keeps the supervisor's answers durable on the phone. It sends
-   NOTHING to the server and changes no room status: finishing and approving arrive in a later phase, and the review
-   step below is read-only. Reporting an issue (description, severity, one photo) happens in a bottom drawer and is saved
+   queue, shows the hotel's configured checklist, and keeps the supervisor's answers durable on the phone. Nothing is sent
+   until the supervisor chooses "Approve room" or "Submit & request correction" on the review; the room's status changes
+   only when the server confirms the inspection, and every outcome screen states what the server recorded (or that the
+   outcome is not yet known). Reporting an issue (description, severity, one photo) happens in a bottom drawer and is saved
    into the same on-phone draft. The screen is only mounted while focused, so leaving it always releases its timers and
    subscriptions, and coming back starts from what is saved. */
 
@@ -87,6 +90,7 @@ function ActiveInspectionScreen() {
   const [viewing, setViewing] = useState<{ uri: string; itemId: string } | null>(null);
   const [pendingChange, setPendingChange] = useState<{ itemId: string; choice: Answer } | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [remotePhoto, setRemotePhoto] = useState<{ uri: string; label: string } | null>(null);
   const leaving = useRef(false);
   const handledFocus = useRef(0);
   const listRef = useRef<FlatList>(null);
@@ -114,6 +118,10 @@ function ActiveInspectionScreen() {
   /* ─── Leaving ─── */
   const requestBack = useCallback(async () => {
     if (sheet !== null || issueId !== null || viewing !== null || pendingChange !== null || correctionOpen) return;
+    // While the inspection is being sent, going back would abandon a request in flight: wait for the answer.
+    if (inspection.submission.kind === "submitting") return;
+    if (inspection.submission.kind === "done" || inspection.submission.kind === "uncertain") return leave();
+    if (inspection.submission.kind === "problem") return inspection.dismissProblem();
     if (phase.kind !== "active") return leave();
     if (mode === "review") return inspection.closeReview();
     const verdict = await inspection.requestLeave();
@@ -174,6 +182,25 @@ function ActiveInspectionScreen() {
     } else if (readiness.kind === "no_answers") toast.error(t("inspect.workspace.review.noAnswers"));
   }, [inspection, toast, t]);
 
+  const send = useCallback(async () => {
+    const refusal = await inspection.submit();
+    if (!refusal) return;
+    const reason = refusal === "no_session" || refusal === "not_ready" || refusal === "incomplete" ? "checklist_incomplete" : refusal;
+    toast.error(t(`inspect.result.problem.${PROBLEM_REASONS.has(reason) ? reason : "rejected"}`));
+  }, [inspection, toast, t]);
+
+  const nextRoom = useCallback(() => {
+    const next = inspection.nextRoom();
+    if (next) router.replace(inspectionHref(next.roomId, next.roomNumber, "queue") as never);
+    else leave();
+  }, [inspection, leave]);
+
+  const viewCorrections = useCallback(() => {
+    if (leaving.current) return;
+    leaving.current = true;
+    router.navigate({ pathname: "/(app)/inspect", params: { tab: "corrections" } } as never);
+  }, []);
+
   const viewRoom = useCallback(() => {
     setSheet(null);
     if (roomId) router.navigate({ pathname: "/(app)/room-board", params: { roomId } } as never);
@@ -189,6 +216,29 @@ function ActiveInspectionScreen() {
   const recheck = useMemo(() => (item ? itemsToRecheck(item.reinspection) : new Set<string>()), [item]);
   const reviewModel = useMemo(() => (mode === "review" && template && draft ? buildReview(template, draft, inspection.lostPhotos) : null), [mode, template, draft, inspection.lostPhotos]);
   const plan = useMemo(() => (mode === "review" && template && draft && item ? planCorrection(template, draft.answers, item) : null), [mode, template, draft, item]);
+  const outcome: "passed" | "failed" = (reviewModel?.failed ?? 0) > 0 ? "failed" : "passed";
+  const recheckLines = useMemo<RecheckLine[]>(
+    () =>
+      mode === "review" && template && draft
+        ? inspection.recheckIds.flatMap((id) => {
+            const found = template.items.find((candidate) => candidate.id === id);
+            return found ? [{ id, label: found.description, standing: recheckStanding(draft.answers, id) }] : [];
+          })
+        : [],
+    [mode, template, draft, inspection.recheckIds],
+  );
+  const submission = inspection.submission;
+  const sending = submission.kind === "submitting";
+  const unclassified = reviewModel?.outstanding ?? 0;
+  const canSend = Boolean(inspection.evaluation?.canSubmit) && unclassified === 0 && recheckLines.every((line) => line.standing !== "unchecked") && inspection.isOnline && !sending;
+  const sendHint = !inspection.isOnline
+    ? t("inspect.result.needsConnection")
+    : !inspection.evaluation?.canSubmit || unclassified > 0
+      ? t("inspect.result.checklistIncomplete")
+      : recheckLines.some((line) => line.standing === "unchecked")
+        ? t("inspect.result.problem.reinspection_unverified")
+        : null;
+  const nextAvailable = submission.kind === "done" ? inspection.nextRoom() !== null : false;
   const issueItem = useMemo(() => template?.items.find((candidate) => candidate.id === issueId) ?? null, [template, issueId]);
   const viewingItem = useMemo(() => template?.items.find((candidate) => candidate.id === viewing?.itemId) ?? null, [template, viewing]);
   const guidanceItem = useMemo(() => template?.items.find((candidate) => candidate.id === guidanceId) ?? null, [template, guidanceId]);
@@ -260,6 +310,18 @@ function ActiveInspectionScreen() {
         </View>
       ) : null}
       {facts ? <RoomSummary facts={facts} t={t} /> : null}
+      {item?.reinspection.isReinspection && template && draft ? (
+        <ReinspectionPanel
+          context={item.reinspection}
+          template={template}
+          answers={draft.answers}
+          timeZone={hotelTimezone}
+          language={language}
+          t={t}
+          onGoToItem={inspection.goTo}
+          onViewPhoto={(uri, label) => setRemotePhoto({ uri, label })}
+        />
+      ) : null}
       {progress && inspection.progress ? (
         <ProgressCard text={progress} hasIssues={draft ? failedCount(draft.answers) > 0 : false} hasOpenItems={inspection.progress.answered < inspection.progress.total} t={t} onNext={inspection.goToNext} />
       ) : null}
@@ -269,7 +331,24 @@ function ActiveInspectionScreen() {
   /* ─── What fills the screen ─── */
   let body: ReactNode;
   let footer: ReactNode = null;
-  if (phase.kind === "loading") {
+  if (submission.kind === "done") {
+    const result = submission.result;
+    body = (
+      <Pad>
+        {result.outcome === "passed" ? (
+          <ApprovedView result={result} timeZone={hotelTimezone ?? null} language={language} hasNext={nextAvailable} t={t} onNext={nextRoom} onQueue={leave} />
+        ) : (
+          <CorrectionRequestedView result={result} busy={false} online={inspection.isOnline} hasNext={nextAvailable} t={t} onNext={nextRoom} onCorrections={viewCorrections} onQueue={leave} onRetry={() => void send()} />
+        )}
+      </Pad>
+    );
+  } else if (submission.kind === "uncertain") {
+    body = (
+      <Pad>
+        <UncertainView view={submission} online={inspection.isOnline} t={t} onCheck={() => void inspection.checkSubmission()} onSendAgain={() => void send()} onQueue={leave} />
+      </Pad>
+    );
+  } else if (phase.kind === "loading") {
     body = <WorkspaceLoading t={t} />;
   } else if (phase.kind === "unavailable") {
     body = (
@@ -296,11 +375,42 @@ function ActiveInspectionScreen() {
   } else if (mode === "review" && reviewModel) {
     body = (
       <Pad>
-        <ReviewView model={reviewModel} plan={plan} room={room} t={t} onGoToItem={goToFromReview} onOpenCorrection={() => setCorrectionOpen(true)} />
+        {submission.kind === "problem" ? (
+          <ProblemBanner view={submission} retryable={submission.reason === "evidence_upload_failed"} t={t} onBack={inspection.dismissProblem} onRetry={() => void send()} />
+        ) : null}
+        <ReviewView
+          model={reviewModel}
+          plan={plan}
+          room={room}
+          outcome={outcome}
+          notes={inspection.notes}
+          notesEditable={!sending}
+          recheck={recheckLines}
+          t={t}
+          onNotes={inspection.setNotes}
+          onGoToItem={goToFromReview}
+          onOpenCorrection={() => setCorrectionOpen(true)}
+        />
       </Pad>
     );
     footer = (
-      <WorkspaceFooter saveText={save.text} saveTone={save.tone} offline={!inspection.isOnline} primaryLabel={t("inspect.workspace.reviewScreen.back")} primaryIcon="arrow-back" onPrimary={inspection.closeReview} onRetrySave={() => void inspection.retrySave()} bottomInset={insets.bottom} t={t} primaryTestID="workspace-back-to-checklist" />
+      <WorkspaceFooter
+        saveText={save.text}
+        saveTone={save.tone}
+        offline={!inspection.isOnline}
+        primaryLabel={t(outcome === "passed" ? "inspect.result.approveRoom" : "inspect.result.submitCorrection")}
+        primaryIcon={outcome === "passed" ? "checkmark" : "send"}
+        primaryLoading={sending}
+        primaryDisabled={!canSend || submission.kind === "problem"}
+        hint={submission.kind === "problem" ? null : sendHint}
+        onPrimary={() => void send()}
+        secondaryLabel={t("inspect.workspace.reviewScreen.back")}
+        onSecondary={inspection.closeReview}
+        onRetrySave={() => void inspection.retrySave()}
+        bottomInset={insets.bottom}
+        t={t}
+        primaryTestID="workspace-submit"
+      />
     );
   } else {
     body = (
@@ -400,6 +510,7 @@ function ActiveInspectionScreen() {
         onView={(uri) => issueItem && setViewing({ uri, itemId: issueItem.id })}
         onClose={() => setIssueId(null)}
       />
+      <PhotoViewer uri={remotePhoto?.uri ?? null} label={remotePhoto?.label ?? ""} t={t} onClose={() => setRemotePhoto(null)} />
       <PhotoViewer uri={viewing?.uri ?? null} label={viewingItem?.description ?? ""} t={t} onClose={() => setViewing(null)} />
       <ChangeAnswerSheet visible={pendingChange !== null} busy={false} t={t} onKeep={() => setPendingChange(null)} onConfirm={confirmChange} />
       <CorrectionSheet plan={correctionOpen ? plan : null} t={t} onClose={() => setCorrectionOpen(false)} />

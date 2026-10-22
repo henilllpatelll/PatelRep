@@ -23,6 +23,7 @@ from core.errors import CodedHTTPException
 from services.reclean_corrections import (
     ACTION_ESCALATED,
     ACTION_REASSIGNED,
+    correction_state,
     ensure_correction_task,
     escalate_correction,
     fetch_correction_task,
@@ -2800,7 +2801,7 @@ async def trigger_reclean(
     """
     inspection_row = (
         supabase.table("inspections")
-        .select("room_id, overall_result, notes, inspected_by, correction_kind")
+        .select("room_id, overall_result, notes, inspected_by, correction_kind, completed_at")
         .eq("id", inspection_id)
         .eq("tenant_id", current_user.hotel_id)
         .maybe_single()
@@ -2817,6 +2818,12 @@ async def trigger_reclean(
     already = fetch_correction_task(supabase, hotel_id, inspection_id)
     if already is not None:
         return {"data": {"room_id": room_id, "task": already, "created": False}}
+
+    # A later inspection already settled this failure (a passing reinspection verified the room, or a newer failure took
+    # over): a stale "request the correction" must not pull that room back to DIRTY.
+    derived, _room_state, _followups = correction_state(supabase, hotel_id, insp, None)
+    if derived is not None and derived["status"] in ("verified", "superseded"):
+        raise CodedHTTPException(409, "A later inspection already settled this one", "correction_closed", correction_status=derived["status"])
 
     # First request for this inspection. A conditional pass released the room (INSPECTED); a failed one is
     # already DIRTY. Only a room that is still released is pulled back - never one already being corrected.

@@ -70,7 +70,7 @@ describe.each(["light", "dark"] as const)("%s mode", (mode) => {
         <InspectSearchBar value="" onChangeText={noop} onClear={noop} onOpenFilters={noop} activeCount={0} showFilters t={t} />
         <InspectTabs selected="queue" counts={{ queue: 3, corrections: null, done: 0 }} t={t} onSelect={noop} />
         <InspectionQueueCard item={queued} now={NOW} timeZone="America/Chicago" language="en" showBuilding={false} blockedReason={null} t={t} onPress={noop} />
-        <CorrectionCard item={correction} now={NOW} canReinspect={false} t={t} onPress={noop} />
+        <CorrectionCard item={correction} now={NOW} roomAwaitingInspection={false} t={t} onOpen={noop} onAction={noop} />
         <DoneRow item={done} timeZone="America/Chicago" language="en" t={t} onPress={noop} />
       </>,
     );
@@ -109,7 +109,7 @@ describe("touch targets and text scaling", () => {
         <InspectTabs selected="queue" counts={{ queue: 1, corrections: 1, done: 1 }} t={t} onSelect={noop} />
         <InspectActiveFilters filters={{ ...EMPTY_QUEUE_FILTERS, priority: ["vip"] }} shown={1} total={2} multiBuilding={false} ignored={false} t={t} onRemove={noop} onClearAll={noop} />
         <InspectionQueueCard item={queued} now={NOW} timeZone="America/Chicago" language="en" showBuilding={false} blockedReason={null} t={t} onPress={noop} />
-        <CorrectionCard item={correction} now={NOW} canReinspect t={t} onPress={noop} />
+        <CorrectionCard item={correction} now={NOW} roomAwaitingInspection t={t} onOpen={noop} onAction={noop} />
         <DoneRow item={done} timeZone="America/Chicago" language="en" t={t} onPress={noop} />
       </>,
     );

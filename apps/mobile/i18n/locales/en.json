@@ -2063,7 +2063,87 @@
       "passed": "Passed",
       "failed": "Failed",
       "conditional": "Conditional",
-      "unknown": "Recorded"
+      "unknown": "Recorded",
+      "completedAt": "Completed at {{time}}",
+      "approved": {
+        "title": "Room {{room}} approved",
+        "ready": "Verified ready",
+        "correctionsVerified": "Corrections verified",
+        "passed": "Room inspection passed",
+        "pmsNote": "Recorded in PatelRep. This does not change the room's status in your PMS."
+      },
+      "next": "Inspect next room",
+      "backToQueue": "Back to queue",
+      "noNext": "No other room is waiting for inspection right now.",
+      "viewCorrections": "View corrections",
+      "needsConnection": "Connect to the internet to continue.",
+      "approveRoom": "Approve room",
+      "submitCorrection": "Submit & request correction",
+      "checklistIncomplete": "Finish every required standard (and each issue's severity and photo) before submitting.",
+      "correction": {
+        "title": "Correction requested",
+        "pendingTitle": "Inspection recorded, correction not confirmed",
+        "blocked": "Room {{room}} remains blocked.",
+        "pendingBody": "The inspection is saved and the room stays blocked, but the correction request was not created yet. Your notes and photos are kept. Try again to finish it.",
+        "stillFailing": "The correction is still required. The earlier failure and its photos are kept.",
+        "issue": "Issue",
+        "issuesNone": "Failed items not recorded",
+        "assignedTo": "Assigned to",
+        "ownerUnnamed": "A housekeeper (name not recorded)",
+        "unassigned": "Unassigned",
+        "ownerUnknown": "Not confirmed",
+        "status": "Status",
+        "statusValue": {
+          "awaiting_owner": "Assigned, awaiting acknowledgement",
+          "unassigned": "Unassigned, needs an owner",
+          "in_progress": "In progress",
+          "escalated": "Escalated",
+          "pending_repair": "Correction not created yet",
+          "recorded": "Recorded"
+        },
+        "priority": "Priority",
+        "urgent": "Urgent",
+        "retry": "Finish correction request"
+      },
+      "uncertain": {
+        "kicker": "SUBMISSION STATUS",
+        "title": "We're checking whether your inspection was recorded.",
+        "body": "The connection dropped before we heard back. Your inspection is saved on this phone.",
+        "dontResubmit": "Please do not submit it again yet.",
+        "unknown": "We still can't tell. Check again when you have a connection.",
+        "not_recorded": "Nothing was recorded under this submission, so it is safe to send it again.",
+        "incomplete": "The inspection was recorded without its answers. Sending it again completes it without creating a second one.",
+        "kept": "Your answers, notes and photos are kept until the server confirms it.",
+        "check": "Check status",
+        "sendAgain": "Send again",
+        "reason": {
+          "no_response": "There was no reply from the server.",
+          "server_error": "The server had a problem and may or may not have saved it.",
+          "ambiguous_response": "The server's reply wasn't what we expected.",
+          "in_progress": "An earlier send of this inspection is still being saved.",
+          "partial_commit": "The inspection was saved but its answers may not have been."
+        }
+      },
+      "problem": {
+        "title": "Nothing was recorded",
+        "retry": "Try again",
+        "back": "Back to review",
+        "rejected": "The inspection couldn't be recorded.",
+        "room_changed": "The room changed while you were inspecting it. Review it again from the queue.",
+        "template_changed": "The checklist changed while you were inspecting. Reload it and review the room again.",
+        "account_changed": "You're signed in to a different hotel than this inspection was started for. Nothing was sent.",
+        "invalid": "The server didn't accept this checklist. Check the answers and try again.",
+        "forbidden": "You don't have permission to submit inspections.",
+        "evidence_upload_failed": "The photos couldn't be uploaded, so nothing was recorded. Try again.",
+        "id_conflict": "This submission clashed with another one. It has been given a new reference; review and try again.",
+        "not_found": "This room is no longer available to inspect.",
+        "busy": "An inspection is already being sent.",
+        "offline": "Connect to the internet to submit this inspection.",
+        "checklist_incomplete": "Finish every required standard (and each issue's severity and photo) before submitting.",
+        "room_not_awaiting": "This room is no longer waiting for inspection.",
+        "reinspection_unverified": "Check every item that failed last time before submitting the reinspection.",
+        "photo_missing": "A required photo is missing."
+      }
     },
     "focus": {
       "heading": "Inspecting Room {{room}}",
@@ -2223,7 +2303,8 @@
         "resubmitted": "Resubmitted, waiting for you",
         "cancelled": "Cancelled without a passing recheck",
         "verified": "Verified by a passing reinspection",
-        "superseded": "Replaced by a newer inspection"
+        "superseded": "Replaced by a newer inspection",
+        "roomNotClean": "Marked done, but the room isn't marked clean yet"
       },
       "kind": {
         "touch_up": "Touch-up",
@@ -2241,7 +2322,14 @@
       "a11y": "{{action}}, room {{room}}. {{status}}. {{details}}",
       "truncated": "More corrections exist than are shown here.",
       "unreadable": "{{count}} correction couldn't be read.",
-      "unreadable_plural": "{{count}} corrections couldn't be read."
+      "unreadable_plural": "{{count}} corrections couldn't be read.",
+      "startReinspection": "Start reinspection",
+      "requestAgain": "Request correction again",
+      "assign": "Assign correction",
+      "view": "View correction",
+      "openA11y": "Room {{room}} correction. {{status}}. {{details}}. Opens the correction.",
+      "notInQueue": "This room isn't waiting for inspection yet.",
+      "requestedAgain": "Correction requested."
     },
     "done": {
       "inspectorUnknown": "Inspector not recorded",
@@ -2402,7 +2490,9 @@
         "count": {
           "passA11y": "{{count}} passed",
           "failA11y": "{{count}} with issues",
-          "naA11y": "{{count}} not applicable"
+          "naA11y": "{{count}} not applicable",
+          "missing": "Missing evidence",
+          "missingA11y": "{{count}} missing required evidence"
         },
         "issues": "Issues",
         "noIssues": "No issues recorded so far.",
@@ -2425,7 +2515,17 @@
         "goToItemA11y": "Go to {{item}} in the checklist",
         "correction": "Correction",
         "correctionDetails": "Details",
-        "correctionDetailsA11y": "View the correction plan"
+        "correctionDetailsA11y": "View the correction plan",
+        "passedBanner": "All required standards reviewed",
+        "recheck": "Previously failed items",
+        "standing": {
+          "fixed": "Fixed",
+          "still_failing": "Still failing",
+          "not_applicable": "Not applicable",
+          "unchecked": "Not checked yet"
+        },
+        "notes": "Inspector notes",
+        "notesPlaceholder": "Optional notes"
       },
       "saveExit": {
         "title": "Save inspection draft?",
@@ -2677,6 +2777,96 @@
         "summary": "Housekeeping · {{name}}",
         "summaryUnknown": "Housekeeping · original housekeeper"
       }
+    },
+    "drawer": {
+      "title": "Room {{room}} · Correction",
+      "statusLabel": "Status",
+      "issue": "Issue",
+      "severity": "Severity: {{severity}}",
+      "photoA11y": "Photo from the original inspection: {{item}}",
+      "assignedTo": "Assigned to",
+      "priority": "Priority",
+      "priorityValue": {
+        "urgent": "Urgent",
+        "normal": "Normal",
+        "low": "Low"
+      },
+      "activity": "Activity",
+      "pending": {
+        "assign": "Pending: someone needs to own this correction",
+        "work": "Pending: correction work, then verification",
+        "reinspect": "Pending: your reinspection"
+      },
+      "failure": {
+        "owner_ineligible": "That person can't be given this correction.",
+        "correction_changed": "Someone changed this correction first. It has been reloaded; check it and try again.",
+        "correction_closed": "This correction is already settled.",
+        "correction_missing": "The correction task doesn't exist yet. Request the correction first.",
+        "forbidden": "You don't have permission to change this correction.",
+        "not_found": "This correction can't be found any more.",
+        "no_response": "No reply from the server. The correction was reloaded so you can see where it stands.",
+        "server": "Something went wrong. Nothing was changed that we can confirm; try again."
+      },
+      "escalateConfirm": "Escalate this correction? It is marked escalated and your name and the time are recorded.",
+      "escalate": "Escalate",
+      "reassign": "Reassign",
+      "escalated": "Correction escalated."
+    },
+    "reassign": {
+      "title": "Room {{room}} · Assign correction",
+      "intro": "Choose who should do this correction. People are listed from your hotel's active housekeepers and supervisors.",
+      "loading": "Loading people…",
+      "failed": "The list of people couldn't be loaded.",
+      "empty": "No eligible people were found for this hotel.",
+      "current": "Current owner",
+      "assign": "Assign",
+      "done": "Correction assigned.",
+      "role": {
+        "housekeeper": "Housekeeper",
+        "housekeeping_supervisor": "Supervisor"
+      }
+    },
+    "correctionsSummary": {
+      "needsAttention": "Needs attention",
+      "needsAttentionA11y": "Needs attention: {{count}}",
+      "withHousekeepers": "With housekeepers",
+      "withHousekeepersA11y": "With housekeepers: {{count}}",
+      "readyToReinspect": "Ready to reinspect",
+      "readyToReinspectA11y": "Ready to reinspect: {{count}}"
+    },
+    "activity": {
+      "someone": "someone",
+      "other": "Update recorded",
+      "inspection_failed": "Inspection failed",
+      "inspection_failed_by": "Inspection failed by {{actor}}",
+      "correction_created": "Correction created",
+      "correction_created_by": "Correction created by {{actor}}",
+      "reassigned": "Reassigned to {{assignee}}",
+      "reassigned_by": "Reassigned to {{assignee}} by {{actor}}",
+      "escalated": "Escalated",
+      "escalated_by": "Escalated by {{actor}}",
+      "work_started": "Work started",
+      "work_started_by": "Work started by {{actor}}",
+      "work_submitted": "Corrected work submitted",
+      "work_submitted_by": "Corrected work submitted by {{actor}}",
+      "task_completed": "Task completed",
+      "task_completed_by": "Task completed by {{actor}}",
+      "reinspection_passed": "Reinspection passed",
+      "reinspection_passed_by": "Reinspection passed, verified by {{actor}}",
+      "reinspection_failed": "Reinspection failed",
+      "reinspection_failed_by": "Reinspection failed, checked by {{actor}}"
+    },
+    "reinspect": {
+      "kicker": "Correction verification",
+      "submittedBy": "Corrected work submitted by {{name}} at {{time}}",
+      "submitted": "Corrected work submitted at {{time}}",
+      "original": "{{count}} original issue",
+      "original_plural": "{{count}} original issues",
+      "originalNote": "Original: {{note}}",
+      "check": "Check",
+      "checkA11y": "Go to {{item}} in the checklist",
+      "notOnChecklist": "No longer on this checklist",
+      "fullChecklist": "Complete the whole checklist. Nothing you haven't looked at counts as passed."
     }
   },
   "tasks": {

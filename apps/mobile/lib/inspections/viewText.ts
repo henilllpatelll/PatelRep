@@ -160,7 +160,7 @@ export function correctionText(item: CorrectionItem, now: number, t: Translate):
   const failed = item.failedCount > 0 ? t("inspect.correction.failedCount", { count: item.failedCount }) : t("inspect.correction.failedNone");
   const ago = agoText(item.latestAtMs, now, t);
   const updated = ago ? t("inspect.correction.updated", { time: ago }) : null;
-  const detail = t(`inspect.correction.detail.${item.status}`);
+  const detail = item.roomNotClean ? t("inspect.correction.detail.roomNotClean") : t(`inspect.correction.detail.${item.status}`);
   const kind = item.kind ? t(`inspect.correction.kind.${item.kind}`) : null;
   const summary = [t(`inspect.correction.status.${item.stage}`), detail, failed, owner, updated].filter(Boolean).join(". ");
   return { owner, failed, detail, updated, kind, summary };

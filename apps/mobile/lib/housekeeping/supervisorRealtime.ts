@@ -21,6 +21,8 @@ interface Shared {
   interrupted: boolean;
   /** Closed channels never refresh: a late event from a hotel we have left must not reach anyone. */
   closed: boolean;
+  /** The debounced refresh a room change triggers; also used by `pokeSupervisorRealtime`. */
+  schedule: () => void;
 }
 
 let shared: Shared | null = null;
@@ -44,7 +46,7 @@ export function subscribeSupervisorRealtime(tenantId: string, refresh: Refresh, 
   if (!shared) {
     const listeners = new Set<Refresh>();
     const independent = new Set<Refresh>();
-    const next: Shared = { tenantId, listeners, independent, timer: null, interrupted: false, closed: false, channel: undefined as never };
+    const next: Shared = { tenantId, listeners, independent, timer: null, interrupted: false, closed: false, channel: undefined as never, schedule: () => undefined };
     const scheduleRefresh = () => {
       if (next.closed) return;
       if (next.timer) clearTimeout(next.timer);
@@ -57,6 +59,7 @@ export function subscribeSupervisorRealtime(tenantId: string, refresh: Refresh, 
         for (const listener of independent) void listener();
       }, REALTIME_DEBOUNCE_MS);
     };
+    next.schedule = scheduleRefresh;
     next.channel = supabase
       .channel("supervisor-home-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${tenantId}` }, scheduleRefresh)
@@ -83,4 +86,13 @@ export function subscribeSupervisorRealtime(tenantId: string, refresh: Refresh, 
       shared = null;
     }
   };
+}
+
+/**
+ * Ask every screen on the shared channel to refresh once, right now (debounced like a real event). Used after this
+ * device itself changed something the screens show - an inspection recorded, a correction reassigned - so they do not
+ * wait for the realtime echo, and a dropped channel cannot leave them stale. It opens no channel of its own.
+ */
+export function pokeSupervisorRealtime(): void {
+  shared?.schedule();
 }

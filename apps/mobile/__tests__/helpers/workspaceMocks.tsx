@@ -21,7 +21,7 @@ export const mockState = {
 jest.mock("expo-router", () => {
   const react = require("react");
   return {
-    router: { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), setParams: jest.fn() },
+    router: { navigate: jest.fn(), push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true), setParams: jest.fn() },
     useLocalSearchParams: () => mockState.params,
     useFocusEffect: (callback: () => void | (() => void)) => react.useEffect(() => callback(), [callback]),
   };
@@ -38,7 +38,11 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
 jest.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: jest.fn(), refreshSession: jest.fn() } } }));
 export const mockSubscribe = jest.fn((..._args: unknown[]) => jest.fn());
-jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({ subscribeSupervisorRealtime: (...args: unknown[]) => mockSubscribe(...args) }));
+export const mockPoke = jest.fn();
+jest.mock("@/lib/housekeeping/supervisorRealtime", () => ({
+  subscribeSupervisorRealtime: (...args: unknown[]) => mockSubscribe(...args),
+  pokeSupervisorRealtime: (...args: unknown[]) => mockPoke(...args),
+}));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({}) } }));
 export const mockQueue = jest.fn();
 jest.mock("@/lib/api/inspections", () => ({
@@ -50,6 +54,11 @@ jest.mock("@/lib/api/inspections", () => ({
   fetchOpenCorrections: jest.fn(),
   fetchInspectionRecords: jest.fn(),
   fetchInspectionDetail: jest.fn(),
+  fetchInspectionSubmission: jest.fn(),
+  fetchCorrectionOwners: jest.fn(),
+  reassignCorrection: jest.fn(),
+  escalateCorrection: jest.fn(),
+  requestCorrectionAgain: jest.fn(),
 }));
 jest.mock("@/lib/api/roomPanels", () => ({
   fetchCleanSessions: jest.fn(),
@@ -96,6 +105,12 @@ export const mockTemplates = inspectionsApi.listInspectionTemplates as jest.Mock
 export const mockSubmitLegacy = inspectionsApi.submitInspection as jest.Mock;
 export const mockComplete = inspectionsApi.completeInspection as jest.Mock;
 export const mockCorrections = inspectionsApi.fetchOpenCorrections as jest.Mock;
+export const mockDetail = inspectionsApi.fetchInspectionDetail as jest.Mock;
+export const mockReadBack = inspectionsApi.fetchInspectionSubmission as jest.Mock;
+export const mockOwners = inspectionsApi.fetchCorrectionOwners as jest.Mock;
+export const mockReassign = inspectionsApi.reassignCorrection as jest.Mock;
+export const mockEscalate = inspectionsApi.escalateCorrection as jest.Mock;
+export const mockRepair = inspectionsApi.requestCorrectionAgain as jest.Mock;
 export const mockRecords = inspectionsApi.fetchInspectionRecords as jest.Mock;
 export const mockSessions = roomPanels.fetchCleanSessions as jest.Mock;
 export const mockHistory = roomPanels.fetchRoomHistory as jest.Mock;
@@ -103,6 +118,7 @@ export const mockPrevious = roomPanels.fetchRoomInspections as jest.Mock;
 export const mockOrders = roomPanels.fetchRoomWorkOrders as jest.Mock;
 export const navigate = router.navigate as jest.Mock;
 export const push = router.push as jest.Mock;
+export const replace = router.replace as jest.Mock;
 
 export const room205 = (over = {}) =>
   readyRoom("room-205", {
@@ -126,6 +142,17 @@ export async function resetWorld(): Promise<jest.SpyInstance> {
   mockTemplates.mockReset();
   mockTemplates.mockResolvedValue({ data: [standardTemplate()] });
   mockCorrections.mockResolvedValue({ rows: [], truncated: false });
+  mockDetail.mockReset();
+  mockDetail.mockResolvedValue(undefined);
+  mockReadBack.mockReset();
+  mockReadBack.mockResolvedValue({ status: "not_found" });
+  mockOwners.mockReset();
+  mockOwners.mockResolvedValue([]);
+  mockReassign.mockReset();
+  mockEscalate.mockReset();
+  mockRepair.mockReset();
+  mockComplete.mockReset();
+  mockPoke.mockReset();
   mockRecords.mockResolvedValue([]);
   mockSessions.mockResolvedValue([]);
   mockHistory.mockResolvedValue([]);

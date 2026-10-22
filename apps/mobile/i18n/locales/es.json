@@ -2063,7 +2063,87 @@
       "passed": "Aprobado",
       "failed": "Reprobado",
       "conditional": "Condicional",
-      "unknown": "Registrada"
+      "unknown": "Registrada",
+      "completedAt": "Completada a las {{time}}",
+      "approved": {
+        "title": "Habitación {{room}} aprobada",
+        "ready": "Lista verificada",
+        "correctionsVerified": "Correcciones verificadas",
+        "passed": "La inspección de la habitación fue aprobada",
+        "pmsNote": "Registrado en PatelRep. Esto no cambia el estado de la habitación en su PMS."
+      },
+      "next": "Inspeccionar la siguiente habitación",
+      "backToQueue": "Volver a la cola",
+      "noNext": "Ninguna otra habitación espera inspección por ahora.",
+      "viewCorrections": "Ver correcciones",
+      "needsConnection": "Conéctese a internet para continuar.",
+      "approveRoom": "Aprobar habitación",
+      "submitCorrection": "Enviar y solicitar corrección",
+      "checklistIncomplete": "Complete cada estándar obligatorio (y la gravedad y la foto de cada problema) antes de enviar.",
+      "correction": {
+        "title": "Corrección solicitada",
+        "pendingTitle": "Inspección registrada, corrección sin confirmar",
+        "blocked": "La habitación {{room}} sigue bloqueada.",
+        "pendingBody": "La inspección está guardada y la habitación sigue bloqueada, pero la solicitud de corrección aún no se creó. Sus notas y fotos se conservan. Intente de nuevo para terminarla.",
+        "stillFailing": "La corrección sigue siendo necesaria. El fallo anterior y sus fotos se conservan.",
+        "issue": "Problema",
+        "issuesNone": "Elementos fallidos no registrados",
+        "assignedTo": "Asignada a",
+        "ownerUnnamed": "Una camarera (nombre no registrado)",
+        "unassigned": "Sin asignar",
+        "ownerUnknown": "Sin confirmar",
+        "status": "Estado",
+        "statusValue": {
+          "awaiting_owner": "Asignada, pendiente de confirmación",
+          "unassigned": "Sin asignar, necesita responsable",
+          "in_progress": "En curso",
+          "escalated": "Escalada",
+          "pending_repair": "Corrección aún no creada",
+          "recorded": "Registrada"
+        },
+        "priority": "Prioridad",
+        "urgent": "Urgente",
+        "retry": "Terminar la solicitud de corrección"
+      },
+      "uncertain": {
+        "kicker": "ESTADO DEL ENVÍO",
+        "title": "Estamos comprobando si su inspección quedó registrada.",
+        "body": "Se perdió la conexión antes de recibir respuesta. Su inspección está guardada en este teléfono.",
+        "dontResubmit": "Por favor, no la envíe de nuevo todavía.",
+        "unknown": "Aún no podemos saberlo. Vuelva a comprobar cuando tenga conexión.",
+        "not_recorded": "No se registró nada con este envío, así que es seguro enviarlo de nuevo.",
+        "incomplete": "La inspección se registró sin sus respuestas. Enviarla de nuevo la completa sin crear una segunda.",
+        "kept": "Sus respuestas, notas y fotos se conservan hasta que el servidor lo confirme.",
+        "check": "Comprobar estado",
+        "sendAgain": "Enviar de nuevo",
+        "reason": {
+          "no_response": "No hubo respuesta del servidor.",
+          "server_error": "El servidor tuvo un problema y puede que la haya guardado o no.",
+          "ambiguous_response": "La respuesta del servidor no fue la esperada.",
+          "in_progress": "Un envío anterior de esta inspección aún se está guardando.",
+          "partial_commit": "La inspección se guardó pero puede que sus respuestas no."
+        }
+      },
+      "problem": {
+        "title": "No se registró nada",
+        "retry": "Intentar de nuevo",
+        "back": "Volver a la revisión",
+        "rejected": "No se pudo registrar la inspección.",
+        "room_changed": "La habitación cambió mientras la inspeccionaba. Revísela de nuevo desde la cola.",
+        "template_changed": "La lista cambió mientras inspeccionaba. Vuelva a cargarla y revise la habitación de nuevo.",
+        "account_changed": "Inició sesión en un hotel distinto de aquel para el que empezó esta inspección. No se envió nada.",
+        "invalid": "El servidor no aceptó esta lista. Revise las respuestas e intente de nuevo.",
+        "forbidden": "No tiene permiso para enviar inspecciones.",
+        "evidence_upload_failed": "No se pudieron subir las fotos, así que no se registró nada. Intente de nuevo.",
+        "id_conflict": "Este envío chocó con otro. Se le dio una nueva referencia; revise e intente de nuevo.",
+        "not_found": "Esta habitación ya no está disponible para inspeccionar.",
+        "busy": "Ya se está enviando una inspección.",
+        "offline": "Conéctese a internet para enviar esta inspección.",
+        "checklist_incomplete": "Complete cada estándar obligatorio (y la gravedad y la foto de cada problema) antes de enviar.",
+        "room_not_awaiting": "Esta habitación ya no espera inspección.",
+        "reinspection_unverified": "Revise cada elemento que falló la última vez antes de enviar la reinspección.",
+        "photo_missing": "Falta una foto obligatoria."
+      }
     },
     "focus": {
       "heading": "Inspeccionando habitación {{room}}",
@@ -2223,7 +2303,8 @@
         "resubmitted": "Reenviada, esperando tu revisión",
         "cancelled": "Cancelada sin una reinspección aprobada",
         "verified": "Verificada por una reinspección aprobada",
-        "superseded": "Reemplazada por una inspección más reciente"
+        "superseded": "Reemplazada por una inspección más reciente",
+        "roomNotClean": "Marcada como hecha, pero la habitación aún no está marcada como limpia"
       },
       "kind": {
         "touch_up": "Retoque",
@@ -2241,7 +2322,14 @@
       "a11y": "{{action}}, habitación {{room}}. {{status}}. {{details}}",
       "truncated": "Existen más correcciones de las que se muestran aquí.",
       "unreadable": "No se pudo leer {{count}} corrección.",
-      "unreadable_plural": "No se pudieron leer {{count}} correcciones."
+      "unreadable_plural": "No se pudieron leer {{count}} correcciones.",
+      "startReinspection": "Iniciar reinspección",
+      "requestAgain": "Solicitar la corrección de nuevo",
+      "assign": "Asignar corrección",
+      "view": "Ver corrección",
+      "openA11y": "Corrección de la habitación {{room}}. {{status}}. {{details}}. Abre la corrección.",
+      "notInQueue": "Esta habitación aún no espera inspección.",
+      "requestedAgain": "Corrección solicitada."
     },
     "done": {
       "inspectorUnknown": "Inspector no registrado",
@@ -2402,7 +2490,9 @@
         "count": {
           "passA11y": "{{count}} aprobados",
           "failA11y": "{{count}} con problemas",
-          "naA11y": "{{count}} no aplican"
+          "naA11y": "{{count}} no aplican",
+          "missing": "Evidencia faltante",
+          "missingA11y": "{{count}} con evidencia obligatoria faltante"
         },
         "issues": "Problemas",
         "noIssues": "Todavía no hay problemas registrados.",
@@ -2425,7 +2515,17 @@
         "goToItemA11y": "Ir a {{item}} en la lista",
         "correction": "Corrección",
         "correctionDetails": "Detalles",
-        "correctionDetailsA11y": "Ver el plan de corrección"
+        "correctionDetailsA11y": "Ver el plan de corrección",
+        "passedBanner": "Todos los estándares obligatorios revisados",
+        "recheck": "Elementos que fallaron antes",
+        "standing": {
+          "fixed": "Corregido",
+          "still_failing": "Sigue fallando",
+          "not_applicable": "No aplica",
+          "unchecked": "Aún sin revisar"
+        },
+        "notes": "Notas del inspector",
+        "notesPlaceholder": "Notas opcionales"
       },
       "saveExit": {
         "title": "¿Guardar el borrador de la inspección?",
@@ -2677,6 +2777,96 @@
         "summary": "Limpieza · {{name}}",
         "summaryUnknown": "Limpieza · camarera original"
       }
+    },
+    "drawer": {
+      "title": "Habitación {{room}} · Corrección",
+      "statusLabel": "Estado",
+      "issue": "Problema",
+      "severity": "Gravedad: {{severity}}",
+      "photoA11y": "Foto de la inspección original: {{item}}",
+      "assignedTo": "Asignada a",
+      "priority": "Prioridad",
+      "priorityValue": {
+        "urgent": "Urgente",
+        "normal": "Normal",
+        "low": "Baja"
+      },
+      "activity": "Actividad",
+      "pending": {
+        "assign": "Pendiente: alguien debe encargarse de esta corrección",
+        "work": "Pendiente: el trabajo de corrección y luego la verificación",
+        "reinspect": "Pendiente: su reinspección"
+      },
+      "failure": {
+        "owner_ineligible": "No se le puede asignar esta corrección a esa persona.",
+        "correction_changed": "Alguien cambió esta corrección antes. Se recargó; revísela e intente de nuevo.",
+        "correction_closed": "Esta corrección ya está resuelta.",
+        "correction_missing": "La tarea de corrección aún no existe. Solicite primero la corrección.",
+        "forbidden": "No tiene permiso para cambiar esta corrección.",
+        "not_found": "Ya no se encuentra esta corrección.",
+        "no_response": "No hubo respuesta del servidor. Se recargó la corrección para que vea cómo está.",
+        "server": "Algo salió mal. No podemos confirmar ningún cambio; intente de nuevo."
+      },
+      "escalateConfirm": "¿Escalar esta corrección? Se marca como escalada y se registran su nombre y la hora.",
+      "escalate": "Escalar",
+      "reassign": "Reasignar",
+      "escalated": "Corrección escalada."
+    },
+    "reassign": {
+      "title": "Habitación {{room}} · Asignar corrección",
+      "intro": "Elija quién debe hacer esta corrección. Se listan las camareras y supervisores activos de su hotel.",
+      "loading": "Cargando personas…",
+      "failed": "No se pudo cargar la lista de personas.",
+      "empty": "No se encontraron personas elegibles para este hotel.",
+      "current": "Responsable actual",
+      "assign": "Asignar",
+      "done": "Corrección asignada.",
+      "role": {
+        "housekeeper": "Camarera",
+        "housekeeping_supervisor": "Supervisor"
+      }
+    },
+    "correctionsSummary": {
+      "needsAttention": "Requiere atención",
+      "needsAttentionA11y": "Requiere atención: {{count}}",
+      "withHousekeepers": "Con las camareras",
+      "withHousekeepersA11y": "Con las camareras: {{count}}",
+      "readyToReinspect": "Lista para reinspección",
+      "readyToReinspectA11y": "Lista para reinspección: {{count}}"
+    },
+    "activity": {
+      "someone": "alguien",
+      "other": "Actualización registrada",
+      "inspection_failed": "Inspección fallida",
+      "inspection_failed_by": "Inspección fallida por {{actor}}",
+      "correction_created": "Corrección creada",
+      "correction_created_by": "Corrección creada por {{actor}}",
+      "reassigned": "Reasignada a {{assignee}}",
+      "reassigned_by": "Reasignada a {{assignee}} por {{actor}}",
+      "escalated": "Escalada",
+      "escalated_by": "Escalada por {{actor}}",
+      "work_started": "Trabajo iniciado",
+      "work_started_by": "Trabajo iniciado por {{actor}}",
+      "work_submitted": "Trabajo corregido enviado",
+      "work_submitted_by": "Trabajo corregido enviado por {{actor}}",
+      "task_completed": "Tarea completada",
+      "task_completed_by": "Tarea completada por {{actor}}",
+      "reinspection_passed": "Reinspección aprobada",
+      "reinspection_passed_by": "Reinspección aprobada, verificada por {{actor}}",
+      "reinspection_failed": "Reinspección fallida",
+      "reinspection_failed_by": "Reinspección fallida, revisada por {{actor}}"
+    },
+    "reinspect": {
+      "kicker": "Verificación de la corrección",
+      "submittedBy": "Trabajo corregido enviado por {{name}} a las {{time}}",
+      "submitted": "Trabajo corregido enviado a las {{time}}",
+      "original": "{{count}} problema original",
+      "original_plural": "{{count}} problemas originales",
+      "originalNote": "Original: {{note}}",
+      "check": "Revisar",
+      "checkA11y": "Ir a {{item}} en la lista",
+      "notOnChecklist": "Ya no está en esta lista",
+      "fullChecklist": "Complete toda la lista. Lo que no haya revisado no cuenta como aprobado."
     }
   },
   "tasks": {
