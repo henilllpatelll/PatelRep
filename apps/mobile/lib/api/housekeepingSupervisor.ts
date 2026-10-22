@@ -12,6 +12,8 @@ import {
   readBroadcastResult,
 } from "@/lib/housekeeping/supervisorComms";
 import type { AssignmentRemovalPlan, LateCheckoutRecord } from "@/lib/housekeeping/roomBoardModel";
+import { normalizeScheduledShifts, type ScheduledShift } from "@/lib/housekeeping/assignmentSchedule";
+import { parseWorkloadSettings, type WorkloadSettings } from "@/lib/housekeeping/assignmentWorkload";
 import { readSavedHandoff, type EndShiftSummaryPayload, type SavedHandoff } from "@/lib/housekeeping/supervisorHandoff";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
@@ -166,6 +168,19 @@ export interface ShiftRosterRowRaw {
 /** GET /shifts/roster — gm + housekeeping_supervisor only (403 otherwise). */
 export async function fetchShiftRoster(date: string): Promise<ShiftRosterRowRaw[]> {
   return requireArray<ShiftRosterRowRaw>(await api.get(`/shifts/roster?date=${date}`), "roster");
+}
+
+/**
+ * GET /hotels/{id}/housekeeping-settings — the property's workload credit weights, daily target and per-person
+ * capacity overrides (gm + housekeeping_supervisor only). Strict: a malformed body throws.
+ */
+export async function fetchWorkloadSettings(hotelId: string): Promise<WorkloadSettings> {
+  return parseWorkloadSettings(await api.get(`/hotels/${encodeURIComponent(hotelId)}/housekeeping-settings`));
+}
+
+/** GET /schedules/assignments?work_date= — who is scheduled on the hotel's `date`. Strict: a malformed body throws. */
+export async function fetchScheduledShifts(date: string): Promise<ScheduledShift[]> {
+  return normalizeScheduledShifts(await api.get(`/schedules/assignments?work_date=${date}`), date);
 }
 
 /** One row of GET /housekeeping/inspections (flattened by the server). */
