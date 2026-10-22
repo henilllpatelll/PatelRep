@@ -130,7 +130,7 @@ Opera Cloud integration is feature-flagged for pilot. App must function standalo
 - Cron endpoints: `routers/internal.py`, guarded by `X-Cron-Secret` header
 
 ### Services layer depth (A1)
-Keep business logic in domain routers. Only extract to `services/` when logic is shared across 2+ domains. Current exceptions: `services/ai/`, `services/opera/`, `services/policy.py`. Flat architecture preserves AI context window.
+Keep business logic in domain routers. Only extract to `services/` when logic is shared across 2+ domains. Current exceptions: `services/ai/`, `services/opera/`, `services/policy.py`, `services/inspection_rules.py` + `services/reclean_corrections.py` (inspection rules/correction lifecycle shared by housekeeping, clean sessions and My Rooms). Flat architecture preserves AI context window.
 
 ### Realtime scope (A2)
 Supabase Realtime subscriptions only on three surfaces: Housekeeping Breakout Board, Engineering Work Orders, AI Service Recovery alerts. Standard screens (Tasks, SOP Library) use pull-to-refresh — no WebSocket.
@@ -146,7 +146,7 @@ Auth: Zustand `authStore` + `useAuth` hook. Server data: React Query. Real-time:
 - `room_assignments`: `assigned_to` (housekeeper UUID), `assignment_date` (DATE)
 - `room_status` join: `rooms!inner(id, room_number, floor, room_type_id, room_types(name, code, base_clean_minutes))`
 - `housekeeper_profiles`: rolling avg clean time per housekeeper × room_type
-- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime, 026 = front_desk_modules, 027 = staff_role_schedules, 028/029 = custom_roles, 030 = realtime_work_orders, 033 = realtime_room_status + lost_found_contact, 034 = opera_oauth_states, 035 = enable_rls_missing_tables, 038 = FK indexes, 041 = escalation_level
+- Key migrations: 016 = RLS policies, 017 = DB functions, 019 = JWT hook registration, 022 = JWT hook null-role fix, 023 = cascade FK deletes, 024 = room_status_history trigger fix, 025 = enable Realtime, 026 = front_desk_modules, 027 = staff_role_schedules, 028/029 = custom_roles, 030 = realtime_work_orders, 033 = realtime_room_status + lost_found_contact, 034 = opera_oauth_states, 035 = enable_rls_missing_tables, 038 = FK indexes, 041 = escalation_level, 219 = inspection_workflow_foundation (idempotent validated completion, correction link, room-state guard; conditional no longer releases a room)
 - Numbering collisions: `020_fix_credits_decimal.sql` / `0201_logbook_expires.sql` (note: second file uses `0201`, not `020`); two `039` files (`039_drop_room_status_history_trigger.sql` / `039_drop_unused_indexes.sql`)
 
 ---

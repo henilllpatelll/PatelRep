@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 from core.config import settings
+from core.errors import CodedHTTPException
 from core.schema_readiness import check_schema_readiness
 from middleware.rate_limit import RateLimitMiddleware, RateLimitRule
 from routers import (
@@ -404,6 +405,11 @@ async def postgrest_exception_handler(request: Request, exc: APIError):
         content={"error": {"code": code, "message": safe_message}},
         headers=_cors_headers_for(request),
     )
+
+
+@app.exception_handler(CodedHTTPException)
+async def coded_http_exception_handler(request: Request, exc: CodedHTTPException):
+    return JSONResponse(status_code=exc.status_code, content=exc.body(), headers=exc.headers)
 
 
 @app.exception_handler(Exception)

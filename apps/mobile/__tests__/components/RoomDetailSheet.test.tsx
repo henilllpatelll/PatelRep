@@ -284,12 +284,13 @@ describe("RoomDetailSheet — actions", () => {
     expect(screen.queryByText("Remove assignment")).toBeNull();
   });
 
-  it("Inspect closes the drawer and opens the existing inspection queue", () => {
+  it("Inspect closes the drawer and opens the active inspection for that room", () => {
     const { screen, handlers } = setup(viewOf(rawRoom("205", "CLEAN", { inspection_required: true })));
     pressed(screen, "room-detail-primary");
     expect(handlers.onClose).toHaveBeenCalled();
-    // The room's stable id travels with the link, so Inspect opens THAT room (the number is only a label).
-    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect", params: { roomId: "room-205", roomNumber: "205" } });
+    // The room's stable id travels with the link, so the active inspection opens THAT room (the number is only a label),
+    // and "board" brings Back to the Room Board.
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-205", roomNumber: "205", from: "board" } });
   });
 
   it("Remove opens the removal confirmation in the same modal; nothing is removed by opening it", () => {
@@ -319,10 +320,10 @@ describe("RoomDetailSheet — actions", () => {
     expect(mockPost).not.toHaveBeenCalled();
   });
 
-  it("a stale board still lets the supervisor read the room and open the inspection queue", () => {
+  it("a stale board still lets the supervisor read the room and open its inspection", () => {
     const { screen } = setup(viewOf(rawRoom("205", "CLEAN", { inspection_required: true })), contextOf({ gate: { allowed: false, blockedBy: "stale" }, live: false }));
     pressed(screen, "room-detail-primary");
-    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect", params: { roomId: "room-205", roomNumber: "205" } });
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/inspect/[roomId]", params: { roomId: "room-205", roomNumber: "205", from: "board" } });
   });
 });
 

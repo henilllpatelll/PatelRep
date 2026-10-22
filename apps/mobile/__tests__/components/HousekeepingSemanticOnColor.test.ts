@@ -13,6 +13,20 @@ const HOUSEKEEPING_SOURCES = {
   knock: "../../components/housekeeping/KnockModal.tsx",
   checklist: "../../components/housekeeping/roomDetail/CleaningChecklist.tsx",
   inspect: "../../app/(app)/inspect/index.tsx",
+  // The Inspect screen's list surfaces and the active inspection workspace.
+  inspectWorkspace: "../../app/(app)/inspect/[roomId].tsx",
+  workspaceItem: "../../components/supervisor/inspect/workspace/ChecklistItemRow.tsx",
+  workspaceDraftSheets: "../../components/supervisor/inspect/workspace/DraftSheets.tsx",
+  workspaceSheet: "../../components/supervisor/inspect/workspace/WorkspaceSheet.tsx",
+  workspaceFooter: "../../components/supervisor/inspect/workspace/WorkspaceFooter.tsx",
+  workspaceReview: "../../components/supervisor/inspect/workspace/ReviewView.tsx",
+  workspaceContext: "../../components/supervisor/inspect/workspace/ContextSheet.tsx",
+  workspaceStates: "../../components/supervisor/inspect/workspace/StateViews.tsx",
+  inspectCard: "../../components/supervisor/inspect/InspectionQueueCard.tsx",
+  inspectCorrection: "../../components/supervisor/inspect/CorrectionCard.tsx",
+  inspectFilter: "../../components/supervisor/inspect/InspectFilterSheet.tsx",
+  inspectTabs: "../../components/supervisor/inspect/InspectTabs.tsx",
+  inspectSearch: "../../components/supervisor/inspect/InspectSearchBar.tsx",
 } as const;
 
 const sources = Object.fromEntries(
@@ -74,7 +88,13 @@ describe("housekeeping and inspection semantic on-colors", () => {
   });
 
   it("uses tested primary and destructive on-colors for inspection controls", () => {
-    expect(sources.inspect).toContain("theme.onPrimary");
-    expect(sources.inspect).toContain("theme.onDestructive");
+    // the workspace's filled and destructive actions are the shared Button, which owns the tested on-colors
+    expect(sources.workspaceDraftSheets).toContain('variant="destructive"');
+    expect(sources.workspaceDraftSheets).toContain("<Button");
+    expect(sources.workspaceFooter).toContain("<Button");
+    // the new list controls draw their filled states from the same tested tokens
+    expect(sources.inspectCard).toContain("theme.onPrimary");
+    expect(sources.inspectFilter).toContain("theme.onPrimary");
+    expect(sources.inspectSearch).toContain("theme.onPrimary");
   });
 });

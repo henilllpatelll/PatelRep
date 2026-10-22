@@ -67,16 +67,28 @@ interface ZonedParts {
   minute: number;
 }
 
+// Building a formatter is by far the slowest part of reading a date in a zone, and lists ask for hundreds of them.
+const partsFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function partsFormatter(zone: string): Intl.DateTimeFormat {
+  let formatter = partsFormatters.get(zone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    });
+    partsFormatters.set(zone, formatter);
+  }
+  return formatter;
+}
+
 function zonedParts(date: Date, zone: string): ZonedParts {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: zone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  }).formatToParts(date);
+  const parts = partsFormatter(zone).formatToParts(date);
   const read = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
   return { year: read("year"), month: read("month"), day: read("day"), hour: read("hour") % 24, minute: read("minute") };
 }

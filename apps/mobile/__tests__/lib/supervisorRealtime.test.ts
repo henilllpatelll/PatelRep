@@ -90,6 +90,25 @@ describe("supervisor Realtime channel", () => {
     expect(mockRemoved).toHaveLength(1); // last one out closes it — no leak
   });
 
+  it("an independent listener (a screen with its own store) is called alongside the newest shared one, and is never skipped", () => {
+    const inspect = jest.fn();
+    const today = jest.fn();
+    const offInspect = subscribeSupervisorRealtime("hotel-1", inspect, { independent: true });
+    const offToday = subscribeSupervisorRealtime("hotel-1", today); // registered AFTER Inspect
+    expect(mockChannels).toHaveLength(1);
+    mockChannels[0].onEvent?.();
+    jest.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
+    expect(today).toHaveBeenCalledTimes(1);
+    expect(inspect).toHaveBeenCalledTimes(1);
+    offToday();
+    mockChannels[0].onEvent?.();
+    jest.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
+    expect(inspect).toHaveBeenCalledTimes(2); // still the only listener, still called, channel still open
+    expect(mockRemoved).toHaveLength(0);
+    offInspect();
+    expect(mockRemoved).toHaveLength(1);
+  });
+
   it("switching hotel closes the old channel; the old hotel's events never reach the new listener", () => {
     const oldListener = jest.fn();
     const newListener = jest.fn();
