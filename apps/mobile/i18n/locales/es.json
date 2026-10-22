@@ -4550,7 +4550,10 @@
         "urgent": "Urgentes",
         "unknown": "desconocido",
         "blockedNote": "{{count}} cuarto más necesita revisión antes de asignarse",
-        "blockedNote_plural": "{{count}} cuartos más necesitan revisión antes de asignarse"
+        "blockedNote_plural": "{{count}} cuartos más necesitan revisión antes de asignarse",
+        "onBreak": "En descanso",
+        "needReview": "Por revisar",
+        "atLeast": "al menos"
       },
       "tab": {
         "rooms": "Cuartos",
@@ -4703,7 +4706,134 @@
         "emptyStaleNote": "Según datos de cuartos verificados por última vez a las {{time}}."
       },
       "team": {
-        "loadSummary": "{{done}} de {{total}} listos"
+        "loadSummary": "{{done}} de {{total}} listos",
+        "attendance": {
+          "on_shift": "En turno",
+          "on_break": "En descanso",
+          "shift_ended": "Turno terminado",
+          "scheduled_not_clocked_in": "Programado",
+          "not_clocked_in": "Sin registrar entrada",
+          "unknown": "Disponibilidad desconocida"
+        },
+        "noWorkload": "Sin carga de limpieza actual",
+        "nothingLeft": "No queda nada por limpiar",
+        "remaining": "{{minutes}} min restantes",
+        "remainingAtLeast": "Al menos {{minutes}} min restantes · falta {{count}} estimación",
+        "remainingAtLeast_plural": "Al menos {{minutes}} min restantes · faltan {{count}} estimaciones",
+        "estimateUnavailable": "Estimaciones de limpieza no disponibles",
+        "capacity": {
+          "over": "Por encima de la capacidad planeada",
+          "at": "En la capacidad planeada",
+          "near": "Cerca de la capacidad",
+          "used": "{{percent}}% de capacidad usada",
+          "noSettings": "Capacidad no disponible",
+          "missingCredits": "Capacidad no disponible · algunas habitaciones no tienen valor de carga",
+          "unavailable": "Capacidad no disponible"
+        },
+        "note": {
+          "shiftEndedOpen": "Turno terminado · {{count}} habitación sigue abierta",
+          "shiftEndedOpen_plural": "Turno terminado · {{count}} habitaciones siguen abiertas",
+          "notClockedInOpen": "Sin registrar entrada · {{count}} habitación abierta",
+          "notClockedInOpen_plural": "Sin registrar entrada · {{count}} habitaciones abiertas",
+          "exceedsShift": "Más trabajo del que cabe en el tiempo de turno restante",
+          "exceedsDay": "Más de una jornada completa de trabajo estimado",
+          "onBreak": "En descanso ahora · no se recomiendan nuevas asignaciones inmediatas"
+        },
+        "floors": "Pisos {{floors}}",
+        "phase": {
+          "in_progress": "En curso",
+          "not_started": "Sin empezar",
+          "completed": "Completada",
+          "unavailable": "Fuera de servicio",
+          "unknown": "Estado desconocido",
+          "awaitingInspection": "Pendiente de inspección",
+          "inspected": "Inspeccionada"
+        },
+        "noRooms": "Sin habitaciones asignadas",
+        "roomsDone": "{{count}} habitación · {{done}} completadas",
+        "roomsDone_plural": "{{count}} habitaciones · {{done}} completadas",
+        "inProgressCount": "{{count}} en curso",
+        "nameUnavailable": "Nombre no disponible",
+        "highLoad": "Carga alta",
+        "openHint": "Abre los detalles de esta persona",
+        "moreRooms": "+{{count}} más",
+        "showing": "Mostrando {{shown}} de {{total}} personas",
+        "listTitle": "Equipo de limpieza",
+        "sort": {
+          "available": "Más disponibles",
+          "name": "Nombre A–Z",
+          "least_remaining": "Menor carga restante",
+          "most_remaining": "Mayor carga restante",
+          "most_rooms": "Más habitaciones asignadas",
+          "most_completed": "Más habitaciones completadas",
+          "capacity": "Problemas de capacidad"
+        },
+        "sortFallback": "Ordenado por nombre — no se pudo verificar la disponibilidad del personal.",
+        "sortUnverified": "“Más disponibles” requiere verificar la disponibilidad del personal. Mientras tanto, la lista se ordena por nombre.",
+        "search": {
+          "placeholder": "Buscar persona…",
+          "label": "Buscar al personal de limpieza por nombre"
+        },
+        "notice": {
+          "staffListUnavailable": "No se pudo verificar la lista de personal. Solo se muestran las personas con habitaciones asignadas.",
+          "availabilityUnverified": "No se pudo verificar la disponibilidad del personal.",
+          "nobodyOnShift": "Nadie está confirmado en turno ahora mismo.",
+          "capacityUnavailable": "La capacidad de carga no está disponible por ahora, así que se ocultan las cifras de capacidad."
+        },
+        "empty": {
+          "staffListUnavailable": "No se pudo verificar la lista de personal. No es un equipo vacío — inténtalo de nuevo.",
+          "noStaff": "No se encontró personal de limpieza",
+          "noStaffBody": "La lista de personal cargó, pero no tiene personal de limpieza activo para este hotel.",
+          "search": "Nadie coincide con “{{query}}”.",
+          "filters": "Nadie coincide con tus filtros."
+        },
+        "filters": {
+          "title": "Filtrar y ordenar",
+          "attendanceTitle": "Asistencia",
+          "workloadTitle": "Carga de trabajo",
+          "coverageTitle": "Cobertura",
+          "apply": "Mostrar {{count}} persona",
+          "apply_plural": "Mostrar {{count}} personas",
+          "attendance": {
+            "all": "Todo el personal",
+            "on_shift": "En turno",
+            "on_break": "En descanso",
+            "scheduled": "Programado",
+            "not_clocked_in": "Sin registrar entrada",
+            "unknown": "Disponibilidad desconocida",
+            "shift_ended": "Turno terminado"
+          },
+          "workload": {
+            "all": "Todos",
+            "none": "Sin asignaciones",
+            "has": "Con asignaciones",
+            "high_load": "Carga alta",
+            "needs_review": "Por revisar"
+          }
+        },
+        "detail": {
+          "title": "Personal de limpieza",
+          "workloadTitle": "Carga de hoy",
+          "roomsTitle": "Habitaciones asignadas",
+          "assigned": "Asignadas",
+          "completed": "Completadas",
+          "inProgress": "En curso",
+          "notStarted": "Sin empezar",
+          "remaining": "Restante",
+          "credits": "Créditos de carga",
+          "creditsValue": "{{credits}} créditos restantes",
+          "creditsAtLeast": "Al menos {{credits}} créditos restantes",
+          "plannedCapacity": "Capacidad planeada",
+          "target": "{{credits}} créditos",
+          "targetOverride": "{{credits}} créditos (definido para esta persona)",
+          "capacity": "Capacidad",
+          "rooms": "{{count}} habitación",
+          "rooms_plural": "{{count}} habitaciones",
+          "started": "Entrada a las {{time}}",
+          "roomCredits": "{{credits}} créditos",
+          "roomHint": "Abre esta habitación",
+          "noRooms": "No hay habitaciones asignadas a esta persona."
+        }
       }
     }
   },

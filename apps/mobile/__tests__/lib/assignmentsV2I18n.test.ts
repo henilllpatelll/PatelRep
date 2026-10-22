@@ -16,6 +16,8 @@ const root = resolve(__dirname, "../..");
 const sources = [
   "app/(app)/assignments/index.tsx",
   "lib/housekeeping/assignmentRoomsView.ts",
+  "lib/housekeeping/assignmentTeamView.ts",
+  "lib/housekeeping/assignmentTeamQuery.ts",
   ...readdirSync(resolve(root, "components/supervisor/assignments")).map((file) => `components/supervisor/assignments/${file}`),
 ];
 

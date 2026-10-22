@@ -4550,7 +4550,10 @@
         "urgent": "Urgent",
         "unknown": "unknown",
         "blockedNote": "{{count}} more room needs review before it can be assigned",
-        "blockedNote_plural": "{{count}} more rooms need review before they can be assigned"
+        "blockedNote_plural": "{{count}} more rooms need review before they can be assigned",
+        "onBreak": "On break",
+        "needReview": "Need review",
+        "atLeast": "at least"
       },
       "tab": {
         "rooms": "Rooms",
@@ -4703,7 +4706,134 @@
         "emptyStaleNote": "Based on room data last verified at {{time}}."
       },
       "team": {
-        "loadSummary": "{{done}} of {{total}} done"
+        "loadSummary": "{{done}} of {{total}} done",
+        "attendance": {
+          "on_shift": "On shift",
+          "on_break": "On break",
+          "shift_ended": "Shift ended",
+          "scheduled_not_clocked_in": "Scheduled",
+          "not_clocked_in": "Not clocked in",
+          "unknown": "Availability unknown"
+        },
+        "noWorkload": "No current cleaning workload",
+        "nothingLeft": "Nothing left to clean",
+        "remaining": "{{minutes}} min remaining",
+        "remainingAtLeast": "At least {{minutes}} min remaining · {{count}} estimate missing",
+        "remainingAtLeast_plural": "At least {{minutes}} min remaining · {{count}} estimates missing",
+        "estimateUnavailable": "Cleaning estimates unavailable",
+        "capacity": {
+          "over": "Over planned capacity",
+          "at": "At planned capacity",
+          "near": "Near capacity",
+          "used": "{{percent}}% capacity used",
+          "noSettings": "Capacity unavailable",
+          "missingCredits": "Capacity unavailable · some rooms have no workload value",
+          "unavailable": "Capacity unavailable"
+        },
+        "note": {
+          "shiftEndedOpen": "Shift ended · {{count}} room still open",
+          "shiftEndedOpen_plural": "Shift ended · {{count}} rooms still open",
+          "notClockedInOpen": "Not clocked in · {{count}} room still open",
+          "notClockedInOpen_plural": "Not clocked in · {{count}} rooms still open",
+          "exceedsShift": "More work than the shift time left",
+          "exceedsDay": "More than a full day of estimated work",
+          "onBreak": "Currently on break · new immediate assignments discouraged"
+        },
+        "floors": "Floors {{floors}}",
+        "phase": {
+          "in_progress": "In progress",
+          "not_started": "Not started",
+          "completed": "Completed",
+          "unavailable": "Out of service",
+          "unknown": "Status unknown",
+          "awaitingInspection": "Awaiting inspection",
+          "inspected": "Inspected"
+        },
+        "noRooms": "No rooms assigned",
+        "roomsDone": "{{count}} room · {{done}} completed",
+        "roomsDone_plural": "{{count}} rooms · {{done}} completed",
+        "inProgressCount": "{{count}} in progress",
+        "nameUnavailable": "Name unavailable",
+        "highLoad": "High load",
+        "openHint": "Opens this housekeeper’s details",
+        "moreRooms": "+{{count}} more",
+        "showing": "Showing {{shown}} of {{total}} staff",
+        "listTitle": "Housekeeping team",
+        "sort": {
+          "available": "Most available",
+          "name": "Name A–Z",
+          "least_remaining": "Lowest remaining workload",
+          "most_remaining": "Highest remaining workload",
+          "most_rooms": "Most assigned rooms",
+          "most_completed": "Most completed rooms",
+          "capacity": "Capacity concern"
+        },
+        "sortFallback": "Sorted by name — staff availability could not be verified.",
+        "sortUnverified": "“Most available” needs verified staff availability. Until then the list is sorted by name.",
+        "search": {
+          "placeholder": "Search housekeeper…",
+          "label": "Search housekeepers by name"
+        },
+        "notice": {
+          "staffListUnavailable": "The staff list could not be verified. Only people who have rooms assigned are shown.",
+          "availabilityUnverified": "Staff availability could not be verified.",
+          "nobodyOnShift": "Nobody is currently confirmed on shift.",
+          "capacityUnavailable": "Workload capacity is not available right now, so capacity figures are hidden."
+        },
+        "empty": {
+          "staffListUnavailable": "The staff list could not be verified. This is not an empty team — try again.",
+          "noStaff": "No housekeeping staff found",
+          "noStaffBody": "The staff list loaded, but it has no active housekeepers for this hotel.",
+          "search": "No staff match “{{query}}”.",
+          "filters": "No staff match your filters."
+        },
+        "filters": {
+          "title": "Filter & Sort",
+          "attendanceTitle": "Attendance",
+          "workloadTitle": "Workload",
+          "coverageTitle": "Coverage",
+          "apply": "Show {{count}} person",
+          "apply_plural": "Show {{count}} staff",
+          "attendance": {
+            "all": "All staff",
+            "on_shift": "On shift",
+            "on_break": "On break",
+            "scheduled": "Scheduled",
+            "not_clocked_in": "Not clocked in",
+            "unknown": "Availability unknown",
+            "shift_ended": "Shift ended"
+          },
+          "workload": {
+            "all": "All",
+            "none": "No assignments",
+            "has": "Has assignments",
+            "high_load": "High load",
+            "needs_review": "Needs review"
+          }
+        },
+        "detail": {
+          "title": "Housekeeper",
+          "workloadTitle": "Today’s workload",
+          "roomsTitle": "Assigned rooms",
+          "assigned": "Assigned",
+          "completed": "Completed",
+          "inProgress": "In progress",
+          "notStarted": "Not started",
+          "remaining": "Remaining",
+          "credits": "Workload credits",
+          "creditsValue": "{{credits}} credits remaining",
+          "creditsAtLeast": "At least {{credits}} credits remaining",
+          "plannedCapacity": "Planned capacity",
+          "target": "{{credits}} credits",
+          "targetOverride": "{{credits}} credits (set for this person)",
+          "capacity": "Capacity",
+          "rooms": "{{count}} room",
+          "rooms_plural": "{{count}} rooms",
+          "started": "Started {{time}}",
+          "roomCredits": "{{credits}} credits",
+          "roomHint": "Opens this room",
+          "noRooms": "No rooms assigned to this housekeeper."
+        }
       }
     }
   },

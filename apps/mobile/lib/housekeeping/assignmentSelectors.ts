@@ -116,6 +116,35 @@ export function selectStaffByAttendance(team: readonly AssignmentTeamMember[], a
   return team.filter((member) => wanted.has(member.attendance));
 }
 
+/* ─── Team counts ───────────────────────────────────────────────────────────
+   The three numbers the Team header shows. Attendance counts exist only when the roster AND the staff list are
+   verified (a failed roster is "unknown", never "nobody is working"). "Needs review" is a count of people with a
+   supported concern; when some evidence is missing it is a lower bound (`needReviewAtLeast`) and a zero would be
+   a guess, so it is reported as unknown instead. */
+
+export interface TeamCounts {
+  onShift: number | null;
+  onBreak: number | null;
+  needReview: number | null;
+  /** The review count may be higher: roster, settings or schedule evidence is missing. */
+  needReviewAtLeast: boolean;
+}
+
+export function selectTeamCounts(model: AssignmentsModel): TeamCounts {
+  const team = model.team;
+  if (!team) return { onShift: null, onBreak: null, needReview: null, needReviewAtLeast: false };
+  const attendanceKnown = model.rosterTrust === "verified" && model.staffListKnown;
+  const count = (attendance: Attendance) => team.filter((member) => member.attendance === attendance).length;
+  const reviewCount = selectStaffNeedingAttention(team).length;
+  const atLeast = model.rosterTrust !== "verified" || model.settings.value === null || model.schedule.trust !== "verified" || !model.staffListKnown;
+  return {
+    onShift: attendanceKnown ? count("on_shift") : null,
+    onBreak: attendanceKnown ? count("on_break") : null,
+    needReview: atLeast && reviewCount === 0 ? null : reviewCount,
+    needReviewAtLeast: atLeast,
+  };
+}
+
 /* ─── Recommended candidates ────────────────────────────────────────────────
    An ORDERED SHORTLIST with reasons, not a decision. Order: attendance (working first, then scheduled,
    break, unknown, definitely-not-working, clocked out), then people who would not end up overloaded, then the

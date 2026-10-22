@@ -4,6 +4,7 @@ import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { statusText } from "@/components/supervisor/board/BoardHeader";
 import type { HeaderMetrics } from "@/lib/housekeeping/assignmentRoomsView";
+import type { TeamHeaderMetrics } from "@/lib/housekeeping/assignmentTeamView";
 import type { BoardStatusLine } from "@/lib/housekeeping/roomBoardView";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -20,6 +21,8 @@ interface Props {
   /** "Thursday, October 22" for the hotel's operational date; null while the board is unknown. */
   dateLabel: string | null;
   metrics: HeaderMetrics;
+  /** The Team tab's three counts (shown instead of `metrics` while the Team tab is selected). */
+  teamMetrics: TeamHeaderMetrics;
   tab: AssignmentsTab;
   onTab: (tab: AssignmentsTab) => void;
   onRefresh: () => void;
@@ -29,7 +32,7 @@ interface Props {
 }
 
 /** Compact operational header: title, an honest freshness pill, the date, three metrics and the Rooms/Team switch. */
-export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset, dateLabel, metrics, tab, onTab, onRefresh, onShowBlocked, t }: Props) {
+export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset, dateLabel, metrics, teamMetrics, tab, onTab, onRefresh, onShowBlocked, t }: Props) {
   const theme = useTheme();
   const live = status.kind === "live";
   const busy = status.kind === "updating" || status.kind === "loading";
@@ -82,13 +85,29 @@ export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset,
         </Text>
       ) : null}
 
-      <View style={styles.metrics} testID="assignments-metrics">
-        <Metric testID="assignments-metric-unassigned" value={metrics.unassigned} label={t("assignments.v2.metric.unassigned")} unknown={t("assignments.v2.metric.unknown")} tone={metrics.unassigned ? theme.status.dirty : theme.textPrimary} />
-        <Metric testID="assignments-metric-onShift" value={metrics.onShift} label={t("assignments.v2.metric.onShift")} unknown={t("assignments.v2.metric.unknown")} tone={theme.textPrimary} />
-        <Metric testID="assignments-metric-urgent" value={metrics.urgent} label={t("assignments.v2.metric.urgent")} unknown={t("assignments.v2.metric.unknown")} tone={metrics.urgent ? theme.status.pickup : theme.textPrimary} />
-      </View>
+      {tab === "rooms" ? (
+        <View style={styles.metrics} testID="assignments-metrics">
+          <Metric testID="assignments-metric-unassigned" value={metrics.unassigned} label={t("assignments.v2.metric.unassigned")} unknown={t("assignments.v2.metric.unknown")} tone={metrics.unassigned ? theme.status.dirty : theme.textPrimary} />
+          <Metric testID="assignments-metric-onShift" value={metrics.onShift} label={t("assignments.v2.metric.onShift")} unknown={t("assignments.v2.metric.unknown")} tone={theme.textPrimary} />
+          <Metric testID="assignments-metric-urgent" value={metrics.urgent} label={t("assignments.v2.metric.urgent")} unknown={t("assignments.v2.metric.unknown")} tone={metrics.urgent ? theme.status.pickup : theme.textPrimary} />
+        </View>
+      ) : (
+        <View style={styles.metrics} testID="assignments-team-metrics">
+          <Metric testID="assignments-team-metric-onShift" value={teamMetrics.onShift} label={t("assignments.v2.metric.onShift")} unknown={t("assignments.v2.metric.unknown")} tone={theme.textPrimary} />
+          <Metric testID="assignments-team-metric-onBreak" value={teamMetrics.onBreak} label={t("assignments.v2.metric.onBreak")} unknown={t("assignments.v2.metric.unknown")} tone={theme.textPrimary} />
+          <Metric
+            testID="assignments-team-metric-needReview"
+            value={teamMetrics.needReview}
+            atLeast={teamMetrics.needReviewAtLeast}
+            atLeastLabel={t("assignments.v2.metric.atLeast")}
+            label={t("assignments.v2.metric.needReview")}
+            unknown={t("assignments.v2.metric.unknown")}
+            tone={teamMetrics.needReview ? theme.status.dirty : theme.textPrimary}
+          />
+        </View>
+      )}
 
-      {onShowBlocked && metrics.blocked ? (
+      {tab === "rooms" && onShowBlocked && metrics.blocked ? (
         <Pressable
           onPress={onShowBlocked}
           accessibilityRole="button"
@@ -128,18 +147,35 @@ export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset,
   );
 }
 
-function Metric({ value, label, unknown, tone, testID }: { value: number | null; label: string; unknown: string; tone: string; testID: string }) {
+function Metric({
+  value,
+  label,
+  unknown,
+  tone,
+  testID,
+  atLeast = false,
+  atLeastLabel,
+}: {
+  value: number | null;
+  label: string;
+  unknown: string;
+  tone: string;
+  testID: string;
+  /** The figure is a lower bound ("at least N"): shown with a "+" and announced as such. */
+  atLeast?: boolean;
+  atLeastLabel?: string;
+}) {
   const theme = useTheme();
   const known = value !== null;
   return (
     <View
       style={[styles.metric, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}
       accessible
-      accessibilityLabel={`${label}: ${known ? value : unknown}`}
+      accessibilityLabel={`${label}: ${known ? (atLeast && atLeastLabel ? `${atLeastLabel} ${value}` : value) : unknown}`}
       testID={testID}
     >
       <Text maxFontSizeMultiplier={1.3} style={[styles.metricValue, { color: known ? tone : theme.textMuted }]} testID={`${testID}-value`}>
-        {known ? value : "—"}
+        {known ? (atLeast ? `${value}+` : value) : "—"}
       </Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={2} style={[styles.metricLabel, { color: theme.textSecondary }]}>
         {label}

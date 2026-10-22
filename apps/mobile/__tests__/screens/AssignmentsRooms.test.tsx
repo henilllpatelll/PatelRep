@@ -383,17 +383,15 @@ describe("stale and offline", () => {
   });
 });
 
-describe("team tab (interim) and scope", () => {
-  it("the Team tab keeps the existing per-housekeeper cards; a room chip opens the same sheet", async () => {
+describe("team tab and scope", () => {
+  it("the Rooms view stays fully functional after a round trip through Team", async () => {
     const screen = await loaded();
     fireEvent.press(screen.getByTestId("assignments-tab-team"));
-    await waitFor(() => expect(screen.getByTestId("load-card-hk-1")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("team-card-hk-1")).toBeTruthy());
     expect(screen.queryByTestId("assignment-room-101")).toBeNull();
-    fireEvent.press(screen.getByTestId("team-room-102"));
-    expect(text(screen.getByTestId("assignment-sheet-number"))).toBe("102");
-    fireEvent.press(screen.getByTestId("assignment-sheet-close"));
     fireEvent.press(screen.getByTestId("assignments-tab-rooms"));
     await waitFor(() => expect(screen.getByTestId("assignment-room-101")).toBeTruthy());
+    expect(text(screen.getByTestId("assignments-metric-unassigned-value"))).toBe("2");
   });
 
   it("another hotel or person starts with a clean search and no filters", async () => {

@@ -41,6 +41,8 @@ export interface AttendanceFacts {
   rosterVerified: boolean;
   /** From a fresh schedule: true/false. null = the schedule is unavailable or stale. */
   scheduled: boolean | null;
+  /** When the recorded shift started — only from a verified roster row that is on shift, on break or ended. Never inferred. */
+  startedAt: string | null;
 }
 
 function scheduleIds(schedule: SourceState<ScheduledShift[]>): Set<string> | null {
@@ -62,12 +64,13 @@ export function resolveAttendance(
 ): AttendanceFacts {
   const scheduledIds = scheduleIds(schedule);
   const scheduled = scheduledIds === null ? null : scheduledIds.has(userId);
-  if (rosterTrustOf(roster) !== "verified") return { attendance: "unknown", rosterVerified: false, scheduled };
+  if (rosterTrustOf(roster) !== "verified") return { attendance: "unknown", rosterVerified: false, scheduled, startedAt: null };
   const entry = (knownValue(roster, []) ?? []).find((candidate) => candidate.userId === userId);
-  if (!entry) return { attendance: scheduled ? "scheduled_not_clocked_in" : "not_clocked_in", rosterVerified: true, scheduled };
+  if (!entry) return { attendance: scheduled ? "scheduled_not_clocked_in" : "not_clocked_in", rosterVerified: true, scheduled, startedAt: null };
   const attendance: Attendance =
     entry.availability === "on_shift" ? "on_shift" : entry.availability === "on_break" ? "on_break" : entry.availability === "ended" ? "shift_ended" : "unknown";
-  return { attendance, rosterVerified: true, scheduled };
+  // An implausible open shift is `unknown`: its start time is as doubtful as its status, so it is not offered.
+  return { attendance, rosterVerified: true, scheduled, startedAt: attendance === "unknown" ? null : entry.startedAt };
 }
 
 /** Sort rank used wherever people are offered: working first, definitely-not-working last, unknown between. */
@@ -100,6 +103,8 @@ export interface AssignmentTeamMember {
   attendance: Attendance;
   rosterVerified: boolean;
   scheduled: boolean | null;
+  /** Recorded start of today's shift (ISO), from the verified roster; null when unknown. */
+  startedAt: string | null;
   shift: ShiftTime | null;
   /** Rooms owned by this person today, in any stage, by room number. */
   rooms: BoardRoom[];
@@ -173,6 +178,7 @@ export function buildTeam(input: TeamInputs): AssignmentTeamMember[] {
       attendance: facts.attendance,
       rosterVerified: facts.rosterVerified,
       scheduled: facts.scheduled,
+      startedAt: facts.startedAt,
       shift,
       rooms: owned,
       floors: [...new Set(owned.filter((room) => room.floorKnown).map((room) => room.floor))].sort((a, b) => a - b),

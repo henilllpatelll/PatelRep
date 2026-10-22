@@ -10,7 +10,7 @@ import {
   type AssignmentScope,
   type AssignmentSortKey,
 } from "@/lib/housekeeping/assignmentQuery";
-import { selectSummary, selectUrgent } from "@/lib/housekeeping/assignmentSelectors";
+import { selectSummary, selectTeamCounts, selectUrgent } from "@/lib/housekeeping/assignmentSelectors";
 import type { BoardAvailability, MutationGate, RoomBoardModel } from "@/lib/housekeeping/roomBoardState";
 
 /* ─── Supervisor Assignments — the Rooms tab, as the screen shows it ────────
@@ -40,10 +40,8 @@ export function buildHeaderMetrics(model: AssignmentsModel): HeaderMetrics {
   const summary = selectSummary(model);
   if (!summary || !model.rooms) return { unassigned: null, blocked: null, onShift: null, urgent: null };
   // Attendance is a roster fact. A failed, stale or missing roster (or staff list) is "unknown", not zero.
-  const onShift =
-    model.rosterTrust === "verified" && model.staffListKnown && model.team
-      ? model.team.filter((member) => member.attendance === "on_shift").length
-      : null;
+  // One definition shared with the Team tab, so the two tabs cannot disagree on who is on shift.
+  const { onShift } = selectTeamCounts(model);
   return {
     unassigned: summary.autoAssignable,
     blocked: summary.softBlocked,

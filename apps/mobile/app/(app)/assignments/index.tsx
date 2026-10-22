@@ -10,7 +10,10 @@ import { AssignmentRoomSheet } from "@/components/supervisor/assignments/Assignm
 import { AssignmentEmpty, AssignmentsSkeleton, type AssignmentEmptyKind } from "@/components/supervisor/assignments/AssignmentStates";
 import { AssignmentsHeader, type AssignmentsTab } from "@/components/supervisor/assignments/AssignmentsHeader";
 import { ActiveFilters, ListCaption, QuickChips, SectionHeader } from "@/components/supervisor/assignments/RoomsListParts";
-import { TeamInterim } from "@/components/supervisor/assignments/TeamInterim";
+import { StaffDetailSheet } from "@/components/supervisor/assignments/StaffDetailSheet";
+import { TeamFilterSheet } from "@/components/supervisor/assignments/TeamFilterSheet";
+import { TeamActiveFilters, TeamEmpty, TeamNotices } from "@/components/supervisor/assignments/TeamParts";
+import { TeamStaffCard } from "@/components/supervisor/assignments/TeamStaffCard";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
 import { isQuickActive, runAssignmentQuery } from "@/lib/housekeeping/assignmentQuery";
@@ -23,10 +26,13 @@ import {
   type CardCtaKind,
   type RoomsListItem,
 } from "@/lib/housekeeping/assignmentRoomsView";
+import type { AssignmentTeamMember } from "@/lib/housekeeping/assignmentStaff";
+import { runTeamQuery, type TeamViewState } from "@/lib/housekeeping/assignmentTeamQuery";
+import { buildStaffDetail, buildTeamHeaderMetrics, teamEmptyKind, teamNotices } from "@/lib/housekeeping/assignmentTeamView";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { describeBoardStatus } from "@/lib/housekeeping/roomBoardView";
-import { buildTeamLoads } from "@/lib/housekeeping/supervisor";
 import { useAssignmentRooms } from "@/lib/housekeeping/useAssignmentRooms";
+import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
 import { useRoomAssignment } from "@/lib/housekeeping/useRoomAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -36,7 +42,11 @@ import { useToast } from "@/lib/theme/useToast";
    The supervisor's assignment workspace. This file only wires: the verified model (`useAssignments`, the same
    one shared snapshot Supervisor Today and the Room Board read — no fetch or subscription of its own), the Rooms
    tab state (`useAssignmentRooms`) and the one assignment workflow (`useRoomAssignment`) to the presentational
-   components. Rooms is complete; Team keeps its interim presentation until Phase 3. */
+   components. Rooms and Team read the SAME model and are both mounted state of this screen, so switching tabs
+   keeps each one's search, filters and sort and never refetches or opens a second realtime channel. */
+
+/** What the one list renders: the Rooms tab's items, or the Team tab's people. */
+type ListItem = RoomsListItem | { type: "member"; key: string; member: AssignmentTeamMember };
 
 export default function AssignmentsScreen() {
   const { t, i18n } = useTranslation();
@@ -49,9 +59,14 @@ export default function AssignmentsScreen() {
   const { availability } = model;
   const rooms = useAssignmentRooms({ model, gate, language, t, resetKey: scopeKey });
   const { query, items, cards, options, chips, state } = rooms;
+  const team = useAssignmentTeam({ model, t, resetKey: scopeKey });
 
   const [tab, setTab] = useState<AssignmentsTab>("rooms");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [teamFilterOpen, setTeamFilterOpen] = useState(false);
+  // The person whose drawer is open, and the person to return to when a room opened from that drawer is closed.
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const returnStaffRef = useRef<string | null>(null);
   const [pulling, setPulling] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomGone, setRoomGone] = useState(false);
@@ -90,6 +105,7 @@ export default function AssignmentsScreen() {
     // The open room left the verified board (realtime removal, or the board stopped being today's): close rather
     // than keep showing a room the board no longer vouches for, and say so when the room is truly gone.
     setSelectedRoomId(null);
+    returnStaffRef.current = null;
     if (model.rooms !== null) setRoomGone(true);
   }, [selectedRoomId, selectedEntry, model.rooms]);
 
@@ -99,15 +115,48 @@ export default function AssignmentsScreen() {
     // "Assign" goes straight to the picker; every other call to action opens the room itself.
     if (cta === "assign" && gateRef.current.allowed) assignmentRef.current.openAssign(roomId);
   }, []);
-  const closeSheet = useCallback(() => {
+  const dismissRoom = useCallback(() => {
     if (assignmentRef.current.flow) assignmentRef.current.close();
     setSelectedRoomId(null);
   }, []);
+  // A room opened from a staff drawer returns to that drawer, so the supervisor keeps their place.
+  const closeSheet = useCallback(() => {
+    dismissRoom();
+    const staffId = returnStaffRef.current;
+    returnStaffRef.current = null;
+    if (staffId) setSelectedStaffId(staffId);
+  }, [dismissRoom]);
+  // Leaving for the full Room Board is not "going back": the drawer is not restored.
   const openBoard = useCallback(() => {
     const roomId = selectedRoomId;
-    closeSheet();
+    returnStaffRef.current = null;
+    dismissRoom();
     if (roomId) router.push({ pathname: "/(app)/room-board", params: { roomId } } as never);
-  }, [closeSheet, selectedRoomId]);
+  }, [dismissRoom, selectedRoomId]);
+
+  // Staff drawer: follows the person by id through every refresh and reads the full team, so a filter that hides
+  // them does not close it. It is one Modal at a time: opening a room closes the drawer and remembers the person.
+  const selectedMember = useMemo(
+    () => (selectedStaffId === null ? null : (model.team ?? []).find((member) => member.userId === selectedStaffId) ?? null),
+    [model.team, selectedStaffId],
+  );
+  useEffect(() => {
+    if (selectedStaffId !== null && selectedMember === null) setSelectedStaffId(null);
+  }, [selectedStaffId, selectedMember]);
+  const roomEntries = useMemo(() => new Map((model.rooms ?? []).map((entry) => [entry.room.roomId, entry] as const)), [model.rooms]);
+  const staffDetail = useMemo(
+    () => (selectedMember ? buildStaffDetail(selectedMember, roomEntries, { t, language, timeZone: model.timeZone }) : null),
+    [selectedMember, roomEntries, t, language, model.timeZone],
+  );
+  const onOpenStaff = useCallback((userId: string) => setSelectedStaffId(userId), []);
+  const onOpenStaffRoom = useCallback(
+    (roomId: string) => {
+      returnStaffRef.current = selectedStaffId;
+      setSelectedStaffId(null);
+      onOpenRoom(roomId, "view_assignment");
+    },
+    [onOpenRoom, selectedStaffId],
+  );
 
   const verifiedClock =
     availability.kind === "stale" || availability.kind === "previous_day" || availability.kind === "ready" || availability.kind === "verified_empty"
@@ -121,15 +170,21 @@ export default function AssignmentsScreen() {
   const live = availability.kind === "ready" || availability.kind === "verified_empty";
 
   const metrics = useMemo(() => buildHeaderMetrics(model), [model]);
-  const notices = useMemo(() => freshnessNotices(model), [model]);
+  const allNotices = useMemo(() => freshnessNotices(model), [model]);
+  // The Team tab words the missing-source case itself (see TeamNotices), so the generic one is not repeated there.
+  const notices = useMemo(() => (tab === "team" ? allNotices.filter((notice) => notice.kind !== "aux_partial") : allNotices), [allNotices, tab]);
   const detailContext = useMemo(() => detailContextOf(model.board, gate, verifiedClock, live), [model.board, gate, verifiedClock, live]);
 
-  // Team (interim): the existing per-housekeeper cards over the same verified rooms.
-  const teamLoads = useMemo(() => {
-    const nameById = new Map<string, string>();
-    if (model.board.staffNamesKnown) for (const member of model.board.staff) if (member.name && member.name !== "—") nameById.set(member.userId, member.name);
-    return buildTeamLoads((model.rooms ?? []).map((entry) => entry.room), nameById);
-  }, [model.rooms, model.board.staff, model.board.staffNamesKnown]);
+  const teamMetrics = useMemo(() => buildTeamHeaderMetrics(model), [model]);
+  const teamNoticeList = useMemo(() => teamNotices(model), [model]);
+  const teamPreviewCount = useCallback(
+    (draft: TeamViewState) => runTeamQuery({ team: model.team ?? [], search: team.search, filters: draft.filters, sort: draft.sort, rosterVerified: team.rosterVerified }).visible.length,
+    [model.team, team.search, team.rosterVerified],
+  );
+  const teamItems = useMemo<ListItem[]>(
+    () => team.query.visible.map((member) => ({ type: "member", key: `team:${member.userId}`, member })),
+    [team.query.visible],
+  );
 
   const previewCount = useCallback(
     (draft: AssignmentViewState) => runAssignmentQuery({ rooms: rooms.queue, search: rooms.search, filters: draft.filters, scope: draft.scope, sort: draft.sort }).visible.length,
@@ -176,6 +231,7 @@ export default function AssignmentsScreen() {
       topInset={insets.top}
       dateLabel={boardKnown ? operationalDateLabel(model, language) : null}
       metrics={metrics}
+      teamMetrics={teamMetrics}
       tab={tab}
       onTab={setTab}
       onRefresh={() => void onRefresh()}
@@ -248,10 +304,45 @@ export default function AssignmentsScreen() {
         </>
       ) : null}
 
-      {tab === "team" && boardKnown ? <TeamInterim loads={teamLoads} onRoomPress={(roomId) => onOpenRoom(roomId, "view_assignment")} t={t} /> : null}
+      {tab === "team" && boardKnown ? (
+        <>
+          <TeamNotices notices={teamNoticeList} onRetry={() => void onRefresh()} t={t} />
+          <BoardSearchBar
+            value={team.search}
+            onChangeText={team.setSearch}
+            onClear={team.clearSearch}
+            onOpenFilters={() => setTeamFilterOpen(true)}
+            activeCount={team.badge}
+            t={t}
+            placeholder={t("assignments.v2.team.search.placeholder")}
+            label={t("assignments.v2.team.search.label")}
+            filterLabel={t("assignments.v2.filters.open")}
+            testIDPrefix="assignments-team"
+          />
+          {team.query.searching || team.chips.length > 0 || team.state.sort !== "available" ? (
+            <TeamActiveFilters
+              chips={team.chips}
+              shown={team.query.visible.length}
+              total={team.query.total}
+              sortLabel={team.state.sort !== "available" ? t(`assignments.v2.team.sort.${team.query.sortUsed}`) : null}
+              onRemove={team.removeChip}
+              onClearAll={team.clearAll}
+              onEdit={() => setTeamFilterOpen(true)}
+              t={t}
+            />
+          ) : null}
+          {!(team.query.searching || team.chips.length > 0 || team.state.sort !== "available") && team.query.sortUsed !== team.state.sort ? (
+            <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="assignments-team-sort-label">
+              {t("assignments.v2.team.sortFallback")}
+            </Text>
+          ) : null}
+          {team.query.visible.length > 0 ? <ListCaption title={t("assignments.v2.team.listTitle")} sort={t(`assignments.v2.team.sort.${team.query.sortUsed}`)} /> : null}
+        </>
+      ) : null}
     </View>
   );
 
+  const teamEmpty = tab === "team" ? teamEmptyKind(model, team.query.emptyReason) : null;
   const listEmpty =
     tab === "rooms" && emptyKind ? (
       <AssignmentEmpty
@@ -268,24 +359,28 @@ export default function AssignmentsScreen() {
         onClearSearch={rooms.clearSearch}
         onClearFilters={rooms.clearAll}
       />
-    ) : tab === "team" && !boardKnown ? (
-      <AssignmentEmpty
-        kind="unavailable"
+    ) : tab === "team" && teamEmpty ? (
+      <TeamEmpty
+        kind={teamEmpty}
         t={t}
-        searchText=""
-        searching={false}
-        staleNote={null}
+        searchText={team.search.trim()}
         unavailableKey={unavailableKey}
         offline={availability.kind === "unavailable" && availability.cause === "offline"}
         onRefresh={() => void onRefresh()}
-        onShowAll={showAll}
-        onShowBlocked={showBlocked}
-        onClearSearch={rooms.clearSearch}
-        onClearFilters={rooms.clearAll}
+        onClearSearch={team.clearSearch}
+        onClearFilters={team.clearAll}
       />
     ) : null;
 
-  const renderItem = ({ item }: { item: RoomsListItem }) => {
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.type === "member") {
+      const card = team.cards.get(item.member.userId);
+      return card ? (
+        <View style={styles.rowWrap}>
+          <TeamStaffCard model={card} onOpen={onOpenStaff} t={t} />
+        </View>
+      ) : null;
+    }
     if (item.type === "section") return <SectionHeader section={item.section} count={item.count} t={t} />;
     const card = cards.get(item.entry.room.roomId);
     return card ? (
@@ -298,7 +393,7 @@ export default function AssignmentsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
-        data={tab === "rooms" && boardKnown ? items : []}
+        data={boardKnown ? (tab === "rooms" ? items : teamItems) : []}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         keyExtractor={(item) => item.key}
@@ -316,6 +411,21 @@ export default function AssignmentsScreen() {
       />
 
       {selectedEntry ? <AssignmentRoomSheet entry={selectedEntry} context={detailContext} assignment={assignment} onClose={closeSheet} onOpenBoard={openBoard} /> : null}
+      {staffDetail ? <StaffDetailSheet detail={staffDetail} t={t} onClose={() => setSelectedStaffId(null)} onOpenRoom={onOpenStaffRoom} /> : null}
+
+      <TeamFilterSheet
+        visible={teamFilterOpen}
+        applied={team.state}
+        options={team.options}
+        rosterVerified={team.rosterVerified}
+        previewCount={teamPreviewCount}
+        t={t}
+        onApply={(draft) => {
+          team.applyState(draft);
+          setTeamFilterOpen(false);
+        }}
+        onClose={() => setTeamFilterOpen(false)}
+      />
 
       <AssignmentFilterSheet
         visible={filterSheetOpen}
