@@ -870,3 +870,11 @@
 
 
 - [2026-10-18] Room Board V2 Phase 5 (assignment): `POST /housekeeping/assignments` is an UNCONDITIONAL upsert on (room_id, assignment_date) — no expected-assignee check — and it also rewrites room_status.status from clean_type for DIRTY/PICKUP/OCCUPIED rooms; DELETE endpoints clear only assigned_to. So the client (a) refuses assign/reassign/remove unless the room is to_clean (never IN_PROGRESS/CLEAN/INSPECTED/OOO), (b) re-reads the room from GET /housekeeping/board before every write and compares it with what was reviewed (narrows, cannot close, the race), (c) treats only 4xx as a definite failure — network/timeout/5xx are read back before anything is claimed or retried. `FloorRoom.baseCleanMinutes` silently defaults to 30: use `BoardRoom.baseMinutes` (null = not sent) for estimates. `BLOCK_BY_STAGE[stage] ?? x` is wrong when a valid value is null — use `in`. The board screen mounts a hidden filter Modal: count only `visible` Modals in tests.
+
+## Smart Balance (Assignments V2 Phase 6) — learnings (2026-10-22)
+- Eligibility/attendance/workload stay single-sourced in the Phase 1 client model; the app sends a planning request and the server only VERIFIES it (never recomputes). Do not add a second eligibility opinion server-side.
+- Provenance: `is_ai_suggested` is per change (migration 222). Only source `smart_balance` is AI; `moveChange` turns it into `ai_editor` (supervisor's own). Audit/result keys appear only when true so manual shape is unchanged.
+- jsonb gotcha: `array || obj || CASE ... '{}'::jsonb` appends TWO elements; parenthesise `array || (obj || CASE ...)`.
+- CP-SAT: single worker + fixed seed + `max_deterministic_time` for determinism; ~3-5s worst case on small inputs because optimality proof is slow — gap limit 2%.
+- API test files that fire many requests need the `reset_rate_limits` autouse fixture (tests/test_reports_views.py).
+- Do-Not-Repeat: inserting a model class between a pydantic field and its @model_validator re-attaches the validator to the wrong class.

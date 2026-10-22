@@ -66,10 +66,15 @@ export function stageAllocation(model: AssignmentsModel, draft: AssignmentDraft,
   return { draft: next, staged, rejected, overLimit };
 }
 
-/** Points an existing proposed change at a different person (re-planned against the live model). */
+/**
+ * Points an existing proposed change at a different person (re-planned against the live model). Moving a Smart Balance
+ * recommendation makes it the supervisor's own decision (`ai_editor`), so it is never published as an untouched AI
+ * suggestion. A manual (bulk / single) change keeps its source.
+ */
 export function moveChange(model: AssignmentsModel, draft: AssignmentDraft, roomId: string, toUserId: string): StageResult {
   const existing = draft.changes[roomId];
-  return stageAllocation(model, draft, { [roomId]: toUserId }, existing?.source ?? "bulk");
+  const source: PlanSource = existing?.source === "smart_balance" ? "ai_editor" : (existing?.source ?? "bulk");
+  return stageAllocation(model, draft, { [roomId]: toUserId }, source);
 }
 
 export function removeFromDraft(draft: AssignmentDraft, roomId: string): AssignmentDraft {

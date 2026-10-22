@@ -5333,6 +5333,336 @@
         "team": {
           "proposed": "Proposed after draft: {{value}}"
         }
+      },
+      "smart": {
+        "entry": {
+          "title": "Smart Balance",
+          "body": "Distribute room assignments using staff availability, workload and room priority.",
+          "cta": "Create assignment plan",
+          "resume": "Resume your plan",
+          "resumeBody": "{{count}} proposed change · not published",
+          "resumeBody_plural": "{{count}} proposed changes · not published",
+          "hint": "Opens the planning options. Nothing is assigned until you review and publish.",
+          "paused": {
+            "offline": "You're offline. Reconnect to create a plan.",
+            "not_live": "The board is out of date. Refresh it to create a plan."
+          }
+        },
+        "setup": {
+          "title": "Smart Balance",
+          "intro": "Create a proposed assignment plan using staff availability, workload and room priority. Nothing changes until you review and publish it.",
+          "close": "Close",
+          "scopeTitle": "What should be balanced?",
+          "scope": {
+            "unassigned": {
+              "label": "Only unassigned rooms",
+              "hint": "Rooms nobody owns. Existing assignments stay exactly as they are."
+            },
+            "all_unstarted": {
+              "label": "All eligible, unstarted work",
+              "hint": "Also considers rooms that are assigned but not started.",
+              "warning": "This can move existing, unstarted assignments if you approve the plan. Rooms being cleaned are never touched."
+            },
+            "selected": {
+              "label": "My selected rooms",
+              "hint": "Only the rooms you selected in the list.",
+              "count": "{{count}} room selected",
+              "count_plural": "{{count}} rooms selected",
+              "none": "Select rooms in the list first."
+            }
+          },
+          "prefsTitle": "Planning preferences",
+          "prefsSource": {
+            "loading": "Loading your property's settings…",
+            "property": "Defaults come from your property's assignment settings. Changes here apply to this plan only.",
+            "defaults": "Your property's settings couldn't be read, so standard defaults are used. Changes here apply to this plan only."
+          },
+          "pref": {
+            "balanceWorkload": "Balance workload fairly",
+            "prioritizeDeadlines": "Prioritize guest deadlines",
+            "preferNearby": "Prefer nearby floors and buildings",
+            "minimizeReassignment": "Minimize unnecessary reassignment",
+            "protectStarted": "Protect cleaning already started",
+            "always": "Always on"
+          },
+          "staffRule": "Only housekeepers verified as on shift receive rooms. People on break or off shift are left out according to your property's settings.",
+          "preflight": {
+            "rooms": "{{count}} room will be planned",
+            "rooms_plural": "{{count}} rooms will be planned",
+            "people": "{{count}} housekeeper can receive rooms",
+            "people_plural": "{{count}} housekeepers can receive rooms",
+            "heldBack": "{{count}} room held back (blocked)",
+            "heldBack_plural": "{{count}} rooms held back (blocked)",
+            "truncated": "One plan covers at most {{count}} rooms; the most urgent come first."
+          },
+          "generate": "Generate preview",
+          "generating": "Creating your plan…",
+          "retry": "Try again",
+          "refresh": "Refresh the board",
+          "blocked": {
+            "board_unavailable": "The board isn't loaded yet. Refresh and try again.",
+            "not_live": "The board is out of date. Refresh it before creating a plan.",
+            "offline": "You're offline. Reconnect to create a plan.",
+            "staff_unavailable": "The staff list couldn't be loaded. Refresh the team information before creating a plan.",
+            "attendance_unavailable": "Staff availability could not be verified. Refresh the team information before creating a plan.",
+            "no_rooms": "All eligible rooms are already assigned.",
+            "selection_empty": "None of the selected rooms can be planned.",
+            "no_staff": "No housekeepers are currently verified as available for new assignments."
+          },
+          "failed": {
+            "offline": "You're offline. Reconnect to create a plan.",
+            "day_changed": "The hotel's day changed. Refresh and create a new plan.",
+            "permission": "You don't have permission to create assignment plans.",
+            "invalid": "The plan request wasn't accepted. Refresh the board and try again.",
+            "unavailable": "The plan couldn't be created right now. Nothing was changed. Try again.",
+            "unverified": "The plan couldn't be verified, so it isn't shown. Nothing was changed. Try again."
+          }
+        },
+        "preview": {
+          "title": "Smart Balance preview",
+          "back": "Back",
+          "heading": "Proposed allocation",
+          "generatedFor": "Generated for {{date}}",
+          "summary": {
+            "planned": "{{count}} room planned",
+            "planned_plural": "{{count}} rooms planned",
+            "affected": "{{count}} attendant affected",
+            "affected_plural": "{{count}} attendants affected",
+            "urgent": "{{count}} urgent room covered",
+            "urgent_plural": "{{count}} urgent rooms covered",
+            "excluded": "{{count}} room excluded",
+            "excluded_plural": "{{count}} rooms excluded"
+          },
+          "status": {
+            "fallback": "The optimizer didn't finish, so a simpler method was used. The plan still follows every hard rule.",
+            "no_safe_plan": "No allocation satisfies the current requirements.",
+            "no_safe_planBody": "Nothing is proposed. Check staff availability and capacity, try another scope, or assign rooms manually.",
+            "nothing_to_plan": "Nothing was left to plan after the rooms were checked again.",
+            "no_staff": "No housekeeper could receive rooms.",
+            "empty": "This plan changes no assignments."
+          },
+          "workload": {
+            "title": "Workload comparison",
+            "before": "Before",
+            "after": "After",
+            "gains": "{{count}} new",
+            "gains_plural": "{{count}} new",
+            "releases": "{{count}} room moves out",
+            "releases_plural": "{{count}} rooms move out",
+            "admitted": {
+              "on_break": "On break — you'll confirm this at review",
+              "not_on_shift": "Not on shift — you'll confirm this at review"
+            },
+            "incomplete": "Some estimates are missing, so this comparison is incomplete."
+          },
+          "distribution": {
+            "title": "Proposed room distribution",
+            "new": "{{count}} new",
+            "new_plural": "{{count}} new",
+            "moved": "{{count}} moved in",
+            "moved_plural": "{{count}} moved in",
+            "open": "View {{name}}'s plan"
+          },
+          "notes": {
+            "title": "Worth knowing",
+            "missingEstimates": "{{count}} planned room has no time estimate. The workload comparison is incomplete.",
+            "missingEstimates_plural": "{{count}} planned rooms have no time estimate. The workload comparison is incomplete.",
+            "capacityWarning": "{{count}} housekeeper would see a new workload warning.",
+            "capacityWarning_plural": "{{count}} housekeepers would see a new workload warning.",
+            "unallocated": "{{count}} eligible room could not be allocated.",
+            "unallocated_plural": "{{count}} eligible rooms could not be allocated.",
+            "urgentUnallocated": "{{count}} urgent room is not covered.",
+            "urgentUnallocated_plural": "{{count}} urgent rooms are not covered.",
+            "partial": "{{planned}} of {{eligible}} eligible rooms could be allocated.",
+            "protected": "{{count}} room being cleaned stays protected.",
+            "protected_plural": "{{count}} rooms being cleaned stay protected.",
+            "preserved": "{{count}} existing assignment stays as it is.",
+            "preserved_plural": "{{count}} existing assignments stay as they are.",
+            "moved": "{{count}} existing assignment would change hands.",
+            "moved_plural": "{{count}} existing assignments would change hands.",
+            "takenOut": "{{count}} room taken out of the plan by you.",
+            "takenOut_plural": "{{count}} rooms taken out of the plan by you.",
+            "edited": "{{count}} change edited by you.",
+            "edited_plural": "{{count}} changes edited by you.",
+            "truncated": "This plan covers the {{count}} most urgent rooms. Plan again for the rest.",
+            "unplaceable": "{{count}} proposed change can't be added right now.",
+            "unplaceable_plural": "{{count}} proposed changes can't be added right now."
+          },
+          "assumptions": {
+            "unknown_estimate_surrogate": "{{rooms}} room(s) have no time estimate. They were spread using a planning value of {{minutes}} min that is not shown as a duration.",
+            "capacity_unknown": "Capacity limits are unknown for some staff, so none were applied to them.",
+            "credits_incomplete": "Some rooms have no credit value, so credit limits only counted the credits that are known."
+          },
+          "why": "{{count}} excluded · View why",
+          "why_plural": "{{count}} excluded · View why",
+          "actions": {
+            "addToDraft": "Add to draft",
+            "adjust": "Adjust plan",
+            "discard": "Discard",
+            "refresh": "Refresh and replan",
+            "undo": "Undo last change",
+            "hint": "Adds the proposed changes to your unpublished draft. Nothing is assigned until you publish."
+          },
+          "stale": {
+            "title": "Assignments changed while you were reviewing",
+            "body": "Refresh and generate a new plan. This plan can't be added to your draft.",
+            "reasons": {
+              "day": "The hotel's day changed.",
+              "scope": "You switched hotel or account.",
+              "board_unavailable": "The board is unavailable.",
+              "attendance_unverified": "Staff availability is no longer verified.",
+              "settings_changed": "Workload settings changed.",
+              "rooms_changed": "Rooms changed: {{rooms}}.",
+              "staff_changed": "Staff availability changed: {{names}}."
+            }
+          },
+          "paused": {
+            "offline": "You're offline. You can review this plan, but you can't add it to your draft until you reconnect.",
+            "not_live": "The board is out of date. Refresh it before adding this plan to your draft."
+          }
+        },
+        "detail": {
+          "unnamed": "Housekeeper",
+          "proposedRemaining": "Proposed remaining: {{value}}",
+          "existing": "Existing work",
+          "proposed": "Newly proposed",
+          "noneExisting": "No other rooms today.",
+          "noneProposed": "Nothing proposed for this person.",
+          "stage": {
+            "completed": "Completed",
+            "in_progress": "In progress",
+            "not_started": "Not started"
+          },
+          "status": {
+            "protected": "Protected",
+            "retained": "Retained",
+            "moving_out": "Moving to {{name}}"
+          },
+          "kind": {
+            "new": "New",
+            "moved": "Moved from {{name}}"
+          },
+          "origin": {
+            "optimizer": "Recommended",
+            "edited": "Edited by you"
+          },
+          "noEstimate": "No time estimate",
+          "actions": {
+            "remove": "Remove",
+            "restore": "Restore to {{name}}",
+            "move": "Move",
+            "moveLabel": "Move room {{room}} to another housekeeper",
+            "removeLabel": "Remove room {{room}} from the plan",
+            "restoreLabel": "Restore room {{room}} to its current owner",
+            "addAnother": "Add another eligible room",
+            "done": "Save plan edits"
+          },
+          "why": "Why",
+          "picker": {
+            "moveTitle": "Move room {{room}} to…",
+            "addTitle": "Add a room for {{name}}",
+            "none": "No other housekeeper can receive rooms.",
+            "noRooms": "No other eligible rooms to add.",
+            "cancel": "Cancel",
+            "current": "Current"
+          },
+          "refusal": {
+            "unknown_room": "That room is no longer in the plan.",
+            "protected": "That room stays with its current owner and can't be changed here.",
+            "not_a_receiver": "That person can't receive rooms in this plan.",
+            "same_person": "The room is already planned for that person.",
+            "limit": "A plan can hold at most 150 changes.",
+            "not_addable": "That room can't be added automatically.",
+            "already_planned": "That room is already in the plan."
+          }
+        },
+        "exceptions": {
+          "title": "Planning exceptions",
+          "rooms": "{{count}} room excluded",
+          "rooms_plural": "{{count}} rooms excluded",
+          "staffTitle": "Staff exclusions",
+          "unallocatedTitle": "Not allocated",
+          "protectedRow": "{{count}} room being cleaned is protected",
+          "protectedRow_plural": "{{count}} rooms being cleaned are protected",
+          "roomLabel": "Room {{room}}",
+          "viewRoom": "View room details",
+          "viewStaff": "View team member",
+          "done": "Done",
+          "empty": "Nothing was excluded from this plan.",
+          "softBody": "Needs your decision on this room; it can't be planned automatically.",
+          "room": {
+            "soft": {
+              "dnd": "Do Not Disturb",
+              "service_declined": "Service declined",
+              "return_later": "Return later",
+              "occupancy_discrepancy": "Occupancy discrepancy"
+            },
+            "now_assigned": "Now assigned to {{name}}",
+            "now_assigned_unknown": "Now assigned to someone",
+            "no_longer_plannable": "No longer available to plan",
+            "server": {
+              "not_found": "Not found for this hotel",
+              "not_assignable": "No longer in a state that can be assigned",
+              "room_blocked": "Blocked when checked again",
+              "owner_changed": "Assignment changed while planning"
+            }
+          },
+          "staff": {
+            "on_break": "Currently on break",
+            "shift_ended": "Shift ended",
+            "not_on_shift": "Not clocked in",
+            "attendance_unknown": "Availability not verified",
+            "no_capacity": "No available capacity",
+            "not_eligible": "Not eligible to receive housekeeping rooms"
+          },
+          "leftOut": {
+            "insufficient_capacity": "Not enough capacity under the current limits",
+            "no_eligible_staff": "No eligible staff",
+            "solver_no_solution": "The planner couldn't allocate it",
+            "taken_out": "Taken out by you"
+          }
+        },
+        "conflict": {
+          "title": "Your draft already has changes",
+          "body": "{{count}} room is in both your draft and this plan.",
+          "body_plural": "{{count}} rooms are in both your draft and this plan.",
+          "merge": "Keep my changes and add the rest",
+          "mergeHint": "Rooms already in your draft keep what you chose.",
+          "replace": "Replace my draft with this plan",
+          "replaceHint": "Your current draft changes are discarded.",
+          "cancel": "Cancel"
+        },
+        "discard": {
+          "title": "Discard this plan?",
+          "body": "Your edits to this plan will be lost. Nothing has been assigned.",
+          "confirm": "Discard plan",
+          "keep": "Keep editing"
+        },
+        "draft": {
+          "added": "Added {{count}} room to your draft",
+          "added_plural": "Added {{count}} rooms to your draft",
+          "someRefused": "{{count}} room couldn't be added and was left out.",
+          "someRefused_plural": "{{count}} rooms couldn't be added and were left out.",
+          "nothingAdded": "Nothing could be added to the draft.",
+          "tooMany": "A draft can hold at most {{max}} changes.",
+          "keptYours": "Your draft changes were kept."
+        },
+        "why": {
+          "urgent": {
+            "guest_waiting": "A guest is recorded as waiting.",
+            "reclean_requested": "A reclean was requested.",
+            "rush": "Marked as a rush room.",
+            "arrival_passed": "The recorded guest arrival has passed.",
+            "arrival_today": "A guest arrival is recorded later today.",
+            "vip": "VIP room.",
+            "high_risk": "Forecast at high risk of not being ready."
+          },
+          "lowestWorkload": "Has the lowest remaining workload ({{minutes}} min known).",
+          "sameFloor": "Already working floor {{floor}}.",
+          "sameBuilding": "Already working in building {{building}}.",
+          "movedFrom": "Reassigned from {{name}}.",
+          "edited": "You chose this assignment."
+        }
       }
     }
   },

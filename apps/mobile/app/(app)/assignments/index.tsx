@@ -10,6 +10,8 @@ import { BulkAssignHost } from "@/components/supervisor/assignments/BulkAssignHo
 import { BulkSelectionBar } from "@/components/supervisor/assignments/BulkSelectionBar";
 import { DraftIndicator } from "@/components/supervisor/assignments/DraftIndicator";
 import { SelectableRoomRow } from "@/components/supervisor/assignments/SelectableRoomRow";
+import { SmartBalanceEntryCard } from "@/components/supervisor/assignments/SmartBalanceEntryCard";
+import { SmartBalanceHost } from "@/components/supervisor/assignments/SmartBalanceHost";
 import { AssignmentFilterSheet } from "@/components/supervisor/assignments/AssignmentFilterSheet";
 import { AssignmentRoomCard } from "@/components/supervisor/assignments/AssignmentRoomCard";
 import { AssignmentRoomSheet } from "@/components/supervisor/assignments/AssignmentRoomSheet";
@@ -45,6 +47,8 @@ import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
 import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
 import { useBulkAssignment } from "@/lib/housekeeping/useBulkAssignment";
+import { useSmartBalance } from "@/lib/housekeeping/useSmartBalance";
+import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -74,6 +78,25 @@ export default function AssignmentsScreen() {
   // else here (no fetch or subscription of its own) and changes nothing until a reviewed draft is published.
   const bulk = useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, queue: rooms.queue, visible: query.visible, t, toast });
   const selecting = bulk.selection.selecting;
+  // Smart Balance: a read-only proposal that, once reviewed, goes into the SAME unpublished draft as manual bulk work and
+  // is published through the SAME atomic path. It reads the same model (no snapshot, fetch or subscription of its own).
+  const user = useAppStore((current) => current.user);
+  const role = user?.effective_role ?? user?.role;
+  const canPlan = role === "gm" || role === "housekeeping_supervisor";
+  const smart = useSmartBalance({
+    model,
+    gate,
+    isOnline,
+    scopeKey,
+    hotelId: user?.tenant_id ?? null,
+    draft: bulk.draft,
+    selectedRoomIds: bulk.selection.selected,
+    showReview: bulk.showReview,
+    onAdded: (roomIds) => bulk.selection.consume(roomIds),
+    refresh,
+    t,
+    toast,
+  });
 
   const [tab, setTab] = useState<AssignmentsTab>("rooms");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -103,8 +126,8 @@ export default function AssignmentsScreen() {
 
   // Android Back with unpublished work (or an unclear publication) asks first. (The draft is kept in memory while the
   // app lives - this tab stays mounted when the supervisor goes elsewhere - so only an explicit Back can lose it.)
-  const dirtyRef = useRef(bulk.dirty);
-  dirtyRef.current = bulk.dirty;
+  const dirtyRef = useRef(bulk.dirty || smart.plan !== null);
+  dirtyRef.current = bulk.dirty || smart.plan !== null;
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (!dirtyRef.current) return false;
@@ -324,6 +347,9 @@ export default function AssignmentsScreen() {
     <View>
       {selecting ? null : header}
       <DraftIndicator bulk={bulk} t={t} />
+      {tab === "rooms" && boardKnown && canPlan && !selecting ? (
+        <SmartBalanceEntryCard onPress={smart.open} paused={smart.paused} proposedChanges={smart.plan ? (smart.preview?.counts.planned ?? 0) : null} t={t} />
+      ) : null}
       {notices.map((notice) => (
         <View
           key={notice.key}
@@ -509,8 +535,38 @@ export default function AssignmentsScreen() {
         testID="assignments-list"
       />
 
-      {selecting ? <BulkActionFooter bulk={bulk} bottomInset={insets.bottom} t={t} /> : null}
+      {selecting ? (
+        <BulkActionFooter
+          bulk={bulk}
+          bottomInset={insets.bottom}
+          t={t}
+          {...(canPlan
+            ? {
+                onSmartBalance: () => {
+                  smart.setScope("selected");
+                  smart.open();
+                },
+              }
+            : {})}
+        />
+      ) : null}
       <BulkAssignHost bulk={bulk} onViewTeam={viewTeam} />
+      <SmartBalanceHost
+        smart={smart}
+        model={model}
+        dateLabel={boardKnown ? operationalDateLabel(model, language) : null}
+        onRefresh={() => void onRefresh()}
+        onViewRoom={(roomId) => {
+          smart.close();
+          onOpenRoom(roomId, "view_assignment");
+        }}
+        onViewStaff={(userId) => {
+          smart.close();
+          setTab("team");
+          onOpenStaff(userId);
+        }}
+        toast={toast.info}
+      />
 
       {selectedEntry ? (
         <AssignmentRoomSheet

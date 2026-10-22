@@ -37,15 +37,22 @@ export type BatchRequestRefusal =
 
 export type BatchRequestResult = { ok: true; request: BatchPublishRequest } | { ok: false; refusal: BatchRequestRefusal; roomId?: string };
 
+/**
+ * PROVENANCE: a change is an AI suggestion only while it is exactly what Smart Balance recommended (`source:
+ * "smart_balance"`). The moment the supervisor moves or adds a room it becomes `ai_editor` (their own decision) and is
+ * sent without the flag, so one atomic publication can carry both kinds honestly and the audit trail tells them apart.
+ */
+const aiFlag = (change: PlannedChange): { is_ai_suggested?: true } => (change.source === "smart_balance" ? { is_ai_suggested: true } : {});
+
 function wireChange(change: PlannedChange): BatchChangeInput | null {
   const expected = expectedOwnerId(change.expected);
   if (expected !== change.fromUserId) return null;
   if (change.kind === "assign") {
-    return change.fromUserId === null && change.toUserId !== null ? { room_id: change.roomId, kind: "assign", housekeeper_id: change.toUserId, expect_unassigned: true } : null;
+    return change.fromUserId === null && change.toUserId !== null ? { room_id: change.roomId, kind: "assign", housekeeper_id: change.toUserId, expect_unassigned: true, ...aiFlag(change) } : null;
   }
   if (change.kind === "reassign") {
     return change.fromUserId !== null && change.toUserId !== null && change.fromUserId !== change.toUserId
-      ? { room_id: change.roomId, kind: "reassign", housekeeper_id: change.toUserId, expected_assigned_to: change.fromUserId }
+      ? { room_id: change.roomId, kind: "reassign", housekeeper_id: change.toUserId, expected_assigned_to: change.fromUserId, ...aiFlag(change) }
       : null;
   }
   return change.fromUserId !== null && change.toUserId === null ? { room_id: change.roomId, kind: "remove", expected_assigned_to: change.fromUserId } : null;

@@ -13,7 +13,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    selection turns into anything: "Assign selected" and "Add to draft" both open the allocation drawer — neither
    writes — and "Clear" empties the selection. Everything is off while changes are paused. */
 
-export function BulkActionFooter({ bulk, bottomInset, t }: { bulk: BulkAssignmentController; bottomInset: number; t: Translate }) {
+export function BulkActionFooter({ bulk, bottomInset, t, onSmartBalance }: { bulk: BulkAssignmentController; bottomInset: number; t: Translate; /** Opens Smart Balance for the selected rooms; absent for roles that may not plan. */ onSmartBalance?: () => void }) {
   const theme = useTheme();
   const { summary } = bulk.selection;
   const valid = summary.valid.length;
@@ -46,6 +46,13 @@ export function BulkActionFooter({ bulk, bottomInset, t }: { bulk: BulkAssignmen
             {t("assignments.v2.bulk.footer.addToDraft")}
           </Text>
         </Pressable>
+        {onSmartBalance ? (
+          <Pressable onPress={onSmartBalance} disabled={off} accessibilityRole="button" accessibilityLabel={t("assignments.v2.smart.entry.title")} accessibilityState={{ disabled: off }} style={[styles.link, off && { opacity: 0.45 }]} testID="bulk-smart-balance">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.primaryAction }]}>
+              {t("assignments.v2.smart.entry.title")}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable onPress={bulk.selection.clear} disabled={summary.selectedCount === 0} accessibilityRole="button" accessibilityLabel={t("assignments.v2.bulk.footer.clear")} accessibilityState={{ disabled: summary.selectedCount === 0 }} style={[styles.link, summary.selectedCount === 0 && { opacity: 0.45 }]} testID="bulk-clear">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.textSecondary }]}>
             {t("assignments.v2.bulk.footer.clear")}

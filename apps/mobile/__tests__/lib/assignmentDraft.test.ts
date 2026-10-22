@@ -65,10 +65,16 @@ describe("staging an allocation", () => {
     expect(second.changes["room-101"].toUserId).toBe("hk-3");
   });
 
-  it("moves a proposed change to another person and keeps its source", () => {
+  it("moves a manual change to another person and keeps its source", () => {
+    const first = stageAllocation(model, fresh(), { "room-101": "hk-2" }, "bulk").draft;
+    const moved = moveChange(model, first, "room-101", "hk-3");
+    expect(moved.draft.changes["room-101"]).toMatchObject({ toUserId: "hk-3", source: "bulk" });
+  });
+
+  it("moving a Smart Balance recommendation makes it the supervisor's own decision (never an untouched AI suggestion)", () => {
     const first = stageAllocation(model, fresh(), { "room-101": "hk-2" }, "smart_balance").draft;
     const moved = moveChange(model, first, "room-101", "hk-3");
-    expect(moved.draft.changes["room-101"]).toMatchObject({ toUserId: "hk-3", source: "smart_balance" });
+    expect(moved.draft.changes["room-101"]).toMatchObject({ toUserId: "hk-3", source: "ai_editor" });
   });
 
   it("never grows past one publication's capacity", () => {

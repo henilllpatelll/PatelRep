@@ -85,15 +85,19 @@ def make_hotel(db, *, rooms: dict[str, dict] | None = None, housekeepers: int = 
     return hotel
 
 
-def change(room_id: str, kind: str, to: str | None = None, expected: str | None = None) -> dict:
-    """One batch change in the shape the database function (and the API) take."""
-    return {
+def change(room_id: str, kind: str, to: str | None = None, expected: str | None = None, ai: bool = False) -> dict:
+    """One batch change in the shape the database function (and the API) take. `ai` marks an untouched Smart Balance
+    recommendation (migration 222); it is only sent when true, exactly as an older client would."""
+    item = {
         "room_id": room_id,
         "kind": kind,
         "housekeeper_id": to,
         "expected_assigned_to": expected,
         "expect_unassigned": kind == "assign",
     }
+    if ai:
+        item["is_ai_suggested"] = True
+    return item
 
 
 def publish(db, hotel: Hotel, changes: list[dict], *, operation_id: str | None = None, actor: str | None = None, on: date | None = None, tenant_id: str | None = None) -> dict:

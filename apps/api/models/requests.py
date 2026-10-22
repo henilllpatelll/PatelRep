@@ -634,9 +634,14 @@ class BatchAssignmentChange(SanitizedBaseModel):
     housekeeper_id: Optional[UUID4] = None
     expected_assigned_to: Optional[UUID4] = None
     expect_unassigned: bool = False
+    # Provenance of THIS change: true only for an untouched Smart Balance recommendation. A supervisor's own choice -
+    # or an edit of a recommendation - is false, so one atomic publication can honestly carry both.
+    is_ai_suggested: bool = False
 
     @model_validator(mode="after")
     def _consistent_expectation(self):
+        if self.kind == "remove" and self.is_ai_suggested:
+            raise ValueError("a removal is never an AI suggestion")
         if self.kind == "assign":
             if self.housekeeper_id is None or not self.expect_unassigned or self.expected_assigned_to is not None:
                 raise ValueError("assign needs housekeeper_id and expect_unassigned=true, and no expected_assigned_to")
@@ -671,6 +676,101 @@ class BatchPublishAssignmentsRequest(SanitizedBaseModel):
             if change.room_id in seen:
                 raise ValueError("a room may appear only once in a batch")
             seen.add(change.room_id)
+        return self
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Smart Balance planning (POST /housekeeping/smart-balance/plan) - READ-ONLY
+# ---------------------------------------------------------------------------------------------------------------------
+
+MAX_SMART_BALANCE_ROOMS = 300
+MAX_SMART_BALANCE_STAFF = 100
+
+SmartBalanceReason = Literal[
+    "guest_waiting", "reclean_requested", "rush", "arrival_passed", "arrival_today", "vip", "high_risk"
+]
+
+
+class SmartBalancePreferences(BaseModel):
+    """One planning run's choices. They are NOT saved: the property's stored preferences are never changed here."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    balance_workload: bool = True
+    prioritize_guest_waiting: bool = True
+    prioritize_rush: bool = True
+    prioritize_arrival: bool = True
+    prefer_same_building: bool = True
+    prefer_same_floor: bool = True
+    minimize_reassignment: bool = True
+
+
+class SmartBalanceRoom(SanitizedBaseModel):
+    """A room the app proposes for the pool. The server re-verifies every fact that matters for safety."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    room_id: UUID4
+    room_number: str = Field(min_length=1, max_length=20)
+    floor: Optional[int] = Field(default=None, ge=-5, le=200)
+    building: Optional[str] = Field(default=None, max_length=40)
+    # The owner the supervisor SAW (null = unassigned). The server refuses the room if it is not the owner now.
+    expected_owner_id: Optional[UUID4] = None
+    minutes: Optional[int] = Field(default=None, ge=1, le=720)
+    minutes_basis: Optional[Literal["history", "room_type"]] = None
+    credits: Optional[float] = Field(default=None, ge=0, le=200)
+    reasons: List[SmartBalanceReason] = Field(default_factory=list, max_length=7)
+    arrival_at: Optional[int] = Field(default=None, ge=0)
+
+
+class SmartBalanceFloor(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    building: Optional[str] = Field(default=None, max_length=40)
+    floor: int = Field(ge=-5, le=200)
+
+
+class SmartBalanceStaff(SanitizedBaseModel):
+    """A person the app has already judged eligible to RECEIVE rooms (verified attendance, listed, housekeeping role).
+    The server re-checks their tenant and role; it never takes attendance on trust to widen the set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: UUID4
+    # Existing work that is NOT one of the pool rooms.
+    base_minutes: int = Field(default=0, ge=0, le=20000)
+    base_unknown_rooms: int = Field(default=0, ge=0, le=400)
+    base_rooms: int = Field(default=0, ge=0, le=400)
+    base_credits: float = Field(default=0, ge=0, le=2000)
+    credits_complete: bool = True
+    credit_target: Optional[float] = Field(default=None, gt=0, le=2000)
+    shift_minutes_left: Optional[int] = Field(default=None, ge=0, le=1440)
+    floors: List[SmartBalanceFloor] = Field(default_factory=list, max_length=80)
+    buildings: List[str] = Field(default_factory=list, max_length=20)
+
+
+class SmartBalancePlanRequest(SanitizedBaseModel):
+    """Generate a PROPOSAL. Nothing in the answer is applied: it is published, if at all, through
+    POST /housekeeping/assignments/batch-publish after the supervisor has reviewed it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    scope: Literal["unassigned", "all_unstarted", "selected"]
+    rooms: List[SmartBalanceRoom] = Field(max_length=MAX_SMART_BALANCE_ROOMS)
+    staff: List[SmartBalanceStaff] = Field(max_length=MAX_SMART_BALANCE_STAFF)
+    preferences: SmartBalancePreferences = Field(default_factory=SmartBalancePreferences)
+    # When the app last verified the board this request was built from (epoch ms); echoed back so a stale answer shows.
+    snapshot_verified_at: Optional[int] = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _unique(self):
+        room_ids = [room.room_id for room in self.rooms]
+        if len(set(room_ids)) != len(room_ids):
+            raise ValueError("a room may appear only once")
+        staff_ids = [person.user_id for person in self.staff]
+        if len(set(staff_ids)) != len(staff_ids):
+            raise ValueError("a person may appear only once")
         return self
 
 

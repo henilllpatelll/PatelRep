@@ -5333,6 +5333,336 @@
         "team": {
           "proposed": "Propuesto tras el borrador: {{value}}"
         }
+      },
+      "smart": {
+        "entry": {
+          "title": "Smart Balance",
+          "body": "Reparte las asignaciones de habitaciones según la disponibilidad del personal, la carga de trabajo y la prioridad.",
+          "cta": "Crear plan de asignación",
+          "resume": "Continuar tu plan",
+          "resumeBody": "{{count}} cambio propuesto · sin publicar",
+          "resumeBody_plural": "{{count}} cambios propuestos · sin publicar",
+          "hint": "Abre las opciones de planificación. No se asigna nada hasta que revises y publiques.",
+          "paused": {
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "not_live": "El tablero está desactualizado. Actualízalo para crear un plan."
+          }
+        },
+        "setup": {
+          "title": "Smart Balance",
+          "intro": "Crea un plan de asignación propuesto según la disponibilidad del personal, la carga de trabajo y la prioridad. Nada cambia hasta que lo revises y lo publiques.",
+          "close": "Cerrar",
+          "scopeTitle": "¿Qué se debe equilibrar?",
+          "scope": {
+            "unassigned": {
+              "label": "Solo habitaciones sin asignar",
+              "hint": "Habitaciones sin responsable. Las asignaciones existentes no cambian."
+            },
+            "all_unstarted": {
+              "label": "Todo el trabajo elegible sin iniciar",
+              "hint": "También considera habitaciones ya asignadas que aún no se han iniciado.",
+              "warning": "Esto puede mover asignaciones existentes sin iniciar si apruebas el plan. Las habitaciones que se están limpiando nunca se tocan."
+            },
+            "selected": {
+              "label": "Mis habitaciones seleccionadas",
+              "hint": "Solo las habitaciones que seleccionaste en la lista.",
+              "count": "{{count}} habitación seleccionada",
+              "count_plural": "{{count}} habitaciones seleccionadas",
+              "none": "Primero selecciona habitaciones en la lista."
+            }
+          },
+          "prefsTitle": "Preferencias de planificación",
+          "prefsSource": {
+            "loading": "Cargando los ajustes de tu propiedad…",
+            "property": "Los valores iniciales vienen de los ajustes de asignación de tu propiedad. Los cambios aquí solo valen para este plan.",
+            "defaults": "No se pudieron leer los ajustes de tu propiedad, así que se usan los valores estándar. Los cambios aquí solo valen para este plan."
+          },
+          "pref": {
+            "balanceWorkload": "Equilibrar la carga de trabajo",
+            "prioritizeDeadlines": "Priorizar los plazos de los huéspedes",
+            "preferNearby": "Preferir pisos y edificios cercanos",
+            "minimizeReassignment": "Minimizar reasignaciones innecesarias",
+            "protectStarted": "Proteger la limpieza ya iniciada",
+            "always": "Siempre activado"
+          },
+          "staffRule": "Solo reciben habitaciones las personas de limpieza con turno verificado. Quienes están en descanso o fuera de turno se excluyen según los ajustes de tu propiedad.",
+          "preflight": {
+            "rooms": "Se planificará {{count}} habitación",
+            "rooms_plural": "Se planificarán {{count}} habitaciones",
+            "people": "{{count}} persona puede recibir habitaciones",
+            "people_plural": "{{count}} personas pueden recibir habitaciones",
+            "heldBack": "{{count}} habitación retenida (bloqueada)",
+            "heldBack_plural": "{{count}} habitaciones retenidas (bloqueadas)",
+            "truncated": "Un plan cubre como máximo {{count}} habitaciones; primero las más urgentes."
+          },
+          "generate": "Generar vista previa",
+          "generating": "Creando tu plan…",
+          "retry": "Intentar de nuevo",
+          "refresh": "Actualizar el tablero",
+          "blocked": {
+            "board_unavailable": "El tablero aún no se ha cargado. Actualiza e inténtalo de nuevo.",
+            "not_live": "El tablero está desactualizado. Actualízalo antes de crear un plan.",
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "staff_unavailable": "No se pudo cargar la lista del personal. Actualiza la información del equipo antes de crear un plan.",
+            "attendance_unavailable": "No se pudo verificar la disponibilidad del personal. Actualiza la información del equipo antes de crear un plan.",
+            "no_rooms": "Todas las habitaciones elegibles ya están asignadas.",
+            "selection_empty": "Ninguna de las habitaciones seleccionadas se puede planificar.",
+            "no_staff": "Ninguna persona de limpieza está verificada como disponible para nuevas asignaciones."
+          },
+          "failed": {
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "day_changed": "Cambió el día del hotel. Actualiza y crea un plan nuevo.",
+            "permission": "No tienes permiso para crear planes de asignación.",
+            "invalid": "No se aceptó la solicitud del plan. Actualiza el tablero e inténtalo de nuevo.",
+            "unavailable": "No se pudo crear el plan en este momento. No se cambió nada. Inténtalo de nuevo.",
+            "unverified": "No se pudo verificar el plan, así que no se muestra. No se cambió nada. Inténtalo de nuevo."
+          }
+        },
+        "preview": {
+          "title": "Vista previa de Smart Balance",
+          "back": "Atrás",
+          "heading": "Distribución propuesta",
+          "generatedFor": "Generado para {{date}}",
+          "summary": {
+            "planned": "{{count}} habitación planificada",
+            "planned_plural": "{{count}} habitaciones planificadas",
+            "affected": "{{count}} persona afectada",
+            "affected_plural": "{{count}} personas afectadas",
+            "urgent": "{{count}} habitación urgente cubierta",
+            "urgent_plural": "{{count}} habitaciones urgentes cubiertas",
+            "excluded": "{{count}} habitación excluida",
+            "excluded_plural": "{{count}} habitaciones excluidas"
+          },
+          "status": {
+            "fallback": "El optimizador no terminó, así que se usó un método más simple. El plan sigue cumpliendo todas las reglas obligatorias.",
+            "no_safe_plan": "Ninguna distribución cumple los requisitos actuales.",
+            "no_safe_planBody": "No se propone nada. Revisa la disponibilidad y la capacidad del personal, prueba otro alcance o asigna las habitaciones manualmente.",
+            "nothing_to_plan": "No quedó nada por planificar después de volver a comprobar las habitaciones.",
+            "no_staff": "Nadie pudo recibir habitaciones.",
+            "empty": "Este plan no cambia ninguna asignación."
+          },
+          "workload": {
+            "title": "Comparación de carga de trabajo",
+            "before": "Antes",
+            "after": "Después",
+            "gains": "{{count}} nueva",
+            "gains_plural": "{{count}} nuevas",
+            "releases": "{{count}} habitación sale",
+            "releases_plural": "{{count}} habitaciones salen",
+            "admitted": {
+              "on_break": "En descanso — lo confirmarás en la revisión",
+              "not_on_shift": "Fuera de turno — lo confirmarás en la revisión"
+            },
+            "incomplete": "Faltan algunas estimaciones, así que esta comparación está incompleta."
+          },
+          "distribution": {
+            "title": "Distribución de habitaciones propuesta",
+            "new": "{{count}} nueva",
+            "new_plural": "{{count}} nuevas",
+            "moved": "{{count}} pasa a esta persona",
+            "moved_plural": "{{count}} pasan a esta persona",
+            "open": "Ver el plan de {{name}}"
+          },
+          "notes": {
+            "title": "Conviene saber",
+            "missingEstimates": "{{count}} habitación planificada no tiene estimación de tiempo. La comparación de carga está incompleta.",
+            "missingEstimates_plural": "{{count}} habitaciones planificadas no tienen estimación de tiempo. La comparación de carga está incompleta.",
+            "capacityWarning": "{{count}} persona vería una nueva advertencia de carga.",
+            "capacityWarning_plural": "{{count}} personas verían una nueva advertencia de carga.",
+            "unallocated": "{{count}} habitación elegible no se pudo asignar.",
+            "unallocated_plural": "{{count}} habitaciones elegibles no se pudieron asignar.",
+            "urgentUnallocated": "{{count}} habitación urgente no está cubierta.",
+            "urgentUnallocated_plural": "{{count}} habitaciones urgentes no están cubiertas.",
+            "partial": "Se pudieron asignar {{planned}} de {{eligible}} habitaciones elegibles.",
+            "protected": "{{count}} habitación que se está limpiando sigue protegida.",
+            "protected_plural": "{{count}} habitaciones que se están limpiando siguen protegidas.",
+            "preserved": "{{count}} asignación existente queda como está.",
+            "preserved_plural": "{{count}} asignaciones existentes quedan como están.",
+            "moved": "{{count}} asignación existente cambiaría de responsable.",
+            "moved_plural": "{{count}} asignaciones existentes cambiarían de responsable.",
+            "takenOut": "Quitaste {{count}} habitación del plan.",
+            "takenOut_plural": "Quitaste {{count}} habitaciones del plan.",
+            "edited": "{{count}} cambio editado por ti.",
+            "edited_plural": "{{count}} cambios editados por ti.",
+            "truncated": "Este plan cubre las {{count}} habitaciones más urgentes. Planifica de nuevo para el resto.",
+            "unplaceable": "{{count}} cambio propuesto no se puede añadir ahora.",
+            "unplaceable_plural": "{{count}} cambios propuestos no se pueden añadir ahora."
+          },
+          "assumptions": {
+            "unknown_estimate_surrogate": "{{rooms}} habitación(es) no tienen estimación de tiempo. Se repartieron con un valor de planificación de {{minutes}} min que no se muestra como duración.",
+            "capacity_unknown": "Los límites de capacidad de parte del personal se desconocen, así que no se aplicaron.",
+            "credits_incomplete": "Algunas habitaciones no tienen valor en créditos, así que los límites de créditos solo contaron los créditos conocidos."
+          },
+          "why": "{{count}} excluida · Ver por qué",
+          "why_plural": "{{count}} excluidas · Ver por qué",
+          "actions": {
+            "addToDraft": "Añadir al borrador",
+            "adjust": "Ajustar plan",
+            "discard": "Descartar",
+            "refresh": "Actualizar y replanificar",
+            "undo": "Deshacer el último cambio",
+            "hint": "Añade los cambios propuestos a tu borrador sin publicar. No se asigna nada hasta que publiques."
+          },
+          "stale": {
+            "title": "Las asignaciones cambiaron mientras revisabas",
+            "body": "Actualiza y genera un plan nuevo. Este plan no se puede añadir a tu borrador.",
+            "reasons": {
+              "day": "Cambió el día del hotel.",
+              "scope": "Cambiaste de hotel o de cuenta.",
+              "board_unavailable": "El tablero no está disponible.",
+              "attendance_unverified": "Ya no se verifica la disponibilidad del personal.",
+              "settings_changed": "Cambiaron los ajustes de carga de trabajo.",
+              "rooms_changed": "Cambiaron habitaciones: {{rooms}}.",
+              "staff_changed": "Cambió la disponibilidad del personal: {{names}}."
+            }
+          },
+          "paused": {
+            "offline": "Estás sin conexión. Puedes revisar este plan, pero no añadirlo al borrador hasta volver a conectarte.",
+            "not_live": "El tablero está desactualizado. Actualízalo antes de añadir este plan al borrador."
+          }
+        },
+        "detail": {
+          "unnamed": "Persona de limpieza",
+          "proposedRemaining": "Restante propuesto: {{value}}",
+          "existing": "Trabajo existente",
+          "proposed": "Nuevo propuesto",
+          "noneExisting": "No tiene otras habitaciones hoy.",
+          "noneProposed": "No se propone nada para esta persona.",
+          "stage": {
+            "completed": "Completada",
+            "in_progress": "En curso",
+            "not_started": "Sin iniciar"
+          },
+          "status": {
+            "protected": "Protegida",
+            "retained": "Se mantiene",
+            "moving_out": "Pasa a {{name}}"
+          },
+          "kind": {
+            "new": "Nueva",
+            "moved": "Reasignada de {{name}}"
+          },
+          "origin": {
+            "optimizer": "Recomendada",
+            "edited": "Editada por ti"
+          },
+          "noEstimate": "Sin estimación de tiempo",
+          "actions": {
+            "remove": "Quitar",
+            "restore": "Devolver a {{name}}",
+            "move": "Mover",
+            "moveLabel": "Mover la habitación {{room}} a otra persona",
+            "removeLabel": "Quitar la habitación {{room}} del plan",
+            "restoreLabel": "Devolver la habitación {{room}} a su responsable actual",
+            "addAnother": "Añadir otra habitación elegible",
+            "done": "Guardar cambios del plan"
+          },
+          "why": "Por qué",
+          "picker": {
+            "moveTitle": "Mover la habitación {{room}} a…",
+            "addTitle": "Añadir una habitación para {{name}}",
+            "none": "Ninguna otra persona puede recibir habitaciones.",
+            "noRooms": "No hay otras habitaciones elegibles para añadir.",
+            "cancel": "Cancelar",
+            "current": "Actual"
+          },
+          "refusal": {
+            "unknown_room": "Esa habitación ya no está en el plan.",
+            "protected": "Esa habitación se queda con su responsable actual y no se puede cambiar aquí.",
+            "not_a_receiver": "Esa persona no puede recibir habitaciones en este plan.",
+            "same_person": "La habitación ya está planificada para esa persona.",
+            "limit": "Un plan puede tener como máximo 150 cambios.",
+            "not_addable": "Esa habitación no se puede añadir automáticamente.",
+            "already_planned": "Esa habitación ya está en el plan."
+          }
+        },
+        "exceptions": {
+          "title": "Excepciones de planificación",
+          "rooms": "{{count}} habitación excluida",
+          "rooms_plural": "{{count}} habitaciones excluidas",
+          "staffTitle": "Personal excluido",
+          "unallocatedTitle": "Sin asignar",
+          "protectedRow": "{{count}} habitación que se está limpiando está protegida",
+          "protectedRow_plural": "{{count}} habitaciones que se están limpiando están protegidas",
+          "roomLabel": "Habitación {{room}}",
+          "viewRoom": "Ver detalles de la habitación",
+          "viewStaff": "Ver miembro del equipo",
+          "done": "Listo",
+          "empty": "No se excluyó nada de este plan.",
+          "softBody": "Requiere tu decisión en esta habitación; no se puede planificar automáticamente.",
+          "room": {
+            "soft": {
+              "dnd": "No molestar",
+              "service_declined": "Servicio rechazado",
+              "return_later": "Volver más tarde",
+              "occupancy_discrepancy": "Discrepancia de ocupación"
+            },
+            "now_assigned": "Ahora asignada a {{name}}",
+            "now_assigned_unknown": "Ahora asignada a alguien",
+            "no_longer_plannable": "Ya no se puede planificar",
+            "server": {
+              "not_found": "No se encontró en este hotel",
+              "not_assignable": "Ya no está en un estado asignable",
+              "room_blocked": "Bloqueada al comprobarla de nuevo",
+              "owner_changed": "La asignación cambió durante la planificación"
+            }
+          },
+          "staff": {
+            "on_break": "En descanso ahora",
+            "shift_ended": "Turno terminado",
+            "not_on_shift": "Sin registrar entrada",
+            "attendance_unknown": "Disponibilidad sin verificar",
+            "no_capacity": "Sin capacidad disponible",
+            "not_eligible": "No puede recibir habitaciones de limpieza"
+          },
+          "leftOut": {
+            "insufficient_capacity": "No hay capacidad suficiente con los límites actuales",
+            "no_eligible_staff": "No hay personal elegible",
+            "solver_no_solution": "El planificador no pudo asignarla",
+            "taken_out": "La quitaste tú"
+          }
+        },
+        "conflict": {
+          "title": "Tu borrador ya tiene cambios",
+          "body": "{{count}} habitación está en tu borrador y en este plan.",
+          "body_plural": "{{count}} habitaciones están en tu borrador y en este plan.",
+          "merge": "Conservar mis cambios y añadir el resto",
+          "mergeHint": "Las habitaciones que ya están en tu borrador conservan lo que elegiste.",
+          "replace": "Reemplazar mi borrador con este plan",
+          "replaceHint": "Se descartan los cambios actuales de tu borrador.",
+          "cancel": "Cancelar"
+        },
+        "discard": {
+          "title": "¿Descartar este plan?",
+          "body": "Se perderán tus ediciones de este plan. No se ha asignado nada.",
+          "confirm": "Descartar plan",
+          "keep": "Seguir editando"
+        },
+        "draft": {
+          "added": "Se añadió {{count}} habitación a tu borrador",
+          "added_plural": "Se añadieron {{count}} habitaciones a tu borrador",
+          "someRefused": "{{count}} habitación no se pudo añadir y quedó fuera.",
+          "someRefused_plural": "{{count}} habitaciones no se pudieron añadir y quedaron fuera.",
+          "nothingAdded": "No se pudo añadir nada al borrador.",
+          "tooMany": "Un borrador puede tener como máximo {{max}} cambios.",
+          "keptYours": "Se conservaron los cambios de tu borrador."
+        },
+        "why": {
+          "urgent": {
+            "guest_waiting": "Hay un huésped registrado como en espera.",
+            "reclean_requested": "Se pidió una nueva limpieza.",
+            "rush": "Marcada como habitación urgente.",
+            "arrival_passed": "Ya pasó la llegada registrada del huésped.",
+            "arrival_today": "Hay una llegada de huésped registrada para más tarde hoy.",
+            "vip": "Habitación VIP.",
+            "high_risk": "Pronosticada con alto riesgo de no estar lista."
+          },
+          "lowestWorkload": "Tiene la menor carga pendiente ({{minutes}} min conocidos).",
+          "sameFloor": "Ya trabaja en el piso {{floor}}.",
+          "sameBuilding": "Ya trabaja en el edificio {{building}}.",
+          "movedFrom": "Reasignada de {{name}}.",
+          "edited": "Elegiste esta asignación."
+        }
       }
     }
   },

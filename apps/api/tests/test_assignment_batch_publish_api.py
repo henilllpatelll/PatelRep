@@ -124,6 +124,21 @@ class TestRequestContract:
         assert [(c["kind"], c["housekeeper_id"], c["expected_assigned_to"]) for c in params["p_changes"]] == [
             ("assign", HK_A, None), ("reassign", HK_B, HK_A), ("remove", None, HK_B)]
 
+    def test_each_changes_ai_provenance_is_forwarded_untouched_and_defaults_to_manual(self, client, db):
+        body = _body([{**_assign(ROOM_1, HK_A), "is_ai_suggested": True}, _assign(ROOM_2, HK_B), {"room_id": ROOM_3, "kind": "reassign", "housekeeper_id": HK_A, "expected_assigned_to": HK_B, "is_ai_suggested": False}])
+        assert _publish(client, body).status_code == 200
+        (_, params), = db.rpc_calls
+        assert [(c["room_id"], c["is_ai_suggested"]) for c in params["p_changes"]] == [(ROOM_1, True), (ROOM_2, False), (ROOM_3, False)]
+
+    def test_a_removal_can_never_carry_ai_provenance(self, client, db):
+        body = _body([{"room_id": ROOM_1, "kind": "remove", "expected_assigned_to": HK_A, "is_ai_suggested": True}])
+        assert _publish(client, body).status_code == 422
+        assert db.rpc_calls == []
+
+    def test_provenance_must_be_a_boolean(self, client, db):
+        assert _publish(client, _body([{**_assign(ROOM_1, HK_A), "is_ai_suggested": "yes please"}])).status_code == 422
+        assert db.rpc_calls == []
+
     @pytest.mark.parametrize("field", ["tenant_id", "assigned_by", "hotel_id", "acknowledged_blocks", "atomic"])
     def test_a_client_cannot_name_the_tenant_assigner_or_extra_fields(self, client, db, field):
         body = _body()

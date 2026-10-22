@@ -11,6 +11,7 @@ from postgrest.exceptions import APIError
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     BatchPublishAssignmentsRequest,
+    SmartBalancePlanRequest,
     CreateAssignmentsRequest,
     RemoveAssignmentRequest,
     RoomAssignmentItem,
@@ -23,6 +24,14 @@ from services.reclean_corrections import load_reclean_details
 from services.notify import send_push
 from services.settings_audit import record_settings_event
 from services.housekeeping_assignments import effective_room_status, room_status_for_clean_type
+from services.smart_balance import (
+    Preferences as SolverPreferences,
+    PoolRoom as SolverRoom,
+    Problem as SolverProblem,
+    Receiver as SolverReceiver,
+    plan_to_dict,
+    solve as solve_smart_balance,
+)
 from services.opera_pdf import parse_hk_details, parse_task_sheet
 from services.ai.predictions import count_rooms_ahead, notify_supervisors_high_risk
 from services.programs.contracts import experience_band, select_inspection_sample
@@ -1435,6 +1444,7 @@ async def batch_publish_assignments(
             "housekeeper_id": str(change.housekeeper_id) if change.housekeeper_id else None,
             "expected_assigned_to": str(change.expected_assigned_to) if change.expected_assigned_to else None,
             "expect_unassigned": change.expect_unassigned,
+            "is_ai_suggested": change.is_ai_suggested,
         }
         for change in request.changes
     ]
@@ -1483,6 +1493,239 @@ async def get_batch_publication(
     if rows and str(rows[0].get("requested_by")) == str(current_user.user_id) and isinstance(rows[0].get("result"), dict):
         return {"data": {"status": "committed", "result": {**rows[0]["result"], "replayed": True}}}
     return {"data": {"status": "not_found"}}
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/smart-balance/plan   (Assignments V2 phase 6) - READ-ONLY
+# ---------------------------------------------------------------------------
+# Generates a PROPOSED allocation. It never writes: no assignment row, no room_status mirror, no notification, no
+# draft. The proposal reaches live assignments only if the supervisor reviews it and publishes it through
+# POST /housekeeping/assignments/batch-publish (atomic, idempotent, re-validated against locked rows).
+#
+# The app assembles the pool from its verified Assignments model (one definition of eligibility, attendance and
+# workload for every screen) and this handler VERIFIES it against the database before the solver sees it:
+#   * the hotel's own "today" must equal the requested date (a plan for another day is never produced),
+#   * every room must belong to the caller's hotel, be in an assignable stage, carry no soft block, and still have
+#     the owner the supervisor saw - otherwise it is returned in `rejected_rooms` with the reason and NOT planned,
+#   * every receiver must be an active housekeeper / housekeeping supervisor of the caller's hotel.
+# The tenant and the acting user come from the verified session; the body cannot name either.
+# The solver (services/smart_balance.py) is pure and runs off the event loop.
+
+SMART_BALANCE_ASSIGNABLE_STATUSES = {"DIRTY", "PICKUP", "OCCUPIED"}
+SMART_BALANCE_RECEIVER_ROLES = ("housekeeper", "housekeeping_supervisor")
+_VERIFY_CHUNK = 100
+
+
+def _chunks(values: list[str], size: int = _VERIFY_CHUNK):
+    for index in range(0, len(values), size):
+        yield values[index:index + size]
+
+
+def _verification_unavailable() -> HTTPException:
+    return HTTPException(
+        status_code=503,
+        detail={"code": "verification_unavailable", "message": "The rooms could not be verified right now. No plan was made."},
+    )
+
+
+def _verify_smart_balance_rooms(hotel_id: str, plan_date: date, requested: list) -> tuple[dict[str, dict], list[dict]]:
+    """Returns ({room_id: verified facts}, rejected). Never trusts the request for tenant, stage, blocks or owner."""
+    ids = [str(room.room_id) for room in requested]
+    status_rows: dict[str, dict] = {}
+    dated_owner: dict[str, str] = {}
+    discrepancies: set[str] = set()
+    for chunk in _chunks(ids):
+        for row in (
+            supabase.table("room_status")
+            .select("room_id, status, assigned_to, dnd_flag, do_not_service, dnd_retry_at")
+            .eq("tenant_id", hotel_id)
+            .in_("room_id", chunk)
+            .execute()
+            .data
+            or []
+        ):
+            status_rows[str(row["room_id"])] = row
+        for row in (
+            supabase.table("room_assignments")
+            .select("room_id, assigned_to")
+            .eq("tenant_id", hotel_id)
+            .eq("assignment_date", plan_date.isoformat())
+            .in_("room_id", chunk)
+            .execute()
+            .data
+            or []
+        ):
+            dated_owner[str(row["room_id"])] = str(row["assigned_to"]) if row.get("assigned_to") else ""
+        for row in (
+            supabase.table("room_occupancy_discrepancies")
+            .select("room_id")
+            .eq("tenant_id", hotel_id)
+            .eq("status", "open")
+            .in_("room_id", chunk)
+            .execute()
+            .data
+            or []
+        ):
+            discrepancies.add(str(row["room_id"]))
+
+    now = datetime.now(timezone.utc)
+    verified: dict[str, dict] = {}
+    rejected: list[dict] = []
+    for room in requested:
+        room_id = str(room.room_id)
+        row = status_rows.get(room_id)
+        if row is None:
+            rejected.append({"room_id": room_id, "room_number": room.room_number, "reason": "not_found"})
+            continue
+        if row.get("status") not in SMART_BALANCE_ASSIGNABLE_STATUSES:
+            rejected.append({"room_id": room_id, "room_number": room.room_number, "reason": "not_assignable"})
+            continue
+        blocks = []
+        if row.get("do_not_service"):
+            blocks.append("service_declined")
+        if row.get("dnd_flag"):
+            blocks.append("dnd")
+        retry_at = row.get("dnd_retry_at")
+        if retry_at:
+            try:
+                if datetime.fromisoformat(str(retry_at).replace("Z", "+00:00")) > now:
+                    blocks.append("return_later")
+            except ValueError:
+                pass
+        if room_id in discrepancies:
+            blocks.append("occupancy_discrepancy")
+        if blocks:
+            rejected.append({"room_id": room_id, "room_number": room.room_number, "reason": "room_blocked", "blocks": blocks})
+            continue
+        # The board's rule: the dated row wins over the status mirror.
+        if room_id in dated_owner:
+            current_owner = dated_owner[room_id] or None
+        else:
+            current_owner = str(row["assigned_to"]) if row.get("assigned_to") else None
+        expected = str(room.expected_owner_id) if room.expected_owner_id else None
+        if current_owner != expected:
+            rejected.append(
+                {"room_id": room_id, "room_number": room.room_number, "reason": "owner_changed", "current_owner_id": current_owner}
+            )
+            continue
+        verified[room_id] = {"owner_id": current_owner}
+    return verified, rejected
+
+
+def _verify_smart_balance_staff(hotel_id: str, requested: list) -> tuple[set[str], list[dict]]:
+    ids = [str(person.user_id) for person in requested]
+    valid: set[str] = set()
+    for chunk in _chunks(ids):
+        for row in (
+            supabase.table("user_roles")
+            .select("user_id, role")
+            .eq("tenant_id", hotel_id)
+            .eq("is_active", True)
+            .in_("role", list(SMART_BALANCE_RECEIVER_ROLES))
+            .in_("user_id", chunk)
+            .execute()
+            .data
+            or []
+        ):
+            valid.add(str(row["user_id"]))
+    rejected = [{"user_id": uid, "reason": "not_eligible"} for uid in ids if uid not in valid]
+    return valid, rejected
+
+
+@router.post("/smart-balance/plan")
+async def smart_balance_plan(
+    request: SmartBalancePlanRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    hotel_id = current_user.hotel_id
+    try:
+        today = datetime.now(_hotel_zone(hotel_id)).date()
+    except Exception:
+        logger.exception("smart-balance: could not resolve the hotel's local date")
+        raise _verification_unavailable()
+    if request.date != today:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "date_mismatch", "message": "This plan is not for the hotel's current day.", "expected_date": today.isoformat()},
+        )
+
+    try:
+        verified_rooms, rejected_rooms = _verify_smart_balance_rooms(hotel_id, request.date, list(request.rooms))
+        valid_staff, rejected_staff = _verify_smart_balance_staff(hotel_id, list(request.staff))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("smart-balance: verification failed")
+        raise _verification_unavailable()
+
+    pool = tuple(
+        SolverRoom(
+            room_id=str(room.room_id),
+            room_number=room.room_number,
+            floor=room.floor,
+            building=room.building,
+            owner_id=verified_rooms[str(room.room_id)]["owner_id"],
+            minutes=room.minutes,
+            minutes_basis=room.minutes_basis,
+            credits=room.credits,
+            reasons=tuple(room.reasons),
+            arrival_at=room.arrival_at,
+        )
+        for room in request.rooms
+        if str(room.room_id) in verified_rooms
+    )
+    receivers = tuple(
+        SolverReceiver(
+            user_id=str(person.user_id),
+            base_minutes=person.base_minutes,
+            base_unknown_rooms=person.base_unknown_rooms,
+            base_rooms=person.base_rooms,
+            base_credits=person.base_credits,
+            credits_complete=person.credits_complete,
+            credit_target=person.credit_target,
+            shift_minutes_left=person.shift_minutes_left,
+            floors=frozenset((floor.building, floor.floor) for floor in person.floors),
+            buildings=frozenset(person.buildings),
+        )
+        for person in request.staff
+        if str(person.user_id) in valid_staff
+    )
+    preferences = SolverPreferences(**request.preferences.model_dump())
+
+    # CP-SAT is CPU-bound: keep it off the event loop so one plan never stalls other requests.
+    plan = await asyncio.to_thread(solve_smart_balance, SolverProblem(rooms=pool, receivers=receivers, preferences=preferences))
+    body = plan_to_dict(plan)
+
+    fingerprint = json.dumps(
+        {"date": request.date.isoformat(), "scope": request.scope, "assignments": [[a["room_id"], a["to_user_id"]] for a in body["assignments"]]},
+        sort_keys=True,
+    )
+    changed = [a for a in body["assignments"] if a["kind"] != "retained"]
+    return {
+        "data": {
+            "plan_id": uuid5(NAMESPACE_URL, f"smart-balance:{hotel_id}:{fingerprint}").hex[:16],
+            "read_only": True,
+            "date": request.date.isoformat(),
+            "scope": request.scope,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "snapshot_verified_at": request.snapshot_verified_at,
+            "preferences": request.preferences.model_dump(),
+            **body,
+            "rejected_rooms": rejected_rooms,
+            "rejected_staff": rejected_staff,
+            "counts": {
+                "requested_rooms": len(request.rooms),
+                "planned_rooms": len(pool),
+                "new": sum(1 for a in changed if a["kind"] == "new"),
+                "moved": sum(1 for a in changed if a["kind"] == "moved"),
+                "retained": sum(1 for a in body["assignments"] if a["kind"] == "retained"),
+                "unallocated": len(body["unallocated"]),
+                "rejected_rooms": len(rejected_rooms),
+                "receivers": len(receivers),
+                "rejected_staff": len(rejected_staff),
+            },
+        }
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1674,7 +1917,7 @@ async def suggest_assignments(
     OR-Tools CP-SAT assignment suggester.
 
     Algorithm:
-    1. Fetch all DIRTY / IN_PROGRESS / PICKUP rooms needing assignment.
+    1. Fetch all DIRTY / PICKUP rooms needing assignment (never one already being cleaned).
     2. Fetch active housekeepers on shift (shift_assignments for work_date=today).
     3. Look up each housekeeper's actual rolling-average clean time per room
        type from housekeeper_profiles, falling back to the room type's
@@ -1689,6 +1932,10 @@ async def suggest_assignments(
        avoid starving a late-assigned housekeeper, and the global optimizer
        already prevents that by construction.
     5. Return suggestions (not committed to DB).
+
+    LEGACY. Kept compatible for the web Assignments workspace. It plans scheduled (not verified) staff, ignores
+    existing workload and capacity, and pools every unowned room. Mobile Smart Balance uses the hardened planner,
+    POST /housekeeping/smart-balance/plan.
     """
     target_date = board_date or date.today()
 
@@ -1700,7 +1947,8 @@ async def suggest_assignments(
             "rooms(id, room_number, floor, building, room_types(id, name, code, base_clean_minutes))"
         )
         .eq("tenant_id", current_user.hotel_id)
-        .in_("status", ["DIRTY", "IN_PROGRESS", "PICKUP"])
+        # Work already started is never handed to someone else by this suggester (Assignments V2 phase 6).
+        .in_("status", ["DIRTY", "PICKUP"])
         .execute()
     )
     all_rooms = rooms_result.data or []
@@ -1779,7 +2027,9 @@ async def suggest_assignments(
                 "building_affinity": None,
             })
 
+    staff_basis = "scheduled"
     if not housekeepers:
+        staff_basis = "all_active_fallback"
         # No shift records — fall back to all active housekeeper/supervisor roles.
         # Matches the same source as extractAssignableStaff on the mobile client.
         # user_roles and user_profiles have no direct FK Postgrest can embed
@@ -2018,24 +2268,20 @@ async def suggest_assignments(
                     housekeepers[h]["assigned_minutes"] += minutes
                     break
     else:
-        # Exactly-one-per-room is always feasible with n_hk >= 1 (guaranteed above),
-        # but never leave the board unassigned if the solver somehow times out short.
-        for room in rooms:
-            info = room.get("rooms") or {}
-            rt_info = info.get("room_types") or {}
-            target = min(housekeepers, key=lambda h: h["assigned_minutes"])
-            minutes = rt_info.get("base_clean_minutes") or 30
-            target["assigned_rooms"].append({
-                "room_id": room.get("room_id"),
-                "room_number": info.get("room_number", ""),
-                "floor": info.get("floor"),
-                "building": info.get("building"),
-                "status": room.get("status"),
-                "room_type": rt_info.get("code", rt_info.get("name", "")),
-                "base_clean_minutes": minutes,
-                "is_vip": room.get("vip_flag", False),
-            })
-            target["assigned_minutes"] += minutes
+        # No solution within the time limit. The old code dealt rooms out greedily here without re-checking
+        # anything; an answer nobody has validated is not offered. The Smart Balance planner
+        # (POST /housekeeping/smart-balance/plan) validates every plan it returns against its hard constraints.
+        logger.warning("ai-suggest-assignments: no solver solution (status=%s); returning no suggestions", status)
+        return {
+            "data": {
+                "suggestions": [],
+                "date": target_date.isoformat(),
+                "shift_id": shift_id,
+                "blocked_rooms": blocked_room_count,
+                "excluded_staff": excluded_staff,
+                "message": "No safe assignment suggestion could be produced. Assign rooms manually or try again.",
+            }
+        }
 
     # --- 5. Sequence each housekeeper's rooms into a walking order ---
     def _priority_key(room: dict) -> tuple:
@@ -2096,6 +2342,9 @@ async def suggest_assignments(
             "shift_id": shift_id,
             "blocked_rooms": blocked_room_count,
             "excluded_staff": excluded_staff,
+            # "scheduled" = people with a shift assignment today (a plan, NOT verified attendance); "all_active_fallback"
+            # = nobody was scheduled so every active housekeeper was offered, which says nothing about who is working.
+            "staff_basis": staff_basis,
             "message": (
                 f"Suggested assignments for {len(rooms)} room(s) "
                 f"across {len(housekeepers)} housekeeper(s){building_note}{blocked_note}"

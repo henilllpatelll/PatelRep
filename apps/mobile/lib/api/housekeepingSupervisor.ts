@@ -14,6 +14,8 @@ import {
 import type { AssignmentRemovalPlan, LateCheckoutRecord } from "@/lib/housekeeping/roomBoardModel";
 import { normalizeScheduledShifts, type ScheduledShift } from "@/lib/housekeeping/assignmentSchedule";
 import { parseWorkloadSettings, type WorkloadSettings } from "@/lib/housekeeping/assignmentWorkload";
+import { parseAssignmentPreferences, type PropertyAssignmentPreferences } from "@/lib/housekeeping/smartBalancePolicy";
+import type { SmartBalanceBody } from "@/lib/housekeeping/smartBalanceWire";
 import { readSavedHandoff, type EndShiftSummaryPayload, type SavedHandoff } from "@/lib/housekeeping/supervisorHandoff";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
@@ -86,6 +88,8 @@ export interface BatchChangeInput {
   housekeeper_id?: string;
   expected_assigned_to?: string;
   expect_unassigned?: true;
+  /** Present (true) only for an untouched Smart Balance recommendation; a manual or edited change omits it. */
+  is_ai_suggested?: true;
 }
 
 export interface BatchPublishRequest {
@@ -223,6 +227,22 @@ export async function fetchShiftRoster(date: string): Promise<ShiftRosterRowRaw[
  */
 export async function fetchWorkloadSettings(hotelId: string): Promise<WorkloadSettings> {
   return parseWorkloadSettings(await api.get(`/hotels/${encodeURIComponent(hotelId)}/housekeeping-settings`));
+}
+
+/**
+ * The property's stored assignment preferences (same endpoint, `assignment_preferences`). Strict: a malformed body throws,
+ * and Smart Balance then says it is using the standard defaults. Read-only: Smart Balance never writes these back.
+ */
+export async function fetchAssignmentPreferences(hotelId: string): Promise<PropertyAssignmentPreferences> {
+  return parseAssignmentPreferences(await api.get(`/hotels/${encodeURIComponent(hotelId)}/housekeeping-settings`));
+}
+
+/**
+ * POST /housekeeping/smart-balance/plan — asks for a PROPOSED allocation. Read-only on the server: nothing is assigned,
+ * moved, removed, mirrored or notified. The raw answer is read strictly by `parseSmartBalanceResponse`.
+ */
+export async function requestSmartBalancePlan(body: SmartBalanceBody): Promise<unknown> {
+  return api.post<unknown>("/housekeeping/smart-balance/plan", body);
 }
 
 /** GET /schedules/assignments?work_date= — who is scheduled on the hotel's `date`. Strict: a malformed body throws. */

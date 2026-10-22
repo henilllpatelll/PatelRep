@@ -85,6 +85,8 @@ export interface BulkAssignmentController {
   /** Stages the proposal into the draft. `review` continues to the review; `stage` keeps selecting. Defaults to the intent the drawer opened with. */
   confirmAllocate: (intent?: AllocateIntent) => void;
   openReview: () => void;
+  /** Opens the review at once, for changes staged in the same tick (Smart Balance). `openReview` waits for a render. */
+  showReview: () => void;
   openEdit: (userId: string) => void;
   backToReview: () => void;
   addRoomTo: (userId: string, roomId: string) => void;
@@ -203,6 +205,10 @@ export function useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, qu
     if (!latest.current.draftCtl.draft && publication.state.kind === "idle") return;
     setPanel("review");
   }, [publication.state.kind]);
+  const showReview = useCallback(() => {
+    returnTo.current = "review";
+    setPanel("review");
+  }, []);
   const openEdit = useCallback((userId: string) => {
     if (publication.lockedToOperation) return;
     setEditUserId(userId);
@@ -325,6 +331,7 @@ export function useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, qu
     toggleEmployee,
     confirmAllocate,
     openReview,
+    showReview,
     openEdit,
     backToReview,
     addRoomTo,
