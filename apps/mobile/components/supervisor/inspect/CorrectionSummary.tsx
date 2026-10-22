@@ -40,7 +40,7 @@ export function CorrectionSummary({ groups, atLeast, t }: { groups: CorrectionGr
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 8 },
-  tile: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: R.md, paddingVertical: 8, paddingHorizontal: 10 },
+  tile: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: R.md, paddingVertical: 8, paddingHorizontal: 6 },
   value: { fontSize: 22, lineHeight: 26, fontWeight: "800" },
-  label: { fontSize: 12, lineHeight: 16, fontWeight: "700" },
+  label: { fontSize: 11, lineHeight: 15, fontWeight: "700" },
 });

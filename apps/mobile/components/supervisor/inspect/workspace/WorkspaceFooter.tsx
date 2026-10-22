@@ -76,11 +76,12 @@ export function WorkspaceFooter({
           {hint}
         </Text>
       ) : null}
+      {/* Stacked, primary first: two side-by-side buttons clipped "Submit & request correction" at 390px and worse in Spanish. */}
       <View style={styles.buttons}>
+        <Button label={primaryLabel} icon={primaryIcon} size="lg" loading={primaryLoading} disabled={primaryDisabled} onPress={onPrimary} style={styles.fullWidth} testID={primaryTestID} />
         {secondaryLabel && onSecondary ? (
-          <Button label={secondaryLabel} variant="secondary" size="lg" icon="arrow-back" disabled={primaryLoading} onPress={onSecondary} style={styles.secondary} testID={secondaryTestID} />
+          <Button label={secondaryLabel} variant="ghost" size="md" icon="arrow-back" disabled={primaryLoading} onPress={onSecondary} style={styles.fullWidth} testID={secondaryTestID} />
         ) : null}
-        <Button label={primaryLabel} icon={primaryIcon} size="lg" loading={primaryLoading} disabled={primaryDisabled} onPress={onPrimary} style={styles.primary} testID={primaryTestID} />
       </View>
     </View>
   );
@@ -94,7 +95,6 @@ const styles = StyleSheet.create({
   retryText: { fontSize: 13, fontWeight: "800" },
   offline: { fontSize: 12.5, fontWeight: "700" },
   hint: { fontSize: 13.5, lineHeight: 19, fontWeight: "700" },
-  buttons: { flexDirection: "row", gap: 8 },
-  secondary: { flexShrink: 1 },
-  primary: { flex: 1 },
+  buttons: { gap: 4 },
+  fullWidth: { alignSelf: "stretch" },
 });
