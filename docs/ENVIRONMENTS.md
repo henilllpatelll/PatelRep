@@ -50,7 +50,7 @@ The API `/health` response includes `environment` and the non-secret `supabase_h
 
 ## Automated staging candidates
 
-Phase 4 uses the GitHub `staging` Environment for all candidate credentials. Configure only staging values there: `STAGING_SUPABASE_DB_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, `STAGING_FIXTURE_PASSWORD`, and `STAGING_RAILWAY_TOKEN`. Never copy a production secret into this environment.
+Phase 4 uses the GitHub `staging` Environment for all candidate credentials. Configure only staging values there: `STAGING_SUPABASE_DB_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, `STAGING_FIXTURE_PASSWORD`, and `STAGING_RAILWAY_PROJECT_TOKEN` (a Railway Project Token scoped to the staging environment, exposed to the CLI as `RAILWAY_TOKEN`). Never copy a production secret into this environment.
 
 Configure these non-secret Environment variables: `STAGING_SUPABASE_URL`, `STAGING_EXPECTED_SUPABASE_HOST`, `STAGING_EXPECTED_DATABASE_HOST`, `PRODUCTION_SUPABASE_HOST`, `PRODUCTION_DATABASE_HOST`, `STAGING_API_URL`, `STAGING_WEB_URL`, `STAGING_RAILWAY_ENVIRONMENT=staging`, `STAGING_RAILWAY_PROJECT_ID`, `STAGING_RAILWAY_API_SERVICE_ID`, `STAGING_RAILWAY_WEB_SERVICE_ID`, `PRODUCTION_RAILWAY_API_SERVICE_ID`, and `PRODUCTION_RAILWAY_WEB_SERVICE_ID`. The production values are deny-list assertions; staging service IDs must differ from them.
 
