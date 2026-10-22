@@ -10,15 +10,15 @@ import type { Translate } from "@/lib/inspections/viewText";
  * whole photo is simply shown, fitted to the screen. It is read-only: replacing or removing the photo happens back in
  * the issue, which this never closes or changes.
  */
-export function PhotoViewer({ uri, label, t, onClose, onUnreadable }: { uri: string | null; label: string; t: Translate; onClose: () => void; onUnreadable?: () => void }) {
+export function PhotoViewer({ uri, label, t, onClose, onUnreadable, lostLabel, lost }: { uri: string | null; label: string; t: Translate; onClose: () => void; onUnreadable?: () => void; lostLabel?: string; lost?: boolean }) {
   const insets = useSafeAreaInsets();
   const [broken, setBroken] = useState(false);
   useEffect(() => setBroken(false), [uri]);
 
   return (
-    <Modal visible={uri !== null} animationType="fade" onRequestClose={onClose} statusBarTranslucent transparent>
+    <Modal visible={uri !== null || Boolean(lost)} animationType="fade" onRequestClose={onClose} statusBarTranslucent transparent>
       <View style={styles.screen} accessibilityViewIsModal testID="workspace-photo-viewer">
-        {uri && !broken ? (
+        {uri && !broken && !lost ? (
           <ScrollView
             style={styles.flex}
             contentContainerStyle={styles.fit}
@@ -46,7 +46,7 @@ export function PhotoViewer({ uri, label, t, onClose, onUnreadable }: { uri: str
         ) : (
           <View style={styles.fit}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.message} accessibilityRole="alert" testID="workspace-photo-viewer-lost">
-              {t("inspect.workspace.photo.lost")}
+              {lostLabel ?? t("inspect.workspace.photo.lost")}
             </Text>
           </View>
         )}

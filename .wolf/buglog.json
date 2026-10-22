@@ -34336,6 +34336,55 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2080",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Inspection photos stored in the PUBLIC work-order-photos bucket and returned as permanent public URLs",
+      "file": "apps/api/routers/housekeeping.py; services/inspection_evidence.py; migration 220",
+      "root_cause": "Phase 1 upload wrote to the public bucket and stored get_public_url(); anyone with the link could read guest-adjacent evidence",
+      "fix": "New private inspection-evidence bucket + inspection_results.photo_path; API signs 10-minute URLs only after hotel/role/path-prefix checks; legacy URLs are signed not exposed; operator backfill script (dry-run default)",
+      "tags": [
+        "security",
+        "storage",
+        "evidence",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2081",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Typing in the history room search refetched the first page on every keystroke",
+      "file": "apps/mobile/lib/inspections/history/useInspectionHistory.ts",
+      "root_cause": "The fetch effect depended on a range object re-created whenever filters changed, so the debounce never held",
+      "fix": "Memoise the range on its parts (period/custom/today); test asserts no fetch until typing pauses",
+      "tags": [
+        "react",
+        "debounce",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2082",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Timeline walk skipped the reinspection of the inspection the user opened from the middle of a chain",
+      "file": "apps/api/services/inspection_history.py",
+      "root_cause": "Children already reached from below were never added to the BFS frontier",
+      "fix": "Track expanded ids; walk past an already-seen inspection once",
+      "tags": [
+        "lineage",
+        "timeline",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
     }
   ]
 }

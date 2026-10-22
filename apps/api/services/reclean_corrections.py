@@ -17,6 +17,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+from services.inspection_evidence import evidence_location, has_evidence, sign_many
 from services.inspection_rules import RuleViolation, correction_task_fields, derive_correction_status, sort_template_items
 
 logger = logging.getLogger(__name__)
@@ -300,7 +301,7 @@ def correction_state(client: Any, hotel_id: str, insp: dict, task: Optional[dict
     room_state = status_row.data if status_row else None
     followups = (
         client.table("inspections")
-        .select("id, overall_result, completed_at, reinspection_of")
+        .select("id, overall_result, completed_at, reinspection_of, inspected_by")
         .eq("tenant_id", hotel_id)
         .eq("room_id", insp["room_id"])
         .gte("completed_at", insp.get("completed_at") or "")
@@ -347,11 +348,11 @@ def _correction_activity(
     """
     events: list[dict] = []
     if insp.get("completed_at"):
-        events.append({"type": "inspection_failed", "at": insp["completed_at"], "actor_name": profile_name(client, hotel_id, insp.get("inspected_by"))})
+        events.append({"type": "inspection_failed", "at": insp["completed_at"], "actor_name": profile_name(client, hotel_id, insp.get("inspected_by")), "inspection_id": insp["id"]})
     if task is None:
         return events
     if task.get("created_at"):
-        events.append({"type": "correction_created", "at": task["created_at"], "actor_name": None})
+        events.append({"type": "correction_created", "at": task["created_at"], "actor_name": None, "inspection_id": insp["id"]})
     audit = (
         client.table("operational_audit_events")
         .select("action, actor_id, new_state, created_at")
@@ -367,23 +368,52 @@ def _correction_activity(
         actor = profile_name(client, hotel_id, row.get("actor_id"))
         if row["action"] == ACTION_REASSIGNED:
             assignee = (row.get("new_state") or {}).get("assigned_to")
-            events.append({"type": "reassigned", "at": row["created_at"], "actor_name": actor, "assignee_name": profile_name(client, hotel_id, assignee)})
+            events.append({"type": "reassigned", "at": row["created_at"], "actor_name": actor, "assignee_name": profile_name(client, hotel_id, assignee), "inspection_id": insp["id"]})
         else:
             manual_escalation = True
-            events.append({"type": "escalated", "at": row["created_at"], "actor_name": actor})
+            events.append({"type": "escalated", "at": row["created_at"], "actor_name": actor, "inspection_id": insp["id"]})
     if task.get("escalated_at") and not manual_escalation:
-        events.append({"type": "escalated", "at": task["escalated_at"], "actor_name": None})
+        events.append({"type": "escalated", "at": task["escalated_at"], "actor_name": None, "inspection_id": insp["id"]})
     if task.get("started_at"):
-        events.append({"type": "work_started", "at": task["started_at"], "actor_name": profile_name(client, hotel_id, task.get("assigned_to"))})
+        events.append({"type": "work_started", "at": task["started_at"], "actor_name": profile_name(client, hotel_id, task.get("assigned_to")), "inspection_id": insp["id"]})
     linked = [f for f in followups if f.get("reinspection_of") == insp.get("id") and f.get("completed_at")]
     if resubmission:
-        events.append({"type": "work_submitted", "at": resubmission["at"], "actor_name": resubmission.get("housekeeper_name")})
+        events.append({"type": "work_submitted", "at": resubmission["at"], "actor_name": resubmission.get("housekeeper_name"), "inspection_id": insp["id"]})
     elif task.get("completed_at") and not linked:
         # Closed some other way than the housekeeper submitting the room. When a reinspection closed it, that IS the event.
-        events.append({"type": "task_completed", "at": task["completed_at"], "actor_name": None})
+        events.append({"type": "task_completed", "at": task["completed_at"], "actor_name": None, "inspection_id": insp["id"]})
     for follow in linked:
-        events.append({"type": "reinspection_passed" if follow.get("overall_result") == "passed" else "reinspection_failed", "at": follow["completed_at"], "actor_name": None})
+        events.append({"type": "reinspection_passed" if follow.get("overall_result") == "passed" else "reinspection_failed", "at": follow["completed_at"], "actor_name": profile_name(client, hotel_id, follow.get("inspected_by")), "inspection_id": follow["id"]})
     return sorted(events, key=lambda e: str(e["at"]))
+
+
+def _cleaner_before(client: Any, hotel_id: str, insp: dict) -> dict:
+    """Who last finished cleaning this room before the inspection, and what kind of clean it was.
+
+    From the housekeeper's own completed clean session, so it is the person who did the work, not the person the room
+    was assigned to. Empty when no session was recorded (older rooms, or rooms cleaned without the app).
+    """
+    if not insp.get("completed_at"):
+        return {}
+    sessions = (
+        client.table("room_clean_sessions")
+        .select("housekeeper_id, ended_at, clean_type")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", insp["room_id"])
+        .eq("status", "completed")
+        .lte("ended_at", insp["completed_at"])
+        .order("ended_at", desc=True)
+        .limit(1)
+        .execute()
+    ).data or []
+    if not sessions:
+        return {}
+    session = sessions[0]
+    return {
+        "housekeeper_id": session.get("housekeeper_id"),
+        "housekeeper_name": profile_name(client, hotel_id, session.get("housekeeper_id")),
+        "clean_type": session.get("clean_type"),
+    }
 
 
 def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Optional[dict]:
@@ -406,7 +436,7 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
 
     room = (
         client.table("rooms")
-        .select("room_number, floor, room_type_id")
+        .select("room_number, floor, building, room_type_id")
         .eq("id", insp["room_id"])
         .eq("tenant_id", hotel_id)
         .maybe_single()
@@ -427,7 +457,7 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
 
     results = (
         client.table("inspection_results")
-        .select("template_item_id, result, note, photo_url, severity")
+        .select("template_item_id, result, note, photo_url, photo_path, severity")
         .eq("inspection_id", inspection_id)
         .eq("tenant_id", hotel_id)
         .execute()
@@ -447,6 +477,14 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
             or []
         }
     position = {i["id"]: n for n, i in enumerate(sort_template_items(items_by_id.values()))}
+    # Evidence is never returned as the URL it is stored under: each photo is signed for a few minutes, after the
+    # path has been checked to belong to this hotel's folder for this inspection.
+    locations = {
+        r["template_item_id"]: location
+        for r in results
+        if r.get("template_item_id") and (location := evidence_location(r, hotel_id, inspection_id)) is not None
+    }
+    signed = sign_many(client, locations)
     answers = []
     for r in sorted(results, key=lambda r: position.get(r.get("template_item_id"), len(position))):
         item = items_by_id.get(r.get("template_item_id")) or {}
@@ -460,10 +498,12 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
                 "result": r.get("result"),
                 "note": r.get("note"),
                 "severity": r.get("severity"),
-                "photo_url": r.get("photo_url"),
+                "photo_url": signed.get(r.get("template_item_id")),
+                "has_evidence": has_evidence(r),
             }
         )
 
+    cleaner = _cleaner_before(client, hotel_id, insp)
     correction = None
     task = fetch_correction_task(client, hotel_id, inspection_id)
     if insp.get("overall_result") == "failed" or (
@@ -500,6 +540,7 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
         "room_id": insp["room_id"],
         "room_number": room_row.get("room_number"),
         "floor": room_row.get("floor"),
+        "building": room_row.get("building"),
         "room_type_id": room_row.get("room_type_id"),
         "template_id": insp.get("template_id"),
         "template_name": template_row.get("name"),
@@ -508,6 +549,9 @@ def load_inspection_detail(client: Any, hotel_id: str, inspection_id: str) -> Op
         "completed_at": insp.get("completed_at"),
         "inspected_by": insp.get("inspected_by"),
         "inspector_name": profile_name(client, hotel_id, insp.get("inspected_by")),
+        "housekeeper_id": cleaner.get("housekeeper_id"),
+        "housekeeper_name": cleaner.get("housekeeper_name"),
+        "service_type": cleaner.get("clean_type"),
         "correction_kind": insp.get("correction_kind"),
         "reinspection_of": insp.get("reinspection_of"),
         "items": answers,

@@ -276,7 +276,7 @@ export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: Hi
 
 /* ─── Inspection history ──────────────────────────────────────────────────── */
 
-export function InspectionHistoryPanel({ roomId, ctx, t }: { roomId: string; ctx: HistoryContext; t: Translate }) {
+export function InspectionHistoryPanel({ roomId, ctx, t, onOpenInspection }: { roomId: string; ctx: HistoryContext; t: Translate; onOpenInspection?: (inspectionId: string) => void }) {
   const theme = useTheme();
   const [days, setDays] = useState<InspectionRangeDays>(DEFAULT_INSPECTION_RANGE);
   const window = useMemo(() => inspectionWindow(days, ctx.now, ctx.timeZone), [days, ctx.now, ctx.timeZone]);
@@ -301,8 +301,16 @@ export function InspectionHistoryPanel({ roomId, ctx, t }: { roomId: string; ctx
       ) : (
         rows?.map((row) => {
           const c = tone(row.result);
+          const Wrapper = onOpenInspection ? Pressable : View;
+          const wrapperProps = onOpenInspection
+            ? {
+                onPress: () => onOpenInspection(row.id),
+                accessibilityRole: "button" as const,
+                accessibilityLabel: t("roomBoard.panel.inspections.openA11y", { result: row.resultLabel, time: row.at ?? "" }),
+              }
+            : {};
           return (
-            <View key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`inspection-${row.id}`}>
+            <Wrapper key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`inspection-${row.id}`} {...wrapperProps}>
               <View style={styles.cardTop}>
                 <Pill label={row.resultLabel} color={c.color} bg={c.bg} line={c.line} />
                 {row.at ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]}>{row.at}</Text> : null}
@@ -311,7 +319,8 @@ export function InspectionHistoryPanel({ roomId, ctx, t }: { roomId: string; ctx
                 {row.inspector ? t("roomBoard.panel.inspections.inspector", { name: row.inspector }) : t("roomBoard.panel.inspections.inspectorUnknown")}
               </Text>
               {row.note ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textPrimary }]}>{t("roomBoard.panel.inspections.notes", { notes: row.note })}</Text> : null}
-            </View>
+              {onOpenInspection ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.primaryAction, fontWeight: "800" }]}>{t("roomBoard.panel.inspections.openDetails")}</Text> : null}
+            </Wrapper>
           );
         })
       )}

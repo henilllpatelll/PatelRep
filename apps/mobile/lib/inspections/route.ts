@@ -29,3 +29,30 @@ export function originHref(origin: InspectOrigin, roomId: string | null): { path
   return { pathname: "/(app)/inspect" };
 }
 
+
+/* ─── The read-only record of a finished inspection ───────────────────────────
+   ONE canonical screen shows any completed inspection, by its stable inspection id: from the Done list, a correction,
+   the Room Board's room history, or another inspection in the same correction cycle. `from` is only used for the
+   fallback when there is nothing to go back to (a cold link); it is checked against an allow-list. */
+
+export type RecordOrigin = "done" | "corrections" | "board" | "cycle";
+
+const RECORD_ORIGINS: readonly RecordOrigin[] = ["done", "corrections", "board", "cycle"];
+
+export function recordHref(inspectionId: string, from: RecordOrigin = "done", roomId?: string | null, roomNumber?: string | null): InspectHref {
+  const params: Record<string, string> = { inspectionId, from };
+  if (roomId) params.roomId = roomId;
+  if (roomNumber) params.roomNumber = roomNumber;
+  return { pathname: "/(app)/inspect/record/[inspectionId]", params };
+}
+
+export function parseRecordOrigin(raw: string | null | undefined): RecordOrigin {
+  return RECORD_ORIGINS.find((origin) => origin === raw) ?? "done";
+}
+
+/** Where Back goes when the navigator has no history to pop. */
+export function recordFallbackHref(origin: RecordOrigin, roomId: string | null): { pathname: string; params?: Record<string, string> } {
+  if (origin === "board" && roomId) return { pathname: "/(app)/room-board", params: { roomId } };
+  if (origin === "corrections") return { pathname: "/(app)/inspect", params: { tab: "corrections" } };
+  return { pathname: "/(app)/inspect", params: { tab: "done" } };
+}

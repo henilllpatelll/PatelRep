@@ -63,6 +63,14 @@ jest.mock("@/lib/api/inspections", () => ({
   requestCorrectionAgain: jest.fn(),
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({ triggerReclean: jest.fn() }));
+const mockHistoryPage = jest.fn();
+const mockInsights = jest.fn();
+const mockInspectors = jest.fn();
+jest.mock("@/lib/api/inspectionHistory", () => ({
+  fetchInspectionHistory: (...args: unknown[]) => mockHistoryPage(...args),
+  fetchInspectionInsights: (...args: unknown[]) => mockInsights(...args),
+  fetchHistoryInspectors: (...args: unknown[]) => mockInspectors(...args),
+}));
 
 import { router } from "expo-router";
 import { fetchInspectionDetail, fetchInspectionRecords, fetchOpenCorrections, listInspectionTemplates, submitInspection } from "@/lib/api/inspections";
@@ -70,7 +78,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useAppStore } from "@/stores/appStore";
 import InspectScreen from "@/app/(app)/inspect";
-import { inspectionRecord, openCorrection, rawTemplate, readyRoom } from "../helpers/inspectionFixtures";
+import { historyInsights, historyRow, inspectionRecord, openCorrection, rawTemplate, readyRoom } from "../helpers/inspectionFixtures";
 
 const NOW = Date.parse("2026-10-20T18:00:00Z"); // 1:00 PM in Chicago
 const mockCorrections = fetchOpenCorrections as jest.Mock;
@@ -115,6 +123,9 @@ beforeEach(() => {
   mockTemplates.mockResolvedValue({ data: [standard] });
   mockCorrections.mockResolvedValue({ rows: [], truncated: false });
   mockRecords.mockResolvedValue([]);
+  mockHistoryPage.mockResolvedValue({ rows: [], hasMore: false, nextCursor: null, total: 0 });
+  mockInsights.mockResolvedValue(historyInsights());
+  mockInspectors.mockResolvedValue({ rows: [], truncated: false });
   mockSubscribe.mockImplementation(() => jest.fn());
   useAppStore.setState({
     hotelTimezone: "America/Chicago",
@@ -499,30 +510,47 @@ describe("corrections tab", () => {
   });
 });
 
-describe("done tab", () => {
-  const openDone = async (screen: ReturnType<typeof renderScreen>) => act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
+describe("done tab (history)", () => {
+  const openDone = async (screen: ReturnType<typeof renderScreen>) => {
+    await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
+    await settle();
+  };
+  const page = (rows: unknown[], over: Record<string, unknown> = {}) => ({ rows, hasMore: false, nextCursor: null, total: rows.length, ...over });
 
-  it("shows the room, the inspector, the time and the result in words", async () => {
-    mockRecords.mockResolvedValue([
-      inspectionRecord("401"),
-      inspectionRecord("402", { overall_result: "failed", completed_at: "2026-10-20T17:00:00.000Z" }),
-      inspectionRecord("403", { overall_result: "conditional", completed_at: "2026-10-20T15:00:00.000Z" }),
-      inspectionRecord("404", { reinspection_of: "insp-1", completed_at: "2026-10-20T14:00:00.000Z" }),
-    ]);
+  it("lists room, inspector, time and the result in words - historical conditional stays its own word", async () => {
+    mockHistoryPage.mockResolvedValue(
+      page([
+        historyRow("401"),
+        historyRow("402", { overall_result: "failed", completed_at: "2026-10-20T17:00:00.000Z" }),
+        historyRow("403", { overall_result: "conditional", completed_at: "2026-10-20T15:00:00.000Z" }),
+        historyRow("404", { reinspection_of: "insp-1", is_reinspection: true, completed_at: "2026-10-20T14:00:00.000Z" }),
+      ]),
+    );
     const screen = renderScreen();
     await settle();
     await openDone(screen);
     expect(within(screen.getByTestId("done-row-401")).getByText("Passed")).toBeTruthy();
     expect(within(screen.getByTestId("done-row-402")).getByText("Failed")).toBeTruthy();
-    expect(within(screen.getByTestId("done-row-403")).getByText("Conditional")).toBeTruthy();
+    expect(within(screen.getByTestId("done-row-403")).getByText("Conditional (historical)")).toBeTruthy();
     expect(within(screen.getByTestId("done-row-401")).getByText("Sam Supervisor")).toBeTruthy();
-    expect(within(screen.getByTestId("done-row-401")).getByText("11:00 AM")).toBeTruthy();
+    expect(within(screen.getByTestId("done-row-401")).getByText(/11:00 AM/)).toBeTruthy();
     expect(within(screen.getByTestId("done-row-404")).getByText(/Reinspection/)).toBeTruthy();
     expect(within(screen.getByTestId("done-row-401")).queryByText(/Reinspection/)).toBeNull();
+    expect(within(screen.getByTestId("done-row-401")).getByText(/Floor 2/)).toBeTruthy();
+  });
+
+  it("asks the server for the hotel's own day, one page at a time", async () => {
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    expect(mockHistoryPage).toHaveBeenCalledTimes(1);
+    expect(mockHistoryPage).toHaveBeenCalledWith(expect.objectContaining({ dateFrom: "2026-10-20", dateTo: "2026-10-20", limit: 30, cursor: null }));
+    expect(mockInsights).toHaveBeenCalledWith("2026-10-20", "2026-10-20");
+    expect(screen.getByTestId("history-period").props.children).toBe("Today · Oct 20");
   });
 
   it("never shows part of an id as an inspector name", async () => {
-    mockRecords.mockResolvedValue([inspectionRecord("401", { inspector_display_name: null, inspector_name: "a1b2c3d4" })]);
+    mockHistoryPage.mockResolvedValue(page([historyRow("401", { inspector_display_name: null, inspected_by: "a1b2c3d4-0000" })]));
     const screen = renderScreen();
     await settle();
     await openDone(screen);
@@ -530,61 +558,158 @@ describe("done tab", () => {
     expect(screen.queryByText(/a1b2c3d4/)).toBeNull();
   });
 
-  it("opens what the server records about an inspection, including its failed items", async () => {
-    mockRecords.mockResolvedValue([inspectionRecord("402", { overall_result: "failed", notes: "Bathroom" })]);
-    mockDetail.mockResolvedValue({
-      id: "402",
-      room_id: "room-402",
-      overall_result: "failed",
-      items: [
-        { template_item_id: "a", description: "Mirror streaked", result: "fail", note: null },
-        { template_item_id: "b", description: "Bed made", result: "pass", note: null },
-      ],
-      correction: { status: "assigned", reinspection_id: null, kind: "reclean", task: null },
+  it("opens the canonical record screen by the inspection id", async () => {
+    mockHistoryPage.mockResolvedValue(page([historyRow("402", { overall_result: "failed" })]));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    await act(async () => fireEvent.press(screen.getByTestId("done-row-402")));
+    expect(push).toHaveBeenCalledWith({
+      pathname: "/(app)/inspect/record/[inspectionId]",
+      params: { inspectionId: "402", from: "done", roomId: "room-402", roomNumber: "402" },
     });
+  });
+
+  it("a failed history read is an error with a retry - never 'no inspections'", async () => {
+    mockHistoryPage.mockRejectedValue(new Error("boom"));
     const screen = renderScreen();
     await settle();
     await openDone(screen);
-    await act(async () => fireEvent.press(screen.getByTestId("done-row-402")));
+    expect(screen.getByTestId("history-error")).toBeTruthy();
+    expect(screen.queryByText("No inspections completed today")).toBeNull();
+    mockHistoryPage.mockResolvedValue(page([historyRow("401")]));
+    await act(async () => fireEvent.press(screen.getByTestId("history-error-action")));
     await settle();
-    expect(mockDetail).toHaveBeenCalledWith("402");
-    const sheet = within(screen.getByTestId("inspect-record-sheet"));
-    expect(sheet.getByText("Room 402 Inspection")).toBeTruthy();
-    expect(sheet.getByText("Bathroom")).toBeTruthy();
-    expect(sheet.getByText("• Mirror streaked")).toBeTruthy();
-    expect(sheet.queryByText("• Bed made")).toBeNull();
-    expect(sheet.getByText("Assigned, not started")).toBeTruthy();
-    await act(async () => fireEvent.press(screen.getByTestId("inspect-record-view-room")));
-    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/room-board", params: { roomId: "room-402" } });
+    expect(screen.getByTestId("done-row-401")).toBeTruthy();
   });
 
-  it("if the details cannot be loaded the sheet still shows what the list knew, and offers a retry", async () => {
-    mockRecords.mockResolvedValue([inspectionRecord("402", { overall_result: "failed" })]);
-    mockDetail.mockRejectedValueOnce(new Error("boom"));
-    const screen = renderScreen();
-    await settle();
-    await openDone(screen);
-    await act(async () => fireEvent.press(screen.getByTestId("done-row-402")));
-    await settle();
-    const sheet = within(screen.getByTestId("inspect-record-sheet"));
-    expect(sheet.getByText("Couldn't load the inspection details.")).toBeTruthy();
-    expect(sheet.getByText("Sam Supervisor")).toBeTruthy();
-    mockDetail.mockResolvedValue({ id: "402", room_id: "room-402", overall_result: "failed", items: [], correction: null });
-    await act(async () => fireEvent.press(sheet.getByText("Try again")));
-    await settle();
-    expect(within(screen.getByTestId("inspect-record-sheet")).getByText("No failed items were recorded.")).toBeTruthy();
-  });
-
-  it("has empty and error states of its own", async () => {
+  it("says plainly when nothing was inspected today, and when filters match nothing", async () => {
     const screen = renderScreen();
     await settle();
     await openDone(screen);
     expect(screen.getByText("No inspections completed today")).toBeTruthy();
-    mockRecords.mockRejectedValue(new Error("boom"));
-    await act(async () => fireEvent.press(screen.getByTestId("inspect-refresh")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-button")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-result-failed")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-apply")));
     await settle();
-    // the verified (empty) answer is kept, but flagged
-    expect(screen.getByTestId("inspect-stale-banner")).toBeTruthy();
+    expect(screen.getByTestId("history-empty-filters")).toBeTruthy();
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ result: "failed" }));
+    expect(screen.getByTestId("history-chip-result")).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByTestId("history-empty-filters-action")));
+    await settle();
+    expect(screen.queryByTestId("history-chip-result")).toBeNull();
+  });
+
+  it("loads the next page with the server's cursor and never repeats an inspection", async () => {
+    mockHistoryPage.mockResolvedValueOnce(page([historyRow("401"), historyRow("402")], { hasMore: true, nextCursor: "CUR1", total: 3 }));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    expect(screen.getByTestId("history-load-more")).toBeTruthy();
+    mockHistoryPage.mockResolvedValueOnce(page([historyRow("402"), historyRow("403")], { hasMore: false, nextCursor: null, total: null }));
+    await act(async () => fireEvent.press(screen.getByTestId("history-load-more")));
+    await settle();
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ cursor: "CUR1" }));
+    expect(screen.getAllByTestId(/^done-row-/)).toHaveLength(3);
+    expect(screen.queryByTestId("history-load-more")).toBeNull();
+  });
+
+  it("a failed 'load more' keeps the rows already shown and offers a retry", async () => {
+    mockHistoryPage.mockResolvedValueOnce(page([historyRow("401")], { hasMore: true, nextCursor: "CUR1", total: 2 }));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    mockHistoryPage.mockRejectedValueOnce(new Error("boom"));
+    await act(async () => fireEvent.press(screen.getByTestId("history-load-more")));
+    await settle();
+    expect(screen.getByTestId("done-row-401")).toBeTruthy();
+    expect(screen.getByTestId("history-more-retry")).toBeTruthy();
+  });
+
+  it("changing the period asks for that hotel-local range and keeps it when the tab is left and re-entered", async () => {
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-button")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-period-7d")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-apply")));
+    await settle();
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ dateFrom: "2026-10-14", dateTo: "2026-10-20" }));
+    expect(mockInsights).toHaveBeenLastCalledWith("2026-10-14", "2026-10-20");
+    await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-queue")));
+    await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
+    await settle();
+    expect(String(screen.getByTestId("history-period").props.children)).toContain("Last 7 days");
+  });
+
+  it("a custom range that is reversed or in the future cannot be applied, and says why", async () => {
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-button")));
+    await act(async () => fireEvent.press(screen.getByTestId("history-filter-period-custom")));
+    fireEvent.changeText(screen.getByTestId("history-filter-from"), "2026-10-19");
+    fireEvent.changeText(screen.getByTestId("history-filter-to"), "2026-10-10");
+    expect(screen.getByTestId("history-filter-problem").props.children).toBe("The start date must not be after the end date.");
+    expect(screen.getByTestId("history-filter-apply").props.accessibilityState).toEqual({ disabled: true });
+    fireEvent.changeText(screen.getByTestId("history-filter-to"), "2026-10-25");
+    expect(screen.getByTestId("history-filter-problem").props.children).toBe("The end date can't be after today.");
+  });
+
+  it("shows the period's verified counts and quality insights, with no false zero", async () => {
+    mockInsights.mockResolvedValue(historyInsights({ counts: { completed: 146, passed: 128, failed: 18, conditional: 0, initial: 134, reinspections: 12, without_lineage: 0 }, first_pass: { rate: 0.88, passed: 118, eligible: 134, conditional_excluded: 0 }, top_standards: [{ standard_id: "s1", label: "Towels and amenities", section: "Bathroom", count: 9 }] }));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    expect(within(screen.getByTestId("history-stat-passed")).getByText("128")).toBeTruthy();
+    expect(within(screen.getByTestId("insights-first-pass")).getByText("88%")).toBeTruthy();
+    expect(screen.getByTestId("insights-top-issue").props.children).toBe("Most common issue: Towels and amenities (9)");
+  });
+
+  it("a period with no first inspections shows 'Not available', not 0%", async () => {
+    mockInsights.mockResolvedValue(historyInsights({ counts: { completed: 2, passed: 2, failed: 0, conditional: 0, initial: 0, reinspections: 2, without_lineage: 0 }, first_pass: { rate: null, passed: 0, eligible: 0, conditional_excluded: 0 } }));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    expect(within(screen.getByTestId("insights-first-pass")).getByText("Not available")).toBeTruthy();
+    expect(screen.queryByText("0%")).toBeNull();
+  });
+
+  it("insights that fail to load are said to have failed; the list still works", async () => {
+    mockInsights.mockRejectedValue(new Error("boom"));
+    mockHistoryPage.mockResolvedValue(page([historyRow("401")]));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    expect(screen.getByTestId("insights-failed")).toBeTruthy();
+    expect(screen.getByTestId("done-row-401")).toBeTruthy();
+  });
+
+  it("drilling into a common issue filters the list to inspections that failed that standard", async () => {
+    mockInsights.mockResolvedValue(historyInsights({ counts: { completed: 5, passed: 2, failed: 3, conditional: 0, initial: 5, reinspections: 0, without_lineage: 0 }, first_pass: { rate: 0.4, passed: 2, eligible: 5, conditional_excluded: 0 }, top_standards: [{ standard_id: "std-1", label: "Mirrors", section: "Bath", count: 3 }] }));
+    const screen = renderScreen();
+    await settle();
+    await openDone(screen);
+    await act(async () => fireEvent.press(screen.getByTestId("insights-more")));
+    await act(async () => fireEvent.press(screen.getByTestId("insights-standard-0")));
+    await settle();
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ failedItemId: "std-1", result: "failed" }));
+    expect(screen.getByTestId("history-chip-standard")).toBeTruthy();
+  });
+
+  it("the room search box filters on the server by room number, after a short pause", async () => {
+    jest.useFakeTimers();
+    try {
+      const screen = renderScreen();
+      await act(async () => { jest.advanceTimersByTime(10); });
+      await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
+      await act(async () => { jest.advanceTimersByTime(10); });
+      fireEvent.changeText(screen.getByTestId("inspect-search"), "40");
+      await act(async () => { jest.advanceTimersByTime(500); });
+      expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ roomNumber: "40" }));
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 
@@ -659,6 +784,7 @@ describe("Spanish and dark mode", () => {
     mockLanguage = "es";
     mockCorrections.mockResolvedValue({ rows: [openCorrection("305")], truncated: false });
     mockRecords.mockResolvedValue([inspectionRecord("401", { inspector_display_name: null })]);
+    mockHistoryPage.mockResolvedValue({ rows: [historyRow("401", { inspector_display_name: null })], hasMore: false, nextCursor: null, total: 1 });
     const screen = renderScreen();
     await settle();
     expect(screen.getByText("LIMPIEZA · HOY")).toBeTruthy();
@@ -668,7 +794,9 @@ describe("Spanish and dark mode", () => {
     await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-corrections")));
     expect(within(screen.getByTestId("correction-card-room-305")).getByText("Con la camarista")).toBeTruthy();
     await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
+    await settle();
     expect(screen.getByText(es("inspect.done.inspectorUnknown"))).toBeTruthy();
+    expect(screen.getByText(es("inspect.history.insights.title").toUpperCase())).toBeTruthy();
     expect(screen.queryAllByText(/^inspect\.[A-Za-z]/)).toHaveLength(0);
   });
 

@@ -3,7 +3,7 @@ import json
 import logging
 import re
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
-from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Query, HTTPException, Response, UploadFile, File, Form
 from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
 from dateutil import tz
@@ -37,6 +37,26 @@ from services.reclean_corrections import (
     record_correction_audit,
     resolve_correction_task,
     profile_name,
+)
+from services.inspection_evidence import (
+    PRIVATE_BUCKET as PRIVATE_EVIDENCE_BUCKET,
+    SIGNED_URL_TTL_SECONDS,
+    evidence_location,
+    evidence_path,
+    sign_location,
+)
+from services.inspection_history import (
+    INSIGHT_ROW_LIMIT,
+    LIST_LEGACY_LIMIT,
+    LIST_MAX_LIMIT as HISTORY_MAX_LIMIT,
+    HistoryParamError,
+    inspections_failing_standard,
+    list_history,
+    list_inspectors,
+    load_insights,
+    load_timeline,
+    rooms_matching,
+    validate_range,
 )
 from services.inspection_rules import (
     RuleViolation,
@@ -2339,7 +2359,7 @@ async def submit_inspection(
     return {"data": inspection.data[0]}
 
 
-INSPECTION_PHOTO_BUCKET = "work-order-photos"
+INSPECTION_PHOTO_BUCKET = PRIVATE_EVIDENCE_BUCKET  # private: clients only ever see short-lived signed URLs
 _PHOTO_EXTENSIONS = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
@@ -2620,14 +2640,14 @@ async def _complete_inspection(
             _require_failed_items_reverified(hotel_id, reinspection_of, {str(i["id"]) for i in template_items}, validated.answers)
 
     uploaded_paths: list[str] = []
-    photo_urls: dict[str, str] = {}
+    photo_paths: dict[str, str] = {}
     try:
         for item_id, (file_bytes, content_type) in prepared_photos.items():
-            path = f"{hotel_id}/inspections/{inspection_id}/{item_id}.{_PHOTO_EXTENSIONS[content_type]}"
+            path = evidence_path(hotel_id, inspection_id, item_id, _PHOTO_EXTENSIONS[content_type])
             # upsert: the path is unique to this submission, so a retry overwrites its own earlier upload.
             supabase.storage.from_(INSPECTION_PHOTO_BUCKET).upload(path, file_bytes, {"content-type": content_type, "upsert": "true"})
             uploaded_paths.append(path)
-            photo_urls[item_id] = supabase.storage.from_(INSPECTION_PHOTO_BUCKET).get_public_url(path)
+            photo_paths[item_id] = path
     except Exception:  # noqa: BLE001
         logger.exception("Inspection photo upload failed for submission %s", inspection_id)
         _discard_uploads(uploaded_paths)
@@ -2668,7 +2688,7 @@ async def _complete_inspection(
             "result": answer["result"],
             "note": answer["note"],
             **({"severity": answer["severity"]} if answer["severity"] else {}),
-            **({"photo_url": photo_urls[item_id]} if item_id in photo_urls else {}),
+            **({"photo_path": photo_paths[item_id]} if item_id in photo_paths else {}),
         }
         for item_id, answer in validated.answers.items()
         if item_id not in stored_item_ids
@@ -2848,81 +2868,103 @@ async def list_inspections(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     room_id: Optional[str] = Query(None),
-    result: Optional[str] = Query(None),  # passed|failed|conditional
+    result: Optional[str] = Query(None, pattern="^(passed|failed|conditional)$"),
+    inspection_type: Optional[str] = Query(None, pattern="^(initial|reinspection)$"),
+    inspector_id: Optional[UUID] = Query(None),
+    room_number: Optional[str] = Query(None, max_length=20),
+    failed_item_id: Optional[UUID] = Query(None),
+    limit: Optional[int] = Query(None, ge=1, le=HISTORY_MAX_LIMIT),
+    cursor: Optional[str] = Query(None, max_length=200),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    """List inspection records with optional filters.
+    """List inspection records with optional filters, newest first.
 
-    Date filters always use the hotel's configured time zone. The server resolves
-    both local midnights independently so spring-forward and fall-back days match
-    every reporting surface, regardless of the mobile device's time zone.
+    Date filters always use the hotel's configured time zone. The server resolves both local midnights independently so
+    spring-forward and fall-back days match every reporting surface, regardless of the mobile device's time zone.
+
+    Pass ``limit`` (and ``cursor`` from the previous page's ``meta.next_cursor``) to page through a long period. A caller
+    that passes no ``limit`` gets one page of up to ``LIST_LEGACY_LIMIT`` rows and ``meta.has_more`` says if there were
+    more, so no caller can load an unbounded history. ``meta.total`` is the exact match count on the first page only.
     """
+    zone, from_date, to_date, start_str, end_str = _history_period(current_user, date_from, date_to)
+
+    room_ids = rooms_matching(supabase, current_user.hotel_id, room_number) if room_number and room_number.strip() else None
+    inspection_ids = (
+        inspections_failing_standard(supabase, current_user.hotel_id, str(failed_item_id), start_str, end_str) if failed_item_id else None
+    )
+    try:
+        page = list_history(
+            supabase,
+            current_user.hotel_id,
+            start_iso=start_str,
+            end_iso=end_str,
+            result=result,
+            inspection_type=inspection_type,
+            inspector_id=str(inspector_id) if inspector_id else None,
+            room_id=room_id,
+            room_ids=room_ids,
+            inspection_ids=inspection_ids,
+            limit=limit or LIST_LEGACY_LIMIT,
+            cursor=cursor,
+        )
+    except HistoryParamError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "data": page["rows"],
+        "meta": {
+            "limit": limit or LIST_LEGACY_LIMIT,
+            "has_more": page["has_more"],
+            "next_cursor": page["next_cursor"],
+            "total": page["total"],
+            "date_from": from_date.isoformat(),
+            "date_to": to_date.isoformat(),
+        },
+    }
+
+
+def _history_period(current_user: CurrentUser, date_from: Optional[date], date_to: Optional[date]):
+    """Hotel zone + the inclusive local-day range as a UTC window; a reversed or over-long range is a 422."""
     zone = _hotel_zone(current_user.hotel_id)
     today = datetime.now(zone).date()
-    from_date = date_from or today
-    to_date = date_to or today
+    from_date, to_date = date_from or today, date_to or today
+    try:
+        validate_range(from_date, to_date)
+    except HistoryParamError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     start_str, end_str = _hotel_reporting_window(from_date, to_date, zone)
+    return zone, from_date, to_date, start_str, end_str
 
-    query = (
-        supabase.table("inspections")
-        .select(
-            "id, room_id, overall_result, notes, completed_at, inspected_by, reinspection_of, correction_kind, "
-            "rooms!inner(room_number, floor, building)"
-        )
-        .eq("tenant_id", current_user.hotel_id)
-        .gte("completed_at", start_str)
-        .lt("completed_at", end_str)
-        .order("completed_at", desc=True)
-    )
 
-    if room_id:
-        query = query.eq("room_id", room_id)
-    if result:
-        query = query.eq("overall_result", result)
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/insights   (registered before /inspections/{inspection_id})
+# ---------------------------------------------------------------------------
 
-    res = query.execute()
-    rows = res.data or []
+@router.get("/inspections/insights")
+async def get_inspection_insights(
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Quality numbers for a hotel-local period. Definitions live in ``services/inspection_history``."""
+    zone, from_date, to_date, start_str, end_str = _history_period(current_user, date_from, date_to)
+    data = load_insights(supabase, current_user.hotel_id, start_iso=start_str, end_iso=end_str, zone=zone, date_from=from_date, date_to=to_date)
+    return {"data": data, "meta": {"truncated": data["truncated"], "row_limit": INSIGHT_ROW_LIMIT}}
 
-    # Resolve inspector UUIDs → names in one query
-    inspector_ids = list({r["inspected_by"] for r in rows if r.get("inspected_by")})
-    name_map: dict[str, str] = {}
-    if inspector_ids:
-        profiles = (
-            supabase.table("user_profiles")
-            .select("id, preferred_name, full_name")
-            .in_("id", inspector_ids)
-            .eq("tenant_id", current_user.hotel_id)
-            .execute()
-        )
-        for p in (profiles.data or []):
-            name = p.get("preferred_name") or p.get("full_name")
-            if name:
-                name_map[p["id"]] = name
 
-    # Flatten for convenience
-    output = []
-    for row in rows:
-        room = row.get("rooms") or {}
-        inspector_id = row.get("inspected_by", "")
-        inspector_fallback = inspector_id[:8] if inspector_id else "Unknown"
-        output.append({
-            "id": row.get("id"),
-            "room_id": row.get("room_id"),
-            "room_number": room.get("room_number", ""),
-            "floor": room.get("floor"),
-            "building": room.get("building"),
-            "inspector_name": name_map.get(inspector_id, inspector_fallback),
-            # The real name or null: `inspector_name` above keeps its legacy id-prefix fallback for older clients,
-            # which must never be shown as a person's name.
-            "inspector_display_name": name_map.get(inspector_id),
-            "overall_result": row.get("overall_result"),
-            "notes": row.get("notes"),
-            "completed_at": row.get("completed_at"),
-            "reinspection_of": row.get("reinspection_of"),
-            "correction_kind": row.get("correction_kind"),
-        })
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/inspectors
+# ---------------------------------------------------------------------------
 
-    return {"data": output}
+@router.get("/inspections/inspectors")
+async def get_inspection_inspectors(
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Who completed inspections in the period, by stable user id (for the history filter)."""
+    _, _, _, start_str, end_str = _history_period(current_user, date_from, date_to)
+    found = list_inspectors(supabase, current_user.hotel_id, start_str, end_str)
+    return {"data": found["rows"], "meta": {"truncated": found["truncated"]}}
 
 
 # ---------------------------------------------------------------------------
@@ -3110,6 +3152,59 @@ async def get_inspection(
     if detail is None:
         raise HTTPException(status_code=404, detail="Inspection not found")
     return {"data": detail}
+
+
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/{inspection_id}/timeline
+# ---------------------------------------------------------------------------
+
+@router.get("/inspections/{inspection_id}/timeline")
+async def get_inspection_timeline(
+    inspection_id: UUID,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Every inspection linked to this one by reinspection, and every recorded correction event, oldest first."""
+    timeline = load_timeline(supabase, current_user.hotel_id, str(inspection_id))
+    if timeline is None:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    return {"data": timeline}
+
+
+# ---------------------------------------------------------------------------
+# GET /housekeeping/inspections/{inspection_id}/evidence/{template_item_id}
+# ---------------------------------------------------------------------------
+
+@router.get("/inspections/{inspection_id}/evidence/{template_item_id}")
+async def get_inspection_evidence(
+    inspection_id: UUID,
+    template_item_id: UUID,
+    response: Response,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """A fresh short-lived link to one stored photo. Hotel and inspection are checked BEFORE anything is signed."""
+    response.headers["Cache-Control"] = "no-store"
+    hotel_id = current_user.hotel_id
+    inspection = (
+        supabase.table("inspections").select("id").eq("tenant_id", hotel_id).eq("id", str(inspection_id)).maybe_single().execute()
+    )
+    if not inspection or not inspection.data:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+    row = (
+        supabase.table("inspection_results")
+        .select("photo_url, photo_path")
+        .eq("tenant_id", hotel_id)
+        .eq("inspection_id", str(inspection_id))
+        .eq("template_item_id", str(template_item_id))
+        .maybe_single()
+        .execute()
+    )
+    location = evidence_location(row.data, hotel_id, str(inspection_id)) if row and row.data else None
+    if location is None:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+    url = sign_location(supabase, location)
+    if url is None:
+        raise HTTPException(status_code=404, detail="Evidence is no longer available")
+    return {"data": {"url": url, "expires_in": SIGNED_URL_TTL_SECONDS}}
 
 
 # ---------------------------------------------------------------------------
@@ -3318,19 +3413,19 @@ async def upload_inspection_photo(
         "image/webp": "webp",
     }[photo.content_type]
     timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
-    path = f"{current_user.hotel_id}/inspections/{inspection_id}/{template_item_id}-{timestamp}.{extension}"
+    path = evidence_path(current_user.hotel_id, inspection_id, f"{template_item_id}-{timestamp}", extension)
 
-    supabase.storage.from_("work-order-photos").upload(
+    supabase.storage.from_(INSPECTION_PHOTO_BUCKET).upload(
         path,
         file_bytes,
         {"content-type": photo.content_type, "upsert": "false"},
     )
-    public_url = supabase.storage.from_("work-order-photos").get_public_url(path)
-    supabase.table("inspection_results").update({"photo_url": public_url}) \
+    supabase.table("inspection_results").update({"photo_path": path, "photo_url": None}) \
         .eq("id", result.data["id"]) \
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
-    return {"data": {"url": public_url, "template_item_id": template_item_id}}
+    # The evidence is private: hand back a short-lived signed link, never a permanent address.
+    return {"data": {"url": sign_location(supabase, (INSPECTION_PHOTO_BUCKET, path)), "template_item_id": template_item_id}}
 
 
 HANDOFF_NOTIFICATION_TYPE = "shift_summary"

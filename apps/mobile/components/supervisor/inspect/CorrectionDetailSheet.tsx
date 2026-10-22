@@ -33,6 +33,7 @@ export function CorrectionDetailSheet({
   onReinspect,
   onRepair,
   onViewRoom,
+  onViewRecord,
   onClose,
 }: {
   correction: CorrectionItem | null;
@@ -49,6 +50,8 @@ export function CorrectionDetailSheet({
   onReinspect: (item: CorrectionItem) => void;
   onRepair: (item: CorrectionItem) => void;
   onViewRoom: (item: CorrectionItem) => void;
+  /** Open the failed inspection's full read-only record. */
+  onViewRecord?: (item: CorrectionItem) => void;
   onClose: () => void;
 }) {
   const theme = useTheme();
@@ -236,6 +239,7 @@ export function CorrectionDetailSheet({
                 <Button label={t(task?.assigned_to ? "inspect.drawer.reassign" : "inspect.correction.assign")} variant={actions.reinspect ? "secondary" : "primary"} size="lg" disabled={busy} onPress={() => onReassign(correction, detail)} testID="correction-sheet-reassign" />
               ) : null}
               {actions.escalate ? <Button label={t("inspect.drawer.escalate")} variant="secondary" size="lg" disabled={busy} onPress={() => setConfirmEscalate(true)} testID="correction-sheet-escalate" /> : null}
+              {onViewRecord ? <Button label={t("inspect.history.record.viewOriginal")} variant="ghost" size="lg" disabled={busy} onPress={() => onViewRecord(correction)} testID="correction-sheet-view-record" /> : null}
               <Button label={t("inspect.correction.viewRoom")} variant="ghost" size="lg" disabled={busy} onPress={() => onViewRoom(correction)} testID="correction-sheet-view-room" />
             </View>
           )}

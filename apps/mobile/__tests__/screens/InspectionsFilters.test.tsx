@@ -51,6 +51,12 @@ jest.mock("@/lib/api/inspections", () => ({
   fetchInspectionDetail: jest.fn(),
 }));
 jest.mock("@/lib/api/housekeepingSupervisor", () => ({ triggerReclean: jest.fn() }));
+const mockHistoryPage = jest.fn();
+jest.mock("@/lib/api/inspectionHistory", () => ({
+  fetchInspectionHistory: (...args: unknown[]) => mockHistoryPage(...args),
+  fetchInspectionInsights: jest.fn().mockResolvedValue(require("../helpers/inspectionFixtures").historyInsights()),
+  fetchHistoryInspectors: jest.fn().mockResolvedValue({ rows: [], truncated: false }),
+}));
 
 import { fetchInspectionRecords, fetchOpenCorrections, listInspectionTemplates } from "@/lib/api/inspections";
 import { router } from "expo-router";
@@ -58,7 +64,7 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { useAppStore } from "@/stores/appStore";
 import InspectScreen from "@/app/(app)/inspect";
-import { inspectionRecord, openCorrection, rawTemplate, readyRoom } from "../helpers/inspectionFixtures";
+import { historyRow, inspectionRecord, openCorrection, rawTemplate, readyRoom } from "../helpers/inspectionFixtures";
 
 const NOW = Date.parse("2026-10-20T18:00:00Z"); // 1:00 PM in Chicago
 const mockCorrections = fetchOpenCorrections as jest.Mock;
@@ -106,6 +112,7 @@ beforeEach(() => {
   mockTemplates.mockResolvedValue({ data: [rawTemplate("t1", { is_default: true, room_type_id: null })] });
   mockCorrections.mockResolvedValue({ rows: [], truncated: false });
   mockRecords.mockResolvedValue([]);
+  mockHistoryPage.mockResolvedValue({ rows: [], hasMore: false, nextCursor: null, total: 0 });
   mockSubscribe.mockImplementation(() => jest.fn());
   useAppStore.setState({ hotelTimezone: "America/Chicago", isOnline: true, user: { id: "sup-1", tenant_id: "hotel-1", role: "housekeeping_supervisor" } as never });
 });
@@ -177,9 +184,9 @@ describe("search", () => {
     expect(dismiss).toHaveBeenCalled();
   });
 
-  it("searches Corrections and Done by room number too, and keeps the text when switching tabs", async () => {
+  it("searches Corrections locally and Done on the server, by room number", async () => {
     mockCorrections.mockResolvedValue({ rows: [openCorrection("305"), openCorrection("406")], truncated: false });
-    mockRecords.mockResolvedValue([inspectionRecord("305"), inspectionRecord("512")]);
+    mockHistoryPage.mockResolvedValue({ rows: [historyRow("305")], hasMore: false, nextCursor: null, total: 1 });
     const screen = renderScreen();
     await settle();
     await type(screen, "30");
@@ -187,11 +194,15 @@ describe("search", () => {
     expect(screen.getByTestId("inspect-search").props.value).toBe("30");
     expect(screen.queryAllByTestId(/^correction-card-room-/)).toHaveLength(1);
     await press(screen, "inspect-tab-done");
+    // Done has its own room search, asked of the server (after a short pause), not filtered on the phone
+    expect(screen.getByTestId("inspect-search").props.value).toBe("");
+    await type(screen, "30");
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 450)); });
+    await settle();
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.objectContaining({ roomNumber: "30" }));
     expect(screen.queryAllByTestId(/^done-row-/)).toHaveLength(1);
-    await type(screen, "zzz");
-    expect(screen.getByText("No inspections match your search")).toBeTruthy();
     await press(screen, "inspect-tab-queue");
-    expect(screen.getByTestId("inspect-search").props.value).toBe("zzz");
+    expect(screen.getByTestId("inspect-search").props.value).toBe("30"); // the list tabs keep their own text
   });
 
   it("is kept when a room is opened and closed again", async () => {
@@ -463,6 +474,7 @@ describe("applied filters and chips", () => {
   it("applies to the To inspect list only: Corrections and Done are never filtered by it", async () => {
     mockCorrections.mockResolvedValue({ rows: [openCorrection("105"), openCorrection("406")], truncated: false });
     mockRecords.mockResolvedValue([inspectionRecord("105"), inspectionRecord("406")]);
+    mockHistoryPage.mockResolvedValue({ rows: [historyRow("105"), historyRow("406")], hasMore: false, nextCursor: null, total: 2 });
     const screen = renderScreen();
     await settle();
     await apply(screen, ["inspect-filter-floor-~|3"]);
@@ -471,6 +483,7 @@ describe("applied filters and chips", () => {
     expect(screen.queryByTestId("inspect-active-filters")).toBeNull();
     expect(screen.queryAllByTestId(/^correction-card-room-/)).toHaveLength(2);
     await press(screen, "inspect-tab-done");
+    expect(mockHistoryPage).toHaveBeenLastCalledWith(expect.not.objectContaining({ floors: expect.anything() }));
     expect(screen.queryAllByTestId(/^done-row-/)).toHaveLength(2);
     await press(screen, "inspect-tab-queue");
     expect(screen.getByTestId("inspect-chip-floor:~|3")).toBeTruthy();

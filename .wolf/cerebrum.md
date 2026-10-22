@@ -886,3 +886,10 @@
 - **[2026-10-21] Inspection photo evidence is JPEG-only and lives in documents/inspection-evidence/{hotel}/{user}/{room}/:** every capture is re-encoded (orientation applied, HEIC/PNG/WebP converted, size ladder to stay <= 5 MB) so `completeInspection`'s hard-coded image/jpeg + .jpg is truthful. Delete only via `deleteEvidence` (ownership-checked); a photo counts only if `findMissingEvidence` says the file is there.
 - **[2026-10-21] Inspection photos upload to a PUBLIC bucket (`work-order-photos`, public=true, public SELECT policy):** URLs are unguessable-by-UUID but not tenant-authorized. Phase 5/security decision (private bucket + signed URLs) is the user's; do not flip bucket permissions from a feature PR.
 - **[2026-10-21] The server fixes the correction task** (housekeeping, priority urgent, owner = responsible housekeeper); an inspection cannot choose owner/priority/message or route to engineering, so the mobile correction UI is a read-only preview.
+
+## Phase 6 learnings (2026-10-21, supervisor inspections history)
+- Inspection evidence is PRIVATE now (bucket `inspection-evidence`, `photo_path`); never hand a client a stored URL - sign it (services/inspection_evidence.py). Legacy `photo_url` rows are signed from the public bucket until the operator backfill runs.
+- History list = keyset cursor on (completed_at, id); exact `total` only on page 1; no `limit` still means a 1000-row cap with meta.has_more.
+- Metric definitions live in the docstring of services/inspection_history.py; a day/period with no initial inspections has NO rate (null), never 0%; truncated periods withhold rates.
+- Bash tool: heredocs containing quotes/backticks can fail to parse - write patch scripts with the Write tool, then run them.
+- In the browser harness, the URL query is not seen by useLocalSearchParams: call router.setParams from the harness.

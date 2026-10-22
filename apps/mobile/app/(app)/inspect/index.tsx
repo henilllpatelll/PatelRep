@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View, type ListRenderItemInfo } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View, type ListRenderItemInfo } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,12 +7,17 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { normalizeRoomIdParam } from "@/lib/housekeeping/inspectionTarget";
-import { inspectionHref } from "@/lib/inspections/route";
+import { inspectionHref, recordHref } from "@/lib/inspections/route";
 import type { QueueItem } from "@/lib/inspections/queue";
 import { useInspectionQueue } from "@/lib/inspections/useInspectionQueue";
 import { escalateCorrection, reassignCorrection, requestCorrectionAgain, type InspectionDetail } from "@/lib/api/inspections";
 import { classifyActionError, shouldReload, type ActionFailure } from "@/lib/inspections/correctionActions";
-import { groupCorrections, searchByRoomNumber, type CorrectionAction, type CorrectionItem, type DoneItem } from "@/lib/inspections/lists";
+import { groupCorrections, searchByRoomNumber, type CorrectionAction, type CorrectionItem } from "@/lib/inspections/lists";
+import { activeFilterCount, DEFAULT_HISTORY_FILTERS, hasActiveFilters, isDefaultView, removeChip as removeHistoryChip, type FilterChip, type HistoryFilters } from "@/lib/inspections/history/filters";
+import { periodLabel } from "@/lib/inspections/history/labels";
+import { buildInsightsView } from "@/lib/inspections/history/insights";
+import type { HistoryItem } from "@/lib/inspections/history/rows";
+import { useInspectionHistory } from "@/lib/inspections/history/useInspectionHistory";
 import { pokeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import {
   DEFAULT_QUEUE_DRAFT,
@@ -38,9 +43,13 @@ import { CorrectionCard } from "@/components/supervisor/inspect/CorrectionCard";
 import { CorrectionDetailSheet } from "@/components/supervisor/inspect/CorrectionDetailSheet";
 import { CorrectionSummary } from "@/components/supervisor/inspect/CorrectionSummary";
 import { ReassignSheet } from "@/components/supervisor/inspect/ReassignSheet";
+import { Button } from "@/components/ui/Button";
 import { DoneRow } from "@/components/supervisor/inspect/DoneRow";
 import { InspectFilterSheet } from "@/components/supervisor/inspect/InspectFilterSheet";
-import { InspectionRecordSheet } from "@/components/supervisor/inspect/InspectionRecordSheet";
+import { HistoryFilterSheet } from "@/components/supervisor/inspect/history/HistoryFilterSheet";
+import { HistoryToolbar } from "@/components/supervisor/inspect/history/HistoryToolbar";
+import { InsightsSheet } from "@/components/supervisor/inspect/history/InsightsSheet";
+import { QualityInsightsCard } from "@/components/supervisor/inspect/history/QualityInsightsCard";
 import { InspectNotice, InspectSkeleton, StaleBanner } from "@/components/supervisor/inspect/InspectListStates";
 
 /* ─── Inspections — find the next room to inspect ───────────────────────────
@@ -48,7 +57,7 @@ import { InspectNotice, InspectSkeleton, StaleBanner } from "@/components/superv
    Done) and a Filter & Sort drawer. Choosing a room opens the active inspection workspace (`inspect/[roomId]`) by its
    stable id; this screen stays mounted underneath, so its tab, search, filters and scroll are exactly as left. */
 
-type Row = QueueItem | CorrectionItem | DoneItem;
+type Row = QueueItem | CorrectionItem | HistoryItem;
 
 /** One drawer at a time: the correction's details, or the owner picker (which returns to the details). */
 type Drawer = null | { kind: "detail"; item: CorrectionItem } | { kind: "assign"; item: CorrectionItem; ownerId: string | null; backTo: "detail" | "none" };
@@ -85,12 +94,16 @@ export default function InspectScreen() {
 
   const [view, setView] = useState<ViewState>(INITIAL_VIEW);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [record, setRecord] = useState<DoneItem | null>(null);
+  const [historyFiltersOpen, setHistoryFiltersOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  // History is only read once the Done tab has been opened, then kept so coming back is instant.
+  const [doneVisited, setDoneVisited] = useState(false);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [drawerBusy, setDrawerBusy] = useState(false);
   const [drawerFailure, setDrawerFailure] = useState<ActionFailure | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const acting = useRef(false);
+  const history = useInspectionHistory({ enabled: doneVisited });
 
   const dropFocus = useCallback(() => router.setParams({ roomId: undefined, roomNumber: undefined }), []);
 
@@ -101,7 +114,9 @@ export default function InspectScreen() {
     lastScope.current = scopeKey;
     setView(INITIAL_VIEW);
     setFiltersOpen(false);
-    setRecord(null);
+    setHistoryFiltersOpen(false);
+    setInsightsOpen(false);
+    setDoneVisited(false);
     setDrawer(null);
     setDrawerFailure(null);
     dropFocus();
@@ -109,10 +124,14 @@ export default function InspectScreen() {
 
   // "View corrections" from a result screen lands on that tab. Cleared at once so it applies only the one time.
   useEffect(() => {
-    if (tabParam !== "corrections") return;
-    setView((previous) => ({ ...previous, tab: "corrections" }));
+    if (tabParam !== "corrections" && tabParam !== "done") return;
+    setView((previous) => ({ ...previous, tab: tabParam }));
     router.setParams({ tab: undefined });
   }, [tabParam]);
+
+  useEffect(() => {
+    if (view.tab === "done") setDoneVisited(true);
+  }, [view.tab]);
 
   // Hand an older room link on to the workspace: clear it from THIS screen first (so it cannot fire twice), then open.
   useEffect(() => {
@@ -135,7 +154,7 @@ export default function InspectScreen() {
   );
   const queueRows = useMemo(() => (selection ? selection.shown : null), [selection]);
   const correctionRows = useMemo(() => (correctionList ? searchByRoomNumber(correctionList.items, view.search) : null), [correctionList, view.search]);
-  const doneRows = useMemo(() => (doneList ? searchByRoomNumber(doneList.items, view.search) : null), [doneList, view.search]);
+  const historyItems = history.list.status === "ready" ? history.list.items : null;
   const queuedIds = useMemo(() => new Set((items ?? []).map((item) => item.roomId)), [items]);
   const itemById = useMemo(() => new Map((items ?? []).map((item) => [item.roomId, item] as const)), [items]);
 
@@ -161,10 +180,17 @@ export default function InspectScreen() {
   const counts: Record<InspectTab, number | null> = {
     queue: metrics.waiting.value,
     corrections: metrics.corrections.value,
-    done: doneList ? doneList.items.length : null,
+    // The badge counts what the list shows: today's verified count in the default view, else the server's exact match count.
+    done: isDefaultView(history.filters) ? (doneList ? doneList.items.length : null) : history.list.status === "ready" ? history.list.total : null,
   };
   const source = view.tab === "queue" ? queue : view.tab === "corrections" ? data.corrections : data.records;
-  const banner = staleBanner(source, hotelTimezone, language, t);
+  const historyStale = view.tab === "done" && history.list.status === "ready" ? history.list.stale : null;
+  const banner =
+    view.tab === "done"
+      ? historyStale
+        ? t(historyStale === "offline" ? "inspect.history.stale.offline" : "inspect.history.stale.failed")
+        : null
+      : staleBanner(source, hotelTimezone, language, t);
   const ignoredFilters = items ? unavailableApplied(filters, availability).length > 0 : false;
 
   /* ─── Actions ─────────────────────────────────────────────────────────── */
@@ -305,6 +331,36 @@ export default function InspectScreen() {
     setDrawerFailure(null);
   }, []);
 
+  /* ─── Done: history ────────────────────────────────────────────────────── */
+
+  const openRecord = useCallback((item: Pick<HistoryItem, "id" | "roomId" | "roomNumber">) => router.push(recordHref(item.id, "done", item.roomId, item.roomNumber) as never), []);
+  const setHistoryFilters = history.setFilters;
+  const applyHistoryFilters = useCallback(
+    (next: HistoryFilters) => {
+      setHistoryFilters(next);
+      setHistoryFiltersOpen(false);
+    },
+    [setHistoryFilters],
+  );
+  const dropHistoryChip = useCallback((chip: FilterChip) => setHistoryFilters((previous) => removeHistoryChip(previous, chip)), [setHistoryFilters]);
+  const clearHistoryFilters = useCallback(() => setHistoryFilters((previous) => ({ ...DEFAULT_HISTORY_FILTERS, period: previous.period, custom: previous.custom })), [setHistoryFilters]);
+  const drillStandard = useCallback(
+    (standard: { id: string; label: string }) => {
+      setHistoryFilters((previous) => ({ ...previous, result: "failed", standard }));
+      setInsightsOpen(false);
+    },
+    [setHistoryFilters],
+  );
+  const drillRoom = useCallback(
+    (roomNumber: string) => {
+      setHistoryFilters((previous) => ({ ...previous, room: roomNumber, result: "failed" }));
+      setInsightsOpen(false);
+    },
+    [setHistoryFilters],
+  );
+  const historyPeriod = periodLabel(history.filters, history.today, language, t);
+  const insightsData = history.insights.status === "ready" ? history.insights.data : null;
+
   /* ─── Rows ────────────────────────────────────────────────────────────── */
 
   const renderRow = useCallback(
@@ -328,23 +384,43 @@ export default function InspectScreen() {
         const correction = item as CorrectionItem;
         return <CorrectionCard item={correction} now={minute} roomAwaitingInspection={queuedIds.has(correction.roomId)} t={t} onOpen={openDetail} onAction={onCorrectionAction} />;
       }
-      return <DoneRow item={item as DoneItem} timeZone={hotelTimezone} language={language} t={t} onPress={setRecord} />;
+      return <DoneRow item={item as HistoryItem} timeZone={hotelTimezone} language={language} t={t} showBuilding={showBuilding} onPress={openRecord} />;
     },
-    [view.tab, minute, hotelTimezone, language, showBuilding, blockedByType, t, startInspection, queuedIds, openDetail, onCorrectionAction],
+    [view.tab, minute, hotelTimezone, language, showBuilding, blockedByType, t, startInspection, queuedIds, openDetail, onCorrectionAction, openRecord],
   );
   const keyOf = useCallback(
-    (row: Row) => (view.tab === "queue" ? (row as QueueItem).roomId : view.tab === "corrections" ? (row as CorrectionItem).inspectionId : (row as DoneItem).id),
+    (row: Row) => (view.tab === "queue" ? (row as QueueItem).roomId : view.tab === "corrections" ? (row as CorrectionItem).inspectionId : (row as HistoryItem).id),
     [view.tab],
   );
 
-  const rows: Row[] | null = view.tab === "queue" ? queueRows : view.tab === "corrections" ? correctionRows : doneRows;
+  const rows: Row[] | null = view.tab === "queue" ? queueRows : view.tab === "corrections" ? correctionRows : historyItems;
   const searching = view.search.trim().length > 0;
 
+  const doneEmpty = (() => {
+    const list = history.list;
+    if (history.rangeProblem) {
+      return <InspectNotice testID="history-invalid-range" tone="problem" icon="calendar-outline" title={t("inspect.history.states.invalidRangeTitle")} body={t(`inspect.history.filter.problem.${history.rangeProblem}`)} actionLabel={t("inspect.history.toolbar.filter")} onAction={() => setHistoryFiltersOpen(true)} />;
+    }
+    if (list.status === "idle" || list.status === "loading") return <InspectSkeleton label={t("inspect.states.loadingA11y")} />;
+    if (list.status === "failed") {
+      const offline = list.failure.kind === "offline";
+      return <InspectNotice testID="history-error" tone="problem" icon={offline ? "cloud-offline-outline" : "alert-circle-outline"} title={t(offline ? "inspect.history.states.offlineTitle" : "inspect.history.states.errorTitle")} body={t(offline ? "inspect.history.states.offlineBody" : "inspect.history.states.errorBody")} actionLabel={t("inspect.states.retry")} onAction={() => void history.refresh()} />;
+    }
+    if (hasActiveFilters(history.filters)) {
+      return <InspectNotice testID="history-empty-filters" icon="funnel-outline" title={t("inspect.history.states.noMatchTitle")} body={t("inspect.history.states.noMatchBody")} actionLabel={t("inspect.states.clearFilters")} onAction={clearHistoryFilters} />;
+    }
+    if (isDefaultView(history.filters)) {
+      return <InspectNotice testID="history-empty" icon="moon-outline" title={t("inspect.states.doneEmptyTitle")} body={t("inspect.states.doneEmptyBody")} />;
+    }
+    return <InspectNotice testID="history-empty-period" icon="calendar-outline" title={t("inspect.history.states.emptyPeriodTitle")} body={t("inspect.history.states.emptyPeriodBody", { period: historyPeriod })} />;
+  })();
+
   const empty = (() => {
+    if (view.tab === "done") return doneEmpty;
     if (rows === null) {
       const failed = source.status === "failed";
       if (!failed) return <InspectSkeleton label={t("inspect.states.loadingA11y")} />;
-      const kind = view.tab === "queue" ? "" : view.tab === "corrections" ? "corrections" : "done";
+      const kind = view.tab === "queue" ? "" : "corrections";
       const title = t(`inspect.states.${kind ? `${kind}ErrorTitle` : "errorTitle"}`);
       const body = t(`inspect.states.${kind ? `${kind}ErrorBody` : "errorBody"}`);
       return <InspectNotice testID="inspect-error" tone="problem" icon="alert-circle-outline" title={title} body={body} actionLabel={t("inspect.states.retry")} onAction={() => void refresh()} />;
@@ -358,15 +434,11 @@ export default function InspectScreen() {
       }
       return <InspectNotice testID="inspect-empty" tone="good" icon="shield-checkmark-outline" title={t("inspect.states.emptyTitle")} body={t("inspect.states.emptyBody")} />;
     }
-    const total = view.tab === "corrections" ? correctionList?.items.length ?? 0 : doneList?.items.length ?? 0;
+    const total = correctionList?.items.length ?? 0;
     if (searching && total > 0) {
-      return <InspectNotice testID="inspect-empty-search" icon="search-outline" title={t(view.tab === "corrections" ? "inspect.states.noMatchCorrectionsTitle" : "inspect.states.noMatchDoneTitle")} actionLabel={t("inspect.states.clearSearch")} onAction={() => setSearch("")} />;
+      return <InspectNotice testID="inspect-empty-search" icon="search-outline" title={t("inspect.states.noMatchCorrectionsTitle")} actionLabel={t("inspect.states.clearSearch")} onAction={() => setSearch("")} />;
     }
-    return view.tab === "corrections" ? (
-      <InspectNotice testID="inspect-empty" tone="good" icon="checkmark-done-outline" title={t("inspect.states.correctionsEmptyTitle")} body={t("inspect.states.correctionsEmptyBody")} />
-    ) : (
-      <InspectNotice testID="inspect-empty" icon="moon-outline" title={t("inspect.states.doneEmptyTitle")} body={t("inspect.states.doneEmptyBody")} />
-    );
+    return <InspectNotice testID="inspect-empty" tone="good" icon="checkmark-done-outline" title={t("inspect.states.correctionsEmptyTitle")} body={t("inspect.states.correctionsEmptyBody")} />;
   })();
 
   const listHeader = (
@@ -375,9 +447,48 @@ export default function InspectScreen() {
       {view.tab === "corrections" && correctionList ? <CorrectionSummary groups={groupCorrections(correctionList.items, queuedIds)} atLeast={correctionList.truncated} t={t} /> : null}
       {view.tab === "corrections" && correctionList?.truncated ? <MutedLine text={t("inspect.correction.truncated")} color={theme.textMuted} /> : null}
       {view.tab === "corrections" && correctionList && correctionList.unreadable > 0 ? <MutedLine text={t("inspect.correction.unreadable", { count: correctionList.unreadable })} color={theme.textMuted} /> : null}
-      {view.tab === "done" && doneList && doneList.unreadable > 0 ? <MutedLine text={t("inspect.done.unreadable", { count: doneList.unreadable })} color={theme.textMuted} /> : null}
+      {view.tab === "done" ? (
+        <>
+          <HistoryToolbar
+            periodText={historyPeriod}
+            filters={history.filters}
+            inspectors={history.inspectors.rows}
+            activeCount={activeFilterCount(history.filters)}
+            counts={insightsData ? insightsData.counts : null}
+            countsAtLeast={insightsData?.truncated ?? false}
+            matchCount={history.list.status === "ready" ? history.list.total ?? history.list.items.length : null}
+            matchAtLeast={history.list.status === "ready" && history.list.total === null && history.list.hasMore}
+            t={t}
+            onOpenFilters={() => setHistoryFiltersOpen(true)}
+            onRemoveChip={dropHistoryChip}
+            onClearAll={clearHistoryFilters}
+          />
+          {history.rangeProblem === null ? (
+            <QualityInsightsCard state={history.insights} periodLabel={historyPeriod} t={t} onRetry={() => void history.refresh()} onOpenDetails={() => setInsightsOpen(true)} />
+          ) : null}
+          {history.list.status === "ready" && history.list.unreadable > 0 ? <MutedLine text={t("inspect.done.unreadable", { count: history.list.unreadable })} color={theme.textMuted} /> : null}
+        </>
+      ) : null}
     </View>
   );
+
+  const listFooter =
+    view.tab === "done" && history.list.status === "ready" ? (
+      <View style={styles.footer} testID="history-footer">
+        {history.list.loadingMore ? (
+          <ActivityIndicator color={theme.primaryAction} accessibilityLabel={t("inspect.history.states.loadingMore")} testID="history-loading-more" />
+        ) : history.list.moreFailed ? (
+          <View style={styles.footerFailed} accessibilityRole="alert">
+            <MutedLine text={t("inspect.history.states.moreFailed")} color={theme.textSecondary} />
+            <Button label={t("inspect.states.retry")} variant="secondary" size="sm" onPress={history.loadMore} testID="history-more-retry" />
+          </View>
+        ) : history.list.hasMore ? (
+          <Button label={t("inspect.history.states.loadMore")} variant="secondary" size="md" onPress={history.loadMore} testID="history-load-more" />
+        ) : history.list.items.length > 0 ? (
+          <MutedLine text={t("inspect.history.states.end", { count: history.list.items.length })} color={theme.textMuted} />
+        ) : null}
+      </View>
+    ) : null;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -389,7 +500,15 @@ export default function InspectScreen() {
         t={t}
         onRefresh={() => void refresh()}
       />
-      <InspectSearchBar value={view.search} onChangeText={setSearch} onClear={() => setSearch("")} onOpenFilters={() => setFiltersOpen(true)} activeCount={activeCount(view.applied)} showFilters={view.tab === "queue"} t={t} />
+      <InspectSearchBar
+        value={view.tab === "done" ? history.filters.room : view.search}
+        onChangeText={view.tab === "done" ? (room: string) => setHistoryFilters((previous) => ({ ...previous, room })) : setSearch}
+        onClear={view.tab === "done" ? () => setHistoryFilters((previous) => ({ ...previous, room: "" })) : () => setSearch("")}
+        onOpenFilters={view.tab === "done" ? () => setHistoryFiltersOpen(true) : () => setFiltersOpen(true)}
+        activeCount={view.tab === "done" ? activeFilterCount(history.filters) : activeCount(view.applied)}
+        showFilters={view.tab === "queue" || view.tab === "done"}
+        t={t}
+      />
       <InspectTabs selected={view.tab} counts={counts} t={t} onSelect={setTab} />
       {view.tab === "queue" && selection ? (
         <InspectActiveFilters filters={filters} shown={selection.shown.length} total={selection.totalCount} multiBuilding={availability.multiBuilding} ignored={ignoredFilters} t={t} onRemove={dropChip} onClearAll={clearFilters} />
@@ -401,6 +520,9 @@ export default function InspectScreen() {
         keyExtractor={keyOf}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={empty}
+        ListFooterComponent={listFooter}
+        onEndReached={view.tab === "done" ? history.loadMore : undefined}
+        onEndReachedThreshold={0.4}
         ItemSeparatorComponent={Separator}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={theme.primaryAction} />}
@@ -434,6 +556,10 @@ export default function InspectScreen() {
           setDrawer(null);
           openRoomBoard(item.roomId);
         }}
+        onViewRecord={(item) => {
+          setDrawer(null);
+          router.push(recordHref(item.inspectionId, "corrections", item.roomId, item.roomNumber) as never);
+        }}
         onClose={closeDrawer}
       />
       <ReassignSheet
@@ -450,16 +576,25 @@ export default function InspectScreen() {
           setDrawer(drawer?.kind === "assign" && drawer.backTo === "detail" ? { kind: "detail", item: drawer.item } : null);
         }}
       />
-      <InspectionRecordSheet
-        record={record}
-        timeZone={hotelTimezone}
+      <HistoryFilterSheet
+        visible={historyFiltersOpen}
+        applied={history.filters}
+        today={history.today}
+        inspectors={history.inspectors}
+        t={t}
+        onOpen={history.loadInspectors}
+        onApply={applyHistoryFilters}
+        onClose={() => setHistoryFiltersOpen(false)}
+      />
+      <InsightsSheet
+        visible={insightsOpen}
+        data={insightsData}
+        periodLabel={historyPeriod}
         language={language}
         t={t}
-        onViewRoom={(roomId) => {
-          setRecord(null);
-          openRoomBoard(roomId);
-        }}
-        onClose={() => setRecord(null)}
+        onDrillStandard={drillStandard}
+        onDrillRoom={drillRoom}
+        onClose={() => setInsightsOpen(false)}
       />
     </View>
   );
@@ -476,7 +611,9 @@ function MutedLine({ text, color }: { text: string; color: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 10, flexGrow: 1 },
-  listHeader: { gap: 8, marginBottom: 2 },
+  listHeader: { gap: 10, marginBottom: 2 },
+  footer: { paddingVertical: 14, alignItems: "stretch", gap: 8 },
+  footerFailed: { gap: 8, alignItems: "flex-start" },
   separator: { height: 10 },
   mutedLine: { fontSize: 13, lineHeight: 19, fontWeight: "600" },
 });

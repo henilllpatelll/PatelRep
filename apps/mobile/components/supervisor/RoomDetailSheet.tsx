@@ -30,7 +30,7 @@ import { PanelHeader } from "@/components/supervisor/panels/PanelParts";
 import type { HistoryContext } from "@/lib/housekeeping/roomCleaningHistory";
 import { useRoomNote } from "@/lib/housekeeping/useRoomNote";
 import { useRoomWellness } from "@/lib/housekeeping/useRoomWellness";
-import { inspectionHref } from "@/lib/inspections/route";
+import { inspectionHref, recordHref } from "@/lib/inspections/route";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -217,7 +217,18 @@ export function RoomDetailSheet({
       case "session":
         return sessionId ? <SessionPanel sessionId={sessionId} ctx={historyCtx} t={t} /> : null;
       case "inspections":
-        return <InspectionHistoryPanel roomId={room.roomId} ctx={historyCtx} t={t} />;
+        return (
+          <InspectionHistoryPanel
+            roomId={room.roomId}
+            ctx={historyCtx}
+            t={t}
+            onOpenInspection={(inspectionId) => {
+              // The same canonical record screen as the Inspect tab: close the drawer, then open it by the inspection's id.
+              onClose();
+              router.push(recordHref(inspectionId, "board", room.roomId, room.roomNumber) as never);
+            }}
+          />
+        );
       case "workOrder":
         return detail.workOrder?.id ? (
           <WorkOrderPanel workOrderId={detail.workOrder.id} roomId={room.roomId} roomNumber={detail.roomNumber} boardOpen ctx={historyCtx} t={t} />

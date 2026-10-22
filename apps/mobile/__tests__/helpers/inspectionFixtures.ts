@@ -1,3 +1,4 @@
+import type { HistoryRowRaw, Insights } from "@/lib/api/inspectionHistory";
 import type { InspectionRecordRow, InspectionTemplate, OpenCorrectionRow, ReadyRoom } from "@/lib/api/inspections";
 import { normalizeTemplate } from "@/lib/inspections/templates";
 import type { ChecklistTemplate } from "@/lib/inspections/types";
@@ -90,6 +91,47 @@ export function inspectionRecord(id: string, overrides: Partial<InspectionRecord
     notes: null,
     completed_at: "2026-10-20T16:00:00.000Z",
     reinspection_of: null,
+    ...overrides,
+  };
+}
+
+/* ─── Phase 6: history ──────────────────────────────────────────────────────── */
+
+
+/** One row of GET /housekeeping/inspections (paged history). */
+export function historyRow(id: string, overrides: Partial<HistoryRowRaw> = {}): HistoryRowRaw {
+  return {
+    id,
+    room_id: `room-${id}`,
+    room_number: id,
+    floor: 2,
+    building: null,
+    inspected_by: "sup-1",
+    inspector_display_name: "Sam Supervisor",
+    overall_result: "passed",
+    notes: null,
+    completed_at: "2026-10-20T16:00:00.000Z",
+    reinspection_of: null,
+    is_reinspection: false,
+    correction_kind: null,
+    ...overrides,
+  };
+}
+
+/** An insights body with nothing in it; override the parts a test is about. */
+export function historyInsights(overrides: Partial<Insights> = {}): Insights {
+  return {
+    period: { date_from: "2026-10-20", date_to: "2026-10-20" },
+    counts: { completed: 0, passed: 0, failed: 0, conditional: 0, initial: 0, reinspections: 0, without_lineage: 0 },
+    first_pass: { rate: null, passed: 0, eligible: 0, conditional_excluded: 0 },
+    daily: [{ date: "2026-10-20", initial_passed: 0, initial_failed: 0, completed: 0, first_pass_rate: null }],
+    top_standards: [],
+    failed_answers_unidentified: 0,
+    repeat_rooms: [],
+    repeat_standards: [],
+    corrections: { failed: 0, verified: 0, failed_again: 0, no_reinspection_recorded: 0 },
+    time_to_verification: { available: false, median_minutes: null, sample: 0, minimum_sample: 3 },
+    truncated: false,
     ...overrides,
   };
 }

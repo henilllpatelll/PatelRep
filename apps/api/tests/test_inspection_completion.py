@@ -214,7 +214,11 @@ def test_failure_keeps_every_failed_item_and_creates_exactly_one_correction_task
     assert data["correction"]["status"] == "created" and data["followup_complete"] is True
     failed = _rows(env, "inspection_results", result="fail")
     assert [r["template_item_id"] for r in failed] == [env.items["mirror"]]
-    assert failed[0]["severity"] == "major" and failed[0]["photo_url"].endswith(f"{env.items['mirror']}.jpg")
+    assert failed[0]["severity"] == "major"
+    # Evidence goes to the PRIVATE bucket and is recorded as a path under this hotel's folder - never as a public URL.
+    assert failed[0].get("photo_url") is None
+    assert failed[0]["photo_path"] == f"{HOTEL}/inspections/{payload['client_submission_id']}/{env.items['mirror']}.jpg"
+    assert [(bucket, path) for bucket, path, _ in env.db.storage_uploads] == [("inspection-evidence", failed[0]["photo_path"])]
     task = _rows(env, "tasks")[0]
     assert task["source_inspection_id"] == payload["client_submission_id"]
     assert task["assigned_to"] == "hk-1" and task["title"] == "Re-clean Room 204"

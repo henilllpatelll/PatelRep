@@ -44,5 +44,9 @@ async def test_inspection_photo_is_stored_on_its_matching_result(monkeypatch):
     )
 
     assert response["data"]["template_item_id"] == "item-1"
-    assert db.rows["inspection_results"][0]["photo_url"].startswith("https://storage.test/")
-    assert db.storage_uploads[0][0] == "work-order-photos"
+    # Private bucket + a stored path; the response is a short-lived signed link, never a permanent public address.
+    stored = db.rows["inspection_results"][0]
+    assert stored["photo_url"] is None
+    assert stored["photo_path"].startswith("hotel-a/inspections/inspection-1/item-1-")
+    assert response["data"]["url"].startswith("https://storage.test/signed/inspection-evidence/")
+    assert db.storage_uploads[0][0] == "inspection-evidence"

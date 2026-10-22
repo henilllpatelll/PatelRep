@@ -180,7 +180,10 @@ export interface InspectionDetailItem {
   result: "pass" | "fail" | "na" | string;
   note: string | null;
   severity: ItemSeverity | null;
+  /** A short-lived signed link (minutes), never a permanent address. Null when there is no photo OR it can't be opened. */
   photo_url: string | null;
+  /** The record says a photo exists, whether or not a link could be made now. Absent on servers older than Phase 6. */
+  has_evidence?: boolean;
 }
 
 export type CorrectionActivityType =
@@ -201,6 +204,8 @@ export interface CorrectionActivity {
   actor_name: string | null;
   /** Reassignments: who it was given to. */
   assignee_name?: string | null;
+  /** The inspection this event belongs to. Absent on servers older than Phase 6. */
+  inspection_id?: string | null;
 }
 
 export interface InspectionCorrection {
@@ -231,6 +236,8 @@ export interface InspectionDetail {
   room_id: string;
   room_number: string | null;
   floor: number | null;
+  /** Absent on servers older than Phase 6. */
+  building?: string | null;
   room_type_id: string | null;
   template_id: string | null;
   template_name: string | null;
@@ -240,6 +247,11 @@ export interface InspectionDetail {
   completed_at: string | null;
   inspected_by: string | null;
   inspector_name: string | null;
+  /** Who last finished cleaning the room before this inspection (their own clean session). Absent when none was recorded. */
+  housekeeper_id?: string | null;
+  housekeeper_name?: string | null;
+  /** STAY / DEP of that clean. */
+  service_type?: string | null;
   correction_kind: CorrectionKind | null;
   reinspection_of: string | null;
   items: InspectionDetailItem[];

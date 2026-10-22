@@ -21,7 +21,17 @@ class FakeStorageBucket:
     def get_public_url(self, path):
         return f"https://storage.test/{self.bucket}/{path}"
 
+    def download(self, path):
+        for bucket, stored, contents in self.db.storage_uploads:
+            if bucket == self.bucket and stored == path:
+                return contents
+        raise KeyError(path)
+
+    def remove(self, paths):
+        self.db.storage_removed.extend((self.bucket, path) for path in paths)
+
     def create_signed_url(self, path, _expires_in=3600):
+        self.db.signed_requests.append((self.bucket, path, _expires_in))
         return {"signedURL": f"https://storage.test/signed/{self.bucket}/{path}?token=fake"}
 
 
@@ -44,6 +54,8 @@ class FakeDB:
         self.updates = []
         self.deletes = []
         self.storage_uploads = []
+        self.storage_removed = []
+        self.signed_requests = []
         self.storage = FakeStorage(self)
         self._id_counter = 0
         self.select_calls = []
@@ -68,6 +80,10 @@ class _FakeNotProxy:
 
     def eq(self, column, value):
         self._query.filters.append(("not_eq", column, value))
+        return self._query
+
+    def is_(self, column, value):
+        self._query.filters.append(("not_is", column, value))
         return self._query
 
 
@@ -120,6 +136,10 @@ class FakeQuery:
         self.filters.append(("neq", column, value))
         return self
 
+    def gt(self, column, value):
+        self.filters.append(("gt", column, value))
+        return self
+
     def gte(self, column, value):
         self.filters.append(("gte", column, value))
         return self
@@ -143,6 +163,11 @@ class FakeQuery:
     def or_(self, expression):
         parsed = []
         for clause in re.split(r",(?![^()]*\))", expression):  # commas inside (...) belong to in-lists
+            if clause.startswith("and(") and clause.endswith(")"):
+                # PostgREST's and(a.eq.x,b.lt.y) group: every inner condition must hold.
+                inner = [tuple(part.split(".", 2)) for part in clause[4:-1].split(",")]
+                parsed.append(("and", inner))
+                continue
             column, operator, value = clause.split(".", 2)
             parsed.append((column, operator, value))
         self.or_filters.append(parsed)
@@ -190,6 +215,8 @@ class FakeQuery:
                 return False
             if op == "neq" and actual == value:
                 return False
+            if op == "gt" and (actual is None or str(actual) <= str(value)):
+                return False
             if op == "gte" and (actual is None or str(actual) < str(value)):
                 return False
             if op == "lt" and not (actual is not None and str(actual) < str(value)):
@@ -208,6 +235,8 @@ class FakeQuery:
                 return False
             if op == "not_eq" and actual == value:
                 return False
+            if op == "not_is" and (actual is None if value in (None, "null") else actual == value):
+                return False
             if op == "like":
                 prefix = value.rstrip("%")
                 if not isinstance(actual, str) or not actual.startswith(prefix):
@@ -220,16 +249,23 @@ class FakeQuery:
                 if not isinstance(actual, str) or needle not in actual.lower():
                     return False
         for alternatives in self.or_filters:
-            if not any(
-                (operator == "is" and value == "null" and row.get(column) is None)
-                or (operator == "gt" and row.get(column) is not None and str(row[column]) > value)
-                or (operator == "ilike" and isinstance(row.get(column), str) and value.strip("%*").lower() in row[column].lower())
-                or (operator == "in" and str(row.get(column)) in value.strip("()").split(","))
-                or (operator == "eq" and str(row.get(column)) == value)
-                for column, operator, value in alternatives
-            ):
+            if not any(self._or_clause(row, clause) for clause in alternatives):
                 return False
         return True
+
+    @staticmethod
+    def _or_clause(row, clause):
+        if clause[0] == "and":
+            return all(FakeQuery._or_clause(row, inner) for inner in clause[1])
+        column, operator, value = clause
+        return (
+            (operator == "is" and value == "null" and row.get(column) is None)
+            or (operator == "gt" and row.get(column) is not None and str(row[column]) > value)
+            or (operator == "lt" and row.get(column) is not None and str(row[column]) < value)
+            or (operator == "ilike" and isinstance(row.get(column), str) and value.strip("%*").lower() in row[column].lower())
+            or (operator == "in" and str(row.get(column)) in value.strip("()").split(","))
+            or (operator == "eq" and str(row.get(column)) == value)
+        )
 
     def _enforce_unique_indexes(self, rows, new_row):
         for table, name, columns, where in self.db.unique_indexes:
