@@ -142,6 +142,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify high-impact schema contracts, RLS, extensions, and RPCs
         run: psql --set ON_ERROR_STOP=1 "postgresql://postgres:postgres@127.0.0.1:54322/postgres" --file scripts/schema-contracts.sql
+      - name: Grant the API service role table access in the throwaway database
+        # The API connects as service_role and relies on the platform's default table
+        # privileges (hosted Supabase grants them). The isolated local stack does not
+        # grant service_role on tables created by the replayed migrations, so the real-DB
+        # integration tests fail with `permission denied for table tenants`. This only
+        # touches the ephemeral CI database; it never runs against staging/production.
+        run: |
+          psql --set ON_ERROR_STOP=1 "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
+          GRANT USAGE ON SCHEMA public TO service_role;
+          GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+          GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+          SQL
       - name: Verify API schema compatibility against the migrated Supabase API
         run: |
           cd apps/api
