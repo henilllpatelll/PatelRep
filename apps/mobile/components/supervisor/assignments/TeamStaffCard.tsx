@@ -23,14 +23,14 @@ const PHASE_ICON: Record<StaffRoomPhase, string> = {
  * One housekeeper: who, whether they are verifiably working, how much is on their plate and how much room they
  * have left. Compact on purpose — a preview of a few room numbers, never every room (the drawer has those).
  */
-function TeamStaffCardView({ model, onOpen, t }: { model: TeamCardModel; onOpen: (userId: string) => void; t: Translate }) {
+function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCardModel; onOpen: (userId: string) => void; t: Translate; /** What this person would have if the unpublished draft were published; the live figures above stay live. */ proposedText?: string }) {
   const theme = useTheme();
   const phaseColor = (phase: StaffRoomPhase) => (phase === "completed" ? theme.status.ready : phase === "in_progress" ? theme.status.pickup : theme.textSecondary);
   return (
     <Pressable
       onPress={() => onOpen(model.userId)}
       accessibilityRole="button"
-      accessibilityLabel={model.a11yLabel}
+      accessibilityLabel={proposedText ? `${model.a11yLabel}. ${proposedText}` : model.a11yLabel}
       accessibilityHint={t("assignments.v2.team.openHint")}
       testID={`team-card-${model.userId}`}
       style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.9 }]}
@@ -62,6 +62,15 @@ function TeamStaffCardView({ model, onOpen, t }: { model: TeamCardModel; onOpen:
           {model.remaining}
         </Text>
       </View>
+
+      {proposedText ? (
+        <View style={[styles.proposed, { borderColor: theme.primaryAction }]} accessible accessibilityLabel={proposedText} testID={`team-card-proposed-${model.userId}`}>
+          <Ionicons name="create-outline" size={14} color={theme.primaryAction} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.proposedText, { color: theme.textPrimary }]}>
+            {proposedText}
+          </Text>
+        </View>
+      ) : null}
 
       {model.capacity ? <CapacityMeter capacity={model.capacity} testID={`team-card-capacity-${model.userId}`} /> : null}
 
@@ -113,4 +122,6 @@ const styles = StyleSheet.create({
   room: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   roomText: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "800" },
   more: { fontSize: 12.5, fontWeight: "700" },
+  proposed: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderStyle: "dashed", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  proposedText: { flex: 1, fontSize: 13, fontWeight: "700" },
 });

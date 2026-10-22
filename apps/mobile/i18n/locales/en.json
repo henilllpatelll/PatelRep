@@ -5021,6 +5021,318 @@
           "roomLabel": "Room {{room}}",
           "heldBack": "Needs review before it can be assigned"
         }
+      },
+      "bulk": {
+        "select": "Select rooms",
+        "selectHint": "Choose several rooms to assign together.",
+        "title": "Select rooms",
+        "cancel": "Cancel selection",
+        "selectAll": "Select all",
+        "selectAllHint": "Selects the {{count}} eligible rooms that match your search and filters.",
+        "selectedCount": "{{count}} selected",
+        "selectedCount_plural": "{{count}} selected",
+        "blockedCount": "{{count}} blocked",
+        "blockedCount_plural": "{{count}} blocked",
+        "addedToDraft": "{{count}} room added to the draft.",
+        "addedToDraft_plural": "{{count}} rooms added to the draft.",
+        "paused": "Changes are paused until the board is verified and you are online.",
+        "draftDiscardedDay": "A new hotel day started, so your unpublished draft was discarded.",
+        "draftDiscardedScope": "You switched hotel or account, so your unpublished draft was discarded.",
+        "scope": {
+          "floor": "Floor {{floor}}",
+          "floorBuilding": "{{building}} · Floor {{floor}}",
+          "noFloor": "No floor recorded",
+          "buildingNoFloor": "{{building}} · no floor",
+          "building": "Building {{building}}",
+          "noBuilding": "No building recorded",
+          "chip": "{{name}} · {{count}}",
+          "a11y": "{{name}}: {{count}} eligible rooms",
+          "hintSelect": "Selects the eligible rooms on {{name}}.",
+          "hintClear": "Clears the selected rooms on {{name}}."
+        },
+        "notice": {
+          "limit": "You can select up to {{max}} rooms at a time, the most one publication can carry.",
+          "notSelectable": "Room {{room}} can't be selected in bulk.",
+          "truncated": "Only the first {{max}} rooms were selected, the most one publication can carry."
+        },
+        "invalid": {
+          "title": "{{count}} selected room changed.",
+          "title_plural": "{{count}} selected rooms changed.",
+          "body": "They are left out until you remove them.",
+          "remove": "Remove from selection"
+        },
+        "row": {
+          "assigned": "Already assigned",
+          "assignedTo": "Assigned to {{name}}",
+          "cannotSelect": "Can't be selected",
+          "inDraft": "In draft · {{name}}",
+          "selected": "Selected",
+          "notSelected": "Not selected",
+          "unavailable": "Can't be selected"
+        },
+        "footer": {
+          "empty": "Select rooms to assign them together.",
+          "summary": "{{count}} room selected",
+          "summary_plural": "{{count}} rooms selected",
+          "minutes": "{{minutes}} min estimated",
+          "minutesAtLeast": "At least {{minutes}} min estimated",
+          "noEstimate": "No estimate recorded",
+          "assign": "Assign selected",
+          "addToDraft": "Add to draft",
+          "clear": "Clear"
+        },
+        "indicator": {
+          "changes": "{{count}} unpublished change",
+          "changes_plural": "{{count}} unpublished changes",
+          "hint": "Opens the draft review. These changes are not published yet.",
+          "unknown": "Publication status unknown",
+          "unknownHint": "Opens the result of your last publication."
+        },
+        "allocate": {
+          "title": "Assign {{count}} room",
+          "title_plural": "Assign {{count}} rooms",
+          "selectedWork": "Selected work",
+          "estimated": "Estimated total: {{value}}",
+          "excluded": "{{count}} selected room is left out because it is no longer available.",
+          "excluded_plural": "{{count}} selected rooms are left out because they are no longer available.",
+          "how": "How should these be assigned?",
+          "mode": {
+            "single": "One housekeeper",
+            "singleHint": "Assign all rooms to one person",
+            "distribute": "Distribute across team",
+            "distributeHint": "Share the work across the people you choose"
+          },
+          "housekeepers": "Available housekeepers",
+          "pickOne": "Choose one housekeeper. Nobody is chosen for you.",
+          "pickSome": "Choose the housekeepers who will share the work.",
+          "noStaff": "No housekeepers are listed to choose from.",
+          "candidate": {
+            "ifAll": "After all {{count}} room: {{value}}",
+            "ifAll_plural": "After all {{count}} rooms: {{value}}",
+            "nearby": "{{count}} of {{total}} rooms are on floors or in buildings they already work",
+            "nearby_plural": "{{count}} of {{total}} rooms are on floors or in buildings they already work"
+          },
+          "preview": {
+            "title": "Proposed split",
+            "line": "{{name}} · {{count}} room · {{value}}",
+            "line_plural": "{{name}} · {{count}} rooms · {{value}}",
+            "missing": "{{count}} room has no estimate; its time is not counted.",
+            "missing_plural": "{{count}} rooms have no estimate; their time is not counted."
+          },
+          "review": "Review changes",
+          "addToDraft": "Add to draft",
+          "stageFailed": "None of these rooms could be added. Close this and check the rooms.",
+          "more": "+{{count}} more"
+        },
+        "review": {
+          "title": "Review {{count}} assignment",
+          "title_plural": "Review {{count}} assignments",
+          "back": "Back",
+          "notPublished": "Nothing is published yet. These are proposed changes.",
+          "summary": "Assignment summary",
+          "rooms": "{{count}} room",
+          "rooms_plural": "{{count}} rooms",
+          "people": "{{count}} housekeeper",
+          "people_plural": "{{count}} housekeepers",
+          "estimated": "{{value}}",
+          "kind": {
+            "assign": "{{count}} new assignment",
+            "assign_plural": "{{count}} new assignments",
+            "reassign": "{{count}} reassignment",
+            "reassign_plural": "{{count}} reassignments",
+            "remove": "{{count}} removal",
+            "remove_plural": "{{count}} removals"
+          },
+          "noConflicts": "No blocking conflicts",
+          "problemsCount": "{{count}} change needs attention",
+          "problemsCount_plural": "{{count}} changes need attention",
+          "problems": "Needs attention",
+          "problem": {
+            "scope_changed": "Room {{room}}: this draft is for another hotel or day.",
+            "board_unavailable": "Room {{room}}: the board can't be verified right now.",
+            "room_missing": "Room {{room}}: no longer on the board.",
+            "not_assignable": "Room {{room}}: cleaning has started or the room is closed.",
+            "assignee_changed": "Room {{room}}: its assignment changed since you planned it.",
+            "already_assigned": "Room {{room}}: already with that person.",
+            "employee_unknown": "Room {{room}}: the housekeeper is no longer in the staff list.",
+            "soft_blocked": "Room {{room}}: now held back (DND, declined service, return later or an occupancy question)."
+          },
+          "removeRoom": "Remove room {{room}} from the draft",
+          "currentRemaining": "Current remaining",
+          "proposedRemaining": "Proposed remaining",
+          "item": {
+            "assign": "+ Room {{room}} · {{detail}}",
+            "reassign": "+ Room {{room}} · {{detail}} (from {{name}})",
+            "movedAway": "− Room {{room}} moves to someone else",
+            "removed": "− Room {{room}} becomes unassigned"
+          },
+          "editAllocation": "Edit allocation",
+          "editAllocationFor": "Edit allocation for {{name}}",
+          "exclusions": "Not included",
+          "exclusion": "Room {{room}}: {{reason}}",
+          "exclusionReason": {
+            "board_unavailable": "board not verified",
+            "room_missing": "no longer on the board",
+            "room_blocked": "being cleaned or closed",
+            "nothing_to_remove": "nothing to remove",
+            "needs_acknowledgement": "held back (DND, declined service, return later or an occupancy question)",
+            "employee_unknown": "housekeeper not in the staff list",
+            "employee_unverifiable": "staff list not verified",
+            "already_assigned_to_employee": "already with that person",
+            "no_longer_eligible": "no longer available",
+            "over_limit": "past the 150-room limit"
+          },
+          "validationHeading": "Validation",
+          "validation": {
+            "rooms_eligible": {
+              "pass": "Rooms eligible",
+              "fail": "{{count}} room is no longer eligible",
+              "fail_plural": "{{count}} rooms are no longer eligible",
+              "attention": "{{count}} room needs a look",
+              "attention_plural": "{{count}} rooms need a look",
+              "unknown": "Room eligibility unknown"
+            },
+            "staff_verified": {
+              "pass": "Staff verified",
+              "fail": "{{count}} housekeeper is not verified",
+              "fail_plural": "{{count}} housekeepers are not verified",
+              "attention": "{{count}} housekeeper needs your confirmation",
+              "attention_plural": "{{count}} housekeepers need your confirmation",
+              "unknown": "Staff not verified"
+            },
+            "ownership_unchanged": {
+              "pass": "Assignment ownership unchanged",
+              "fail": "{{count}} room changed owner",
+              "fail_plural": "{{count}} rooms changed owner",
+              "attention": "{{count}} room changed owner",
+              "attention_plural": "{{count}} rooms changed owner",
+              "unknown": "Ownership could not be checked"
+            },
+            "capacity_rules": {
+              "pass": "Capacity rules satisfied",
+              "fail": "{{count}} housekeeper is over capacity",
+              "fail_plural": "{{count}} housekeepers are over capacity",
+              "attention": "{{count}} housekeeper over capacity (needs your confirmation)",
+              "attention_plural": "{{count}} housekeepers over capacity (need your confirmation)",
+              "unknown": "Capacity could not be checked (no workload settings)"
+            }
+          },
+          "publish": "Publish {{count}} assignment",
+          "publish_plural": "Publish {{count}} assignments",
+          "discard": "Discard draft",
+          "rebased": "After refreshing: {{updated}} updated, {{removed}} removed. Review these changes again before publishing.",
+          "blocked": {
+            "empty": "Add rooms to the draft first.",
+            "scope": "This draft belongs to another hotel or day.",
+            "board": "The board isn't verified right now.",
+            "problems": "Fix or remove the changes that need attention.",
+            "acknowledgements": "Confirm the items above to publish.",
+            "too_many": "One publication can carry at most 150 rooms.",
+            "unsendable": "This draft can't be published in bulk."
+          },
+          "paused": {
+            "offline": "You are offline. Publishing needs a fresh connection.",
+            "not_live": "Changes are paused until the board is verified again."
+          },
+          "unavailable": "The board can't be verified, so there is nothing to review right now."
+        },
+        "publishing": {
+          "title": "Publishing assignments",
+          "body": "Keep the app open. Nothing is confirmed until the server answers."
+        },
+        "committed": {
+          "title": "Assignments published",
+          "confirmed": "{{count}} change confirmed",
+          "confirmed_plural": "{{count}} changes confirmed",
+          "assign": "{{count}} new assignment",
+          "assign_plural": "{{count}} new assignments",
+          "reassign": "{{count}} reassignment",
+          "reassign_plural": "{{count}} reassignments",
+          "remove": "{{count}} removal",
+          "remove_plural": "{{count}} removals",
+          "people": "{{count}} housekeeper affected",
+          "people_plural": "{{count}} housekeepers affected",
+          "replayed": "These had already been published; this is the original result.",
+          "refreshing": "Updating the board…",
+          "refreshFailed": "Published, but the list couldn't be refreshed. Pull down to refresh. Your assignments are confirmed.",
+          "returnToRooms": "Return to Rooms",
+          "viewTeam": "View updated Team"
+        },
+        "conflict": {
+          "title": "Assignment plan changed",
+          "body": "Some rooms were updated while you were reviewing.",
+          "nowAssigned": "Room {{room}} · now assigned to {{name}}",
+          "nowUnassigned": "Room {{room}} · now unassigned",
+          "assignmentChanged": "Room {{room}} · its assignment changed",
+          "notAssignable": "Room {{room}} · cleaning has started or the room is closed",
+          "blocked": "Room {{room}} · now held back (DND, declined service or return later)",
+          "invalidHousekeeper": "Room {{room}} · that housekeeper isn't available",
+          "roomMissing": "Room {{room}} · no longer on the board",
+          "nothingPublished": "No changes from this batch were published.",
+          "refresh": "Refresh and review",
+          "cancel": "Cancel",
+          "backToReview": "Back to review"
+        },
+        "rejected": {
+          "title": "Nothing was published",
+          "reason": {
+            "invalid_request": "The server didn't accept these changes. Nothing was changed.",
+            "forbidden": "You aren't allowed to publish assignments. Nothing was changed.",
+            "date_changed": "These assignments aren't for the hotel's current day. Nothing was changed.",
+            "operation_reused": "This publication clashed with an earlier one. Nothing new was changed; review and try again.",
+            "database": "The server couldn't save the assignments and rolled everything back. Nothing was changed.",
+            "session": "Your session expired before anything was sent. Sign in again; nothing was changed.",
+            "unavailable": "Publishing isn't available on this server. Nothing was changed."
+          }
+        },
+        "unknown": {
+          "title": "Checking publication result",
+          "checking": "Asking the server whether your {{count}} change was published. Please don't publish again.",
+          "checking_plural": "Asking the server whether your {{count}} changes were published. Please don't publish again.",
+          "failed": "Couldn't reach the server. Your publication may or may not have gone through. Check again before doing anything else.",
+          "not_found": "The server has no record of this publication yet, so it isn't confirmed. You can safely try again: the same request can't be applied twice.",
+          "unreadable": "The server's answer couldn't be read, so the result is still unknown. Check again.",
+          "recovered": "This publication was started before the app closed.",
+          "noSecond": "Nothing else can be published until this is settled.",
+          "check": "Check result",
+          "sendAgain": "Try publishing again",
+          "abandon": "Nothing was published — OK",
+          "close": "Close"
+        },
+        "edit": {
+          "title": "Edit allocation for {{name}}",
+          "projected": "Proposed remaining",
+          "proposedRooms": "Proposed rooms",
+          "noRooms": "No rooms are proposed for this person now.",
+          "remove": "Remove",
+          "move": "Move",
+          "moveRoom": "Move room {{room}} to someone else",
+          "moveTo": "Move room {{room}} to {{name}}",
+          "addRoom": "Add another room",
+          "addTo": "Add room {{room}} to {{name}}",
+          "nothingToAdd": "No other rooms can be added in bulk right now.",
+          "moreRooms": "{{count}} more room not shown.",
+          "moreRooms_plural": "{{count}} more rooms not shown.",
+          "save": "Save draft edits",
+          "cannotAdd": "That room can't be added right now.",
+          "cannotMove": "That room can't be moved right now."
+        },
+        "discard": {
+          "title": "Discard this draft?",
+          "body": "{{count}} proposed change will be lost. Nothing has been published.",
+          "body_plural": "{{count}} proposed changes will be lost. Nothing has been published.",
+          "confirm": "Discard draft",
+          "keep": "Keep draft"
+        },
+        "leave": {
+          "title": "Unpublished assignments",
+          "body": "You have unpublished assignment changes, or a publication that isn't confirmed yet. Leaving now loses the draft.",
+          "stay": "Stay",
+          "leave": "Leave"
+        },
+        "team": {
+          "proposed": "Proposed after draft: {{value}}"
+        }
       }
     }
   },

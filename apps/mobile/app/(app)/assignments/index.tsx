@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Platform, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Alert, BackHandler, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { R } from "@/components/shared/tokens";
 import { AssignRoomChooserSheet } from "@/components/supervisor/assignments/AssignRoomChooserSheet";
+import { BulkActionFooter } from "@/components/supervisor/assignments/BulkActionFooter";
+import { BulkAssignHost } from "@/components/supervisor/assignments/BulkAssignHost";
+import { BulkSelectionBar } from "@/components/supervisor/assignments/BulkSelectionBar";
+import { DraftIndicator } from "@/components/supervisor/assignments/DraftIndicator";
+import { SelectableRoomRow } from "@/components/supervisor/assignments/SelectableRoomRow";
 import { AssignmentFilterSheet } from "@/components/supervisor/assignments/AssignmentFilterSheet";
 import { AssignmentRoomCard } from "@/components/supervisor/assignments/AssignmentRoomCard";
 import { AssignmentRoomSheet } from "@/components/supervisor/assignments/AssignmentRoomSheet";
@@ -17,6 +22,8 @@ import { TeamActiveFilters, TeamEmpty, TeamNotices } from "@/components/supervis
 import { TeamStaffCard } from "@/components/supervisor/assignments/TeamStaffCard";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
+import { selectableIn } from "@/lib/housekeeping/assignmentBulk";
+import { buildSelectionRow, proposedLoadLine } from "@/lib/housekeeping/assignmentBulkView";
 import { listAssignableRooms } from "@/lib/housekeeping/assignmentPicker";
 import { isQuickActive, runAssignmentQuery } from "@/lib/housekeeping/assignmentQuery";
 import {
@@ -37,6 +44,7 @@ import { useAssignmentRooms } from "@/lib/housekeeping/useAssignmentRooms";
 import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
 import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
+import { useBulkAssignment } from "@/lib/housekeeping/useBulkAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -62,6 +70,10 @@ export default function AssignmentsScreen() {
   const rooms = useAssignmentRooms({ model, gate, language, t, resetKey: scopeKey });
   const { query, items, cards, options, chips, state } = rooms;
   const team = useAssignmentTeam({ model, t, resetKey: scopeKey });
+  // Bulk selection, the one unpublished draft and its atomic publication. It reads the SAME model as everything
+  // else here (no fetch or subscription of its own) and changes nothing until a reviewed draft is published.
+  const bulk = useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, queue: rooms.queue, visible: query.visible, t, toast });
+  const selecting = bulk.selection.selecting;
 
   const [tab, setTab] = useState<AssignmentsTab>("rooms");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -88,6 +100,35 @@ export default function AssignmentsScreen() {
   assignmentRef.current = assignment;
   const gateRef = useRef(gate);
   gateRef.current = gate;
+
+  // Android Back with unpublished work (or an unclear publication) asks first. (The draft is kept in memory while the
+  // app lives - this tab stays mounted when the supervisor goes elsewhere - so only an explicit Back can lose it.)
+  const dirtyRef = useRef(bulk.dirty);
+  dirtyRef.current = bulk.dirty;
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!dirtyRef.current) return false;
+      Alert.alert(t("assignments.v2.bulk.leave.title"), t("assignments.v2.bulk.leave.body"), [
+        { text: t("assignments.v2.bulk.leave.stay"), style: "cancel" },
+        { text: t("assignments.v2.bulk.leave.leave"), style: "destructive", onPress: () => router.back() },
+      ]);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [t]);
+  const bulkRef = useRef(bulk);
+  bulkRef.current = bulk;
+  const roomsByIdRef = useRef(new Map<string, (typeof query.visible)[number]>());
+  roomsByIdRef.current = new Map(query.visible.map((entry) => [entry.room.roomId, entry] as const));
+  const onToggleBulk = useCallback((roomId: string) => {
+    const entry = roomsByIdRef.current.get(roomId);
+    if (entry) bulkRef.current.selection.toggle(entry);
+  }, []);
+  const anySelectable = useMemo(() => selectableIn(rooms.queue).length > 0, [rooms.queue]);
+  const viewTeam = useCallback(() => {
+    bulkRef.current.finish();
+    setTab("team");
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setPulling(true);
@@ -281,7 +322,8 @@ export default function AssignmentsScreen() {
   const narrowed = query.searching || chips.length > 0 || state.sort !== "priority";
   const listHeader = (
     <View>
-      {header}
+      {selecting ? null : header}
+      <DraftIndicator bulk={bulk} t={t} />
       {notices.map((notice) => (
         <View
           key={notice.key}
@@ -316,6 +358,22 @@ export default function AssignmentsScreen() {
             filterLabel={t("assignments.v2.filters.open")}
             testIDPrefix="assignments"
           />
+          {!selecting && anySelectable ? (
+            <View style={styles.selectEntry}>
+              <Pressable
+                onPress={bulk.selection.start}
+                accessibilityRole="button"
+                accessibilityLabel={t("assignments.v2.bulk.select")}
+                accessibilityHint={t("assignments.v2.bulk.selectHint")}
+                style={({ pressed }) => [styles.selectButton, { borderColor: theme.primaryAction, backgroundColor: theme.surface }, pressed && { opacity: 0.85 }]}
+                testID="bulk-select-rooms"
+              >
+                <Text maxFontSizeMultiplier={1.6} style={[styles.selectText, { color: theme.primaryAction }]}>
+                  {t("assignments.v2.bulk.select")}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
           <QuickChips views={rooms.quickViews} counts={query.quickCounts} isActive={(view) => isQuickActive(view, { scope: state.scope, priority: state.filters.priority })} onPress={rooms.pressQuick} t={t} />
           {narrowed ? (
             <ActiveFilters
@@ -404,14 +462,24 @@ export default function AssignmentsScreen() {
   const renderItem = ({ item }: { item: ListItem }) => {
     if (item.type === "member") {
       const card = team.cards.get(item.member.userId);
+      const proposed = bulk.proposedByUser.get(item.member.userId);
       return card ? (
         <View style={styles.rowWrap}>
-          <TeamStaffCard model={card} onOpen={onOpenStaff} t={t} />
+          <TeamStaffCard model={card} onOpen={onOpenStaff} t={t} {...(proposed ? { proposedText: proposedLoadLine(proposed.proposed, t) } : {})} />
         </View>
       ) : null;
     }
     if (item.type === "section") return <SectionHeader section={item.section} count={item.count} t={t} />;
     const card = cards.get(item.entry.room.roomId);
+    if (selecting && card) {
+      const change = bulk.draft.draft?.changes[item.entry.room.roomId];
+      const draftOwnerName = change ? (change.toUserId ? bulk.nameOf(change.toUserId) : null) : undefined;
+      return (
+        <View style={styles.rowWrap}>
+          <SelectableRoomRow model={buildSelectionRow(item.entry, card, { selected: bulk.selection.selected.has(item.entry.room.roomId), draftOwnerName }, t)} onToggle={onToggleBulk} />
+        </View>
+      );
+    }
     return card ? (
       <View style={styles.rowWrap}>
         <AssignmentRoomCard model={card} onOpen={onOpenRoom} />
@@ -421,8 +489,10 @@ export default function AssignmentsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {selecting ? <BulkSelectionBar selection={bulk.selection} topInset={insets.top} t={t} /> : null}
       <FlatList
         data={boardKnown ? (tab === "rooms" ? items : teamItems) : []}
+        extraData={selecting ? bulk.selection.selected : null}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         keyExtractor={(item) => item.key}
@@ -438,6 +508,9 @@ export default function AssignmentsScreen() {
         refreshControl={<RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
         testID="assignments-list"
       />
+
+      {selecting ? <BulkActionFooter bulk={bulk} bottomInset={insets.bottom} t={t} /> : null}
+      <BulkAssignHost bulk={bulk} onViewTeam={viewTeam} />
 
       {selectedEntry ? (
         <AssignmentRoomSheet
@@ -509,4 +582,7 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 14, fontWeight: "700" },
   noticeBody: { fontSize: 13, lineHeight: 18 },
   pausedHint: { marginHorizontal: 16, marginBottom: 8, fontSize: 12 },
+  selectEntry: { paddingHorizontal: 16, paddingBottom: 8, alignItems: "flex-start" },
+  selectButton: { minHeight: 48, paddingHorizontal: 16, borderWidth: 1.5, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  selectText: { fontSize: 15, fontWeight: "800" },
 });

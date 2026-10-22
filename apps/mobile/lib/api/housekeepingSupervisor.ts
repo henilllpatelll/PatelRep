@@ -75,6 +75,37 @@ export async function removeAssignmentGuarded(date: string, roomId: string, expe
   await api.post("/housekeeping/assignments/remove", { date, room_id: roomId, expected_assigned_to: expectedUserId });
 }
 
+/* ─── Atomic batch publication (Assignments V2, Phase 5) ────────────────────
+   POST /housekeeping/assignments/batch-publish is ONE database transaction: every change commits, or none does.
+   The wrappers below return the raw body; `assignmentBatch.ts` validates and interprets it. They never retry. */
+
+/** One reviewed change, in the server's shape (see `toBatchRequest`). */
+export interface BatchChangeInput {
+  room_id: string;
+  kind: "assign" | "reassign" | "remove";
+  housekeeper_id?: string;
+  expected_assigned_to?: string;
+  expect_unassigned?: true;
+}
+
+export interface BatchPublishRequest {
+  operation_id: string;
+  date: string;
+  changes: BatchChangeInput[];
+}
+
+/** Sends the publication. A committed answer is a 200; a refusal throws an `ApiError` whose `detail.applied` is false. */
+export async function publishAssignmentBatch(request: BatchPublishRequest): Promise<unknown> {
+  const res = await api.post<{ data?: unknown }>("/housekeeping/assignments/batch-publish", request);
+  return res?.data;
+}
+
+/** Read-only: did this person's publication commit? `not_found` means "not committed as of this read". */
+export async function fetchBatchPublication(operationId: string): Promise<unknown> {
+  const res = await api.get<{ data?: unknown }>(`/housekeeping/assignments/batch-publish/${encodeURIComponent(operationId)}`);
+  return res?.data;
+}
+
 /**
  * DELETE /housekeeping/room-assignment/{room_id}: clears the room_status.assigned_to mirror for a room the
  * board shows as assigned WITHOUT a dated room_assignments row (so there is no assignment id to delete).

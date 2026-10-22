@@ -30,10 +30,16 @@ import {
      • The room_status mirror, clean-type reconciliation and push notifications run after the rows, outside
        any transaction. Removals are a separate DELETE per room.
      • A request holds at most MAX_ASSIGNMENTS_PER_REQUEST items and carries one `is_ai_suggested` flag.
-   THEREFORE there is NO atomic multi-room publish. A publication can be partly applied. This module never
-   claims otherwise: `PublicationSummary.atomic` is the literal `false`, results are per room, and an
-   unclear outcome is `unknown_outcome` until a fresh read of the room settles it (`settleUncertain`). A
-   guarded all-or-nothing batch endpoint belongs to Phase 5. */
+   THEREFORE the endpoint above is NOT an atomic multi-room publish. A publication through it can be partly
+   applied. This module never claims otherwise: `PublicationSummary.atomic` is the literal `false`, results are
+   per room, and an unclear outcome is `unknown_outcome` until a fresh read of the room settles it
+   (`settleUncertain`).
+
+   THE ATOMIC PATH IS SEPARATE (Assignments V2 phase 5): POST /housekeeping/assignments/batch-publish runs ONE
+   database transaction (migration 221) - every change commits or none does - and is idempotent per operation id.
+   It is modelled in `assignmentBatch.ts` (`toBatchRequest`, `parseBatchPublication`, `classifyBatchFailure`) and
+   driven by `useBatchPublication`. A `PlannedChange` / `AssignmentDraft` feeds either path; only the batch path
+   publishes a bulk draft, and `toSaveRequests` above stays what it always was: the single-room, per-item path. */
 
 export const MAX_ASSIGNMENTS_PER_REQUEST = 200;
 

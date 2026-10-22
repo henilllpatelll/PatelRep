@@ -612,6 +612,68 @@ class RemoveAssignmentRequest(SanitizedBaseModel):
     expected_assigned_to: UUID4
 
 
+# The most changes one batch publication may carry. Mirrored by the database function, which refuses more, and
+# by the mobile app's bulk-selection limit.
+MAX_BATCH_PUBLISH_CHANGES = 150
+
+
+class BatchAssignmentChange(SanitizedBaseModel):
+    """One reviewed change inside POST /housekeeping/assignments/batch-publish.
+
+    Every change names the owner the supervisor SAW, so the database can refuse a stale one:
+      assign    housekeeper_id + expect_unassigned=true
+      reassign  housekeeper_id + expected_assigned_to (a different person)
+      remove    expected_assigned_to only
+    Contradictory combinations are rejected here (422) and again by the database function.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    room_id: UUID4
+    kind: Literal["assign", "reassign", "remove"]
+    housekeeper_id: Optional[UUID4] = None
+    expected_assigned_to: Optional[UUID4] = None
+    expect_unassigned: bool = False
+
+    @model_validator(mode="after")
+    def _consistent_expectation(self):
+        if self.kind == "assign":
+            if self.housekeeper_id is None or not self.expect_unassigned or self.expected_assigned_to is not None:
+                raise ValueError("assign needs housekeeper_id and expect_unassigned=true, and no expected_assigned_to")
+        elif self.kind == "reassign":
+            if self.housekeeper_id is None or self.expected_assigned_to is None or self.expect_unassigned:
+                raise ValueError("reassign needs housekeeper_id and expected_assigned_to, and not expect_unassigned")
+            if self.housekeeper_id == self.expected_assigned_to:
+                raise ValueError("reassign must name a different housekeeper than the expected owner")
+        else:
+            if self.housekeeper_id is not None or self.expected_assigned_to is None or self.expect_unassigned:
+                raise ValueError("remove needs expected_assigned_to only")
+        return self
+
+
+class BatchPublishAssignmentsRequest(SanitizedBaseModel):
+    """All-or-nothing publication of a supervisor's assignment draft (POST /housekeeping/assignments/batch-publish).
+
+    `operation_id` is the client's idempotency key: the same id with the same changes is safe to send again and
+    returns the original result; the same id with different changes is refused. `date` must be the hotel's today.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    operation_id: UUID4
+    date: date
+    changes: List[BatchAssignmentChange] = Field(min_length=1, max_length=MAX_BATCH_PUBLISH_CHANGES)
+
+    @model_validator(mode="after")
+    def _one_change_per_room(self):
+        seen: set[UUID] = set()
+        for change in self.changes:
+            if change.room_id in seen:
+                raise ValueError("a room may appear only once in a batch")
+            seen.add(change.room_id)
+        return self
+
+
 # --- Inspections ---
 class InspectionResultItem(SanitizedBaseModel):
     template_item_id: Optional[UUID4] = None

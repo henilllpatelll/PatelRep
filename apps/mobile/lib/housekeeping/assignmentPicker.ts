@@ -77,7 +77,7 @@ export function attendanceAckFor(attendance: Attendance): AttendanceAck | null {
 }
 
 /** Warnings backed by real configuration. `exceeds_full_day` is a constant, not a setting, so it never gates. */
-const GATING_WARNINGS: readonly WorkloadWarning[] = ["over_credit_target", "exceeds_shift_time"];
+export const GATING_WARNINGS: readonly WorkloadWarning[] = ["over_credit_target", "exceeds_shift_time"];
 
 /** Warnings that say the person would carry too much. The "missing estimate / credit" warnings only say data is incomplete. */
 const OVERLOAD_WARNINGS: readonly WorkloadWarning[] = ["over_credit_target", "exceeds_shift_time", "exceeds_full_day"];
@@ -253,7 +253,7 @@ function suggestionReason(first: AssignCandidate, second: AssignCandidate): Sugg
   return null;
 }
 
-function contextFor(model: AssignmentsModel, member: AssignmentTeamMember): LoadContext {
+export function contextFor(model: AssignmentsModel, member: AssignmentTeamMember): LoadContext {
   return { settings: model.settings.value, shiftTime: member.shift, ...(model.learned ? { learned: model.learned } : {}) };
 }
 

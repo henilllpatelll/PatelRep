@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File, 
 from typing import Optional
 from datetime import date, datetime, time, timedelta, timezone
 from dateutil import tz
+from postgrest.exceptions import APIError
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
+    BatchPublishAssignmentsRequest,
     CreateAssignmentsRequest,
     RemoveAssignmentRequest,
     RoomAssignmentItem,
@@ -1343,6 +1345,144 @@ async def remove_assignment_guarded(
         raise _conflict("assignment_changed", "This room's assignment changed; refresh and review.", room_id=room_id)
 
     return {"data": {"success": True, "room_id": room_id, "removed_assigned_to": expected, "source": "dated" if dated else "mirror"}}
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/assignments/batch-publish  (all-or-nothing, Assignments V2)
+# GET  /housekeeping/assignments/batch-publish/{operation_id}  (read-only result check)
+# ---------------------------------------------------------------------------
+# The ONLY multi-room assignment write that is atomic. It is one call to the `publish_assignment_batch` database
+# function (migration 221), i.e. one PostgreSQL transaction: every change is validated against row-locked state,
+# then every assignment row, status mirror, audit row and the idempotency record are written together - or none
+# are. This handler does no assignment writes of its own, so it has nothing to compensate and nothing to half-apply.
+#
+# Outcomes the client can rely on:
+#   200 {"data": {..., "replayed": bool}}   committed (replayed = this operation had already committed)
+#   409/422/403 {"detail": {"applied": false, "code": ...}}   the database refused; NOTHING was written
+#   500 {"detail": {"applied": false, "code": "publish_failed"}}   the database errored and rolled back; NOTHING written
+#   anything else (timeout, 502/504, a dropped connection)   UNKNOWN - the client must read the result back
+#       with the GET below using the same operation id, never publish a different operation for the same draft.
+# Push notifications are sent after the commit, once per housekeeper, and only for a newly committed operation.
+
+_BATCH_ERROR_STATUS = {"P0409": 409, "P0422": 422, "P0403": 403}
+
+
+def _batch_error(error: APIError) -> HTTPException:
+    """Translate a database refusal into the structured error the mobile client reads. The database raised, so
+    its transaction was rolled back: `applied` is false."""
+    status = _BATCH_ERROR_STATUS.get(error.code or "")
+    if status is None:
+        logger.exception("batch-publish: unexpected database error code=%s message=%s", error.code, error.message)
+        return HTTPException(
+            status_code=500,
+            detail={"code": "publish_failed", "applied": False, "message": "The assignments could not be published. Nothing was changed."},
+        )
+    extra: dict = {}
+    if error.details:
+        try:
+            parsed = json.loads(error.details)
+            if isinstance(parsed, dict):
+                extra = parsed
+        except ValueError:
+            extra = {}
+    messages = {
+        "assignment_batch_conflict": "Some rooms changed while you were reviewing. No assignments were published.",
+        "operation_id_reused": "This publication id was already used for a different set of changes.",
+        "date_mismatch": "These assignments are not for the hotel's current day. No assignments were published.",
+        "not_authorized": "You are not allowed to publish assignments.",
+        "invalid_request": "The assignment changes are not valid. No assignments were published.",
+    }
+    code = error.message or "publish_failed"
+    return HTTPException(
+        status_code=status,
+        detail={"code": code, "message": messages.get(code, "The assignments were not published."), "applied": False, **extra},
+    )
+
+
+async def _push_batch_assignments(tenant_id: str, rooms: list[dict]) -> None:
+    """After the commit: one push per housekeeper who gained rooms. A single room keeps the existing wording."""
+    gained: dict[str, list[dict]] = {}
+    for room in rooms:
+        if room.get("kind") in ("assign", "reassign") and room.get("assigned_to"):
+            gained.setdefault(str(room["assigned_to"]), []).append(room)
+    for housekeeper_id, owned in gained.items():
+        try:
+            if len(owned) == 1:
+                await _send_assignment_push(tenant_id, housekeeper_id, str(owned[0].get("room_number") or ""), str(owned[0].get("room_id") or ""))
+            else:
+                await send_push(
+                    tenant_id=tenant_id,
+                    recipient_ids=[housekeeper_id],
+                    event_type="room_assignment",
+                    title="Rooms Assigned",
+                    body=f"{len(owned)} rooms have been assigned to you",
+                    data={"url": "/(app)/my-rooms"},
+                )
+        except Exception:  # a push failure never undoes, or even reports against, a committed assignment
+            logger.warning("batch-publish: push to %s failed", housekeeper_id, exc_info=True)
+
+
+@router.post("/assignments/batch-publish")
+async def batch_publish_assignments(
+    request: BatchPublishAssignmentsRequest,
+    # The tenant and the acting user come from the verified session. The database re-checks the role.
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    changes = [
+        {
+            "room_id": str(change.room_id),
+            "kind": change.kind,
+            "housekeeper_id": str(change.housekeeper_id) if change.housekeeper_id else None,
+            "expected_assigned_to": str(change.expected_assigned_to) if change.expected_assigned_to else None,
+            "expect_unassigned": change.expect_unassigned,
+        }
+        for change in request.changes
+    ]
+    try:
+        result = supabase.rpc(
+            "publish_assignment_batch",
+            {
+                "p_tenant_id": current_user.hotel_id,
+                "p_actor_id": current_user.user_id,
+                "p_operation_id": str(request.operation_id),
+                "p_date": request.date.isoformat(),
+                "p_changes": changes,
+            },
+        ).execute()
+    except APIError as error:
+        raise _batch_error(error) from error
+
+    data = result.data if result else None
+    if not isinstance(data, dict) or data.get("status") != "committed":
+        # The database answered, but not with a result this handler can vouch for: do not claim success.
+        logger.error("batch-publish: unexpected rpc payload %r", data)
+        raise HTTPException(status_code=500, detail={"code": "publish_unverified", "message": "The publication result could not be verified."})
+    if not data.get("replayed"):
+        asyncio.create_task(_push_batch_assignments(current_user.hotel_id, list(data.get("rooms") or [])))
+    return {"data": data}
+
+
+@router.get("/assignments/batch-publish/{operation_id}")
+async def get_batch_publication(
+    operation_id: UUID,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    """Read-only: did this person's publication commit? Never writes. `not_found` means it has NOT committed as of
+    this read; the safe next step is to send the SAME operation again (it is idempotent), not a new one."""
+    rows = (
+        supabase.table("assignment_batch_operations")
+        .select("operation_id, requested_by, assignment_date, result")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("operation_id", str(operation_id))
+        .limit(1)
+        .execute()
+        .data
+        or []
+    )
+    # Another person's operation (or another hotel's, which the tenant filter already hides) reads as absent.
+    if rows and str(rows[0].get("requested_by")) == str(current_user.user_id) and isinstance(rows[0].get("result"), dict):
+        return {"data": {"status": "committed", "result": {**rows[0]["result"], "replayed": True}}}
+    return {"data": {"status": "not_found"}}
 
 
 # ---------------------------------------------------------------------------
