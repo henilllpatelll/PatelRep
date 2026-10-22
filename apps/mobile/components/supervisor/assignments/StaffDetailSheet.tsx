@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R, monoFont } from "@/components/shared/tokens";
+import { Button } from "@/components/ui/Button";
 import { AttendanceChip, CapacityMeter, NoteLine } from "@/components/supervisor/assignments/TeamParts";
 import type { StaffDetailModel, StaffDetailRoom, StaffRoomPhase } from "@/lib/housekeeping/assignmentTeamView";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -22,10 +23,26 @@ const PHASE_ICON: Record<StaffRoomPhase, string> = {
  * One housekeeper's day, as a near-full-height bottom sheet: attendance (with the recorded clock-in), workload,
  * capacity and every room they own in operational order. The rooms are one virtualized list inside the sheet, so a
  * long assignment scrolls without a nested scroller. It performs no write: tapping a room hands off to the room
- * sheet (which owns the safe, gated actions); the sheet itself offers no assign / reassign controls — those arrive
- * with the redesigned flows in later phases.
+ * sheet (which owns the safe, gated actions), and "Assign more rooms" hands off to the room chooser, which feeds the
+ * same single-room assignment flow — this sheet has no assignment logic of its own.
  */
-export function StaffDetailSheet({ detail, t, onClose, onOpenRoom }: { detail: StaffDetailModel; t: Translate; onClose: () => void; onOpenRoom: (roomId: string) => void }) {
+export function StaffDetailSheet({
+  detail,
+  t,
+  onClose,
+  onOpenRoom,
+  onAssignMore,
+  assignPaused = false,
+}: {
+  detail: StaffDetailModel;
+  t: Translate;
+  onClose: () => void;
+  onOpenRoom: (roomId: string) => void;
+  /** Starts "choose a room for this person". Omitted when this person cannot be given work from here. */
+  onAssignMore?: () => void;
+  /** Changes are paused (offline / board not live): the button is shown but disabled, and says why. */
+  assignPaused?: boolean;
+}) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const phaseColor = (phase: StaffRoomPhase) => (phase === "completed" ? theme.status.ready : phase === "in_progress" ? theme.status.pickup : theme.textSecondary);
@@ -78,6 +95,17 @@ export function StaffDetailSheet({ detail, t, onClose, onOpenRoom }: { detail: S
           {detail.notes.map((note) => (
             <NoteLine key={note.key} note={note} testID={`team-detail-note-${note.key}`} />
           ))}
+        </View>
+      ) : null}
+
+      {onAssignMore ? (
+        <View style={styles.assignMore}>
+          <Button label={t("assignments.v2.assign.team.assignMore")} icon="person-add-outline" onPress={onAssignMore} disabled={assignPaused} testID="team-detail-assign-more" />
+          {assignPaused ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textMuted }]} testID="team-detail-assign-paused">
+              {t("assignments.v2.state.actionsPaused")}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -180,6 +208,7 @@ const styles = StyleSheet.create({
   rowValue: { flexShrink: 1, fontSize: 14, fontWeight: "800", textAlign: "right" },
   meter: { paddingVertical: 10 },
   notes: { gap: 6 },
+  assignMore: { gap: 4 },
   room: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 14, paddingVertical: 8 },
   roomNumber: { width: 56, fontFamily: monoFont, fontSize: 20, fontWeight: "800" },
   roomBody: { flex: 1, minWidth: 0, gap: 2 },

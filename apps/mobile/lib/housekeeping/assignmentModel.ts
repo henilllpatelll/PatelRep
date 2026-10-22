@@ -81,6 +81,8 @@ export interface AssignmentsModel {
   guestWaitingKnown: boolean;
   /** The Room Board model this was composed from (readiness, warnings, sources). */
   board: RoomBoardModel;
+  /** The learned-estimate lookup every minute figure in this model used, so a projection uses the same one. */
+  learned: LearnedLookup | null;
 }
 
 export interface ComposeOptions {
@@ -147,5 +149,6 @@ export function composeAssignments(board: RoomBoardModel, aux: AssignmentAuxSour
     staffListKnown: staffList !== null,
     guestWaitingKnown: guestWaiting !== null,
     board,
+    learned: learned ?? null,
   };
 }

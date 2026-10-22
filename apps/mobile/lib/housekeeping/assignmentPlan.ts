@@ -274,7 +274,7 @@ export function previewDraft(model: AssignmentsModel, changes: readonly PlannedC
   const staff: StaffDelta[] = [];
   for (const member of model.team) {
     if (!touched.has(member.userId)) continue;
-    const context: LoadContext = { settings: model.settings.value, shiftTime: member.shift };
+    const context: LoadContext = { settings: model.settings.value, shiftTime: member.shift, ...(model.learned ? { learned: model.learned } : {}) };
     const add: BoardRoom[] = [];
     const release: string[] = [];
     for (const change of changes) {
@@ -325,7 +325,14 @@ export function toSaveRequests(changes: readonly PlannedChange[]): SaveRequests 
   const items = (ai: boolean): AssignmentInput[] =>
     changes
       .filter((change) => change.toUserId !== null && (change.source === "smart_balance" || change.source === "ai_editor") === ai)
-      .map((change) => ({ room_id: change.roomId, housekeeper_id: change.toUserId as string, ...change.expected }));
+      .map((change) => ({
+        room_id: change.roomId,
+        housekeeper_id: change.toUserId as string,
+        ...change.expected,
+        // The server re-derives the room's soft blocks and refuses unless all of them are listed here. An empty
+        // list asserts "nothing was acknowledged", so a room that became DND after planning is refused too.
+        acknowledged_blocks: [...change.acknowledged],
+      }));
   const assignmentBatches: SaveRequests["assignmentBatches"] = [];
   for (const isAiSuggested of [false, true]) {
     const all = items(isAiSuggested);

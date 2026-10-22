@@ -4834,6 +4834,193 @@
           "roomHint": "Abre esta habitación",
           "noRooms": "No hay habitaciones asignadas a esta persona."
         }
+      },
+      "assign": {
+        "unnamed": "Nombre no disponible",
+        "thisPerson": "esta persona",
+        "scopeChanged": "El hotel o el día cambió. Vuelve a abrir la habitación para continuar.",
+        "roomGone": "Esa habitación ya no está en el tablero.",
+        "alreadyUnassigned": "La habitación {{room}} ya no tiene asignación.",
+        "success": {
+          "assign": "Habitación {{room}} asignada a {{name}}.",
+          "reassign": "Habitación {{room}} reasignada a {{name}}.",
+          "remove": "La habitación {{room}} ya no tiene asignación."
+        },
+        "load": {
+          "minutes": "{{minutes}} min",
+          "atLeast": "Al menos {{minutes}} min",
+          "noEstimate": "Sin estimación de tiempo",
+          "estimatesMissing": "Falta {{count}} estimación",
+          "estimatesMissing_plural": "Faltan {{count}} estimaciones",
+          "capacity": "Capacidad {{percent}}%",
+          "capacityChange": "Capacidad {{from}}% → {{to}}%"
+        },
+        "warning": {
+          "overCapacity": "Superaría su capacidad de trabajo con esta habitación",
+          "overShift": "Más trabajo del que cabe en su turno programado",
+          "fullDay": "Más de un día completo de trabajo"
+        },
+        "attendance": {
+          "on_shift": "En turno",
+          "on_break": "En descanso",
+          "shift_ended": "Turno terminado",
+          "scheduled_not_clocked_in": "Programado, sin marcar entrada",
+          "not_clocked_in": "Sin marcar entrada",
+          "unknown": "Disponibilidad sin verificar"
+        },
+        "ack": {
+          "service_declined": "El huésped rechazó el servicio de limpieza en esta habitación. Asignarla de todos modos.",
+          "return_later": "Hay una hora de regreso registrada para esta habitación y aún no llega. Asignarla de todos modos.",
+          "dnd": "La habitación tiene No molestar activado. Asignarla de todos modos.",
+          "occupancy_discrepancy": "Recepción y limpieza no coinciden sobre si la habitación está ocupada. Asignarla de todos modos.",
+          "attendance_unverified": "No se pudo verificar la asistencia de {{name}}. Asignar de todos modos.",
+          "on_break": "{{name}} está en descanso. Asignar de todos modos.",
+          "not_clocked_in": "{{name}} no ha marcado entrada. Asignar de todos modos.",
+          "shift_ended": "El turno de {{name}} terminó. Asignar de todos modos.",
+          "over_capacity": "Esto deja a {{name}} por encima de su capacidad de trabajo. Asignar de todos modos."
+        },
+        "candidate": {
+          "suggested": "Sugerido",
+          "currentOwner": "Asignada a esta habitación",
+          "currentOwnerHint": "Ya tiene asignada esta habitación",
+          "highLoad": "Carga alta",
+          "currentRemaining": "Restante actual: {{value}}",
+          "afterAssignment": "Después de asignar: {{value}}",
+          "floors": "Piso {{floors}}",
+          "roomNoEstimate": "Esta habitación no tiene estimación de tiempo, así que el total no puede crecer.",
+          "proximity": {
+            "same_floor": "Ya está en este piso",
+            "same_building": "Ya está en este edificio"
+          },
+          "reason": {
+            "most_capacity": "Más capacidad disponible",
+            "least_remaining_time": "Menos trabajo pendiente",
+            "same_floor": "Ya trabaja en este piso",
+            "same_building": "Ya trabaja en este edificio"
+          }
+        },
+        "picker": {
+          "titleAssign": "Asignar habitación {{room}}",
+          "titleReassign": "Reasignar habitación {{room}}",
+          "estimate": "~{{minutes}} min estimados",
+          "noEstimate": "Estimación de tiempo no disponible",
+          "search": "Buscar camarera/o…",
+          "searchLabel": "Buscar personal de limpieza por nombre",
+          "clearSearch": "Borrar búsqueda",
+          "filterOnShift": "En turno · {{count}}",
+          "filterAll": "Todo el personal · {{count}}",
+          "unverified": "No se pudo verificar el turno, así que se muestra a todos sin ese dato. Al elegir a alguien se te pedirá confirmar.",
+          "caption": "Ordenado por disponibilidad y luego por trabajo pendiente",
+          "continue": "Continuar a la revisión",
+          "continueReassign": "Continuar a la revisión",
+          "empty": {
+            "no_staff": "No se encontró personal de limpieza.",
+            "no_on_shift": "Nadie está verificado en turno ahora. Cambia a Todo el personal para elegir a otra persona.",
+            "no_match": "Nadie coincide con \"{{query}}\"."
+          }
+        },
+        "review": {
+          "titleAssign": "Revisar asignación",
+          "titleReassign": "Revisar reasignación",
+          "room": "Habitación",
+          "assignTo": "Asignar a",
+          "currentAssignee": "Asignación actual",
+          "newAssignee": "Nueva asignación",
+          "workloadTitle": "Carga proyectada",
+          "impactTitle": "Efecto en la carga",
+          "currentRemaining": "Restante actual",
+          "newRemaining": "Nuevo restante",
+          "remainingAfter": "Restante después",
+          "roomDelta": "Habitación {{room}}: +{{value}}",
+          "noEstimate": "No hay estimación de tiempo para esta habitación, así que no suma tiempo a la proyección.",
+          "estimateNote": "Las estimaciones no garantizan la hora de finalización.",
+          "checked": "Esta asignación se comprobará con la información actual de la habitación y del personal antes de guardarse.",
+          "ackTitle": "Requiere tu confirmación",
+          "confirmAssign": "Confirmar asignación",
+          "confirmReassign": "Confirmar reasignación",
+          "backToPicker": "Volver al personal",
+          "stage": {
+            "to_clean": "Limpieza sin iniciar",
+            "in_progress": "Limpieza en curso",
+            "awaiting_inspection": "Enviada, en espera de inspección",
+            "guest_ready": "Inspeccionada",
+            "unavailable": "Fuera de servicio",
+            "unknown": "Estado no reconocido"
+          }
+        },
+        "remove": {
+          "title": "Quitar asignación",
+          "assignedTo": "Asignada actualmente a",
+          "status": "Estado de la habitación: {{status}}",
+          "willTitle": "Al quitar esta asignación:",
+          "effect": {
+            "queue": "La habitación vuelve a la cola sin asignar.",
+            "list": "Se quita de la lista de asignaciones activas de {{name}}.",
+            "kept": "Se conservan el tipo de limpieza y el estado operativo de la habitación."
+          },
+          "confirm": "Quitar asignación"
+        },
+        "outcome": {
+          "assignedTitle": "Habitación {{room}} asignada",
+          "reassignedTitle": "Habitación {{room}} reasignada",
+          "removedTitle": "Habitación {{room}} sin asignación",
+          "assignedBody": "Ahora está asignada a {{name}}.",
+          "removedBody": "La habitación volvió a la cola sin asignar.",
+          "refreshFailed": "Guardado. La lista actualizada no está disponible por ahora; desliza hacia abajo para actualizar.",
+          "outOfView": "Esta habitación ya no coincide con tu vista actual, por eso salió de la lista. Es lo esperado.",
+          "done": "Listo",
+          "checkingTitle": "Comprobando el resultado de la asignación",
+          "checkingBody": "No pudimos confirmar si se guardó. No se enviará nada de nuevo: comprueba el resultado antes de hacer otra cosa.",
+          "checkResult": "Comprobar resultado"
+        },
+        "conflict": {
+          "title": "La asignación cambió",
+          "body": "La habitación {{room}} se actualizó mientras la revisabas.",
+          "previous": "Asignación anterior",
+          "current": "Asignación actual",
+          "unassigned": "Sin asignar",
+          "notOnBoard": "No está en el tablero",
+          "notApplied": "Tu cambio no se aplicó.",
+          "reviewAgain": "Actualizar y revisar",
+          "reason": {
+            "assignee_changed": "Otra persona cambió quién tiene esta habitación.",
+            "not_assignable": "El estado de la habitación cambió, así que no se puede asignar ahora.",
+            "acknowledgement_changed": "Cambió una condición de esta habitación y necesita tu revisión.",
+            "room_missing": "La habitación ya no está en el tablero.",
+            "employee_unavailable": "Esa persona ya no puede recibir habitaciones."
+          },
+          "stage": {
+            "in_progress": "La limpieza ya empezó, así que no se puede cambiar la asignación.",
+            "awaiting_inspection": "La habitación se envió a inspección, así que no se puede cambiar su asignación.",
+            "guest_ready": "La habitación ya fue inspeccionada, así que no se puede cambiar su asignación.",
+            "unavailable": "La habitación está fuera de servicio, así que no se puede asignar.",
+            "unknown": "No se reconoce el estado de la habitación, así que no se puede asignar desde aquí.",
+            "to_clean": "El estado de la habitación cambió."
+          }
+        },
+        "error": {
+          "offline": "Sin conexión. Vuelve a conectarte para cambiar asignaciones.",
+          "permission": "Tu cuenta no puede cambiar asignaciones de habitaciones.",
+          "conflict": "La asignación cambió desde que se abrió esta pantalla. Revisa la habitación e inténtalo de nuevo.",
+          "employee_ineligible": "Este empleado ya no puede recibir habitaciones.",
+          "room_unavailable": "Esta habitación ya no está disponible para asignar.",
+          "save_failed": "La asignación no se guardó. No cambió nada; puedes intentarlo de nuevo.",
+          "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+          "unknown_outcome": "No pudimos confirmar si se guardó.",
+          "paused": "Los cambios están en pausa hasta que el tablero esté en vivo y tengas conexión.",
+          "blocked": "Esta habitación no se puede asignar ahora.",
+          "not_ready": "Este cambio no se puede preparar con el tablero actual. Cierra y vuelve a abrir la habitación.",
+          "still_unknown": "Aún no podemos confirmar el resultado. Vuelve a comprobar en un momento, o cierra esto y revisa la habitación.",
+          "acks_missing": "Confirma cada punto de arriba antes de asignar."
+        },
+        "team": {
+          "assignMore": "Asignar más habitaciones",
+          "chooserTitle": "Asignar una habitación a {{name}}",
+          "chooserCaption": "Habitaciones sin asignar, las más urgentes primero",
+          "chooserEmpty": "Ahora no hay ninguna habitación sin asignar lista para asignarse.",
+          "roomLabel": "Habitación {{room}}",
+          "heldBack": "Requiere revisión antes de poder asignarse"
+        }
       }
     }
   },

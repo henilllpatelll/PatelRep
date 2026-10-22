@@ -256,8 +256,15 @@ describe("turning a plan into requests", () => {
     const items = assignmentBatches.flatMap((batch) => batch.assignments);
     expect(items).toHaveLength(2);
     for (const item of items) expect("expected_assigned_to" in item || item.expect_unassigned === true).toBe(true);
-    expect(items.find((item) => item.room_id === "room-102")).toEqual({ room_id: "room-102", housekeeper_id: "hk-3", expected_assigned_to: "hk-1" });
-    expect(items.find((item) => item.room_id === "room-101")).toEqual({ room_id: "room-101", housekeeper_id: "hk-3", expect_unassigned: true });
+    expect(items.find((item) => item.room_id === "room-102")).toEqual({ room_id: "room-102", housekeeper_id: "hk-3", expected_assigned_to: "hk-1", acknowledged_blocks: [] });
+    expect(items.find((item) => item.room_id === "room-101")).toEqual({ room_id: "room-101", housekeeper_id: "hk-3", expect_unassigned: true, acknowledged_blocks: [] });
+  });
+
+  it("sends the soft blocks the supervisor acknowledged, so the server can check them against the room", () => {
+    const m = model([rawRoom("101", "DIRTY", { dnd_flag: true })]);
+    const planned = must(plan(m, { roomId: "room-101", acknowledged: ["dnd"] }));
+    const [item] = toSaveRequests([planned]).assignmentBatches.flatMap((batch) => batch.assignments);
+    expect(item).toMatchObject({ expect_unassigned: true, acknowledged_blocks: ["dnd"] });
   });
 
   it("splits manual and AI-suggested items — a request carries one is_ai_suggested flag", () => {

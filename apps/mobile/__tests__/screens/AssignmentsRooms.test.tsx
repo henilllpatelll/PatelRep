@@ -39,7 +39,7 @@ jest.mock("@/lib/api/housekeepingSupervisor", () => {
     fetchWorkloadSettings: jest.fn(),
     fetchScheduledShifts: jest.fn(),
     saveAssignments: jest.fn(),
-    removeAssignmentByPlan: jest.fn(),
+    removeAssignmentGuarded: jest.fn(),
   };
 });
 jest.mock("@/lib/api/tasks", () => ({ fetchBlockedTasks: jest.fn() }));
@@ -62,7 +62,7 @@ import {
   fetchScheduledShifts,
   fetchShiftRoster,
   fetchWorkloadSettings,
-  removeAssignmentByPlan,
+  removeAssignmentGuarded,
   saveAssignments,
 } from "@/lib/api/housekeepingSupervisor";
 import { fetchBlockedTasks } from "@/lib/api/tasks";
@@ -74,7 +74,7 @@ import { STAFF, hotelBoard, rawRoom } from "../helpers/roomBoardFixtures";
 const board = fetchBoardVerified as jest.Mock;
 const roster = fetchShiftRoster as jest.Mock;
 const save = saveAssignments as jest.Mock;
-const remove = removeAssignmentByPlan as jest.Mock;
+const remove = removeAssignmentGuarded as jest.Mock;
 const tr = (key: string, values?: Record<string, unknown>) => makeTranslator("en")(key, values);
 const apiError = (status: number, message: string) => Object.assign(new Error(message), { status });
 const text = (node: { props: { children?: unknown } }) => String(node.props.children);
@@ -105,7 +105,7 @@ beforeEach(() => {
   (fetchWorkloadSettings as jest.Mock).mockResolvedValue({ targetCredits: 16, creditWeights: { DEP: 3, FULL: 2, LIGHT: 1 }, capacityOverrides: {} });
   (fetchScheduledShifts as jest.Mock).mockResolvedValue([]);
   save.mockResolvedValue(undefined);
-  remove.mockResolvedValue(true);
+  remove.mockResolvedValue(undefined);
 });
 
 const visibleModals = (screen: ReturnType<typeof render>) => screen.UNSAFE_getAllByType(Modal).filter((modal) => modal.props.visible === true);
@@ -310,49 +310,61 @@ describe("room sheet and the existing assignment workflow", () => {
     save.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
     const screen = await loaded();
     fireEvent.press(screen.getByTestId("assignment-room-101"));
-    expect(text(screen.getByTestId("assign-title"))).toBe("ASSIGN ROOM 101");
+    expect(text(screen.getByTestId("assign-title"))).toBe("Assign Room 101");
     expect(visibleModals(screen)).toHaveLength(1);
-    fireEvent.press(screen.getByTestId("picker-hk-2"));
-    fireEvent.press(screen.getByTestId("assign-review"));
+    fireEvent.press(screen.getByTestId("assign-candidate-hk-2"));
+    // Choosing a person saves nothing: the review comes first.
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("assign-continue"));
+    expect(screen.getByTestId("assign-panel-review")).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId("assign-confirm"));
       fireEvent.press(screen.getByTestId("assign-confirm"));
     });
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith(hotelDateKey(new Date(), "America/Chicago"), [{ room_id: "room-101", housekeeper_id: "hk-2", expect_unassigned: true }]);
+    expect(save).toHaveBeenCalledWith(
+      hotelDateKey(new Date(), "America/Chicago"),
+      [{ room_id: "room-101", housekeeper_id: "hk-2", expect_unassigned: true, acknowledged_blocks: [] }],
+      false,
+    );
     expect(mockToast.success).not.toHaveBeenCalled();
     await act(async () => finish());
     expect(mockToast.success).toHaveBeenCalledWith("Room 101 assigned to Ben Ortiz.");
     expect(mockToast.error).not.toHaveBeenCalled();
-    // Back on the room, with the board read again.
+    // The confirmed result is shown; Done returns to the room itself.
+    expect(screen.getByTestId("assign-applied")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("assign-done"));
     await waitFor(() => expect(screen.getByTestId("assignment-sheet-rows")).toBeTruthy());
   });
 
-  it("a rejected save is an error, not 'assigned', and a retry works", async () => {
+  it("a rejected save is an error, not 'assigned', and a deliberate retry works", async () => {
     save.mockRejectedValueOnce(apiError(403, "Forbidden"));
     const screen = await loaded();
     fireEvent.press(screen.getByTestId("assignment-room-101"));
-    fireEvent.press(screen.getByTestId("picker-hk-2"));
-    fireEvent.press(screen.getByTestId("assign-review"));
+    fireEvent.press(screen.getByTestId("assign-candidate-hk-2"));
+    fireEvent.press(screen.getByTestId("assign-continue"));
     await act(async () => {
       fireEvent.press(screen.getByTestId("assign-confirm"));
     });
     expect(mockToast.success).not.toHaveBeenCalled();
     expect(screen.getByTestId("assign-panel-review")).toBeTruthy();
+    expect(screen.getByTestId("assign-banner")).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId("assign-confirm"));
     });
     expect(mockToast.success).toHaveBeenCalledWith("Room 101 assigned to Ben Ortiz.");
   });
 
-  it("remove assignment still works from the sheet", async () => {
+  it("remove assignment asks for confirmation, then removes only while the owner is who the supervisor saw", async () => {
     const screen = await loaded();
     fireEvent.press(screen.getByTestId("assignment-room-102"));
     fireEvent.press(screen.getByTestId("assignment-sheet-remove"));
+    expect(screen.getByTestId("assign-remove-owner")).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("remove-confirm"));
+      fireEvent.press(screen.getByTestId("assign-remove-confirm"));
     });
-    expect(remove).toHaveBeenCalledWith({ kind: "assignment", assignmentId: "as-102" });
+    expect(remove).toHaveBeenCalledWith(hotelDateKey(new Date(), "America/Chicago"), "room-102", "hk-1");
     expect(mockToast.success).toHaveBeenCalledWith("Room 102 is now unassigned.");
   });
 

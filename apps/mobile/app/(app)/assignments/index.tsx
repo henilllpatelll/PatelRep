@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { R } from "@/components/shared/tokens";
+import { AssignRoomChooserSheet } from "@/components/supervisor/assignments/AssignRoomChooserSheet";
 import { AssignmentFilterSheet } from "@/components/supervisor/assignments/AssignmentFilterSheet";
 import { AssignmentRoomCard } from "@/components/supervisor/assignments/AssignmentRoomCard";
 import { AssignmentRoomSheet } from "@/components/supervisor/assignments/AssignmentRoomSheet";
@@ -16,6 +17,7 @@ import { TeamActiveFilters, TeamEmpty, TeamNotices } from "@/components/supervis
 import { TeamStaffCard } from "@/components/supervisor/assignments/TeamStaffCard";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
+import { listAssignableRooms } from "@/lib/housekeeping/assignmentPicker";
 import { isQuickActive, runAssignmentQuery } from "@/lib/housekeeping/assignmentQuery";
 import {
   buildHeaderMetrics,
@@ -34,14 +36,14 @@ import { describeBoardStatus } from "@/lib/housekeeping/roomBoardView";
 import { useAssignmentRooms } from "@/lib/housekeeping/useAssignmentRooms";
 import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
-import { useRoomAssignment } from "@/lib/housekeeping/useRoomAssignment";
+import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
 /* ─── Assignments — who cleans what today ───────────────────────────────────
    The supervisor's assignment workspace. This file only wires: the verified model (`useAssignments`, the same
    one shared snapshot Supervisor Today and the Room Board read — no fetch or subscription of its own), the Rooms
-   tab state (`useAssignmentRooms`) and the one assignment workflow (`useRoomAssignment`) to the presentational
+   tab state (`useAssignmentRooms`) and the one assignment workflow (`useAssignmentFlow`) to the presentational
    components. Rooms and Team read the SAME model and are both mounted state of this screen, so switching tabs
    keeps each one's search, filters and sort and never refetches or opens a second realtime channel. */
 
@@ -67,6 +69,8 @@ export default function AssignmentsScreen() {
   // The person whose drawer is open, and the person to return to when a room opened from that drawer is closed.
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const returnStaffRef = useRef<string | null>(null);
+  // "Assign more rooms" from a person's drawer: the person whose room chooser is open.
+  const [chooserFor, setChooserFor] = useState<string | null>(null);
   const [pulling, setPulling] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomGone, setRoomGone] = useState(false);
@@ -79,7 +83,7 @@ export default function AssignmentsScreen() {
 
   // The one assignment workflow (assign / reassign / remove): it follows the room through the live board, re-reads it
   // before every write and reports only what the server confirmed. The sheet renders it; see useRoomAssignment.
-  const assignment = useRoomAssignment({ model: model.board, gate, isOnline, refresh, scopeKey, t, toast });
+  const assignment = useAssignmentFlow({ model, gate, isOnline, refresh, scopeKey, t, toast });
   const assignmentRef = useRef(assignment);
   assignmentRef.current = assignment;
   const gateRef = useRef(gate);
@@ -149,6 +153,31 @@ export default function AssignmentsScreen() {
     [selectedMember, roomEntries, t, language, model.timeZone],
   );
   const onOpenStaff = useCallback((userId: string) => setSelectedStaffId(userId), []);
+  // One modal at a time: the drawer gives way to the chooser, and Back from the chooser returns to the drawer.
+  const onAssignMore = useCallback(() => {
+    setChooserFor(selectedStaffId);
+    setSelectedStaffId(null);
+  }, [selectedStaffId]);
+  const closeChooser = useCallback(() => {
+    setSelectedStaffId(chooserFor);
+    setChooserFor(null);
+  }, [chooserFor]);
+  const chooserMember = useMemo(() => (chooserFor === null ? null : (model.team ?? []).find((member) => member.userId === chooserFor) ?? null), [model.team, chooserFor]);
+  useEffect(() => {
+    if (chooserFor !== null && chooserMember === null) setChooserFor(null);
+  }, [chooserFor, chooserMember]);
+  const chooserRooms = useMemo(() => (chooserMember ? listAssignableRooms(model) : []), [chooserMember, model]);
+  const onChooseRoom = useCallback(
+    (roomId: string) => {
+      const employeeId = chooserFor;
+      returnStaffRef.current = employeeId;
+      setChooserFor(null);
+      setRoomGone(false);
+      setSelectedRoomId(roomId);
+      if (employeeId && gateRef.current.allowed) assignmentRef.current.openAssign(roomId, { employeeId });
+    },
+    [chooserFor],
+  );
   const onOpenStaffRoom = useCallback(
     (roomId: string) => {
       returnStaffRef.current = selectedStaffId;
@@ -410,8 +439,35 @@ export default function AssignmentsScreen() {
         testID="assignments-list"
       />
 
-      {selectedEntry ? <AssignmentRoomSheet entry={selectedEntry} context={detailContext} assignment={assignment} onClose={closeSheet} onOpenBoard={openBoard} /> : null}
-      {staffDetail ? <StaffDetailSheet detail={staffDetail} t={t} onClose={() => setSelectedStaffId(null)} onOpenRoom={onOpenStaffRoom} /> : null}
+      {selectedEntry ? (
+        <AssignmentRoomSheet
+          entry={selectedEntry}
+          context={detailContext}
+          assignment={assignment}
+          outOfView={!query.visible.some((entry) => entry.room.roomId === selectedEntry.room.roomId)}
+          onClose={closeSheet}
+          onOpenBoard={openBoard}
+        />
+      ) : null}
+      {staffDetail ? (
+        <StaffDetailSheet
+          detail={staffDetail}
+          t={t}
+          onClose={() => setSelectedStaffId(null)}
+          onOpenRoom={onOpenStaffRoom}
+          {...(selectedMember?.listed ? { onAssignMore } : {})}
+          assignPaused={!gate.allowed || !isOnline}
+        />
+      ) : null}
+      {chooserMember ? (
+        <AssignRoomChooserSheet
+          personName={chooserMember.name ?? t("assignments.v2.assign.unnamed")}
+          rooms={chooserRooms}
+          t={t}
+          onChoose={onChooseRoom}
+          onClose={closeChooser}
+        />
+      ) : null}
 
       <TeamFilterSheet
         visible={teamFilterOpen}

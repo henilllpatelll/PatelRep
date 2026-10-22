@@ -569,6 +569,9 @@ class CopilotChatRequest(SanitizedBaseModel):
 # --- Housekeeping ---
 CleanType = Literal["DEP", "FULL", "LIGHT"]
 
+# Conditions that make a still-unstarted room a supervisor's decision rather than a default (Assignments V2).
+AssignmentSoftBlock = Literal["service_declined", "return_later", "dnd", "occupancy_discrepancy"]
+
 
 class RoomAssignmentItem(SanitizedBaseModel):
     room_id: UUID4
@@ -583,6 +586,12 @@ class RoomAssignmentItem(SanitizedBaseModel):
     # silently overwriting. Omit both for the original unconditional upsert (web, AI assignment).
     expected_assigned_to: Optional[UUID4] = None
     expect_unassigned: bool = False
+    # Opt-in acknowledgement check for conditional items. Omitted (null) = the original behaviour. Sent (even as
+    # an empty list) = the server recomputes the room's soft blocks (DND, declined service, return-later,
+    # occupancy discrepancy) and refuses with 409 `acknowledgement_required` unless every one is listed here.
+    # The list is the supervisor's statement, never an authorization by itself: a hard block (started, finished,
+    # out of service) is refused whatever is acknowledged.
+    acknowledged_blocks: Optional[List[AssignmentSoftBlock]] = Field(default=None, max_length=4)
 
 
 class CreateAssignmentsRequest(SanitizedBaseModel):
@@ -590,6 +599,17 @@ class CreateAssignmentsRequest(SanitizedBaseModel):
     shift_id: Optional[UUID4] = None
     assignments: List[RoomAssignmentItem] = Field(min_length=1, max_length=200)
     is_ai_suggested: bool = False
+
+
+class RemoveAssignmentRequest(SanitizedBaseModel):
+    """Guarded removal of one room's assignment (POST /housekeeping/assignments/remove).
+
+    Unlike the id-based DELETEs, the write is conditional on the owner the supervisor reviewed.
+    """
+
+    date: date
+    room_id: UUID4
+    expected_assigned_to: UUID4
 
 
 # --- Inspections ---

@@ -4834,6 +4834,193 @@
           "roomHint": "Opens this room",
           "noRooms": "No rooms assigned to this housekeeper."
         }
+      },
+      "assign": {
+        "unnamed": "Name unavailable",
+        "thisPerson": "this person",
+        "scopeChanged": "The hotel or day changed. Reopen the room to continue.",
+        "roomGone": "That room is no longer on the board.",
+        "alreadyUnassigned": "Room {{room}} is already unassigned.",
+        "success": {
+          "assign": "Room {{room}} assigned to {{name}}.",
+          "reassign": "Room {{room}} reassigned to {{name}}.",
+          "remove": "Room {{room}} is now unassigned."
+        },
+        "load": {
+          "minutes": "{{minutes}} min",
+          "atLeast": "At least {{minutes}} min",
+          "noEstimate": "No time estimate",
+          "estimatesMissing": "{{count}} estimate missing",
+          "estimatesMissing_plural": "{{count}} estimates missing",
+          "capacity": "Capacity {{percent}}%",
+          "capacityChange": "Capacity {{from}}% → {{to}}%"
+        },
+        "warning": {
+          "overCapacity": "Over their workload capacity after this room",
+          "overShift": "More work than their scheduled shift has time for",
+          "fullDay": "More than a full day of work"
+        },
+        "attendance": {
+          "on_shift": "On shift",
+          "on_break": "On break",
+          "shift_ended": "Shift ended",
+          "scheduled_not_clocked_in": "Scheduled, not clocked in",
+          "not_clocked_in": "Not clocked in",
+          "unknown": "Availability not verified"
+        },
+        "ack": {
+          "service_declined": "The guest declined housekeeping for this room. Assign it anyway.",
+          "return_later": "A return-later time is recorded for this room and hasn't arrived yet. Assign it anyway.",
+          "dnd": "Do-not-disturb is on for this room. Assign it anyway.",
+          "occupancy_discrepancy": "Front desk and housekeeping disagree about whether this room is occupied. Assign it anyway.",
+          "attendance_unverified": "{{name}}'s attendance couldn't be verified. Assign anyway.",
+          "on_break": "{{name}} is on break. Assign anyway.",
+          "not_clocked_in": "{{name}} hasn't clocked in. Assign anyway.",
+          "shift_ended": "{{name}}'s shift has ended. Assign anyway.",
+          "over_capacity": "This puts {{name}} over their workload capacity. Assign anyway."
+        },
+        "candidate": {
+          "suggested": "Suggested",
+          "currentOwner": "Assigned to this room",
+          "currentOwnerHint": "Already assigned to this room",
+          "highLoad": "High load",
+          "currentRemaining": "Current remaining: {{value}}",
+          "afterAssignment": "After assignment: {{value}}",
+          "floors": "Floor {{floors}}",
+          "roomNoEstimate": "This room has no time estimate, so the total can't grow.",
+          "proximity": {
+            "same_floor": "Already on this floor",
+            "same_building": "Already in this building"
+          },
+          "reason": {
+            "most_capacity": "Most capacity left",
+            "least_remaining_time": "Least work left",
+            "same_floor": "Already working this floor",
+            "same_building": "Already working this building"
+          }
+        },
+        "picker": {
+          "titleAssign": "Assign Room {{room}}",
+          "titleReassign": "Reassign Room {{room}}",
+          "estimate": "~{{minutes}} min estimated",
+          "noEstimate": "Time estimate unavailable",
+          "search": "Search housekeeper…",
+          "searchLabel": "Search housekeepers by name",
+          "clearSearch": "Clear search",
+          "filterOnShift": "On shift · {{count}}",
+          "filterAll": "All staff · {{count}}",
+          "unverified": "Shift status couldn't be verified, so everyone is listed without it. Choosing someone asks you to confirm.",
+          "caption": "Ordered by availability, then remaining work",
+          "continue": "Continue to review",
+          "continueReassign": "Continue to review",
+          "empty": {
+            "no_staff": "No housekeeping staff found.",
+            "no_on_shift": "Nobody is verified on shift right now. Switch to All staff to choose someone else.",
+            "no_match": "No one matches \"{{query}}\"."
+          }
+        },
+        "review": {
+          "titleAssign": "Review assignment",
+          "titleReassign": "Review reassignment",
+          "room": "Room",
+          "assignTo": "Assign to",
+          "currentAssignee": "Current assignee",
+          "newAssignee": "New assignee",
+          "workloadTitle": "Projected workload",
+          "impactTitle": "Workload impact",
+          "currentRemaining": "Current remaining",
+          "newRemaining": "New remaining",
+          "remainingAfter": "Remaining after",
+          "roomDelta": "Room {{room}}: +{{value}}",
+          "noEstimate": "No time estimate is available for this room, so it adds no time to the projection.",
+          "estimateNote": "Estimates are not a guaranteed completion time.",
+          "checked": "This assignment will be checked against current room and staff information before saving.",
+          "ackTitle": "Needs your confirmation",
+          "confirmAssign": "Confirm assignment",
+          "confirmReassign": "Confirm reassignment",
+          "backToPicker": "Back to housekeepers",
+          "stage": {
+            "to_clean": "Cleaning not started",
+            "in_progress": "Cleaning in progress",
+            "awaiting_inspection": "Submitted, awaiting inspection",
+            "guest_ready": "Inspected",
+            "unavailable": "Out of service",
+            "unknown": "Status not recognized"
+          }
+        },
+        "remove": {
+          "title": "Remove assignment",
+          "assignedTo": "Currently assigned to",
+          "status": "Room status: {{status}}",
+          "willTitle": "Removing this assignment will:",
+          "effect": {
+            "queue": "Return the room to the unassigned queue.",
+            "list": "Remove it from {{name}}'s active assignment list.",
+            "kept": "Keep the room's cleaning type and operational status."
+          },
+          "confirm": "Remove assignment"
+        },
+        "outcome": {
+          "assignedTitle": "Room {{room}} assigned",
+          "reassignedTitle": "Room {{room}} reassigned",
+          "removedTitle": "Room {{room}} unassigned",
+          "assignedBody": "Now assigned to {{name}}.",
+          "removedBody": "The room is back in the unassigned queue.",
+          "refreshFailed": "Saved. The refreshed room list is temporarily unavailable — pull down to update it.",
+          "outOfView": "This room no longer matches your current view, so it has left the list. That is expected.",
+          "done": "Done",
+          "checkingTitle": "Checking assignment result",
+          "checkingBody": "We couldn't confirm whether this saved. Nothing will be sent again — check the result before doing anything else.",
+          "checkResult": "Check result"
+        },
+        "conflict": {
+          "title": "Assignment changed",
+          "body": "Room {{room}} was updated while you were reviewing.",
+          "previous": "Previous owner",
+          "current": "Current owner",
+          "unassigned": "Unassigned",
+          "notOnBoard": "Not on the board",
+          "notApplied": "Your change was not applied.",
+          "reviewAgain": "Refresh and review",
+          "reason": {
+            "assignee_changed": "Someone else changed who has this room.",
+            "not_assignable": "The room's status changed, so it can't be assigned now.",
+            "acknowledgement_changed": "A condition on this room changed and needs your review.",
+            "room_missing": "The room is no longer on the board.",
+            "employee_unavailable": "That person can no longer be assigned rooms."
+          },
+          "stage": {
+            "in_progress": "Cleaning has started, so the assignment can't be changed.",
+            "awaiting_inspection": "The room was submitted for inspection, so its assignment can't be changed.",
+            "guest_ready": "The room was inspected, so its assignment can't be changed.",
+            "unavailable": "The room is out of service, so it can't be assigned.",
+            "unknown": "The room's status isn't recognized, so it can't be assigned from here.",
+            "to_clean": "The room's status changed."
+          }
+        },
+        "error": {
+          "offline": "You're offline. Reconnect to change assignments.",
+          "permission": "Your account can't change room assignments.",
+          "conflict": "The assignment changed since this screen opened. Review the room and try again.",
+          "employee_ineligible": "This employee can no longer be assigned rooms.",
+          "room_unavailable": "This room is no longer available for assignment.",
+          "save_failed": "The assignment wasn't saved. Nothing changed — you can try again.",
+          "session": "Your session expired. Sign in again.",
+          "unknown_outcome": "We couldn't confirm whether this saved.",
+          "paused": "Changes are paused until the board is live and you're online.",
+          "blocked": "This room can't be assigned right now.",
+          "not_ready": "This change can't be prepared from the current board. Close and reopen the room.",
+          "still_unknown": "Still can't confirm the result. Check again in a moment, or close this and look at the room.",
+          "acks_missing": "Confirm each item above before assigning."
+        },
+        "team": {
+          "assignMore": "Assign more rooms",
+          "chooserTitle": "Assign a room to {{name}}",
+          "chooserCaption": "Unassigned rooms, most urgent first",
+          "chooserEmpty": "No unassigned room is ready to be assigned right now.",
+          "roomLabel": "Room {{room}}",
+          "heldBack": "Needs review before it can be assigned"
+        }
       }
     }
   },

@@ -40,6 +40,12 @@ export interface AssignmentInput {
    */
   expected_assigned_to?: string;
   expect_unassigned?: boolean;
+  /**
+   * The soft blocks (DND, declined service, return-later, occupancy discrepancy) the supervisor knowingly accepted.
+   * When present — even empty — the SERVER recomputes the room's soft blocks and answers 409
+   * `acknowledgement_required` unless every one is listed, so an acknowledgement is checked, not trusted.
+   */
+  acknowledged_blocks?: string[];
 }
 
 export async function saveAssignments(
@@ -57,6 +63,16 @@ export async function saveAssignments(
 
 export async function removeAssignment(assignmentId: string): Promise<void> {
   await api.delete(`/housekeeping/assignments/${assignmentId}`);
+}
+
+/**
+ * POST /housekeeping/assignments/remove: removes ONE room's assignment only while it still belongs to
+ * `expectedUserId` and the room has not started. The owner is part of the server's write, so a room that changed
+ * hands in the meantime removes nothing and answers 409 (`assignment_changed` / `room_not_assignable`). Works for a
+ * dated assignment and for a mirror-only one — no assignment id is needed.
+ */
+export async function removeAssignmentGuarded(date: string, roomId: string, expectedUserId: string): Promise<void> {
+  await api.post("/housekeeping/assignments/remove", { date, room_id: roomId, expected_assigned_to: expectedUserId });
 }
 
 /**

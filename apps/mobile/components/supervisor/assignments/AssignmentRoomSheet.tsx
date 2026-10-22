@@ -6,13 +6,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
-import { AssignmentPanel } from "@/components/supervisor/assignment/AssignmentPanel";
+import { AssignmentFlowPanel } from "@/components/supervisor/assignments/AssignmentFlowPanel";
 import { ExceptionBlock, FactRows, FlagChips, NoteCard, Section, StatusBadgeLarge, WorkOrderCard } from "@/components/supervisor/detail/RoomDetailParts";
 import type { AssignmentRoom } from "@/lib/housekeeping/assignmentModel";
 import { describeSheetActions, locationText } from "@/lib/housekeeping/assignmentRoomsView";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { buildRoomDetail, type DetailRow, type RoomDetailContext } from "@/lib/housekeeping/roomDetailView";
-import type { AssignmentController } from "@/lib/housekeeping/useRoomAssignment";
+import type { AssignmentFlowController } from "@/lib/housekeeping/useAssignmentFlow";
 import { useTheme } from "@/lib/theme/useTheme";
 
 /* ─── Assignment room sheet ─────────────────────────────────────────────────
@@ -30,13 +30,15 @@ export type AssignmentSheetContext = Omit<RoomDetailContext, "t" | "language">;
 interface Props {
   entry: AssignmentRoom;
   context: AssignmentSheetContext;
-  assignment: AssignmentController;
+  assignment: AssignmentFlowController;
+  /** The room no longer matches the list the supervisor is viewing (a successful change moved it out of view). */
+  outOfView?: boolean;
   onClose: () => void;
   /** Leaves for the full Room Board detail of this room. */
   onOpenBoard: () => void;
 }
 
-export function AssignmentRoomSheet({ entry, context, assignment, onClose, onOpenBoard }: Props) {
+export function AssignmentRoomSheet({ entry, context, assignment, outOfView = false, onClose, onOpenBoard }: Props) {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -47,7 +49,7 @@ export function AssignmentRoomSheet({ entry, context, assignment, onClose, onOpe
   const actions = describeSheetActions(entry, context.gate);
 
   const assigning = assignment.flow !== null && assignment.flow.roomId === room.roomId;
-  const writing = assignment.busy;
+  const writing = assignment.busy || assignment.checking;
   const back = () => {
     if (writing) return;
     if (assigning) assignment.back();
@@ -55,6 +57,8 @@ export function AssignmentRoomSheet({ entry, context, assignment, onClose, onOpe
   };
   const dismiss = () => {
     if (writing) return;
+    // A tap beside the sheet must not discard an unclear result: it ends with "Check result" or Close.
+    if (assignment.flow?.outcome?.kind === "unknown") return;
     if (assigning) assignment.close();
     onClose();
   };
@@ -92,7 +96,7 @@ export function AssignmentRoomSheet({ entry, context, assignment, onClose, onOpe
           <View style={[styles.grabber, { backgroundColor: theme.border }]} />
 
           {assigning ? (
-            <AssignmentPanel controller={assignment} paused={detail.paused} bottomInset={0} />
+            <AssignmentFlowPanel controller={assignment} paused={detail.paused} outOfView={outOfView} />
           ) : (
             <>
               <View style={styles.header}>

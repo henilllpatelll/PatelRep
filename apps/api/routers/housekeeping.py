@@ -10,6 +10,7 @@ from dateutil import tz
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import (
     CreateAssignmentsRequest,
+    RemoveAssignmentRequest,
     RoomAssignmentItem,
     SubmitInspectionRequest,
     BatchRoomReadinessRequest,
@@ -1011,12 +1012,60 @@ def _is_conditional(item) -> bool:
     return bool(item.expect_unassigned or item.expected_assigned_to)
 
 
+def _conflict(code: str, message: str, **extra) -> HTTPException:
+    """A structured 409 the mobile client can tell apart (`code`) without parsing prose."""
+    return HTTPException(status_code=409, detail={"code": code, "message": message, **extra})
+
+
+def _present_soft_blocks(room_ids: list[str], hotel_id: str, status_map: dict[str, dict]) -> dict[str, set[str]]:
+    """Soft blocks that apply to each room right now, from the same fields the board reads.
+
+    service_declined = do_not_service, dnd = dnd_flag, return_later = a dnd_retry_at still in the future,
+    occupancy_discrepancy = an open room_occupancy_discrepancies row.
+    """
+    now = datetime.now(timezone.utc)
+    discrepancy_rooms = {
+        d["room_id"]
+        for d in (
+            supabase.table("room_occupancy_discrepancies")
+            .select("room_id")
+            .eq("tenant_id", hotel_id)
+            .eq("status", "open")
+            .in_("room_id", room_ids)
+            .execute()
+            .data
+            or []
+        )
+        if d.get("room_id")
+    }
+    present: dict[str, set[str]] = {}
+    for room_id in room_ids:
+        state = status_map.get(room_id) or {}
+        blocks: set[str] = set()
+        if state.get("do_not_service"):
+            blocks.add("service_declined")
+        if state.get("dnd_flag"):
+            blocks.add("dnd")
+        retry_at = state.get("dnd_retry_at")
+        if retry_at:
+            try:
+                if datetime.fromisoformat(str(retry_at).replace("Z", "+00:00")) > now:
+                    blocks.add("return_later")
+            except ValueError:
+                pass
+        if room_id in discrepancy_rooms:
+            blocks.add("occupancy_discrepancy")
+        present[room_id] = blocks
+    return present
+
+
 def _check_expected_owners(request: CreateAssignmentsRequest, hotel_id: str) -> dict[str, Optional[str]]:
-    """Compare-and-set precheck for items that carry an expected owner (Room Board).
+    """Compare-and-set precheck for items that carry an expected owner (Room Board, Assignments V2).
 
     Returns {room_id: current dated-assignment owner or None} for conditional items. Raises 409 when the room
     can no longer be (re)assigned (cleaning started/finished, out of service, unknown) or when its owner is not
     who the caller reviewed. The owner follows the board's rule: the dated row, else the room_status mirror.
+    Items that send `acknowledged_blocks` are also refused unless every soft block the room has now is listed.
     """
     conditional = [a for a in request.assignments if _is_conditional(a)]
     for a in conditional:
@@ -1025,9 +1074,26 @@ def _check_expected_owners(request: CreateAssignmentsRequest, hotel_id: str) -> 
     if not conditional:
         return {}
     room_ids = [str(a.room_id) for a in conditional]
-    dated_rows = supabase.table("room_assignments")        .select("room_id, assigned_to")        .eq("tenant_id", hotel_id)        .eq("assignment_date", request.date.isoformat())        .in_("room_id", room_ids)        .execute().data or []
+    dated_rows = (
+        supabase.table("room_assignments")
+        .select("room_id, assigned_to")
+        .eq("tenant_id", hotel_id)
+        .eq("assignment_date", request.date.isoformat())
+        .in_("room_id", room_ids)
+        .execute()
+        .data
+        or []
+    )
     dated = {r["room_id"]: r.get("assigned_to") for r in dated_rows}
-    status_rows = supabase.table("room_status")        .select("room_id, status, assigned_to")        .eq("tenant_id", hotel_id)        .in_("room_id", room_ids)        .execute().data or []
+    status_rows = (
+        supabase.table("room_status")
+        .select("room_id, status, assigned_to, dnd_flag, do_not_service, dnd_retry_at")
+        .eq("tenant_id", hotel_id)
+        .in_("room_id", room_ids)
+        .execute()
+        .data
+        or []
+    )
     status_map = {r["room_id"]: r for r in status_rows}
     for a in conditional:
         room_id = str(a.room_id)
@@ -1038,6 +1104,20 @@ def _check_expected_owners(request: CreateAssignmentsRequest, hotel_id: str) -> 
         expected = str(a.expected_assigned_to) if a.expected_assigned_to else None
         if (str(current) if current else None) != expected:
             raise HTTPException(status_code=409, detail="This room's assignment changed; refresh the board.")
+
+    to_validate = [a for a in conditional if a.acknowledged_blocks is not None]
+    if to_validate:
+        present = _present_soft_blocks([str(a.room_id) for a in to_validate], hotel_id, status_map)
+        for a in to_validate:
+            room_id = str(a.room_id)
+            missing = sorted(present.get(room_id, set()) - set(a.acknowledged_blocks or []))
+            if missing:
+                raise _conflict(
+                    "acknowledgement_required",
+                    "This room needs a condition-specific acknowledgement before it can be assigned; refresh and review.",
+                    room_id=room_id,
+                    missing=missing,
+                )
     return dated
 
 
@@ -1181,6 +1261,88 @@ async def create_assignments(
         asyncio.create_task(_send_assignment_push(current_user.hotel_id, str(a.housekeeper_id), room_number, str(a.room_id)))
 
     return {"data": saved_rows}
+
+
+# ---------------------------------------------------------------------------
+# POST /housekeeping/assignments/remove  (guarded removal, Assignments V2)
+# ---------------------------------------------------------------------------
+# The id-based DELETEs below remove whatever row they are pointed at: they do not assert who owns the room, and
+# they do not look at its stage. This endpoint is the conditional counterpart for one room. The owner the
+# supervisor reviewed is part of the WRITE (the delete / update filters on `assigned_to`), so a room that was
+# reassigned by someone else in the meantime removes nothing and answers 409 instead of deleting their assignment.
+# The room's stage is checked just before the write; a dated-row removal cannot also carry the stage in the same
+# statement (two tables), so a cleaner starting in that few-millisecond gap keeps their session either way -
+# removal never touches room_status.status.
+
+@router.post("/assignments/remove")
+async def remove_assignment_guarded(
+    request: RemoveAssignmentRequest,
+    current_user: CurrentUser = Depends(require_role("gm", "housekeeping_supervisor")),
+):
+    hotel_id = current_user.hotel_id
+    room_id = str(request.room_id)
+    expected = str(request.expected_assigned_to)
+    _ensure_tenant_row("rooms", room_id, hotel_id, "Room")
+
+    state_result = (
+        supabase.table("room_status")
+        .select("room_id, status, assigned_to")
+        .eq("room_id", room_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    state = state_result.data if state_result else None
+    if not state:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if state.get("status") not in ASSIGNABLE_ROOM_STATUSES:
+        raise _conflict("room_not_assignable", "This room is being cleaned or is closed; its assignment cannot be removed.", room_id=room_id)
+
+    dated_rows = (
+        supabase.table("room_assignments")
+        .select("id, assigned_to")
+        .eq("tenant_id", hotel_id)
+        .eq("room_id", room_id)
+        .eq("assignment_date", request.date.isoformat())
+        .execute()
+        .data
+        or []
+    )
+    dated = dated_rows[0] if dated_rows else None
+    current = dated.get("assigned_to") if dated else state.get("assigned_to")
+    current_id = str(current) if current else None
+    if current_id != expected:
+        raise _conflict("assignment_changed", "This room's assignment changed; refresh and review.", room_id=room_id, current_assigned_to=current_id)
+
+    if dated:
+        deleted = (
+            supabase.table("room_assignments")
+            .delete()
+            .eq("id", dated["id"])
+            .eq("tenant_id", hotel_id)
+            .eq("room_id", room_id)
+            .eq("assignment_date", request.date.isoformat())
+            .eq("assigned_to", expected)
+            .execute()
+        )
+        if not (deleted.data if deleted else None):
+            raise _conflict("assignment_changed", "This room's assignment changed; refresh and review.", room_id=room_id)
+
+    # Clear the status mirror only while it still names the same person. For a mirror-only assignment this
+    # conditional update IS the guard (owner and stage in one statement), so nothing matching means nothing removed.
+    mirror = (
+        supabase.table("room_status")
+        .update({"assigned_to": None})
+        .eq("room_id", room_id)
+        .eq("tenant_id", hotel_id)
+        .eq("assigned_to", expected)
+        .in_("status", sorted(ASSIGNABLE_ROOM_STATUSES))
+        .execute()
+    )
+    if not dated and not (mirror.data if mirror else None):
+        raise _conflict("assignment_changed", "This room's assignment changed; refresh and review.", room_id=room_id)
+
+    return {"data": {"success": True, "room_id": room_id, "removed_assigned_to": expected, "source": "dated" if dated else "mirror"}}
 
 
 # ---------------------------------------------------------------------------
