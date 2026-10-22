@@ -34266,6 +34266,40 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-18T00:00:00Z"
+    },
+    {
+      "id": "bug-2076",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Assignments Rooms search 'floor 2' also returned room 102 (matched words across different fields)",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "searchRankOf required every word to match SOME field, so 'floor' matched the floor field of one room and '2' the room number of the same room",
+      "fix": "The whole phrase must sit inside ONE field (floor N, building X, room number, person name) or every word inside the person name; words are never matched across fields. Test: assignmentRoomsView.test.ts search block",
+      "tags": [
+        "mobile",
+        "assignments",
+        "search",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2077",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Header 'Unassigned' said 6 while the Unassigned chip said 8 for the same screen",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "Phase 1 scope `unassigned` used needsAssignee (includes held-back DND/declined rooms and an unowned in-progress room) while the header counted autoAssignable",
+      "fix": "Scope `unassigned` is now eligibility.autoAssignable (unowned and nothing in the way); held-back rooms are in `blocked`. Header, chip and list agree. Phase 1 assignmentModel test expectations updated to the new documented rule",
+      "tags": [
+        "mobile",
+        "assignments",
+        "counts",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
     }
   ]
 }

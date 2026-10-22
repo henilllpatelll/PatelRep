@@ -4527,7 +4527,185 @@
     "lateCoTitle": "Late Checkout",
     "lateCoTime": "Guest requested checkout by {{time}}",
     "lateCoNoTime": "Late checkout requested — time not specified",
-    "vipBadge": "VIP"
+    "vipBadge": "VIP",
+    "v2": {
+      "header": {
+        "kicker": "Housekeeping",
+        "today": "Today · {{date}}",
+        "todayUnknown": "Today",
+        "refresh": "Refresh assignments"
+      },
+      "status": {
+        "loading": "Loading",
+        "updating": "Updating",
+        "live": "Live",
+        "stale": "Not live",
+        "offline": "Offline",
+        "previous_day": "Not live",
+        "unavailable": "Unavailable"
+      },
+      "metric": {
+        "unassigned": "Unassigned",
+        "onShift": "On shift",
+        "urgent": "Urgent",
+        "unknown": "unknown",
+        "blockedNote": "{{count}} more room needs review before it can be assigned",
+        "blockedNote_plural": "{{count}} more rooms need review before they can be assigned"
+      },
+      "tab": {
+        "rooms": "Rooms",
+        "team": "Team"
+      },
+      "search": {
+        "placeholder": "Search room, floor, attendant…",
+        "label": "Search rooms by number, floor, building or attendant",
+        "clear": "Clear search"
+      },
+      "quick": {
+        "all": "All",
+        "unassigned": "Unassigned",
+        "urgent": "Urgent",
+        "a11y": "{{label}}, {{count}} rooms"
+      },
+      "list": {
+        "title": "Rooms needing attention"
+      },
+      "sort": {
+        "priority": "Priority first",
+        "roomNumber": "Room number",
+        "location": "Floor and building",
+        "deadline": "Arrival time"
+      },
+      "section": {
+        "urgent": "Urgent · assign first",
+        "unassigned": "Ready to assign",
+        "assigned": "Assigned",
+        "blocked": "Needs review",
+        "count": "{{count}} room",
+        "count_plural": "{{count}} rooms"
+      },
+      "results": {
+        "showing": "Showing {{shown}} of {{total}} rooms",
+        "sortedBy": "Sorted by {{sort}}"
+      },
+      "filters": {
+        "open": "Filters",
+        "title": "Filter & Sort",
+        "reset": "Reset all",
+        "edit": "Edit filters",
+        "clearAll": "Clear all",
+        "removeChip": "Remove filter {{label}}",
+        "apply": "Show {{count}} room",
+        "apply_plural": "Show {{count}} rooms",
+        "assignment": "Assignment",
+        "priorityTitle": "Priority",
+        "cleanTypeTitle": "Cleaning type",
+        "cleanTypeNone": "Type not recorded",
+        "statusTitle": "Room status",
+        "sortTitle": "Sort by",
+        "scope": {
+          "all": "All",
+          "unassigned": "Unassigned",
+          "assigned": "Assigned",
+          "blocked": "Blocked"
+        },
+        "priority": {
+          "any": "All",
+          "urgent": "Urgent",
+          "vip": "VIP",
+          "at_risk": "At risk"
+        }
+      },
+      "priority": {
+        "guest_waiting": "Guest waiting",
+        "reclean_requested": "Reclean",
+        "rush": "Rush",
+        "arrival_passed": "Arrival passed",
+        "arrival_today": "Arrival today",
+        "vip": "VIP",
+        "high_risk": "At risk"
+      },
+      "card": {
+        "roomLabel": "Room {{room}}",
+        "floor": "Floor {{floor}}",
+        "building": "Building {{building}}",
+        "estimate": "{{minutes}} min estimated",
+        "estimateShort": "{{minutes}} min",
+        "unassigned": "Unassigned",
+        "assigneeUnknown": "Assigned · name unavailable",
+        "arrival": "Guest arrives {{time}}",
+        "arrivalPassed": "Guest arrival passed · {{time}}",
+        "assign": "Assign",
+        "viewAssignment": "View assignment",
+        "viewReason": "View reason",
+        "view": "View room"
+      },
+      "blocker": {
+        "in_progress": "Being cleaned now",
+        "in_progress_unowned": "Being cleaned now · no owner recorded",
+        "awaiting_inspection": "Waiting for inspection",
+        "guest_ready": "Already inspected",
+        "out_of_service": "Out of service",
+        "unknown_status": "Status not recognized",
+        "service_declined": "Guest declined service",
+        "return_later": "Return after {{time}}",
+        "dnd": "Do not disturb",
+        "occupancy_discrepancy": "Front desk and housekeeping disagree"
+      },
+      "sheet": {
+        "row": {
+          "assignedTo": "Assigned to",
+          "estimate": "Estimated cleaning",
+          "priority": "Priority",
+          "arrival": "Guest arrival",
+          "building": "Building"
+        },
+        "priorityRoutine": "Routine",
+        "notes": "Operational notes",
+        "heldBack": "This room is held back until someone looks at it:",
+        "assign": "Assign housekeeper",
+        "reviewAssign": "Review and assign",
+        "openBoard": "Open full Room Board detail",
+        "roomGone": "That room is no longer on the board, so its details were closed.",
+        "frozen": {
+          "in_progress": "This room is being cleaned, so it can't be reassigned. Its cleaner owns the session.",
+          "awaiting_inspection": "Housekeeping has submitted this room. It now waits for inspection.",
+          "guest_ready": "This room is inspected and ready for guests.",
+          "out_of_service": "This room is out of service, so it can't be assigned.",
+          "unknown_status": "This room's status isn't recognized, so it can't be assigned."
+        }
+      },
+      "empty": {
+        "verifiedEmpty": "No rooms on today's board",
+        "verifiedEmptyBody": "The hotel has no rooms on today's board. Refresh to check again.",
+        "queueDone": "Nothing is waiting for a housekeeper",
+        "queueDoneBody": "Every room is cleaned, submitted or out of service.",
+        "scope": "No unassigned eligible rooms remain.",
+        "viewAll": "View all rooms",
+        "blockedOnly": "These rooms currently require another operational action.",
+        "viewBlocked": "View blocked rooms",
+        "search": "No rooms match “{{query}}”.",
+        "searchFilters": "No rooms match “{{query}}” with these filters.",
+        "filters": "No rooms match your filters."
+      },
+      "state": {
+        "notLiveTitle": "Not live",
+        "staleOffline": "You're offline. Showing the last verified room data from {{time}}. Assignment changes are paused.",
+        "staleFailed": "Couldn't refresh. Showing the last verified room data from {{time}}. Assignment changes are paused.",
+        "staleAge": "This room data was last verified at {{time}}. Pull down to refresh. Assignment changes are paused.",
+        "previousDay": "This data is from an earlier day. Refreshing for today.",
+        "auxPartial": "Some details — on-shift counts or workload — couldn't be verified right now. Rooms and owners are unaffected.",
+        "unavailableOffline": "You're offline and there's no verified room data to show. Reconnect and try again.",
+        "unavailableForbidden": "You don't have access to assignments.",
+        "unavailableError": "The current room information could not be verified. This is not an empty list — try again.",
+        "retry": "Try again",
+        "actionsPaused": "Assignment changes are paused until the room data is verified again.",
+        "emptyStaleNote": "Based on room data last verified at {{time}}."
+      },
+      "team": {
+        "loadSummary": "{{done}} of {{total}} done"
+      }
+    }
   },
   "supervisorHandoff": {
     "title": "Shift handoff",

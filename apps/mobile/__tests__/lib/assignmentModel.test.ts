@@ -216,14 +216,15 @@ describe("search, filter and sort", () => {
 
   it("scope counts add up to what the search and filters leave", () => {
     const result = run();
-    expect(result.counts).toEqual({ all: 7, unassigned: 4, assigned: 3, urgent: 1, blocked: 1 });
-    expect(result.counts.unassigned + result.counts.assigned).toBe(result.counts.all);
+    // 302 is unowned but do-not-disturb: it is held back, so it is in "blocked" and not in "unassigned".
+    expect(result.counts).toEqual({ all: 7, unassigned: 3, assigned: 3, urgent: 1, blocked: 1 });
+    expect(result.counts.unassigned + result.counts.assigned + result.counts.blocked).toBe(result.counts.all);
     expect(result.visible).toHaveLength(7);
   });
 
   it("scope restricts the result but not the counts", () => {
     const result = run({ scope: "unassigned" });
-    expect(result.visible.map((entry) => entry.room.roomNumber)).toEqual(["101", "201", "301", "302"]);
+    expect(result.visible.map((entry) => entry.room.roomNumber)).toEqual(["101", "201", "301"]);
     expect(result.counts.all).toBe(7);
   });
 
@@ -238,7 +239,7 @@ describe("search, filter and sort", () => {
   it("filters by building, floor and priority tier; sorts by priority, number or location", () => {
     const building = run({ filters: { ...EMPTY_ASSIGNMENT_FILTERS, building: "B" } });
     expect(building.visible.map((entry) => entry.room.roomNumber)).toEqual(["201", "301", "302"]);
-    expect(assignmentFilterCount({ building: "B", floors: ["B|3"], tiers: ["high"] })).toBe(3);
+    expect(assignmentFilterCount({ ...EMPTY_ASSIGNMENT_FILTERS, building: "B", floors: ["B|3"], tiers: ["high"] })).toBe(3);
     expect(run({ filters: { ...EMPTY_ASSIGNMENT_FILTERS, floors: ["B|3"] } }).visible.map((entry) => entry.room.roomNumber)).toEqual(["301", "302"]);
     expect(run({ filters: { ...EMPTY_ASSIGNMENT_FILTERS, tiers: ["elevated"] } }).visible.map((entry) => entry.room.roomNumber)).toEqual(["201"]);
     expect(sortAssignmentRooms(queue, "priority")[0].room.roomNumber).toBe("201");

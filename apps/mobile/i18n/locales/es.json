@@ -4527,7 +4527,185 @@
     "lateCoTitle": "Salida tardía",
     "lateCoTime": "El huésped solicitó salir a las {{time}}",
     "lateCoNoTime": "Salida tardía solicitada — hora no especificada",
-    "vipBadge": "VIP"
+    "vipBadge": "VIP",
+    "v2": {
+      "header": {
+        "kicker": "Housekeeping",
+        "today": "Hoy · {{date}}",
+        "todayUnknown": "Hoy",
+        "refresh": "Actualizar asignaciones"
+      },
+      "status": {
+        "loading": "Cargando",
+        "updating": "Actualizando",
+        "live": "En vivo",
+        "stale": "No en vivo",
+        "offline": "Sin internet",
+        "previous_day": "No en vivo",
+        "unavailable": "No disponible"
+      },
+      "metric": {
+        "unassigned": "Sin asignar",
+        "onShift": "En turno",
+        "urgent": "Urgentes",
+        "unknown": "desconocido",
+        "blockedNote": "{{count}} cuarto más necesita revisión antes de asignarse",
+        "blockedNote_plural": "{{count}} cuartos más necesitan revisión antes de asignarse"
+      },
+      "tab": {
+        "rooms": "Cuartos",
+        "team": "Equipo"
+      },
+      "search": {
+        "placeholder": "Buscar cuarto, piso, camarera…",
+        "label": "Buscar cuartos por número, piso, edificio o camarera",
+        "clear": "Borrar búsqueda"
+      },
+      "quick": {
+        "all": "Todos",
+        "unassigned": "Sin asignar",
+        "urgent": "Urgentes",
+        "a11y": "{{label}}, {{count}} cuartos"
+      },
+      "list": {
+        "title": "Cuartos que requieren atención"
+      },
+      "sort": {
+        "priority": "Prioridad primero",
+        "roomNumber": "Número de cuarto",
+        "location": "Piso y edificio",
+        "deadline": "Hora de llegada"
+      },
+      "section": {
+        "urgent": "Urgentes · asignar primero",
+        "unassigned": "Listos para asignar",
+        "assigned": "Asignados",
+        "blocked": "Requieren revisión",
+        "count": "{{count}} cuarto",
+        "count_plural": "{{count}} cuartos"
+      },
+      "results": {
+        "showing": "Mostrando {{shown}} de {{total}} cuartos",
+        "sortedBy": "Ordenado por {{sort}}"
+      },
+      "filters": {
+        "open": "Filtros",
+        "title": "Filtrar y ordenar",
+        "reset": "Restablecer",
+        "edit": "Editar filtros",
+        "clearAll": "Borrar todo",
+        "removeChip": "Quitar filtro {{label}}",
+        "apply": "Mostrar {{count}} cuarto",
+        "apply_plural": "Mostrar {{count}} cuartos",
+        "assignment": "Asignación",
+        "priorityTitle": "Prioridad",
+        "cleanTypeTitle": "Tipo de limpieza",
+        "cleanTypeNone": "Tipo no registrado",
+        "statusTitle": "Estado del cuarto",
+        "sortTitle": "Ordenar por",
+        "scope": {
+          "all": "Todos",
+          "unassigned": "Sin asignar",
+          "assigned": "Asignados",
+          "blocked": "Bloqueados"
+        },
+        "priority": {
+          "any": "Todas",
+          "urgent": "Urgentes",
+          "vip": "VIP",
+          "at_risk": "En riesgo"
+        }
+      },
+      "priority": {
+        "guest_waiting": "Huésped esperando",
+        "reclean_requested": "Relimpieza",
+        "rush": "Prioritario",
+        "arrival_passed": "Llegada vencida",
+        "arrival_today": "Llega hoy",
+        "vip": "VIP",
+        "high_risk": "En riesgo"
+      },
+      "card": {
+        "roomLabel": "Cuarto {{room}}",
+        "floor": "Piso {{floor}}",
+        "building": "Edificio {{building}}",
+        "estimate": "{{minutes}} min estimados",
+        "estimateShort": "{{minutes}} min",
+        "unassigned": "Sin asignar",
+        "assigneeUnknown": "Asignado · nombre no disponible",
+        "arrival": "El huésped llega a las {{time}}",
+        "arrivalPassed": "Llegada del huésped vencida · {{time}}",
+        "assign": "Asignar",
+        "viewAssignment": "Ver asignación",
+        "viewReason": "Ver motivo",
+        "view": "Ver cuarto"
+      },
+      "blocker": {
+        "in_progress": "Se está limpiando ahora",
+        "in_progress_unowned": "Se está limpiando ahora · sin responsable registrado",
+        "awaiting_inspection": "Esperando inspección",
+        "guest_ready": "Ya inspeccionado",
+        "out_of_service": "Fuera de servicio",
+        "unknown_status": "Estado no reconocido",
+        "service_declined": "El huésped rechazó el servicio",
+        "return_later": "Volver después de las {{time}}",
+        "dnd": "No molestar",
+        "occupancy_discrepancy": "Recepción y housekeeping no coinciden"
+      },
+      "sheet": {
+        "row": {
+          "assignedTo": "Asignado a",
+          "estimate": "Limpieza estimada",
+          "priority": "Prioridad",
+          "arrival": "Llegada del huésped",
+          "building": "Edificio"
+        },
+        "priorityRoutine": "Rutina",
+        "notes": "Notas operativas",
+        "heldBack": "Este cuarto está retenido hasta que alguien lo revise:",
+        "assign": "Asignar camarera",
+        "reviewAssign": "Revisar y asignar",
+        "openBoard": "Abrir detalle completo en el tablero",
+        "roomGone": "Ese cuarto ya no está en el tablero, así que se cerraron sus detalles.",
+        "frozen": {
+          "in_progress": "Este cuarto se está limpiando, así que no se puede reasignar. Su camarera tiene la sesión.",
+          "awaiting_inspection": "Housekeeping envió este cuarto. Ahora espera inspección.",
+          "guest_ready": "Este cuarto está inspeccionado y listo para huéspedes.",
+          "out_of_service": "Este cuarto está fuera de servicio, así que no se puede asignar.",
+          "unknown_status": "El estado de este cuarto no se reconoce, así que no se puede asignar."
+        }
+      },
+      "empty": {
+        "verifiedEmpty": "No hay cuartos en el tablero de hoy",
+        "verifiedEmptyBody": "El hotel no tiene cuartos en el tablero de hoy. Actualiza para revisar de nuevo.",
+        "queueDone": "Nada espera a una camarera",
+        "queueDoneBody": "Todos los cuartos están limpios, enviados o fuera de servicio.",
+        "scope": "No quedan cuartos elegibles sin asignar.",
+        "viewAll": "Ver todos los cuartos",
+        "blockedOnly": "Estos cuartos requieren otra acción operativa por ahora.",
+        "viewBlocked": "Ver cuartos bloqueados",
+        "search": "Ningún cuarto coincide con “{{query}}”.",
+        "searchFilters": "Ningún cuarto coincide con “{{query}}” con estos filtros.",
+        "filters": "Ningún cuarto coincide con tus filtros."
+      },
+      "state": {
+        "notLiveTitle": "No está en vivo",
+        "staleOffline": "Sin conexión. Se muestran los datos verificados por última vez a las {{time}}. Los cambios de asignación están en pausa.",
+        "staleFailed": "No se pudo actualizar. Se muestran los datos verificados por última vez a las {{time}}. Los cambios de asignación están en pausa.",
+        "staleAge": "Estos datos se verificaron por última vez a las {{time}}. Desliza hacia abajo para actualizar. Los cambios de asignación están en pausa.",
+        "previousDay": "Estos datos son de un día anterior. Actualizando para hoy.",
+        "auxPartial": "No se pudieron verificar algunos detalles (conteo en turno o carga de trabajo). Los cuartos y sus responsables no se ven afectados.",
+        "unavailableOffline": "Sin conexión y sin datos verificados que mostrar. Vuelve a conectarte e inténtalo de nuevo.",
+        "unavailableForbidden": "No tienes acceso a las asignaciones.",
+        "unavailableError": "No se pudo verificar la información actual de los cuartos. No es una lista vacía — inténtalo de nuevo.",
+        "retry": "Reintentar",
+        "actionsPaused": "Los cambios de asignación están en pausa hasta que los datos se verifiquen de nuevo.",
+        "emptyStaleNote": "Según datos de cuartos verificados por última vez a las {{time}}."
+      },
+      "team": {
+        "loadSummary": "{{done}} de {{total}} listos"
+      }
+    }
   },
   "supervisorHandoff": {
     "title": "Entrega de turno",
