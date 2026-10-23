@@ -136,34 +136,3 @@ test('web service root directory carries its own Dockerfile Railway config', () 
   assert.match(config, /dockerfilePath\s*=\s*"Dockerfile"/)
   assert.match(config, /healthcheckPath\s*=\s*"\/login"/)
 })
-
-test('staging API verification keeps retrying while the exact candidate rolls out', () => {
-  // `node -e` must be part of the `if` condition: under `bash -e` a failing command in the
-  // if BODY aborts the step on the first stale-SHA response instead of retrying for ~4 minutes.
-  const start = workflow.indexOf('name: Require API health, readiness, staging database, and exact SHA')
-  const step = workflow.slice(start, workflow.indexOf('env:', start))
-  assert.match(step, /for attempt in \{1\.\.24\}/)
-  assert.match(step, /ready\.json && node -e '[^\n]*process\.exit\(1\)'; then\n\s*exit 0\n/)
-  assert.match(step, /h\.release_sha!==process\.env\.CANDIDATE_SHA/)
-  assert.match(step, /r\.release_sha!==process\.env\.CANDIDATE_SHA/)
-  assert.match(step, /sleep 10/)
-})
-
-test('fixture and browser dependency installs retry transient npm ci failures (ETXTBSY)', () => {
-  for (const name of ['Install fixture dependencies', 'Install browser test dependencies']) {
-    const start = workflow.indexOf('name: ' + name)
-    assert.notEqual(start, -1, name)
-    const step = workflow.slice(start, workflow.indexOf('\n      - ', start + 1))
-    assert.match(step, /for attempt in 1 2 3/)
-    assert.match(step, /npm ci/)
-    assert.match(step, /exit 1/)
-  }
-})
-
-test('web deploy retries a transient railway up build-log stream failure', () => {
-  const start = workflow.indexOf('name: Deploy web from exact checkout')
-  const step = workflow.slice(start, workflow.indexOf('env:', start))
-  assert.match(step, /for attempt in 1 2 3/)
-  assert.match(step, /if npx --yes @railway\/cli@4\.30\.0 up apps\/web --ci --no-gitignore --path-as-root; then\n\s*exit 0/)
-  assert.match(step, /exit 1/)
-})

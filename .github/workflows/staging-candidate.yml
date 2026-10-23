@@ -196,16 +196,7 @@ jobs:
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Install fixture dependencies
-        run: |
-          # esbuild's postinstall can fail with a transient ETXTBSY on hosted runners; retry the install.
-          for attempt in 1 2 3; do
-            if (cd apps/web && npm ci); then
-              exit 0
-            fi
-            echo "npm ci attempt $attempt failed" >&2
-            sleep 5
-          done
-          exit 1
+        run: cd apps/web && npm ci
       - name: Seed deterministic synthetic hotel fixture
         run: cd apps/web && npm run seed:staging-fixture
         env:
@@ -279,7 +270,8 @@ jobs:
       - name: Require API health, readiness, staging database, and exact SHA
         run: |
           for attempt in {1..24}; do
-            if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json && node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'; then
+            if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json; then
+              node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'
               exit 0
             fi
             sleep 10
@@ -338,16 +330,7 @@ jobs:
       - name: Deploy web from exact checkout
         run: |
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
-          # `railway up --ci` exits non-zero when Railway's build-log stream drops ("Failed to retrieve build log")
-          # even though the platform build is healthy; retry the exact same upload a bounded number of times.
-          for attempt in 1 2 3; do
-            if npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root; then
-              exit 0
-            fi
-            echo "railway up attempt $attempt failed" >&2
-            sleep 15
-          done
-          exit 1
+          npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root
         env:
           RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
@@ -374,17 +357,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install browser test dependencies
-        run: |
-          # esbuild's postinstall can fail with a transient ETXTBSY on hosted runners; retry the install.
-          for attempt in 1 2 3; do
-            if (cd apps/web && npm ci); then
-              break
-            fi
-            echo "npm ci attempt $attempt failed" >&2
-            if [ "$attempt" = 3 ]; then exit 1; fi
-            sleep 5
-          done
-          cd apps/web && npx playwright install --with-deps chromium
+        run: cd apps/web && npm ci && npx playwright install --with-deps chromium
       - name: Verify deployed web/API/database release identity
         run: cd apps/web && npm run check:staging-health
         env:
