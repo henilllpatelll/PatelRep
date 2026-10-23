@@ -10,6 +10,8 @@ export interface BoardRoomRaw {
   status: string;
   vip_flag?: boolean | null;
   dnd_flag?: boolean | null;
+  /** room_status.dnd_retry_at (migration 123): when the room should be tried again after a "return later" attempt. */
+  dnd_retry_at?: string | null;
   fo_status?: "OCC" | "VAC" | null;
   checkin_time?: string | null;
   checkout_time?: string | null;

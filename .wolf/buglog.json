@@ -34266,6 +34266,115 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-18T00:00:00Z"
+    },
+    {
+      "id": "bug-2076",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Assignments Rooms search 'floor 2' also returned room 102 (matched words across different fields)",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "searchRankOf required every word to match SOME field, so 'floor' matched the floor field of one room and '2' the room number of the same room",
+      "fix": "The whole phrase must sit inside ONE field (floor N, building X, room number, person name) or every word inside the person name; words are never matched across fields. Test: assignmentRoomsView.test.ts search block",
+      "tags": [
+        "mobile",
+        "assignments",
+        "search",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2077",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Header 'Unassigned' said 6 while the Unassigned chip said 8 for the same screen",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "Phase 1 scope `unassigned` used needsAssignee (includes held-back DND/declined rooms and an unowned in-progress room) while the header counted autoAssignable",
+      "fix": "Scope `unassigned` is now eligibility.autoAssignable (unowned and nothing in the way); held-back rooms are in `blocked`. Header, chip and list agree. Phase 1 assignmentModel test expectations updated to the new documented rule",
+      "tags": [
+        "mobile",
+        "assignments",
+        "counts",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2078",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "test_rbac_matrix_matches_generated_output failed after a 5-line edit to housekeeping.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "RBAC-MATRIX.md records the require_role line number [L####] of every route, so ANY edit that shifts lines in a router makes the committed matrix stale; CI Test / API (smoke) would fail",
+      "fix": "Regenerated with `python apps/api/scripts/generate_rbac_matrix.py` (26 rows changed, identical modulo line numbers). Rule: after touching apps/api/routers/*.py run the generator and the full tests/ run, not just the targeted files. The Release Engineer bot independently pushed a byte-identical repair (7632b967) after Test / API failed on cb2c27b1; the local copy was discarded and the branch fast-forwarded onto it",
+      "tags": [
+        "api",
+        "rbac",
+        "ci",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2079",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Post-commit batch notifications could be garbage-collected before they were sent",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "batch_publish_assignments fired `asyncio.create_task(...)` and kept no reference; the event loop only weakly references tasks",
+      "fix": "Module-level _PENDING_BATCH_PUSHES set holds the task until its done-callback discards it. Unit test test_the_notification_task_is_held_until_it_finishes (mutation-checked). Older single-room pushes still use the bare pattern",
+      "tags": [
+        "api",
+        "asyncio",
+        "notifications",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2080",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "git diff --check: new blank line at EOF",
+      "file": "apps/mobile/components/supervisor/assignments/SmartBalanceDetailStep.tsx",
+      "root_cause": "Trailing blank line left by the Phase 6 commit",
+      "fix": "Trimmed to a single line ending (file is CRLF in the working tree; git stores LF)",
+      "tags": [
+        "mobile",
+        "whitespace",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2081",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Copy defects found in the browser harness: 'Estimated total: 180 min estimated' and 'Over their workload capacity after this room' shown in multi-room screens",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "bulk.allocate.estimated prefixed a value that already ends in 'estimated'; assign.warning.overCapacity said 'this room' but WarningLines is shared by bulk review/edit, midshift and the Smart Balance preview",
+      "fix": "en: 'Total: {{value}}' and '...after this change'; es: 'Total: {{value}}' and 'Superaría su capacidad de trabajo con este cambio'. AssignmentsBulk test expectation updated to the new copy",
+      "tags": [
+        "mobile",
+        "i18n",
+        "copy",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
     }
   ]
 }

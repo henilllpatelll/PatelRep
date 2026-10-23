@@ -63,6 +63,7 @@ jest.mock("@/stores/appStore", () => ({
   useAppStore: (selector?: (state: unknown) => unknown) => (selector ? selector(mockAppState) : mockAppState),
 }));
 
+import { router } from "expo-router";
 import {
   fetchAssignableStaff,
   fetchBoardVerified,
@@ -182,6 +183,25 @@ describe("one shared snapshot", () => {
     await waitFor(() => expect(screen.getByText(tr("roomBoard.assign.error.in_progress"))).toBeTruthy(), { timeout: 5000 });
     expect(screen.getByTestId("assign-confirm").props.accessibilityState.disabled).toBe(true);
     expect(saveAssignments).not.toHaveBeenCalled();
+  });
+});
+
+describe("Room Board -> Assignments", () => {
+  it("an owned room links its owner into Assignments, closing the drawer first so sheets never stack", async () => {
+    const screen = render(ui());
+    await waitFor(() => expect(screen.getByTestId("board-tile-102")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-102"));
+    fireEvent.press(screen.getByTestId("room-detail-view-workload"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/assignments", params: { staffId: "hk-1" } });
+    await waitFor(() => expect(screen.queryByTestId("room-detail-view-workload")).toBeNull());
+  });
+
+  it("an unowned room offers no such link (there is no workload to review)", async () => {
+    const screen = render(ui());
+    await waitFor(() => expect(screen.getByTestId("board-tile-101")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("board-tile-101"));
+    await waitFor(() => expect(screen.getByTestId("room-detail-assignee")).toBeTruthy());
+    expect(screen.queryByTestId("room-detail-view-workload")).toBeNull();
   });
 });
 

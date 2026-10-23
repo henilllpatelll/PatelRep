@@ -147,6 +147,115 @@ async def test_roster_returns_latest_session_per_housekeeper(monkeypatch):
     assert rows[0]["status"] == "on_break"
 
 
+def _session(session_id, tenant, user, status, started_at):
+    return {
+        "id": session_id,
+        "tenant_id": tenant,
+        "user_id": user,
+        "status": status,
+        "started_at": started_at,
+        "on_break_since": None,
+        "break_seconds": 0,
+    }
+
+
+def _chicago_db(*sessions):
+    db = make_db()
+    db.rows["tenants"] = [{"id": "hotel-a", "timezone": "America/Chicago"}]
+    db.rows["hk_shift_sessions"].extend(sessions)
+    return db
+
+
+# Chicago is on CDT (UTC-5) in October: hotel date 2026-10-16 = [2026-10-16T05:00Z, 2026-10-17T05:00Z).
+ROSTER_DATE = datetime(2026, 10, 16).date()
+
+
+def test_roster_window_is_the_hotel_local_day_across_dst():
+    from dateutil import tz
+
+    chicago = tz.gettz("America/Chicago")
+    assert shifts_router.roster_window(ROSTER_DATE, chicago) == ("2026-10-16T05:00:00+00:00", "2026-10-17T05:00:00+00:00")
+    # Fall back (Nov 1, 2026): the local day is 25 hours, so the UTC boundary moves instead of drifting.
+    assert shifts_router.roster_window(datetime(2026, 11, 1).date(), chicago) == ("2026-11-01T05:00:00+00:00", "2026-11-02T06:00:00+00:00")
+    # No zone = the legacy UTC calendar day.
+    assert shifts_router.roster_window(ROSTER_DATE, None) == ("2026-10-16T00:00:00+00:00", "2026-10-17T00:00:00+00:00")
+
+
+@pytest.mark.asyncio
+async def test_roster_includes_a_shift_started_in_the_local_evening(monkeypatch):
+    # 8:30 PM Chicago on 10-16 is 01:30 UTC on 10-17: the old UTC-day window dropped it from the 10-16 roster.
+    db = _chicago_db(_session("evening", "hotel-a", "hk-1", "active", "2026-10-17T01:30:00+00:00"))
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    rows = (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"]
+
+    assert [row["user_id"] for row in rows] == ["hk-1"]
+
+
+@pytest.mark.asyncio
+async def test_roster_excludes_the_next_local_days_first_shift(monkeypatch):
+    # 12:30 AM Chicago on 10-17 is 05:30 UTC on 10-17: that belongs to the 10-17 roster, not 10-16.
+    db = _chicago_db(_session("next-day", "hotel-a", "hk-1", "active", "2026-10-17T05:30:00+00:00"))
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    assert (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_roster_carries_an_open_overnight_shift_into_the_next_morning(monkeypatch):
+    # Clocked in 10:00 PM Chicago on 10-15 (03:00 UTC on 10-16) and still working: on the 10-16 roster.
+    db = _chicago_db(_session("overnight", "hotel-a", "hk-1", "active", "2026-10-16T03:00:00+00:00"))
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    rows = (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"]
+
+    assert [(row["user_id"], row["status"]) for row in rows] == [("hk-1", "active")]
+
+
+@pytest.mark.asyncio
+async def test_roster_does_not_carry_ended_stale_or_other_hotel_shifts(monkeypatch):
+    db = _chicago_db(
+        # Ended before the day started: not working now.
+        _session("ended", "hotel-a", "hk-ended", "ended", "2026-10-16T03:00:00+00:00"),
+        # Open for far longer than any real shift (never closed out): not carried.
+        _session("stale", "hotel-a", "hk-stale", "active", "2026-10-15T08:00:00+00:00"),
+        # Another hotel's open overnight shift never leaks across tenants.
+        _session("other", "hotel-b", "hk-other", "active", "2026-10-16T03:00:00+00:00"),
+    )
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    assert (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_roster_prefers_a_newer_session_over_a_carried_one(monkeypatch):
+    db = _chicago_db(
+        _session("carried", "hotel-a", "hk-1", "active", "2026-10-16T03:00:00+00:00"),
+        _session("morning", "hotel-a", "hk-1", "on_break", "2026-10-16T12:00:00+00:00"),
+    )
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    rows = (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"]
+
+    assert [(row["user_id"], row["status"]) for row in rows] == [("hk-1", "on_break")]
+
+
+@pytest.mark.asyncio
+async def test_roster_falls_back_to_the_utc_day_when_the_hotel_timezone_is_unreadable(monkeypatch):
+    # No tenants row: the zone cannot be read, so behaviour is exactly the original UTC-day window.
+    db = make_db()
+    db.rows["hk_shift_sessions"].extend([
+        _session("evening", "hotel-a", "hk-1", "active", "2026-10-17T01:30:00+00:00"),
+        _session("utc-day", "hotel-a", "hk-2", "active", "2026-10-16T14:00:00+00:00"),
+        _session("overnight", "hotel-a", "hk-3", "active", "2026-10-16T03:00:00+00:00"),
+    ])
+    monkeypatch.setattr(shifts_router, "supabase", db)
+
+    rows = (await shifts_router.get_shift_roster(ROSTER_DATE, SUPERVISOR))["data"]
+
+    assert sorted(row["user_id"] for row in rows) == ["hk-2", "hk-3"]
+
+
 SECOND_SHIFT_ID = "55555555-5555-4555-8555-555555555555"
 
 
