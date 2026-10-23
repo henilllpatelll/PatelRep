@@ -1374,6 +1374,7 @@ async def remove_assignment_guarded(
 # Push notifications are sent after the commit, once per housekeeper, and only for a newly committed operation.
 
 _BATCH_ERROR_STATUS = {"P0409": 409, "P0422": 422, "P0403": 403}
+_PENDING_BATCH_PUSHES: set[asyncio.Task] = set()
 
 
 def _batch_error(error: APIError) -> HTTPException:
@@ -1468,7 +1469,11 @@ async def batch_publish_assignments(
         logger.error("batch-publish: unexpected rpc payload %r", data)
         raise HTTPException(status_code=500, detail={"code": "publish_unverified", "message": "The publication result could not be verified."})
     if not data.get("replayed"):
-        asyncio.create_task(_push_batch_assignments(current_user.hotel_id, list(data.get("rooms") or [])))
+        # The event loop keeps only a weak reference to a task: hold it until it finishes so a committed
+        # publication's notifications cannot be garbage-collected before they are sent.
+        push = asyncio.create_task(_push_batch_assignments(current_user.hotel_id, list(data.get("rooms") or [])))
+        _PENDING_BATCH_PUSHES.add(push)
+        push.add_done_callback(_PENDING_BATCH_PUSHES.discard)
     return {"data": data}
 
 

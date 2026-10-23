@@ -203,4 +203,3 @@ const styles = StyleSheet.create({
   person: { minHeight: MIN_TARGET, justifyContent: "center", paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: R.md, gap: 2 },
   footer: { paddingTop: 8 },
 });
-

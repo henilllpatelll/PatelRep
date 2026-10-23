@@ -262,6 +262,35 @@ class TestNotifications:
         assert _publish(client).status_code == 200
         assert db.pushes == []
 
+    def test_the_notification_task_is_held_until_it_finishes(self, db, monkeypatch):
+        """The event loop only weakly references a task: the handler must hold it, or a committed publication's
+        notifications could be garbage-collected unsent. It is released when the task completes (no leak)."""
+        import asyncio
+
+        from middleware.auth import CurrentUser
+        from models.requests import BatchPublishAssignmentsRequest
+
+        async def scenario():
+            release = asyncio.Event()
+            started = asyncio.Event()
+
+            async def slow_push(tenant_id, rooms):
+                started.set()
+                await release.wait()
+
+            monkeypatch.setattr(housekeeping_router, "_push_batch_assignments", slow_push)
+            user = CurrentUser(user_id=SUPERVISOR, hotel_id=HOTEL, role="housekeeping_supervisor")
+            result = await housekeeping_router.batch_publish_assignments(BatchPublishAssignmentsRequest(**_body()), user)
+            assert result["data"]["status"] == "committed"
+            await started.wait()
+            assert len(housekeeping_router._PENDING_BATCH_PUSHES) == 1  # still running, so still referenced
+            release.set()
+            for _ in range(5):
+                await asyncio.sleep(0)
+            assert not housekeeping_router._PENDING_BATCH_PUSHES  # finished, so released
+
+        asyncio.run(scenario())
+
 
 class TestPushContent:
     """The push composer itself (called after the commit): one push per person who gained rooms."""
