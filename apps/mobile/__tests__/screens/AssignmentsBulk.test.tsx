@@ -72,6 +72,7 @@ import { fetchBlockedTasks } from "@/lib/api/tasks";
 import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { readPending } from "@/lib/housekeeping/publishJournal";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { router } from "expo-router";
 import AssignmentsScreen from "@/app/(app)/assignments/index";
 import type { BoardRoomRaw } from "@/lib/housekeeping/supervisor";
 import { STAFF } from "../helpers/roomBoardFixtures";
@@ -566,5 +567,62 @@ describe("Spanish", () => {
     expect(text(screen.getByTestId("bulk-review-title"))).toBe("Revisar 2 asignaciones");
     expect(flat(screen.UNSAFE_root as never)).not.toMatch(/assignments\.v2\.bulk/);
     expect(tr("assignments.v2.bulk.review.title", { count: 2 })).toBe("Review 2 assignments");
+  });
+});
+
+describe("leaving with unpublished work (Android Back)", () => {
+  const { Alert, BackHandler } = require("react-native");
+  const handler = () => {
+    const calls = (BackHandler.addEventListener as jest.Mock).mock.calls.filter((call: unknown[]) => call[0] === "hardwareBackPress");
+    return calls[calls.length - 1][1] as () => boolean;
+  };
+  let alertSpy: jest.SpyInstance;
+  beforeEach(() => {
+    jest.spyOn(BackHandler, "addEventListener");
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it("lets Back through when there is nothing to lose", async () => {
+    await loaded();
+    expect(handler()()).toBe(false);
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it("asks before dropping a draft, and never claims it was saved", async () => {
+    const screen = await loaded();
+    await toReview(screen, ["101", "102"]);
+    fireEvent.press(screen.getByTestId("bulk-review-back")); // close the sheet; the draft stays
+    await waitFor(() => expect(screen.queryByTestId("bulk-sheet")).toBeNull());
+    expect(handler()()).toBe(true);
+    const [title, body, buttons] = alertSpy.mock.calls[0];
+    expect(title).toBe(tr("assignments.v2.bulk.leave.discardTitle"));
+    expect(body).not.toMatch(/saved\.?$|we.ve saved|will be saved/i);
+    expect(buttons.map((button: { text: string }) => button.text)).toEqual(["Stay and review", "Discard and leave"]);
+  });
+
+  it("Stay keeps the draft untouched", async () => {
+    const screen = await loaded();
+    await toReview(screen, ["101", "102"]);
+    fireEvent.press(screen.getByTestId("bulk-review-back"));
+    await waitFor(() => expect(screen.queryByTestId("bulk-sheet")).toBeNull());
+    handler()();
+    const stay = alertSpy.mock.calls[0][2][0];
+    expect(stay.onPress).toBeUndefined();
+    expect(screen.getByTestId("bulk-draft-indicator")).toBeTruthy();
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it("Discard and leave really discards the draft, then goes back", async () => {
+    const screen = await loaded();
+    await toReview(screen, ["101", "102"]);
+    fireEvent.press(screen.getByTestId("bulk-review-back"));
+    await waitFor(() => expect(screen.queryByTestId("bulk-sheet")).toBeNull());
+    handler()();
+    await act(async () => alertSpy.mock.calls[0][2][1].onPress());
+    expect(router.back).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByTestId("bulk-draft-indicator")).toBeNull());
+    expect(publish).not.toHaveBeenCalled();
+    expect(handler()()).toBe(false);
   });
 });

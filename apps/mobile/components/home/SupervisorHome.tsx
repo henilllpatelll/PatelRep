@@ -23,7 +23,8 @@ import { availabilityKey, roleKey, type StaffQuickView } from "@/lib/housekeepin
 import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeeping/supervisorTodayView";
 import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useSupervisorToday } from "@/lib/housekeeping/useSupervisorToday";
-import { supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
+import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
+import { assignmentsHref, supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
@@ -41,6 +42,11 @@ const MODAL_SWAP_MS = 300;
 
 function go(screen: SupervisorScreen) {
   router.push(supervisorHref({ screen }).pathname as never);
+}
+
+/** Straight to the work: the Team tab, or one person's drawer when Today already knows who. */
+function goTeam(staffId?: string | null) {
+  openSupervisorHref(assignmentsHref(staffId ? { staffId } : { tab: "team" }));
 }
 
 export function SupervisorHome({ name }: { name: string }) {
@@ -187,9 +193,10 @@ export function SupervisorHome({ name }: { name: string }) {
   );
 
   const onQuickViewAssignments = useCallback(() => {
+    const staffId = quickViewId;
     setQuickViewId(null);
-    go("team");
-  }, []);
+    goTeam(staffId);
+  }, [quickViewId]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]} testID="supervisor-today">
@@ -233,7 +240,7 @@ export function SupervisorHome({ name }: { name: string }) {
             onViewAll={() => go("attention")}
             onRetry={onRefresh}
           />
-          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => go("team")} onOpenMember={setQuickViewId} onRetry={onRefresh} />
+          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => goTeam()} onOpenMember={setQuickViewId} onRetry={onRefresh} />
           <QuickActions t={t} onAction={onQuickAction} />
         </View>
       </ScrollView>

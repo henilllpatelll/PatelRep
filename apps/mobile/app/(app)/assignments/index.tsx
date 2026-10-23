@@ -46,11 +46,15 @@ import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { describeBoardStatus } from "@/lib/housekeeping/roomBoardView";
 import { useAssignmentRooms } from "@/lib/housekeeping/useAssignmentRooms";
 import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
+import { useAssignmentsLink } from "@/lib/housekeeping/useAssignmentsLink";
+import { DEFAULT_VIEW_STATE } from "@/lib/housekeeping/assignmentRoomsView";
+import { applyQuickView } from "@/lib/housekeeping/assignmentQuery";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
 import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
 import { useBulkAssignment } from "@/lib/housekeeping/useBulkAssignment";
 import { useMidshiftRecovery, type MidshiftClosed } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useSmartBalance } from "@/lib/housekeeping/useSmartBalance";
+import { leavePrompt, type LeavePrompt } from "@/lib/housekeeping/assignmentLeave";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -141,23 +145,41 @@ export default function AssignmentsScreen() {
   const midshiftRef = useRef(midshift);
   midshiftRef.current = midshift;
 
-  // Android Back with unpublished work (or an unclear publication) asks first. (The draft is kept in memory while the
-  // app lives - this tab stays mounted when the supervisor goes elsewhere - so only an explicit Back can lose it.)
-  const dirtyRef = useRef(bulk.dirty || smart.plan !== null);
-  dirtyRef.current = bulk.dirty || smart.plan !== null;
+  // Android Back with unpublished work (or an unclear publication) asks first. The draft lives in memory only - this tab stays
+  // mounted when the supervisor goes elsewhere - so only an explicit "Discard and leave" loses it, and it then really does.
+  // A publication in flight is never discarded: leaving does not cancel it and its operation id stays for recovery.
+  const leaveRef = useRef<LeavePrompt | null>(null);
+  leaveRef.current = leavePrompt({ publishing: bulk.publishing, draftChanges: bulk.draftChanges > 0, planOpen: smart.plan !== null });
+  const discardForLeave = useCallback(() => {
+    if (!bulkRef.current.publishing) bulkRef.current.confirmDiscard();
+    smartRef.current.confirmDiscard();
+    router.back();
+  }, []);
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!dirtyRef.current) return false;
-      Alert.alert(t("assignments.v2.bulk.leave.title"), t("assignments.v2.bulk.leave.body"), [
-        { text: t("assignments.v2.bulk.leave.stay"), style: "cancel" },
-        { text: t("assignments.v2.bulk.leave.leave"), style: "destructive", onPress: () => router.back() },
-      ]);
+      const prompt = leaveRef.current;
+      if (!prompt) return false;
+      if (prompt === "pending") {
+        Alert.alert(t("assignments.v2.bulk.leave.pendingTitle"), t("assignments.v2.bulk.leave.pendingBody"), [
+          { text: t("assignments.v2.bulk.leave.stay"), style: "cancel" },
+          { text: t("assignments.v2.bulk.leave.leave"), onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert(t("assignments.v2.bulk.leave.discardTitle"), t("assignments.v2.bulk.leave.discardBody"), [
+          { text: t("assignments.v2.bulk.leave.stayReview"), style: "cancel" },
+          { text: t("assignments.v2.bulk.leave.discardLeave"), style: "destructive", onPress: discardForLeave },
+        ]);
+      }
       return true;
     });
     return () => subscription.remove();
-  }, [t]);
+  }, [t, discardForLeave]);
+  const smartRef = useRef(smart);
+  smartRef.current = smart;
   const bulkRef = useRef(bulk);
   bulkRef.current = bulk;
+  const roomsRef = useRef(rooms);
+  roomsRef.current = rooms;
   const roomsByIdRef = useRef(new Map<string, (typeof query.visible)[number]>());
   roomsByIdRef.current = new Map(query.visible.map((entry) => [entry.room.roomId, entry] as const));
   const onToggleBulk = useCallback((roomId: string) => {
@@ -264,6 +286,40 @@ export default function AssignmentsScreen() {
   useEffect(() => {
     if (chooserFor !== null && chooserMember === null) setChooserFor(null);
   }, [chooserFor, chooserMember]);
+
+  // Deep links from Today, the Attention Center and the Room Board (see useAssignmentsLink): the tab and filter apply at
+  // once; a named room or person opens only if this hotel's verified board has it, otherwise a short notice says so.
+  const linkActions = useMemo(
+    () => ({
+      show: (nextTab: AssignmentsTab, filter: "unassigned" | "urgent" | null) => {
+        if (nextTab === "team" && bulkRef.current.selection.selecting) bulkRef.current.selection.stop();
+        setTab(nextTab);
+        if (nextTab === "rooms") {
+          roomsRef.current.clearAll();
+          if (filter) {
+            const next = applyQuickView(filter, { scope: "all", priority: "any" });
+            roomsRef.current.applyState({ ...DEFAULT_VIEW_STATE, scope: next.scope, filters: { ...DEFAULT_VIEW_STATE.filters, priority: next.priority } });
+          }
+        }
+      },
+      // One interaction at a time: whatever was open gives way to the linked record.
+      reset: () => {
+        setFilterSheetOpen(false);
+        setTeamFilterOpen(false);
+        setChooserFor(null);
+        setSelectedStaffId(null);
+        returnStaffRef.current = null;
+        setRoomGone(false);
+      },
+      openRoom: (roomId: string) => {
+        if (assignmentRef.current.flow) assignmentRef.current.close();
+        setSelectedRoomId(roomId);
+      },
+      openStaff: (userId: string) => setSelectedStaffId(userId),
+    }),
+    [],
+  );
+  const link = useAssignmentsLink({ model, scopeKey, actions: linkActions });
   const chooserRooms = useMemo(() => (chooserMember ? listAssignableRooms(model) : []), [chooserMember, model]);
   const onChooseRoom = useCallback(
     (roomId: string) => {
@@ -398,6 +454,9 @@ export default function AssignmentsScreen() {
         </View>
       ))}
       {roomGone ? <BoardNotice body={t("assignments.v2.sheet.roomGone")} closeLabel={t("common.close")} onClose={() => setRoomGone(false)} testID="assignments-room-gone" /> : null}
+      {link.notice ? (
+        <BoardNotice body={t(`assignments.v2.link.${link.notice === "room_missing" ? "roomMissing" : "staffMissing"}`)} closeLabel={t("common.close")} onClose={link.dismissNotice} testID="assignments-link-missing" />
+      ) : null}
       {!gate.allowed && boardKnown && availability.kind !== "stale" ? (
         <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="assignments-actions-paused">
           {t("assignments.v2.state.actionsPaused")}

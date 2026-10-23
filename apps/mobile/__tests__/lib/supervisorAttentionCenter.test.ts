@@ -325,8 +325,9 @@ describe("detail", () => {
     const view = ready("queue:unassigned_rooms");
     expect(view.records.map((r) => r.label)).toEqual(["303", "304"]);
     expect(view.records.map((r) => t(r.noteKey ?? "", translateParams(t, r.noteParams ?? {})))).toEqual(["Vacant Dirty", "Occupied"]);
-    expect(view.primary).toMatchObject({ labelKey: "supervisorAttention.action.reviewAssignments", href: { pathname: "/(app)/assignments" } });
-    expect(view.primary.href.params).toBeUndefined();
+    expect(view.primary).toMatchObject({ labelKey: "supervisorAttention.action.reviewAssignments", href: { pathname: "/(app)/assignments", params: { tab: "rooms", filter: "unassigned" } } });
+    // The queue opens Rooms on the Unassigned view; it never names one arbitrary room.
+    expect(view.primary.href.params).not.toHaveProperty("roomId");
   });
 
   it("inspection: lists the pending queue and opens Inspect", () => {
@@ -374,7 +375,7 @@ describe("detail", () => {
     const view = ready("staff:hk-2:shift_ended_with_open_rooms");
     const text = view.facts.map((f) => t(f.key, translateParams(t, f.params)));
     expect(text).toEqual(["Bea has clocked out", "1 assigned room still open"]);
-    expect(view.primary.href).toEqual({ pathname: "/(app)/assignments" });
+    expect(view.primary.href).toEqual({ pathname: "/(app)/assignments", params: { staffId: "hk-2" } });
   });
 
   it("lists a short set of rooms and counts the rest", () => {
@@ -417,10 +418,15 @@ describe("navigation", () => {
     }
   });
 
-  it("only room targets carry params, and only a room id", () => {
+  it("params are typed per screen: the Room Board takes only a room id, Assignments only tab / filter / one record", () => {
     for (const item of items) {
       const { href } = primaryFor(item);
-      if (href.params) expect(Object.keys(href.params)).toEqual(["roomId"]);
+      if (!href.params) continue;
+      if (href.pathname === "/(app)/room-board") expect(Object.keys(href.params)).toEqual(["roomId"]);
+      else {
+        expect(href.pathname).toBe("/(app)/assignments");
+        expect(Object.keys(href.params).every((key) => ["tab", "filter", "staffId", "roomId"].includes(key))).toBe(true);
+      }
     }
   });
 });

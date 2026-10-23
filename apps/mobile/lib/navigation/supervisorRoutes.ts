@@ -3,16 +3,18 @@
    serve supervisors are listed. Supervisor actions never land in housekeeper-only
    screens (`my-rooms`, the housekeeper Attention Center).
 
-   Only the Room Board resolves a record from route params (`roomId`): it looks the
-   room up in its own, tenant-scoped board and says so when it is not there. Team
-   and Inspect already open on the work an attention item points at (unassigned
-   rooms first / the pending queue), and the Tasks screen only honours `taskId` for
+   The Room Board resolves a room from route params (`roomId`) and Assignments resolves
+   a room, a person, a tab and a Rooms filter (see assignmentsLink.ts); each looks the
+   record up in its own tenant-scoped, verified data and says so when it is not there.
+   Inspect opens on the pending queue, and the Tasks screen only honours `taskId` for
    housekeepers. A target that names a record on a screen that cannot resolve it
    opens that screen — `recordDeepLink: false` records that, and `supervisorHref`
    never emits params a screen would ignore.
 
    `attention` is the supervisor Attention Center. It is a separate route from the
    housekeeper Attention Center (`/(app)/attention`), which stays untouched. */
+
+import { assignmentsParams, type AssignmentsIntent } from "@/lib/navigation/assignmentsLink";
 
 export type SupervisorScreen = "rooms" | "team" | "inspect" | "tasks" | "notifications" | "attention";
 
@@ -27,7 +29,7 @@ export interface SupervisorRouteDef {
 
 export const SUPERVISOR_ROUTES: Record<SupervisorScreen, SupervisorRouteDef> = {
   rooms: { pathname: "/(app)/room-board", screenFile: "room-board/index.tsx", recordDeepLink: true },
-  team: { pathname: "/(app)/assignments", screenFile: "assignments/index.tsx", recordDeepLink: false },
+  team: { pathname: "/(app)/assignments", screenFile: "assignments/index.tsx", recordDeepLink: true },
   inspect: { pathname: "/(app)/inspect", screenFile: "inspect/index.tsx", recordDeepLink: false },
   tasks: { pathname: "/(app)/tasks", screenFile: "tasks/index.tsx", recordDeepLink: false },
   notifications: { pathname: "/(app)/notifications", screenFile: "notifications/index.tsx", recordDeepLink: false },
@@ -43,6 +45,8 @@ export interface SupervisorTarget {
   screen: SupervisorScreen;
   /** The record the item is about, for the day a screen can open it directly. */
   record?: { type: SupervisorRecordType; id: string } | null;
+  /** Assignments only: the tab / Rooms filter to open. A named staff or room record takes precedence. */
+  assignments?: Pick<AssignmentsIntent, "tab" | "filter"> | null;
 }
 
 export interface SupervisorHref {
@@ -61,7 +65,20 @@ export function supervisorHref(target: SupervisorTarget): SupervisorHref {
   if (route.recordDeepLink && target.screen === "rooms" && record?.type === "room" && record.id.trim()) {
     return { pathname: route.pathname, params: { roomId: record.id } };
   }
+  if (target.screen === "team") return assignmentsHref({
+    ...(target.assignments ?? {}),
+    ...(record?.type === "staff" ? { staffId: record.id } : {}),
+    ...(record?.type === "room" ? { roomId: record.id } : {}),
+  });
   return { pathname: route.pathname };
+}
+
+/** The Assignments href for an intent; plain pathname when the intent asks for nothing (or only unusable values). */
+export function assignmentsHref(intent: AssignmentsIntent): SupervisorHref {
+  const params = assignmentsParams(intent);
+  return Object.keys(params).length > 0
+    ? { pathname: SUPERVISOR_ROUTES.team.pathname, params }
+    : { pathname: SUPERVISOR_ROUTES.team.pathname };
 }
 
 /** True when `pathname` is a supervisor-safe destination (registered above, not housekeeper-only). */

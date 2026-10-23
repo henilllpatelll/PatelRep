@@ -72,6 +72,10 @@ export interface BulkAssignmentController {
   paused: BulkPause;
   /** The draft is the supervisor's work: leaving the screen would lose it (or an unclear publication). */
   dirty: boolean;
+  /** A publication is going out or its outcome is unknown: it cannot be cancelled and its operation must be kept. */
+  publishing: boolean;
+  /** Number of changes in the unpublished draft. */
+  draftChanges: number;
   proposedByUser: Map<string, ProposedLoad>;
   /** Everyone the verified staff list names, for choosing who a room moves to. */
   staff: { userId: string; name: string | null }[];
@@ -321,6 +325,8 @@ export function useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, qu
     addableRooms,
     paused,
     dirty: draftCtl.changeCount > 0 || publication.lockedToOperation,
+    publishing: publication.lockedToOperation,
+    draftChanges: draftCtl.changeCount,
     proposedByUser,
     staff,
     nameOf,

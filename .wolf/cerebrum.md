@@ -879,3 +879,10 @@
 - CP-SAT: single worker + fixed seed + `max_deterministic_time` for determinism; ~3-5s worst case on small inputs because optimality proof is slow — gap limit 2%.
 - API test files that fire many requests need the `reset_rate_limits` autouse fixture (tests/test_reports_views.py).
 - Do-Not-Repeat: inserting a model class between a pydantic field and its @model_validator re-attaches the validator to the wrong class.
+
+## Assignments V2 Phase 8 (integration) — learnings (2026-10-23)
+- Deep-link contract = `lib/navigation/assignmentsLink.ts` (params `tab`/`filter`/`roomId`/`staffId`, ids `^[A-Za-z0-9_-]{1,64}$`). Params are INTENT: `useAssignmentsLink` consumes them once (`router.setParams` clears), applies tab/filter immediately, and resolves a named room/person only against a freshly VERIFIED board of the signed-in hotel; missing = short notice, never another hotel's record. `SupervisorTarget.assignments` + `assignmentsHref()` build the hrefs; `primaryFor` (Attention Center) must KEEP `item.target` for team targets or the filter/staff is lost.
+- "Discard and leave" on Android Back must really discard (`bulk.confirmDiscard` + `smart.confirmDiscard`) but NEVER when `bulk.publishing` (op in flight/unknown): `leavePrompt` -> "pending" prompt, nothing discarded. Draft copy must not promise it was saved.
+- The shared realtime channel now also hears `room_assignments` (already in the realtime publication); `shifts` is NOT published, so attendance changes only arrive on refresh (pull/foreground/next room event) - documented, no polling added.
+- Existing tests asserted plain `/(app)/assignments` pushes; they now assert typed params. Update those, don't loosen.
+- Source-scan guards: `assignmentsAudit.test.ts` (static t() keys exist en+es, Pressables have role/label) and `assignmentsCrossScreen.test.ts` (no inspect imports => PR #165 independence, no own realtime channel).

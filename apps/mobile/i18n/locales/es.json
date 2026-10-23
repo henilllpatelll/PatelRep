@@ -4108,7 +4108,8 @@
       "a11y": {
         "assignedTo": "asignada a {{name}}",
         "assignedUnnamed": "asignada, nombre no disponible"
-      }
+      },
+      "viewWorkload": "Ver en Asignar"
     },
     "header": {
       "kicker": "Housekeeping · Hoy",
@@ -5329,8 +5330,12 @@
           "keep": "Conservar borrador"
         },
         "leave": {
-          "title": "Asignaciones sin publicar",
-          "body": "Tienes cambios de asignación sin publicar, o una publicación aún sin confirmar. Si sales ahora, pierdes el borrador.",
+          "discardTitle": "¿Descartar los cambios de asignación sin publicar?",
+          "discardBody": "Aún no se ha asignado nada. Estos cambios no se guardan en ningún lugar, así que al salir se descartan.",
+          "stayReview": "Quedarme y revisar",
+          "discardLeave": "Descartar y salir",
+          "pendingTitle": "Publicación aún sin confirmar",
+          "pendingBody": "Salir no la cancela. Vuelve a Asignar para ver el resultado confirmado.",
           "stay": "Quedarme",
           "leave": "Salir"
         },
@@ -5851,6 +5856,10 @@
           "no_eligible_staff": "No hay ninguna camarera elegible verificada disponible para esta habitación."
         },
         "attentionTitle": "Atención"
+      },
+      "link": {
+        "roomMissing": "Ese cuarto no está en el tablero de este hotel ahora. Puede que se haya eliminado o que pertenezca a otra propiedad.",
+        "staffMissing": "Esa persona no está en la lista del equipo de este hotel ahora, así que no se pueden mostrar sus datos."
       }
     }
   },

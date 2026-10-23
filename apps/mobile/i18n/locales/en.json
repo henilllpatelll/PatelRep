@@ -4108,7 +4108,8 @@
       "a11y": {
         "assignedTo": "assigned to {{name}}",
         "assignedUnnamed": "assigned, name unavailable"
-      }
+      },
+      "viewWorkload": "View in Assignments"
     },
     "header": {
       "kicker": "Housekeeping · Today",
@@ -5329,8 +5330,12 @@
           "keep": "Keep draft"
         },
         "leave": {
-          "title": "Unpublished assignments",
-          "body": "You have unpublished assignment changes, or a publication that isn't confirmed yet. Leaving now loses the draft.",
+          "discardTitle": "Discard unpublished assignment changes?",
+          "discardBody": "Nothing has been assigned yet. These changes are not saved anywhere, so leaving discards them.",
+          "stayReview": "Stay and review",
+          "discardLeave": "Discard and leave",
+          "pendingTitle": "Publication not confirmed yet",
+          "pendingBody": "Leaving doesn't cancel it. Come back to Assignments to see the confirmed result.",
           "stay": "Stay",
           "leave": "Leave"
         },
@@ -5851,6 +5856,10 @@
           "no_eligible_staff": "No verified eligible housekeeper is available for it."
         },
         "attentionTitle": "Attention"
+      },
+      "link": {
+        "roomMissing": "That room isn't on this hotel's board right now. It may have been removed, or it belongs to another property.",
+        "staffMissing": "That person isn't on this hotel's team list right now, so their details can't be shown."
       }
     }
   },
