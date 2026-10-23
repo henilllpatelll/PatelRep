@@ -44,6 +44,12 @@ export interface AllocationInput {
   /** The people the supervisor chose. `single` uses the first. */
   employeeIds: readonly string[];
   mode: AllocationMode;
+  /**
+   * `distribute` only. A room every chosen person would take past a REAL capacity limit (credit target, shift time left)
+   * is left out (`overCapacity`) instead of being placed on whoever is least over. Off by default: the Phase 5 bulk flow
+   * places it anyway and lets the review ask for an acknowledgement.
+   */
+  strictCapacity?: boolean;
 }
 
 export interface EmployeeShare {
@@ -62,6 +68,8 @@ export interface AllocationProposal {
   unallocated: string[];
   /** Rooms in this proposal that have no estimate. */
   missingEstimates: number;
+  /** Only with `strictCapacity`: rooms left out because every chosen person would exceed a real capacity limit. */
+  overCapacity?: string[];
 }
 
 interface Slot {
@@ -113,7 +121,7 @@ function wouldExceed(model: AssignmentsModel, slot: Slot, entry: AssignmentRoom)
   return after.warnings.some((warning) => GATING_WARNINGS.includes(warning));
 }
 
-export function proposeAllocation({ model, rooms, employeeIds, mode }: AllocationInput): AllocationProposal {
+export function proposeAllocation({ model, rooms, employeeIds, mode, strictCapacity = false }: AllocationInput): AllocationProposal {
   const { members, unresolved } = resolveMembers(model, mode === "single" ? employeeIds.slice(0, 1) : employeeIds);
   const empty: AllocationProposal = { assignments: {}, shares: [], unresolved, unallocated: rooms.map((entry) => entry.room.roomId), missingEstimates: 0 };
   if (members.length === 0) return empty;
@@ -130,10 +138,11 @@ export function proposeAllocation({ model, rooms, employeeIds, mode }: Allocatio
   seedFloors(model, slots);
 
   const assignments: Record<string, string> = {};
+  const overCapacity: string[] = [];
   const ordered = mode === "single" ? [...rooms] : placementOrder(rooms);
   for (const entry of ordered) {
     let best: Slot = slots[0];
-    if (mode === "distribute" && slots.length > 1) {
+    if (mode === "distribute" && (slots.length > 1 || strictCapacity)) {
       const candidates = slots.map((slot) => ({
         slot,
         exceeds: wouldExceed(model, slot, entry) ? 1 : 0,
@@ -150,6 +159,11 @@ export function proposeAllocation({ model, rooms, employeeIds, mode }: Allocatio
           (unknown ? 0 : a.count - b.count) ||
           a.slot.member.userId.localeCompare(b.slot.member.userId),
       );
+      if (strictCapacity && candidates[0].exceeds === 1) {
+        // Candidates sort exceeding people last, so the first one exceeding means everybody would.
+        overCapacity.push(entry.room.roomId);
+        continue;
+      }
       best = candidates[0].slot;
     }
     best.rooms.push(entry);
@@ -165,6 +179,7 @@ export function proposeAllocation({ model, rooms, employeeIds, mode }: Allocatio
     unresolved,
     unallocated: [],
     missingEstimates: rooms.filter((entry) => entry.estimate === null).length,
+    ...(strictCapacity ? { overCapacity } : {}),
   };
 }
 

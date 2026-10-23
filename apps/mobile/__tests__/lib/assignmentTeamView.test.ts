@@ -105,6 +105,20 @@ describe("a staff card", () => {
     expect(card.notes[0]).toMatchObject({ key: "shift_ended_with_open_rooms", tone: "warn", text: "Shift ended · 2 rooms still open" });
   });
 
+  it("says how many rooms are unstarted and how many are already being cleaned when both are open", () => {
+    const model = assignmentsOf({
+      raw: [owned("101", "DIRTY", "hk-1"), owned("102", "DIRTY", "hk-1"), owned("103", "IN_PROGRESS", "hk-1")],
+      roster: rosterOf([rosterRow("hk-1", "ended")]),
+    });
+    const card = buildTeamCard(member(model, "hk-1"), t);
+    expect(card.notes[0]).toMatchObject({ key: "shift_ended_with_open_rooms", text: "Shift ended · 2 unstarted · 1 in progress" });
+  });
+
+  it("keeps the plain wording when nothing is in progress", () => {
+    const model = assignmentsOf({ raw: [owned("101", "DIRTY", "hk-1")], roster: rosterOf([rosterRow("hk-1", "ended")]) });
+    expect(buildTeamCard(member(model, "hk-1"), t).notes[0]?.text).toBe("Shift ended · 1 room still open");
+  });
+
   it("a person known only from a room assignment gets a safe fallback name — their rooms are not dropped", () => {
     const model = assignmentsOf({ raw: [owned("101", "DIRTY", "ghost")] });
     const ghost = member(model, "ghost");

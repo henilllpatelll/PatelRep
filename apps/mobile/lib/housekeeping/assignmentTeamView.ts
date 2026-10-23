@@ -136,10 +136,17 @@ export interface TeamNote {
 function notesOf(member: AssignmentTeamMember, t: Translate): TeamNote[] {
   const notes: TeamNote[] = [];
   const open = member.load.minutes.remainingRooms;
+  const started = member.load.minutes.inProgress;
+  const unstarted = Math.max(0, open - started);
   const capacity = member.load.capacity;
+  // Rooms already being cleaned stay with the person, so when both kinds are open the note says how many can still move.
+  const mixed = started > 0 && unstarted > 0;
   for (const concern of member.concerns as readonly StaffConcern[]) {
-    if (concern === "shift_ended_with_open_rooms") notes.push({ key: concern, tone: "warn", text: t("assignments.v2.team.note.shiftEndedOpen", { count: open }) });
-    else if (concern === "not_clocked_in_with_open_rooms") notes.push({ key: concern, tone: "warn", text: t("assignments.v2.team.note.notClockedInOpen", { count: open }) });
+    if (concern === "shift_ended_with_open_rooms") {
+      notes.push({ key: concern, tone: "warn", text: mixed ? t("assignments.v2.team.note.shiftEndedMixed", { unstarted, inProgress: started }) : t("assignments.v2.team.note.shiftEndedOpen", { count: open }) });
+    } else if (concern === "not_clocked_in_with_open_rooms") {
+      notes.push({ key: concern, tone: "warn", text: mixed ? t("assignments.v2.team.note.notClockedInMixed", { unstarted, inProgress: started }) : t("assignments.v2.team.note.notClockedInOpen", { count: open }) });
+    }
   }
   const { warnings } = member.load;
   // With a reliable percentage the capacity line already says "Over planned capacity"; this covers the lower-bound case.

@@ -45,7 +45,8 @@ export const MAX_ASSIGNMENTS_PER_REQUEST = 200;
 
 /* ─── Changes and the draft ───────────────────────────────────────────────── */
 
-export type PlanSource = "single" | "bulk" | "smart_balance" | "ai_editor";
+/** `midshift` is a supervisor-directed recovery of a person's unstarted work (never AI-generated: it publishes without the AI flag). */
+export type PlanSource = "single" | "bulk" | "smart_balance" | "ai_editor" | "midshift";
 export type ChangeKind = "assign" | "reassign" | "remove";
 
 export interface PlannedChange {

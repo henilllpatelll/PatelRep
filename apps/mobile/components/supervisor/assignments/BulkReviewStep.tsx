@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { minutesLine } from "@/lib/housekeeping/assignmentBulkView";
 import { ackKey, type EmployeeReview, type ReviewItem, type ReviewValidation } from "@/lib/housekeeping/assignmentDraftReview";
 import { ackText, attendanceLabel, minutesText, missingText } from "@/lib/housekeeping/assignmentFlowText";
+import { noteText } from "@/lib/housekeeping/assignmentMidshiftText";
 import type { BulkAssignmentController } from "@/lib/housekeeping/useBulkAssignment";
+import type { MidshiftNote } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useTheme } from "@/lib/theme/useTheme";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -95,7 +97,7 @@ function EmployeeBlock({ employee, bulk, t }: { employee: EmployeeReview; bulk: 
   );
 }
 
-export function BulkReviewStep({ bulk, t }: { bulk: BulkAssignmentController; t: Translate }) {
+export function BulkReviewStep({ bulk, t, midshiftNote }: { bulk: BulkAssignmentController; t: Translate; midshiftNote?: MidshiftNote | null }) {
   const theme = useTheme();
   const review = bulk.draft.review;
   if (!review) return null;
@@ -120,6 +122,13 @@ export function BulkReviewStep({ bulk, t }: { bulk: BulkAssignmentController; t:
         <Notice icon="information-circle-outline" testID="bulk-review-notpublished">
           {t("assignments.v2.bulk.review.notPublished")}
         </Notice>
+
+        {midshiftNote ? (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="bulk-review-midshift">
+            <Body strong>{noteText(midshiftNote, t).title}</Body>
+            {noteText(midshiftNote, t).reason ? <Body tone="secondary">{noteText(midshiftNote, t).reason}</Body> : null}
+          </View>
+        ) : null}
 
         {rebase && (rebase.rebased.length > 0 || rebase.dropped.length > 0) ? (
           <Notice tone="alert" icon="refresh-outline" live testID="bulk-review-rebased">

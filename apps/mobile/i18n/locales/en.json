@@ -4737,7 +4737,9 @@
           "notClockedInOpen_plural": "Not clocked in · {{count}} rooms still open",
           "exceedsShift": "More work than the shift time left",
           "exceedsDay": "More than a full day of estimated work",
-          "onBreak": "Currently on break · new immediate assignments discouraged"
+          "onBreak": "Currently on break · new immediate assignments discouraged",
+          "shiftEndedMixed": "Shift ended · {{unstarted}} unstarted · {{inProgress}} in progress",
+          "notClockedInMixed": "Not clocked in · {{unstarted}} unstarted · {{inProgress}} in progress"
         },
         "floors": "Floors {{floors}}",
         "phase": {
@@ -5180,7 +5182,9 @@
             "employee_unverifiable": "staff list not verified",
             "already_assigned_to_employee": "already with that person",
             "no_longer_eligible": "no longer available",
-            "over_limit": "past the 150-room limit"
+            "over_limit": "past the 150-room limit",
+            "insufficient_capacity": "No one can take it within current capacity limits.",
+            "no_eligible_staff": "No verified eligible housekeeper is available for it."
           },
           "validationHeading": "Validation",
           "validation": {
@@ -5663,6 +5667,190 @@
           "movedFrom": "Reassigned from {{name}}.",
           "edited": "You chose this assignment."
         }
+      },
+      "midshift": {
+        "title": "Reassign {{name}}'s work",
+        "titleUnnamed": "Reassign this housekeeper's work",
+        "subtitle": "{{count}} assigned room",
+        "subtitle_plural": "{{count}} assigned rooms",
+        "close": "Close",
+        "back": "Back",
+        "stepOf": "Step {{step}} of {{total}}",
+        "steps": {
+          "select": "Rooms",
+          "destination": "Who",
+          "review": "Review"
+        },
+        "closedScope": "Reassign closed because the hotel or the day changed. Nothing was changed.",
+        "closedGone": "This housekeeper is no longer on the verified board. Nothing was changed.",
+        "tooMany": "One publication can carry at most {{max}} rooms. Remove some changes first.",
+        "nothingAdded": "None of these rooms could be added. Refresh and try again.",
+        "keptYours": "Your existing changes were kept. Nothing new was added.",
+        "added": "{{count}} change added to your unpublished plan.",
+        "added_plural": "{{count}} changes added to your unpublished plan.",
+        "paused": {
+          "offline": "Redistribution is unavailable until current room and staff information can be verified.",
+          "not_live": "Changes are paused until the board is verified again."
+        },
+        "blocked": {
+          "stale": "Something changed. Refresh the plan before continuing.",
+          "nothing_selected": "Select at least one room to move.",
+          "no_destination": "Choose who takes the work.",
+          "nothing_placeable": "None of the selected rooms can be placed right now."
+        },
+        "action": "Reassign remaining work",
+        "actionHint": "Moves unstarted rooms to other housekeepers. Nothing changes until you review and publish.",
+        "viewRooms": "View assigned rooms",
+        "drawer": {
+          "movable": "{{count}} room can move · {{value}}",
+          "movable_plural": "{{count}} rooms can move · {{value}}",
+          "staying": "{{count}} room stays with {{name}}: {{detail}}",
+          "staying_plural": "{{count}} rooms stay with {{name}}: {{detail}}",
+          "held": "{{count}} held-back room needs its own decision",
+          "held_plural": "{{count}} held-back rooms need their own decision"
+        },
+        "counts": {
+          "completed": "{{count}} completed",
+          "inProgress": "{{count}} in progress"
+        },
+        "unavailable": {
+          "board_unavailable": "Rooms and staff can't be verified right now.",
+          "nothing_assigned": "{{name}} has no assigned rooms to move.",
+          "all_held": "{{name}}'s unstarted rooms are held back (do not disturb, declined service or similar), so none can move here.",
+          "nothing_unstarted": "There is no unstarted work available to redistribute."
+        },
+        "attention": {
+          "shift_ended": "{{name}} has unfinished assigned work after the recorded shift ended.",
+          "not_clocked_in": "{{name}} is not clocked in and has unfinished assigned work.",
+          "overloaded": "{{name}} has more assigned work than the verified capacity allows."
+        },
+        "select": {
+          "currentWork": "Current work",
+          "stats": "{{completed}} completed · {{inProgress}} in progress · {{notStarted}} not started",
+          "movableHeading": "Select work to move",
+          "protectedHeading": "Stays with {{name}}",
+          "selectAll": "Select all that can move",
+          "clearAll": "Clear selection",
+          "summary": "{{count}} selected · {{value}}",
+          "summary_plural": "{{count}} selected · {{value}}",
+          "none": "No rooms selected yet.",
+          "invalid": "{{count}} selected room can no longer move and was left out.",
+          "invalid_plural": "{{count}} selected rooms can no longer move and were left out.",
+          "noMovable": "No room can move right now.",
+          "roomHint": "Double tap to select or clear this room",
+          "openBoard": "Open Room Board",
+          "reasonHeading": "Why are you moving this work? (optional)",
+          "reasonNote": "This only describes your plan. It does not change attendance, clock anyone out or record an absence.",
+          "next": "Choose who takes it"
+        },
+        "eligibleTag": "Can move",
+        "protectedTag": "Protected",
+        "reason": {
+          "left_early": "Left early",
+          "unavailable": "Unavailable",
+          "workload_help": "Workload help",
+          "urgent_coverage": "Urgent coverage",
+          "supervisor_adjustment": "Supervisor adjustment"
+        },
+        "block": {
+          "dnd": "Do not disturb",
+          "service_declined": "Service declined",
+          "return_later": "Return later",
+          "occupancy_discrepancy": "Occupancy discrepancy"
+        },
+        "protected": {
+          "in_progress": "Cleaning has already started. Verify the room's current status before transferring responsibility.",
+          "awaiting_inspection": "Finished and waiting for inspection.",
+          "guest_ready": "Finished and inspected.",
+          "held": "Held back: {{blocks}}. Open the room to decide about it.",
+          "unavailable": "Out of service.",
+          "unknown": "Status not recognized, so it can't be moved here."
+        },
+        "destination": {
+          "title": "Who takes the work?",
+          "movingLine": "{{count}} room · {{value}}",
+          "movingLine_plural": "{{count}} rooms · {{value}}",
+          "mode": {
+            "team": "Available team",
+            "teamHint": "Spread across housekeepers verified on shift, balancing their current workload.",
+            "person": "A specific housekeeper",
+            "personHint": "Choose one housekeeper to take all of it."
+          },
+          "teamMembers": "Verified on shift: {{names}}",
+          "teamNone": "No verified eligible housekeepers are currently available.",
+          "teamNoneBody": "Only people verified on shift count as available. You can choose a specific housekeeper, change the rooms, or leave the work where it is for now.",
+          "chooseSpecific": "Choose a specific housekeeper",
+          "adjustRooms": "Adjust selected rooms",
+          "keepAssigned": "Keep with {{name}} for now",
+          "keepNote": "Nothing moves. The rooms stay assigned to {{name}} ({{attendance}}) until you resolve staffing.",
+          "pickHint": "Nobody is pre-selected. Attendance comes only from the verified shift roster.",
+          "noStaff": "No housekeepers are available to choose from.",
+          "shiftLeft": "{{minutes}} min of scheduled shift left",
+          "confirmLater": "You'll be asked to confirm their attendance at the review.",
+          "next": "Review redistribution"
+        },
+        "review": {
+          "title": "Review redistribution",
+          "notPublished": "Nothing has changed yet. Adding to the draft only stages these proposed moves; you review and publish them next.",
+          "sourceHeading": "Source",
+          "destinationHeading": "New allocation",
+          "before": "Before: {{value}}",
+          "after": "After: {{value}}",
+          "nothingLeft": "nothing left",
+          "moving": "{{count}} room proposed to move",
+          "moving_plural": "{{count}} rooms proposed to move",
+          "staysWith": "{{count}} room stays with {{name}}",
+          "staysWith_plural": "{{count}} rooms stay with {{name}}",
+          "reasonLine": "Reason: {{reason}}",
+          "leftOutHeading": "Not moved",
+          "leftOutLine": "Room {{room}}: {{reason}}",
+          "partial": "Some selected rooms could not be allocated within current capacity limits.",
+          "noneMoved": "None of the selected rooms could be placed.",
+          "missing": "Workload totals are incomplete because some cleaning estimates are unavailable.",
+          "addToDraft": "Add changes to draft",
+          "edit": "Edit allocation",
+          "doneEditing": "Done editing",
+          "editSelection": "Change selected rooms",
+          "move": "Move",
+          "moveA11y": "Move room {{room}} to another housekeeper",
+          "takeOut": "Take out",
+          "takeOutA11y": "Take room {{room}} out of this plan",
+          "moveTitle": "Move room {{room}} to",
+          "cancelMove": "Cancel"
+        },
+        "changed": {
+          "title": "The plan changed",
+          "room": {
+            "reassigned": "Room {{room}} was reassigned. Refresh the plan before continuing.",
+            "started": "Room {{room}} is now being cleaned and can no longer be reassigned through this workflow.",
+            "completed": "Room {{room}} has been finished.",
+            "held": "Room {{room}} now needs its own decision (it was held back).",
+            "gone": "A selected room is no longer on the board.",
+            "other": "Room {{room}} changed."
+          },
+          "destination": "{{name}}'s availability changed: {{from}} → {{to}}.",
+          "refresh": "Refresh and review plan"
+        },
+        "conflict": {
+          "title": "Your unpublished plan needs review",
+          "body": "{{count}} of these rooms already has a change in your unpublished assignment plan.",
+          "body_plural": "{{count}} of these rooms already have changes in your unpublished assignment plan.",
+          "replace": "Replace those changes",
+          "replaceHint": "This plan's moves overwrite them. Your other changes stay.",
+          "keep": "Keep my existing changes",
+          "keepHint": "Only the other rooms are added.",
+          "cancel": "Go back"
+        },
+        "note": {
+          "title": "Midshift redistribution · {{count}} room from {{names}}",
+          "title_plural": "Midshift redistribution · {{count}} rooms from {{names}}",
+          "reason": "Reason: {{reason}}"
+        },
+        "leftOut": {
+          "insufficient_capacity": "No one can take it within current capacity limits.",
+          "no_eligible_staff": "No verified eligible housekeeper is available for it."
+        },
+        "attentionTitle": "Attention"
       }
     }
   },

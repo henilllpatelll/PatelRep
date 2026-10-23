@@ -9,6 +9,7 @@ import { CommittedView, PublishingView, RejectedView, UnknownView } from "@/comp
 import { BulkReviewStep } from "@/components/supervisor/assignments/BulkReviewStep";
 import { Button } from "@/components/ui/Button";
 import type { BulkAssignmentController } from "@/lib/housekeeping/useBulkAssignment";
+import type { MidshiftNote } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useTheme } from "@/lib/theme/useTheme";
 
 /* ─── The bulk-assignment sheet ─────────────────────────────────────────────
@@ -20,7 +21,7 @@ import { useTheme } from "@/lib/theme/useTheme";
    would be hidden). An unclear outcome can be closed — the draft indicator stays on the Rooms view — and a result
    is left through its own buttons (Android Back counts as "Return to Rooms"). */
 
-export function BulkAssignHost({ bulk, onViewTeam }: { bulk: BulkAssignmentController; onViewTeam: () => void }) {
+export function BulkAssignHost({ bulk, onViewTeam, midshiftNote }: { bulk: BulkAssignmentController; onViewTeam: () => void; midshiftNote?: MidshiftNote | null }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -57,7 +58,7 @@ export function BulkAssignHost({ bulk, onViewTeam }: { bulk: BulkAssignmentContr
   else if (state.kind === "committed") body = <CommittedView bulk={bulk} state={state} onViewTeam={onViewTeam} t={t} />;
   else if (state.kind === "rejected") body = <RejectedView bulk={bulk} state={state} t={t} />;
   else if (state.kind === "unknown") body = <UnknownView bulk={bulk} state={state} t={t} />;
-  else if (bulk.draft.review) body = <BulkReviewStep bulk={bulk} t={t} />;
+  else if (bulk.draft.review) body = <BulkReviewStep bulk={bulk} t={t} midshiftNote={midshiftNote ?? null} />;
   else {
     body = (
       <View style={styles.discard} testID="bulk-review-unavailable">

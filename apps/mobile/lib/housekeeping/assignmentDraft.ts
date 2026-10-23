@@ -179,5 +179,5 @@ export function rebaseDraft(draft: AssignmentDraft, model: AssignmentsModel, sco
 export interface DraftExclusion {
   roomId: string;
   roomNumber: string;
-  reason: PlanRejection["reason"] | "no_longer_eligible" | "over_limit";
+  reason: PlanRejection["reason"] | "no_longer_eligible" | "over_limit" | "insufficient_capacity" | "no_eligible_staff";
 }

@@ -883,3 +883,12 @@
 - apps/mobile/components/supervisor/board/{BoardSearchBar,BoardFilterSheet}.tsx — BoardSearchBar gained optional placeholder/label/filterLabel/testIDPrefix (defaults unchanged); BoardFilterSheet now exports `Section`/`Choice`
 - apps/mobile/i18n/locales/{en,es}.json — `assignments.v2.*` (header, status, metric, tab, search, quick, section, filters, priority, card, blocker, sheet, empty, state, team)
 - apps/mobile/__tests__/{lib/assignmentRoomsView,lib/assignmentsV2I18n,screens/AssignmentsRooms}.test.ts(x) — Phase 2 tests; screens/AssignmentsFeedback.test.tsx removed (legacy screen replaced; its truthful-feedback cases live in AssignmentsRooms + RoomAssignmentFlow)
+
+## Supervisor Assignments V2 - Phase 7 (midshift recovery)
+- apps/mobile/lib/housekeeping/assignmentMidshift.ts - pure: `classifyRoom`/`buildMidshiftSource` (movable vs protected), `recoveryAction` (drawer availability + why not), selection (`defaultSelection`, `selectAllMovable`, `toggleRoom`, `summarizeSelection`), `buildDestinations`/`availableTeamIds` (verified on-shift only), `planMidshift` (allocator + scratch draft + `buildDraftReview`), `takeSeen`/`diffSeen` (what changed under the sheet), `draftOverlap`, `midshiftChangesIn`
+- apps/mobile/lib/housekeeping/assignmentMidshiftText.ts - words + `buildRecoveryPanel` (drawer model), `noteText` (draft-review banner), `protectedWhy`
+- apps/mobile/lib/housekeeping/useMidshiftRecovery.ts - controller (select -> destination -> preview -> conflict), stale/pause gating, scope/day close, `addToDraft(replace|keep)` into the shared draft, `onClosed` to return to the drawer
+- apps/mobile/components/supervisor/assignments/Midshift{Host,Parts,SelectStep,DestinationStep,ReviewStep}.tsx - ONE Modal sheet; StaffDetailSheet gained `recovery`/`onReassignRemaining`; BulkReviewStep/BulkAssignHost gained optional `midshiftNote`
+- apps/mobile/lib/housekeeping/{assignmentAllocator,assignmentPlan,assignmentDraft,assignmentTeamView}.ts - `strictCapacity`, `PlanSource "midshift"`, `DraftExclusion` reasons, "Shift ended - N unstarted - M in progress" card note
+- apps/mobile/i18n/locales/{en,es}.json - `assignments.v2.midshift.*` (+ bulk.review.exclusionReason, team.note mixed)
+- apps/mobile/__tests__/{lib/assignmentMidshift,lib/useMidshiftRecovery,lib/assignmentsMidshiftI18n,screens/AssignmentsMidshift}.test.ts(x), helpers/midshiftFixtures.ts; apps/api/tests/integration/test_assignment_batch_midshift.py (real DB, atomic recovery scenarios)

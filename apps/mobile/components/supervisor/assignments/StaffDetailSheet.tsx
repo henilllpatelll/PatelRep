@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -5,7 +6,9 @@ import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
+import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { AttendanceChip, CapacityMeter, NoteLine } from "@/components/supervisor/assignments/TeamParts";
+import type { RecoveryPanel } from "@/lib/housekeeping/assignmentMidshiftText";
 import type { StaffDetailModel, StaffDetailRoom, StaffRoomPhase } from "@/lib/housekeeping/assignmentTeamView";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -33,6 +36,8 @@ export function StaffDetailSheet({
   onOpenRoom,
   onAssignMore,
   assignPaused = false,
+  recovery,
+  onReassignRemaining,
 }: {
   detail: StaffDetailModel;
   t: Translate;
@@ -42,8 +47,13 @@ export function StaffDetailSheet({
   onAssignMore?: () => void;
   /** Changes are paused (offline / board not live): the button is shown but disabled, and says why. */
   assignPaused?: boolean;
+  /** Midshift recovery for this person: the verified concern, what can move and what stays, and why it may be unavailable. */
+  recovery?: RecoveryPanel | null;
+  /** Starts "Reassign remaining work". Shown with `recovery`; enabled only when `recovery.enabled`. */
+  onReassignRemaining?: () => void;
 }) {
   const theme = useTheme();
+  const listRef = useRef<FlatList<StaffDetailRoom>>(null);
   const insets = useSafeAreaInsets();
   const phaseColor = (phase: StaffRoomPhase) => (phase === "completed" ? theme.status.ready : phase === "in_progress" ? theme.status.pickup : theme.textSecondary);
 
@@ -95,6 +105,41 @@ export function StaffDetailSheet({
           {detail.notes.map((note) => (
             <NoteLine key={note.key} note={note} testID={`team-detail-note-${note.key}`} />
           ))}
+        </View>
+      ) : null}
+
+      {recovery && onReassignRemaining ? (
+        <View style={styles.recovery} testID="team-detail-recovery">
+          {recovery.attention ? (
+            <>
+              <SectionLabel>{t("assignments.v2.midshift.attentionTitle")}</SectionLabel>
+              <Notice icon="alert-circle-outline" testID="team-detail-recovery-attention">
+                {recovery.attention}
+              </Notice>
+            </>
+          ) : null}
+          {recovery.movable ? <Body strong testID="team-detail-recovery-movable">{recovery.movable}</Body> : null}
+          {recovery.staying ? <Body tone="secondary" testID="team-detail-recovery-staying">{recovery.staying}</Body> : null}
+          {recovery.held ? <Body tone="secondary" testID="team-detail-recovery-held">{recovery.held}</Body> : null}
+          <Button
+            label={t("assignments.v2.midshift.action")}
+            icon="swap-horizontal-outline"
+            variant={recovery.prominent ? "primary" : "secondary"}
+            onPress={onReassignRemaining}
+            disabled={!recovery.enabled}
+            testID="team-detail-reassign-remaining"
+            accessibilityLabel={t("assignments.v2.midshift.action")}
+          />
+          {recovery.disabledReason ? <Body tone="muted" testID="team-detail-reassign-disabled">{recovery.disabledReason}</Body> : <Body tone="muted">{t("assignments.v2.midshift.actionHint")}</Body>}
+          {detail.hasRooms ? (
+            <Button
+              label={t("assignments.v2.midshift.viewRooms")}
+              icon="list-outline"
+              variant="ghost"
+              onPress={() => listRef.current?.scrollToIndex({ index: 0, animated: true })}
+              testID="team-detail-view-rooms"
+            />
+          ) : null}
         </View>
       ) : null}
 
@@ -161,6 +206,7 @@ export function StaffDetailSheet({
             </Pressable>
           </View>
           <FlatList
+            ref={listRef}
             data={detail.rooms}
             keyExtractor={(room) => room.roomId}
             renderItem={renderRoom}
@@ -209,6 +255,7 @@ const styles = StyleSheet.create({
   meter: { paddingVertical: 10 },
   notes: { gap: 6 },
   assignMore: { gap: 4 },
+  recovery: { gap: 8 },
   room: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 14, paddingVertical: 8 },
   roomNumber: { width: 56, fontFamily: monoFont, fontSize: 20, fontWeight: "800" },
   roomBody: { flex: 1, minWidth: 0, gap: 2 },

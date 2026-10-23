@@ -11,6 +11,7 @@ import { BulkSelectionBar } from "@/components/supervisor/assignments/BulkSelect
 import { DraftIndicator } from "@/components/supervisor/assignments/DraftIndicator";
 import { SelectableRoomRow } from "@/components/supervisor/assignments/SelectableRoomRow";
 import { SmartBalanceEntryCard } from "@/components/supervisor/assignments/SmartBalanceEntryCard";
+import { MidshiftHost } from "@/components/supervisor/assignments/MidshiftHost";
 import { SmartBalanceHost } from "@/components/supervisor/assignments/SmartBalanceHost";
 import { AssignmentFilterSheet } from "@/components/supervisor/assignments/AssignmentFilterSheet";
 import { AssignmentRoomCard } from "@/components/supervisor/assignments/AssignmentRoomCard";
@@ -26,6 +27,7 @@ import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
 import { selectableIn } from "@/lib/housekeeping/assignmentBulk";
 import { buildSelectionRow, proposedLoadLine } from "@/lib/housekeeping/assignmentBulkView";
+import { buildRecoveryPanel } from "@/lib/housekeeping/assignmentMidshiftText";
 import { listAssignableRooms } from "@/lib/housekeeping/assignmentPicker";
 import { isQuickActive, runAssignmentQuery } from "@/lib/housekeeping/assignmentQuery";
 import {
@@ -47,6 +49,7 @@ import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
 import { useAssignments } from "@/lib/housekeeping/useAssignments";
 import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
 import { useBulkAssignment } from "@/lib/housekeeping/useBulkAssignment";
+import { useMidshiftRecovery, type MidshiftClosed } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useSmartBalance } from "@/lib/housekeeping/useSmartBalance";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -107,6 +110,9 @@ export default function AssignmentsScreen() {
   // "Assign more rooms" from a person's drawer: the person whose room chooser is open.
   const [chooserFor, setChooserFor] = useState<string | null>(null);
   const [pulling, setPulling] = useState(false);
+  // "Reassign remaining work" from a person's drawer: the sheet gives way to the redistribution flow and, if the supervisor
+  // simply leaves it, returns to that person. Leaving for the Room Board (or adding to the draft) does not restore it.
+  const skipReturnRef = useRef(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [roomGone, setRoomGone] = useState(false);
   // The header's age ("Updated 20 seconds ago") is read from the real clock at render; this tick only re-renders it.
@@ -123,6 +129,17 @@ export default function AssignmentsScreen() {
   assignmentRef.current = assignment;
   const gateRef = useRef(gate);
   gateRef.current = gate;
+
+  // Midshift recovery: one person's unstarted rooms move to others. It reads the same model, stages PROPOSED changes into the
+  // same unpublished draft (source "midshift") and publishes through the same reviewed, atomic path as everything else.
+  const onMidshiftClosed = useCallback((userId: string, outcome: MidshiftClosed) => {
+    const skip = skipReturnRef.current;
+    skipReturnRef.current = false;
+    if (outcome === "dismissed" && !skip) setSelectedStaffId(userId);
+  }, []);
+  const midshift = useMidshiftRecovery({ model, gate, isOnline, scopeKey, draft: bulk.draft, showReview: bulk.showReview, refresh, t, toast, onClosed: onMidshiftClosed });
+  const midshiftRef = useRef(midshift);
+  midshiftRef.current = midshift;
 
   // Android Back with unpublished work (or an unclear publication) asks first. (The draft is kept in memory while the
   // app lives - this tab stays mounted when the supervisor goes elsewhere - so only an explicit Back can lose it.)
@@ -217,6 +234,23 @@ export default function AssignmentsScreen() {
     [selectedMember, roomEntries, t, language, model.timeZone],
   );
   const onOpenStaff = useCallback((userId: string) => setSelectedStaffId(userId), []);
+  const recoveryPanel = useMemo(
+    () => (selectedMember ? buildRecoveryPanel(model, selectedMember.userId, midshift.paused, t) : null),
+    [model, selectedMember, midshift.paused, t],
+  );
+  // One modal at a time: the drawer gives way to the redistribution sheet.
+  const onReassignRemaining = useCallback(() => {
+    const userId = selectedStaffId;
+    if (!userId) return;
+    setSelectedStaffId(null);
+    midshiftRef.current.open(userId);
+  }, [selectedStaffId]);
+  // A started room is verified on the Room Board, which owns that workflow; going there is not "going back".
+  const openMidshiftBoard = useCallback((roomId: string) => {
+    skipReturnRef.current = true;
+    midshiftRef.current.close();
+    router.push({ pathname: "/(app)/room-board", params: { roomId } } as never);
+  }, []);
   // One modal at a time: the drawer gives way to the chooser, and Back from the chooser returns to the drawer.
   const onAssignMore = useCallback(() => {
     setChooserFor(selectedStaffId);
@@ -550,7 +584,8 @@ export default function AssignmentsScreen() {
             : {})}
         />
       ) : null}
-      <BulkAssignHost bulk={bulk} onViewTeam={viewTeam} />
+      <BulkAssignHost bulk={bulk} onViewTeam={viewTeam} midshiftNote={midshift.note} />
+      <MidshiftHost midshift={midshift} onOpenBoard={openMidshiftBoard} />
       <SmartBalanceHost
         smart={smart}
         model={model}
@@ -586,6 +621,7 @@ export default function AssignmentsScreen() {
           onOpenRoom={onOpenStaffRoom}
           {...(selectedMember?.listed ? { onAssignMore } : {})}
           assignPaused={!gate.allowed || !isOnline}
+          {...(recoveryPanel ? { recovery: recoveryPanel, onReassignRemaining } : {})}
         />
       ) : null}
       {chooserMember ? (

@@ -163,3 +163,38 @@ describe("across the team", () => {
     expect(proposal.shares.map((share) => share.roomIds.length)).toEqual([2, 2]);
   });
 });
+
+describe("strict capacity (used by midshift recovery)", () => {
+  const busy = () => {
+    // hk-2 already holds 18 of 16 credits (the edge of the +2 band): one more departure clean (3) is over. hk-3 is free.
+    const loaded = ["401", "402", "403", "404", "405", "406"].map((number) => room(number, "DIRTY", { owner: "hk-2", cleanType: "DEP" }));
+    return assignmentsOf({ raw: [...loaded, room("101", "DIRTY"), room("102", "DIRTY")], roster: everyoneOnShift() });
+  };
+
+  it("leaves a room out when EVERY chosen person would exceed a real limit, and says so", () => {
+    const model = assignmentsOf({
+      raw: [...["401", "402", "403", "404", "405", "406"].map((number) => room(number, "DIRTY", { owner: "hk-2", cleanType: "DEP" })), room("101", "DIRTY")],
+      roster: everyoneOnShift(),
+    });
+    const strict = proposeAllocation({ model, rooms: selectableIn(model.rooms ?? []), employeeIds: ["hk-2"], mode: "distribute", strictCapacity: true });
+    expect(strict.assignments).toEqual({});
+    expect(strict.overCapacity).toEqual(["room-101"]);
+  });
+
+  it("without the option the Phase 5 behaviour is unchanged: the room is placed and the review asks for an acknowledgement", () => {
+    const model = assignmentsOf({
+      raw: [...["401", "402", "403", "404", "405", "406"].map((number) => room(number, "DIRTY", { owner: "hk-2", cleanType: "DEP" })), room("101", "DIRTY")],
+      roster: everyoneOnShift(),
+    });
+    const loose = proposeAllocation({ model, rooms: selectableIn(model.rooms ?? []), employeeIds: ["hk-2"], mode: "distribute" });
+    expect(loose.assignments).toEqual({ "room-101": "hk-2" });
+    expect(loose).not.toHaveProperty("overCapacity");
+  });
+
+  it("still places the room on someone who has room when only some people are full", () => {
+    const model = busy();
+    const proposal = proposeAllocation({ model, rooms: selectableIn(model.rooms ?? []), employeeIds: ["hk-2", "hk-3"], mode: "distribute", strictCapacity: true });
+    expect(Object.values(proposal.assignments)).toEqual(["hk-3", "hk-3"]);
+    expect(proposal.overCapacity).toEqual([]);
+  });
+});
