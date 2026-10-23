@@ -338,7 +338,16 @@ jobs:
       - name: Deploy web from exact checkout
         run: |
           npx --yes @railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
-          npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root
+          # `railway up --ci` exits non-zero when Railway's build-log stream drops ("Failed to retrieve build log")
+          # even though the platform build is healthy; retry the exact same upload a bounded number of times.
+          for attempt in 1 2 3; do
+            if npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root; then
+              exit 0
+            fi
+            echo "railway up attempt $attempt failed" >&2
+            sleep 15
+          done
+          exit 1
         env:
           RAILWAY_API_TOKEN: ${{ secrets.STAGING_RAILWAY_API_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}

@@ -159,3 +159,11 @@ test('fixture and browser dependency installs retry transient npm ci failures (E
     assert.match(step, /exit 1/)
   }
 })
+
+test('web deploy retries a transient railway up build-log stream failure', () => {
+  const start = workflow.indexOf('name: Deploy web from exact checkout')
+  const step = workflow.slice(start, workflow.indexOf('env:', start))
+  assert.match(step, /for attempt in 1 2 3/)
+  assert.match(step, /if npx --yes @railway\/cli@4\.30\.0 up apps\/web --ci --no-gitignore --path-as-root; then\n\s*exit 0/)
+  assert.match(step, /exit 1/)
+})
