@@ -196,7 +196,16 @@ jobs:
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Install fixture dependencies
-        run: cd apps/web && npm ci
+        run: |
+          # esbuild's postinstall can fail with a transient ETXTBSY on hosted runners; retry the install.
+          for attempt in 1 2 3; do
+            if (cd apps/web && npm ci); then
+              exit 0
+            fi
+            echo "npm ci attempt $attempt failed" >&2
+            sleep 5
+          done
+          exit 1
       - name: Seed deterministic synthetic hotel fixture
         run: cd apps/web && npm run seed:staging-fixture
         env:
@@ -356,7 +365,17 @@ jobs:
         with:
           node-version: '22'
       - name: Install browser test dependencies
-        run: cd apps/web && npm ci && npx playwright install --with-deps chromium
+        run: |
+          # esbuild's postinstall can fail with a transient ETXTBSY on hosted runners; retry the install.
+          for attempt in 1 2 3; do
+            if (cd apps/web && npm ci); then
+              break
+            fi
+            echo "npm ci attempt $attempt failed" >&2
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 5
+          done
+          cd apps/web && npx playwright install --with-deps chromium
       - name: Verify deployed web/API/database release identity
         run: cd apps/web && npm run check:staging-health
         env:

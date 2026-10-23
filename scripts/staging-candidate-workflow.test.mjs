@@ -148,3 +148,14 @@ test('staging API verification keeps retrying while the exact candidate rolls ou
   assert.match(step, /r\.release_sha!==process\.env\.CANDIDATE_SHA/)
   assert.match(step, /sleep 10/)
 })
+
+test('fixture and browser dependency installs retry transient npm ci failures (ETXTBSY)', () => {
+  for (const name of ['Install fixture dependencies', 'Install browser test dependencies']) {
+    const start = workflow.indexOf('name: ' + name)
+    assert.notEqual(start, -1, name)
+    const step = workflow.slice(start, workflow.indexOf('\n      - ', start + 1))
+    assert.match(step, /for attempt in 1 2 3/)
+    assert.match(step, /npm ci/)
+    assert.match(step, /exit 1/)
+  }
+})
