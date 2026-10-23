@@ -4859,7 +4859,7 @@
           "capacityChange": "Capacidad {{from}}% → {{to}}%"
         },
         "warning": {
-          "overCapacity": "Superaría su capacidad de trabajo con esta habitación",
+          "overCapacity": "Superaría su capacidad de trabajo con este cambio",
           "overShift": "Más trabajo del que cabe en su turno programado",
           "fullDay": "Más de un día completo de trabajo"
         },
@@ -5095,7 +5095,7 @@
           "title": "Asignar {{count}} habitación",
           "title_plural": "Asignar {{count}} habitaciones",
           "selectedWork": "Trabajo seleccionado",
-          "estimated": "Total estimado: {{value}}",
+          "estimated": "Total: {{value}}",
           "excluded": "{{count}} habitación seleccionada queda fuera porque ya no está disponible.",
           "excluded_plural": "{{count}} habitaciones seleccionadas quedan fuera porque ya no están disponibles.",
           "how": "¿Cómo se deben asignar?",

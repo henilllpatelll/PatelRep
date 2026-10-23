@@ -4859,7 +4859,7 @@
           "capacityChange": "Capacity {{from}}% → {{to}}%"
         },
         "warning": {
-          "overCapacity": "Over their workload capacity after this room",
+          "overCapacity": "Over their workload capacity after this change",
           "overShift": "More work than their scheduled shift has time for",
           "fullDay": "More than a full day of work"
         },
@@ -5095,7 +5095,7 @@
           "title": "Assign {{count}} room",
           "title_plural": "Assign {{count}} rooms",
           "selectedWork": "Selected work",
-          "estimated": "Estimated total: {{value}}",
+          "estimated": "Total: {{value}}",
           "excluded": "{{count}} selected room is left out because it is no longer available.",
           "excluded_plural": "{{count}} selected rooms are left out because they are no longer available.",
           "how": "How should these be assigned?",

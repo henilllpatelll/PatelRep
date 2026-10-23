@@ -34300,6 +34300,81 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2078",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "test_rbac_matrix_matches_generated_output failed after a 5-line edit to housekeeping.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "RBAC-MATRIX.md records the require_role line number [L####] of every route, so ANY edit that shifts lines in a router makes the committed matrix stale; CI Test / API (smoke) would fail",
+      "fix": "Regenerated with `python apps/api/scripts/generate_rbac_matrix.py` (26 rows changed, identical modulo line numbers). Rule: after touching apps/api/routers/*.py run the generator and the full tests/ run, not just the targeted files. The Release Engineer bot independently pushed a byte-identical repair (7632b967) after Test / API failed on cb2c27b1; the local copy was discarded and the branch fast-forwarded onto it",
+      "tags": [
+        "api",
+        "rbac",
+        "ci",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2079",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Post-commit batch notifications could be garbage-collected before they were sent",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "batch_publish_assignments fired `asyncio.create_task(...)` and kept no reference; the event loop only weakly references tasks",
+      "fix": "Module-level _PENDING_BATCH_PUSHES set holds the task until its done-callback discards it. Unit test test_the_notification_task_is_held_until_it_finishes (mutation-checked). Older single-room pushes still use the bare pattern",
+      "tags": [
+        "api",
+        "asyncio",
+        "notifications",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2080",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "git diff --check: new blank line at EOF",
+      "file": "apps/mobile/components/supervisor/assignments/SmartBalanceDetailStep.tsx",
+      "root_cause": "Trailing blank line left by the Phase 6 commit",
+      "fix": "Trimmed to a single line ending (file is CRLF in the working tree; git stores LF)",
+      "tags": [
+        "mobile",
+        "whitespace",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2081",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Copy defects found in the browser harness: 'Estimated total: 180 min estimated' and 'Over their workload capacity after this room' shown in multi-room screens",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "bulk.allocate.estimated prefixed a value that already ends in 'estimated'; assign.warning.overCapacity said 'this room' but WarningLines is shared by bulk review/edit, midshift and the Smart Balance preview",
+      "fix": "en: 'Total: {{value}}' and '...after this change'; es: 'Total: {{value}}' and 'Superaría su capacidad de trabajo con este cambio'. AssignmentsBulk test expectation updated to the new copy",
+      "tags": [
+        "mobile",
+        "i18n",
+        "copy",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
     }
   ]
 }

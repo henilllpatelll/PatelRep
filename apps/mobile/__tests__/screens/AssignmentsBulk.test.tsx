@@ -272,7 +272,7 @@ describe("allocating the selection", () => {
     fireEvent.press(screen.getByTestId("bulk-assign"));
     expect(text(screen.getByTestId("bulk-allocate-title"))).toBe("Assign 2 rooms");
     expect(text(screen.getByTestId("bulk-allocate-rooms"))).toBe("101, 102");
-    expect(text(screen.getByTestId("bulk-allocate-estimate"))).toBe("Estimated total: 60 min estimated");
+    expect(text(screen.getByTestId("bulk-allocate-estimate"))).toBe("Total: 60 min estimated");
     expect(screen.getByTestId("bulk-candidate-hk-1").props.accessibilityState).toMatchObject({ selected: false });
     expect(screen.getByTestId("bulk-allocate-review").props.accessibilityState.disabled).toBe(true);
     fireEvent.press(screen.getByTestId("bulk-candidate-hk-2"));

@@ -892,3 +892,4 @@
 - apps/mobile/lib/housekeeping/{assignmentAllocator,assignmentPlan,assignmentDraft,assignmentTeamView}.ts - `strictCapacity`, `PlanSource "midshift"`, `DraftExclusion` reasons, "Shift ended - N unstarted - M in progress" card note
 - apps/mobile/i18n/locales/{en,es}.json - `assignments.v2.midshift.*` (+ bulk.review.exclusionReason, team.note mixed)
 - apps/mobile/__tests__/{lib/assignmentMidshift,lib/useMidshiftRecovery,lib/assignmentsMidshiftI18n,screens/AssignmentsMidshift}.test.ts(x), helpers/midshiftFixtures.ts; apps/api/tests/integration/test_assignment_batch_midshift.py (real DB, atomic recovery scenarios)
+- apps/api/tests/integration/test_assignment_batch_phase9_audit.py (Phase 9: reassign-vs-remove races on one room, forged actor of another hotel, per-hotel operation ids, authenticated/anon/PUBLIC privilege + SECURITY INVOKER + pinned search_path checks, idempotency-table privileges; real DB, mutation-checked)
