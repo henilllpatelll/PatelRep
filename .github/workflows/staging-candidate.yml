@@ -270,8 +270,7 @@ jobs:
       - name: Require API health, readiness, staging database, and exact SHA
         run: |
           for attempt in {1..24}; do
-            if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json; then
-              node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'
+            if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json && node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'; then
               exit 0
             fi
             sleep 10
