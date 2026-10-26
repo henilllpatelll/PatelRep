@@ -11,6 +11,7 @@ test('uses a trusted CI completion trigger and never pull_request_target', () =>
   assert.match(workflow, /workflow_run:/)
   assert.match(workflow, /workflows:\s*\[CI\]/)
   assert.doesNotMatch(workflow, /pull_request_target/)
+  assert.doesNotMatch(workflow, /^\s*pull_request:/m, 'staging secrets never run from a PR-supplied workflow definition')
   assert.match(workflow, /head\.repo\.full_name !== context\.repo\.owner \+ '\/' \+ context\.repo\.repo/)
 })
 
@@ -32,12 +33,15 @@ test('serializes candidates and deploys one exact SHA through both services', ()
 test('injects only public candidate identity into the exact staging build artifacts', () => {
   assert.match(workflow, /core\/release_identity\.json/)
   assert.match(workflow, /release-identity\.json/)
-  const apiLink = workflow.indexOf('railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"')
-  const apiUpload = workflow.indexOf('up apps/api --ci --no-gitignore --path-as-root')
-  const webLink = workflow.indexOf('railway/cli@4.30.0 link --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"')
-  const webUpload = workflow.indexOf('up apps/web --ci --no-gitignore --path-as-root')
-  assert.ok(apiLink >= 0 && apiLink < apiUpload, 'API upload must use an explicit staging link')
-  assert.ok(webLink >= 0 && webLink < webUpload, 'web upload must use an explicit staging link')
+  assert.ok(
+    workflow.includes('railway/cli@4.30.0 up apps/api --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"'),
+    'API upload must target the explicit staging project, environment, and service',
+  )
+  assert.ok(
+    workflow.includes('railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"'),
+    'web upload must target the explicit staging project, environment, and service',
+  )
+  assert.doesNotMatch(workflow, /railway\/cli@4\.30\.0 link /, 'a Project Token cannot run `railway link`; every command is explicitly targeted')
   assert.doesNotMatch(workflow, /variables set RELEASE_SHA/)
   assert.doesNotMatch(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA/)
 })
@@ -75,13 +79,14 @@ test('keeps the production migration preflight fail-closed with pipefail', () =>
   assert.doesNotMatch(preflight, /continue-on-error/)
 })
 
-test('uses the staging Environment account token and refuses every production Railway target', () => {
+test('uses the staging Environment Project Token and refuses every production Railway target', () => {
   const apiDeploy = workflow.slice(workflow.indexOf('  deploy-api:'), workflow.indexOf('  deploy-web:'))
   const webDeploy = workflow.slice(workflow.indexOf('  deploy-web:'), workflow.indexOf('  verify-staging:'))
 
   for (const deploy of [apiDeploy, webDeploy]) {
-    assert.match(deploy, /RAILWAY_API_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_API_TOKEN \}\}/)
-    assert.doesNotMatch(deploy, /RAILWAY_TOKEN:/)
+    assert.match(deploy, /RAILWAY_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_PROJECT_TOKEN \}\}/)
+    assert.doesNotMatch(deploy, /RAILWAY_API_TOKEN/)
+    assert.doesNotMatch(deploy, /secrets\.PRODUCTION_/)
     assert.match(deploy, /test "\$STAGING_RAILWAY_ENVIRONMENT" = staging/)
     assert.match(deploy, /test -n "\$STAGING_RAILWAY_PROJECT_ID"/)
     assert.match(deploy, /if \[ -n "\$PRODUCTION_RAILWAY_PROJECT_ID" \]; then/)
@@ -104,10 +109,10 @@ test('collects API runtime diagnostics only after a protected staging readiness 
   )
 
   assert.match(diagnostics, /- name: Collect staging API runtime diagnostics\s+if: failure\(\)/)
-  assert.match(diagnostics, /railway\/cli@4\.30\.0 link --project "\$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "\$STAGING_RAILWAY_API_SERVICE_ID"/)
-  assert.match(diagnostics, /railway\/cli@4\.30\.0 logs --latest --lines 100 --filter "@level:error"/)
-  assert.match(diagnostics, /RAILWAY_API_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_API_TOKEN \}\}/)
-  assert.doesNotMatch(diagnostics, /RAILWAY_TOKEN:/)
+  assert.match(diagnostics, /railway\/cli@4\.30\.0 logs --latest --lines 100 --filter "@level:error" --environment staging --service "\$STAGING_RAILWAY_API_SERVICE_ID"/)
+  assert.doesNotMatch(diagnostics, /railway\/cli@4\.30\.0 link /)
+  assert.match(diagnostics, /RAILWAY_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_PROJECT_TOKEN \}\}/)
+  assert.doesNotMatch(diagnostics, /RAILWAY_API_TOKEN/)
 })
 
 test('guards the remote rebuild, installs psql before drift verification, and proves API/web identity before staging smoke', () => {
@@ -135,4 +140,16 @@ test('web service root directory carries its own Dockerfile Railway config', () 
   assert.match(config, /builder\s*=\s*"DOCKERFILE"/)
   assert.match(config, /dockerfilePath\s*=\s*"Dockerfile"/)
   assert.match(config, /healthcheckPath\s*=\s*"\/login"/)
+})
+
+test('staging uses Project Tokens only; the workflow-wide credential split is intact', () => {
+  assert.doesNotMatch(workflow, /RAILWAY_API_TOKEN|STAGING_RAILWAY_API_TOKEN|secrets\.PRODUCTION_/)
+  assert.equal((workflow.match(/RAILWAY_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_PROJECT_TOKEN \}\}/g) ?? []).length, 3, 'API deploy, web deploy, and diagnostics')
+  assert.equal((workflow.match(/^\s*RAILWAY_TOKEN:/gm) ?? []).length, 3, 'RAILWAY_TOKEN is set only on the three staging Railway steps')
+  // Production keeps the account token and is not touched by this change.
+  for (const wf of [productionRelease, productionRollback]) {
+    assert.match(wf, /RAILWAY_API_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_API_TOKEN \}\}/)
+    assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m)
+    assert.doesNotMatch(wf, /STAGING_RAILWAY/)
+  }
 })
