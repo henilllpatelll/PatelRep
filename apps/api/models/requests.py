@@ -779,6 +779,8 @@ class InspectionResultItem(SanitizedBaseModel):
     template_item_id: Optional[UUID4] = None
     result: Literal["pass", "fail", "na"]
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    # Only meaningful on a failed item (the completion endpoint rejects it elsewhere). Unset = not classified.
+    severity: Optional[Literal["minor", "major"]] = None
 
 
 class SubmitInspectionRequest(SanitizedBaseModel):
@@ -787,6 +789,37 @@ class SubmitInspectionRequest(SanitizedBaseModel):
     overall_result: Literal["passed", "failed", "conditional"]
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     items: List[InspectionResultItem] = Field(default_factory=list, max_length=100)
+
+
+class CompleteInspectionRequest(SubmitInspectionRequest):
+    """The validated completion pathway (`POST /housekeeping/inspections/complete`).
+
+    Every extra field is optional so the web drawer, which predates them, keeps working unchanged.
+    `client_submission_id` becomes the inspection's id (same idempotency pattern as tasks / work orders):
+    a retry of the same submission returns the stored inspection instead of writing a second one.
+    """
+
+    client_submission_id: Optional[UUID4] = None
+    # Opaque digest from GET /inspections/templates; a mismatch means the checklist changed mid-inspection.
+    template_fingerprint: Optional[str] = Field(default=None, min_length=8, max_length=64)
+    # The hotel the person believed they were inspecting for; refused if the signed-in account is now in another.
+    expected_hotel_id: Optional[UUID4] = None
+    # `clean_cycle_id` from the queue row: refused if the room was cleaned again since it was reviewed.
+    expected_clean_cycle_id: Optional[UUID4] = None
+    # The failed inspection the queue row said this re-checks; refused if the room's open correction differs.
+    reinspection_of: Optional[UUID4] = None
+
+
+class ReassignCorrectionRequest(SanitizedBaseModel):
+    """Give an open inspection correction to another person. `expected_assigned_to` is who the screen saw as owner
+    (null = nobody); when sent, a different current owner is a 409 instead of a silent overwrite."""
+
+    assigned_to: UUID4
+    expected_assigned_to: Optional[UUID4] = None
+
+
+class EscalateCorrectionRequest(SanitizedBaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
 
 
 # --- SOP ---

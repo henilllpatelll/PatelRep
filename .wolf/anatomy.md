@@ -716,7 +716,16 @@
 - `components/housekeeping/roomDetail/*.tsx` — Phase 4 Room Detail pieces: header, before/needs-attention/active/submitted/ready/unavailable views, checklist, timer, linen sheet, complete sheet, info sheet, report/more sheet, sticky actions, BottomSheet. (~20k tok)
 - `components/housekeeping/KnockModal.tsx` — knock protocol: per-step acknowledgement, restricted stop notice, cancel, can't-enter hand-off. (~1.5k tok)
 - `supabase/migrations/208_clean_session_linen_counts.sql` — nullable jsonb room_clean_sessions.linen_counts. (~0.2k tok)
-- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist. (~1k tok)
+- `apps/api/services/reclean_corrections.py` — failed-inspection corrections loader + correction-only checklist, plus the supervisor-side lifecycle: ensure_correction_task (one per failed inspection, retry-safe), resolve_correction_task, latest_clean_cycles, load_inspection_detail. (~3k tok)
+- `apps/api/services/inspection_rules.py` — pure inspection rules shared by the completion endpoint and read models: template fingerprint/applicability, validate_answers/validate_photo_links, touch-up vs re-clean, derive_correction_status. Conformance table: apps/api/tests/fixtures/inspection_rules.json. (~3k tok)
+- `apps/api/core/errors.py` — CodedHTTPException: plain-string detail + stable `code`/extras in the body (handler in main.py). (~0.2k tok)
+- `supabase/migrations/219_inspection_workflow_foundation.sql` — additive: severity, allows_na, correction_kind, reinspection_of, template_fingerprint, tasks.source_inspection_id (unique), guard_inspection_room_state trigger, conditional now blocks the room. (~1.5k tok)
+- `apps/mobile/lib/inspections/` — Supervisor Inspections foundation (pure): types, templates (normalise/select/edit detection), checklist, validation (mirror of server rules), submission (payload, idempotent submit, outcome classification, read-back), workflow (phase state machine), corrections, draft, queue, useInspectionQueue hook. (~12k tok total)
+- `apps/mobile/lib/inspections/queueView.ts` — To-inspect list (pure): recorded-fact priority (overdue/arrival/elevated/reinspection/VIP/wait), 4 sorts, OR-within/AND-across filters, availability (no data = disabled, never a false zero), chips, selectQueue/previewCount. Priority-first order is deterministic. (~3k tok)
+- `apps/mobile/lib/inspections/lists.ts` — Corrections and Done list models (pure): correction stage/owner/dedupe-per-room, done = hotel business date only, real inspector name or null (never an id), room-number search ranking. (~2k tok)
+- `apps/mobile/lib/inspections/viewText.ts` — every sentence the Inspections screen shows, built from verified facts: honest status line (Live only when recently verified), metric text (— not 0), card/correction wording, stale banner. (~2k tok)
+- `apps/mobile/components/supervisor/inspect/` — Phase 2 UI: InspectHeader, InspectSearchBar, InspectTabs, InspectActiveFilters, InspectionQueueCard (whole-card button, no pass/fail shortcut), CorrectionCard, DoneRow, InspectFilterSheet (draft drawer), InspectionRecordSheet, InspectListStates (skeleton/notice/stale banner), OutcomeSheets (the legacy confirm + re-clean sheets, moved unchanged), plus the legacy InspectFocus/InspectQueueCard used only for the room handoff.
+- `apps/mobile/lib/api/inspections.ts` — typed inspection API: templates (fingerprint, allows_na), queue (room_type_id, clean_cycle_id, previous_failure), completeInspection (multipart), fetchInspectionDetail/Submission. (~2k tok)
 
 ## apps/api/routers/ (Housekeeper Tasks Phase 1)
 - `task_lifecycle.py` - GET /tasks/mine|available|mine/completed (cursor, deterministic sort), POST /tasks/{id}/start|complete (replay-safe, audited). Include before tasks.router. (~4k tok)
@@ -836,7 +845,7 @@
 - apps/mobile/i18n/locales/{en,es}.json — new `supervisorToday` namespace
 - apps/mobile/__tests__/screens/{SupervisorToday,HomeRoleRouting}.test.tsx, __tests__/lib/supervisorTodayView.test.ts
 - apps/mobile/stores/supervisorTodayStore.ts — zustand store: ONE shared Supervisor Today snapshot (scope-keyed, coalesced refresh + join, empties when last screen releases). ~95 lines
-- apps/mobile/lib/housekeeping/supervisorRealtime.ts — one refcounted room_status Realtime channel shared by Today and the Attention Center. ~65 lines
+- apps/mobile/lib/housekeeping/supervisorRealtime.ts — one refcounted room_status Realtime channel shared by Today, the Attention Center and Inspect (Inspect registers `independent`: always called, never skipped by a later registration). ~65 lines
 - apps/mobile/lib/housekeeping/supervisorAttentionCenter.ts — Attention Center model: categories/filters/counts, describeCard, resolveAttentionDetail (live re-resolve, gone state), primaryFor, attentionListState, partialNotices. ~470 lines
 - apps/mobile/components/supervisor/attention/{SupervisorAttentionScreen,AttentionCard,AttentionFilters,SupervisorAttentionSheet,AttentionSheetHost}.tsx — full supervisor Attention Center + detail sheet (host shared with Today)
 - apps/mobile/app/(app)/supervisor-attention/index.tsx — supervisor-only route (Redirect home for other roles); housekeeper /attention route untouched
@@ -893,3 +902,9 @@
 - apps/mobile/i18n/locales/{en,es}.json - `assignments.v2.midshift.*` (+ bulk.review.exclusionReason, team.note mixed)
 - apps/mobile/__tests__/{lib/assignmentMidshift,lib/useMidshiftRecovery,lib/assignmentsMidshiftI18n,screens/AssignmentsMidshift}.test.ts(x), helpers/midshiftFixtures.ts; apps/api/tests/integration/test_assignment_batch_midshift.py (real DB, atomic recovery scenarios)
 - apps/api/tests/integration/test_assignment_batch_phase9_audit.py (Phase 9: reassign-vs-remove races on one room, forged actor of another hotel, per-hotel operation ids, authenticated/anon/PUBLIC privilege + SECURITY INVOKER + pinned search_path checks, idempotency-table privileges; real DB, mutation-checked)
+- apps/mobile/lib/inspections/issue.ts - pure issue form: validate, applyIssue (one item, one photo), details-at-stake, photo status (~1.4k tok)
+- apps/mobile/lib/inspections/evidence.ts - photo capture/encode/keep/verify/delete behind an injectable port; owned-URI checks (~3.6k tok)
+- apps/mobile/lib/inspections/correctionPlan.ts - read-only preview of the server-created housekeeping correction (~0.7k tok)
+- apps/mobile/components/supervisor/inspect/workspace/IssueSheet.tsx - report/edit issue bottom drawer (note, severity, one photo) (~4k tok)
+- apps/mobile/components/supervisor/inspect/workspace/IssueSheets.tsx - change-answer confirm + correction plan sheets (~1.6k tok)
+- apps/mobile/components/supervisor/inspect/workspace/PhotoViewer.tsx - full-size photo viewer modal (~0.9k tok)

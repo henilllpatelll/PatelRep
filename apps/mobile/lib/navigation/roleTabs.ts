@@ -96,6 +96,8 @@ export const HIDDEN_APP_ROUTES = [
   "sop/index",
   "sop/[sopId]",
   "my-rooms/[roomId]",
+  "inspect/[roomId]",
+  "inspect/record/[inspectionId]",
   "tasks/history",
   "work-orders/[woId]",
   "guest-requests/[requestId]",

@@ -53,6 +53,8 @@ def db(monkeypatch):
             {"room_id": FOREIGN_ROOM, "tenant_id": OTHER_HOTEL, "status": "CLEAN", "dnd_flag": True},
         ],
         "rooms": [
+            {"id": CLEAN_ROOM, "tenant_id": HOTEL, "room_number": "206"},
+            {"id": INSPECTED_ROOM, "tenant_id": HOTEL, "room_number": "209"},
             {"id": DND_ROOM, "tenant_id": HOTEL, "room_number": "207"},
             {"id": QUIET_ROOM, "tenant_id": HOTEL, "room_number": "208"},
             {"id": FOREIGN_ROOM, "tenant_id": OTHER_HOTEL, "room_number": "901"},

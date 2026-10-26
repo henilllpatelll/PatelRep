@@ -43,6 +43,8 @@ export type InspectionGuard = "ok" | "not_awaiting" | "template_changed" | "unav
 export async function checkBeforeInspecting(input: {
   roomId: string;
   templateId: string | undefined;
+  /** The digest of the checklist the supervisor is working from; a different one means it was edited meanwhile. */
+  templateFingerprint?: string;
   date: string;
   fetchQueue: (date: string) => Promise<ReadyRoom[]>;
   fetchTemplates: () => Promise<{ data: InspectionTemplate[] }>;
@@ -50,7 +52,12 @@ export async function checkBeforeInspecting(input: {
   try {
     const [queue, templates] = await Promise.all([input.fetchQueue(input.date), input.fetchTemplates()]);
     if (!queue.some((room) => room.room_id === input.roomId)) return "not_awaiting";
-    if (input.templateId && !templates.data.some((template) => template.id === input.templateId)) return "template_changed";
+    if (input.templateId) {
+      const current = templates.data.find((template) => template.id === input.templateId);
+      if (!current) return "template_changed";
+      // A same-id template whose items were edited is a different checklist: only the digest can tell.
+      if (input.templateFingerprint && current.fingerprint && current.fingerprint !== input.templateFingerprint) return "template_changed";
+    }
     return "ok";
   } catch {
     // Not knowing is not permission: nothing is sent on a guess.

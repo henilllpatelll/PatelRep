@@ -1,0 +1,940 @@
+{
+  "_comment": "Conformance table for the inspection rules. apps/api/services/inspection_rules.py and apps/mobile/lib/inspections/validation.ts are BOTH tested against it, so the client-side checks cannot drift from the server's authority. Add a case here before changing a rule in either place.",
+  "touch_up_max_items": 3,
+  "items": [
+    {
+      "id": "i1",
+      "is_required": true
+    },
+    {
+      "id": "i2",
+      "is_required": true,
+      "requires_photo_on_fail": true
+    },
+    {
+      "id": "i3",
+      "is_required": false
+    },
+    {
+      "id": "i4",
+      "is_required": true,
+      "allows_na": false
+    },
+    {
+      "id": "i5",
+      "is_required": true
+    },
+    {
+      "id": "i6",
+      "is_required": true
+    }
+  ],
+  "classify": [
+    {
+      "name": "nothing failed",
+      "severities": [],
+      "expect": null
+    },
+    {
+      "name": "one minor",
+      "severities": [
+        "minor"
+      ],
+      "expect": "touch_up"
+    },
+    {
+      "name": "three minor",
+      "severities": [
+        "minor",
+        "minor",
+        "minor"
+      ],
+      "expect": "touch_up"
+    },
+    {
+      "name": "four minor is too many",
+      "severities": [
+        "minor",
+        "minor",
+        "minor",
+        "minor"
+      ],
+      "expect": "reclean"
+    },
+    {
+      "name": "one major",
+      "severities": [
+        "major"
+      ],
+      "expect": "reclean"
+    },
+    {
+      "name": "unclassified counts as major",
+      "severities": [
+        null
+      ],
+      "expect": "reclean"
+    },
+    {
+      "name": "minor plus major",
+      "severities": [
+        "minor",
+        "major"
+      ],
+      "expect": "reclean"
+    }
+  ],
+  "applicability": [
+    {
+      "name": "default template applies to any room",
+      "template": {
+        "room_type_id": "t-king",
+        "is_default": true
+      },
+      "room_type_id": "t-suite",
+      "expect": true
+    },
+    {
+      "name": "untyped template applies to any room",
+      "template": {
+        "room_type_id": null,
+        "is_default": false
+      },
+      "room_type_id": "t-suite",
+      "expect": true
+    },
+    {
+      "name": "typed template applies to its own type",
+      "template": {
+        "room_type_id": "t-suite",
+        "is_default": false
+      },
+      "room_type_id": "t-suite",
+      "expect": true
+    },
+    {
+      "name": "typed template never applies to another type",
+      "template": {
+        "room_type_id": "t-king",
+        "is_default": false
+      },
+      "room_type_id": "t-suite",
+      "expect": false
+    },
+    {
+      "name": "typed template cannot apply when the room type is unknown",
+      "template": {
+        "room_type_id": "t-king",
+        "is_default": false
+      },
+      "room_type_id": null,
+      "expect": false
+    }
+  ],
+  "answers": [
+    {
+      "name": "all required passed",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": []
+      }
+    },
+    {
+      "name": "optional item left unanswered is not recorded as a pass",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": [],
+        "answered": [
+          "i1",
+          "i2",
+          "i4",
+          "i5",
+          "i6"
+        ]
+      }
+    },
+    {
+      "name": "a required item with no answer blocks completion",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "required_items_unanswered"
+      }
+    },
+    {
+      "name": "one minor failure is a touch-up",
+      "answers": [
+        [
+          "i1",
+          "fail",
+          null,
+          "minor"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "failed",
+      "expect": {
+        "result": "failed",
+        "kind": "touch_up",
+        "failed": [
+          "i1"
+        ]
+      }
+    },
+    {
+      "name": "one major failure is a re-clean",
+      "answers": [
+        [
+          "i1",
+          "fail",
+          null,
+          "major"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "failed",
+      "expect": {
+        "result": "failed",
+        "kind": "reclean",
+        "failed": [
+          "i1"
+        ]
+      }
+    },
+    {
+      "name": "an unclassified failure is a re-clean",
+      "answers": [
+        [
+          "i1",
+          "fail"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "failed",
+      "expect": {
+        "result": "failed",
+        "kind": "reclean",
+        "failed": [
+          "i1"
+        ]
+      }
+    },
+    {
+      "name": "four minor failures exceed the touch-up limit",
+      "answers": [
+        [
+          "i1",
+          "fail",
+          null,
+          "minor"
+        ],
+        [
+          "i2",
+          "fail",
+          null,
+          "minor"
+        ],
+        [
+          "i4",
+          "fail",
+          null,
+          "minor"
+        ],
+        [
+          "i5",
+          "fail",
+          null,
+          "minor"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "failed",
+      "expect": {
+        "result": "failed",
+        "kind": "reclean",
+        "failed": [
+          "i1",
+          "i2",
+          "i4",
+          "i5"
+        ]
+      }
+    },
+    {
+      "name": "N/A on an item that forbids it",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "na"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "na_not_allowed"
+      }
+    },
+    {
+      "name": "N/A on a required item is allowed by the default policy",
+      "answers": [
+        [
+          "i1",
+          "na"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": []
+      }
+    },
+    {
+      "name": "N/A on a required item is refused when the property forbids it",
+      "policy": "forbid",
+      "answers": [
+        [
+          "i1",
+          "na"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "na_not_allowed"
+      }
+    },
+    {
+      "name": "N/A on a required item needs a note when the property requires one",
+      "policy": "require_note",
+      "answers": [
+        [
+          "i1",
+          "na"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "na_note_required"
+      }
+    },
+    {
+      "name": "N/A with a note satisfies require_note",
+      "policy": "require_note",
+      "answers": [
+        [
+          "i1",
+          "na",
+          "No window in this room"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": []
+      }
+    },
+    {
+      "name": "N/A on an optional item is unaffected by the forbid policy",
+      "policy": "forbid",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i3",
+          "na"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": []
+      }
+    },
+    {
+      "name": "claiming a pass with a failed item",
+      "answers": [
+        [
+          "i1",
+          "fail"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "result_mismatch"
+      }
+    },
+    {
+      "name": "claiming a failure with no failed item",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "failed",
+      "expect": {
+        "error": "result_mismatch"
+      }
+    },
+    {
+      "name": "conditional is never a valid new outcome",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "conditional",
+      "expect": {
+        "error": "result_mismatch"
+      }
+    },
+    {
+      "name": "an item that is not on the checklist",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ],
+        [
+          "zz",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "item_outside_checklist"
+      }
+    },
+    {
+      "name": "the same item answered twice",
+      "answers": [
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i1",
+          "fail"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "duplicate_item_answer"
+      }
+    },
+    {
+      "name": "an answer without an item id cannot hide a failure",
+      "answers": [
+        [
+          null,
+          "fail"
+        ],
+        [
+          "i1",
+          "pass"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "item_missing_id"
+      }
+    },
+    {
+      "name": "severity on a passing item",
+      "answers": [
+        [
+          "i1",
+          "pass",
+          null,
+          "minor"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "severity_on_non_failed_item"
+      }
+    },
+    {
+      "name": "an answer that is not pass, fail or N/A",
+      "answers": [
+        [
+          "i1",
+          "maybe"
+        ],
+        [
+          "i2",
+          "pass"
+        ],
+        [
+          "i4",
+          "pass"
+        ],
+        [
+          "i5",
+          "pass"
+        ],
+        [
+          "i6",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "error": "invalid_answer"
+      }
+    },
+    {
+      "name": "an empty checklist can approve nothing",
+      "items": [],
+      "answers": [],
+      "claimed": "passed",
+      "expect": {
+        "error": "no_checklist"
+      }
+    },
+    {
+      "name": "a checklist of only optional items still needs a review",
+      "items": [
+        {
+          "id": "o1",
+          "is_required": false
+        }
+      ],
+      "answers": [],
+      "claimed": "passed",
+      "expect": {
+        "error": "no_answers"
+      }
+    },
+    {
+      "name": "an optional-only checklist passes once something is reviewed",
+      "items": [
+        {
+          "id": "o1",
+          "is_required": false
+        },
+        {
+          "id": "o2",
+          "is_required": false
+        }
+      ],
+      "answers": [
+        [
+          "o1",
+          "pass"
+        ]
+      ],
+      "claimed": "passed",
+      "expect": {
+        "result": "passed",
+        "kind": null,
+        "failed": [],
+        "answered": [
+          "o1"
+        ]
+      }
+    }
+  ],
+  "photos": [
+    {
+      "name": "required photo attached to the failed item",
+      "failed": [
+        "i2"
+      ],
+      "photo_items": [
+        "i2"
+      ],
+      "photo_count": 1,
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "name": "required photo missing",
+      "failed": [
+        "i2"
+      ],
+      "photo_items": [],
+      "photo_count": 0,
+      "expect": {
+        "error": "required_photos_missing"
+      }
+    },
+    {
+      "name": "photo on an item that did not fail",
+      "failed": [
+        "i1"
+      ],
+      "photo_items": [
+        "i3"
+      ],
+      "photo_count": 1,
+      "expect": {
+        "error": "photo_on_non_failed_item"
+      }
+    },
+    {
+      "name": "photo count does not match its links",
+      "failed": [
+        "i2"
+      ],
+      "photo_items": [
+        "i2"
+      ],
+      "photo_count": 2,
+      "expect": {
+        "error": "photo_link_invalid"
+      }
+    },
+    {
+      "name": "two photos for one item",
+      "failed": [
+        "i2"
+      ],
+      "photo_items": [
+        "i2",
+        "i2"
+      ],
+      "photo_count": 2,
+      "expect": {
+        "error": "photo_link_invalid"
+      }
+    },
+    {
+      "name": "a failed item that does not require a photo needs none",
+      "failed": [
+        "i1"
+      ],
+      "photo_items": [],
+      "photo_count": 0,
+      "expect": {
+        "ok": true
+      }
+    }
+  ]
+}

@@ -48,7 +48,8 @@ export default function AppLayout() {
   // 0 = collapsed bubble, 1 = fully expanded card — drives both sides of the
   // "grows out of the bubble" transition (design spec 1a/2a) from one value.
   const cardProgress = useSharedValue(0);
-  const hideFab = /^\/my-rooms\/.+/.test(pathname);
+  // The full-screen room screens own the whole display: no floating assistant over a housekeeper's room or a supervisor's checklist.
+  const hideFab = /^\/(my-rooms|inspect)\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
   const assistantSwitchedOn = useAiCapability("unifiedAssistant");
@@ -279,6 +280,9 @@ export default function AppLayout() {
                 href: null,
                 headerShown: false,
                 tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
+                // The active inspection is full-screen with its own sticky action area. (Only this route sets the key:
+                // an explicit undefined on the others would wipe the shared tab-bar style.)
+                ...(name === "inspect/[roomId]" ? { tabBarStyle: { display: "none" as const } } : {}),
               }}
             />
           ))}

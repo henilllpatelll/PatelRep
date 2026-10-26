@@ -18,6 +18,7 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("@/lib/theme/useToast", () => ({ useToast: () => mockToast }));
 jest.mock("@/lib/api/client", () => ({ api: { post: jest.fn(), get: jest.fn() } }));
 
+import { router } from "expo-router";
 import { api } from "@/lib/api/client";
 import { RoomDetailSheet, type RoomDetailSheetContext } from "@/components/supervisor/RoomDetailSheet";
 import { normalizeBoardRecords } from "@/lib/housekeeping/roomBoardModel";
@@ -304,6 +305,22 @@ describe("Inspection history", () => {
     expect(screen.getByText("Inspector: Dana Cole")).toBeTruthy();
     expect(screen.getByText("Notes: Bathroom mirror")).toBeTruthy();
     expect(screen.getByText("Inspector not recorded")).toBeTruthy();
+  });
+
+  it("opens the canonical inspection record for a row: closes the drawer, then navigates by the inspection id", async () => {
+    mockGet.mockResolvedValueOnce({ data: [{ id: "i1", overall_result: "failed", notes: null, inspector_name: "Dana Cole", completed_at: "2026-10-16T16:06:00Z" }] });
+    const { screen } = setup(rawRoom("204", "INSPECTED"));
+    openAction(screen, "inspectionHistory");
+    await flush();
+    expect(screen.getByTestId("inspection-i1").props.accessibilityLabel).toMatch(/^Failed inspection, /);
+    press(screen, "inspection-i1");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/(app)/inspect/record/[inspectionId]",
+      params: { inspectionId: "i1", from: "board", roomId: "room-204", roomNumber: "204" },
+    });
+    // the list is unchanged otherwise: still this room's own 7-day window
+    expect(mockGet).toHaveBeenCalledWith("/housekeeping/inspections?room_id=room-204&date_from=2026-10-10&date_to=2026-10-16");
   });
 
   it("a longer range re-queries, and an empty window is honest", async () => {

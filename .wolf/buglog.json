@@ -34375,6 +34375,125 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2090",
+      "timestamp": "2026-10-21T05:40:00Z",
+      "error_message": "Inspection audit: legacy 'conditional' (touch-up) marked the room INSPECTED, releasing it with the defect outstanding, relying on a dismissible send-back prompt; a failed inspection left no correction task/flag unless that prompt was confirmed; two supervisors could both pass the CLEAN check and inspect one room; complete endpoint could return 500 after the inspection committed (task creation) and had no retry safety",
+      "file": "supabase/migrations/219_inspection_workflow_foundation.sql; apps/api/routers/housekeeping.py; apps/api/services/reclean_corrections.py",
+      "root_cause": "handle_inspection_complete() treated conditional like a pass; correction creation lived only in the separate /reclean endpoint; check-then-insert on room_status with no lock; no idempotency key on the inspection write",
+      "fix": "Trigger now blocks the room (DIRTY) for conditional; every non-pass result creates exactly one correction task (unique tenant_id+source_inspection_id) at submit time; BEFORE INSERT guard trigger locks room_status FOR UPDATE; /complete uses client_submission_id as the inspection id (replay-safe, partial-commit resume); /reclean is idempotent",
+      "tags": [
+        "inspections",
+        "idempotency",
+        "race",
+        "correction",
+        "migration-219",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [
+        "bug-2075"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T05:40:00Z"
+    },
+    {
+      "id": "bug-2091",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Inspect list showed a truncated user id as the inspector's name (GET /housekeeping/inspections fell back to inspector_id[:8]) and a user id as the housekeeper name on the queue (ready-for-inspection fell back to p['id'])",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "name_map fell back to the id when a profile had no preferred_name/full_name, and the list endpoint substituted an id prefix when no profile matched",
+      "fix": "Only real names enter name_map; list rows gain inspector_display_name (name or null); queue cleaned_by is '' when unnamed; the app shows 'Inspector not recorded' / 'Housekeeper not recorded'",
+      "tags": [
+        "inspections",
+        "privacy",
+        "display-name",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2092",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "PAGEERROR Error: findNodeHandle is not supported on web (Filter & Sort sheet, found in the Expo web visual check)",
+      "file": "apps/mobile/components/supervisor/inspect/InspectFilterSheet.tsx",
+      "root_cause": "findNodeHandle was called outside the try/catch around AccessibilityInfo.setAccessibilityFocus",
+      "fix": "Both calls are inside the try/catch; focus management is best-effort",
+      "tags": [
+        "web",
+        "accessibility",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2093",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Sorting/filtering 600 rooms took ~34ms per pass in Jest (budget 25ms)",
+      "file": "apps/mobile/lib/housekeeping/hotelTime.ts; apps/mobile/lib/inspections/queueView.ts",
+      "root_cause": "hotelDateKey built a new Intl.DateTimeFormat on every call and priorityFacts recomputed the hotel's today per room",
+      "fix": "One cached formatter per zone; today's key memoised per clock reading",
+      "tags": [
+        "performance",
+        "intl",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2094",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Inspection photos stored in the PUBLIC work-order-photos bucket and returned as permanent public URLs",
+      "file": "apps/api/routers/housekeeping.py; services/inspection_evidence.py; migration 220",
+      "root_cause": "Phase 1 upload wrote to the public bucket and stored get_public_url(); anyone with the link could read guest-adjacent evidence",
+      "fix": "New private inspection-evidence bucket + inspection_results.photo_path; API signs 10-minute URLs only after hotel/role/path-prefix checks; legacy URLs are signed not exposed; operator backfill script (dry-run default)",
+      "tags": [
+        "security",
+        "storage",
+        "evidence",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2095",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Typing in the history room search refetched the first page on every keystroke",
+      "file": "apps/mobile/lib/inspections/history/useInspectionHistory.ts",
+      "root_cause": "The fetch effect depended on a range object re-created whenever filters changed, so the debounce never held",
+      "fix": "Memoise the range on its parts (period/custom/today); test asserts no fetch until typing pauses",
+      "tags": [
+        "react",
+        "debounce",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2096",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Timeline walk skipped the reinspection of the inspection the user opened from the middle of a chain",
+      "file": "apps/api/services/inspection_history.py",
+      "root_cause": "Children already reached from below were never added to the BFS frontier",
+      "fix": "Track expanded ids; walk past an already-seen inspection once",
+      "tags": [
+        "lineage",
+        "timeline",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
     }
   ]
 }
