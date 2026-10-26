@@ -298,3 +298,53 @@ async def test_suggest_assignments_no_staff_returns_no_housekeepers_message(monk
             "message": "No active housekeepers found for this property",
         }
     }
+
+
+# --- Assignments V2 phase 6: hardening of the legacy suggester ------------------------------------------------------
+
+
+def _legacy_db(rooms, staff=("55555555-5555-4555-8555-555555555555",)):
+    return FakeDB({
+        "room_status": rooms,
+        "shift_assignments": [{"tenant_id": SUPERVISOR.hotel_id, "work_date": TODAY, "user_id": uid} for uid in staff],
+    })
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_never_pools_a_room_already_being_cleaned(monkeypatch):
+    started = _room_status_row("22222222-2222-4222-8222-222222222222", "101")
+    started["status"] = "IN_PROGRESS"
+    waiting = _room_status_row("33333333-3333-4333-8333-333333333333", "102")
+    monkeypatch.setattr(housekeeping, "supabase", _legacy_db([started, waiting]))
+
+    response = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+
+    suggested = [room["room_id"] for item in response["data"]["suggestions"] for room in item["rooms"]]
+    assert suggested == ["33333333-3333-4333-8333-333333333333"]
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_reports_whether_staff_were_scheduled_or_a_fallback(monkeypatch):
+    monkeypatch.setattr(housekeeping, "supabase", _legacy_db([_room_status_row("22222222-2222-4222-8222-222222222222", "101")]))
+    scheduled = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+    assert scheduled["data"]["staff_basis"] == "scheduled"
+
+    fallback_db = _legacy_db([_room_status_row("22222222-2222-4222-8222-222222222222", "101")], staff=())
+    fallback_db.rows["user_roles"] = [{"tenant_id": SUPERVISOR.hotel_id, "user_id": "55555555-5555-4555-8555-555555555555", "role": "housekeeper", "is_active": True}]
+    fallback_db.rows["user_profiles"] = [{"id": "55555555-5555-4555-8555-555555555555", "full_name": "A", "preferred_name": ""}]
+    monkeypatch.setattr(housekeeping, "supabase", fallback_db)
+    fallback = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+    assert fallback["data"]["staff_basis"] == "all_active_fallback"
+
+
+@pytest.mark.asyncio
+async def test_suggest_assignments_does_not_deal_rooms_out_greedily_when_the_solver_finds_nothing(monkeypatch):
+    import ortools.sat.python.cp_model as cp_model
+
+    monkeypatch.setattr(housekeeping, "supabase", _legacy_db([_room_status_row("22222222-2222-4222-8222-222222222222", "101")]))
+    monkeypatch.setattr(cp_model.CpSolver, "Solve", lambda self, model: cp_model.UNKNOWN)
+
+    response = await housekeeping.suggest_assignments(board_date=None, shift_id=None, current_user=SUPERVISOR)
+
+    assert response["data"]["suggestions"] == []
+    assert "No safe assignment suggestion" in response["data"]["message"]

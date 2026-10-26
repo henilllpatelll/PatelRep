@@ -107,6 +107,16 @@ export async function fetchWorkOrderDetail(workOrderId: string): Promise<WorkOrd
   return res.data;
 }
 
+/** The server's page ceiling for this read; a full page means older work orders may exist that this read cannot show. */
+export const ROOM_WORK_ORDER_FETCH_LIMIT = 50;
+
+/** GET /work-orders?room_id= — this hotel only, newest first. A body that is not a list THROWS (never reads as "none"). */
+export async function fetchRoomWorkOrders(roomId: string): Promise<WorkOrder[]> {
+  const res = await api.get<{ data?: unknown }>(`/work-orders?room_id=${enc(roomId)}&per_page=${ROOM_WORK_ORDER_FETCH_LIMIT}`);
+  if (!res || !Array.isArray(res.data)) throw new Error("Malformed work order list");
+  return res.data as WorkOrder[];
+}
+
 /* Wellness check */
 
 export interface WelfareCheckResult {

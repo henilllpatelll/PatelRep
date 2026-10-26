@@ -1,7 +1,8 @@
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Optional
 
+from dateutil import tz
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from middleware.auth import require_role, CurrentUser
@@ -17,6 +18,38 @@ ASSIGNMENT_SUPERVISOR_ROLES = ("gm", "housekeeping_supervisor")
 
 # Re-read attempts when a concurrent write changes the shift between read and update.
 _END_ATTEMPTS = 3
+
+# How far back a still-open shift is carried into a later roster day (an overnight shift). Mirrors the
+# mobile app's MAX_PLAUSIBLE_OPEN_SHIFT_MS: an open shift older than this was almost certainly never closed out.
+OPEN_SHIFT_CARRY_OVER = timedelta(hours=16)
+
+
+def _hotel_zone(hotel_id: str):
+    """
+    The hotel's timezone (tenants.timezone, default America/Chicago like the rest of housekeeping), or None
+    when the hotel cannot be read at all -- callers then keep the legacy UTC day rather than guess.
+    """
+    try:
+        result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
+        row = result.data if result else None
+    except Exception:
+        logger.warning("shifts roster: could not read hotel timezone for hotel_id=%s; using the UTC day", hotel_id)
+        return None
+    if not row:
+        return None
+    return tz.gettz(row.get("timezone") or "America/Chicago") or tz.gettz("America/Chicago")
+
+
+def roster_window(target_date: date, zone) -> tuple[str, str]:
+    """
+    [local midnight of target_date, local midnight of the next day) as UTC ISO strings. `zone=None` is the
+    legacy behaviour: the UTC calendar day. Computed on wall-clock time, so a DST change moves the UTC
+    boundary instead of producing a 23- or 25-hour error.
+    """
+    tzinfo = zone if zone is not None else timezone.utc
+    start = datetime.combine(target_date, time.min, tzinfo=tzinfo).astimezone(timezone.utc)
+    end = datetime.combine(target_date + timedelta(days=1), time.min, tzinfo=tzinfo).astimezone(timezone.utc)
+    return start.isoformat(), end.isoformat()
 
 
 def _get_open_shift(hotel_id: str, user_id: str) -> dict | None:
@@ -97,23 +130,57 @@ async def get_shift_roster(
     This table is otherwise only read/written by the housekeeper's own
     self-service clock in/break/end above — this is its first supervisor-
     facing, hotel-wide read.
+
+    "The given date" is the HOTEL's local calendar day (tenants.timezone), not
+    the UTC day: `started_at` is stored in UTC, so a UTC window dropped any
+    shift started after local ~19:00 (Chicago) from that evening's roster.
+    A shift that began before the window and is still open (an overnight
+    shift, up to OPEN_SHIFT_CARRY_OVER old) is carried into the day it is
+    still running on. If the hotel's timezone cannot be read the original UTC
+    day is used unchanged.
     """
-    target_date = roster_date or datetime.now(timezone.utc).date()
-    day_start = f"{target_date.isoformat()}T00:00:00+00:00"
-    day_end = f"{target_date.isoformat()}T23:59:59.999999+00:00"
+    zone = _hotel_zone(current_user.hotel_id)
+    if roster_date is not None:
+        target_date = roster_date
+    elif zone is not None:
+        target_date = datetime.now(timezone.utc).astimezone(zone).date()
+    else:
+        target_date = datetime.now(timezone.utc).date()
+    day_start, day_end = roster_window(target_date, zone)
+    columns = "user_id, status, started_at, on_break_since, break_seconds"
 
     result = (
         supabase.table("hk_shift_sessions")
-        .select("user_id, status, started_at, on_break_since, break_seconds")
+        .select(columns)
         .eq("tenant_id", current_user.hotel_id)
         .gte("started_at", day_start)
-        .lte("started_at", day_end)
+        .lt("started_at", day_end)
         .order("started_at", desc=True)
         .execute()
     )
+    rows = list(result.data or [])
+
+    # An overnight shift that began before the day window and is STILL OPEN belongs to this roster too: the
+    # person is working right now. Only meaningful for a hotel-local window (a legacy UTC window keeps its
+    # original behaviour), and bounded so a shift that was never closed out cannot linger indefinitely.
+    if zone is not None:
+        lookback = (_parse_ts(day_start) - OPEN_SHIFT_CARRY_OVER).isoformat()
+        carried = (
+            supabase.table("hk_shift_sessions")
+            .select(columns)
+            .eq("tenant_id", current_user.hotel_id)
+            .neq("status", "ended")
+            .gte("started_at", lookback)
+            .lt("started_at", day_start)
+            .order("started_at", desc=True)
+            .execute()
+        )
+        rows.extend(carried.data or [])
+        floor = datetime.min.replace(tzinfo=timezone.utc)
+        rows.sort(key=lambda row: _parse_ts(row.get("started_at")) or floor, reverse=True)
 
     latest_by_user: dict[str, dict] = {}
-    for row in result.data or []:
+    for row in rows:
         uid = row.get("user_id")
         if uid and uid not in latest_by_user:
             latest_by_user[uid] = row

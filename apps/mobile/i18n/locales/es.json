@@ -2062,7 +2062,88 @@
     "result": {
       "passed": "Aprobado",
       "failed": "Reprobado",
-      "conditional": "Condicional"
+      "conditional": "Condicional",
+      "unknown": "Registrada",
+      "completedAt": "Completada a las {{time}}",
+      "approved": {
+        "title": "Habitación {{room}} aprobada",
+        "ready": "Lista verificada",
+        "correctionsVerified": "Correcciones verificadas",
+        "passed": "La inspección de la habitación fue aprobada",
+        "pmsNote": "Registrado en PatelRep. Esto no cambia el estado de la habitación en su PMS."
+      },
+      "next": "Inspeccionar la siguiente habitación",
+      "backToQueue": "Volver a la cola",
+      "noNext": "Ninguna otra habitación espera inspección por ahora.",
+      "viewCorrections": "Ver correcciones",
+      "needsConnection": "Conéctese a internet para continuar.",
+      "approveRoom": "Aprobar habitación",
+      "submitCorrection": "Enviar y solicitar corrección",
+      "checklistIncomplete": "Complete cada estándar obligatorio (y la gravedad y la foto de cada problema) antes de enviar.",
+      "correction": {
+        "title": "Corrección solicitada",
+        "pendingTitle": "Inspección registrada, corrección sin confirmar",
+        "blocked": "La habitación {{room}} sigue bloqueada.",
+        "pendingBody": "La inspección está guardada y la habitación sigue bloqueada, pero la solicitud de corrección aún no se creó. Sus notas y fotos se conservan. Intente de nuevo para terminarla.",
+        "stillFailing": "La corrección sigue siendo necesaria. El fallo anterior y sus fotos se conservan.",
+        "issue": "Problema",
+        "issuesNone": "Elementos fallidos no registrados",
+        "assignedTo": "Asignada a",
+        "ownerUnnamed": "Una camarera (nombre no registrado)",
+        "unassigned": "Sin asignar",
+        "ownerUnknown": "Sin confirmar",
+        "status": "Estado",
+        "statusValue": {
+          "awaiting_owner": "Asignada, pendiente de confirmación",
+          "unassigned": "Sin asignar, necesita responsable",
+          "in_progress": "En curso",
+          "escalated": "Escalada",
+          "pending_repair": "Corrección aún no creada",
+          "recorded": "Registrada"
+        },
+        "priority": "Prioridad",
+        "urgent": "Urgente",
+        "retry": "Terminar la solicitud de corrección"
+      },
+      "uncertain": {
+        "kicker": "ESTADO DEL ENVÍO",
+        "title": "Estamos comprobando si su inspección quedó registrada.",
+        "body": "Se perdió la conexión antes de recibir respuesta. Su inspección está guardada en este teléfono.",
+        "dontResubmit": "Por favor, no la envíe de nuevo todavía.",
+        "unknown": "Aún no podemos saberlo. Vuelva a comprobar cuando tenga conexión.",
+        "not_recorded": "No se registró nada con este envío, así que es seguro enviarlo de nuevo.",
+        "incomplete": "La inspección se registró sin sus respuestas. Enviarla de nuevo la completa sin crear una segunda.",
+        "kept": "Sus respuestas, notas y fotos se conservan hasta que el servidor lo confirme.",
+        "check": "Comprobar estado",
+        "sendAgain": "Enviar de nuevo",
+        "reason": {
+          "no_response": "No hubo respuesta del servidor.",
+          "server_error": "El servidor tuvo un problema y puede que la haya guardado o no.",
+          "ambiguous_response": "La respuesta del servidor no fue la esperada.",
+          "in_progress": "Un envío anterior de esta inspección aún se está guardando.",
+          "partial_commit": "La inspección se guardó pero puede que sus respuestas no."
+        }
+      },
+      "problem": {
+        "title": "No se registró nada",
+        "retry": "Intentar de nuevo",
+        "back": "Volver a la revisión",
+        "rejected": "No se pudo registrar la inspección.",
+        "room_changed": "La habitación cambió mientras la inspeccionaba. Revísela de nuevo desde la cola.",
+        "template_changed": "La lista cambió mientras inspeccionaba. Vuelva a cargarla y revise la habitación de nuevo.",
+        "account_changed": "Inició sesión en un hotel distinto de aquel para el que empezó esta inspección. No se envió nada.",
+        "invalid": "El servidor no aceptó esta lista. Revise las respuestas e intente de nuevo.",
+        "forbidden": "No tiene permiso para enviar inspecciones.",
+        "evidence_upload_failed": "No se pudieron subir las fotos, así que no se registró nada. Intente de nuevo.",
+        "id_conflict": "Este envío chocó con otro. Se le dio una nueva referencia; revise e intente de nuevo.",
+        "not_found": "Esta habitación ya no está disponible para inspeccionar.",
+        "busy": "Ya se está enviando una inspección.",
+        "offline": "Conéctese a internet para enviar esta inspección.",
+        "checklist_incomplete": "Complete cada estándar obligatorio (y la gravedad y la foto de cada problema) antes de enviar.",
+        "room_not_awaiting": "Esta habitación ya no espera inspección.",
+        "reinspection_unverified": "Revise cada elemento que falló la última vez antes de enviar la reinspección.",
+        "photo_missing": "Falta una foto obligatoria."
+      }
     },
     "focus": {
       "heading": "Inspeccionando habitación {{room}}",
@@ -2076,6 +2157,1006 @@
     "guard": {
       "templateChanged": "La lista de inspección cambió. Vuelve a abrir la habitación e inténtalo de nuevo.",
       "unavailable": "No se pudo confirmar que la habitación siga esperando inspección. No se envió nada."
+    },
+    "template": {
+      "unavailable": "No se pudieron cargar las listas de inspección, así que esta habitación aún no se puede inspeccionar. Desliza para actualizar e inténtalo de nuevo.",
+      "no_templates": "Este hotel aún no tiene una lista de inspección. Pide a un gerente que la configure en Ajustes.",
+      "no_usable_template": "Todas las listas de inspección están desactivadas o vacías. Pide a un gerente que lo corrija en Ajustes.",
+      "no_default": "Ninguna lista corresponde a este tipo de habitación y no hay una lista predeterminada. Pide a un gerente que elija una en Ajustes.",
+      "room_type_unknown": "No se conoce el tipo de esta habitación, así que no se puede elegir la lista correcta. Actualiza e inténtalo de nuevo.",
+      "invalid_templates": "No se pudieron leer las listas de inspección. Actualiza e inténtalo de nuevo."
+    },
+    "header": {
+      "kicker": "Limpieza · Hoy",
+      "refresh": "Actualizar",
+      "refreshing": "Actualizando…",
+      "refreshA11y": "Actualizar inspecciones"
+    },
+    "status": {
+      "loading": "Revisando la cola…",
+      "liveNow": "En vivo · Actualizado ahora",
+      "liveSeconds": "En vivo · Actualizado hace {{count}} s",
+      "liveMinutes": "En vivo · Actualizado hace {{count}} min",
+      "liveClock": "En vivo · Actualizado {{time}}",
+      "stale": "Desactualizado · Última revisión {{time}}",
+      "offline": "Sin conexión · Última revisión {{time}}",
+      "offlineNone": "Sin conexión · Aún no se ha revisado nada",
+      "unavailable": "No se pudo revisar la cola"
+    },
+    "metric": {
+      "waiting": "En espera",
+      "corrections": "Correcciones",
+      "passed": "Aprobadas",
+      "unavailable": "—",
+      "unavailableA11y": "no disponible",
+      "atLeast": "{{count}}+",
+      "atLeastA11y": "al menos {{count}}",
+      "a11y": "{{label}}: {{value}}"
+    },
+    "search": {
+      "placeholder": "Buscar habitación…",
+      "label": "Buscar por número de habitación",
+      "clear": "Borrar búsqueda",
+      "openFilters": "Filtrar y ordenar",
+      "openFiltersActive": "Filtrar y ordenar, {{active}} activos"
+    },
+    "tabs": {
+      "label": "Listas de inspección",
+      "queue": "Por inspeccionar",
+      "corrections": "Correcciones",
+      "done": "Hechas",
+      "a11y": "{{label}}, {{count}}",
+      "a11yUnknown": "{{label}}, cantidad no disponible"
+    },
+    "chips": {
+      "showing": "Mostrando {{shown}} de {{total}} habitaciones",
+      "showingOne": "Mostrando {{shown}} de {{total}} habitación",
+      "clearAll": "Borrar todo",
+      "remove": "Quitar filtro {{label}}",
+      "ignored": "Un filtro seleccionado no tiene datos registrados por ahora, así que no se aplica.",
+      "sortLabel": "Ordenado por {{sort}}"
+    },
+    "filter": {
+      "title": "Filtrar y ordenar",
+      "close": "Cerrar",
+      "reset": "Restablecer",
+      "show": "Mostrar {{count}} habitación",
+      "show_plural": "Mostrar {{count}} habitaciones",
+      "priorityTitle": "Prioridad",
+      "floorTitle": "Piso",
+      "typeTitle": "Tipo de inspección",
+      "sortTitle": "Ordenar por",
+      "all": "Todas",
+      "allFloors": "Todos los pisos",
+      "floor": "Piso {{floor}}",
+      "floorUnknown": "Piso no registrado",
+      "buildingFloor": "{{building}} · Piso {{floor}}",
+      "buildingNone": "Sin edificio",
+      "noData": "Aún no hay datos registrados",
+      "priority": {
+        "arrival": "Prioridad de llegada",
+        "vip": "VIP",
+        "overdue": "Atrasada"
+      },
+      "review": {
+        "initial": "Inicial",
+        "reinspection": "Reinspección"
+      },
+      "clean": {
+        "departure": "Salida",
+        "stayover": "Estancia"
+      },
+      "sort": {
+        "priority": "Prioridad primero",
+        "waiting": "Más tiempo en espera",
+        "room": "Número de habitación",
+        "floor": "Piso"
+      }
+    },
+    "card": {
+      "room": "Habitación {{room}}",
+      "floor": "Piso {{floor}}",
+      "building": "Edificio {{building}}",
+      "floorUnknown": "Piso no registrado",
+      "clean": {
+        "departure": "Salida",
+        "stayover": "Estancia"
+      },
+      "cleanedAgo": "{{name}} · Limpió {{time}}",
+      "cleanTimeUnknown": "{{name}} · Hora de limpieza no registrada",
+      "housekeeperUnknown": "Camarista no registrada",
+      "agoNow": "ahora mismo",
+      "agoMinutes": "hace {{count}} min",
+      "agoHours": "hace {{hours}} h",
+      "agoHoursMinutes": "hace {{hours}} h {{minutes}} min",
+      "arrival": "Llegada {{time}}",
+      "arrivalPassed": "La llegada fue a las {{time}}",
+      "neededByPassed": "Ya pasó la hora límite",
+      "vipLine": "Huésped VIP",
+      "resubmitted": "{{name}} · Reenviada {{time}}",
+      "failedItems": "{{count}} elemento reprobado original",
+      "failedItems_plural": "{{count}} elementos reprobados originales",
+      "start": "Iniciar inspección",
+      "reinspect": "Reinspeccionar habitación",
+      "unavailable": "Lista de verificación no disponible",
+      "a11y": "{{action}}, habitación {{room}}. {{details}}",
+      "badge": {
+        "overdue": "Atrasada",
+        "arrival": "Prioridad de llegada",
+        "vip": "VIP",
+        "priority": "Prioridad alta",
+        "reinspection": "Reinspección"
+      }
+    },
+    "correction": {
+      "status": {
+        "needs_action": "Requiere acción",
+        "with_housekeeper": "Con la camarista",
+        "awaiting_reinspection": "Lista para reinspección"
+      },
+      "detail": {
+        "correction_missing": "Aún no existe una tarea de corrección",
+        "unassigned": "Nadie está asignado",
+        "assigned": "Asignada, sin iniciar",
+        "in_progress": "En curso",
+        "escalated": "Escalada",
+        "resubmitted": "Reenviada, esperando tu revisión",
+        "cancelled": "Cancelada sin una reinspección aprobada",
+        "verified": "Verificada por una reinspección aprobada",
+        "superseded": "Reemplazada por una inspección más reciente",
+        "roomNotClean": "Marcada como hecha, pero la habitación aún no está marcada como limpia"
+      },
+      "kind": {
+        "touch_up": "Retoque",
+        "reclean": "Limpieza repetida"
+      },
+      "owner": "Responsable: {{name}}",
+      "ownerUnnamed": "Responsable: nombre no registrado",
+      "unassigned": "Sin asignar",
+      "failedCount": "{{count}} elemento reprobado",
+      "failedCount_plural": "{{count}} elementos reprobados",
+      "failedNone": "Elementos reprobados no registrados",
+      "updated": "Actualizado {{time}}",
+      "viewRoom": "Ver habitación",
+      "reinspect": "Reinspeccionar habitación",
+      "a11y": "{{action}}, habitación {{room}}. {{status}}. {{details}}",
+      "truncated": "Existen más correcciones de las que se muestran aquí.",
+      "unreadable": "No se pudo leer {{count}} corrección.",
+      "unreadable_plural": "No se pudieron leer {{count}} correcciones.",
+      "startReinspection": "Iniciar reinspección",
+      "requestAgain": "Solicitar la corrección de nuevo",
+      "assign": "Asignar corrección",
+      "view": "Ver corrección",
+      "openA11y": "Corrección de la habitación {{room}}. {{status}}. {{details}}. Abre la corrección.",
+      "notInQueue": "Esta habitación aún no espera inspección.",
+      "requestedAgain": "Corrección solicitada."
+    },
+    "done": {
+      "inspectorUnknown": "Inspector no registrado",
+      "reinspection": "Reinspección",
+      "at": "{{time}}",
+      "a11y": "Habitación {{room}}, {{result}}, {{inspector}}, {{time}}",
+      "unreadable": "No se pudo leer {{count}} inspección.",
+      "unreadable_plural": "No se pudieron leer {{count}} inspecciones."
+    },
+    "states": {
+      "loadingA11y": "Cargando inspecciones",
+      "emptyTitle": "Todo al día",
+      "emptyBody": "Ninguna habitación espera inspección por ahora.",
+      "noSearchTitle": "Ninguna habitación coincide con tu búsqueda",
+      "noSearchBody": "Revisa el número de habitación e inténtalo de nuevo.",
+      "clearSearch": "Borrar búsqueda",
+      "noFilterTitle": "Ninguna habitación coincide con estos filtros",
+      "noFilterBody": "Quita un filtro para ver más habitaciones.",
+      "clearFilters": "Borrar filtros",
+      "errorTitle": "No se pudieron cargar las inspecciones",
+      "errorBody": "No se pudieron revisar las habitaciones por inspeccionar, así que no se muestra ninguna.",
+      "retry": "Intentar de nuevo",
+      "correctionsEmptyTitle": "No hay correcciones pendientes",
+      "correctionsEmptyBody": "Las inspecciones reprobadas que aún requieren trabajo aparecen aquí.",
+      "correctionsErrorTitle": "No se pudieron cargar las correcciones",
+      "correctionsErrorBody": "No se pudieron revisar las correcciones pendientes, así que no se muestra ninguna.",
+      "doneEmptyTitle": "Hoy no se ha completado ninguna inspección",
+      "doneEmptyBody": "Las inspecciones que termines hoy aparecen aquí.",
+      "doneErrorTitle": "No se pudieron cargar las inspecciones de hoy",
+      "doneErrorBody": "No se pudieron revisar las inspecciones de hoy, así que no se muestra ninguna.",
+      "noMatchCorrectionsTitle": "Ninguna corrección coincide con tu búsqueda",
+      "noMatchDoneTitle": "Ninguna inspección coincide con tu búsqueda"
+    },
+    "banner": {
+      "offline": "Sin conexión. Mostrando datos de {{time}}. Iniciar una inspección requiere conexión para confirmar que la habitación sigue en espera.",
+      "stale": "Desactualizado. Mostrando datos de {{time}}.",
+      "refreshFailed": "No se pudo actualizar. Mostrando datos de {{time}}.",
+      "retry": "Actualizar ahora"
+    },
+    "record": {
+      "loading": "Cargando detalles…",
+      "failed": "No se pudieron cargar los detalles de la inspección.",
+      "retry": "Intentar de nuevo",
+      "inspector": "Inspector",
+      "completed": "Completada",
+      "notes": "Notas",
+      "failedItems": "Elementos reprobados",
+      "noFailedItems": "No se registraron elementos reprobados.",
+      "correction": "Corrección",
+      "viewRoom": "Ver habitación",
+      "close": "Cerrar",
+      "reinspectionOf": "Reinspección de una inspección reprobada anterior"
+    },
+    "start": {
+      "needsConnection": "No se puede iniciar una inspección con información desactualizada. Actualizando ahora; inténtalo de nuevo en un momento."
+    },
+    "workspace": {
+      "title": "Inspeccionar habitación {{room}}",
+      "back": "Inspecciones",
+      "backA11y": "Volver a Inspecciones",
+      "moreA11y": "Más opciones",
+      "roomKicker": "HABITACIÓN",
+      "loading": "Abriendo la inspección…",
+      "retry": "Reintentar",
+      "backToQueue": "Volver a Inspecciones",
+      "viewRoom": "Ver habitación",
+      "floor": "Piso {{floor}}",
+      "building": "Edificio {{building}}",
+      "cleanedByAt": "Limpiada por {{name}} · {{time}}",
+      "cleanedBy": "Limpiada por {{name}}",
+      "cleanedAt": "Limpiada a las {{time}}",
+      "checklist": "Lista: {{name}}",
+      "recheck": "{{count}} punto falló la última vez",
+      "recheck_plural": "{{count}} puntos fallaron la última vez",
+      "offline": "Sin conexión: se guarda en este teléfono",
+      "next": "Ir al siguiente punto",
+      "status": {
+        "awaiting": "Pendiente de inspección",
+        "reinspection": "Reinspección"
+      },
+      "progress": {
+        "title": "PROGRESO DE LA INSPECCIÓN",
+        "fraction": "{{answered}} de {{total}}",
+        "reviewedOf": "{{answered}} de {{total}} puntos revisados",
+        "requiredLeft": "Falta {{count}} punto obligatorio",
+        "requiredLeft_plural": "Faltan {{count}} puntos obligatorios",
+        "requiredDone": "Todos los puntos obligatorios revisados",
+        "issues": "{{count}} problema encontrado",
+        "issues_plural": "{{count}} problemas encontrados",
+        "noIssues": "Sin problemas hasta ahora",
+        "a11y": "Progreso: {{fraction}} revisados. {{remaining}}. {{issues}}. El progreso no es un resultado."
+      },
+      "section": {
+        "requiredLeft": "Falta {{count}} obligatorio",
+        "requiredLeft_plural": "Faltan {{count}} obligatorios",
+        "done": "Listo",
+        "optionalLeft": "Quedan puntos opcionales",
+        "issues": "{{count}} problema",
+        "issues_plural": "{{count}} problemas",
+        "a11y": "{{name}}, {{answered}} de {{total}} revisados",
+        "expanded": "expandida",
+        "collapsed": "contraída"
+      },
+      "answer": {
+        "pass": "Aprobado",
+        "fail": "Problema",
+        "na": "N/A",
+        "a11y": "{{answer}} para {{item}}",
+        "clearHint": "Seleccionado. Toque dos veces para borrar."
+      },
+      "na": {
+        "notAllowed": "N/A no se permite en este punto."
+      },
+      "item": {
+        "required": "Obligatorio",
+        "optional": "Opcional",
+        "photoNeeded": "Se necesita foto si falla",
+        "failedBefore": "Falló la última vez",
+        "guidanceA11y": "Ver el estándar de {{item}}",
+        "detailsNeeded": "Faltan los detalles del problema antes de aprobar",
+        "issueRecorded": "Problema registrado",
+        "severityNeeded": "Elige una gravedad",
+        "editIssue": "Editar problema",
+        "editIssueA11y": "Editar el problema de {{item}}",
+        "photoAttached": "Foto adjunta",
+        "photoRequiredMissing": "Falta la foto",
+        "photoLost": "Falta el archivo de la foto",
+        "photoThumbA11y": "Foto de {{item}}"
+      },
+      "note": {
+        "add": "Agregar nota",
+        "addA11y": "Agregar una nota a {{item}}",
+        "placeholder": "Nota (opcional)",
+        "requiredPlaceholder": "¿Por qué no aplica?",
+        "required": "Se requiere una nota para N/A.",
+        "a11y": "Nota de {{item}}"
+      },
+      "save": {
+        "none": "Las respuestas se guardan en este teléfono mientras avanza",
+        "saving": "Guardando borrador…",
+        "saved": "Borrador guardado · {{time}}",
+        "savedNoTime": "Borrador guardado",
+        "failed": "No se pudo guardar el borrador",
+        "retry": "Reintentar",
+        "retryA11y": "Reintentar guardar el borrador"
+      },
+      "review": {
+        "cta": "Revisar inspección",
+        "missing": "Falta responder {{count}} punto obligatorio",
+        "missing_plural": "Faltan por responder {{count}} puntos obligatorios",
+        "naNote": "Agregue una nota a la respuesta N/A antes de revisar.",
+        "naNotAllowed": "N/A no se permite en uno de los puntos. Elija otra respuesta.",
+        "noAnswers": "Revise al menos un punto primero."
+      },
+      "reviewScreen": {
+        "title": "Revisión · Habitación {{room}}",
+        "readOnly": "Este es un resumen de solo lectura. No se ha enviado nada y el estado de la habitación no ha cambiado.",
+        "count": {
+          "passA11y": "{{count}} aprobados",
+          "failA11y": "{{count}} con problemas",
+          "naA11y": "{{count}} no aplican",
+          "missing": "Evidencia faltante",
+          "missingA11y": "{{count}} con evidencia obligatoria faltante"
+        },
+        "issues": "Problemas",
+        "noIssues": "Todavía no hay problemas registrados.",
+        "notApplicable": "No aplica",
+        "needsDetails": "Aún faltan los detalles del problema.",
+        "needsPhoto": "Aún falta una foto.",
+        "optionalLeft": "{{count}} punto opcional sin revisar",
+        "optionalLeft_plural": "{{count}} puntos opcionales sin revisar",
+        "outstanding": "{{count}} problema aún necesita detalles antes de poder aprobar esta inspección.",
+        "outstanding_plural": "{{count}} problemas aún necesitan detalles antes de poder aprobar esta inspección.",
+        "back": "Volver a la lista",
+        "reviewed": "Revisados",
+        "reviewedCount": "{{reviewed}} de {{total}}",
+        "blockedTitle": "Se requiere corrección",
+        "blockedBody": "La habitación no se puede liberar mientras haya un problema sin resolver.",
+        "severityNeeded": "Aún falta la gravedad.",
+        "photoAttached": "1 foto adjunta",
+        "photoLost": "Falta el archivo de la foto. Tómala de nuevo.",
+        "goToItem": "Ir al punto",
+        "goToItemA11y": "Ir a {{item}} en la lista",
+        "correction": "Corrección",
+        "correctionDetails": "Detalles",
+        "correctionDetailsA11y": "Ver el plan de corrección",
+        "passedBanner": "Todos los estándares obligatorios revisados",
+        "recheck": "Elementos que fallaron antes",
+        "standing": {
+          "fixed": "Corregido",
+          "still_failing": "Sigue fallando",
+          "not_applicable": "No aplica",
+          "unchecked": "Aún sin revisar"
+        },
+        "notes": "Notas del inspector",
+        "notesPlaceholder": "Notas opcionales"
+      },
+      "saveExit": {
+        "title": "¿Guardar el borrador de la inspección?",
+        "room": "Habitación {{room}}",
+        "keep": "Seguir inspeccionando",
+        "save": "Guardar y salir",
+        "discard": "Descartar borrador",
+        "exitUnsaved": "Salir sin guardar",
+        "failed": "No se pudo guardar el borrador en este teléfono. Sus respuestas siguen aquí. Reintente o salga sin guardar."
+      },
+      "discard": {
+        "title": "¿Descartar este borrador?",
+        "body": "Sus respuestas de la habitación {{room}} se borrarán de este teléfono. No se puede deshacer.",
+        "keep": "Conservar borrador",
+        "confirm": "Descartar borrador",
+        "failed": "No se pudo borrar el borrador. No se cambió nada."
+      },
+      "resume": {
+        "title": "¿Reanudar la inspección?",
+        "resume": "Reanudar inspección",
+        "startOver": "Empezar de nuevo",
+        "lastSaved": "Último guardado {{time}}",
+        "error": "No se pudo verificar la habitación ahora. Revise su conexión e intente de nuevo."
+      },
+      "startOver": {
+        "title": "¿Empezar de nuevo?",
+        "body": "Esto borra la {{count}} respuesta guardada de la habitación {{room}} y empieza una inspección nueva.",
+        "body_plural": "Esto borra las {{count}} respuestas guardadas de la habitación {{room}} y empieza una inspección nueva.",
+        "keep": "Conservar borrador",
+        "confirm": "Empezar de nuevo"
+      },
+      "more": {
+        "title": "Opciones de inspección",
+        "context": "Contexto de la habitación",
+        "contextHint": "Detalles de la habitación, notas, órdenes de trabajo y última inspección",
+        "saveExit": "Guardar y salir",
+        "saveExitHint": "Guarda este borrador y regresa"
+      },
+      "context": {
+        "title": "Habitación {{room}} · Contexto",
+        "roomInfo": "Información de la habitación",
+        "roomType": "Tipo de habitación",
+        "location": "Ubicación",
+        "cleanType": "Tipo de limpieza",
+        "status": "Estado",
+        "statusValue": "Limpia · pendiente de inspección",
+        "cleaning": "Detalles de la limpieza",
+        "cleaner": "Limpiada por",
+        "notRecorded": "No registrado",
+        "completed": "Terminada",
+        "duration": "Tiempo empleado",
+        "minutes": "{{count}} min",
+        "minutes_plural": "{{count}} min",
+        "cleanChecklist": "Lista de limpieza",
+        "cleanChecklistValue": "{{done}} de {{total}} hechos",
+        "noSession": "No se registró una sesión de limpieza correspondiente.",
+        "notes": "Notas recientes",
+        "noNotes": "No hay notas en esta habitación.",
+        "moreNotes": "{{count}} nota anterior no se muestra",
+        "moreNotes_plural": "{{count}} notas anteriores no se muestran",
+        "orders": "Órdenes de trabajo abiertas",
+        "noOrders": "No hay órdenes de trabajo abiertas.",
+        "noOrdersMaybe": "No hay órdenes abiertas en los registros más recientes. Puede haber anteriores.",
+        "moreOrders": "{{count}} orden de trabajo abierta más",
+        "moreOrders_plural": "{{count}} órdenes de trabajo abiertas más",
+        "orderNumber": "N.º {{number}}",
+        "orderStatus": {
+          "open": "Abierta",
+          "escalated": "Escalada",
+          "in_progress": "En curso",
+          "on_hold": "En espera"
+        },
+        "previous": "Inspección anterior",
+        "noPrevious": "No hay inspecciones registradas en los últimos {{days}} días.",
+        "previousResult": "Resultado",
+        "previousWhen": "Cuándo",
+        "previousBy": "Inspector",
+        "viewRoom": "Ver habitación",
+        "loading": "Cargando…",
+        "notAvailable": "No disponible",
+        "error": {
+          "network": "No se pudo cargar. Revise su conexión.",
+          "unauthorized": "No tiene acceso a esto.",
+          "server": "No se pudo cargar en este momento."
+        }
+      },
+      "guidance": {
+        "title": "Estándar de la lista",
+        "standard": "Estándar",
+        "required": "Punto obligatorio",
+        "optional": "Punto opcional",
+        "photo": "Se necesita una foto si esto falla.",
+        "naAllowed": "Se permite N/A.",
+        "naNotAllowed": "No se permite N/A."
+      },
+      "notice": {
+        "stale_draft_cleared": "Se borró un borrador guardado de una limpieza anterior de esta habitación porque ya no aplica.",
+        "draft_corrupt": "No se pudo leer un borrador guardado y se eliminó."
+      },
+      "unavailable": {
+        "signed_out": {
+          "title": "Sesión cerrada",
+          "body": "Inicie sesión para inspeccionar habitaciones."
+        },
+        "invalid_link": {
+          "title": "Este enlace no es válido",
+          "body": "Abra la habitación desde la lista de Inspecciones."
+        },
+        "queue_failed": {
+          "title": "No se pudo verificar la habitación",
+          "body": "No se pudo confirmar el estado de la habitación ahora. Revise su conexión e intente de nuevo."
+        },
+        "needs_connection": {
+          "title": "Conéctese para empezar",
+          "body": "Para empezar o reanudar una inspección hay que confirmar en vivo que la habitación sigue esperando. Los borradores guardados se quedan en este teléfono."
+        },
+        "not_awaiting": {
+          "title": "No está pendiente de inspección",
+          "body": "Es posible que ya se haya inspeccionado o que se esté limpiando de nuevo. No se cambió nada."
+        },
+        "templates_failed": {
+          "title": "No se pudo cargar la lista",
+          "body": "La lista de verificación no se pudo cargar ahora. Revise su conexión e intente de nuevo."
+        },
+        "template": {
+          "title": "Lista no disponible"
+        },
+        "read_failed": {
+          "title": "No se pudo buscar un borrador guardado",
+          "body": "No se pudo leer el avance guardado en este teléfono. Reintente o continúe sin él. Un borrador ya guardado de esta habitación podría reemplazarse.",
+          "continue": "Continuar sin él"
+        }
+      },
+      "blocked": {
+        "not_awaiting": {
+          "title": "La habitación {{room}} ya no está pendiente",
+          "body": "Otro supervisor pudo haberla inspeccionado o se está limpiando de nuevo. Su borrador se queda en este teléfono. No se envió nada."
+        },
+        "room_changed": {
+          "title": "La habitación {{room}} cambió",
+          "body": "Se limpió de nuevo, o cambió la falla que se está revisando, así que estas respuestas ya no aplican. Su borrador se queda en este teléfono."
+        },
+        "template_changed": {
+          "title": "La lista no está disponible",
+          "body": "La lista de esta habitación se eliminó o no se puede usar. Su borrador se queda en este teléfono. No se envió nada."
+        },
+        "other_day": {
+          "title": "Empezó un nuevo día",
+          "body": "Esta inspección empezó en un día anterior, así que no se puede continuar. Su borrador se queda en este teléfono."
+        }
+      },
+      "templateChanged": {
+        "title": "La lista cambió",
+        "body": "La lista de esta habitación se editó, así que sus respuestas no pueden contar para la nueva tal como están. Revise lo que se conserva.",
+        "carried": "{{count}} respuesta sigue coincidiendo",
+        "carried_plural": "{{count}} respuestas siguen coincidiendo",
+        "dropped": "{{count}} respuesta ya no aplica",
+        "dropped_plural": "{{count}} respuestas ya no aplican",
+        "needed": "Falta responder {{count}} punto obligatorio",
+        "needed_plural": "Faltan por responder {{count}} puntos obligatorios",
+        "keep": "Conservar respuestas que coinciden",
+        "continue": "Continuar con la lista nueva"
+      },
+      "issue": {
+        "title": "Reportar problema",
+        "titleEdit": "Editar problema",
+        "context": "Habitación {{room}} · {{section}}",
+        "noteLabel": "¿Qué está mal?",
+        "notePlaceholder": "Describe lo que encontraste, p. ej. Faltan dos toallas de baño.",
+        "noteA11y": "Descripción del problema de {{item}}",
+        "noteCount": "{{count}} de {{max}}",
+        "noteTooLong": "Máximo {{max}} caracteres.",
+        "severityLabel": "Gravedad",
+        "severityRequired": "Elige Leve o Grave.",
+        "severity": {
+          "minor": "Leve",
+          "major": "Grave",
+          "minorHint": "Un retoque pequeño, como toallas faltantes o un poco de polvo.",
+          "majorHint": "Una falla importante, como un baño sin higienizar o un riesgo de seguridad.",
+          "a11y": "{{severity}}. {{hint}}"
+        },
+        "photoLabel": "Foto",
+        "photoRequired": "Este estándar requiere foto",
+        "photoOptional": "La foto es opcional para este estándar",
+        "photoRequiredLater": "Puedes guardar ahora. Se necesita una foto para terminar la inspección.",
+        "correctionLabel": "Corrección",
+        "correctionValue": "Corrección de limpieza",
+        "correctionHint": "Al enviar la inspección, la tarea de corrección va a la camarera que limpió la habitación. Los problemas de ingeniería no se envían desde una inspección; repórtalos como orden de trabajo.",
+        "save": "Guardar problema",
+        "saveFailed": "No se pudo guardar este problema. Inténtalo de nuevo.",
+        "unsavedTitle": "¿Descartar los cambios?",
+        "unsavedBody": "Este problema tiene cambios sin guardar.",
+        "keepEditing": "Seguir editando",
+        "discardChanges": "Descartar cambios"
+      },
+      "photo": {
+        "add": "Agregar foto",
+        "replace": "Reemplazar foto",
+        "remove": "Quitar foto",
+        "take": "Tomar foto",
+        "library": "Elegir de la galería",
+        "cancel": "Cancelar",
+        "working": "Preparando la foto…",
+        "retry": "Reintentar",
+        "openSettings": "Abrir Ajustes",
+        "thumbA11y": "Foto de {{item}}. Toca dos veces para verla más grande.",
+        "addA11y": "Agregar una foto de {{item}}",
+        "replaceA11y": "Reemplazar la foto de {{item}}",
+        "removeA11y": "Quitar la foto de {{item}}",
+        "viewerTitle": "Foto",
+        "viewerClose": "Cerrar foto",
+        "viewerA11y": "Foto a tamaño completo de {{item}}",
+        "lost": "Esta foto ya no está en el teléfono. Reemplázala o quítala.",
+        "error": {
+          "permission_denied": "Se necesita acceso a la cámara para tomar una foto. Permítelo o elige una foto de tu galería.",
+          "permission_blocked": "El acceso a la cámara está desactivado para PatelRep. Actívalo en Ajustes o elige de tu galería.",
+          "camera_unavailable": "La cámara no está disponible en este dispositivo. Elige una foto de tu galería.",
+          "picker_failed": "No se pudo abrir tu galería de fotos. Inténtalo de nuevo.",
+          "unsupported": "Ese archivo no es una foto compatible. Usa una imagen JPEG, PNG, WebP o HEIC.",
+          "too_large": "Esa foto sigue siendo demasiado grande incluso reducida. Elige otra.",
+          "convert_failed": "No se pudo preparar esa foto. Inténtalo de nuevo o elige otra.",
+          "save_failed": "No se pudo guardar la foto en este teléfono. Libera espacio e inténtalo de nuevo."
+        }
+      },
+      "changeAnswer": {
+        "title": "¿Quitar este problema?",
+        "body": "Al cambiar esta respuesta se eliminan la descripción, la gravedad y la foto del problema.",
+        "confirm": "Cambiar respuesta",
+        "keep": "Mantener problema"
+      },
+      "correction": {
+        "title": "Plan de corrección",
+        "intro": "Esto es lo que ocurre al enviar la inspección. Todavía no se ha creado nada.",
+        "track": "Corrección de limpieza",
+        "owner": "Asignada a",
+        "ownerExpected": "{{name}}, quien limpió esta habitación",
+        "ownerUnknown": "La camarera registrada para esta habitación. El servidor confirma quién al enviar.",
+        "ownerNote": "Estar asignada no significa que ya lo haya visto.",
+        "kind": "Tipo",
+        "kindTouchUp": "Retoque",
+        "kindReclean": "Limpieza completa",
+        "kindUndecided": "Se decide cuando cada problema tenga gravedad.",
+        "priority": "Prioridad",
+        "priorityValue": "Urgente, se define automáticamente",
+        "steps": "Qué hay que corregir",
+        "noInstruction": "Sin descripción.",
+        "status": "Pendiente del envío final",
+        "limits": "El responsable, la prioridad y el mensaje no se pueden cambiar desde aquí, y los defectos de ingeniería no se envían desde una inspección.",
+        "summary": "Limpieza · {{name}}",
+        "summaryUnknown": "Limpieza · camarera original"
+      }
+    },
+    "drawer": {
+      "title": "Habitación {{room}} · Corrección",
+      "statusLabel": "Estado",
+      "issue": "Problema",
+      "severity": "Gravedad: {{severity}}",
+      "photoA11y": "Foto de la inspección original: {{item}}",
+      "assignedTo": "Asignada a",
+      "priority": "Prioridad",
+      "priorityValue": {
+        "urgent": "Urgente",
+        "normal": "Normal",
+        "low": "Baja"
+      },
+      "activity": "Actividad",
+      "pending": {
+        "assign": "Pendiente: alguien debe encargarse de esta corrección",
+        "work": "Pendiente: el trabajo de corrección y luego la verificación",
+        "reinspect": "Pendiente: su reinspección"
+      },
+      "failure": {
+        "owner_ineligible": "No se le puede asignar esta corrección a esa persona.",
+        "correction_changed": "Alguien cambió esta corrección antes. Se recargó; revísela e intente de nuevo.",
+        "correction_closed": "Esta corrección ya está resuelta.",
+        "correction_missing": "La tarea de corrección aún no existe. Solicite primero la corrección.",
+        "forbidden": "No tiene permiso para cambiar esta corrección.",
+        "not_found": "Ya no se encuentra esta corrección.",
+        "no_response": "No hubo respuesta del servidor. Se recargó la corrección para que vea cómo está.",
+        "server": "Algo salió mal. No podemos confirmar ningún cambio; intente de nuevo."
+      },
+      "escalateConfirm": "¿Escalar esta corrección? Se marca como escalada y se registran su nombre y la hora.",
+      "escalate": "Escalar",
+      "reassign": "Reasignar",
+      "escalated": "Corrección escalada."
+    },
+    "reassign": {
+      "title": "Habitación {{room}} · Asignar corrección",
+      "intro": "Elija quién debe hacer esta corrección. Se listan las camareras y supervisores activos de su hotel.",
+      "loading": "Cargando personas…",
+      "failed": "No se pudo cargar la lista de personas.",
+      "empty": "No se encontraron personas elegibles para este hotel.",
+      "current": "Responsable actual",
+      "assign": "Asignar",
+      "done": "Corrección asignada.",
+      "role": {
+        "housekeeper": "Camarera",
+        "housekeeping_supervisor": "Supervisor"
+      }
+    },
+    "correctionsSummary": {
+      "needsAttention": "Requiere atención",
+      "needsAttentionA11y": "Requiere atención: {{count}}",
+      "withHousekeepers": "Con las camareras",
+      "withHousekeepersA11y": "Con las camareras: {{count}}",
+      "readyToReinspect": "Lista para reinspección",
+      "readyToReinspectA11y": "Lista para reinspección: {{count}}"
+    },
+    "activity": {
+      "someone": "alguien",
+      "other": "Actualización registrada",
+      "inspection_failed": "Inspección fallida",
+      "inspection_failed_by": "Inspección fallida por {{actor}}",
+      "correction_created": "Corrección creada",
+      "correction_created_by": "Corrección creada por {{actor}}",
+      "reassigned": "Reasignada a {{assignee}}",
+      "reassigned_by": "Reasignada a {{assignee}} por {{actor}}",
+      "escalated": "Escalada",
+      "escalated_by": "Escalada por {{actor}}",
+      "work_started": "Trabajo iniciado",
+      "work_started_by": "Trabajo iniciado por {{actor}}",
+      "work_submitted": "Trabajo corregido enviado",
+      "work_submitted_by": "Trabajo corregido enviado por {{actor}}",
+      "task_completed": "Tarea completada",
+      "task_completed_by": "Tarea completada por {{actor}}",
+      "reinspection_passed": "Reinspección aprobada",
+      "reinspection_passed_by": "Reinspección aprobada, verificada por {{actor}}",
+      "reinspection_failed": "Reinspección fallida",
+      "reinspection_failed_by": "Reinspección fallida, revisada por {{actor}}"
+    },
+    "reinspect": {
+      "kicker": "Verificación de la corrección",
+      "submittedBy": "Trabajo corregido enviado por {{name}} a las {{time}}",
+      "submitted": "Trabajo corregido enviado a las {{time}}",
+      "original": "{{count}} problema original",
+      "original_plural": "{{count}} problemas originales",
+      "originalNote": "Original: {{note}}",
+      "check": "Revisar",
+      "checkA11y": "Ir a {{item}} en la lista",
+      "notOnChecklist": "Ya no está en esta lista",
+      "fullChecklist": "Complete toda la lista. Lo que no haya revisado no cuenta como aprobado."
+    },
+    "history": {
+      "title": "Inspecciones completadas",
+      "result": {
+        "passed": "Aprobada",
+        "failed": "Fallida",
+        "conditional": "Condicional (histórica)",
+        "unknown": "Registrada"
+      },
+      "period": {
+        "today": "Hoy",
+        "yesterday": "Ayer",
+        "7d": "Últimos 7 días",
+        "30d": "Últimos 30 días",
+        "90d": "Últimos 90 días",
+        "custom": "Rango personalizado",
+        "range": "{{from}} – {{to}}",
+        "todayLabel": "Hoy · {{date}}",
+        "yesterdayLabel": "Ayer · {{date}}",
+        "presetLabel": "{{preset}} · {{range}}",
+        "invalid": "Elija un rango de fechas válido"
+      },
+      "toolbar": {
+        "filter": "Filtrar",
+        "filterActive": "Filtrar, {{count}} activos",
+        "removeFilter": "Quitar filtro: {{label}}",
+        "clearAll": "Borrar todo"
+      },
+      "summary": {
+        "passed": "Aprobadas",
+        "failed": "Fallidas",
+        "reinspections": "Reinspecciones",
+        "conditional": "Condicionales (históricas)",
+        "matches": "{{count}} resultado",
+        "matches_plural": "{{count}} resultados",
+        "matchesAtLeast": "Al menos {{count}} resultado",
+        "matchesAtLeast_plural": "Al menos {{count}} resultados",
+        "conditionalLine": "{{count}} resultado condicional histórico, contado aparte.",
+        "conditionalLine_plural": "{{count}} resultados condicionales históricos, contados aparte."
+      },
+      "row": {
+        "floor": "Piso {{floor}}",
+        "roomUnknown": "Habitación no registrada",
+        "a11y": "Habitación {{room}}, {{result}}, {{inspector}}, {{time}}. {{location}}",
+        "a11yReinspection": "Habitación {{room}}, reinspección, {{result}}, {{inspector}}, {{time}}. {{location}}"
+      },
+      "stale": {
+        "offline": "Sin conexión. Estas inspecciones pueden estar desactualizadas.",
+        "failed": "No se pudo actualizar. Estas inspecciones pueden estar desactualizadas."
+      },
+      "states": {
+        "errorTitle": "No se pudo cargar el historial de inspecciones",
+        "errorBody": "No se pudo consultar el historial, así que no se muestra ninguno. Esto no es lo mismo que no haber inspecciones.",
+        "offlineTitle": "Sin conexión",
+        "offlineBody": "Conéctese a internet para cargar el historial de inspecciones.",
+        "noMatchTitle": "Ninguna inspección coincide con estos filtros",
+        "noMatchBody": "Pruebe quitando un filtro o eligiendo un período más largo.",
+        "emptyPeriodTitle": "No hay inspecciones completadas",
+        "emptyPeriodBody": "No se completaron inspecciones en este período: {{period}}.",
+        "invalidRangeTitle": "No se puede usar ese rango de fechas",
+        "loadMore": "Cargar más",
+        "loadingMore": "Cargando más inspecciones",
+        "moreFailed": "No se pudieron cargar más inspecciones.",
+        "end": "Eso es todo: {{count}} inspección.",
+        "end_plural": "Eso es todo: {{count}} inspecciones."
+      },
+      "filter": {
+        "title": "Filtrar historial",
+        "dateRange": "Rango de fechas",
+        "from": "Desde",
+        "to": "Hasta",
+        "dayBefore": "Fecha {{label}}, un día antes",
+        "dayAfter": "Fecha {{label}}, un día después",
+        "result": "Resultado",
+        "resultOption": {
+          "all": "Todos",
+          "passed": "Aprobadas",
+          "failed": "Fallidas",
+          "conditional": "Condicional histórico"
+        },
+        "type": "Tipo de inspección",
+        "typeOption": {
+          "all": "Todas",
+          "initial": "Inicial",
+          "reinspection": "Reinspección"
+        },
+        "room": "Habitación",
+        "roomPlaceholder": "Buscar número de habitación",
+        "roomChip": "Habitación {{room}}",
+        "inspector": "Inspector",
+        "allInspectors": "Todos los inspectores",
+        "inspectorUnnamed": "Inspector no registrado",
+        "inspectorsLoading": "Cargando inspectores…",
+        "inspectorsFailed": "No se pudo cargar la lista de inspectores. Aún puede usar los demás filtros.",
+        "noInspectors": "Nadie realizó inspecciones en este período.",
+        "inspectorChip": "Inspector: {{name}}",
+        "inspectorChipUnknown": "Inspector",
+        "standard": "Estándar fallido",
+        "standardChip": "Fallido: {{label}}",
+        "standardHint": "Solo se listan las inspecciones que fallaron este estándar de la lista. Toque para quitarlo.",
+        "reset": "Restablecer",
+        "apply": "Mostrar resultados",
+        "problem": {
+          "invalid": "Escriba ambas fechas como AAAA-MM-DD.",
+          "reversed": "La fecha de inicio no puede ser posterior a la fecha final.",
+          "future": "La fecha final no puede ser posterior a hoy.",
+          "too_long": "El rango puede abarcar como máximo 366 días."
+        }
+      },
+      "insights": {
+        "title": "Indicadores de calidad",
+        "loading": "Cargando indicadores…",
+        "loadFailed": "No se pudieron cargar los indicadores de calidad de este período.",
+        "staleOffline": "Sin conexión. Estas cifras pueden estar desactualizadas.",
+        "staleFailed": "No se pudo actualizar. Estas cifras pueden estar desactualizadas.",
+        "empty": "No hay inspecciones en este período, así que no hay nada que medir.",
+        "firstPass": "Tasa de aprobación a la primera",
+        "percent": "{{percent}} %",
+        "noRate": "No disponible",
+        "atLeast": "{{count}}+",
+        "truncated": "Este período tiene más inspecciones de las que se pueden resumir a la vez, así que los conteos son un mínimo y no se muestran tasas. Elija un período más corto.",
+        "commonIssues": "Problemas más comunes",
+        "noFailures": "No hubo estándares fallidos en este período.",
+        "noIssueDetail": "Se registraron inspecciones fallidas, pero sin detalle de la lista, así que no se pueden ordenar los estándares.",
+        "removedStandard": "Estándar que ya no está en la lista",
+        "more": "Ver más detalles",
+        "detailsTitle": "Indicadores de calidad",
+        "firstPassOf": "{{passed}} de {{eligible}} primeras inspecciones aprobadas.",
+        "smallSample": "Es un número pequeño de inspecciones, así que tómelo con cautela.",
+        "noInitial": "No hubo primeras inspecciones en este período, así que no hay tasa. Eso no es 0 %.",
+        "firstPassDefinition": "La tasa a la primera cuenta solo primeras inspecciones: aprobadas ÷ (aprobadas + fallidas). No incluye reinspecciones.",
+        "conditionalNote": "{{count}} resultado \"condicional\" antiguo queda fuera de la tasa. No fue ni aprobado ni fallido.",
+        "conditionalNote_plural": "{{count}} resultados \"condicionales\" antiguos quedan fuera de la tasa. No fueron ni aprobados ni fallidos.",
+        "lineageNote": "{{count}} inspección de este período se registró antes de vincular las reinspecciones, así que una repetición entre ellas se cuenta como primera inspección.",
+        "lineageNote_plural": "{{count}} inspecciones de este período se registraron antes de vincular las reinspecciones, así que una repetición entre ellas se cuenta como primera inspección.",
+        "trend": "Tasa diaria a la primera",
+        "noTrend": "Una tendencia necesita primeras inspecciones en al menos dos días. No hay suficientes en este período.",
+        "trendScale": "0–100 %",
+        "trendText": "Día más bajo {{low}} % ({{lowDate}}); más alto {{high}} % ({{highDate}}).",
+        "trendGaps": "Una marca punteada es un día sin primeras inspecciones. No tiene tasa; no es 0 %.",
+        "trendA11y": "Tasa diaria a la primera en {{days}} días, {{withData}} con inspecciones. Más baja {{low}} % el {{lowDate}}, más alta {{high}} % el {{highDate}}.",
+        "sparse": "Solo {{count}} fallaron en este período. Es muy poco para sacar conclusiones.",
+        "drillStandardA11y": "{{label}}, falló {{count}} veces. Mostrar estas inspecciones.",
+        "unidentified": "{{count}} respuesta fallida no se pudo asociar a un estándar de la lista.",
+        "unidentified_plural": "{{count}} respuestas fallidas no se pudieron asociar a un estándar de la lista.",
+        "standardsDefinition": "Cada estándar fallido se cuenta una vez por inspección y se agrupa por el elemento de la lista, no por su redacción.",
+        "repeated": "Problemas repetidos",
+        "sparseRepeats": "No hay suficientes inspecciones fallidas en este período para decir algo sobre repeticiones.",
+        "noRepeats": "Ninguna habitación falló más de una vez en este período.",
+        "roomFailed": "La habitación {{room}} falló {{count}} veces",
+        "drillRoomA11y": "La habitación {{room}} falló {{count}} veces. Mostrar estas inspecciones.",
+        "roomStandard": "Habitación {{room}}: \"{{label}}\" falló {{count}} veces.",
+        "repeatedNote": "Esto muestra dónde se repiten los problemas. No dice nada sobre ninguna persona.",
+        "corrections": "Qué pasó con las fallas",
+        "correctionsVerified": "Verificadas con una reinspección aprobada",
+        "correctionsFailedAgain": "Fallaron de nuevo en la reinspección",
+        "correctionsNone": "Aún sin reinspección registrada",
+        "verificationMedian": "Tiempo típico desde una falla hasta la reinspección aprobada que la verificó: {{hours}} h {{minutes}} min (mediana de {{count}} correcciones verificadas).",
+        "verificationUnavailable": "No hay suficientes correcciones verificadas para mostrar un tiempo típico ({{sample}} de {{minimum}} necesarias).",
+        "verificationDefinition": "Es el tiempo hasta la reinspección aprobada del supervisor, no el tiempo que tardó la camarista.",
+        "completedCount": "{{count}} completadas",
+        "completedCount_plural": "{{count}} completadas",
+        "failedCount": "{{count}} fallida",
+        "failedCount_plural": "{{count}} fallidas",
+        "reinspectionCount": "{{count}} reinspección",
+        "reinspectionCount_plural": "{{count}} reinspecciones",
+        "topIssue": "Problema más común: {{label}} ({{count}})",
+        "summaryAtLeast": "Al menos {{completed}} completadas · {{failed}} fallidas · {{reinspections}} reinspecciones"
+      },
+      "record": {
+        "title": "Detalles de la inspección",
+        "room": "Habitación {{room}}",
+        "when": "{{date}} · {{time}}",
+        "timeNotRecorded": "Hora no registrada",
+        "conditionalNote": "Un resultado \"condicional\" antiguo. No fue ni aprobado ni fallido.",
+        "information": "Información de la inspección",
+        "notRecorded": "No registrado",
+        "info": {
+          "inspector": "Inspector",
+          "housekeeper": "Limpiada por",
+          "template": "Lista",
+          "service": "Servicio",
+          "type": "Inspección"
+        },
+        "service": {
+          "STAY": "Estancia",
+          "DEP": "Salida"
+        },
+        "type": {
+          "initial": "Inspección inicial",
+          "reinspection": "Reinspección"
+        },
+        "issues": "Problemas encontrados",
+        "issuesNotRecorded": "Esta inspección falló, pero no se registraron los estándares fallidos.",
+        "resultFailed": "Resultado: Fallida",
+        "severity": "Gravedad: {{severity}}",
+        "severityNotRecorded": "Gravedad: no registrada",
+        "note": "Nota",
+        "evidence": "Evidencia",
+        "evidenceA11y": "Foto de {{item}}. Toque dos veces para verla más grande.",
+        "evidenceUnavailable": "Foto no disponible. Toque para reintentar.",
+        "evidenceUnavailableA11y": "La foto de {{item}} no está disponible. Toque dos veces para reintentar.",
+        "evidenceGone": "Esta foto ya no está disponible.",
+        "standardRemoved": "Estándar que ya no está en la lista",
+        "correction": "Estado de la corrección",
+        "correctionNote": "La falla original queda registrada, incluso después de que una reinspección posterior apruebe.",
+        "viewVerifying": "Ver la reinspección que la verificó",
+        "viewRepeat": "Ver la reinspección que falló de nuevo",
+        "viewTimeline": "Ver cronología de la corrección",
+        "checklist": "Lista de verificación",
+        "checklistMissing": "Esta inspección antigua no tiene respuestas de la lista. Solo se registró el resultado general; no se asume nada sobre cada estándar.",
+        "sectionOther": "Otros",
+        "sectionTally": "{{passed}}/{{total}}",
+        "sectionA11y": "{{title}}, {{tally}} aprobados, {{na}} no aplican. Toque dos veces para expandir o contraer.",
+        "answerA11y": "{{item}}: {{result}}",
+        "answer": {
+          "pass": "Aprobado",
+          "fail": "Fallido",
+          "na": "N/A",
+          "unknown": "Registrado"
+        },
+        "notes": "Notas del inspector",
+        "noNotes": "No se registraron notas adicionales.",
+        "related": "Inspecciones relacionadas",
+        "noRelated": "No hay otras inspecciones vinculadas a esta.",
+        "relatedFailed": "No se pudieron cargar las inspecciones relacionadas.",
+        "relatedCurrent": "{{role}} (este registro)",
+        "relatedA11y": "{{role}}, {{time}}. Toque dos veces para abrir.",
+        "relatedCurrentA11y": "{{role}}, {{time}}. Este registro.",
+        "stale": "No se pudo actualizar. Este es el último registro que cargamos.",
+        "invalidTitle": "No se puede abrir esta inspección",
+        "invalidBody": "El enlace no indica ninguna inspección.",
+        "backToList": "Volver a inspecciones",
+        "failure": {
+          "not_found": {
+            "title": "Inspección no encontrada",
+            "body": "Esta inspección ya no está en los registros de su hotel, o el enlace es incorrecto."
+          },
+          "forbidden": {
+            "title": "No puede abrir esto",
+            "body": "Su rol no permite ver registros de inspecciones."
+          },
+          "offline": {
+            "title": "Sin conexión",
+            "body": "Conéctese a internet para abrir esta inspección."
+          },
+          "error": {
+            "title": "No se pudo cargar esta inspección",
+            "body": "Algo falló al comunicarse con el servidor. No se cambió nada."
+          }
+        },
+        "viewOriginal": "Ver inspección original"
+      },
+      "timeline": {
+        "title": "Habitación {{room}} · Historial de corrección",
+        "event": {
+          "original": "Inspección original",
+          "inspection_failed": "Inspección fallida",
+          "inspection_passed": "Inspección aprobada",
+          "correction_created": "Corrección creada",
+          "reassigned": "Corrección reasignada",
+          "escalated": "Escalada",
+          "work_started": "Trabajo iniciado",
+          "work_submitted": "Corrección enviada",
+          "task_completed": "Tarea completada",
+          "reinspection_failed": "Reinspección fallida",
+          "reinspection_passed": "Reinspección aprobada, habitación aprobada",
+          "other": "Actualización registrada"
+        },
+        "failedBecause": "Falló: {{items}}",
+        "failedCount": "{{count}} estándar fallido",
+        "failedCount_plural": "{{count}} estándares fallidos",
+        "andMore": "{{items}} y {{count}} más",
+        "by": "por {{name}}",
+        "verifiedBy": "Verificado por {{name}}",
+        "assignedTo": "Asignada a {{name}}",
+        "began": "{{name}} comenzó la corrección",
+        "readyToVerify": "Lista para la verificación del supervisor",
+        "openRecord": "Abrir esta inspección",
+        "thisRecord": "Este registro",
+        "empty": "No se registraron eventos para esta inspección.",
+        "stale": "No se pudo actualizar. Este es el último historial que cargamos.",
+        "truncated": "Este historial es más largo de lo que se puede mostrar a la vez. Solo se lista una parte.",
+        "failure": {
+          "not_found": "No se encuentra esta inspección.",
+          "forbidden": "Su rol no permite ver este historial.",
+          "offline": "Conéctese a internet para cargar este historial.",
+          "error": "No se pudo cargar el historial de corrección."
+        }
+      }
     }
   },
   "tasks": {
@@ -4108,7 +5189,8 @@
       "a11y": {
         "assignedTo": "asignada a {{name}}",
         "assignedUnnamed": "asignada, nombre no disponible"
-      }
+      },
+      "viewWorkload": "Ver en Asignar"
     },
     "header": {
       "kicker": "Housekeeping · Hoy",
@@ -4412,7 +5494,9 @@
         },
         "inspector": "Inspector: {{name}}",
         "inspectorUnknown": "Inspector no registrado",
-        "notes": "Notas: {{notes}}"
+        "notes": "Notas: {{notes}}",
+        "openA11y": "Inspección {{result}}, {{time}}. Toque dos veces para ver todos los detalles.",
+        "openDetails": "Ver todos los detalles"
       },
       "workOrder": {
         "title": "HABITACIÓN {{room}} · ORDEN DE TRABAJO",
@@ -4527,7 +5611,1340 @@
     "lateCoTitle": "Salida tardía",
     "lateCoTime": "El huésped solicitó salir a las {{time}}",
     "lateCoNoTime": "Salida tardía solicitada — hora no especificada",
-    "vipBadge": "VIP"
+    "vipBadge": "VIP",
+    "v2": {
+      "header": {
+        "kicker": "Housekeeping",
+        "today": "Hoy · {{date}}",
+        "todayUnknown": "Hoy",
+        "refresh": "Actualizar asignaciones"
+      },
+      "status": {
+        "loading": "Cargando",
+        "updating": "Actualizando",
+        "live": "En vivo",
+        "stale": "No en vivo",
+        "offline": "Sin internet",
+        "previous_day": "No en vivo",
+        "unavailable": "No disponible"
+      },
+      "metric": {
+        "unassigned": "Sin asignar",
+        "onShift": "En turno",
+        "urgent": "Urgentes",
+        "unknown": "desconocido",
+        "blockedNote": "{{count}} cuarto más necesita revisión antes de asignarse",
+        "blockedNote_plural": "{{count}} cuartos más necesitan revisión antes de asignarse",
+        "onBreak": "En descanso",
+        "needReview": "Por revisar",
+        "atLeast": "al menos"
+      },
+      "tab": {
+        "rooms": "Cuartos",
+        "team": "Equipo"
+      },
+      "search": {
+        "placeholder": "Buscar cuarto, piso, camarera…",
+        "label": "Buscar cuartos por número, piso, edificio o camarera",
+        "clear": "Borrar búsqueda"
+      },
+      "quick": {
+        "all": "Todos",
+        "unassigned": "Sin asignar",
+        "urgent": "Urgentes",
+        "a11y": "{{label}}, {{count}} cuartos"
+      },
+      "list": {
+        "title": "Cuartos que requieren atención"
+      },
+      "sort": {
+        "priority": "Prioridad primero",
+        "roomNumber": "Número de cuarto",
+        "location": "Piso y edificio",
+        "deadline": "Hora de llegada"
+      },
+      "section": {
+        "urgent": "Urgentes · asignar primero",
+        "unassigned": "Listos para asignar",
+        "assigned": "Asignados",
+        "blocked": "Requieren revisión",
+        "count": "{{count}} cuarto",
+        "count_plural": "{{count}} cuartos"
+      },
+      "results": {
+        "showing": "Mostrando {{shown}} de {{total}} cuartos",
+        "sortedBy": "Ordenado por {{sort}}"
+      },
+      "filters": {
+        "open": "Filtros",
+        "title": "Filtrar y ordenar",
+        "reset": "Restablecer",
+        "edit": "Editar filtros",
+        "clearAll": "Borrar todo",
+        "removeChip": "Quitar filtro {{label}}",
+        "apply": "Mostrar {{count}} cuarto",
+        "apply_plural": "Mostrar {{count}} cuartos",
+        "assignment": "Asignación",
+        "priorityTitle": "Prioridad",
+        "cleanTypeTitle": "Tipo de limpieza",
+        "cleanTypeNone": "Tipo no registrado",
+        "statusTitle": "Estado del cuarto",
+        "sortTitle": "Ordenar por",
+        "scope": {
+          "all": "Todos",
+          "unassigned": "Sin asignar",
+          "assigned": "Asignados",
+          "blocked": "Bloqueados"
+        },
+        "priority": {
+          "any": "Todas",
+          "urgent": "Urgentes",
+          "vip": "VIP",
+          "at_risk": "En riesgo"
+        }
+      },
+      "priority": {
+        "guest_waiting": "Huésped esperando",
+        "reclean_requested": "Relimpieza",
+        "rush": "Prioritario",
+        "arrival_passed": "Llegada vencida",
+        "arrival_today": "Llega hoy",
+        "vip": "VIP",
+        "high_risk": "En riesgo"
+      },
+      "card": {
+        "roomLabel": "Cuarto {{room}}",
+        "floor": "Piso {{floor}}",
+        "building": "Edificio {{building}}",
+        "estimate": "{{minutes}} min estimados",
+        "estimateShort": "{{minutes}} min",
+        "unassigned": "Sin asignar",
+        "assigneeUnknown": "Asignado · nombre no disponible",
+        "arrival": "El huésped llega a las {{time}}",
+        "arrivalPassed": "Llegada del huésped vencida · {{time}}",
+        "assign": "Asignar",
+        "viewAssignment": "Ver asignación",
+        "viewReason": "Ver motivo",
+        "view": "Ver cuarto"
+      },
+      "blocker": {
+        "in_progress": "Se está limpiando ahora",
+        "in_progress_unowned": "Se está limpiando ahora · sin responsable registrado",
+        "awaiting_inspection": "Esperando inspección",
+        "guest_ready": "Ya inspeccionado",
+        "out_of_service": "Fuera de servicio",
+        "unknown_status": "Estado no reconocido",
+        "service_declined": "El huésped rechazó el servicio",
+        "return_later": "Volver después de las {{time}}",
+        "dnd": "No molestar",
+        "occupancy_discrepancy": "Recepción y housekeeping no coinciden"
+      },
+      "sheet": {
+        "row": {
+          "assignedTo": "Asignado a",
+          "estimate": "Limpieza estimada",
+          "priority": "Prioridad",
+          "arrival": "Llegada del huésped",
+          "building": "Edificio"
+        },
+        "priorityRoutine": "Rutina",
+        "notes": "Notas operativas",
+        "heldBack": "Este cuarto está retenido hasta que alguien lo revise:",
+        "assign": "Asignar camarera",
+        "reviewAssign": "Revisar y asignar",
+        "openBoard": "Abrir detalle completo en el tablero",
+        "roomGone": "Ese cuarto ya no está en el tablero, así que se cerraron sus detalles.",
+        "frozen": {
+          "in_progress": "Este cuarto se está limpiando, así que no se puede reasignar. Su camarera tiene la sesión.",
+          "awaiting_inspection": "Housekeeping envió este cuarto. Ahora espera inspección.",
+          "guest_ready": "Este cuarto está inspeccionado y listo para huéspedes.",
+          "out_of_service": "Este cuarto está fuera de servicio, así que no se puede asignar.",
+          "unknown_status": "El estado de este cuarto no se reconoce, así que no se puede asignar."
+        }
+      },
+      "empty": {
+        "verifiedEmpty": "No hay cuartos en el tablero de hoy",
+        "verifiedEmptyBody": "El hotel no tiene cuartos en el tablero de hoy. Actualiza para revisar de nuevo.",
+        "queueDone": "Nada espera a una camarera",
+        "queueDoneBody": "Todos los cuartos están limpios, enviados o fuera de servicio.",
+        "scope": "No quedan cuartos elegibles sin asignar.",
+        "viewAll": "Ver todos los cuartos",
+        "blockedOnly": "Estos cuartos requieren otra acción operativa por ahora.",
+        "viewBlocked": "Ver cuartos bloqueados",
+        "search": "Ningún cuarto coincide con “{{query}}”.",
+        "searchFilters": "Ningún cuarto coincide con “{{query}}” con estos filtros.",
+        "filters": "Ningún cuarto coincide con tus filtros."
+      },
+      "state": {
+        "notLiveTitle": "No está en vivo",
+        "staleOffline": "Sin conexión. Se muestran los datos verificados por última vez a las {{time}}. Los cambios de asignación están en pausa.",
+        "staleFailed": "No se pudo actualizar. Se muestran los datos verificados por última vez a las {{time}}. Los cambios de asignación están en pausa.",
+        "staleAge": "Estos datos se verificaron por última vez a las {{time}}. Desliza hacia abajo para actualizar. Los cambios de asignación están en pausa.",
+        "previousDay": "Estos datos son de un día anterior. Actualizando para hoy.",
+        "auxPartial": "No se pudieron verificar algunos detalles (conteo en turno o carga de trabajo). Los cuartos y sus responsables no se ven afectados.",
+        "unavailableOffline": "Sin conexión y sin datos verificados que mostrar. Vuelve a conectarte e inténtalo de nuevo.",
+        "unavailableForbidden": "No tienes acceso a las asignaciones.",
+        "unavailableError": "No se pudo verificar la información actual de los cuartos. No es una lista vacía — inténtalo de nuevo.",
+        "retry": "Reintentar",
+        "actionsPaused": "Los cambios de asignación están en pausa hasta que los datos se verifiquen de nuevo.",
+        "emptyStaleNote": "Según datos de cuartos verificados por última vez a las {{time}}."
+      },
+      "team": {
+        "loadSummary": "{{done}} de {{total}} listos",
+        "attendance": {
+          "on_shift": "En turno",
+          "on_break": "En descanso",
+          "shift_ended": "Turno terminado",
+          "scheduled_not_clocked_in": "Programado",
+          "not_clocked_in": "Sin registrar entrada",
+          "unknown": "Disponibilidad desconocida"
+        },
+        "noWorkload": "Sin carga de limpieza actual",
+        "nothingLeft": "No queda nada por limpiar",
+        "remaining": "{{minutes}} min restantes",
+        "remainingAtLeast": "Al menos {{minutes}} min restantes · falta {{count}} estimación",
+        "remainingAtLeast_plural": "Al menos {{minutes}} min restantes · faltan {{count}} estimaciones",
+        "estimateUnavailable": "Estimaciones de limpieza no disponibles",
+        "capacity": {
+          "over": "Por encima de la capacidad planeada",
+          "at": "En la capacidad planeada",
+          "near": "Cerca de la capacidad",
+          "used": "{{percent}}% de capacidad usada",
+          "noSettings": "Capacidad no disponible",
+          "missingCredits": "Capacidad no disponible · algunas habitaciones no tienen valor de carga",
+          "unavailable": "Capacidad no disponible"
+        },
+        "note": {
+          "shiftEndedOpen": "Turno terminado · {{count}} habitación sigue abierta",
+          "shiftEndedOpen_plural": "Turno terminado · {{count}} habitaciones siguen abiertas",
+          "notClockedInOpen": "Sin registrar entrada · {{count}} habitación abierta",
+          "notClockedInOpen_plural": "Sin registrar entrada · {{count}} habitaciones abiertas",
+          "exceedsShift": "Más trabajo del que cabe en el tiempo de turno restante",
+          "exceedsDay": "Más de una jornada completa de trabajo estimado",
+          "onBreak": "En descanso ahora · no se recomiendan nuevas asignaciones inmediatas",
+          "shiftEndedMixed": "Turno terminado · {{unstarted}} sin iniciar · {{inProgress}} en curso",
+          "notClockedInMixed": "Sin registrar entrada · {{unstarted}} sin iniciar · {{inProgress}} en curso"
+        },
+        "floors": "Pisos {{floors}}",
+        "phase": {
+          "in_progress": "En curso",
+          "not_started": "Sin empezar",
+          "completed": "Completada",
+          "unavailable": "Fuera de servicio",
+          "unknown": "Estado desconocido",
+          "awaitingInspection": "Pendiente de inspección",
+          "inspected": "Inspeccionada"
+        },
+        "noRooms": "Sin habitaciones asignadas",
+        "roomsDone": "{{count}} habitación · {{done}} completadas",
+        "roomsDone_plural": "{{count}} habitaciones · {{done}} completadas",
+        "inProgressCount": "{{count}} en curso",
+        "nameUnavailable": "Nombre no disponible",
+        "highLoad": "Carga alta",
+        "openHint": "Abre los detalles de esta persona",
+        "moreRooms": "+{{count}} más",
+        "showing": "Mostrando {{shown}} de {{total}} personas",
+        "listTitle": "Equipo de limpieza",
+        "sort": {
+          "available": "Más disponibles",
+          "name": "Nombre A–Z",
+          "least_remaining": "Menor carga restante",
+          "most_remaining": "Mayor carga restante",
+          "most_rooms": "Más habitaciones asignadas",
+          "most_completed": "Más habitaciones completadas",
+          "capacity": "Problemas de capacidad"
+        },
+        "sortFallback": "Ordenado por nombre — no se pudo verificar la disponibilidad del personal.",
+        "sortUnverified": "“Más disponibles” requiere verificar la disponibilidad del personal. Mientras tanto, la lista se ordena por nombre.",
+        "search": {
+          "placeholder": "Buscar persona…",
+          "label": "Buscar al personal de limpieza por nombre"
+        },
+        "notice": {
+          "staffListUnavailable": "No se pudo verificar la lista de personal. Solo se muestran las personas con habitaciones asignadas.",
+          "availabilityUnverified": "No se pudo verificar la disponibilidad del personal.",
+          "nobodyOnShift": "Nadie está confirmado en turno ahora mismo.",
+          "capacityUnavailable": "La capacidad de carga no está disponible por ahora, así que se ocultan las cifras de capacidad."
+        },
+        "empty": {
+          "staffListUnavailable": "No se pudo verificar la lista de personal. No es un equipo vacío — inténtalo de nuevo.",
+          "noStaff": "No se encontró personal de limpieza",
+          "noStaffBody": "La lista de personal cargó, pero no tiene personal de limpieza activo para este hotel.",
+          "search": "Nadie coincide con “{{query}}”.",
+          "filters": "Nadie coincide con tus filtros."
+        },
+        "filters": {
+          "title": "Filtrar y ordenar",
+          "attendanceTitle": "Asistencia",
+          "workloadTitle": "Carga de trabajo",
+          "coverageTitle": "Cobertura",
+          "apply": "Mostrar {{count}} persona",
+          "apply_plural": "Mostrar {{count}} personas",
+          "attendance": {
+            "all": "Todo el personal",
+            "on_shift": "En turno",
+            "on_break": "En descanso",
+            "scheduled": "Programado",
+            "not_clocked_in": "Sin registrar entrada",
+            "unknown": "Disponibilidad desconocida",
+            "shift_ended": "Turno terminado"
+          },
+          "workload": {
+            "all": "Todos",
+            "none": "Sin asignaciones",
+            "has": "Con asignaciones",
+            "high_load": "Carga alta",
+            "needs_review": "Por revisar"
+          }
+        },
+        "detail": {
+          "title": "Personal de limpieza",
+          "workloadTitle": "Carga de hoy",
+          "roomsTitle": "Habitaciones asignadas",
+          "assigned": "Asignadas",
+          "completed": "Completadas",
+          "inProgress": "En curso",
+          "notStarted": "Sin empezar",
+          "remaining": "Restante",
+          "credits": "Créditos de carga",
+          "creditsValue": "{{credits}} créditos restantes",
+          "creditsAtLeast": "Al menos {{credits}} créditos restantes",
+          "plannedCapacity": "Capacidad planeada",
+          "target": "{{credits}} créditos",
+          "targetOverride": "{{credits}} créditos (definido para esta persona)",
+          "capacity": "Capacidad",
+          "rooms": "{{count}} habitación",
+          "rooms_plural": "{{count}} habitaciones",
+          "started": "Entrada a las {{time}}",
+          "roomCredits": "{{credits}} créditos",
+          "roomHint": "Abre esta habitación",
+          "noRooms": "No hay habitaciones asignadas a esta persona."
+        }
+      },
+      "assign": {
+        "unnamed": "Nombre no disponible",
+        "thisPerson": "esta persona",
+        "scopeChanged": "El hotel o el día cambió. Vuelve a abrir la habitación para continuar.",
+        "roomGone": "Esa habitación ya no está en el tablero.",
+        "alreadyUnassigned": "La habitación {{room}} ya no tiene asignación.",
+        "success": {
+          "assign": "Habitación {{room}} asignada a {{name}}.",
+          "reassign": "Habitación {{room}} reasignada a {{name}}.",
+          "remove": "La habitación {{room}} ya no tiene asignación."
+        },
+        "load": {
+          "minutes": "{{minutes}} min",
+          "atLeast": "Al menos {{minutes}} min",
+          "noEstimate": "Sin estimación de tiempo",
+          "estimatesMissing": "Falta {{count}} estimación",
+          "estimatesMissing_plural": "Faltan {{count}} estimaciones",
+          "capacity": "Capacidad {{percent}}%",
+          "capacityChange": "Capacidad {{from}}% → {{to}}%"
+        },
+        "warning": {
+          "overCapacity": "Superaría su capacidad de trabajo con este cambio",
+          "overShift": "Más trabajo del que cabe en su turno programado",
+          "fullDay": "Más de un día completo de trabajo"
+        },
+        "attendance": {
+          "on_shift": "En turno",
+          "on_break": "En descanso",
+          "shift_ended": "Turno terminado",
+          "scheduled_not_clocked_in": "Programado, sin marcar entrada",
+          "not_clocked_in": "Sin marcar entrada",
+          "unknown": "Disponibilidad sin verificar"
+        },
+        "ack": {
+          "service_declined": "El huésped rechazó el servicio de limpieza en esta habitación. Asignarla de todos modos.",
+          "return_later": "Hay una hora de regreso registrada para esta habitación y aún no llega. Asignarla de todos modos.",
+          "dnd": "La habitación tiene No molestar activado. Asignarla de todos modos.",
+          "occupancy_discrepancy": "Recepción y limpieza no coinciden sobre si la habitación está ocupada. Asignarla de todos modos.",
+          "attendance_unverified": "No se pudo verificar la asistencia de {{name}}. Asignar de todos modos.",
+          "on_break": "{{name}} está en descanso. Asignar de todos modos.",
+          "not_clocked_in": "{{name}} no ha marcado entrada. Asignar de todos modos.",
+          "shift_ended": "El turno de {{name}} terminó. Asignar de todos modos.",
+          "over_capacity": "Esto deja a {{name}} por encima de su capacidad de trabajo. Asignar de todos modos."
+        },
+        "candidate": {
+          "suggested": "Sugerido",
+          "currentOwner": "Asignada a esta habitación",
+          "currentOwnerHint": "Ya tiene asignada esta habitación",
+          "highLoad": "Carga alta",
+          "currentRemaining": "Restante actual: {{value}}",
+          "afterAssignment": "Después de asignar: {{value}}",
+          "floors": "Piso {{floors}}",
+          "roomNoEstimate": "Esta habitación no tiene estimación de tiempo, así que el total no puede crecer.",
+          "proximity": {
+            "same_floor": "Ya está en este piso",
+            "same_building": "Ya está en este edificio"
+          },
+          "reason": {
+            "most_capacity": "Más capacidad disponible",
+            "least_remaining_time": "Menos trabajo pendiente",
+            "same_floor": "Ya trabaja en este piso",
+            "same_building": "Ya trabaja en este edificio"
+          }
+        },
+        "picker": {
+          "titleAssign": "Asignar habitación {{room}}",
+          "titleReassign": "Reasignar habitación {{room}}",
+          "estimate": "~{{minutes}} min estimados",
+          "noEstimate": "Estimación de tiempo no disponible",
+          "search": "Buscar camarera/o…",
+          "searchLabel": "Buscar personal de limpieza por nombre",
+          "clearSearch": "Borrar búsqueda",
+          "filterOnShift": "En turno · {{count}}",
+          "filterAll": "Todo el personal · {{count}}",
+          "unverified": "No se pudo verificar el turno, así que se muestra a todos sin ese dato. Al elegir a alguien se te pedirá confirmar.",
+          "caption": "Ordenado por disponibilidad y luego por trabajo pendiente",
+          "continue": "Continuar a la revisión",
+          "continueReassign": "Continuar a la revisión",
+          "empty": {
+            "no_staff": "No se encontró personal de limpieza.",
+            "no_on_shift": "Nadie está verificado en turno ahora. Cambia a Todo el personal para elegir a otra persona.",
+            "no_match": "Nadie coincide con \"{{query}}\"."
+          }
+        },
+        "review": {
+          "titleAssign": "Revisar asignación",
+          "titleReassign": "Revisar reasignación",
+          "room": "Habitación",
+          "assignTo": "Asignar a",
+          "currentAssignee": "Asignación actual",
+          "newAssignee": "Nueva asignación",
+          "workloadTitle": "Carga proyectada",
+          "impactTitle": "Efecto en la carga",
+          "currentRemaining": "Restante actual",
+          "newRemaining": "Nuevo restante",
+          "remainingAfter": "Restante después",
+          "roomDelta": "Habitación {{room}}: +{{value}}",
+          "noEstimate": "No hay estimación de tiempo para esta habitación, así que no suma tiempo a la proyección.",
+          "estimateNote": "Las estimaciones no garantizan la hora de finalización.",
+          "checked": "Esta asignación se comprobará con la información actual de la habitación y del personal antes de guardarse.",
+          "ackTitle": "Requiere tu confirmación",
+          "confirmAssign": "Confirmar asignación",
+          "confirmReassign": "Confirmar reasignación",
+          "backToPicker": "Volver al personal",
+          "stage": {
+            "to_clean": "Limpieza sin iniciar",
+            "in_progress": "Limpieza en curso",
+            "awaiting_inspection": "Enviada, en espera de inspección",
+            "guest_ready": "Inspeccionada",
+            "unavailable": "Fuera de servicio",
+            "unknown": "Estado no reconocido"
+          }
+        },
+        "remove": {
+          "title": "Quitar asignación",
+          "assignedTo": "Asignada actualmente a",
+          "status": "Estado de la habitación: {{status}}",
+          "willTitle": "Al quitar esta asignación:",
+          "effect": {
+            "queue": "La habitación vuelve a la cola sin asignar.",
+            "list": "Se quita de la lista de asignaciones activas de {{name}}.",
+            "kept": "Se conservan el tipo de limpieza y el estado operativo de la habitación."
+          },
+          "confirm": "Quitar asignación"
+        },
+        "outcome": {
+          "assignedTitle": "Habitación {{room}} asignada",
+          "reassignedTitle": "Habitación {{room}} reasignada",
+          "removedTitle": "Habitación {{room}} sin asignación",
+          "assignedBody": "Ahora está asignada a {{name}}.",
+          "removedBody": "La habitación volvió a la cola sin asignar.",
+          "refreshFailed": "Guardado. La lista actualizada no está disponible por ahora; desliza hacia abajo para actualizar.",
+          "outOfView": "Esta habitación ya no coincide con tu vista actual, por eso salió de la lista. Es lo esperado.",
+          "done": "Listo",
+          "checkingTitle": "Comprobando el resultado de la asignación",
+          "checkingBody": "No pudimos confirmar si se guardó. No se enviará nada de nuevo: comprueba el resultado antes de hacer otra cosa.",
+          "checkResult": "Comprobar resultado"
+        },
+        "conflict": {
+          "title": "La asignación cambió",
+          "body": "La habitación {{room}} se actualizó mientras la revisabas.",
+          "previous": "Asignación anterior",
+          "current": "Asignación actual",
+          "unassigned": "Sin asignar",
+          "notOnBoard": "No está en el tablero",
+          "notApplied": "Tu cambio no se aplicó.",
+          "reviewAgain": "Actualizar y revisar",
+          "reason": {
+            "assignee_changed": "Otra persona cambió quién tiene esta habitación.",
+            "not_assignable": "El estado de la habitación cambió, así que no se puede asignar ahora.",
+            "acknowledgement_changed": "Cambió una condición de esta habitación y necesita tu revisión.",
+            "room_missing": "La habitación ya no está en el tablero.",
+            "employee_unavailable": "Esa persona ya no puede recibir habitaciones."
+          },
+          "stage": {
+            "in_progress": "La limpieza ya empezó, así que no se puede cambiar la asignación.",
+            "awaiting_inspection": "La habitación se envió a inspección, así que no se puede cambiar su asignación.",
+            "guest_ready": "La habitación ya fue inspeccionada, así que no se puede cambiar su asignación.",
+            "unavailable": "La habitación está fuera de servicio, así que no se puede asignar.",
+            "unknown": "No se reconoce el estado de la habitación, así que no se puede asignar desde aquí.",
+            "to_clean": "El estado de la habitación cambió."
+          }
+        },
+        "error": {
+          "offline": "Sin conexión. Vuelve a conectarte para cambiar asignaciones.",
+          "permission": "Tu cuenta no puede cambiar asignaciones de habitaciones.",
+          "conflict": "La asignación cambió desde que se abrió esta pantalla. Revisa la habitación e inténtalo de nuevo.",
+          "employee_ineligible": "Este empleado ya no puede recibir habitaciones.",
+          "room_unavailable": "Esta habitación ya no está disponible para asignar.",
+          "save_failed": "La asignación no se guardó. No cambió nada; puedes intentarlo de nuevo.",
+          "session": "Tu sesión expiró. Inicia sesión de nuevo.",
+          "unknown_outcome": "No pudimos confirmar si se guardó.",
+          "paused": "Los cambios están en pausa hasta que el tablero esté en vivo y tengas conexión.",
+          "blocked": "Esta habitación no se puede asignar ahora.",
+          "not_ready": "Este cambio no se puede preparar con el tablero actual. Cierra y vuelve a abrir la habitación.",
+          "still_unknown": "Aún no podemos confirmar el resultado. Vuelve a comprobar en un momento, o cierra esto y revisa la habitación.",
+          "acks_missing": "Confirma cada punto de arriba antes de asignar."
+        },
+        "team": {
+          "assignMore": "Asignar más habitaciones",
+          "chooserTitle": "Asignar una habitación a {{name}}",
+          "chooserCaption": "Habitaciones sin asignar, las más urgentes primero",
+          "chooserEmpty": "Ahora no hay ninguna habitación sin asignar lista para asignarse.",
+          "roomLabel": "Habitación {{room}}",
+          "heldBack": "Requiere revisión antes de poder asignarse"
+        }
+      },
+      "bulk": {
+        "select": "Seleccionar habitaciones",
+        "selectHint": "Elige varias habitaciones para asignarlas juntas.",
+        "title": "Seleccionar habitaciones",
+        "cancel": "Cancelar selección",
+        "selectAll": "Seleccionar todas",
+        "selectAllHint": "Selecciona las {{count}} habitaciones elegibles que coinciden con tu búsqueda y filtros.",
+        "selectedCount": "{{count}} seleccionada",
+        "selectedCount_plural": "{{count}} seleccionadas",
+        "blockedCount": "{{count}} bloqueada",
+        "blockedCount_plural": "{{count}} bloqueadas",
+        "addedToDraft": "{{count}} habitación añadida al borrador.",
+        "addedToDraft_plural": "{{count}} habitaciones añadidas al borrador.",
+        "paused": "Los cambios están en pausa hasta que el tablero esté verificado y tengas conexión.",
+        "draftDiscardedDay": "Empezó un nuevo día del hotel, así que se descartó tu borrador sin publicar.",
+        "draftDiscardedScope": "Cambiaste de hotel o de cuenta, así que se descartó tu borrador sin publicar.",
+        "scope": {
+          "floor": "Piso {{floor}}",
+          "floorBuilding": "{{building}} · Piso {{floor}}",
+          "noFloor": "Sin piso registrado",
+          "buildingNoFloor": "{{building}} · sin piso",
+          "building": "Edificio {{building}}",
+          "noBuilding": "Sin edificio registrado",
+          "chip": "{{name}} · {{count}}",
+          "a11y": "{{name}}: {{count}} habitaciones elegibles",
+          "hintSelect": "Selecciona las habitaciones elegibles de {{name}}.",
+          "hintClear": "Quita de la selección las habitaciones de {{name}}."
+        },
+        "notice": {
+          "limit": "Puedes seleccionar hasta {{max}} habitaciones a la vez, el máximo que cabe en una publicación.",
+          "notSelectable": "La habitación {{room}} no se puede seleccionar en lote.",
+          "truncated": "Solo se seleccionaron las primeras {{max}} habitaciones, el máximo que cabe en una publicación."
+        },
+        "invalid": {
+          "title": "Cambió {{count}} habitación seleccionada.",
+          "title_plural": "Cambiaron {{count}} habitaciones seleccionadas.",
+          "body": "Quedan fuera hasta que las quites.",
+          "remove": "Quitar de la selección"
+        },
+        "row": {
+          "assigned": "Ya asignada",
+          "assignedTo": "Asignada a {{name}}",
+          "cannotSelect": "No se puede seleccionar",
+          "inDraft": "En el borrador · {{name}}",
+          "selected": "Seleccionada",
+          "notSelected": "No seleccionada",
+          "unavailable": "No se puede seleccionar"
+        },
+        "footer": {
+          "empty": "Selecciona habitaciones para asignarlas juntas.",
+          "summary": "{{count}} habitación seleccionada",
+          "summary_plural": "{{count}} habitaciones seleccionadas",
+          "minutes": "{{minutes}} min estimados",
+          "minutesAtLeast": "Al menos {{minutes}} min estimados",
+          "noEstimate": "Sin estimación registrada",
+          "assign": "Asignar selección",
+          "addToDraft": "Añadir al borrador",
+          "clear": "Borrar"
+        },
+        "indicator": {
+          "changes": "{{count}} cambio sin publicar",
+          "changes_plural": "{{count}} cambios sin publicar",
+          "hint": "Abre la revisión del borrador. Estos cambios aún no están publicados.",
+          "unknown": "Estado de la publicación desconocido",
+          "unknownHint": "Abre el resultado de tu última publicación."
+        },
+        "allocate": {
+          "title": "Asignar {{count}} habitación",
+          "title_plural": "Asignar {{count}} habitaciones",
+          "selectedWork": "Trabajo seleccionado",
+          "estimated": "Total: {{value}}",
+          "excluded": "{{count}} habitación seleccionada queda fuera porque ya no está disponible.",
+          "excluded_plural": "{{count}} habitaciones seleccionadas quedan fuera porque ya no están disponibles.",
+          "how": "¿Cómo se deben asignar?",
+          "mode": {
+            "single": "Una camarera",
+            "singleHint": "Asignar todas las habitaciones a una persona",
+            "distribute": "Repartir entre el equipo",
+            "distributeHint": "Compartir el trabajo entre las personas que elijas"
+          },
+          "housekeepers": "Camareras disponibles",
+          "pickOne": "Elige una camarera. No se elige a nadie por ti.",
+          "pickSome": "Elige las camareras que compartirán el trabajo.",
+          "noStaff": "No hay camareras en la lista para elegir.",
+          "candidate": {
+            "ifAll": "Con las {{count}} habitación: {{value}}",
+            "ifAll_plural": "Con las {{count}} habitaciones: {{value}}",
+            "nearby": "{{count}} de {{total}} habitaciones están en pisos o edificios donde ya trabaja",
+            "nearby_plural": "{{count}} de {{total}} habitaciones están en pisos o edificios donde ya trabaja"
+          },
+          "preview": {
+            "title": "Reparto propuesto",
+            "line": "{{name}} · {{count}} habitación · {{value}}",
+            "line_plural": "{{name}} · {{count}} habitaciones · {{value}}",
+            "missing": "{{count}} habitación no tiene estimación; su tiempo no se cuenta.",
+            "missing_plural": "{{count}} habitaciones no tienen estimación; su tiempo no se cuenta."
+          },
+          "review": "Revisar cambios",
+          "addToDraft": "Añadir al borrador",
+          "stageFailed": "No se pudo añadir ninguna de estas habitaciones. Cierra esto y revisa las habitaciones.",
+          "more": "+{{count}} más"
+        },
+        "review": {
+          "title": "Revisar {{count}} asignación",
+          "title_plural": "Revisar {{count}} asignaciones",
+          "back": "Atrás",
+          "notPublished": "Aún no se ha publicado nada. Estos son cambios propuestos.",
+          "summary": "Resumen de asignaciones",
+          "rooms": "{{count}} habitación",
+          "rooms_plural": "{{count}} habitaciones",
+          "people": "{{count}} camarera",
+          "people_plural": "{{count}} camareras",
+          "estimated": "{{value}}",
+          "kind": {
+            "assign": "{{count}} asignación nueva",
+            "assign_plural": "{{count}} asignaciones nuevas",
+            "reassign": "{{count}} reasignación",
+            "reassign_plural": "{{count}} reasignaciones",
+            "remove": "{{count}} eliminación",
+            "remove_plural": "{{count}} eliminaciones"
+          },
+          "noConflicts": "Sin conflictos que bloqueen",
+          "problemsCount": "{{count}} cambio necesita atención",
+          "problemsCount_plural": "{{count}} cambios necesitan atención",
+          "problems": "Necesita atención",
+          "problem": {
+            "scope_changed": "Habitación {{room}}: este borrador es de otro hotel o de otro día.",
+            "board_unavailable": "Habitación {{room}}: el tablero no se puede verificar ahora.",
+            "room_missing": "Habitación {{room}}: ya no está en el tablero.",
+            "not_assignable": "Habitación {{room}}: ya empezó la limpieza o la habitación está cerrada.",
+            "assignee_changed": "Habitación {{room}}: su asignación cambió desde que la planeaste.",
+            "already_assigned": "Habitación {{room}}: ya está con esa persona.",
+            "employee_unknown": "Habitación {{room}}: la camarera ya no está en la lista de personal.",
+            "soft_blocked": "Habitación {{room}}: ahora está retenida (No molestar, servicio rechazado, volver más tarde o duda de ocupación)."
+          },
+          "removeRoom": "Quitar la habitación {{room}} del borrador",
+          "currentRemaining": "Restante actual",
+          "proposedRemaining": "Restante propuesto",
+          "item": {
+            "assign": "+ Habitación {{room}} · {{detail}}",
+            "reassign": "+ Habitación {{room}} · {{detail}} (de {{name}})",
+            "movedAway": "− La habitación {{room}} pasa a otra persona",
+            "removed": "− La habitación {{room}} queda sin asignar"
+          },
+          "editAllocation": "Editar reparto",
+          "editAllocationFor": "Editar el reparto de {{name}}",
+          "exclusions": "No incluidas",
+          "exclusion": "Habitación {{room}}: {{reason}}",
+          "exclusionReason": {
+            "board_unavailable": "tablero sin verificar",
+            "room_missing": "ya no está en el tablero",
+            "room_blocked": "en limpieza o cerrada",
+            "nothing_to_remove": "nada que quitar",
+            "needs_acknowledgement": "retenida (No molestar, servicio rechazado, volver más tarde o duda de ocupación)",
+            "employee_unknown": "camarera fuera de la lista de personal",
+            "employee_unverifiable": "lista de personal sin verificar",
+            "already_assigned_to_employee": "ya está con esa persona",
+            "no_longer_eligible": "ya no está disponible",
+            "over_limit": "pasa el límite de 150 habitaciones",
+            "insufficient_capacity": "Nadie puede encargarse dentro de los límites de capacidad actuales.",
+            "no_eligible_staff": "No hay ninguna camarera elegible verificada disponible."
+          },
+          "validationHeading": "Validación",
+          "validation": {
+            "rooms_eligible": {
+              "pass": "Habitaciones elegibles",
+              "fail": "{{count}} habitación ya no es elegible",
+              "fail_plural": "{{count}} habitaciones ya no son elegibles",
+              "attention": "{{count}} habitación necesita revisión",
+              "attention_plural": "{{count}} habitaciones necesitan revisión",
+              "unknown": "Elegibilidad de habitaciones desconocida"
+            },
+            "staff_verified": {
+              "pass": "Personal verificado",
+              "fail": "{{count}} camarera no está verificada",
+              "fail_plural": "{{count}} camareras no están verificadas",
+              "attention": "{{count}} camarera necesita tu confirmación",
+              "attention_plural": "{{count}} camareras necesitan tu confirmación",
+              "unknown": "Personal sin verificar"
+            },
+            "ownership_unchanged": {
+              "pass": "Asignaciones sin cambios de responsable",
+              "fail": "{{count}} habitación cambió de responsable",
+              "fail_plural": "{{count}} habitaciones cambiaron de responsable",
+              "attention": "{{count}} habitación cambió de responsable",
+              "attention_plural": "{{count}} habitaciones cambiaron de responsable",
+              "unknown": "No se pudo comprobar el responsable"
+            },
+            "capacity_rules": {
+              "pass": "Reglas de capacidad cumplidas",
+              "fail": "{{count}} camarera supera su capacidad",
+              "fail_plural": "{{count}} camareras superan su capacidad",
+              "attention": "{{count}} camarera supera su capacidad (necesita tu confirmación)",
+              "attention_plural": "{{count}} camareras superan su capacidad (necesitan tu confirmación)",
+              "unknown": "No se pudo comprobar la capacidad (sin ajustes de carga de trabajo)"
+            }
+          },
+          "publish": "Publicar {{count}} asignación",
+          "publish_plural": "Publicar {{count}} asignaciones",
+          "discard": "Descartar borrador",
+          "rebased": "Tras actualizar: {{updated}} actualizadas, {{removed}} quitadas. Revisa estos cambios otra vez antes de publicar.",
+          "blocked": {
+            "empty": "Primero añade habitaciones al borrador.",
+            "scope": "Este borrador es de otro hotel o de otro día.",
+            "board": "El tablero no está verificado ahora.",
+            "problems": "Corrige o quita los cambios que necesitan atención.",
+            "acknowledgements": "Confirma los puntos de arriba para publicar.",
+            "too_many": "Una publicación admite como máximo 150 habitaciones.",
+            "unsendable": "Este borrador no se puede publicar en lote."
+          },
+          "paused": {
+            "offline": "No tienes conexión. Publicar requiere una conexión actual.",
+            "not_live": "Los cambios están en pausa hasta que el tablero se verifique de nuevo."
+          },
+          "unavailable": "El tablero no se puede verificar, así que no hay nada que revisar ahora."
+        },
+        "publishing": {
+          "title": "Publicando asignaciones",
+          "body": "Mantén la app abierta. Nada se confirma hasta que responda el servidor."
+        },
+        "committed": {
+          "title": "Asignaciones publicadas",
+          "confirmed": "{{count}} cambio confirmado",
+          "confirmed_plural": "{{count}} cambios confirmados",
+          "assign": "{{count}} asignación nueva",
+          "assign_plural": "{{count}} asignaciones nuevas",
+          "reassign": "{{count}} reasignación",
+          "reassign_plural": "{{count}} reasignaciones",
+          "remove": "{{count}} eliminación",
+          "remove_plural": "{{count}} eliminaciones",
+          "people": "{{count}} camarera afectada",
+          "people_plural": "{{count}} camareras afectadas",
+          "replayed": "Esto ya se había publicado; este es el resultado original.",
+          "refreshing": "Actualizando el tablero…",
+          "refreshFailed": "Publicado, pero no se pudo actualizar la lista. Desliza hacia abajo para actualizar. Tus asignaciones están confirmadas.",
+          "returnToRooms": "Volver a Habitaciones",
+          "viewTeam": "Ver el Equipo actualizado"
+        },
+        "conflict": {
+          "title": "El plan de asignación cambió",
+          "body": "Algunas habitaciones se actualizaron mientras revisabas.",
+          "nowAssigned": "Habitación {{room}} · ahora asignada a {{name}}",
+          "nowUnassigned": "Habitación {{room}} · ahora sin asignar",
+          "assignmentChanged": "Habitación {{room}} · su asignación cambió",
+          "notAssignable": "Habitación {{room}} · ya empezó la limpieza o la habitación está cerrada",
+          "blocked": "Habitación {{room}} · ahora retenida (No molestar, servicio rechazado o volver más tarde)",
+          "invalidHousekeeper": "Habitación {{room}} · esa camarera no está disponible",
+          "roomMissing": "Habitación {{room}} · ya no está en el tablero",
+          "nothingPublished": "No se publicó ningún cambio de este lote.",
+          "refresh": "Actualizar y revisar",
+          "cancel": "Cancelar",
+          "backToReview": "Volver a la revisión"
+        },
+        "rejected": {
+          "title": "No se publicó nada",
+          "reason": {
+            "invalid_request": "El servidor no aceptó estos cambios. No se cambió nada.",
+            "forbidden": "No tienes permiso para publicar asignaciones. No se cambió nada.",
+            "date_changed": "Estas asignaciones no son del día actual del hotel. No se cambió nada.",
+            "operation_reused": "Esta publicación chocó con una anterior. No se cambió nada nuevo; revisa e inténtalo de nuevo.",
+            "database": "El servidor no pudo guardar las asignaciones y deshizo todo. No se cambió nada.",
+            "session": "Tu sesión caducó antes de enviar nada. Inicia sesión de nuevo; no se cambió nada.",
+            "unavailable": "La publicación no está disponible en este servidor. No se cambió nada."
+          }
+        },
+        "unknown": {
+          "title": "Comprobando el resultado de la publicación",
+          "checking": "Preguntando al servidor si se publicó tu {{count}} cambio. Por favor, no vuelvas a publicar.",
+          "checking_plural": "Preguntando al servidor si se publicaron tus {{count}} cambios. Por favor, no vuelvas a publicar.",
+          "failed": "No se pudo contactar con el servidor. Tu publicación pudo o no haberse realizado. Vuelve a comprobar antes de hacer otra cosa.",
+          "not_found": "El servidor aún no tiene registro de esta publicación, así que no está confirmada. Puedes intentarlo de nuevo con seguridad: la misma solicitud no se puede aplicar dos veces.",
+          "unreadable": "No se pudo leer la respuesta del servidor, así que el resultado sigue sin conocerse. Vuelve a comprobar.",
+          "recovered": "Esta publicación se inició antes de que se cerrara la app.",
+          "noSecond": "No se puede publicar nada más hasta resolver esto.",
+          "check": "Comprobar resultado",
+          "sendAgain": "Intentar publicar de nuevo",
+          "abandon": "No se publicó nada — Aceptar",
+          "close": "Cerrar"
+        },
+        "edit": {
+          "title": "Editar el reparto de {{name}}",
+          "projected": "Restante propuesto",
+          "proposedRooms": "Habitaciones propuestas",
+          "noRooms": "Ahora no hay habitaciones propuestas para esta persona.",
+          "remove": "Quitar",
+          "move": "Mover",
+          "moveRoom": "Mover la habitación {{room}} a otra persona",
+          "moveTo": "Mover la habitación {{room}} a {{name}}",
+          "addRoom": "Añadir otra habitación",
+          "addTo": "Añadir la habitación {{room}} a {{name}}",
+          "nothingToAdd": "Ahora no hay otras habitaciones que se puedan añadir en lote.",
+          "moreRooms": "{{count}} habitación más sin mostrar.",
+          "moreRooms_plural": "{{count}} habitaciones más sin mostrar.",
+          "save": "Guardar cambios del borrador",
+          "cannotAdd": "Esa habitación no se puede añadir ahora.",
+          "cannotMove": "Esa habitación no se puede mover ahora."
+        },
+        "discard": {
+          "title": "¿Descartar este borrador?",
+          "body": "Se perderá {{count}} cambio propuesto. No se ha publicado nada.",
+          "body_plural": "Se perderán {{count}} cambios propuestos. No se ha publicado nada.",
+          "confirm": "Descartar borrador",
+          "keep": "Conservar borrador"
+        },
+        "leave": {
+          "discardTitle": "¿Descartar los cambios de asignación sin publicar?",
+          "discardBody": "Aún no se ha asignado nada. Estos cambios no se guardan en ningún lugar, así que al salir se descartan.",
+          "stayReview": "Quedarme y revisar",
+          "discardLeave": "Descartar y salir",
+          "pendingTitle": "Publicación aún sin confirmar",
+          "pendingBody": "Salir no la cancela. Vuelve a Asignar para ver el resultado confirmado.",
+          "stay": "Quedarme",
+          "leave": "Salir"
+        },
+        "team": {
+          "proposed": "Propuesto tras el borrador: {{value}}"
+        }
+      },
+      "smart": {
+        "entry": {
+          "title": "Smart Balance",
+          "body": "Reparte las asignaciones de habitaciones según la disponibilidad del personal, la carga de trabajo y la prioridad.",
+          "cta": "Crear plan de asignación",
+          "resume": "Continuar tu plan",
+          "resumeBody": "{{count}} cambio propuesto · sin publicar",
+          "resumeBody_plural": "{{count}} cambios propuestos · sin publicar",
+          "hint": "Abre las opciones de planificación. No se asigna nada hasta que revises y publiques.",
+          "paused": {
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "not_live": "El tablero está desactualizado. Actualízalo para crear un plan."
+          }
+        },
+        "setup": {
+          "title": "Smart Balance",
+          "intro": "Crea un plan de asignación propuesto según la disponibilidad del personal, la carga de trabajo y la prioridad. Nada cambia hasta que lo revises y lo publiques.",
+          "close": "Cerrar",
+          "scopeTitle": "¿Qué se debe equilibrar?",
+          "scope": {
+            "unassigned": {
+              "label": "Solo habitaciones sin asignar",
+              "hint": "Habitaciones sin responsable. Las asignaciones existentes no cambian."
+            },
+            "all_unstarted": {
+              "label": "Todo el trabajo elegible sin iniciar",
+              "hint": "También considera habitaciones ya asignadas que aún no se han iniciado.",
+              "warning": "Esto puede mover asignaciones existentes sin iniciar si apruebas el plan. Las habitaciones que se están limpiando nunca se tocan."
+            },
+            "selected": {
+              "label": "Mis habitaciones seleccionadas",
+              "hint": "Solo las habitaciones que seleccionaste en la lista.",
+              "count": "{{count}} habitación seleccionada",
+              "count_plural": "{{count}} habitaciones seleccionadas",
+              "none": "Primero selecciona habitaciones en la lista."
+            }
+          },
+          "prefsTitle": "Preferencias de planificación",
+          "prefsSource": {
+            "loading": "Cargando los ajustes de tu propiedad…",
+            "property": "Los valores iniciales vienen de los ajustes de asignación de tu propiedad. Los cambios aquí solo valen para este plan.",
+            "defaults": "No se pudieron leer los ajustes de tu propiedad, así que se usan los valores estándar. Los cambios aquí solo valen para este plan."
+          },
+          "pref": {
+            "balanceWorkload": "Equilibrar la carga de trabajo",
+            "prioritizeDeadlines": "Priorizar los plazos de los huéspedes",
+            "preferNearby": "Preferir pisos y edificios cercanos",
+            "minimizeReassignment": "Minimizar reasignaciones innecesarias",
+            "protectStarted": "Proteger la limpieza ya iniciada",
+            "always": "Siempre activado"
+          },
+          "staffRule": "Solo reciben habitaciones las personas de limpieza con turno verificado. Quienes están en descanso o fuera de turno se excluyen según los ajustes de tu propiedad.",
+          "preflight": {
+            "rooms": "Se planificará {{count}} habitación",
+            "rooms_plural": "Se planificarán {{count}} habitaciones",
+            "people": "{{count}} persona puede recibir habitaciones",
+            "people_plural": "{{count}} personas pueden recibir habitaciones",
+            "heldBack": "{{count}} habitación retenida (bloqueada)",
+            "heldBack_plural": "{{count}} habitaciones retenidas (bloqueadas)",
+            "truncated": "Un plan cubre como máximo {{count}} habitaciones; primero las más urgentes."
+          },
+          "generate": "Generar vista previa",
+          "generating": "Creando tu plan…",
+          "retry": "Intentar de nuevo",
+          "refresh": "Actualizar el tablero",
+          "blocked": {
+            "board_unavailable": "El tablero aún no se ha cargado. Actualiza e inténtalo de nuevo.",
+            "not_live": "El tablero está desactualizado. Actualízalo antes de crear un plan.",
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "staff_unavailable": "No se pudo cargar la lista del personal. Actualiza la información del equipo antes de crear un plan.",
+            "attendance_unavailable": "No se pudo verificar la disponibilidad del personal. Actualiza la información del equipo antes de crear un plan.",
+            "no_rooms": "Todas las habitaciones elegibles ya están asignadas.",
+            "selection_empty": "Ninguna de las habitaciones seleccionadas se puede planificar.",
+            "no_staff": "Ninguna persona de limpieza está verificada como disponible para nuevas asignaciones."
+          },
+          "failed": {
+            "offline": "Estás sin conexión. Vuelve a conectarte para crear un plan.",
+            "day_changed": "Cambió el día del hotel. Actualiza y crea un plan nuevo.",
+            "permission": "No tienes permiso para crear planes de asignación.",
+            "invalid": "No se aceptó la solicitud del plan. Actualiza el tablero e inténtalo de nuevo.",
+            "unavailable": "No se pudo crear el plan en este momento. No se cambió nada. Inténtalo de nuevo.",
+            "unverified": "No se pudo verificar el plan, así que no se muestra. No se cambió nada. Inténtalo de nuevo."
+          }
+        },
+        "preview": {
+          "title": "Vista previa de Smart Balance",
+          "back": "Atrás",
+          "heading": "Distribución propuesta",
+          "generatedFor": "Generado para {{date}}",
+          "summary": {
+            "planned": "{{count}} habitación planificada",
+            "planned_plural": "{{count}} habitaciones planificadas",
+            "affected": "{{count}} persona afectada",
+            "affected_plural": "{{count}} personas afectadas",
+            "urgent": "{{count}} habitación urgente cubierta",
+            "urgent_plural": "{{count}} habitaciones urgentes cubiertas",
+            "excluded": "{{count}} habitación excluida",
+            "excluded_plural": "{{count}} habitaciones excluidas"
+          },
+          "status": {
+            "fallback": "El optimizador no terminó, así que se usó un método más simple. El plan sigue cumpliendo todas las reglas obligatorias.",
+            "no_safe_plan": "Ninguna distribución cumple los requisitos actuales.",
+            "no_safe_planBody": "No se propone nada. Revisa la disponibilidad y la capacidad del personal, prueba otro alcance o asigna las habitaciones manualmente.",
+            "nothing_to_plan": "No quedó nada por planificar después de volver a comprobar las habitaciones.",
+            "no_staff": "Nadie pudo recibir habitaciones.",
+            "empty": "Este plan no cambia ninguna asignación."
+          },
+          "workload": {
+            "title": "Comparación de carga de trabajo",
+            "before": "Antes",
+            "after": "Después",
+            "gains": "{{count}} nueva",
+            "gains_plural": "{{count}} nuevas",
+            "releases": "{{count}} habitación sale",
+            "releases_plural": "{{count}} habitaciones salen",
+            "admitted": {
+              "on_break": "En descanso — lo confirmarás en la revisión",
+              "not_on_shift": "Fuera de turno — lo confirmarás en la revisión"
+            },
+            "incomplete": "Faltan algunas estimaciones, así que esta comparación está incompleta."
+          },
+          "distribution": {
+            "title": "Distribución de habitaciones propuesta",
+            "new": "{{count}} nueva",
+            "new_plural": "{{count}} nuevas",
+            "moved": "{{count}} pasa a esta persona",
+            "moved_plural": "{{count}} pasan a esta persona",
+            "open": "Ver el plan de {{name}}"
+          },
+          "notes": {
+            "title": "Conviene saber",
+            "missingEstimates": "{{count}} habitación planificada no tiene estimación de tiempo. La comparación de carga está incompleta.",
+            "missingEstimates_plural": "{{count}} habitaciones planificadas no tienen estimación de tiempo. La comparación de carga está incompleta.",
+            "capacityWarning": "{{count}} persona vería una nueva advertencia de carga.",
+            "capacityWarning_plural": "{{count}} personas verían una nueva advertencia de carga.",
+            "unallocated": "{{count}} habitación elegible no se pudo asignar.",
+            "unallocated_plural": "{{count}} habitaciones elegibles no se pudieron asignar.",
+            "urgentUnallocated": "{{count}} habitación urgente no está cubierta.",
+            "urgentUnallocated_plural": "{{count}} habitaciones urgentes no están cubiertas.",
+            "partial": "Se pudieron asignar {{planned}} de {{eligible}} habitaciones elegibles.",
+            "protected": "{{count}} habitación que se está limpiando sigue protegida.",
+            "protected_plural": "{{count}} habitaciones que se están limpiando siguen protegidas.",
+            "preserved": "{{count}} asignación existente queda como está.",
+            "preserved_plural": "{{count}} asignaciones existentes quedan como están.",
+            "moved": "{{count}} asignación existente cambiaría de responsable.",
+            "moved_plural": "{{count}} asignaciones existentes cambiarían de responsable.",
+            "takenOut": "Quitaste {{count}} habitación del plan.",
+            "takenOut_plural": "Quitaste {{count}} habitaciones del plan.",
+            "edited": "{{count}} cambio editado por ti.",
+            "edited_plural": "{{count}} cambios editados por ti.",
+            "truncated": "Este plan cubre las {{count}} habitaciones más urgentes. Planifica de nuevo para el resto.",
+            "unplaceable": "{{count}} cambio propuesto no se puede añadir ahora.",
+            "unplaceable_plural": "{{count}} cambios propuestos no se pueden añadir ahora."
+          },
+          "assumptions": {
+            "unknown_estimate_surrogate": "{{rooms}} habitación(es) no tienen estimación de tiempo. Se repartieron con un valor de planificación de {{minutes}} min que no se muestra como duración.",
+            "capacity_unknown": "Los límites de capacidad de parte del personal se desconocen, así que no se aplicaron.",
+            "credits_incomplete": "Algunas habitaciones no tienen valor en créditos, así que los límites de créditos solo contaron los créditos conocidos."
+          },
+          "why": "{{count}} excluida · Ver por qué",
+          "why_plural": "{{count}} excluidas · Ver por qué",
+          "actions": {
+            "addToDraft": "Añadir al borrador",
+            "adjust": "Ajustar plan",
+            "discard": "Descartar",
+            "refresh": "Actualizar y replanificar",
+            "undo": "Deshacer el último cambio",
+            "hint": "Añade los cambios propuestos a tu borrador sin publicar. No se asigna nada hasta que publiques."
+          },
+          "stale": {
+            "title": "Las asignaciones cambiaron mientras revisabas",
+            "body": "Actualiza y genera un plan nuevo. Este plan no se puede añadir a tu borrador.",
+            "reasons": {
+              "day": "Cambió el día del hotel.",
+              "scope": "Cambiaste de hotel o de cuenta.",
+              "board_unavailable": "El tablero no está disponible.",
+              "attendance_unverified": "Ya no se verifica la disponibilidad del personal.",
+              "settings_changed": "Cambiaron los ajustes de carga de trabajo.",
+              "rooms_changed": "Cambiaron habitaciones: {{rooms}}.",
+              "staff_changed": "Cambió la disponibilidad del personal: {{names}}."
+            }
+          },
+          "paused": {
+            "offline": "Estás sin conexión. Puedes revisar este plan, pero no añadirlo al borrador hasta volver a conectarte.",
+            "not_live": "El tablero está desactualizado. Actualízalo antes de añadir este plan al borrador."
+          }
+        },
+        "detail": {
+          "unnamed": "Persona de limpieza",
+          "proposedRemaining": "Restante propuesto: {{value}}",
+          "existing": "Trabajo existente",
+          "proposed": "Nuevo propuesto",
+          "noneExisting": "No tiene otras habitaciones hoy.",
+          "noneProposed": "No se propone nada para esta persona.",
+          "stage": {
+            "completed": "Completada",
+            "in_progress": "En curso",
+            "not_started": "Sin iniciar"
+          },
+          "status": {
+            "protected": "Protegida",
+            "retained": "Se mantiene",
+            "moving_out": "Pasa a {{name}}"
+          },
+          "kind": {
+            "new": "Nueva",
+            "moved": "Reasignada de {{name}}"
+          },
+          "origin": {
+            "optimizer": "Recomendada",
+            "edited": "Editada por ti"
+          },
+          "noEstimate": "Sin estimación de tiempo",
+          "actions": {
+            "remove": "Quitar",
+            "restore": "Devolver a {{name}}",
+            "move": "Mover",
+            "moveLabel": "Mover la habitación {{room}} a otra persona",
+            "removeLabel": "Quitar la habitación {{room}} del plan",
+            "restoreLabel": "Devolver la habitación {{room}} a su responsable actual",
+            "addAnother": "Añadir otra habitación elegible",
+            "done": "Guardar cambios del plan"
+          },
+          "why": "Por qué",
+          "picker": {
+            "moveTitle": "Mover la habitación {{room}} a…",
+            "addTitle": "Añadir una habitación para {{name}}",
+            "none": "Ninguna otra persona puede recibir habitaciones.",
+            "noRooms": "No hay otras habitaciones elegibles para añadir.",
+            "cancel": "Cancelar",
+            "current": "Actual"
+          },
+          "refusal": {
+            "unknown_room": "Esa habitación ya no está en el plan.",
+            "protected": "Esa habitación se queda con su responsable actual y no se puede cambiar aquí.",
+            "not_a_receiver": "Esa persona no puede recibir habitaciones en este plan.",
+            "same_person": "La habitación ya está planificada para esa persona.",
+            "limit": "Un plan puede tener como máximo 150 cambios.",
+            "not_addable": "Esa habitación no se puede añadir automáticamente.",
+            "already_planned": "Esa habitación ya está en el plan."
+          }
+        },
+        "exceptions": {
+          "title": "Excepciones de planificación",
+          "rooms": "{{count}} habitación excluida",
+          "rooms_plural": "{{count}} habitaciones excluidas",
+          "staffTitle": "Personal excluido",
+          "unallocatedTitle": "Sin asignar",
+          "protectedRow": "{{count}} habitación que se está limpiando está protegida",
+          "protectedRow_plural": "{{count}} habitaciones que se están limpiando están protegidas",
+          "roomLabel": "Habitación {{room}}",
+          "viewRoom": "Ver detalles de la habitación",
+          "viewStaff": "Ver miembro del equipo",
+          "done": "Listo",
+          "empty": "No se excluyó nada de este plan.",
+          "softBody": "Requiere tu decisión en esta habitación; no se puede planificar automáticamente.",
+          "room": {
+            "soft": {
+              "dnd": "No molestar",
+              "service_declined": "Servicio rechazado",
+              "return_later": "Volver más tarde",
+              "occupancy_discrepancy": "Discrepancia de ocupación"
+            },
+            "now_assigned": "Ahora asignada a {{name}}",
+            "now_assigned_unknown": "Ahora asignada a alguien",
+            "no_longer_plannable": "Ya no se puede planificar",
+            "server": {
+              "not_found": "No se encontró en este hotel",
+              "not_assignable": "Ya no está en un estado asignable",
+              "room_blocked": "Bloqueada al comprobarla de nuevo",
+              "owner_changed": "La asignación cambió durante la planificación"
+            }
+          },
+          "staff": {
+            "on_break": "En descanso ahora",
+            "shift_ended": "Turno terminado",
+            "not_on_shift": "Sin registrar entrada",
+            "attendance_unknown": "Disponibilidad sin verificar",
+            "no_capacity": "Sin capacidad disponible",
+            "not_eligible": "No puede recibir habitaciones de limpieza"
+          },
+          "leftOut": {
+            "insufficient_capacity": "No hay capacidad suficiente con los límites actuales",
+            "no_eligible_staff": "No hay personal elegible",
+            "solver_no_solution": "El planificador no pudo asignarla",
+            "taken_out": "La quitaste tú"
+          }
+        },
+        "conflict": {
+          "title": "Tu borrador ya tiene cambios",
+          "body": "{{count}} habitación está en tu borrador y en este plan.",
+          "body_plural": "{{count}} habitaciones están en tu borrador y en este plan.",
+          "merge": "Conservar mis cambios y añadir el resto",
+          "mergeHint": "Las habitaciones que ya están en tu borrador conservan lo que elegiste.",
+          "replace": "Reemplazar mi borrador con este plan",
+          "replaceHint": "Se descartan los cambios actuales de tu borrador.",
+          "cancel": "Cancelar"
+        },
+        "discard": {
+          "title": "¿Descartar este plan?",
+          "body": "Se perderán tus ediciones de este plan. No se ha asignado nada.",
+          "confirm": "Descartar plan",
+          "keep": "Seguir editando"
+        },
+        "draft": {
+          "added": "Se añadió {{count}} habitación a tu borrador",
+          "added_plural": "Se añadieron {{count}} habitaciones a tu borrador",
+          "someRefused": "{{count}} habitación no se pudo añadir y quedó fuera.",
+          "someRefused_plural": "{{count}} habitaciones no se pudieron añadir y quedaron fuera.",
+          "nothingAdded": "No se pudo añadir nada al borrador.",
+          "tooMany": "Un borrador puede tener como máximo {{max}} cambios.",
+          "keptYours": "Se conservaron los cambios de tu borrador."
+        },
+        "why": {
+          "urgent": {
+            "guest_waiting": "Hay un huésped registrado como en espera.",
+            "reclean_requested": "Se pidió una nueva limpieza.",
+            "rush": "Marcada como habitación urgente.",
+            "arrival_passed": "Ya pasó la llegada registrada del huésped.",
+            "arrival_today": "Hay una llegada de huésped registrada para más tarde hoy.",
+            "vip": "Habitación VIP.",
+            "high_risk": "Pronosticada con alto riesgo de no estar lista."
+          },
+          "lowestWorkload": "Tiene la menor carga pendiente ({{minutes}} min conocidos).",
+          "sameFloor": "Ya trabaja en el piso {{floor}}.",
+          "sameBuilding": "Ya trabaja en el edificio {{building}}.",
+          "movedFrom": "Reasignada de {{name}}.",
+          "edited": "Elegiste esta asignación."
+        }
+      },
+      "midshift": {
+        "title": "Reasignar el trabajo de {{name}}",
+        "titleUnnamed": "Reasignar el trabajo de esta persona",
+        "subtitle": "{{count}} habitación asignada",
+        "subtitle_plural": "{{count}} habitaciones asignadas",
+        "close": "Cerrar",
+        "back": "Atrás",
+        "stepOf": "Paso {{step}} de {{total}}",
+        "steps": {
+          "select": "Habitaciones",
+          "destination": "Quién",
+          "review": "Revisar"
+        },
+        "closedScope": "Se cerró la reasignación porque cambió el hotel o el día. No se cambió nada.",
+        "closedGone": "Esta persona ya no está en el tablero verificado. No se cambió nada.",
+        "tooMany": "Una publicación puede llevar como máximo {{max}} habitaciones. Quita algunos cambios primero.",
+        "nothingAdded": "No se pudo agregar ninguna de estas habitaciones. Actualiza e inténtalo de nuevo.",
+        "keptYours": "Se conservaron tus cambios existentes. No se agregó nada nuevo.",
+        "added": "{{count}} cambio agregado a tu plan sin publicar.",
+        "added_plural": "{{count}} cambios agregados a tu plan sin publicar.",
+        "paused": {
+          "offline": "La redistribución no está disponible hasta que se pueda verificar la información actual de habitaciones y personal.",
+          "not_live": "Los cambios están en pausa hasta que se vuelva a verificar el tablero."
+        },
+        "blocked": {
+          "stale": "Algo cambió. Actualiza el plan antes de continuar.",
+          "nothing_selected": "Selecciona al menos una habitación para mover.",
+          "no_destination": "Elige quién se encarga del trabajo.",
+          "nothing_placeable": "Ninguna de las habitaciones seleccionadas se puede asignar ahora."
+        },
+        "action": "Reasignar el trabajo pendiente",
+        "actionHint": "Pasa las habitaciones sin iniciar a otras camareras. Nada cambia hasta que revises y publiques.",
+        "viewRooms": "Ver habitaciones asignadas",
+        "drawer": {
+          "movable": "{{count}} habitación se puede mover · {{value}}",
+          "movable_plural": "{{count}} habitaciones se pueden mover · {{value}}",
+          "staying": "{{count}} habitación se queda con {{name}}: {{detail}}",
+          "staying_plural": "{{count}} habitaciones se quedan con {{name}}: {{detail}}",
+          "held": "{{count}} habitación retenida necesita su propia decisión",
+          "held_plural": "{{count}} habitaciones retenidas necesitan su propia decisión"
+        },
+        "counts": {
+          "completed": "{{count}} terminada",
+          "inProgress": "{{count}} en curso"
+        },
+        "unavailable": {
+          "board_unavailable": "No se pueden verificar las habitaciones y el personal ahora mismo.",
+          "nothing_assigned": "{{name}} no tiene habitaciones asignadas para mover.",
+          "all_held": "Las habitaciones sin iniciar de {{name}} están retenidas (no molestar, servicio rechazado o similar), así que ninguna se puede mover aquí.",
+          "nothing_unstarted": "No hay trabajo sin iniciar para redistribuir."
+        },
+        "attention": {
+          "shift_ended": "{{name}} tiene trabajo asignado sin terminar después de que terminó el turno registrado.",
+          "not_clocked_in": "{{name}} no ha registrado entrada y tiene trabajo asignado sin terminar.",
+          "overloaded": "{{name}} tiene más trabajo asignado del que permite la capacidad verificada."
+        },
+        "select": {
+          "currentWork": "Trabajo actual",
+          "stats": "{{completed}} terminadas · {{inProgress}} en curso · {{notStarted}} sin iniciar",
+          "movableHeading": "Selecciona el trabajo a mover",
+          "protectedHeading": "Se queda con {{name}}",
+          "selectAll": "Seleccionar todas las que se pueden mover",
+          "clearAll": "Borrar selección",
+          "summary": "{{count}} seleccionada · {{value}}",
+          "summary_plural": "{{count}} seleccionadas · {{value}}",
+          "none": "Aún no hay habitaciones seleccionadas.",
+          "invalid": "{{count}} habitación seleccionada ya no se puede mover y se dejó fuera.",
+          "invalid_plural": "{{count}} habitaciones seleccionadas ya no se pueden mover y se dejaron fuera.",
+          "noMovable": "Ninguna habitación se puede mover ahora.",
+          "roomHint": "Toca dos veces para seleccionar o quitar esta habitación",
+          "openBoard": "Abrir el tablero de habitaciones",
+          "reasonHeading": "¿Por qué mueves este trabajo? (opcional)",
+          "reasonNote": "Solo describe tu plan. No cambia la asistencia, no registra la salida de nadie ni anota una ausencia.",
+          "next": "Elegir quién se encarga"
+        },
+        "eligibleTag": "Se puede mover",
+        "protectedTag": "Protegida",
+        "reason": {
+          "left_early": "Se fue temprano",
+          "unavailable": "No disponible",
+          "workload_help": "Ayuda con la carga",
+          "urgent_coverage": "Cobertura urgente",
+          "supervisor_adjustment": "Ajuste de supervisión"
+        },
+        "block": {
+          "dnd": "No molestar",
+          "service_declined": "Servicio rechazado",
+          "return_later": "Volver más tarde",
+          "occupancy_discrepancy": "Discrepancia de ocupación"
+        },
+        "protected": {
+          "in_progress": "La limpieza ya empezó. Verifica el estado actual de la habitación antes de transferir la responsabilidad.",
+          "awaiting_inspection": "Terminada y en espera de inspección.",
+          "guest_ready": "Terminada e inspeccionada.",
+          "held": "Retenida: {{blocks}}. Abre la habitación para decidir qué hacer.",
+          "unavailable": "Fuera de servicio.",
+          "unknown": "Estado no reconocido, así que no se puede mover aquí."
+        },
+        "destination": {
+          "title": "¿Quién se encarga del trabajo?",
+          "movingLine": "{{count}} habitación · {{value}}",
+          "movingLine_plural": "{{count}} habitaciones · {{value}}",
+          "mode": {
+            "team": "Equipo disponible",
+            "teamHint": "Se reparte entre las camareras verificadas en turno, equilibrando su carga actual.",
+            "person": "Una camarera específica",
+            "personHint": "Elige a una persona para que se encargue de todo."
+          },
+          "teamMembers": "Verificadas en turno: {{names}}",
+          "teamNone": "Ahora mismo no hay camareras elegibles verificadas disponibles.",
+          "teamNoneBody": "Solo cuentan como disponibles las personas verificadas en turno. Puedes elegir a una persona específica, cambiar las habitaciones o dejar el trabajo donde está por ahora.",
+          "chooseSpecific": "Elegir una persona específica",
+          "adjustRooms": "Ajustar las habitaciones seleccionadas",
+          "keepAssigned": "Dejar con {{name}} por ahora",
+          "keepNote": "No se mueve nada. Las habitaciones siguen asignadas a {{name}} ({{attendance}}) hasta que resuelvas el personal.",
+          "pickHint": "No hay nadie preseleccionado. La asistencia viene solo de la lista de turnos verificada.",
+          "noStaff": "No hay camareras disponibles para elegir.",
+          "shiftLeft": "Le quedan {{minutes}} min de turno programado",
+          "confirmLater": "Se te pedirá confirmar su asistencia en la revisión.",
+          "next": "Revisar la redistribución"
+        },
+        "review": {
+          "title": "Revisar la redistribución",
+          "notPublished": "Todavía no ha cambiado nada. Agregar al borrador solo prepara estos cambios propuestos; los revisas y los publicas después.",
+          "sourceHeading": "Origen",
+          "destinationHeading": "Nueva asignación",
+          "before": "Antes: {{value}}",
+          "after": "Después: {{value}}",
+          "nothingLeft": "nada pendiente",
+          "moving": "{{count}} habitación propuesta para mover",
+          "moving_plural": "{{count}} habitaciones propuestas para mover",
+          "staysWith": "{{count}} habitación se queda con {{name}}",
+          "staysWith_plural": "{{count}} habitaciones se quedan con {{name}}",
+          "reasonLine": "Motivo: {{reason}}",
+          "leftOutHeading": "No se mueven",
+          "leftOutLine": "Habitación {{room}}: {{reason}}",
+          "partial": "Algunas habitaciones seleccionadas no se pudieron asignar dentro de los límites de capacidad actuales.",
+          "noneMoved": "Ninguna de las habitaciones seleccionadas se pudo asignar.",
+          "missing": "Los totales de carga están incompletos porque faltan algunas estimaciones de limpieza.",
+          "addToDraft": "Agregar cambios al borrador",
+          "edit": "Editar la asignación",
+          "doneEditing": "Terminar de editar",
+          "editSelection": "Cambiar las habitaciones seleccionadas",
+          "move": "Mover",
+          "moveA11y": "Mover la habitación {{room}} a otra persona",
+          "takeOut": "Quitar",
+          "takeOutA11y": "Quitar la habitación {{room}} de este plan",
+          "moveTitle": "Mover la habitación {{room}} a",
+          "cancelMove": "Cancelar"
+        },
+        "changed": {
+          "title": "El plan cambió",
+          "room": {
+            "reassigned": "La habitación {{room}} fue reasignada. Actualiza el plan antes de continuar.",
+            "started": "La habitación {{room}} ya se está limpiando y no se puede reasignar con este flujo.",
+            "completed": "La habitación {{room}} ya se terminó.",
+            "held": "La habitación {{room}} ahora necesita su propia decisión (quedó retenida).",
+            "gone": "Una habitación seleccionada ya no está en el tablero.",
+            "other": "La habitación {{room}} cambió."
+          },
+          "destination": "Cambió la disponibilidad de {{name}}: {{from}} → {{to}}.",
+          "refresh": "Actualizar y revisar el plan"
+        },
+        "conflict": {
+          "title": "Tu plan sin publicar necesita revisión",
+          "body": "{{count}} de estas habitaciones ya tiene un cambio en tu plan de asignación sin publicar.",
+          "body_plural": "{{count}} de estas habitaciones ya tienen cambios en tu plan de asignación sin publicar.",
+          "replace": "Reemplazar esos cambios",
+          "replaceHint": "Los movimientos de este plan los sobrescriben. Tus otros cambios se quedan.",
+          "keep": "Conservar mis cambios existentes",
+          "keepHint": "Solo se agregan las demás habitaciones.",
+          "cancel": "Volver"
+        },
+        "note": {
+          "title": "Redistribución a mitad de turno · {{count}} habitación de {{names}}",
+          "title_plural": "Redistribución a mitad de turno · {{count}} habitaciones de {{names}}",
+          "reason": "Motivo: {{reason}}"
+        },
+        "leftOut": {
+          "insufficient_capacity": "Nadie puede encargarse dentro de los límites de capacidad actuales.",
+          "no_eligible_staff": "No hay ninguna camarera elegible verificada disponible para esta habitación."
+        },
+        "attentionTitle": "Atención"
+      },
+      "link": {
+        "roomMissing": "Ese cuarto no está en el tablero de este hotel ahora. Puede que se haya eliminado o que pertenezca a otra propiedad.",
+        "staffMissing": "Esa persona no está en la lista del equipo de este hotel ahora, así que no se pueden mostrar sus datos."
+      }
+    }
   },
   "supervisorHandoff": {
     "title": "Entrega de turno",

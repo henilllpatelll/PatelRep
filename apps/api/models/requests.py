@@ -569,6 +569,9 @@ class CopilotChatRequest(SanitizedBaseModel):
 # --- Housekeeping ---
 CleanType = Literal["DEP", "FULL", "LIGHT"]
 
+# Conditions that make a still-unstarted room a supervisor's decision rather than a default (Assignments V2).
+AssignmentSoftBlock = Literal["service_declined", "return_later", "dnd", "occupancy_discrepancy"]
+
 
 class RoomAssignmentItem(SanitizedBaseModel):
     room_id: UUID4
@@ -583,6 +586,12 @@ class RoomAssignmentItem(SanitizedBaseModel):
     # silently overwriting. Omit both for the original unconditional upsert (web, AI assignment).
     expected_assigned_to: Optional[UUID4] = None
     expect_unassigned: bool = False
+    # Opt-in acknowledgement check for conditional items. Omitted (null) = the original behaviour. Sent (even as
+    # an empty list) = the server recomputes the room's soft blocks (DND, declined service, return-later,
+    # occupancy discrepancy) and refuses with 409 `acknowledgement_required` unless every one is listed here.
+    # The list is the supervisor's statement, never an authorization by itself: a hard block (started, finished,
+    # out of service) is refused whatever is acknowledged.
+    acknowledged_blocks: Optional[List[AssignmentSoftBlock]] = Field(default=None, max_length=4)
 
 
 class CreateAssignmentsRequest(SanitizedBaseModel):
@@ -592,11 +601,186 @@ class CreateAssignmentsRequest(SanitizedBaseModel):
     is_ai_suggested: bool = False
 
 
+class RemoveAssignmentRequest(SanitizedBaseModel):
+    """Guarded removal of one room's assignment (POST /housekeeping/assignments/remove).
+
+    Unlike the id-based DELETEs, the write is conditional on the owner the supervisor reviewed.
+    """
+
+    date: date
+    room_id: UUID4
+    expected_assigned_to: UUID4
+
+
+# The most changes one batch publication may carry. Mirrored by the database function, which refuses more, and
+# by the mobile app's bulk-selection limit.
+MAX_BATCH_PUBLISH_CHANGES = 150
+
+
+class BatchAssignmentChange(SanitizedBaseModel):
+    """One reviewed change inside POST /housekeeping/assignments/batch-publish.
+
+    Every change names the owner the supervisor SAW, so the database can refuse a stale one:
+      assign    housekeeper_id + expect_unassigned=true
+      reassign  housekeeper_id + expected_assigned_to (a different person)
+      remove    expected_assigned_to only
+    Contradictory combinations are rejected here (422) and again by the database function.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    room_id: UUID4
+    kind: Literal["assign", "reassign", "remove"]
+    housekeeper_id: Optional[UUID4] = None
+    expected_assigned_to: Optional[UUID4] = None
+    expect_unassigned: bool = False
+    # Provenance of THIS change: true only for an untouched Smart Balance recommendation. A supervisor's own choice -
+    # or an edit of a recommendation - is false, so one atomic publication can honestly carry both.
+    is_ai_suggested: bool = False
+
+    @model_validator(mode="after")
+    def _consistent_expectation(self):
+        if self.kind == "remove" and self.is_ai_suggested:
+            raise ValueError("a removal is never an AI suggestion")
+        if self.kind == "assign":
+            if self.housekeeper_id is None or not self.expect_unassigned or self.expected_assigned_to is not None:
+                raise ValueError("assign needs housekeeper_id and expect_unassigned=true, and no expected_assigned_to")
+        elif self.kind == "reassign":
+            if self.housekeeper_id is None or self.expected_assigned_to is None or self.expect_unassigned:
+                raise ValueError("reassign needs housekeeper_id and expected_assigned_to, and not expect_unassigned")
+            if self.housekeeper_id == self.expected_assigned_to:
+                raise ValueError("reassign must name a different housekeeper than the expected owner")
+        else:
+            if self.housekeeper_id is not None or self.expected_assigned_to is None or self.expect_unassigned:
+                raise ValueError("remove needs expected_assigned_to only")
+        return self
+
+
+class BatchPublishAssignmentsRequest(SanitizedBaseModel):
+    """All-or-nothing publication of a supervisor's assignment draft (POST /housekeeping/assignments/batch-publish).
+
+    `operation_id` is the client's idempotency key: the same id with the same changes is safe to send again and
+    returns the original result; the same id with different changes is refused. `date` must be the hotel's today.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    operation_id: UUID4
+    date: date
+    changes: List[BatchAssignmentChange] = Field(min_length=1, max_length=MAX_BATCH_PUBLISH_CHANGES)
+
+    @model_validator(mode="after")
+    def _one_change_per_room(self):
+        seen: set[UUID] = set()
+        for change in self.changes:
+            if change.room_id in seen:
+                raise ValueError("a room may appear only once in a batch")
+            seen.add(change.room_id)
+        return self
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Smart Balance planning (POST /housekeeping/smart-balance/plan) - READ-ONLY
+# ---------------------------------------------------------------------------------------------------------------------
+
+MAX_SMART_BALANCE_ROOMS = 300
+MAX_SMART_BALANCE_STAFF = 100
+
+SmartBalanceReason = Literal[
+    "guest_waiting", "reclean_requested", "rush", "arrival_passed", "arrival_today", "vip", "high_risk"
+]
+
+
+class SmartBalancePreferences(BaseModel):
+    """One planning run's choices. They are NOT saved: the property's stored preferences are never changed here."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    balance_workload: bool = True
+    prioritize_guest_waiting: bool = True
+    prioritize_rush: bool = True
+    prioritize_arrival: bool = True
+    prefer_same_building: bool = True
+    prefer_same_floor: bool = True
+    minimize_reassignment: bool = True
+
+
+class SmartBalanceRoom(SanitizedBaseModel):
+    """A room the app proposes for the pool. The server re-verifies every fact that matters for safety."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    room_id: UUID4
+    room_number: str = Field(min_length=1, max_length=20)
+    floor: Optional[int] = Field(default=None, ge=-5, le=200)
+    building: Optional[str] = Field(default=None, max_length=40)
+    # The owner the supervisor SAW (null = unassigned). The server refuses the room if it is not the owner now.
+    expected_owner_id: Optional[UUID4] = None
+    minutes: Optional[int] = Field(default=None, ge=1, le=720)
+    minutes_basis: Optional[Literal["history", "room_type"]] = None
+    credits: Optional[float] = Field(default=None, ge=0, le=200)
+    reasons: List[SmartBalanceReason] = Field(default_factory=list, max_length=7)
+    arrival_at: Optional[int] = Field(default=None, ge=0)
+
+
+class SmartBalanceFloor(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    building: Optional[str] = Field(default=None, max_length=40)
+    floor: int = Field(ge=-5, le=200)
+
+
+class SmartBalanceStaff(SanitizedBaseModel):
+    """A person the app has already judged eligible to RECEIVE rooms (verified attendance, listed, housekeeping role).
+    The server re-checks their tenant and role; it never takes attendance on trust to widen the set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: UUID4
+    # Existing work that is NOT one of the pool rooms.
+    base_minutes: int = Field(default=0, ge=0, le=20000)
+    base_unknown_rooms: int = Field(default=0, ge=0, le=400)
+    base_rooms: int = Field(default=0, ge=0, le=400)
+    base_credits: float = Field(default=0, ge=0, le=2000)
+    credits_complete: bool = True
+    credit_target: Optional[float] = Field(default=None, gt=0, le=2000)
+    shift_minutes_left: Optional[int] = Field(default=None, ge=0, le=1440)
+    floors: List[SmartBalanceFloor] = Field(default_factory=list, max_length=80)
+    buildings: List[str] = Field(default_factory=list, max_length=20)
+
+
+class SmartBalancePlanRequest(SanitizedBaseModel):
+    """Generate a PROPOSAL. Nothing in the answer is applied: it is published, if at all, through
+    POST /housekeeping/assignments/batch-publish after the supervisor has reviewed it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    scope: Literal["unassigned", "all_unstarted", "selected"]
+    rooms: List[SmartBalanceRoom] = Field(max_length=MAX_SMART_BALANCE_ROOMS)
+    staff: List[SmartBalanceStaff] = Field(max_length=MAX_SMART_BALANCE_STAFF)
+    preferences: SmartBalancePreferences = Field(default_factory=SmartBalancePreferences)
+    # When the app last verified the board this request was built from (epoch ms); echoed back so a stale answer shows.
+    snapshot_verified_at: Optional[int] = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _unique(self):
+        room_ids = [room.room_id for room in self.rooms]
+        if len(set(room_ids)) != len(room_ids):
+            raise ValueError("a room may appear only once")
+        staff_ids = [person.user_id for person in self.staff]
+        if len(set(staff_ids)) != len(staff_ids):
+            raise ValueError("a person may appear only once")
+        return self
+
+
 # --- Inspections ---
 class InspectionResultItem(SanitizedBaseModel):
     template_item_id: Optional[UUID4] = None
     result: Literal["pass", "fail", "na"]
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    # Only meaningful on a failed item (the completion endpoint rejects it elsewhere). Unset = not classified.
+    severity: Optional[Literal["minor", "major"]] = None
 
 
 class SubmitInspectionRequest(SanitizedBaseModel):
@@ -605,6 +789,37 @@ class SubmitInspectionRequest(SanitizedBaseModel):
     overall_result: Literal["passed", "failed", "conditional"]
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     items: List[InspectionResultItem] = Field(default_factory=list, max_length=100)
+
+
+class CompleteInspectionRequest(SubmitInspectionRequest):
+    """The validated completion pathway (`POST /housekeeping/inspections/complete`).
+
+    Every extra field is optional so the web drawer, which predates them, keeps working unchanged.
+    `client_submission_id` becomes the inspection's id (same idempotency pattern as tasks / work orders):
+    a retry of the same submission returns the stored inspection instead of writing a second one.
+    """
+
+    client_submission_id: Optional[UUID4] = None
+    # Opaque digest from GET /inspections/templates; a mismatch means the checklist changed mid-inspection.
+    template_fingerprint: Optional[str] = Field(default=None, min_length=8, max_length=64)
+    # The hotel the person believed they were inspecting for; refused if the signed-in account is now in another.
+    expected_hotel_id: Optional[UUID4] = None
+    # `clean_cycle_id` from the queue row: refused if the room was cleaned again since it was reviewed.
+    expected_clean_cycle_id: Optional[UUID4] = None
+    # The failed inspection the queue row said this re-checks; refused if the room's open correction differs.
+    reinspection_of: Optional[UUID4] = None
+
+
+class ReassignCorrectionRequest(SanitizedBaseModel):
+    """Give an open inspection correction to another person. `expected_assigned_to` is who the screen saw as owner
+    (null = nobody); when sent, a different current owner is a 409 instead of a silent overwrite."""
+
+    assigned_to: UUID4
+    expected_assigned_to: Optional[UUID4] = None
+
+
+class EscalateCorrectionRequest(SanitizedBaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
 
 
 # --- SOP ---

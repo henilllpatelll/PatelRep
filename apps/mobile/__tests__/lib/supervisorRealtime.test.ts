@@ -10,6 +10,7 @@ interface FakeApi {
 interface FakeChannel {
   name: string;
   config: { filter?: string; table?: string } | null;
+  configs: Array<{ filter?: string; table?: string }>;
   onEvent: Handler | null;
   onStatus: StatusCallback | null;
 }
@@ -20,12 +21,13 @@ const mockRemoved: FakeChannel[] = [];
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     channel: jest.fn((name: string) => {
-      const channel: FakeChannel = { name, config: null, onEvent: null, onStatus: null };
+      const channel: FakeChannel = { name, config: null, configs: [], onEvent: null, onStatus: null };
       mockChannels.push(channel);
       const api: FakeApi = {
         on: jest.fn((_type: string, config: FakeChannel["config"], handler: Handler): FakeApi => {
-          channel.config = config;
-          channel.onEvent = handler;
+          channel.config ??= config;
+          channel.configs.push(config as { filter?: string; table?: string });
+          channel.onEvent ??= handler;
           return api;
         }),
         subscribe: jest.fn((callback?: StatusCallback): FakeApi => {
@@ -58,6 +60,11 @@ describe("supervisor Realtime channel", () => {
     const off = subscribeSupervisorRealtime("hotel-1", jest.fn());
     expect(mockChannels).toHaveLength(1);
     expect(mockChannels[0].config).toMatchObject({ table: "room_status", filter: "tenant_id=eq.hotel-1" });
+    // The same ONE channel also hears the dated owner rows, scoped to the same hotel.
+    expect(mockChannels[0].configs).toEqual([
+      expect.objectContaining({ table: "room_status", filter: "tenant_id=eq.hotel-1" }),
+      expect.objectContaining({ table: "room_assignments", filter: "tenant_id=eq.hotel-1" }),
+    ]);
     off();
   });
 
@@ -88,6 +95,25 @@ describe("supervisor Realtime channel", () => {
     expect(mockRemoved).toHaveLength(0); // Today still listening
     offToday();
     expect(mockRemoved).toHaveLength(1); // last one out closes it — no leak
+  });
+
+  it("an independent listener (a screen with its own store) is called alongside the newest shared one, and is never skipped", () => {
+    const inspect = jest.fn();
+    const today = jest.fn();
+    const offInspect = subscribeSupervisorRealtime("hotel-1", inspect, { independent: true });
+    const offToday = subscribeSupervisorRealtime("hotel-1", today); // registered AFTER Inspect
+    expect(mockChannels).toHaveLength(1);
+    mockChannels[0].onEvent?.();
+    jest.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
+    expect(today).toHaveBeenCalledTimes(1);
+    expect(inspect).toHaveBeenCalledTimes(1);
+    offToday();
+    mockChannels[0].onEvent?.();
+    jest.advanceTimersByTime(REALTIME_DEBOUNCE_MS);
+    expect(inspect).toHaveBeenCalledTimes(2); // still the only listener, still called, channel still open
+    expect(mockRemoved).toHaveLength(0);
+    offInspect();
+    expect(mockRemoved).toHaveLength(1);
   });
 
   it("switching hotel closes the old channel; the old hotel's events never reach the new listener", () => {

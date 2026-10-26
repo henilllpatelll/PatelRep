@@ -18,6 +18,8 @@ import {
   StatusBadgeLarge,
   WorkOrderCard,
 } from "@/components/supervisor/detail/RoomDetailParts";
+import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
+import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import { AssignmentPanel } from "@/components/supervisor/assignment/AssignmentPanel";
 import { RoomActionsList } from "@/components/supervisor/detail/RoomActionsList";
 import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
@@ -30,6 +32,7 @@ import { PanelHeader } from "@/components/supervisor/panels/PanelParts";
 import type { HistoryContext } from "@/lib/housekeeping/roomCleaningHistory";
 import { useRoomNote } from "@/lib/housekeeping/useRoomNote";
 import { useRoomWellness } from "@/lib/housekeeping/useRoomWellness";
+import { inspectionHref, recordHref } from "@/lib/inspections/route";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 
@@ -108,6 +111,11 @@ export function RoomDetailSheet({
     [context.now, context.timeZone, context.staff, context.staffNamesKnown, language, t],
   );
 
+  // The room's owner, in Assignments: their rooms and workload. This drawer closes first so two sheets never stack.
+  const viewWorkload = (staffId: string) => {
+    onClose();
+    openSupervisorHref(assignmentsHref({ staffId }));
+  };
   const assigning = assignment.flow !== null && assignment.flow.roomId === room.roomId;
   const saving = assignment.busy;
   // Never dismiss mid-write; never let a stray tap on the backdrop throw away a typed note.
@@ -144,9 +152,10 @@ export function RoomDetailSheet({
         assignment.openRemove(room.roomId);
         return;
       case "inspect":
-        // Close first, then open the queue focused on this room by its stable id (the number is display only).
+        // Close first, then open the active inspection for this room by its stable id (the number is display only).
+        // The workspace itself decides whether the room can be inspected; opening it starts nothing.
         onClose();
-        router.push({ pathname: "/(app)/inspect", params: { roomId: room.roomId, roomNumber: room.roomNumber } } as never);
+        router.push(inspectionHref(room.roomId, room.roomNumber, "board") as never);
         return;
       case "note":
         push("note");
@@ -215,7 +224,18 @@ export function RoomDetailSheet({
       case "session":
         return sessionId ? <SessionPanel sessionId={sessionId} ctx={historyCtx} t={t} /> : null;
       case "inspections":
-        return <InspectionHistoryPanel roomId={room.roomId} ctx={historyCtx} t={t} />;
+        return (
+          <InspectionHistoryPanel
+            roomId={room.roomId}
+            ctx={historyCtx}
+            t={t}
+            onOpenInspection={(inspectionId) => {
+              // The same canonical record screen as the Inspect tab: close the drawer, then open it by the inspection's id.
+              onClose();
+              router.push(recordHref(inspectionId, "board", room.roomId, room.roomNumber) as never);
+            }}
+          />
+        );
       case "workOrder":
         return detail.workOrder?.id ? (
           <WorkOrderPanel workOrderId={detail.workOrder.id} roomId={room.roomId} roomNumber={detail.roomNumber} boardOpen ctx={historyCtx} t={t} />
@@ -308,6 +328,7 @@ export function RoomDetailSheet({
                   saving={saving}
                   onAssign={() => assignAction && run(assignAction.key)}
                   action={assignAction}
+                  onViewWorkload={room.assignedTo && !writing ? () => viewWorkload(room.assignedTo as string) : undefined}
                   t={t}
                 />
               </Section>

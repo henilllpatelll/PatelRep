@@ -228,4 +228,13 @@ describe("inspection target", () => {
     await expect(guard({ templateId: "gone" })).resolves.toBe("template_changed");
     await expect(guard({ fetchQueue: async () => { throw new Error("offline"); } })).resolves.toBe("unavailable");
   });
+
+  it("a checklist whose id is unchanged but whose digest differs was edited, so the write is stopped", async () => {
+    const withDigest = (fingerprint: string | undefined) => async () => ({ data: [{ id: "t1", name: "Std", items: [], fingerprint }] });
+    await expect(guard({ templateFingerprint: "fp-1", fetchTemplates: withDigest("fp-1") })).resolves.toBe("ok");
+    await expect(guard({ templateFingerprint: "fp-1", fetchTemplates: withDigest("fp-2") })).resolves.toBe("template_changed");
+    // a server that sends no digest cannot disprove it; the id check above still applies
+    await expect(guard({ templateFingerprint: "fp-1", fetchTemplates: withDigest(undefined) })).resolves.toBe("ok");
+    await expect(guard({ templateFingerprint: undefined, fetchTemplates: withDigest("fp-2") })).resolves.toBe("ok");
+  });
 });

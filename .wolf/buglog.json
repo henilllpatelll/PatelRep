@@ -34266,6 +34266,234 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-18T00:00:00Z"
+    },
+    {
+      "id": "bug-2076",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Assignments Rooms search 'floor 2' also returned room 102 (matched words across different fields)",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "searchRankOf required every word to match SOME field, so 'floor' matched the floor field of one room and '2' the room number of the same room",
+      "fix": "The whole phrase must sit inside ONE field (floor N, building X, room number, person name) or every word inside the person name; words are never matched across fields. Test: assignmentRoomsView.test.ts search block",
+      "tags": [
+        "mobile",
+        "assignments",
+        "search",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2077",
+      "timestamp": "2026-10-22T00:00:00Z",
+      "error_message": "Header 'Unassigned' said 6 while the Unassigned chip said 8 for the same screen",
+      "file": "apps/mobile/lib/housekeeping/assignmentQuery.ts",
+      "root_cause": "Phase 1 scope `unassigned` used needsAssignee (includes held-back DND/declined rooms and an unowned in-progress room) while the header counted autoAssignable",
+      "fix": "Scope `unassigned` is now eligibility.autoAssignable (unowned and nothing in the way); held-back rooms are in `blocked`. Header, chip and list agree. Phase 1 assignmentModel test expectations updated to the new documented rule",
+      "tags": [
+        "mobile",
+        "assignments",
+        "counts",
+        "v2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-22T00:00:00Z"
+    },
+    {
+      "id": "bug-2078",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "test_rbac_matrix_matches_generated_output failed after a 5-line edit to housekeeping.py",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "RBAC-MATRIX.md records the require_role line number [L####] of every route, so ANY edit that shifts lines in a router makes the committed matrix stale; CI Test / API (smoke) would fail",
+      "fix": "Regenerated with `python apps/api/scripts/generate_rbac_matrix.py` (26 rows changed, identical modulo line numbers). Rule: after touching apps/api/routers/*.py run the generator and the full tests/ run, not just the targeted files. The Release Engineer bot independently pushed a byte-identical repair (7632b967) after Test / API failed on cb2c27b1; the local copy was discarded and the branch fast-forwarded onto it",
+      "tags": [
+        "api",
+        "rbac",
+        "ci",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2079",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Post-commit batch notifications could be garbage-collected before they were sent",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "batch_publish_assignments fired `asyncio.create_task(...)` and kept no reference; the event loop only weakly references tasks",
+      "fix": "Module-level _PENDING_BATCH_PUSHES set holds the task until its done-callback discards it. Unit test test_the_notification_task_is_held_until_it_finishes (mutation-checked). Older single-room pushes still use the bare pattern",
+      "tags": [
+        "api",
+        "asyncio",
+        "notifications",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2080",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "git diff --check: new blank line at EOF",
+      "file": "apps/mobile/components/supervisor/assignments/SmartBalanceDetailStep.tsx",
+      "root_cause": "Trailing blank line left by the Phase 6 commit",
+      "fix": "Trimmed to a single line ending (file is CRLF in the working tree; git stores LF)",
+      "tags": [
+        "mobile",
+        "whitespace",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2081",
+      "timestamp": "2026-10-23T00:00:00Z",
+      "error_message": "Copy defects found in the browser harness: 'Estimated total: 180 min estimated' and 'Over their workload capacity after this room' shown in multi-room screens",
+      "file": "apps/mobile/i18n/locales/en.json",
+      "root_cause": "bulk.allocate.estimated prefixed a value that already ends in 'estimated'; assign.warning.overCapacity said 'this room' but WarningLines is shared by bulk review/edit, midshift and the Smart Balance preview",
+      "fix": "en: 'Total: {{value}}' and '...after this change'; es: 'Total: {{value}}' and 'Superaría su capacidad de trabajo con este cambio'. AssignmentsBulk test expectation updated to the new copy",
+      "tags": [
+        "mobile",
+        "i18n",
+        "copy",
+        "assignments",
+        "v2",
+        "phase9"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-23T00:00:00Z"
+    },
+    {
+      "id": "bug-2090",
+      "timestamp": "2026-10-21T05:40:00Z",
+      "error_message": "Inspection audit: legacy 'conditional' (touch-up) marked the room INSPECTED, releasing it with the defect outstanding, relying on a dismissible send-back prompt; a failed inspection left no correction task/flag unless that prompt was confirmed; two supervisors could both pass the CLEAN check and inspect one room; complete endpoint could return 500 after the inspection committed (task creation) and had no retry safety",
+      "file": "supabase/migrations/219_inspection_workflow_foundation.sql; apps/api/routers/housekeeping.py; apps/api/services/reclean_corrections.py",
+      "root_cause": "handle_inspection_complete() treated conditional like a pass; correction creation lived only in the separate /reclean endpoint; check-then-insert on room_status with no lock; no idempotency key on the inspection write",
+      "fix": "Trigger now blocks the room (DIRTY) for conditional; every non-pass result creates exactly one correction task (unique tenant_id+source_inspection_id) at submit time; BEFORE INSERT guard trigger locks room_status FOR UPDATE; /complete uses client_submission_id as the inspection id (replay-safe, partial-commit resume); /reclean is idempotent",
+      "tags": [
+        "inspections",
+        "idempotency",
+        "race",
+        "correction",
+        "migration-219",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [
+        "bug-2075"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T05:40:00Z"
+    },
+    {
+      "id": "bug-2091",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Inspect list showed a truncated user id as the inspector's name (GET /housekeeping/inspections fell back to inspector_id[:8]) and a user id as the housekeeper name on the queue (ready-for-inspection fell back to p['id'])",
+      "file": "apps/api/routers/housekeeping.py",
+      "root_cause": "name_map fell back to the id when a profile had no preferred_name/full_name, and the list endpoint substituted an id prefix when no profile matched",
+      "fix": "Only real names enter name_map; list rows gain inspector_display_name (name or null); queue cleaned_by is '' when unnamed; the app shows 'Inspector not recorded' / 'Housekeeper not recorded'",
+      "tags": [
+        "inspections",
+        "privacy",
+        "display-name",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2092",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "PAGEERROR Error: findNodeHandle is not supported on web (Filter & Sort sheet, found in the Expo web visual check)",
+      "file": "apps/mobile/components/supervisor/inspect/InspectFilterSheet.tsx",
+      "root_cause": "findNodeHandle was called outside the try/catch around AccessibilityInfo.setAccessibilityFocus",
+      "fix": "Both calls are inside the try/catch; focus management is best-effort",
+      "tags": [
+        "web",
+        "accessibility",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2093",
+      "timestamp": "2026-10-21T12:10:00Z",
+      "error_message": "Sorting/filtering 600 rooms took ~34ms per pass in Jest (budget 25ms)",
+      "file": "apps/mobile/lib/housekeeping/hotelTime.ts; apps/mobile/lib/inspections/queueView.ts",
+      "root_cause": "hotelDateKey built a new Intl.DateTimeFormat on every call and priorityFacts recomputed the hotel's today per room",
+      "fix": "One cached formatter per zone; today's key memoised per clock reading",
+      "tags": [
+        "performance",
+        "intl",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T12:10:00Z"
+    },
+    {
+      "id": "bug-2094",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Inspection photos stored in the PUBLIC work-order-photos bucket and returned as permanent public URLs",
+      "file": "apps/api/routers/housekeeping.py; services/inspection_evidence.py; migration 220",
+      "root_cause": "Phase 1 upload wrote to the public bucket and stored get_public_url(); anyone with the link could read guest-adjacent evidence",
+      "fix": "New private inspection-evidence bucket + inspection_results.photo_path; API signs 10-minute URLs only after hotel/role/path-prefix checks; legacy URLs are signed not exposed; operator backfill script (dry-run default)",
+      "tags": [
+        "security",
+        "storage",
+        "evidence",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2095",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Typing in the history room search refetched the first page on every keystroke",
+      "file": "apps/mobile/lib/inspections/history/useInspectionHistory.ts",
+      "root_cause": "The fetch effect depended on a range object re-created whenever filters changed, so the debounce never held",
+      "fix": "Memoise the range on its parts (period/custom/today); test asserts no fetch until typing pauses",
+      "tags": [
+        "react",
+        "debounce",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2096",
+      "timestamp": "2026-10-21T20:00:00Z",
+      "error_message": "Timeline walk skipped the reinspection of the inspection the user opened from the middle of a chain",
+      "file": "apps/api/services/inspection_history.py",
+      "root_cause": "Children already reached from below were never added to the BFS frontier",
+      "fix": "Track expanded ids; walk past an already-seen inspection once",
+      "tags": [
+        "lineage",
+        "timeline",
+        "supervisor-inspections-redesign"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-21T20:00:00Z"
     }
   ]
 }
