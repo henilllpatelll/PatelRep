@@ -144,7 +144,7 @@ describe("observations and suggestions", () => {
       board: async () => [rawRoom("r-302", "DIRTY"), rawRoom("r-303", "DIRTY"), rawRoom("r-301", "INSPECTED")],
     });
     for (const suggestion of model.suggestions) {
-      if (suggestion.type === "open") expect(suggestion.href.params).toBeUndefined();
+      if (suggestion.type === "open") expect(suggestion.href.params ?? {}).not.toHaveProperty("roomId");
     }
   });
 

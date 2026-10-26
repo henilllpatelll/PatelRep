@@ -193,7 +193,7 @@ function roomItems(rooms: FloorRoom[], source: AttentionSource, now: number, tim
   };
 
   const unassigned = rooms.filter((room) => isActionable(room.status) && !room.assignedTo);
-  queue("unassigned_rooms", unassigned, unassigned.some((room) => isBehindSchedule(room, now, timeZone)) ? "high" : "normal", { screen: "team" }, "assign_rooms");
+  queue("unassigned_rooms", unassigned, unassigned.some((room) => isBehindSchedule(room, now, timeZone)) ? "high" : "normal", { screen: "team", assignments: { tab: "rooms", filter: "unassigned" } }, "assign_rooms");
   queue("awaiting_inspection", rooms.filter((room) => room.status === "CLEAN"), "normal", { screen: "inspect" }, "inspect_rooms");
   queue(
     "access_restricted",

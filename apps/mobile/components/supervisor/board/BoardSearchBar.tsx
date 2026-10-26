@@ -14,6 +14,10 @@ export function BoardSearchBar({
   onOpenFilters,
   activeCount,
   t,
+  placeholder,
+  label,
+  filterLabel,
+  testIDPrefix = "room-board",
 }: {
   value: string;
   onChangeText: (text: string) => void;
@@ -22,16 +26,21 @@ export function BoardSearchBar({
   /** Applied filters plus a non-default sort; drives the badge. */
   activeCount: number;
   t: Translate;
+  /** Overrides for other screens that reuse this bar (Assignments). Defaults are the Room Board's own words. */
+  placeholder?: string;
+  label?: string;
+  filterLabel?: string;
+  testIDPrefix?: string;
 }) {
   const theme = useTheme();
   return (
-    <View style={styles.row} testID="room-board-search-bar">
+    <View style={styles.row} testID={`${testIDPrefix}-search-bar`}>
       <View style={[styles.field, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Ionicons name="search" size={18} color={theme.textMuted} />
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder={t("roomBoard.search.placeholder")}
+          placeholder={placeholder ?? t("roomBoard.search.placeholder")}
           placeholderTextColor={theme.textMuted}
           style={[styles.input, { color: theme.textPrimary }]}
           maxFontSizeMultiplier={MAX_FONT_SCALE}
@@ -41,8 +50,8 @@ export function BoardSearchBar({
           autoCorrect={false}
           autoCapitalize="none"
           clearButtonMode="never"
-          accessibilityLabel={t("roomBoard.search.label")}
-          testID="room-board-search"
+          accessibilityLabel={label ?? t("roomBoard.search.label")}
+          testID={`${testIDPrefix}-search`}
         />
         {value.length > 0 ? (
           <Pressable
@@ -51,7 +60,7 @@ export function BoardSearchBar({
             accessibilityLabel={t("roomBoard.search.clear")}
             hitSlop={8}
             style={styles.clear}
-            testID="room-board-search-clear"
+            testID={`${testIDPrefix}-search-clear`}
           >
             <Ionicons name="close-circle" size={20} color={theme.textMuted} />
           </Pressable>
@@ -60,8 +69,8 @@ export function BoardSearchBar({
       <Pressable
         onPress={onOpenFilters}
         accessibilityRole="button"
-        accessibilityLabel={activeCount > 0 ? t("roomBoard.search.openFiltersActive", { active: activeCount }) : t("roomBoard.search.openFilters")}
-        testID="room-board-filter-button"
+        accessibilityLabel={activeCount > 0 ? t("roomBoard.search.openFiltersActive", { active: activeCount }) : (filterLabel ?? t("roomBoard.search.openFilters"))}
+        testID={`${testIDPrefix}-filter-button`}
         style={({ pressed }) => [
           styles.filter,
           { backgroundColor: activeCount > 0 ? theme.primaryAction : theme.surface, borderColor: activeCount > 0 ? theme.primaryAction : theme.border },
@@ -70,7 +79,7 @@ export function BoardSearchBar({
       >
         <Ionicons name="options-outline" size={22} color={activeCount > 0 ? theme.onPrimary : theme.textPrimary} />
         {activeCount > 0 ? (
-          <View style={[styles.badge, { backgroundColor: theme.onPrimary }]} testID="room-board-filter-badge">
+          <View style={[styles.badge, { backgroundColor: theme.onPrimary }]} testID={`${testIDPrefix}-filter-badge`}>
             <Text maxFontSizeMultiplier={1.2} style={[styles.badgeText, { color: theme.primaryAction }]}>
               {activeCount}
             </Text>

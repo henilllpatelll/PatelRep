@@ -138,7 +138,7 @@ describe("bulk queues", () => {
 
   it("lists every unassigned actionable room in one item", () => {
     expect(byKind("unassigned_rooms")?.records.map((r) => r.id)).toEqual(["r-101", "r-102"]);
-    expect(byKind("unassigned_rooms")).toMatchObject({ id: "queue:unassigned_rooms", target: { screen: "team" }, action: "assign_rooms" });
+    expect(byKind("unassigned_rooms")).toMatchObject({ id: "queue:unassigned_rooms", target: { screen: "team", assignments: { tab: "rooms", filter: "unassigned" } }, action: "assign_rooms" });
   });
 
   it("lists rooms awaiting inspection and sends them to Inspect", () => {

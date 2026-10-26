@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
 /* One Supabase Realtime channel for every supervisor screen that shows Today data (the A2 "Housekeeping
-   Breakout Board" surface). Screens register a refresh; the channel exists while at least one is
+   Breakout Board" surface). It listens to the two tables that already publish realtime and decide who owns what:
+   `room_status` (status, owner mirror) and `room_assignments` (the dated owner rows Assignments writes), so an
+   assignment another supervisor publishes repaints every open screen. Attendance (`shifts`) is NOT published
+   to realtime; clock-in, break and shift-end changes arrive with the next refresh (pull, foreground, or the next
+   room event) rather than through a poll. Screens register a refresh; the channel exists while at least one is
    registered, so opening the Attention Center on top of Today never adds a second subscription.
    Every registered refresh feeds the same shared store, so one call per event is enough. */
 
@@ -52,6 +56,7 @@ export function subscribeSupervisorRealtime(tenantId: string, refresh: Refresh):
     next.channel = supabase
       .channel("supervisor-home-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${tenantId}` }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_assignments", filter: `tenant_id=eq.${tenantId}` }, scheduleRefresh)
       .subscribe((status: string) => {
         if (next.closed) return;
         // Freshness never depends on this channel (an old answer is shown as stale by age), so a drop is

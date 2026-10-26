@@ -222,11 +222,12 @@ export function primaryFor(item: SupervisorAttentionItem): DetailPrimary {
       labelKey = "supervisorAttention.action.openInspect";
       break;
     case "assign_rooms":
-      target = { screen: "team" };
+      // Keep what the item already knows (the unassigned queue, or the person who is over-assigned).
+      target = item.target.screen === "team" ? item.target : { screen: "team" };
       labelKey = "supervisorAttention.action.reviewAssignments";
       break;
     case "open_team":
-      target = { screen: "team" };
+      target = item.target.screen === "team" ? item.target : { screen: "team", assignments: { tab: "team" } };
       labelKey = "supervisorAttention.action.openTeam";
       break;
     case "review_blocker":

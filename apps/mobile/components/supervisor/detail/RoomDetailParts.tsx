@@ -88,6 +88,7 @@ export function AssignmentCard({
   saving,
   onAssign,
   action,
+  onViewWorkload,
   t,
 }: {
   assignment: DetailAssignment;
@@ -95,6 +96,8 @@ export function AssignmentCard({
   saving: boolean;
   onAssign: () => void;
   action: DetailAction | null;
+  /** Opens this person in Assignments (their rooms and workload). Offered only when the room has an owner. */
+  onViewWorkload?: (() => void) | undefined;
   t: Translate;
 }) {
   const theme = useTheme();
@@ -139,6 +142,17 @@ export function AssignmentCard({
           size="sm"
           style={styles.assignButton}
           testID="room-detail-change-assignment"
+        />
+      ) : null}
+      {onViewWorkload ? (
+        <Button
+          label={t("roomBoard.detail.viewWorkload")}
+          onPress={onViewWorkload}
+          variant="ghost"
+          size="sm"
+          style={styles.assignButton}
+          icon="people-outline"
+          testID="room-detail-view-workload"
         />
       ) : null}
     </View>

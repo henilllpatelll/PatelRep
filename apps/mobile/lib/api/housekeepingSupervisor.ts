@@ -12,6 +12,10 @@ import {
   readBroadcastResult,
 } from "@/lib/housekeeping/supervisorComms";
 import type { AssignmentRemovalPlan, LateCheckoutRecord } from "@/lib/housekeeping/roomBoardModel";
+import { normalizeScheduledShifts, type ScheduledShift } from "@/lib/housekeeping/assignmentSchedule";
+import { parseWorkloadSettings, type WorkloadSettings } from "@/lib/housekeeping/assignmentWorkload";
+import { parseAssignmentPreferences, type PropertyAssignmentPreferences } from "@/lib/housekeeping/smartBalancePolicy";
+import type { SmartBalanceBody } from "@/lib/housekeeping/smartBalanceWire";
 import { readSavedHandoff, type EndShiftSummaryPayload, type SavedHandoff } from "@/lib/housekeeping/supervisorHandoff";
 
 /* ─── Supervisor housekeeping API ───────────────────────────────────────────
@@ -38,6 +42,12 @@ export interface AssignmentInput {
    */
   expected_assigned_to?: string;
   expect_unassigned?: boolean;
+  /**
+   * The soft blocks (DND, declined service, return-later, occupancy discrepancy) the supervisor knowingly accepted.
+   * When present — even empty — the SERVER recomputes the room's soft blocks and answers 409
+   * `acknowledgement_required` unless every one is listed, so an acknowledgement is checked, not trusted.
+   */
+  acknowledged_blocks?: string[];
 }
 
 export async function saveAssignments(
@@ -55,6 +65,49 @@ export async function saveAssignments(
 
 export async function removeAssignment(assignmentId: string): Promise<void> {
   await api.delete(`/housekeeping/assignments/${assignmentId}`);
+}
+
+/**
+ * POST /housekeeping/assignments/remove: removes ONE room's assignment only while it still belongs to
+ * `expectedUserId` and the room has not started. The owner is part of the server's write, so a room that changed
+ * hands in the meantime removes nothing and answers 409 (`assignment_changed` / `room_not_assignable`). Works for a
+ * dated assignment and for a mirror-only one — no assignment id is needed.
+ */
+export async function removeAssignmentGuarded(date: string, roomId: string, expectedUserId: string): Promise<void> {
+  await api.post("/housekeeping/assignments/remove", { date, room_id: roomId, expected_assigned_to: expectedUserId });
+}
+
+/* ─── Atomic batch publication (Assignments V2, Phase 5) ────────────────────
+   POST /housekeeping/assignments/batch-publish is ONE database transaction: every change commits, or none does.
+   The wrappers below return the raw body; `assignmentBatch.ts` validates and interprets it. They never retry. */
+
+/** One reviewed change, in the server's shape (see `toBatchRequest`). */
+export interface BatchChangeInput {
+  room_id: string;
+  kind: "assign" | "reassign" | "remove";
+  housekeeper_id?: string;
+  expected_assigned_to?: string;
+  expect_unassigned?: true;
+  /** Present (true) only for an untouched Smart Balance recommendation; a manual or edited change omits it. */
+  is_ai_suggested?: true;
+}
+
+export interface BatchPublishRequest {
+  operation_id: string;
+  date: string;
+  changes: BatchChangeInput[];
+}
+
+/** Sends the publication. A committed answer is a 200; a refusal throws an `ApiError` whose `detail.applied` is false. */
+export async function publishAssignmentBatch(request: BatchPublishRequest): Promise<unknown> {
+  const res = await api.post<{ data?: unknown }>("/housekeeping/assignments/batch-publish", request);
+  return res?.data;
+}
+
+/** Read-only: did this person's publication commit? `not_found` means "not committed as of this read". */
+export async function fetchBatchPublication(operationId: string): Promise<unknown> {
+  const res = await api.get<{ data?: unknown }>(`/housekeeping/assignments/batch-publish/${encodeURIComponent(operationId)}`);
+  return res?.data;
 }
 
 /**
@@ -166,6 +219,35 @@ export interface ShiftRosterRowRaw {
 /** GET /shifts/roster — gm + housekeeping_supervisor only (403 otherwise). */
 export async function fetchShiftRoster(date: string): Promise<ShiftRosterRowRaw[]> {
   return requireArray<ShiftRosterRowRaw>(await api.get(`/shifts/roster?date=${date}`), "roster");
+}
+
+/**
+ * GET /hotels/{id}/housekeeping-settings — the property's workload credit weights, daily target and per-person
+ * capacity overrides (gm + housekeeping_supervisor only). Strict: a malformed body throws.
+ */
+export async function fetchWorkloadSettings(hotelId: string): Promise<WorkloadSettings> {
+  return parseWorkloadSettings(await api.get(`/hotels/${encodeURIComponent(hotelId)}/housekeeping-settings`));
+}
+
+/**
+ * The property's stored assignment preferences (same endpoint, `assignment_preferences`). Strict: a malformed body throws,
+ * and Smart Balance then says it is using the standard defaults. Read-only: Smart Balance never writes these back.
+ */
+export async function fetchAssignmentPreferences(hotelId: string): Promise<PropertyAssignmentPreferences> {
+  return parseAssignmentPreferences(await api.get(`/hotels/${encodeURIComponent(hotelId)}/housekeeping-settings`));
+}
+
+/**
+ * POST /housekeeping/smart-balance/plan — asks for a PROPOSED allocation. Read-only on the server: nothing is assigned,
+ * moved, removed, mirrored or notified. The raw answer is read strictly by `parseSmartBalanceResponse`.
+ */
+export async function requestSmartBalancePlan(body: SmartBalanceBody): Promise<unknown> {
+  return api.post<unknown>("/housekeeping/smart-balance/plan", body);
+}
+
+/** GET /schedules/assignments?work_date= — who is scheduled on the hotel's `date`. Strict: a malformed body throws. */
+export async function fetchScheduledShifts(date: string): Promise<ScheduledShift[]> {
+  return normalizeScheduledShifts(await api.get(`/schedules/assignments?work_date=${date}`), date);
 }
 
 /** One row of GET /housekeeping/inspections (flattened by the server). */
