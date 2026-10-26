@@ -50,11 +50,13 @@ The API `/health` response includes `environment` and the non-secret `supabase_h
 
 ## Automated staging candidates
 
-Phase 4 uses the GitHub `staging` Environment for all candidate credentials. Configure only staging values there: `STAGING_SUPABASE_DB_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, `STAGING_FIXTURE_PASSWORD`, and `STAGING_RAILWAY_TOKEN`. Never copy a production secret into this environment.
+Phase 4 uses the GitHub `staging` Environment for all candidate credentials. Configure only staging values there: `STAGING_SUPABASE_DB_URL`, `STAGING_SUPABASE_SERVICE_ROLE_KEY`, `STAGING_FIXTURE_PASSWORD`, and `STAGING_RAILWAY_PROJECT_TOKEN` (a Railway Project Token scoped to the staging environment, exposed to the CLI as `RAILWAY_TOKEN`). Never copy a production secret into this environment.
 
 Configure these non-secret Environment variables: `STAGING_SUPABASE_URL`, `STAGING_EXPECTED_SUPABASE_HOST`, `STAGING_EXPECTED_DATABASE_HOST`, `PRODUCTION_SUPABASE_HOST`, `PRODUCTION_DATABASE_HOST`, `STAGING_API_URL`, `STAGING_WEB_URL`, `STAGING_RAILWAY_ENVIRONMENT=staging`, `STAGING_RAILWAY_PROJECT_ID`, `STAGING_RAILWAY_API_SERVICE_ID`, `STAGING_RAILWAY_WEB_SERVICE_ID`, `PRODUCTION_RAILWAY_API_SERVICE_ID`, and `PRODUCTION_RAILWAY_WEB_SERVICE_ID`. The production values are deny-list assertions; staging service IDs must differ from them.
 
 `Staging Candidate` rebuilds the disposable staging database for every eligible same-repository PR SHA, seeds the synthetic tenant, deploys API before web, and verifies that `/health`, `/ready`, and the web metadata all report the exact same SHA. It has no permanent staging branch and never deploys `main` as a candidate. Its Playwright suite uses the six synthetic role accounts and only creates synthetic data.
+
+**Authentication migration bootstrap:** `Staging Candidate` is triggered by `workflow_run`, so GitHub executes the workflow definition from `main`, not this PR's proposed definition. Until the project-token change is merged, candidate deployment steps still use `STAGING_RAILWAY_API_TOKEN` (account/workspace token via `RAILWAY_API_TOKEN`). This legacy secret must remain valid and authorized for the staging project during the transition; creating `STAGING_RAILWAY_PROJECT_TOKEN` alone does not change pre-merge runs. After the change reaches `main`, those steps use the staging-scoped project token via `RAILWAY_TOKEN`. Never inject both CLI authentication variables in the same step or work around a failing staging gate. Check the token type, project/environment scope, and staging-job logs if verification fails.
 
 ## Production deploy trigger (Phase 6)
 
