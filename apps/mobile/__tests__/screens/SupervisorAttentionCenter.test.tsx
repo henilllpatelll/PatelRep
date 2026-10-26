@@ -258,7 +258,7 @@ describe("Supervisor Attention Center — detail sheet and navigation", () => {
     const screen = renderCenter();
     await waitFor(() => screen.getByTestId("attention-card-blocker:b-1"));
     const expectations: Array<[string, unknown]> = [
-      ["queue:unassigned_rooms", "/(app)/assignments"],
+      ["queue:unassigned_rooms", { pathname: "/(app)/assignments", params: { tab: "rooms", filter: "unassigned" } }],
       ["queue:awaiting_inspection", "/(app)/inspect"],
       ["blocker:b-1", "/(app)/tasks"],
       ["queue:access_restricted", { pathname: "/(app)/room-board", params: { roomId: "r-307" } }],

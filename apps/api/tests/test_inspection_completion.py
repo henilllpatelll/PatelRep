@@ -1,7 +1,7 @@
 """POST /housekeeping/inspections/complete and its correction / read-back companions.
 
 FakeDB does not run database triggers or enforce the unique indexes unless told to, so `TriggerDB` models
-the two database guarantees this endpoint relies on (migration 219): the room-state guard that serialises
+the two database guarantees this endpoint relies on (migration 223): the room-state guard that serialises
 concurrent inspections, and the room_status transition done by the existing AFTER INSERT trigger. The
 unique index that dedupes correction tasks per inspection is declared the same way production declares it.
 """
@@ -49,7 +49,7 @@ class _TriggerQuery(FakeQuery):
             self.db.clock += 1
             self.payload = {"id": str(uuid4()), "completed_at": f"2026-10-20T10:{self.db.clock:02d}:00+00:00", **payload}
             result = super().execute()
-            # handle_inspection_complete() as of migration 219: only a pass releases the room
+            # handle_inspection_complete() as of migration 223: only a pass releases the room
             room_status["status"] = "INSPECTED" if payload["overall_result"] == "passed" else "DIRTY"
             return result
         if self.action == "insert" and self.table_name == "tasks":

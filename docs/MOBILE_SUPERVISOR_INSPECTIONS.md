@@ -2,8 +2,8 @@
 
 How the supervisor's Inspect tab works, which rules the server enforces, where evidence lives, and how to verify and
 roll it out. Scope: `apps/mobile/app/(app)/inspect/**`, `apps/mobile/lib/inspections/**`, and the
-`/v1/housekeeping/inspections*` routes in `apps/api`. Migrations: `219_inspection_workflow_foundation.sql`,
-`220_inspection_evidence_private_storage.sql`.
+`/v1/housekeeping/inspections*` routes in `apps/api`. Migrations: `223_inspection_workflow_foundation.sql`,
+`224_inspection_evidence_private_storage.sql`.
 
 ## 1. Lifecycle
 
@@ -43,7 +43,7 @@ New photos go to the private `inspection-evidence` bucket (no storage policy; se
 10-minute signed URLs minted after a hotel and role check; API responses never contain a public URL. Uploads are limited to
 5 MB and accepted only if the **bytes** are JPEG, PNG or WebP (the declared content-type is not trusted).
 
-Evidence recorded before migration 220 still lives in the public-readable `work-order-photos` bucket. **Run the backfill
+Evidence recorded before migration 224 still lives in the public-readable `work-order-photos` bucket. **Run the backfill
 before calling evidence private** (operator-run, dry run by default):
 
 ```
@@ -60,7 +60,7 @@ routes. Other hotels get 404. See `apps/api/RBAC-MATRIX.md`.
 
 There is no feature flag or minimum-app-version gate for this experience. Safe order:
 
-1. Apply migrations 219 and 220 through the normal migration workflow (both additive).
+1. Apply migrations 223 and 224 through the normal migration workflow (both additive).
 2. Deploy the API (older app builds keep working; their legacy `POST /inspections` pass is now refused with `422` unless
    it answers every required item).
 3. Run the evidence backfill (section 3).

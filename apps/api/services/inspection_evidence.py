@@ -1,7 +1,7 @@
 """Where inspection evidence lives and how a client is allowed to see it.
 
 New evidence is written to the PRIVATE ``inspection-evidence`` bucket and recorded as an object path
-(``inspection_results.photo_path``). Evidence recorded before migration 220 only has ``photo_url``, a public URL into
+(``inspection_results.photo_path``). Evidence recorded before migration 224 only has ``photo_url``, a public URL into
 the legacy ``work-order-photos`` bucket. Either way a client never receives a stored URL: it receives a short-lived
 signed URL, minted here only after the caller has already been checked against the hotel and the inspection.
 

@@ -79,7 +79,7 @@ export interface ReadyRoom {
   cleaned_at: string | null;
   housekeeper_id: string | null;
   clean_type: string | null;
-  /** Which checklist applies. Absent on servers older than migration 219. */
+  /** Which checklist applies. Absent on servers older than migration 223. */
   room_type_id?: string | null;
   /** That room type's own name, for display only. Absent on older servers; null when not recorded. */
   room_type_name?: string | null;

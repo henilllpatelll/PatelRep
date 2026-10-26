@@ -271,7 +271,7 @@ export function BoardFilterSheet({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   const theme = useTheme();
   return (
     <View style={styles.section}>
@@ -284,7 +284,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** A selectable option. Selection is a check mark AND a filled style — never colour alone. */
-function Choice({
+export function Choice({
   kind,
   selected,
   label,

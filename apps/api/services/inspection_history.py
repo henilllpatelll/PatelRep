@@ -8,7 +8,7 @@ Metric definitions (the mobile screen repeats them in words; keep the two in ste
 
 * **Completed inspections** - inspection records whose ``completed_at`` falls inside the hotel-local period.
 * **Initial inspection** - a record with no ``reinspection_of``. **Reinspection** - a record whose ``reinspection_of``
-  names an earlier inspection of the same hotel. Records written before migration 219 carry no link, so a re-check from
+  names an earlier inspection of the same hotel. Records written before migration 223 carry no link, so a re-check from
   that era counts as initial; ``without_lineage`` says how many records in the period predate lineage tracking.
 * **First-pass rate** - initial ``passed`` / (initial ``passed`` + initial ``failed``). Reinspections are not in the
   denominator. A legacy ``conditional`` result is neither a pass nor a fail: it is left out of both sides and counted

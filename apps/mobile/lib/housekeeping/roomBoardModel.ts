@@ -166,6 +166,8 @@ export interface BoardRoom extends FloorRoom {
   cleanSession: BoardCleanSession | null;
   prediction: BoardPrediction | null;
   occupancyDiscrepancy: boolean;
+  /** The recorded "return later" time (room_status.dnd_retry_at); null = none recorded. May already be in the past. */
+  returnLaterAt: string | null;
   /** room_status.updated_at — when the record last changed (not when this app last verified it). */
   updatedAt: string | null;
   /** Filled by the composition from the late-checkout source; null = none known. */
@@ -300,6 +302,7 @@ function toBoardRoom(raw: BoardRoomRaw): BoardRoom | null {
     cleanSession: cleanSessionOf(raw),
     prediction: predictionOf(raw.prediction),
     occupancyDiscrepancy: raw.occupancy_discrepancy === true,
+    returnLaterAt: text(raw.dnd_retry_at),
     updatedAt: text(raw.updated_at),
     lateCheckout: null,
   };

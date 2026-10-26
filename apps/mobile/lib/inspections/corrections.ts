@@ -84,7 +84,7 @@ const NOT_A_REINSPECTION: ReinspectionContext = {
 
 export function reinspectionContext(room: Pick<ReadyRoom, "previous_failure">): ReinspectionContext {
   const failure: PreviousFailure | null | undefined = room.previous_failure;
-  // `conditional` (the legacy touch-up) blocks the room since migration 219, so it too is re-checked; the server only
+  // `conditional` (the legacy touch-up) blocks the room since migration 223, so it too is re-checked; the server only
   // sends this for a room that still has an open correction.
   if (!failure || (failure.overall_result !== "failed" && failure.overall_result !== "conditional")) return NOT_A_REINSPECTION;
   return {

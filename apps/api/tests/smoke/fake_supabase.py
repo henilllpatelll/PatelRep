@@ -14,7 +14,7 @@ class FakeStorageBucket:
         self.db = db
         self.bucket = bucket
 
-    # Mirrors the real bucket configuration (migration 220): the private evidence bucket accepts images only, and
+    # Mirrors the real bucket configuration (migration 224): the private evidence bucket accepts images only, and
     # storage treats an upload with no content-type as text/plain. Without this a missing header passed every test.
     _IMAGE_ONLY = {"inspection-evidence": {"image/jpeg", "image/png", "image/webp"}}
 

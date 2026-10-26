@@ -18,6 +18,8 @@ import {
   StatusBadgeLarge,
   WorkOrderCard,
 } from "@/components/supervisor/detail/RoomDetailParts";
+import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
+import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import { AssignmentPanel } from "@/components/supervisor/assignment/AssignmentPanel";
 import { RoomActionsList } from "@/components/supervisor/detail/RoomActionsList";
 import type { BoardRoom } from "@/lib/housekeeping/roomBoardModel";
@@ -109,6 +111,11 @@ export function RoomDetailSheet({
     [context.now, context.timeZone, context.staff, context.staffNamesKnown, language, t],
   );
 
+  // The room's owner, in Assignments: their rooms and workload. This drawer closes first so two sheets never stack.
+  const viewWorkload = (staffId: string) => {
+    onClose();
+    openSupervisorHref(assignmentsHref({ staffId }));
+  };
   const assigning = assignment.flow !== null && assignment.flow.roomId === room.roomId;
   const saving = assignment.busy;
   // Never dismiss mid-write; never let a stray tap on the backdrop throw away a typed note.
@@ -321,6 +328,7 @@ export function RoomDetailSheet({
                   saving={saving}
                   onAssign={() => assignAction && run(assignAction.key)}
                   action={assignAction}
+                  onViewWorkload={room.assignedTo && !writing ? () => viewWorkload(room.assignedTo as string) : undefined}
                   t={t}
                 />
               </Section>

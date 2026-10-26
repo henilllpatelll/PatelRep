@@ -244,7 +244,7 @@ def derive_correction_status(
     and never created a correction). ``reinspection_id`` is the verifying/superseding inspection when there is one.
     """
     result = inspection.get("overall_result")
-    # Historical `conditional` rows released the room and never owned a correction. Since migration 219 a conditional
+    # Historical `conditional` rows released the room and never owned a correction. Since migration 223 a conditional
     # (touch-up) blocks the room and records its kind, so one with a kind - or a task - has a correction to report.
     correctable = result == "failed" or (result == "conditional" and (inspection.get("correction_kind") or task is not None))
     if not correctable:

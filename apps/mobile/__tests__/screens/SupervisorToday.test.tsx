@@ -232,7 +232,7 @@ describe("Supervisor Today — needs your attention", () => {
     fireEvent.press(screen.getByTestId("today-attention-row-queue:unassigned_rooms"));
     fireEvent.press(await screen.findByTestId("attention-sheet-primary"));
     const paths = push.mock.calls.map((call) => call[0]);
-    expect(paths).toEqual(["/(app)/inspect", "/(app)/assignments"]);
+    expect(paths).toEqual(["/(app)/inspect", { pathname: "/(app)/assignments", params: { tab: "rooms", filter: "unassigned" } }]);
     expect(JSON.stringify(paths)).not.toMatch(/my-rooms|\/attention/);
   });
 
@@ -302,7 +302,7 @@ describe("Supervisor Today — team pulse", () => {
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
     fireEvent.press(screen.getByTestId("today-team-manage"));
-    expect(push.mock.calls.map((call) => call[0])).toEqual(["/(app)/assignments"]);
+    expect(push.mock.calls.map((call) => call[0])).toEqual([{ pathname: "/(app)/assignments", params: { tab: "team" } }]);
     fireEvent.press(screen.getByTestId("today-team-row-hk-1"));
     expect(screen.getByTestId("staff-quick-sheet")).toBeTruthy();
     expect(push).toHaveBeenCalledTimes(1); // the row alone does not navigate
@@ -314,7 +314,7 @@ describe("Supervisor Today — team pulse", () => {
     fireEvent.press(screen.getByTestId("today-team-row-hk-1"));
     fireEvent.press(screen.getByTestId("staff-quick-assignments"));
     expect(screen.queryByTestId("staff-quick-sheet")).toBeNull();
-    expect(push).toHaveBeenCalledWith("/(app)/assignments");
+    expect(push).toHaveBeenCalledWith({ pathname: "/(app)/assignments", params: { staffId: "hk-1" } });
   });
 
   it("quick view: Message opens the composer for that person with their verified status", async () => {

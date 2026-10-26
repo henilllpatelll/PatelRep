@@ -1,783 +1,739 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, BackHandler, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
+import { R } from "@/components/shared/tokens";
+import { AssignRoomChooserSheet } from "@/components/supervisor/assignments/AssignRoomChooserSheet";
+import { BulkActionFooter } from "@/components/supervisor/assignments/BulkActionFooter";
+import { BulkAssignHost } from "@/components/supervisor/assignments/BulkAssignHost";
+import { BulkSelectionBar } from "@/components/supervisor/assignments/BulkSelectionBar";
+import { DraftIndicator } from "@/components/supervisor/assignments/DraftIndicator";
+import { SelectableRoomRow } from "@/components/supervisor/assignments/SelectableRoomRow";
+import { SmartBalanceEntryCard } from "@/components/supervisor/assignments/SmartBalanceEntryCard";
+import { MidshiftHost } from "@/components/supervisor/assignments/MidshiftHost";
+import { SmartBalanceHost } from "@/components/supervisor/assignments/SmartBalanceHost";
+import { AssignmentFilterSheet } from "@/components/supervisor/assignments/AssignmentFilterSheet";
+import { AssignmentRoomCard } from "@/components/supervisor/assignments/AssignmentRoomCard";
+import { AssignmentRoomSheet } from "@/components/supervisor/assignments/AssignmentRoomSheet";
+import { AssignmentEmpty, AssignmentsSkeleton, type AssignmentEmptyKind } from "@/components/supervisor/assignments/AssignmentStates";
+import { AssignmentsHeader, type AssignmentsTab } from "@/components/supervisor/assignments/AssignmentsHeader";
+import { ActiveFilters, ListCaption, QuickChips, SectionHeader } from "@/components/supervisor/assignments/RoomsListParts";
+import { StaffDetailSheet } from "@/components/supervisor/assignments/StaffDetailSheet";
+import { TeamFilterSheet } from "@/components/supervisor/assignments/TeamFilterSheet";
+import { TeamActiveFilters, TeamEmpty, TeamNotices } from "@/components/supervisor/assignments/TeamParts";
+import { TeamStaffCard } from "@/components/supervisor/assignments/TeamStaffCard";
+import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
+import { BoardNotice } from "@/components/supervisor/board/BoardStates";
+import { selectableIn } from "@/lib/housekeeping/assignmentBulk";
+import { buildSelectionRow, proposedLoadLine } from "@/lib/housekeeping/assignmentBulkView";
+import { buildRecoveryPanel } from "@/lib/housekeeping/assignmentMidshiftText";
+import { listAssignableRooms } from "@/lib/housekeeping/assignmentPicker";
+import { isQuickActive, runAssignmentQuery } from "@/lib/housekeeping/assignmentQuery";
+import {
+  buildHeaderMetrics,
+  detailContextOf,
+  freshnessNotices,
+  operationalDateLabel,
+  type AssignmentViewState,
+  type CardCtaKind,
+  type RoomsListItem,
+} from "@/lib/housekeeping/assignmentRoomsView";
+import type { AssignmentTeamMember } from "@/lib/housekeeping/assignmentStaff";
+import { runTeamQuery, type TeamViewState } from "@/lib/housekeeping/assignmentTeamQuery";
+import { buildStaffDetail, buildTeamHeaderMetrics, teamEmptyKind, teamNotices } from "@/lib/housekeeping/assignmentTeamView";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { describeBoardStatus } from "@/lib/housekeeping/roomBoardView";
+import { useAssignmentRooms } from "@/lib/housekeeping/useAssignmentRooms";
+import { useAssignmentTeam } from "@/lib/housekeeping/useAssignmentTeam";
+import { useAssignmentsLink } from "@/lib/housekeeping/useAssignmentsLink";
+import { DEFAULT_VIEW_STATE } from "@/lib/housekeeping/assignmentRoomsView";
+import { applyQuickView } from "@/lib/housekeeping/assignmentQuery";
+import { useAssignments } from "@/lib/housekeeping/useAssignments";
+import { useAssignmentFlow } from "@/lib/housekeeping/useAssignmentFlow";
+import { useBulkAssignment } from "@/lib/housekeeping/useBulkAssignment";
+import { useMidshiftRecovery, type MidshiftClosed } from "@/lib/housekeeping/useMidshiftRecovery";
+import { useSmartBalance } from "@/lib/housekeeping/useSmartBalance";
+import { leavePrompt, type LeavePrompt } from "@/lib/housekeeping/assignmentLeave";
 import { useAppStore } from "@/stores/appStore";
-import { dynamicShiftMeta } from "@/lib/utils/date";
-import { hotelTodayKey } from "@/lib/housekeeping/supervisorToday";
-import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
-import {
-  fetchAssignableStaff,
-  fetchBoard,
-  fetchLateCheckouts,
-  removeAssignment,
-  saveAssignments,
-  suggestAssignments,
-  type AssignmentSuggestion,
-  type LateCheckoutRequest,
-} from "@/lib/api/housekeepingSupervisor";
-import {
-  buildFloorSnapshot,
-  buildNameById,
-  buildTeamLoads,
-  groupByFloor,
-  isActionable,
-  normalizeBoardRooms,
-  sortRoomsByNumber,
-  type AssignableStaff,
-  type FloorRoom,
-  type TeamLoad,
-} from "@/lib/housekeeping/supervisor";
-import { R, monoFont } from "@/components/shared/tokens";
-import { Avatar, SectionLabel } from "@/components/shared/mobileHandoff";
-import { ProgressBar, StatusRail } from "@/components/shared/evening";
-import { HeroSignalRow, type HeroSignal } from "@/components/supervisor/atoms";
-import { HousekeeperPicker } from "@/components/supervisor/HousekeeperPicker";
-import { classifyFailure } from "@/lib/housekeeping/roomAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Card } from "@/components/ui/Card";
-import { StateBlock } from "@/components/ui/StateBlock";
-import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 
 /* ─── Assignments — who cleans what today ───────────────────────────────────
-   Dark shell hero with the assignment shape of the day and an AI balance
-   action (suggest → review sheet → apply). Unassigned rooms first, then
-   one workload card per housekeeper. Tap any room to reassign or remove. */
+   The supervisor's assignment workspace. This file only wires: the verified model (`useAssignments`, the same
+   one shared snapshot Supervisor Today and the Room Board read — no fetch or subscription of its own), the Rooms
+   tab state (`useAssignmentRooms`) and the one assignment workflow (`useAssignmentFlow`) to the presentational
+   components. Rooms and Team read the SAME model and are both mounted state of this screen, so switching tabs
+   keeps each one's search, filters and sort and never refetches or opens a second realtime channel. */
+
+/** What the one list renders: the Rooms tab's items, or the Team tab's people. */
+type ListItem = RoomsListItem | { type: "member"; key: string; member: AssignmentTeamMember };
 
 export default function AssignmentsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const toast = useToast();
-  const { isOnline, user } = useAppStore();
-  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
-  useHotelTimezone();
-  // The hotel's calendar day, not the phone's: a supervisor in another zone, or near midnight, must not see or write another day.
-  const hotelDate = useCallback(() => hotelTodayKey(Date.now(), hotelTimezone), [hotelTimezone]);
+  const language = i18n.language;
 
-  const [rooms, setRooms] = useState<FloorRoom[]>([]);
-  const [staff, setStaff] = useState<AssignableStaff[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [pickerRoom, setPickerRoom] = useState<FloorRoom | null>(null);
-  const [floorPickerRooms, setFloorPickerRooms] = useState<FloorRoom[] | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [suggesting, setSuggesting] = useState(false);
-  const [suggestions, setSuggestions] = useState<AssignmentSuggestion[] | null>(null);
-  const [suggestNotice, setSuggestNotice] = useState<string | null>(null);
-  const [applying, setApplying] = useState(false);
-  const [lateCoByRoom, setLateCoByRoom] = useState<Map<string, LateCheckoutRequest>>(new Map());
+  const { model, gate, isOnline, refreshing: refreshingBackground, scopeKey, refresh } = useAssignments();
+  const { availability } = model;
+  const rooms = useAssignmentRooms({ model, gate, language, t, resetKey: scopeKey });
+  const { query, items, cards, options, chips, state } = rooms;
+  const team = useAssignmentTeam({ model, t, resetKey: scopeKey });
+  // Bulk selection, the one unpublished draft and its atomic publication. It reads the SAME model as everything
+  // else here (no fetch or subscription of its own) and changes nothing until a reviewed draft is published.
+  const bulk = useBulkAssignment({ model, gate, isOnline, refresh, scopeKey, queue: rooms.queue, visible: query.visible, t, toast });
+  const selecting = bulk.selection.selecting;
+  // Smart Balance: a read-only proposal that, once reviewed, goes into the SAME unpublished draft as manual bulk work and
+  // is published through the SAME atomic path. It reads the same model (no snapshot, fetch or subscription of its own).
+  const user = useAppStore((current) => current.user);
+  const role = user?.effective_role ?? user?.role;
+  const canPlan = role === "gm" || role === "housekeeping_supervisor";
+  const smart = useSmartBalance({
+    model,
+    gate,
+    isOnline,
+    scopeKey,
+    hotelId: user?.tenant_id ?? null,
+    draft: bulk.draft,
+    selectedRoomIds: bulk.selection.selected,
+    showReview: bulk.showReview,
+    onAdded: (roomIds) => bulk.selection.consume(roomIds),
+    refresh,
+    t,
+    toast,
+  });
 
-  const loadData = useCallback(async () => {
-    if (!isOnline) {
-      setLoading(false);
-      return;
-    }
-    const [boardRes, staffRes, lateCoRes] = await Promise.allSettled([
-      fetchBoard(hotelDate()),
-      fetchAssignableStaff(),
-      fetchLateCheckouts(),
-    ]);
-    if (boardRes.status === "fulfilled") setRooms(normalizeBoardRooms(boardRes.value));
-    if (staffRes.status === "fulfilled") setStaff(staffRes.value);
-    if (lateCoRes.status === "fulfilled") {
-      const m = new Map<string, LateCheckoutRequest>();
-      for (const req of lateCoRes.value) m.set(req.room_id, req);
-      setLateCoByRoom(m);
-    }
-    setLoading(false);
-  }, [isOnline, hotelDate]);
-
+  const [tab, setTab] = useState<AssignmentsTab>("rooms");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [teamFilterOpen, setTeamFilterOpen] = useState(false);
+  // The person whose drawer is open, and the person to return to when a room opened from that drawer is closed.
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const returnStaffRef = useRef<string | null>(null);
+  // "Assign more rooms" from a person's drawer: the person whose room chooser is open.
+  const [chooserFor, setChooserFor] = useState<string | null>(null);
+  const [pulling, setPulling] = useState(false);
+  // "Reassign remaining work" from a person's drawer: the sheet gives way to the redistribution flow and, if the supervisor
+  // simply leaves it, returns to that person. Leaving for the Room Board (or adding to the draft) does not restore it.
+  const skipReturnRef = useRef(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [roomGone, setRoomGone] = useState(false);
+  // The header's age ("Updated 20 seconds ago") is read from the real clock at render; this tick only re-renders it.
+  const [, setTick] = useState(0);
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const id = setInterval(() => setTick((n) => n + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
 
+  // The one assignment workflow (assign / reassign / remove): it follows the room through the live board, re-reads it
+  // before every write and reports only what the server confirmed. The sheet renders it; see useRoomAssignment.
+  const assignment = useAssignmentFlow({ model, gate, isOnline, refresh, scopeKey, t, toast });
+  const assignmentRef = useRef(assignment);
+  assignmentRef.current = assignment;
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
+
+  // Midshift recovery: one person's unstarted rooms move to others. It reads the same model, stages PROPOSED changes into the
+  // same unpublished draft (source "midshift") and publishes through the same reviewed, atomic path as everything else.
+  const onMidshiftClosed = useCallback((userId: string, outcome: MidshiftClosed) => {
+    const skip = skipReturnRef.current;
+    skipReturnRef.current = false;
+    if (outcome === "dismissed" && !skip) setSelectedStaffId(userId);
+  }, []);
+  const midshift = useMidshiftRecovery({ model, gate, isOnline, scopeKey, draft: bulk.draft, showReview: bulk.showReview, refresh, t, toast, onClosed: onMidshiftClosed });
+  const midshiftRef = useRef(midshift);
+  midshiftRef.current = midshift;
+
+  // Android Back with unpublished work (or an unclear publication) asks first. The draft lives in memory only - this tab stays
+  // mounted when the supervisor goes elsewhere - so only an explicit "Discard and leave" loses it, and it then really does.
+  // A publication in flight is never discarded: leaving does not cancel it and its operation id stays for recovery.
+  const leaveRef = useRef<LeavePrompt | null>(null);
+  leaveRef.current = leavePrompt({ publishing: bulk.publishing, draftChanges: bulk.draftChanges > 0, planOpen: smart.plan !== null });
+  const discardForLeave = useCallback(() => {
+    if (!bulkRef.current.publishing) bulkRef.current.confirmDiscard();
+    smartRef.current.confirmDiscard();
+    router.back();
+  }, []);
   useEffect(() => {
-    if (!user?.tenant_id) return;
-    const channel = supabase
-      .channel("assignments-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_assignments", filter: `tenant_id=eq.${user.tenant_id}` },
-        () => {
-          loadData();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "room_status", filter: `tenant_id=eq.${user.tenant_id}` },
-        () => {
-          loadData();
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.tenant_id, loadData]);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      const prompt = leaveRef.current;
+      if (!prompt) return false;
+      if (prompt === "pending") {
+        Alert.alert(t("assignments.v2.bulk.leave.pendingTitle"), t("assignments.v2.bulk.leave.pendingBody"), [
+          { text: t("assignments.v2.bulk.leave.stay"), style: "cancel" },
+          { text: t("assignments.v2.bulk.leave.leave"), onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert(t("assignments.v2.bulk.leave.discardTitle"), t("assignments.v2.bulk.leave.discardBody"), [
+          { text: t("assignments.v2.bulk.leave.stayReview"), style: "cancel" },
+          { text: t("assignments.v2.bulk.leave.discardLeave"), style: "destructive", onPress: discardForLeave },
+        ]);
+      }
+      return true;
+    });
+    return () => subscription.remove();
+  }, [t, discardForLeave]);
+  const smartRef = useRef(smart);
+  smartRef.current = smart;
+  const bulkRef = useRef(bulk);
+  bulkRef.current = bulk;
+  const roomsRef = useRef(rooms);
+  roomsRef.current = rooms;
+  const roomsByIdRef = useRef(new Map<string, (typeof query.visible)[number]>());
+  roomsByIdRef.current = new Map(query.visible.map((entry) => [entry.room.roomId, entry] as const));
+  const onToggleBulk = useCallback((roomId: string) => {
+    const entry = roomsByIdRef.current.get(roomId);
+    if (entry) bulkRef.current.selection.toggle(entry);
+  }, []);
+  const anySelectable = useMemo(() => selectableIn(rooms.queue).length > 0, [rooms.queue]);
+  const viewTeam = useCallback(() => {
+    bulkRef.current.finish();
+    setTab("team");
+  }, []);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, [loadData]);
-
-  const nameById = useMemo(() => buildNameById(staff), [staff]);
-  const snapshot = useMemo(() => buildFloorSnapshot(rooms), [rooms]);
-  const teamLoads = useMemo(() => buildTeamLoads(rooms, nameById), [rooms, nameById]);
-  const unassigned = useMemo(
-    () => sortRoomsByNumber(rooms.filter((room) => isActionable(room.status) && !room.assignedTo)),
-    [rooms],
-  );
-  const unassignedByFloor = useMemo(
-    () => groupByFloor(rooms.filter((room) => isActionable(room.status) && !room.assignedTo)),
-    [rooms],
-  );
-  const assignedCount = rooms.filter((room) => room.assignedTo != null).length;
-
-  const signals = useMemo<HeroSignal[]>(
-    () =>
-      [
-        unassigned.length > 0 && {
-          key: "unassigned",
-          label: t("assignments.signalUnassigned", { count: unassigned.length }),
-          fg: theme.status.dirty,
-          bg: theme.status.dirtySoft,
-          line: theme.status.dirtyLine,
-        },
-      ].filter(Boolean) as HeroSignal[],
-    [theme, unassigned.length, t],
-  );
-
-  /* ── AI balance: suggest → review → apply ── */
-
-  const requestSuggestions = useCallback(async () => {
-    if (suggesting) return;
-    setSuggesting(true);
-    setSuggestNotice(null);
+    setPulling(true);
     try {
-      const result = await suggestAssignments(hotelDate());
-      if (result.suggestions.length > 0) {
-        setSuggestions(result.suggestions);
-      } else {
-        // If rooms are already manually assigned but shift schedule is empty, the AI
-        // returns "no housekeepers on shift". Surface a more helpful explanation.
-        const hasAssignments = rooms.some((r) => r.assignedTo != null);
-        setSuggestNotice(
-          hasAssignments
-            ? t("assignments.suggestShiftGap")
-            : result.message || t("assignments.suggestEmpty"),
-        );
-      }
-    } catch {
-      setSuggestNotice(t("assignments.suggestError"));
+      await refresh();
     } finally {
-      setSuggesting(false);
+      setPulling(false);
     }
-  }, [suggesting, hotelDate, t]);
+  }, [refresh]);
 
-  const applySuggestions = useCallback(async () => {
-    if (!suggestions || applying) return;
-    setApplying(true);
-    try {
-      const assignments = suggestions.flatMap((suggestion) =>
-        suggestion.rooms.map((room) => ({
-          room_id: room.room_id,
-          housekeeper_id: suggestion.housekeeper.id,
-        })),
-      );
-      await saveAssignments(hotelDate(), assignments, true);
-      setSuggestions(null);
-      await loadData();
-    } catch {
-      setSuggestNotice(t("assignments.applyError"));
-      setSuggestions(null);
-    } finally {
-      setApplying(false);
-    }
-  }, [suggestions, applying, hotelDate, loadData, t]);
+  // The sheet follows the room by id through every refresh, and reads the FULL model: a room that a search or
+  // filter hides is still on the board, so its sheet stays open.
+  const selectedEntry = useMemo(
+    () => (selectedRoomId === null ? null : (model.rooms ?? []).find((entry) => entry.room.roomId === selectedRoomId) ?? null),
+    [model.rooms, selectedRoomId],
+  );
+  useEffect(() => {
+    if (selectedRoomId === null || selectedEntry !== null) return;
+    // The open room left the verified board (realtime removal, or the board stopped being today's): close rather
+    // than keep showing a room the board no longer vouches for, and say so when the room is truly gone.
+    setSelectedRoomId(null);
+    returnStaffRef.current = null;
+    if (model.rooms !== null) setRoomGone(true);
+  }, [selectedRoomId, selectedEntry, model.rooms]);
 
-  /* ── Single-room assign / reassign / remove ── */
+  const onOpenRoom = useCallback((roomId: string, cta: CardCtaKind) => {
+    setRoomGone(false);
+    setSelectedRoomId(roomId);
+    // "Assign" goes straight to the picker; every other call to action opens the room itself.
+    if (cta === "assign" && gateRef.current.allowed) assignmentRef.current.openAssign(roomId);
+  }, []);
+  const dismissRoom = useCallback(() => {
+    if (assignmentRef.current.flow) assignmentRef.current.close();
+    setSelectedRoomId(null);
+  }, []);
+  // A room opened from a staff drawer returns to that drawer, so the supervisor keeps their place.
+  const closeSheet = useCallback(() => {
+    dismissRoom();
+    const staffId = returnStaffRef.current;
+    returnStaffRef.current = null;
+    if (staffId) setSelectedStaffId(staffId);
+  }, [dismissRoom]);
+  // Leaving for the full Room Board is not "going back": the drawer is not restored.
+  const openBoard = useCallback(() => {
+    const roomId = selectedRoomId;
+    returnStaffRef.current = null;
+    dismissRoom();
+    if (roomId) router.push({ pathname: "/(app)/room-board", params: { roomId } } as never);
+  }, [dismissRoom, selectedRoomId]);
 
-  const assignTo = useCallback(
-    async (member: AssignableStaff) => {
-      // One save at a time; "assigned" is announced only after the server accepted it.
-      if (saving) return;
-      const rooms = floorPickerRooms ?? (pickerRoom ? [pickerRoom] : []);
-      if (rooms.length === 0) return;
-      setSaving(true);
-      try {
-        await saveAssignments(
-          hotelDate(),
-          rooms.map((room) => ({
-            room_id: room.roomId,
-            housekeeper_id: member.userId,
-            // What this screen showed: the server refuses if the room moved on or its cleaning started since.
-            ...(room.assignedTo ? { expected_assigned_to: room.assignedTo } : { expect_unassigned: true }),
-          })),
-        );
-      } catch (err) {
-        const { failure } = classifyFailure(err, isOnline);
-        toast.error(t(`roomBoard.assign.error.${failure}`));
-        if (failure === "conflict" || failure === "room_unavailable") void loadData();
-        setSaving(false);
-        return;
-      }
-      setPickerRoom(null);
-      setFloorPickerRooms(null);
-      setSaving(false);
-      toast.success(
-        rooms.length === 1
-          ? t("roomBoard.assign.success.assign", { room: rooms[0].roomNumber, name: member.name })
-          : t("roomBoard.assign.success.floor", { count: rooms.length, name: member.name }),
-      );
-      await loadData();
+  // Staff drawer: follows the person by id through every refresh and reads the full team, so a filter that hides
+  // them does not close it. It is one Modal at a time: opening a room closes the drawer and remembers the person.
+  const selectedMember = useMemo(
+    () => (selectedStaffId === null ? null : (model.team ?? []).find((member) => member.userId === selectedStaffId) ?? null),
+    [model.team, selectedStaffId],
+  );
+  useEffect(() => {
+    if (selectedStaffId !== null && selectedMember === null) setSelectedStaffId(null);
+  }, [selectedStaffId, selectedMember]);
+  const roomEntries = useMemo(() => new Map((model.rooms ?? []).map((entry) => [entry.room.roomId, entry] as const)), [model.rooms]);
+  const staffDetail = useMemo(
+    () => (selectedMember ? buildStaffDetail(selectedMember, roomEntries, { t, language, timeZone: model.timeZone }) : null),
+    [selectedMember, roomEntries, t, language, model.timeZone],
+  );
+  const onOpenStaff = useCallback((userId: string) => setSelectedStaffId(userId), []);
+  const recoveryPanel = useMemo(
+    () => (selectedMember ? buildRecoveryPanel(model, selectedMember.userId, midshift.paused, t) : null),
+    [model, selectedMember, midshift.paused, t],
+  );
+  // One modal at a time: the drawer gives way to the redistribution sheet.
+  const onReassignRemaining = useCallback(() => {
+    const userId = selectedStaffId;
+    if (!userId) return;
+    setSelectedStaffId(null);
+    midshiftRef.current.open(userId);
+  }, [selectedStaffId]);
+  // A started room is verified on the Room Board, which owns that workflow; going there is not "going back".
+  const openMidshiftBoard = useCallback((roomId: string) => {
+    skipReturnRef.current = true;
+    midshiftRef.current.close();
+    router.push({ pathname: "/(app)/room-board", params: { roomId } } as never);
+  }, []);
+  // One modal at a time: the drawer gives way to the chooser, and Back from the chooser returns to the drawer.
+  const onAssignMore = useCallback(() => {
+    setChooserFor(selectedStaffId);
+    setSelectedStaffId(null);
+  }, [selectedStaffId]);
+  const closeChooser = useCallback(() => {
+    setSelectedStaffId(chooserFor);
+    setChooserFor(null);
+  }, [chooserFor]);
+  const chooserMember = useMemo(() => (chooserFor === null ? null : (model.team ?? []).find((member) => member.userId === chooserFor) ?? null), [model.team, chooserFor]);
+  useEffect(() => {
+    if (chooserFor !== null && chooserMember === null) setChooserFor(null);
+  }, [chooserFor, chooserMember]);
+
+  // Deep links from Today, the Attention Center and the Room Board (see useAssignmentsLink): the tab and filter apply at
+  // once; a named room or person opens only if this hotel's verified board has it, otherwise a short notice says so.
+  const linkActions = useMemo(
+    () => ({
+      show: (nextTab: AssignmentsTab, filter: "unassigned" | "urgent" | null) => {
+        if (nextTab === "team" && bulkRef.current.selection.selecting) bulkRef.current.selection.stop();
+        setTab(nextTab);
+        if (nextTab === "rooms") {
+          roomsRef.current.clearAll();
+          if (filter) {
+            const next = applyQuickView(filter, { scope: "all", priority: "any" });
+            roomsRef.current.applyState({ ...DEFAULT_VIEW_STATE, scope: next.scope, filters: { ...DEFAULT_VIEW_STATE.filters, priority: next.priority } });
+          }
+        }
+      },
+      // One interaction at a time: whatever was open gives way to the linked record.
+      reset: () => {
+        setFilterSheetOpen(false);
+        setTeamFilterOpen(false);
+        setChooserFor(null);
+        setSelectedStaffId(null);
+        returnStaffRef.current = null;
+        setRoomGone(false);
+      },
+      openRoom: (roomId: string) => {
+        if (assignmentRef.current.flow) assignmentRef.current.close();
+        setSelectedRoomId(roomId);
+      },
+      openStaff: (userId: string) => setSelectedStaffId(userId),
+    }),
+    [],
+  );
+  const link = useAssignmentsLink({ model, scopeKey, actions: linkActions });
+  const chooserRooms = useMemo(() => (chooserMember ? listAssignableRooms(model) : []), [chooserMember, model]);
+  const onChooseRoom = useCallback(
+    (roomId: string) => {
+      const employeeId = chooserFor;
+      returnStaffRef.current = employeeId;
+      setChooserFor(null);
+      setRoomGone(false);
+      setSelectedRoomId(roomId);
+      if (employeeId && gateRef.current.allowed) assignmentRef.current.openAssign(roomId, { employeeId });
     },
-    [saving, pickerRoom, floorPickerRooms, hotelDate, loadData, toast, t, isOnline],
+    [chooserFor],
+  );
+  const onOpenStaffRoom = useCallback(
+    (roomId: string) => {
+      returnStaffRef.current = selectedStaffId;
+      setSelectedStaffId(null);
+      onOpenRoom(roomId, "view_assignment");
+    },
+    [onOpenRoom, selectedStaffId],
   );
 
-  const onAssignedRoomPress = useCallback(
-    (room: FloorRoom) => {
-      Alert.alert(t("assignments.roomActionTitle", { room: room.roomNumber }), undefined, [
-        { text: t("assignments.reassign"), onPress: () => setPickerRoom(room) },
-        {
-          text: t("assignments.removeAssignment"),
-          style: "destructive",
-          onPress: async () => {
-            if (!room.assignmentId) return;
-            try {
-              await removeAssignment(room.assignmentId);
-            } catch (err) {
-              toast.error(t(`roomBoard.assign.error.${classifyFailure(err, isOnline).failure}`));
-              return;
-            }
-            toast.success(t("roomBoard.assign.success.remove", { room: room.roomNumber }));
-            await loadData();
-          },
-        },
-        { text: t("common.cancel"), style: "cancel" },
-      ]);
-    },
-    [t, loadData, toast, isOnline],
+  const verifiedClock =
+    availability.kind === "stale" || availability.kind === "previous_day" || availability.kind === "ready" || availability.kind === "verified_empty"
+      ? availability.verifiedAt !== null
+        ? formatHotelTime(new Date(availability.verifiedAt), model.timeZone, language)
+        : null
+      : null;
+  const busy = pulling || refreshingBackground;
+  const statusLine = describeBoardStatus(availability, { refreshing: busy, isOnline, now: Date.now() });
+  const boardKnown = model.rooms !== null;
+  const live = availability.kind === "ready" || availability.kind === "verified_empty";
+
+  const metrics = useMemo(() => buildHeaderMetrics(model), [model]);
+  const allNotices = useMemo(() => freshnessNotices(model), [model]);
+  // The Team tab words the missing-source case itself (see TeamNotices), so the generic one is not repeated there.
+  const notices = useMemo(() => (tab === "team" ? allNotices.filter((notice) => notice.kind !== "aux_partial") : allNotices), [allNotices, tab]);
+  const detailContext = useMemo(() => detailContextOf(model.board, gate, verifiedClock, live), [model.board, gate, verifiedClock, live]);
+
+  const teamMetrics = useMemo(() => buildTeamHeaderMetrics(model), [model]);
+  const teamNoticeList = useMemo(() => teamNotices(model), [model]);
+  const teamPreviewCount = useCallback(
+    (draft: TeamViewState) => runTeamQuery({ team: model.team ?? [], search: team.search, filters: draft.filters, sort: draft.sort, rosterVerified: team.rosterVerified }).visible.length,
+    [model.team, team.search, team.rosterVerified],
+  );
+  const teamItems = useMemo<ListItem[]>(
+    () => team.query.visible.map((member) => ({ type: "member", key: `team:${member.userId}`, member })),
+    [team.query.visible],
   );
 
-  if (loading) {
+  const previewCount = useCallback(
+    (draft: AssignmentViewState) => runAssignmentQuery({ rooms: rooms.queue, search: rooms.search, filters: draft.filters, scope: draft.scope, sort: draft.sort }).visible.length,
+    [rooms.queue, rooms.search],
+  );
+
+  const unavailableKey =
+    availability.kind === "unavailable"
+      ? availability.cause === "offline"
+        ? "assignments.v2.state.unavailableOffline"
+        : availability.cause === "forbidden"
+          ? "assignments.v2.state.unavailableForbidden"
+          : "assignments.v2.state.unavailableError"
+      : availability.kind === "previous_day"
+        ? "assignments.v2.state.previousDay"
+        : null;
+  const staleNote = availability.kind === "stale" ? t("assignments.v2.state.emptyStaleNote", { time: verifiedClock ?? "—" }) : null;
+
+  const showBlocked = useCallback(() => rooms.applyState({ ...state, scope: "blocked" }), [rooms, state]);
+  const showAll = useCallback(() => rooms.applyState({ ...state, scope: "all", filters: { ...state.filters, priority: "any" } }), [rooms, state]);
+
+  // Why there is nothing to list, if there is nothing: each reason has its own words and way out.
+  const emptyKind: AssignmentEmptyKind | null = !boardKnown
+    ? "unavailable"
+    : (model.rooms ?? []).length === 0
+      ? "verifiedEmpty"
+      : rooms.queue.length === 0
+        ? "queueDone"
+        : query.emptyReason === "search"
+          ? "search"
+          : query.emptyReason === "filters"
+            ? "filters"
+            : query.emptyReason === "scope"
+              ? state.scope === "unassigned" && query.counts.blocked > 0
+                ? "blockedOnly"
+                : "scope"
+              : null;
+
+  const header = (
+    <AssignmentsHeader
+      status={statusLine}
+      verifiedClock={verifiedClock}
+      refreshing={busy}
+      topInset={insets.top}
+      dateLabel={boardKnown ? operationalDateLabel(model, language) : null}
+      metrics={metrics}
+      teamMetrics={teamMetrics}
+      tab={tab}
+      onTab={setTab}
+      onRefresh={() => void onRefresh()}
+      onShowBlocked={boardKnown ? () => { setTab("rooms"); showBlocked(); } : null}
+      t={t}
+    />
+  );
+
+  if (availability.kind === "loading") {
     return (
-      <View style={styles.center}>
-        <StateBlock status="loading" />
+      <View style={[styles.container, { backgroundColor: theme.background }]} testID="assignments-loading">
+        {header}
+        <AssignmentsSkeleton />
       </View>
     );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView
-        style={[styles.scroll, { backgroundColor: theme.background }]}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
-      >
-        <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
-        <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>
-            {dynamicShiftMeta(user?.language_pref ?? "en", t("assignments.kicker"))}
-          </Text>
-          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("assignments.title")}</Text>
-          <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
-            {t("assignments.summary", {
-              assigned: assignedCount,
-              unassigned: unassigned.length,
-              housekeepers: teamLoads.length,
-            })}
-          </Text>
-          <HeroSignalRow signals={signals} />
-          {snapshot.toClean + snapshot.inProgress > 0 ? (
-            <TouchableOpacity
-              style={[
-                styles.aiBtn,
-                { borderColor: theme.shell.line, backgroundColor: theme.shell.surface },
-                suggesting && styles.dimmed,
-              ]}
-              onPress={() => void requestSuggestions()}
-              disabled={suggesting}
-              activeOpacity={0.82}
-              testID="ai-balance"
-            >
-              <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
-              <Text style={[styles.aiBtnText, { color: theme.shell.ink2 }]}>
-                {suggesting ? t("assignments.suggesting") : t("assignments.aiBalance")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+  const narrowed = query.searching || chips.length > 0 || state.sort !== "priority";
+  const listHeader = (
+    <View>
+      {selecting ? null : header}
+      <DraftIndicator bulk={bulk} t={t} />
+      {tab === "rooms" && boardKnown && canPlan && !selecting ? (
+        <SmartBalanceEntryCard onPress={smart.open} paused={smart.paused} proposedChanges={smart.plan ? (smart.preview?.counts.planned ?? 0) : null} t={t} />
+      ) : null}
+      {notices.map((notice) => (
+        <View
+          key={notice.key}
+          style={[styles.notice, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+          accessibilityRole="alert"
+          testID={notice.kind === "not_live" ? "assignments-not-live" : "assignments-aux-notice"}
+        >
+          <View style={styles.noticeText}>
+            {notice.kind === "not_live" ? <Text style={[styles.noticeTitle, { color: theme.textPrimary }]}>{t("assignments.v2.state.notLiveTitle")}</Text> : null}
+            <Text style={[styles.noticeBody, { color: theme.textSecondary }]}>{t(`assignments.v2.state.${notice.key}`, { time: verifiedClock ?? "—" })}</Text>
+          </View>
         </View>
+      ))}
+      {roomGone ? <BoardNotice body={t("assignments.v2.sheet.roomGone")} closeLabel={t("common.close")} onClose={() => setRoomGone(false)} testID="assignments-room-gone" /> : null}
+      {link.notice ? (
+        <BoardNotice body={t(`assignments.v2.link.${link.notice === "room_missing" ? "roomMissing" : "staffMissing"}`)} closeLabel={t("common.close")} onClose={link.dismissNotice} testID="assignments-link-missing" />
+      ) : null}
+      {!gate.allowed && boardKnown && availability.kind !== "stale" ? (
+        <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="assignments-actions-paused">
+          {t("assignments.v2.state.actionsPaused")}
+        </Text>
+      ) : null}
 
-        <View style={styles.body}>
-          {suggestNotice ? (
-            <View style={[styles.noticeCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-              <Ionicons name="information-circle-outline" size={15} color={theme.textMuted} />
-              <Text style={[styles.noticeText, { color: theme.textSecondary }]}>{suggestNotice}</Text>
+      {tab === "rooms" && boardKnown ? (
+        <>
+          <BoardSearchBar
+            value={rooms.search}
+            onChangeText={rooms.setSearch}
+            onClear={rooms.clearSearch}
+            onOpenFilters={() => setFilterSheetOpen(true)}
+            activeCount={rooms.badge}
+            t={t}
+            placeholder={t("assignments.v2.search.placeholder")}
+            label={t("assignments.v2.search.label")}
+            filterLabel={t("assignments.v2.filters.open")}
+            testIDPrefix="assignments"
+          />
+          {!selecting && anySelectable ? (
+            <View style={styles.selectEntry}>
+              <Pressable
+                onPress={bulk.selection.start}
+                accessibilityRole="button"
+                accessibilityLabel={t("assignments.v2.bulk.select")}
+                accessibilityHint={t("assignments.v2.bulk.selectHint")}
+                style={({ pressed }) => [styles.selectButton, { borderColor: theme.primaryAction, backgroundColor: theme.surface }, pressed && { opacity: 0.85 }]}
+                testID="bulk-select-rooms"
+              >
+                <Text maxFontSizeMultiplier={1.6} style={[styles.selectText, { color: theme.primaryAction }]}>
+                  {t("assignments.v2.bulk.select")}
+                </Text>
+              </Pressable>
             </View>
           ) : null}
-
-          {unassignedByFloor.length > 0 ? (
-            <View>
-              <SectionLabel hint={t("assignments.roomCount", { count: unassigned.length })}>
-                {t("assignments.unassignedSection")}
-              </SectionLabel>
-              <View style={styles.rows}>
-                {unassignedByFloor.map(({ floor, rooms: floorRooms }) => (
-                  <View key={floor} style={styles.floorGroup}>
-                    <View style={styles.floorHeader}>
-                      <Text style={[styles.floorLabel, { color: theme.textMuted }]}>
-                        {t("assignments.floorSection", { floor })}
-                      </Text>
-                      <TouchableOpacity
-                        style={[
-                          styles.assignFloorBtn,
-                          { borderColor: theme.primaryLine, backgroundColor: theme.surface },
-                        ]}
-                        onPress={() => setFloorPickerRooms(floorRooms)}
-                        activeOpacity={0.8}
-                        testID={`assign-floor-${floor}`}
-                      >
-                        <Ionicons name="people-outline" size={13} color={theme.primaryAction} />
-                        <Text style={[styles.assignFloorText, { color: theme.primaryAction }]}>
-                          {t("assignments.assignFloor")}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    {floorRooms.map((room) => {
-                      const statusKey = getRoomStatusKey(room.status);
-                      const statusLabel = t(
-                        statusKey ? `rooms.card.status.${room.status}` : "rooms.card.status.UNKNOWN",
-                        { status: room.status.replace(/_/g, " ") },
-                      );
-                      return (
-                        <Pressable
-                          key={room.roomId}
-                          onPress={() => setPickerRoom(room)}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${room.roomNumber} — ${statusLabel}`}
-                          testID={`unassigned-${room.roomNumber}`}
-                        >
-                          <Card style={styles.unassignedRow}>
-                            <StatusRail status={room.status} />
-                            <Text style={[styles.unassignedNumber, { color: theme.textPrimary }]}>{room.roomNumber}</Text>
-                            <View style={styles.unassignedBody}>
-                              {statusKey ? (
-                                <StatusBadge statusKey={statusKey} label={statusLabel} />
-                              ) : (
-                                <Text style={[styles.unassignedStatus, { color: theme.textMuted }]}>{statusLabel}</Text>
-                              )}
-                              <View style={styles.unassignedChips}>
-                                {room.cleanTypeLabel ? (
-                                  <Text style={[styles.unassignedMeta, { color: theme.textMuted }]}>{room.cleanTypeLabel}</Text>
-                                ) : null}
-                                {room.vip ? (
-                                  <View style={[styles.vipChip, { backgroundColor: theme.accentBrassSoft, borderColor: theme.accentBrassLine }]}>
-                                    <Text style={[styles.vipChipText, { color: theme.accentBrass }]}>{"★ "}{t("assignments.vipBadge")}</Text>
-                                  </View>
-                                ) : null}
-                                {lateCoByRoom.has(room.roomId) ? (
-                                  <TouchableOpacity
-                                    style={[
-                                      styles.lateCoChip,
-                                      { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine },
-                                    ]}
-                                    activeOpacity={0.75}
-                                    onPress={() => {
-                                      const req = lateCoByRoom.get(room.roomId);
-                                      toast.info(
-                                        req?.requested_time
-                                          ? t("assignments.lateCoTime", { time: req.requested_time })
-                                          : t("assignments.lateCoNoTime"),
-                                      );
-                                    }}
-                                  >
-                                    <Text style={[styles.lateCoChipText, { color: theme.status.pickup }]}>⏰ {t("assignments.lateCo")}</Text>
-                                  </TouchableOpacity>
-                                ) : null}
-                              </View>
-                            </View>
-                            <Ionicons name="person-add-outline" size={17} color={theme.primaryAction} />
-                          </Card>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          {teamLoads.length > 0 ? (
-            <View>
-              <SectionLabel hint={t("assignments.housekeeperCount", { count: teamLoads.length })}>
-                {t("assignments.teamSection")}
-              </SectionLabel>
-              <View style={styles.rows}>
-                {teamLoads.map((load) => (
-                  <HousekeeperLoadCard
-                    key={load.housekeeperId}
-                    load={load}
-                    summary={t("assignments.loadSummary", {
-                      done: load.done,
-                      total: load.total,
-                      minutes: load.minutesLeft,
-                    })}
-                    onRoomPress={onAssignedRoomPress}
-                  />
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          {teamLoads.length === 0 && unassigned.length === 0 ? (
-            <StateBlock
-              status="empty"
-              emptyIcon="people-outline"
-              emptyTitle={t("assignments.noAssignments")}
-              emptyBody={t("assignments.noAssignmentsHint")}
-              style={styles.empty}
+          <QuickChips views={rooms.quickViews} counts={query.quickCounts} isActive={(view) => isQuickActive(view, { scope: state.scope, priority: state.filters.priority })} onPress={rooms.pressQuick} t={t} />
+          {narrowed ? (
+            <ActiveFilters
+              chips={chips}
+              shown={query.visible.length}
+              total={query.total}
+              sortLabel={state.sort !== "priority" ? t(`assignments.v2.sort.${state.sort}`) : null}
+              onRemove={rooms.removeChip}
+              onClearAll={rooms.clearAll}
+              onEdit={() => setFilterSheetOpen(true)}
+              t={t}
             />
           ) : null}
-        </View>
-      </ScrollView>
+          {query.visible.length > 0 ? <ListCaption title={t("assignments.v2.list.title")} sort={t(`assignments.v2.sort.${state.sort}`)} /> : null}
+        </>
+      ) : null}
 
-      <HousekeeperPicker
-        visible={pickerRoom != null || floorPickerRooms != null}
-        roomNumber={pickerRoom?.roomNumber ?? null}
-        customTitle={
-          floorPickerRooms
-            ? t("assignments.assignFloorTitle", { floor: floorPickerRooms[0]?.floor ?? 0, count: floorPickerRooms.length })
-            : null
-        }
-        staff={staff.filter((member) => member.role === "housekeeper")}
-        loads={teamLoads}
-        saving={saving}
-        onSelect={(member) => void assignTo(member)}
-        onClose={() => { setPickerRoom(null); setFloorPickerRooms(null); }}
-      />
-
-      {/* AI suggestion review sheet */}
-      <Modal
-        visible={suggestions != null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSuggestions(null)}
-      >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setSuggestions(null)} />
-        <View style={[styles.sheet, { backgroundColor: theme.background }]}>
-          <View style={[styles.grabber, { backgroundColor: theme.border }]} />
-          <View style={styles.sheetKickerRow}>
-            <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
-            <Text style={[styles.sheetKicker, { color: theme.ai.primary }]}>{t("assignments.suggestKicker")}</Text>
-          </View>
-          <Text style={[styles.sheetTitle, { color: theme.textPrimary }]}>{t("assignments.suggestTitle")}</Text>
-          <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent}>
-            {(suggestions ?? []).map((suggestion) => {
-              const name =
-                nameById.get(suggestion.housekeeper.id) ||
-                suggestion.housekeeper.preferred_name ||
-                suggestion.housekeeper.full_name ||
-                "—";
-              return (
-                <Card key={suggestion.housekeeper.id} style={styles.suggestionCard}>
-                  <View style={styles.suggestionHeader}>
-                    <Avatar name={name} size={32} />
-                    <Text style={[styles.suggestionName, { color: theme.textPrimary }]} numberOfLines={1}>{name}</Text>
-                    <Text style={[styles.suggestionMeta, { color: theme.textMuted }]}>
-                      {t("assignments.suggestionMeta", {
-                        count: suggestion.room_count,
-                        minutes: suggestion.total_minutes,
-                      })}
-                    </Text>
-                  </View>
-                  <View style={styles.suggestionChips}>
-                    {suggestion.rooms.map((room) => (
-                      <View key={room.room_id} style={[styles.suggestionChip, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-                        <Text style={[styles.suggestionChipText, { color: theme.textSecondary }]}>{room.room_number}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </Card>
-              );
-            })}
-          </ScrollView>
-          <View style={styles.sheetActions}>
-            <TouchableOpacity
-              style={[styles.sheetCancelBtn, { borderColor: theme.border }]}
-              onPress={() => setSuggestions(null)}
-              disabled={applying}
-            >
-              <Text style={[styles.sheetCancelText, { color: theme.textMuted }]}>{t("common.cancel")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.sheetApplyBtn, { backgroundColor: theme.primaryAction }, applying && styles.dimmed]}
-              onPress={() => void applySuggestions()}
-              disabled={applying}
-              activeOpacity={0.85}
-              testID="apply-suggestions"
-            >
-              <Text style={[styles.sheetApplyText, { color: theme.shell.ink }]}>
-                {applying ? t("assignments.applying") : t("assignments.applyAll")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {tab === "team" && boardKnown ? (
+        <>
+          <TeamNotices notices={teamNoticeList} onRetry={() => void onRefresh()} t={t} />
+          <BoardSearchBar
+            value={team.search}
+            onChangeText={team.setSearch}
+            onClear={team.clearSearch}
+            onOpenFilters={() => setTeamFilterOpen(true)}
+            activeCount={team.badge}
+            t={t}
+            placeholder={t("assignments.v2.team.search.placeholder")}
+            label={t("assignments.v2.team.search.label")}
+            filterLabel={t("assignments.v2.filters.open")}
+            testIDPrefix="assignments-team"
+          />
+          {team.query.searching || team.chips.length > 0 || team.state.sort !== "available" ? (
+            <TeamActiveFilters
+              chips={team.chips}
+              shown={team.query.visible.length}
+              total={team.query.total}
+              sortLabel={team.state.sort !== "available" ? t(`assignments.v2.team.sort.${team.query.sortUsed}`) : null}
+              onRemove={team.removeChip}
+              onClearAll={team.clearAll}
+              onEdit={() => setTeamFilterOpen(true)}
+              t={t}
+            />
+          ) : null}
+          {!(team.query.searching || team.chips.length > 0 || team.state.sort !== "available") && team.query.sortUsed !== team.state.sort ? (
+            <Text style={[styles.pausedHint, { color: theme.textMuted }]} testID="assignments-team-sort-label">
+              {t("assignments.v2.team.sortFallback")}
+            </Text>
+          ) : null}
+          {team.query.visible.length > 0 ? <ListCaption title={t("assignments.v2.team.listTitle")} sort={t(`assignments.v2.team.sort.${team.query.sortUsed}`)} /> : null}
+        </>
+      ) : null}
     </View>
   );
-}
 
-/* ─── Housekeeper workload card ─────────────────────────────────────────────── */
+  const teamEmpty = tab === "team" ? teamEmptyKind(model, team.query.emptyReason) : null;
+  const listEmpty =
+    tab === "rooms" && emptyKind ? (
+      <AssignmentEmpty
+        kind={emptyKind}
+        t={t}
+        searchText={rooms.search.trim()}
+        searching={query.searching}
+        staleNote={staleNote}
+        unavailableKey={unavailableKey}
+        offline={availability.kind === "unavailable" && availability.cause === "offline"}
+        onRefresh={() => void onRefresh()}
+        onShowAll={showAll}
+        onShowBlocked={showBlocked}
+        onClearSearch={rooms.clearSearch}
+        onClearFilters={rooms.clearAll}
+      />
+    ) : tab === "team" && teamEmpty ? (
+      <TeamEmpty
+        kind={teamEmpty}
+        t={t}
+        searchText={team.search.trim()}
+        unavailableKey={unavailableKey}
+        offline={availability.kind === "unavailable" && availability.cause === "offline"}
+        onRefresh={() => void onRefresh()}
+        onClearSearch={team.clearSearch}
+        onClearFilters={team.clearAll}
+      />
+    ) : null;
 
-const ROOM_STATUS_KEYS: Record<string, StatusKey> = {
-  DIRTY: "dirty",
-  OCCUPIED: "occupied",
-  PICKUP: "pickup",
-  IN_PROGRESS: "inProgress",
-  CLEAN: "clean",
-  INSPECTED: "ready",
-  OOO: "outOfOrder",
-  OUT_OF_ORDER: "outOfOrder",
-  OUT_OF_SERVICE: "outOfOrder",
-};
-
-function getRoomStatusKey(status: string): StatusKey | null {
-  return ROOM_STATUS_KEYS[status] ?? null;
-}
-
-function HousekeeperLoadCard({
-  load,
-  summary,
-  onRoomPress,
-}: {
-  load: TeamLoad;
-  summary: string;
-  onRoomPress: (room: FloorRoom) => void;
-}) {
-  const { t } = useTranslation();
-  const theme = useTheme();
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.type === "member") {
+      const card = team.cards.get(item.member.userId);
+      const proposed = bulk.proposedByUser.get(item.member.userId);
+      return card ? (
+        <View style={styles.rowWrap}>
+          <TeamStaffCard model={card} onOpen={onOpenStaff} t={t} {...(proposed ? { proposedText: proposedLoadLine(proposed.proposed, t) } : {})} />
+        </View>
+      ) : null;
+    }
+    if (item.type === "section") return <SectionHeader section={item.section} count={item.count} t={t} />;
+    const card = cards.get(item.entry.room.roomId);
+    if (selecting && card) {
+      const change = bulk.draft.draft?.changes[item.entry.room.roomId];
+      const draftOwnerName = change ? (change.toUserId ? bulk.nameOf(change.toUserId) : null) : undefined;
+      return (
+        <View style={styles.rowWrap}>
+          <SelectableRoomRow model={buildSelectionRow(item.entry, card, { selected: bulk.selection.selected.has(item.entry.room.roomId), draftOwnerName }, t)} onToggle={onToggleBulk} />
+        </View>
+      );
+    }
+    return card ? (
+      <View style={styles.rowWrap}>
+        <AssignmentRoomCard model={card} onOpen={onOpenRoom} />
+      </View>
+    ) : null;
+  };
 
   return (
-    <View testID={`load-card-${load.housekeeperId}`}>
-      <Card style={styles.loadCard}>
-        <View style={styles.loadHeader}>
-          <Avatar name={load.name} size={36} />
-          <View style={styles.loadHeaderBody}>
-            <Text style={[styles.loadName, { color: theme.textPrimary }]} numberOfLines={1}>
-              {load.name}
-            </Text>
-            <Text style={[styles.loadSummary, { color: theme.textMuted }]}>{summary}</Text>
-          </View>
-          {load.inProgress > 0 ? (
-            <View style={[styles.loadActiveDot, { backgroundColor: theme.status.pickup }]} />
-          ) : null}
-        </View>
-        <ProgressBar value={load.done} total={load.total} color={theme.status.ready} />
-        <View style={styles.loadChips}>
-          {load.rooms.map((room) => {
-            const statusKey = getRoomStatusKey(room.status);
-            const statusLabel = t(
-              statusKey ? `rooms.card.status.${room.status}` : "rooms.card.status.UNKNOWN",
-              { status: room.status.replace(/_/g, " ") },
-            );
-            return (
-              <Pressable
-                key={room.roomId}
-                onPress={() => onRoomPress(room)}
-                accessibilityRole="button"
-                accessibilityLabel={`${room.roomNumber} — ${statusLabel}`}
-              >
-                {statusKey ? (
-                  <StatusBadge statusKey={statusKey} label={room.roomNumber} />
-                ) : (
-                  <View style={[styles.roomChip, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
-                    <Text style={[styles.roomChipText, { color: theme.textMuted }]}>{room.roomNumber}</Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </Card>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {selecting ? <BulkSelectionBar selection={bulk.selection} topInset={insets.top} t={t} /> : null}
+      <FlatList
+        data={boardKnown ? (tab === "rooms" ? items : teamItems) : []}
+        extraData={selecting ? bulk.selection.selected : null}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        keyExtractor={(item) => item.key}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === "android"}
+        refreshControl={<RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
+        testID="assignments-list"
+      />
+
+      {selecting ? (
+        <BulkActionFooter
+          bulk={bulk}
+          bottomInset={insets.bottom}
+          t={t}
+          {...(canPlan
+            ? {
+                onSmartBalance: () => {
+                  smart.setScope("selected");
+                  smart.open();
+                },
+              }
+            : {})}
+        />
+      ) : null}
+      <BulkAssignHost bulk={bulk} onViewTeam={viewTeam} midshiftNote={midshift.note} />
+      <MidshiftHost midshift={midshift} onOpenBoard={openMidshiftBoard} />
+      <SmartBalanceHost
+        smart={smart}
+        model={model}
+        dateLabel={boardKnown ? operationalDateLabel(model, language) : null}
+        onRefresh={() => void onRefresh()}
+        onViewRoom={(roomId) => {
+          smart.close();
+          onOpenRoom(roomId, "view_assignment");
+        }}
+        onViewStaff={(userId) => {
+          smart.close();
+          setTab("team");
+          onOpenStaff(userId);
+        }}
+        toast={toast.info}
+      />
+
+      {selectedEntry ? (
+        <AssignmentRoomSheet
+          entry={selectedEntry}
+          context={detailContext}
+          assignment={assignment}
+          outOfView={!query.visible.some((entry) => entry.room.roomId === selectedEntry.room.roomId)}
+          onClose={closeSheet}
+          onOpenBoard={openBoard}
+        />
+      ) : null}
+      {staffDetail ? (
+        <StaffDetailSheet
+          detail={staffDetail}
+          t={t}
+          onClose={() => setSelectedStaffId(null)}
+          onOpenRoom={onOpenStaffRoom}
+          {...(selectedMember?.listed ? { onAssignMore } : {})}
+          assignPaused={!gate.allowed || !isOnline}
+          {...(recoveryPanel ? { recovery: recoveryPanel, onReassignRemaining } : {})}
+        />
+      ) : null}
+      {chooserMember ? (
+        <AssignRoomChooserSheet
+          personName={chooserMember.name ?? t("assignments.v2.assign.unnamed")}
+          rooms={chooserRooms}
+          t={t}
+          onChoose={onChooseRoom}
+          onClose={closeChooser}
+        />
+      ) : null}
+
+      <TeamFilterSheet
+        visible={teamFilterOpen}
+        applied={team.state}
+        options={team.options}
+        rosterVerified={team.rosterVerified}
+        previewCount={teamPreviewCount}
+        t={t}
+        onApply={(draft) => {
+          team.applyState(draft);
+          setTeamFilterOpen(false);
+        }}
+        onClose={() => setTeamFilterOpen(false)}
+      />
+
+      <AssignmentFilterSheet
+        visible={filterSheetOpen}
+        applied={state}
+        options={options}
+        previewCount={previewCount}
+        t={t}
+        onApply={(draft) => {
+          rooms.applyState(draft);
+          setFilterSheetOpen(false);
+        }}
+        onClose={() => setFilterSheetOpen(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 28 },
-
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-  },
-  heroKicker: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { fontSize: 13, marginTop: 7 },
-  aiBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderRadius: 11,
-    minHeight: 44,
-    paddingHorizontal: 14,
-    marginTop: 13,
-  },
-  aiBtnText: { fontSize: 12.5, fontWeight: "700" },
-
-  body: { paddingHorizontal: 16, paddingTop: 14, gap: 16 },
-  rows: { gap: 8 },
-
-  noticeCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: R.lg,
-    padding: 12,
-  },
-  noticeText: { flex: 1, fontSize: 12.5, lineHeight: 18 },
-
-  floorGroup: { gap: 6 },
-  floorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
-    marginTop: 4,
-  },
-  floorLabel: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5 },
-  assignFloorBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  assignFloorText: { fontSize: 11.5, fontWeight: "700" },
-
-  unassignedRow: {
-    position: "relative",
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingLeft: 16,
-    paddingRight: 13,
-    paddingVertical: 12,
-  },
-  unassignedNumber: { fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "800" },
-  unassignedBody: { flex: 1, minWidth: 0, gap: 1 },
-  unassignedStatus: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
-  unassignedChips: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
-  unassignedMeta: { fontSize: 11.5 },
-  vipChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
-  vipChipText: { fontSize: 10, fontWeight: "800" },
-  lateCoChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
-  lateCoChipText: { fontSize: 10, fontWeight: "800" },
-
-  loadCard: { padding: 14, gap: 10 },
-  loadHeader: { flexDirection: "row", alignItems: "center", gap: 11 },
-  loadHeaderBody: { flex: 1, minWidth: 0, gap: 1 },
-  loadName: { fontSize: 14, fontWeight: "700" },
-  loadSummary: { fontSize: 11.5 },
-  loadActiveDot: { width: 8, height: 8, borderRadius: 4 },
-  loadChips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  roomChip: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  roomChipText: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "800" },
-
-  empty: { alignItems: "center", paddingVertical: 52, paddingHorizontal: 32, gap: 7 },
-
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  sheet: {
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 28,
-    maxHeight: "75%",
-  },
-  grabber: {
-    alignSelf: "center",
-    width: 38,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 12,
-  },
-  sheetKickerRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sheetKicker: {
-    fontSize: 10.5,
-    fontWeight: "800",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  sheetTitle: { fontSize: 18, fontWeight: "700", marginTop: 4, marginBottom: 12 },
-  sheetScroll: { flexGrow: 0 },
-  sheetScrollContent: { gap: 8 },
-  suggestionCard: { padding: 12, gap: 9 },
-  suggestionHeader: { flexDirection: "row", alignItems: "center", gap: 9 },
-  suggestionName: { flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: "700" },
-  suggestionMeta: { fontFamily: monoFont, fontSize: 11, fontWeight: "700" },
-  suggestionChips: { flexDirection: "row", flexWrap: "wrap", gap: 5 },
-  suggestionChip: {
-    borderWidth: 1,
-    borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  suggestionChipText: { fontFamily: monoFont, fontSize: 12, fontWeight: "800" },
-  sheetActions: { flexDirection: "row", gap: 10, marginTop: 14 },
-  sheetCancelBtn: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: R.md,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetCancelText: { fontSize: 14, fontWeight: "600" },
-  sheetApplyBtn: {
-    flex: 2,
-    minHeight: 46,
-    borderRadius: R.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetApplyText: { fontSize: 14, fontWeight: "800" },
-  dimmed: { opacity: 0.5 },
+  list: { flex: 1 },
+  listContent: { paddingBottom: 28, gap: 8 },
+  rowWrap: { paddingHorizontal: 16 },
+  notice: { flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 16, marginBottom: 10, padding: 12, borderWidth: 1, borderRadius: R.md },
+  noticeText: { flex: 1, gap: 2 },
+  noticeTitle: { fontSize: 14, fontWeight: "700" },
+  noticeBody: { fontSize: 13, lineHeight: 18 },
+  pausedHint: { marginHorizontal: 16, marginBottom: 8, fontSize: 12 },
+  selectEntry: { paddingHorizontal: 16, paddingBottom: 8, alignItems: "flex-start" },
+  selectButton: { minHeight: 48, paddingHorizontal: 16, borderWidth: 1.5, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  selectText: { fontSize: 15, fontWeight: "800" },
 });

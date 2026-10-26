@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 219: Supervisor inspection workflow foundation (additive only)
+-- Migration 223: Supervisor inspection workflow foundation (additive only)
 --
 -- Phase 1 of the Supervisor Inspections redesign. Nothing here rewrites or
 -- drops existing data, and every statement is idempotent.

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 220: private storage for inspection evidence (additive only)
+-- Migration 224: private storage for inspection evidence (additive only)
 --
 -- Phase 6 of the Supervisor Inspections redesign. Inspection photos used to be
 -- written to the PUBLIC `work-order-photos` bucket and referenced by a public URL
