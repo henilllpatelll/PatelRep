@@ -446,6 +446,7 @@ jobs:
           UPLOADED_ARTIFACT_ID: ${{ needs.actions-runtime-contract-produce.outputs.artifact_id }}
           UPLOADED_ARTIFACT_DIGEST: ${{ needs.actions-runtime-contract-produce.outputs.artifact_digest }}
           EXPECTED_SHA: ${{ github.sha }}
+          SECONDARY_CLIENT_TOKEN: ${{ github.token }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         with:
           script: |
@@ -456,8 +457,8 @@ jobs:
             assert.equal(context.sha, process.env.EXPECTED_SHA)
             assert.equal(`${context.repo.owner}/${context.repo.repo}`, process.env.GITHUB_REPOSITORY)
             // A second authenticated client from the injected factory (the injected v9 replacement for importing @actions/github).
-            const second = getOctokit(process.env.GITHUB_TOKEN)
-            assert.equal(typeof second.rest.repos.get, 'function')
+            const second = getOctokit(process.env.SECONDARY_CLIENT_TOKEN)
+            assert.equal((await second.rest.repos.get({ ...context.repo })).data.full_name, process.env.GITHUB_REPOSITORY)
             // The digest that upload-artifact reported must equal what GitHub stored for that artifact id.
             const { data: artifact } = await github.rest.actions.getArtifact({ ...context.repo, artifact_id: Number(process.env.UPLOADED_ARTIFACT_ID) })
             const stored = String(artifact.digest).replace(/^sha256:/, '')
