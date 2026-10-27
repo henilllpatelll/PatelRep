@@ -82,8 +82,11 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // Release recording (runs 38185575766/38189513925): the Git Data API ref write ALSO needs `workflows` write, which GITHUB_TOKEN can never hold,
   // so recording moved to the dedicated Release Recorder App in the `release-recording` Environment (scripts/production-release-recorder.mjs,
   // pinned by production-release-recorder*.test.mjs), with a recording preflight before any migration/deploy and default `contents: read`.
+  // GitHub Actions upgrade (replaces Dependabot #152): exactly five version tokens changed and nothing else (github-script v8->v9 once,
+  // upload-artifact v4->v7 twice, supabase/setup-cli v1->v3 twice; the CLI stays pinned to 2.112.0). github-actions-upgrade-contract.test.mjs
+  // pins the exact allowed versions and every artifact option; the Actions Runtime Contract CI jobs exercise those exact versions.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, 'e78c80a8c8e373c979c1149371d6520c8232652bbca6f51b31aacc9302343c7f')
+  assert.equal(digest, '8ad1da9550390b48a8c1adfffc66c9d2b9547c8d28f018f3d7eb623b1dce3397')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {

@@ -12,6 +12,7 @@ const ALL_GREEN = {
   LINT_API: 'success', LINT_WEB: 'success', BUILD_WEB: 'success', TEST_WEB_PUBLIC_SMOKE: 'success', TEST_API: 'success', DATABASE_MIGRATION_GATE: 'success',
   TEST_UNIT_WEB: 'success', FEATURE_FLAG_REGISTRY_GATE: 'success', FROZEN_GUARD: 'success', CONTRAST: 'success', I18N_PARITY: 'success',
   ROOM_BOARD_REGRESSION: 'success', ROOM_BOARD_HERMETIC: 'success', RELEASE_WORKFLOW_CONTRACT: 'success', SUPABASE_CLI_APPLY_CONTRACT: 'success',
+  ACTIONS_RUNTIME_PRODUCE: 'success', ACTIONS_RUNTIME_CONSUME: 'success',
   EVENT_NAME: 'pull_request', PR_AUTHOR: 'someone',
 }
 const gate = (env) => {
@@ -64,4 +65,13 @@ test('workflow structure: the hermetic job holds no secret and the live job skip
   assert.match(live, /if: github\.event_name != 'pull_request' \|\| github\.event\.pull_request\.user\.login != 'dependabot\[bot\]'/)
   assert.match(ci, /\n {6}- room-board-hermetic\n/, 'the hermetic job is a CI Gate dependency')
   assert.match(ci, /\n {2}release-workflow-contract:[\s\S]*scripts\/dependency-orchestrator-workflow\.test\.mjs[\s\S]*scripts\/ci-gate-room-board\.test\.mjs/)
+})
+
+test('the Actions Runtime Contract jobs are CI Gate dependencies and required results', () => {
+  assert.match(ci, /\n {6}- actions-runtime-contract-produce\n {6}- actions-runtime-contract-consume\n {4}steps:/)
+  assert.match(gateJob, /"Actions Runtime Contract \/ produce:\$ACTIONS_RUNTIME_PRODUCE"/)
+  assert.match(gateJob, /"Actions Runtime Contract \/ consume:\$ACTIONS_RUNTIME_CONSUME"/)
+  for (const key of ['ACTIONS_RUNTIME_PRODUCE', 'ACTIONS_RUNTIME_CONSUME']) {
+    for (const result of ['failure', 'cancelled', 'skipped']) assert.equal(gate({ [key]: result }).ok, false, `${key}=${result}`)
+  }
 })

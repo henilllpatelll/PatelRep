@@ -105,7 +105,7 @@ jobs:
           PAUSED_VAR: ${{ vars.DEPENDENCY_ORCHESTRATOR_PAUSED }}
           OUT_DIR: ${{ runner.temp }}/dependency-plan
         run: node .trusted/scripts/dependency-orchestrator.mjs plan
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dependency-plan
           path: ${{ runner.temp }}/dependency-plan
@@ -128,7 +128,7 @@ jobs:
         with:
           ref: ${{ needs.resolve.outputs.trusted_sha }}
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dependency-plan
           path: ${{ runner.temp }}/dependency-plan
@@ -160,7 +160,7 @@ jobs:
           cost=0
           if [ -n "$file" ] && [ -f "$file" ]; then cost=$(jq -r '[.[]? | select(.type=="result") | .total_cost_usd] | last // 0' "$file" 2>/dev/null || echo 0); fi
           echo "cost_usd=${cost:-0}" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dependency-research
           path: ${{ runner.temp }}/dependency-research.json
@@ -196,11 +196,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dependency-plan
           path: ${{ runner.temp }}/dependency-plan
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: needs.research.result == 'success'
         with:
           name: dependency-research
@@ -254,7 +254,7 @@ jobs:
           STATE_FILE: ${{ runner.temp }}/orchestrator-state/state.json
         run: node scripts/dependency-orchestrator.mjs execute
       # The checkpoint: a later tick reads the newest artifact written by a trusted run of this workflow.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-orchestrator-state
@@ -313,7 +313,7 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ needs.resolve.outputs.action_head_sha }}
           STATE_FILE: ${{ runner.temp }}/orchestrator-state/state.json
         run: node scripts/dependency-orchestrator.mjs merge
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-orchestrator-state

@@ -1,0 +1,326 @@
+[
+ [
+  "autonomous-feature-builder.yml",
+  "build",
+  "upload",
+  "feature-builder-output",
+  "${{ runner.temp }}/feature-builder-out",
+  "3",
+  "error"
+ ],
+ [
+  "autonomous-feature-builder.yml",
+  "publish",
+  "download",
+  "feature-builder-output",
+  "${{ runner.temp }}/feature-builder-out",
+  null,
+  null
+ ],
+ [
+  "ci.yml",
+  "room-board-regression",
+  "upload",
+  "room-board-regression-diffs",
+  "apps/web/test-results/",
+  "7",
+  "ignore"
+ ],
+ [
+  "ci.yml",
+  "room-board-hermetic",
+  "upload",
+  "room-board-hermetic-diffs",
+  "|",
+  "7",
+  "ignore"
+ ],
+ [
+  "ci.yml",
+  "actions-runtime-contract-produce",
+  "upload",
+  "actions-runtime-contract-evidence",
+  "${{ runner.temp }}/actions-runtime-contract/evidence",
+  "1",
+  "error"
+ ],
+ [
+  "ci.yml",
+  "actions-runtime-contract-consume",
+  "download",
+  "actions-runtime-contract-evidence",
+  "${{ runner.temp }}/actions-runtime-contract/downloaded",
+  null,
+  null
+ ],
+ [
+  "ci.yml",
+  "actions-runtime-contract-consume",
+  "download",
+  "actions-runtime-contract-evidence-does-not-exist",
+  "${{ runner.temp }}/actions-runtime-contract/missing",
+  null,
+  null
+ ],
+ [
+  "claude-feature-orchestrator.yml",
+  "dispatch",
+  "upload",
+  "feature-orchestrator-dispatch",
+  "${{ runner.temp }}/feature-orchestrator-dispatch/context.json",
+  "30",
+  "error"
+ ],
+ [
+  "claude-release-engineer-auto-merge.yml",
+  "merge",
+  "upload",
+  "auto-merge-result",
+  "${{ runner.temp }}/auto-merge-result/context.json",
+  "3",
+  "error"
+ ],
+ [
+  "claude-release-engineer.yml",
+  "repair",
+  "upload",
+  "repair-output",
+  "${{ runner.temp }}/repair-out",
+  "3",
+  "error"
+ ],
+ [
+  "claude-release-engineer.yml",
+  "publish",
+  "download",
+  "repair-output",
+  "${{ runner.temp }}/repair-out",
+  null,
+  null
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "resolve",
+  "upload",
+  "dependency-plan",
+  "${{ runner.temp }}/dependency-plan",
+  "3",
+  "error"
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "research",
+  "download",
+  "dependency-plan",
+  "${{ runner.temp }}/dependency-plan",
+  null,
+  null
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "research",
+  "upload",
+  "dependency-research",
+  "${{ runner.temp }}/dependency-research.json",
+  "3",
+  "ignore"
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "execute",
+  "download",
+  "dependency-plan",
+  "${{ runner.temp }}/dependency-plan",
+  null,
+  null
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "execute",
+  "download",
+  "dependency-research",
+  "${{ runner.temp }}/dependency-research",
+  null,
+  null
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "execute",
+  "upload",
+  "dependency-orchestrator-state",
+  "${{ runner.temp }}/orchestrator-state",
+  "14",
+  "ignore"
+ ],
+ [
+  "dependency-orchestrator.yml",
+  "merge",
+  "upload",
+  "dependency-orchestrator-state",
+  "${{ runner.temp }}/orchestrator-state",
+  "14",
+  "ignore"
+ ],
+ [
+  "production-automation-watchdog.yml",
+  "watchdog",
+  "upload",
+  "production-automation-watchdog",
+  "${{ runner.temp }}/production-automation-watchdog/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-incident-reentry.yml",
+  "authorize",
+  "upload",
+  "production-incident-reentry",
+  "${{ runner.temp }}/production-incident-reentry/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-migration-evidence.yml",
+  "audit",
+  "upload",
+  "production-migration-evidence",
+  "production-migration-evidence-report.json",
+  "7",
+  "warn"
+ ],
+ [
+  "production-operations-notify.yml",
+  "publish",
+  "upload",
+  "production-operations-notification",
+  "${{ runner.temp }}/production-operations-notification/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-readiness-certification.yml",
+  "certify",
+  "upload",
+  "production-readiness-certification",
+  "${{ runner.temp }}/production-readiness-certification/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-recovery-readiness.yml",
+  "readiness",
+  "upload",
+  "production-recovery-readiness",
+  "${{ runner.temp }}/production-recovery-readiness/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-release-audit.yml",
+  "audit",
+  "upload",
+  "production-release-audit",
+  "${{ runner.temp }}/production-release-audit/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-release-stabilization.yml",
+  "classify",
+  "upload",
+  "production-release-stabilization",
+  "${{ runner.temp }}/production-release-stabilization/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-release-stabilization.yml",
+  "classify",
+  "upload",
+  "production-release-incident",
+  "${{ runner.temp }}/production-release-incident/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-release-stabilization.yml",
+  "classify",
+  "upload",
+  "production-incident-closeout",
+  "${{ runner.temp }}/production-incident-closeout/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-release.yml",
+  "resolve-and-verify-eligibility",
+  "upload",
+  "production-release-context",
+  "${{ runner.temp }}/production-release-context/context.json",
+  "3",
+  "ignore"
+ ],
+ [
+  "production-release.yml",
+  "production-release-evidence",
+  "upload",
+  "production-release-evidence",
+  "${{ runner.temp }}/production-release-evidence/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "production-rollback.yml",
+  "production-rollback-evidence",
+  "upload",
+  "production-rollback-evidence",
+  "${{ runner.temp }}/production-rollback-evidence/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "release-resilience-drill.yml",
+  "drill",
+  "upload",
+  "release-resilience-drill",
+  "${{ runner.temp }}/release-resilience-drill/context.json",
+  "90",
+  "error"
+ ],
+ [
+  "staging-candidate.yml",
+  "resolve-candidate",
+  "upload",
+  "staging-candidate-context",
+  "${{ runner.temp }}/staging-candidate-context/context.json",
+  "3",
+  "error"
+ ],
+ [
+  "staging-candidate.yml",
+  "verify-staging",
+  "upload",
+  "staging-playwright-${{ needs.resolve-candidate.outputs.short_sha }}",
+  "|",
+  "10",
+  "ignore"
+ ],
+ [
+  "update-room-board-snapshots.yml",
+  "update-hermetic-snapshots",
+  "upload",
+  "room-board-hermetic-linux-snapshots",
+  "apps/web/e2e/room-board-hermetic-snapshots/*-linux.png",
+  null,
+  "error"
+ ],
+ [
+  "update-room-board-snapshots.yml",
+  "update-snapshots",
+  "upload",
+  "room-board-linux-snapshots",
+  "apps/web/e2e/room-board-baseline.spec.ts-snapshots/*-linux.png",
+  null,
+  "error"
+ ]
+]
