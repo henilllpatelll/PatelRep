@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import test from 'node:test'
-import { DEFAULT_LIMITS, HARD_LIMITS, NEVER_AUTOMATIC, normalizePolicy } from './dependency-orchestrator-policy.mjs'
+import { DEFAULT_LIMITS, HARD_LIMITS, NEVER_AUTOMATIC, evaluateMergeGate, normalizePolicy } from './dependency-orchestrator-policy.mjs'
 
 const read = (file) => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
 const workflow = read('.github/workflows/dependency-orchestrator.yml')
@@ -170,9 +170,10 @@ test('the merge path is the only caller of the merge endpoint and always passes 
   assert.equal([...scripts['dependency-orchestrator-run.mjs'].matchAll(/\.mergePr\(/g)].length, 1)
 })
 
-test('the committed policy is safe by default: paused off, no mutation, prepare-only, no approvals, schedule off', () => {
+test('the committed policy is activated prepare-only: mutation on, merging impossible, no approvals, schedule off', () => {
   const policy = normalizePolicy(policyFile)
-  assert.equal(policy.mutation_enabled, false)
+  assert.equal(policy.paused, false)
+  assert.equal(policy.mutation_enabled, true, 'branch updates, CI/Staging dispatch and candidate recording are enabled')
   assert.equal(policy.merge.mode, 'prepare-only')
   assert.deepEqual(policy.merge.approvals, [])
   assert.equal(policy.schedule.mode, 'off')
@@ -199,4 +200,20 @@ test('the existing release-engineer auto-merge eligibility policy is untouched a
   assert.match(policy, /Cheap identity refusals first: ordinary feature\/Dependabot\/human PRs end here/)
   assert.doesNotMatch(policy, /dependency-orchestrator/)
   assert.doesNotMatch(read('.github/workflows/claude-release-engineer-auto-merge.yml'), /dependency-orchestrator|dependabot/i)
+})
+
+test('under the committed (activated) policy the merge gate refuses every PR, even a perfect one', () => {
+  const policy = normalizePolicy(policyFile)
+  const sha = 'a'.repeat(40)
+  const analysis = { number: 1, head_sha: sha, updates: [], categories: [], violations: [], never_automatic: false, risk: 'low' }
+  const facts = {
+    pr: { state: 'open', draft: false, base: { ref: 'main' }, head: { sha }, behind_by: 0, mergeable_state: 'clean' },
+    main_sha: 'b'.repeat(40), contains_main: true, verified: { head_sha: sha, base_sha: 'b'.repeat(40) },
+    checks: Object.fromEntries(['CI Gate', 'Database Migration Gate', 'Staging Gate'].map((name) => [name, { conclusion: 'success', head_sha: sha }])),
+    changes_requested: false, unresolved_threads: 0, authors_trusted: true,
+  }
+  const gate = evaluateMergeGate({ policy, analysis, facts, today: '2026-10-26' })
+  assert.equal(gate.ok, false)
+  assert.ok(gate.reasons.includes('merge mode is prepare-only'))
+  assert.ok(gate.reasons.some((r) => /no approval entry/.test(r)))
 })
