@@ -8,8 +8,8 @@ python-jose[cryptography]==3.5.0
 cryptography==50.0.2
 httpx==0.28.1
 openai==2.53.0
-anthropic==0.121.0
-stripe==15.4.0
+anthropic==2.3.0
+stripe==16.0.0
 twilio==9.12.0
 python-multipart==0.0.32
 slowapi==0.1.10
@@ -19,5 +19,5 @@ pytest-asyncio==1.4.0
 pdfplumber==0.11.10
 pypdf==6.21.2
 ortools==9.15.6755
-paramiko==3.5.1
-reportlab==4.4.4
+paramiko==5.1.0
+reportlab==5.1.0
