@@ -13,10 +13,45 @@ name: Update Room-Board Snapshots
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: "live = fixture-tenant baselines (needs repository secrets); hermetic = credential-free baselines"
+        required: true
+        default: live
+        type: choice
+        options: [live, hermetic]
 
 jobs:
+  update-hermetic-snapshots:
+    name: Regenerate hermetic Room-Board -linux baselines (no secrets)
+    if: inputs.suite == 'hermetic'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Install matching Playwright browser build
+        run: cd apps/web && npx playwright install chromium
+      - name: Regenerate hermetic baselines (--update-snapshots)
+        run: cd apps/web && npm run test:e2e:hermetic -- --update-snapshots
+      - name: Upload regenerated hermetic -linux baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-board-hermetic-linux-snapshots
+          path: apps/web/e2e/room-board-hermetic-snapshots/*-linux.png
+          if-no-files-found: error
+
   update-snapshots:
     name: Regenerate Room-Board -linux baselines
+    if: inputs.suite == 'live'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble

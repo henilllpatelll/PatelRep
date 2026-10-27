@@ -248,6 +248,10 @@ jobs:
   room-board-regression:
     name: Room-Board Pixel-Diff Regression
     runs-on: ubuntu-latest
+    # Live-tenant gate: needs repository fixture credentials. Dependabot PRs can never receive them, and their
+    # dependency code must not be handed them either, so for PRs opened by Dependabot this job is skipped and
+    # the credential-free Room-Board Hermetic job below is required instead (see CI Gate).
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]'
     # Pinned Playwright container (matches the exact image the -linux.png
     # baselines were generated with) instead of the bare ubuntu-latest runner.
     # maxDiffPixelRatio is 0 (byte-identical) by design (FOUND-03) — bare
@@ -300,6 +304,40 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  room-board-hermetic:
+    name: Room-Board Hermetic Visual Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Credential-free twin of the live Room-Board gate: the SAME spec and the SAME zero-tolerance comparison,
+    # run against this PR's own production build with a local mock backend (apps/web/e2e/hermetic) standing in
+    # for Supabase auth and the API. It reads no secret, so Dependabot PRs can run it and untrusted dependency
+    # code never sees a credential. Required for every PR; for Dependabot PRs it replaces the live gate.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+      - name: Install matching Playwright browser build
+        run: cd apps/web && npx playwright install chromium
+      - name: Build candidate against the hermetic mock origin and run the gate
+        run: cd apps/web && npm run test:e2e:hermetic
+      - name: Upload diffs and written baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-board-hermetic-diffs
+          path: |
+            apps/web/test-results/
+            apps/web/e2e/room-board-hermetic-snapshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -331,7 +369,7 @@ jobs:
         with:
           node-version: "22"
       - name: Verify release workflow contracts
-        run: node --test scripts/feature-builder.test.mjs scripts/feature-builder-workflow.test.mjs scripts/feature-orchestrator-policy.test.mjs scripts/feature-orchestrator-workflow.test.mjs scripts/staging-candidate-workflow.test.mjs scripts/staging-railway-deploy.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-release-recorder.test.mjs scripts/production-release-recorder-workflow.test.mjs scripts/production-release-evidence.test.mjs scripts/production-release-stabilization.test.mjs scripts/production-release-stabilization-workflow.test.mjs scripts/production-auto-rollback-policy.test.mjs scripts/production-auto-rollback-workflow.test.mjs scripts/production-auto-rollback-circuit-breaker.test.mjs scripts/production-rollback-runtime-capture.test.mjs scripts/production-rollback-evidence.test.mjs scripts/production-rollback-evidence-workflow.test.mjs scripts/production-incident-reentry.test.mjs scripts/production-incident-reentry-workflow.test.mjs scripts/production-operations-notify.test.mjs scripts/production-operations-notify-workflow.test.mjs scripts/production-release-audit.test.mjs scripts/production-release-audit-workflow.test.mjs scripts/release-resilience-drill.test.mjs scripts/release-resilience-drill-workflow.test.mjs scripts/production-recovery-readiness.test.mjs scripts/production-recovery-readiness-workflow.test.mjs scripts/production-automation-watchdog.test.mjs scripts/production-automation-watchdog-notify.test.mjs scripts/production-automation-watchdog-workflow.test.mjs scripts/production-readiness-certification.test.mjs scripts/production-readiness-certification-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs
+        run: node --test scripts/feature-builder.test.mjs scripts/feature-builder-workflow.test.mjs scripts/feature-orchestrator-policy.test.mjs scripts/feature-orchestrator-workflow.test.mjs scripts/staging-candidate-workflow.test.mjs scripts/staging-railway-deploy.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-release-recorder.test.mjs scripts/production-release-recorder-workflow.test.mjs scripts/production-release-evidence.test.mjs scripts/production-release-stabilization.test.mjs scripts/production-release-stabilization-workflow.test.mjs scripts/production-auto-rollback-policy.test.mjs scripts/production-auto-rollback-workflow.test.mjs scripts/production-auto-rollback-circuit-breaker.test.mjs scripts/production-rollback-runtime-capture.test.mjs scripts/production-rollback-evidence.test.mjs scripts/production-rollback-evidence-workflow.test.mjs scripts/production-incident-reentry.test.mjs scripts/production-incident-reentry-workflow.test.mjs scripts/production-operations-notify.test.mjs scripts/production-operations-notify-workflow.test.mjs scripts/production-release-audit.test.mjs scripts/production-release-audit-workflow.test.mjs scripts/release-resilience-drill.test.mjs scripts/release-resilience-drill-workflow.test.mjs scripts/production-recovery-readiness.test.mjs scripts/production-recovery-readiness-workflow.test.mjs scripts/production-automation-watchdog.test.mjs scripts/production-automation-watchdog-notify.test.mjs scripts/production-automation-watchdog-workflow.test.mjs scripts/production-readiness-certification.test.mjs scripts/production-readiness-certification-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs scripts/dependency-orchestrator-policy.test.mjs scripts/dependency-orchestrator-engine.test.mjs scripts/dependency-orchestrator-run.test.mjs scripts/dependency-orchestrator-workflow.test.mjs scripts/ci-gate-room-board.test.mjs
 
   supabase-cli-apply-contract:
     name: Supabase CLI Apply Contract
@@ -369,6 +407,7 @@ jobs:
       - contrast
       - i18n-parity
       - room-board-regression
+      - room-board-hermetic
       - release-workflow-contract
       - supabase-cli-apply-contract
     steps:
@@ -386,6 +425,9 @@ jobs:
           CONTRAST: ${{ needs.contrast.result }}
           I18N_PARITY: ${{ needs.i18n-parity.result }}
           ROOM_BOARD_REGRESSION: ${{ needs.room-board-regression.result }}
+          ROOM_BOARD_HERMETIC: ${{ needs.room-board-hermetic.result }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           RELEASE_WORKFLOW_CONTRACT: ${{ needs.release-workflow-contract.result }}
           SUPABASE_CLI_APPLY_CONTRACT: ${{ needs.supabase-cli-apply-contract.result }}
         run: |
@@ -401,17 +443,30 @@ jobs:
             "Frozen-File Guard:$FROZEN_GUARD"
             "Dark-Mode Contrast Gate:$CONTRAST"
             "EN/ES i18n Parity:$I18N_PARITY"
-            "Room-Board Pixel-Diff Regression:$ROOM_BOARD_REGRESSION"
+            "Room-Board Hermetic Visual Regression:$ROOM_BOARD_HERMETIC"
             "Release Workflow Contract:$RELEASE_WORKFLOW_CONTRACT"
             "Supabase CLI Apply Contract:$SUPABASE_CLI_APPLY_CONTRACT"
           )
 
+          # The live-tenant Room-Board gate needs repository credentials. It must succeed for every PR EXCEPT one
+          # opened by Dependabot, where it must have been skipped (never failed or cancelled) and the credential-free
+          # hermetic gate above is the visual requirement instead. A skipped result is accepted only in that case.
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            required_checks+=("Room-Board Pixel-Diff Regression (skipped for Dependabot):$ROOM_BOARD_REGRESSION:skipped")
+          else
+            required_checks+=("Room-Board Pixel-Diff Regression:$ROOM_BOARD_REGRESSION:success")
+          fi
+
           failed=0
           for check in "${required_checks[@]}"; do
+            expected="success"
+            case "$check" in
+              *:*:*) expected="${check##*:}"; check="${check%:*}" ;;
+            esac
             name="${check%:*}"
             result="${check##*:}"
-            if [ "$result" != "success" ]; then
-              echo "::error::$name completed with '$result'; CI Gate requires success."
+            if [ "$result" != "$expected" ]; then
+              echo "::error::$name completed with '$result'; CI Gate requires $expected."
               failed=1
             fi
           done
