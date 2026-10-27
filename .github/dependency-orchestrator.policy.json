@@ -2,7 +2,7 @@
   "version": 1,
   "_comment": "Trusted, human-reviewed policy for the dependency orchestrator. Read ONLY from main at a frozen SHA; never from a PR branch. Every switch defaults to the safest value. Hard safety rules (never-automatic categories, exact-SHA merge, CI/Staging/Migration gates) live in code and cannot be relaxed here.",
   "paused": false,
-  "mutation_enabled": false,
+  "mutation_enabled": true,
   "schedule": {
     "mode": "off",
     "_modes": "off | plan-only | continue-only | process",
