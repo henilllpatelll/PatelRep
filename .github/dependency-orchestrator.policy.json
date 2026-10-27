@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "_comment": "Trusted, human-reviewed policy for the dependency orchestrator. Read ONLY from main at a frozen SHA; never from a PR branch. Every switch defaults to the safest value. Hard safety rules (never-automatic categories, exact-SHA merge, CI/Staging/Migration gates) live in code and cannot be relaxed here.",
+  "paused": false,
+  "mutation_enabled": false,
+  "schedule": {
+    "mode": "off",
+    "_modes": "off | plan-only | continue-only | process",
+    "start_weekday_utc": 1,
+    "start_hour_utc": 9
+  },
+  "discovery": {
+    "authors": ["dependabot[bot]"],
+    "head_prefix": "dependabot/",
+    "allowed_commit_authors": ["dependabot[bot]", "patelrep-release-engineer[bot]"],
+    "max_prs": 25
+  },
+  "limits": {
+    "max_batch_hours": 72,
+    "max_ticks_per_batch": 200,
+    "max_branch_updates_per_pr": 2,
+    "max_repair_requests_per_pr": 1,
+    "max_staging_dispatches_per_pr": 2,
+    "max_reverifications_per_pr": 2,
+    "max_claude_research_invocations": 10,
+    "max_claude_usd": 25,
+    "max_merges_per_batch": 3
+  },
+  "branch_update": {
+    "method": "api-update-branch",
+    "_methods": "api-update-branch (merge main into the Dependabot branch, App token) | dependabot-rebase (comment; skipped for branches carrying non-Dependabot commits)"
+  },
+  "allowed_paths": {
+    "npm": ["apps/web/package.json", "apps/web/package-lock.json", "apps/mobile/package.json", "apps/mobile/package-lock.json", "package.json", "package-lock.json"],
+    "pip": ["apps/api/requirements.txt", "apps/api/requirements-dev.txt"],
+    "github-actions": [".github/workflows/"]
+  },
+  "risk": {
+    "_comment": "Package categories raise risk. Categories listed in code as NEVER_AUTOMATIC (billing, auth/security, database, github-actions, framework, ai-accounting, sftp, css-framework) can only be merged by a human, even if listed in merge.approvals.",
+    "package_categories": {
+      "billing": ["stripe"],
+      "auth-security": ["@supabase/ssr", "@supabase/supabase-js", "supabase", "cryptography", "pyjwt", "python-jose", "jwcrypto", "passlib", "bcrypt", "pyopenssl"],
+      "sftp": ["paramiko", "asyncssh", "pysftp"],
+      "framework": ["next", "react", "react-dom", "expo", "react-native", "fastapi", "starlette", "pydantic", "uvicorn"],
+      "css-framework": ["tailwindcss", "tailwind-merge", "postcss", "autoprefixer"],
+      "ai-accounting": ["anthropic", "openai", "tiktoken"]
+    },
+    "major_requires_acknowledgement": true
+  },
+  "known_incompatibilities": [
+    {
+      "ecosystem": "npm",
+      "name": "tailwind-merge",
+      "major": 3,
+      "requires": { "tailwindcss": ">=4.0.0" },
+      "reason": "tailwind-merge v3 only supports Tailwind CSS v4 class names; the repository is on Tailwind v3"
+    }
+  ],
+  "repair": {
+    "dispatch_release_engineer": true,
+    "_comment": "The existing Claude Release Engineer is the only repair system. The orchestrator may dispatch it for a failed CI run on a dependency PR; it never pushes code itself."
+  },
+  "merge": {
+    "mode": "prepare-only",
+    "_modes": "prepare-only | approved-only",
+    "approvals": [],
+    "_approval_example": {
+      "pr": 0,
+      "updates": [{ "ecosystem": "pip", "name": "reportlab", "from": "4.4.4", "to": "5.1.0" }],
+      "head_sha": "optional 40-hex pin; omit to approve the update set across branch refreshes",
+      "acknowledge_major": true,
+      "approved_by": "github-login",
+      "approved_at": "YYYY-MM-DD",
+      "expires_at": "YYYY-MM-DD"
+    }
+  }
+}

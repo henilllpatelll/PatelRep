@@ -926,3 +926,15 @@
 - Metric definitions live in the docstring of services/inspection_history.py; a day/period with no initial inspections has NO rate (null), never 0%; truncated periods withhold rates.
 - Bash tool: heredocs containing quotes/backticks can fail to parse - write patch scripts with the Write tool, then run them.
 - In the browser harness, the URL query is not seen by useLocalSearchParams: call router.setParams from the harness.
+
+## Dependency orchestrator (2026-10-26) - learnings
+
+- **No workflow other than production-operations-notify.yml may contain `issues: write` (or `permission-issues`)** - scripts/production-automation-watchdog-workflow.test.mjs enforces it. The orchestrator therefore checkpoints in a workflow artifact (`dependency-orchestrator-state`, provenance-checked) and reports in the run summary. Never weaken that test.
+- **Dependabot PR gates:** Dependabot-actor runs get no secrets, so the live-tenant Room-Board gate cannot run; the credential-free `Room-Board Hermetic Visual Regression` (apps/web/e2e/hermetic mock backend + the same spec, snapshots in e2e/room-board-hermetic-snapshots, Linux baselines only) replaces it for PRs *opened by* dependabot[bot]. The CI Gate requires the live job to be *skipped* in that case (tested by scripts/ci-gate-room-board.test.mjs, which executes the real gate shell step).
+- Playwright's default pixel `threshold` (0.2) is perceptual: a 1-unit colour change does not fail `maxDiffPixelRatio: 0`. Both the live and hermetic gates share this; a visible change does fail.
+- Playwright loads `*.config.ts` as CommonJS: it cannot import an ES module that uses `import.meta`.
+- **Registry requirements are not repo constraints:** PyPI `requires_dist` and npm required peers are auto-installed; only packages the repository itself declares (or policy-declared incompatibilities) can conflict. Optional npm peers are ignored. Treating them as constraints falsely blocked 5 of 10 PRs in the first live dry run.
+- Dependabot PR #157 already carries a Release Engineer publisher commit (mixed authorship): `@dependabot rebase` is not available for such branches, use update-branch.
+- apps/web `stripe` npm package has no imports anywhere in apps/web (unused dependency).
+- **Windows + Python text-mode writes convert LF to CRLF**: editing repo files through `python open(p,'w')` produced CRLF (breaks `run:` shell blocks, noisy diffs). Use the Edit/Write tools, or open with `newline=''`/binary mode; check with `git ls-files --eol` and `git diff --check`.
+- Heredoc Python patch scripts mangle JS regex/escape sequences (`\n`, `\b`); prefer the Edit tool for JS edits.

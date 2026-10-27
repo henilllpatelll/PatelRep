@@ -34494,6 +34494,98 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-21T20:00:00Z"
+    },
+    {
+      "id": "bug-2097",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "dependency-orchestrator: live dry run blocked 5 of 10 PRs with bogus \"requires X =Y; repository has none\"",
+      "file": "scripts/dependency-orchestrator-policy.mjs",
+      "root_cause": "PyPI requires_dist and npm required/optional peers were treated as constraints the repo must already declare",
+      "fix": "Registry requirements bind only packages the repo declares (or the PR itself updates); optional peers skipped; policy-declared incompatibilities always apply",
+      "tags": [
+        "dependabot",
+        "compat",
+        "registry"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2098",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "merge job merged a PR whose author was not Dependabot in a negative test",
+      "file": "scripts/dependency-orchestrator-run.mjs",
+      "root_cause": "runMerge relied on readSnapshot filtering instead of re-checking discovery rules itself",
+      "fix": "runMerge now re-applies discoverable() (author, head prefix, same repo, base main) before the gate",
+      "tags": [
+        "security",
+        "merge",
+        "defense-in-depth"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2099",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "normalizePolicy not idempotent: head_sha null rejected on re-normalization",
+      "file": "scripts/dependency-orchestrator-policy.mjs",
+      "root_cause": "approval validation used !== undefined instead of != null",
+      "fix": "use != null; limits default to DEFAULT_LIMITS (not the hard ceiling) when omitted",
+      "tags": [
+        "policy",
+        "validation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2100",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "production-automation-watchdog-workflow.test: dependency-orchestrator.yml must not gain Issue write",
+      "file": ".github/workflows/dependency-orchestrator.yml",
+      "root_cause": "tracking-issue checkpoint needed issues: write, which the repo reserves for the production notifier",
+      "fix": "moved checkpoint to a provenance-checked workflow artifact and reporting to the run summary; test untouched",
+      "tags": [
+        "guardrail",
+        "permissions"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2101",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "git diff --check: trailing whitespace on every line of ci.yml",
+      "file": ".github/workflows/ci.yml",
+      "root_cause": "Python text-mode writes on Windows converted LF to CRLF",
+      "fix": "normalized all edited files back to LF; added a lesson to cerebrum",
+      "tags": [
+        "windows",
+        "crlf"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2102",
+      "timestamp": "2026-10-26T20:00:00.000Z",
+      "error_message": "SyntaxError: Cannot use import.meta outside a module (playwright.hermetic.config.ts)",
+      "file": "apps/web/playwright.hermetic.config.ts",
+      "root_cause": "Playwright loads TS configs as CommonJS and cannot import an ESM file using import.meta",
+      "fix": "config declares the synthetic password locally; mock-backend.test.mjs asserts both copies agree",
+      "tags": [
+        "playwright",
+        "esm"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-26T20:00:00.000Z"
     }
   ]
 }
