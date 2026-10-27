@@ -4,3 +4,7 @@
 .env.production
 .env.regression
 e2e/.auth/
+
+# Hermetic Room-Board baselines are Linux-only (CI container); local Windows/macOS runs generate throwaway copies
+/e2e/room-board-hermetic-snapshots/*-win32.png
+/e2e/room-board-hermetic-snapshots/*-darwin.png
