@@ -31,8 +31,8 @@ Production Release or Rollback, never holds production credentials and never cha
    `main` SHA it was proven against.
 
 The batch is **event-driven**: `workflow_run` completions of CI, Staging Candidate and the Release Engineer continue it
-(there is no polling loop and no sleeping job), with a slow 30-minute schedule backstop because Dependabot-actor
-events carry no secrets. Progress is checkpointed in the `dependency-orchestrator-state` workflow artifact (14-day
+(there is no polling loop and no sleeping job), with a slow 30-minute schedule backstop (opt-in via the repository variable `DEPENDENCY_ORCHESTRATOR_TICKS=on`, see
+*Enable and run*) because Dependabot-actor events carry no secrets. Progress is checkpointed in the `dependency-orchestrator-state` workflow artifact (14-day
 retention), so an interrupted run resumes from GitHub. A later tick trusts a checkpoint only if it came from a run of this
 workflow in this repository that was a `workflow_run`, or a `workflow_dispatch`/`schedule` on `main`; the checkpoint is
 strictly re-validated on load and can never authorize a merge (approvals come only from the policy on `main`).
@@ -45,7 +45,9 @@ strictly re-validated on load and can never authorize a merge (approvals come on
 | Updates branches, runs CI/Staging, records candidates | yes | yes |
 | Merges | **never** | only exact approved identities that pass every gate |
 
-Nothing is approved by default. Nothing mutates until `mutation_enabled: true` lands in the policy on `main`.
+Nothing is approved by default. Nothing mutates unless `mutation_enabled: true` is in the policy on `main`; the committed policy
+is now **activated in Mode A** (`mutation_enabled: true`, `merge.mode: "prepare-only"`, empty `merge.approvals`,
+`schedule.mode: "off"`), so a batch can update branches and run CI/Staging but can never merge.
 
 ### Mode B approval (human-reviewed change to the policy file on `main`)
 
@@ -107,10 +109,13 @@ require a human merge, even with an approval entry and green CI.
 ## Enable and run (one unattended batch)
 
 1. Review and merge the implementation PR (a human merge; this workflow is control-plane, so it is never auto-merged).
-2. In a reviewed PR set `"mutation_enabled": true` in `.github/dependency-orchestrator.policy.json` (leave `merge.mode`
-   `prepare-only` for the first batch).
-3. Actions -> **Dependency Orchestrator** -> Run workflow: `action: process`. Leave `pr_numbers` empty for the whole backlog.
-4. Return to the latest run's summary (and `report.md` in the `dependency-orchestrator-state` artifact): status table, order, blockers, audit trail, cost.
+2. Review and merge the activation PR that sets `"mutation_enabled": true` in `.github/dependency-orchestrator.policy.json`
+   (`merge.mode` stays `prepare-only`, `merge.approvals` empty, `schedule.mode` `off`). Done once this is on `main`.
+3. Set the continuation variable so an unattended batch keeps advancing (Dependabot-actor `workflow_run` events receive no
+   secrets, so only the scheduled tick is guaranteed to progress): `gh variable set DEPENDENCY_ORCHESTRATOR_TICKS --body on`.
+   The value must be exactly `on`; unset/empty/`off`/anything else disables scheduled runs. Remove it to stop the ticks.
+4. Actions -> **Dependency Orchestrator** -> Run workflow: `action: process`. Leave `pr_numbers` empty for the whole backlog.
+5. Return to the latest run's summary (and `report.md` in the `dependency-orchestrator-state` artifact): status table, order, blockers, audit trail, cost.
 
 Requirements already used by existing workflows: `PATELREP_APP_CLIENT_ID` (variable), `PATELREP_APP_PRIVATE_KEY` and
 `CLAUDE_CODE_OAUTH_TOKEN` (secrets). The App must permit `Actions: write`, `Contents: write`, `Pull requests: write`; it does **not** need `workflows` (a branch refresh that would touch workflow files is handed to
