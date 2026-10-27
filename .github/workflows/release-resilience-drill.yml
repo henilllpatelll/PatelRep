@@ -45,7 +45,7 @@ jobs:
         env:
           RESULT_DIR: ${{ runner.temp }}/release-resilience-drill
       - name: Upload resilience drill evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-resilience-drill
           path: ${{ runner.temp }}/release-resilience-drill/context.json

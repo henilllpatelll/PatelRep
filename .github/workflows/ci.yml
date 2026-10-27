@@ -115,7 +115,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
       - name: Check immutable migration history and destructive SQL review
@@ -297,7 +297,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
       - name: Upload diff artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: room-board-regression-diffs
           path: apps/web/test-results/
@@ -329,7 +329,7 @@ jobs:
         run: cd apps/web && npm run test:e2e:hermetic
       - name: Upload diffs and written baselines
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: room-board-hermetic-diffs
           path: |
@@ -369,7 +369,108 @@ jobs:
         with:
           node-version: "22"
       - name: Verify release workflow contracts
-        run: node --test scripts/feature-builder.test.mjs scripts/feature-builder-workflow.test.mjs scripts/feature-orchestrator-policy.test.mjs scripts/feature-orchestrator-workflow.test.mjs scripts/staging-candidate-workflow.test.mjs scripts/staging-railway-deploy.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-release-recorder.test.mjs scripts/production-release-recorder-workflow.test.mjs scripts/production-release-evidence.test.mjs scripts/production-release-stabilization.test.mjs scripts/production-release-stabilization-workflow.test.mjs scripts/production-auto-rollback-policy.test.mjs scripts/production-auto-rollback-workflow.test.mjs scripts/production-auto-rollback-circuit-breaker.test.mjs scripts/production-rollback-runtime-capture.test.mjs scripts/production-rollback-evidence.test.mjs scripts/production-rollback-evidence-workflow.test.mjs scripts/production-incident-reentry.test.mjs scripts/production-incident-reentry-workflow.test.mjs scripts/production-operations-notify.test.mjs scripts/production-operations-notify-workflow.test.mjs scripts/production-release-audit.test.mjs scripts/production-release-audit-workflow.test.mjs scripts/release-resilience-drill.test.mjs scripts/release-resilience-drill-workflow.test.mjs scripts/production-recovery-readiness.test.mjs scripts/production-recovery-readiness-workflow.test.mjs scripts/production-automation-watchdog.test.mjs scripts/production-automation-watchdog-notify.test.mjs scripts/production-automation-watchdog-workflow.test.mjs scripts/production-readiness-certification.test.mjs scripts/production-readiness-certification-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs scripts/dependency-orchestrator-policy.test.mjs scripts/dependency-orchestrator-engine.test.mjs scripts/dependency-orchestrator-run.test.mjs scripts/dependency-orchestrator-workflow.test.mjs scripts/ci-gate-room-board.test.mjs
+        run: node --test scripts/feature-builder.test.mjs scripts/feature-builder-workflow.test.mjs scripts/feature-orchestrator-policy.test.mjs scripts/feature-orchestrator-workflow.test.mjs scripts/staging-candidate-workflow.test.mjs scripts/staging-railway-deploy.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-release-recorder.test.mjs scripts/production-release-recorder-workflow.test.mjs scripts/production-release-evidence.test.mjs scripts/production-release-stabilization.test.mjs scripts/production-release-stabilization-workflow.test.mjs scripts/production-auto-rollback-policy.test.mjs scripts/production-auto-rollback-workflow.test.mjs scripts/production-auto-rollback-circuit-breaker.test.mjs scripts/production-rollback-runtime-capture.test.mjs scripts/production-rollback-evidence.test.mjs scripts/production-rollback-evidence-workflow.test.mjs scripts/production-incident-reentry.test.mjs scripts/production-incident-reentry-workflow.test.mjs scripts/production-operations-notify.test.mjs scripts/production-operations-notify-workflow.test.mjs scripts/production-release-audit.test.mjs scripts/production-release-audit-workflow.test.mjs scripts/release-resilience-drill.test.mjs scripts/release-resilience-drill-workflow.test.mjs scripts/production-recovery-readiness.test.mjs scripts/production-recovery-readiness-workflow.test.mjs scripts/production-automation-watchdog.test.mjs scripts/production-automation-watchdog-notify.test.mjs scripts/production-automation-watchdog-workflow.test.mjs scripts/production-readiness-certification.test.mjs scripts/production-readiness-certification-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs scripts/dependency-orchestrator-policy.test.mjs scripts/dependency-orchestrator-engine.test.mjs scripts/dependency-orchestrator-run.test.mjs scripts/dependency-orchestrator-workflow.test.mjs scripts/ci-gate-room-board.test.mjs scripts/github-actions-upgrade-contract.test.mjs scripts/actions-runtime-contract.test.mjs
+
+  actions-runtime-contract-produce:
+    name: Actions Runtime Contract / produce
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Write synthetic non-sensitive evidence bound to this exact SHA and run
+        run: node scripts/actions-runtime-contract.mjs produce "$RUNNER_TEMP/actions-runtime-contract/evidence"
+      - id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: actions-runtime-contract-evidence
+          path: ${{ runner.temp }}/actions-runtime-contract/evidence
+          retention-days: 1
+          if-no-files-found: error
+      - name: Require the upload to report an artifact id and SHA-256 digest
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]] || { echo "::error::upload-artifact returned no artifact-id"; exit 1; }
+          [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]] || { echo "::error::upload-artifact returned no SHA-256 artifact-digest"; exit 1; }
+
+  actions-runtime-contract-consume:
+    name: Actions Runtime Contract / consume
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: actions-runtime-contract-produce
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v8
+        with:
+          name: actions-runtime-contract-evidence
+          path: ${{ runner.temp }}/actions-runtime-contract/downloaded
+      - name: Verify the downloaded files, manifest digests and exact SHA/run identity
+        run: node scripts/actions-runtime-contract.mjs verify "$RUNNER_TEMP/actions-runtime-contract/downloaded"
+      - name: Verification must reject a tampered copy
+        run: |
+          cp -r "$RUNNER_TEMP/actions-runtime-contract/downloaded" "$RUNNER_TEMP/actions-runtime-contract/tampered"
+          echo tampered >> "$RUNNER_TEMP/actions-runtime-contract/tampered/nested/payload.txt"
+          if node scripts/actions-runtime-contract.mjs verify "$RUNNER_TEMP/actions-runtime-contract/tampered"; then
+            echo "::error::a tampered artifact was accepted"; exit 1
+          fi
+      - id: missing
+        name: Downloading a missing artifact must fail
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: actions-runtime-contract-evidence-does-not-exist
+          path: ${{ runner.temp }}/actions-runtime-contract/missing
+      - name: Require the missing-artifact download to have failed
+        env:
+          MISSING_OUTCOME: ${{ steps.missing.outcome }}
+        run: '[ "$MISSING_OUTCOME" = "failure" ] || { echo "::error::missing artifact download ended as $MISSING_OUTCOME"; exit 1; }'
+      - name: github-script v9 injected context, read-only API and artifact digest cross-check
+        uses: actions/github-script@v9
+        env:
+          UPLOADED_ARTIFACT_ID: ${{ needs.actions-runtime-contract-produce.outputs.artifact_id }}
+          UPLOADED_ARTIFACT_DIGEST: ${{ needs.actions-runtime-contract-produce.outputs.artifact_digest }}
+          EXPECTED_SHA: ${{ github.sha }}
+          SECONDARY_CLIENT_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const assert = require('node:assert/strict')
+            assert.equal(typeof getOctokit, 'function', 'v9 must inject getOctokit')
+            assert.equal(typeof github.paginate, 'function')
+            assert.equal(typeof github.rest.actions.getArtifact, 'function')
+            assert.equal(context.sha, process.env.EXPECTED_SHA)
+            assert.equal(`${context.repo.owner}/${context.repo.repo}`, process.env.GITHUB_REPOSITORY)
+            // A second authenticated client from the injected factory (the injected v9 replacement for importing @actions/github).
+            const second = getOctokit(process.env.SECONDARY_CLIENT_TOKEN)
+            assert.equal((await second.rest.repos.get({ ...context.repo })).data.full_name, process.env.GITHUB_REPOSITORY)
+            // The digest that upload-artifact reported must equal what GitHub stored for that artifact id.
+            const { data: artifact } = await github.rest.actions.getArtifact({ ...context.repo, artifact_id: Number(process.env.UPLOADED_ARTIFACT_ID) })
+            const stored = String(artifact.digest).replace(/^sha256:/, '')
+            const reported = process.env.UPLOADED_ARTIFACT_DIGEST.replace(/^sha256:/, '')
+            assert.equal(artifact.name, 'actions-runtime-contract-evidence')
+            assert.equal(artifact.workflow_run.id, context.runId)
+            assert.equal(stored, reported, 'stored artifact digest must equal the digest reported by upload-artifact')
+            // The paginate + checks pattern the production gates use, against this exact head SHA (read-only).
+            const checks = await github.paginate(github.rest.checks.listForRef, { ...context.repo, ref: process.env.EXPECTED_HEAD_SHA, per_page: 100 })
+            assert.ok(Array.isArray(checks), 'paginate must return an array of check runs')
+            core.setOutput('verified', 'true')
+            core.info(`artifact ${artifact.id} digest ${stored} verified; ${checks.length} check runs paginated for ${process.env.EXPECTED_HEAD_SHA}`)
 
   supabase-cli-apply-contract:
     name: Supabase CLI Apply Contract
@@ -380,9 +481,18 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
-      - uses: supabase/setup-cli@v1
+      - id: cli
+        uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
+      - name: Confirm the installed Supabase CLI is exactly the pinned version
+        env:
+          REPORTED_VERSION: ${{ steps.cli.outputs.version }}
+        run: |
+          installed="$(supabase --version)"
+          echo "supabase --version: $installed (action output: $REPORTED_VERSION)"
+          [ "$installed" = "2.112.0" ] || { echo "::error::Supabase CLI $installed is not the pinned 2.112.0"; exit 1; }
+          [ "$REPORTED_VERSION" = "2.112.0" ] || { echo "::error::setup-cli reported $REPORTED_VERSION, not 2.112.0"; exit 1; }
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Exercise the pinned Supabase CLI against a disposable production-shaped history
@@ -410,6 +520,8 @@ jobs:
       - room-board-hermetic
       - release-workflow-contract
       - supabase-cli-apply-contract
+      - actions-runtime-contract-produce
+      - actions-runtime-contract-consume
     steps:
       - name: Require every release check to succeed
         env:
@@ -430,6 +542,8 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           RELEASE_WORKFLOW_CONTRACT: ${{ needs.release-workflow-contract.result }}
           SUPABASE_CLI_APPLY_CONTRACT: ${{ needs.supabase-cli-apply-contract.result }}
+          ACTIONS_RUNTIME_PRODUCE: ${{ needs.actions-runtime-contract-produce.result }}
+          ACTIONS_RUNTIME_CONSUME: ${{ needs.actions-runtime-contract-consume.result }}
         run: |
           required_checks=(
             "Lint / API:$LINT_API"
@@ -446,6 +560,8 @@ jobs:
             "Room-Board Hermetic Visual Regression:$ROOM_BOARD_HERMETIC"
             "Release Workflow Contract:$RELEASE_WORKFLOW_CONTRACT"
             "Supabase CLI Apply Contract:$SUPABASE_CLI_APPLY_CONTRACT"
+            "Actions Runtime Contract / produce:$ACTIONS_RUNTIME_PRODUCE"
+            "Actions Runtime Contract / consume:$ACTIONS_RUNTIME_CONSUME"
           )
 
           # The live-tenant Room-Board gate needs repository credentials. It must succeed for every PR EXCEPT one

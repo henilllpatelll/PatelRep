@@ -85,7 +85,7 @@ jobs:
           CONTROL_PLANE_SHA: ${{ needs.resolve.outputs.trusted_control_plane_sha }}
           RESULT_DIR: ${{ runner.temp }}/production-operations-notification
       - name: Upload sanitized notification result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-operations-notification
           path: ${{ runner.temp }}/production-operations-notification/context.json
