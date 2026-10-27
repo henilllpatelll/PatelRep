@@ -122,6 +122,14 @@ test('no production surface: no environments, no production workflows, only the 
   assert.deepEqual([...new Set([...code.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1]))].sort(), ['DEPENDENCY_ORCHESTRATOR_PAUSED', 'DEPENDENCY_ORCHESTRATOR_TICKS', 'PATELREP_APP_CLIENT_ID'])
 })
 
+test('scheduled ticks are explicitly opt-in: only DEPENDENCY_ORCHESTRATOR_TICKS == on enables them', () => {
+  const gate = /\(github\.event_name != 'schedule' \|\| ([^)]+)\)/.exec(code)
+  assert.ok(gate, 'resolve job gates the schedule event')
+  // An unset variable reads as '' and 'off' must stay off: only the exact value 'on' may satisfy the gate.
+  assert.equal(gate[1].trim(), "vars.DEPENDENCY_ORCHESTRATOR_TICKS == 'on'")
+  assert.doesNotMatch(code, /DEPENDENCY_ORCHESTRATOR_TICKSs*!=/, 'no negated (default-on) form')
+})
+
 test('it is event-driven: no sleeping, polling loops or native auto-merge anywhere', () => {
   assert.doesNotMatch(code, /sleep |until |while |enable-auto-merge|--auto\b|autoMerge/)
   for (const [name, source] of Object.entries(scripts)) {

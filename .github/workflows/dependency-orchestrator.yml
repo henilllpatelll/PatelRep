@@ -43,7 +43,8 @@ on:
     types: [completed]
   schedule:
     # Slow backstop only: continuation is event-driven. Dependabot-triggered workflow_run events receive no
-    # secrets, so this tick (which does) guarantees progress. Set variable DEPENDENCY_ORCHESTRATOR_TICKS=off to stop it.
+    # secrets, so this tick (which does) guarantees progress. It is OPT-IN: it runs only when repository variable
+    # DEPENDENCY_ORCHESTRATOR_TICKS is exactly 'on'. Unset, empty or any other value (including 'off') means no scheduled runs.
     - cron: "23,53 * * * *"
 
 permissions:
@@ -58,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: >-
-      (github.event_name != 'schedule' || vars.DEPENDENCY_ORCHESTRATOR_TICKS != 'off') &&
+      (github.event_name != 'schedule' || vars.DEPENDENCY_ORCHESTRATOR_TICKS == 'on') &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.head_repository.full_name == github.repository &&
         (startsWith(github.event.workflow_run.head_branch, 'dependabot/') ||

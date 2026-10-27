@@ -100,7 +100,7 @@ require a human merge, even with an approval entry and green CI.
 * **Pause immediately:** set repository variable `DEPENDENCY_ORCHESTRATOR_PAUSED=true` (or `paused: true` in the policy).
   Every job honors it, including the merge job. **Resume:** delete the variable; the checkpoint continues.
 * **Hold one PR:** label it `orchestrator-hold`, `hold`, `do-not-merge`, `manual-review` or `needs-human`.
-* **Stop the 30-minute backstop completely:** `DEPENDENCY_ORCHESTRATOR_TICKS=off`.
+* **The 30-minute backstop is opt-in and off by default:** it runs only when repository variable `DEPENDENCY_ORCHESTRATOR_TICKS` is exactly `on`. Unset, empty or any other value means no scheduled runs; delete the variable (or set it to anything but `on`) to stop it.
 * **Report only:** run the workflow with `action: plan` (no mutation, no branch updates), any time.
 * **Start over:** dispatch with `restart: true`.
 
@@ -129,7 +129,7 @@ with the `Update Room-Board Snapshots` workflow, `suite: hermetic`.
 
 ## Costs and known limitations
 
-* Actions: an idle tick is one ~25 s read-only job every 30 minutes (stop with `DEPENDENCY_ORCHESTRATOR_TICKS=off`). A PR
+* Actions: once opted in with `DEPENDENCY_ORCHESTRATOR_TICKS=on`, an idle tick is one ~25 s read-only job every 30 minutes (stop by deleting the variable). A PR
   costs one CI run plus one Staging run (~35-60 min of runner time) per verification; sequential processing of ~10 PRs is
   hours of wall clock, not interactive time. Claude: at most `max_claude_research_invocations` (10) reviews, capped at
   `max_claude_usd` ($25); the Release Engineer is requested at most once per PR.
