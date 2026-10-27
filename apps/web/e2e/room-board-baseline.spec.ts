@@ -28,7 +28,7 @@
  * Verify zero drift on the current tree:
  *   npx playwright test --config=playwright.regression.config.ts
  */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { join } from 'node:path'
 import { AUTH_DIR } from './global-setup'
 
@@ -46,6 +46,29 @@ const FIXTURE_ROOM_NUMBERS = {
   occupied: '106',
   ooo: '107',
 } as const
+
+/**
+ * Resolves once the locator has stopped moving. /housekeeping enters with a 0.3s PageTransition
+ * (y: 12 -> 0); clicking a room card while it is still in flight makes Playwright's actionability
+ * scroll depend on build speed, which moves the page-header mask under the drawer and changes the
+ * snapshot. Waiting for rest makes the drawer geometry deterministic without loosening the diff.
+ */
+async function waitForRest(locator: Locator) {
+  let last = Number.NaN
+  let stableReads = 0
+  await expect
+    .poll(
+      async () => {
+        const box = await locator.boundingBox()
+        const y = box ? Math.round(box.y * 100) : Number.NaN
+        stableReads = y === last ? stableReads + 1 : 0
+        last = y
+        return stableReads
+      },
+      { timeout: 10000, intervals: [100] },
+    )
+    .toBeGreaterThanOrEqual(3)
+}
 
 /**
  * Locators for residual live chrome — never room content (cards/counts/status colors).
@@ -182,6 +205,16 @@ for (const role of ROLES) {
         // Preserve the exact visible-room assertion while allowing it to
         // settle inside this file's 45-second Playwright test budget.
         await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 30000 })
+        // gotoWithTheme parks the pointer at (1200, 700) before any card exists; the last
+        // card (room 105) renders under it and whether Chromium applies its
+        // `hover:bg-black/[0.02]` is a timing race (250 vs 255 across ~41k px). The baselines
+        // encode the un-hovered card, so move the pointer to the empty right gutter (cards end
+        // at x=1418) once the board has rendered, and wait for the card's `transition-colors`
+        // fade-out to land so the capture never samples a half-faded hover.
+        await page.mouse.move(1430, 450)
+        await expect(
+          page.getByRole('button', { name: new RegExp(`^Room ${FIXTURE_ROOM_NUMBERS.pickup},`) }).first(),
+        ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
         await expect(page).toHaveScreenshot(`housekeeping-board-${role.key}-${mode}.png`, {
           mask: chromeMasks(page),
@@ -199,6 +232,7 @@ for (const role of ROLES) {
         const card = page.getByRole('button', { name: new RegExp(`^Room ${FIXTURE_ROOM_NUMBERS.inProgress},`) }).first()
         // Same cold-start allowance as the board test above.
         await card.waitFor({ state: 'visible', timeout: 30000 })
+        await waitForRest(card)
         await card.click()
 
         const drawer = page.getByRole('dialog')
