@@ -205,6 +205,16 @@ for (const role of ROLES) {
         // Preserve the exact visible-room assertion while allowing it to
         // settle inside this file's 45-second Playwright test budget.
         await page.getByText(FIXTURE_ROOM_NUMBERS.dirty, { exact: true }).waitFor({ state: 'visible', timeout: 30000 })
+        // gotoWithTheme parks the pointer at (1200, 700) before any card exists; the last
+        // card (room 105) renders under it and whether Chromium applies its
+        // `hover:bg-black/[0.02]` is a timing race (250 vs 255 across ~41k px). The baselines
+        // encode the un-hovered card, so move the pointer to the empty right gutter (cards end
+        // at x=1418) once the board has rendered, and wait for the card's `transition-colors`
+        // fade-out to land so the capture never samples a half-faded hover.
+        await page.mouse.move(1430, 450)
+        await expect(
+          page.getByRole('button', { name: new RegExp(`^Room ${FIXTURE_ROOM_NUMBERS.pickup},`) }).first(),
+        ).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
         await expect(page).toHaveScreenshot(`housekeeping-board-${role.key}-${mode}.png`, {
           mask: chromeMasks(page),
