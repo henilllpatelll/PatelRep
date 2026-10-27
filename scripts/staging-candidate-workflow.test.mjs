@@ -33,14 +33,16 @@ test('serializes candidates and deploys one exact SHA through both services', ()
 test('injects only public candidate identity into the exact staging build artifacts', () => {
   assert.match(workflow, /core\/release_identity\.json/)
   assert.match(workflow, /release-identity\.json/)
+  const wrapper = readFileSync('scripts/staging-railway-deploy.mjs', 'utf8')
   assert.ok(
-    workflow.includes('railway/cli@4.30.0 up apps/api --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"'),
-    'API upload must target the explicit staging project, environment, and service',
+    wrapper.includes("['up', path, '--ci', '--no-gitignore', '--path-as-root', '--project', projectId, '--environment', 'staging', '--service', serviceId]"),
+    'uploads must target the explicit staging project, environment, and service',
   )
-  assert.ok(
-    workflow.includes('railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"'),
-    'web upload must target the explicit staging project, environment, and service',
-  )
+  assert.ok(wrapper.includes("'@railway/cli@4.30.0'"))
+  assert.ok(workflow.includes('node scripts/staging-railway-deploy.mjs apps/api'), 'API upload goes through the recovery wrapper')
+  assert.ok(workflow.includes('node scripts/staging-railway-deploy.mjs apps/web'), 'web upload goes through the recovery wrapper')
+  assert.doesNotMatch(workflow, /railway\/cli@4\.30\.0 up /, 'no deploy bypasses the wrapper')
+  assert.equal((workflow.match(/TARGET_SERVICE_ID: \$\{\{ vars\.STAGING_RAILWAY_(API|WEB)_SERVICE_ID \}\}/g) ?? []).length, 2)
   assert.doesNotMatch(workflow, /railway\/cli@4\.30\.0 link /, 'a Project Token cannot run `railway link`; every command is explicitly targeted')
   assert.doesNotMatch(workflow, /variables set RELEASE_SHA/)
   assert.doesNotMatch(workflow, /variables set NEXT_PUBLIC_RELEASE_SHA/)
@@ -62,7 +64,8 @@ test('uses one self-contained Web build context in staging, production, and roll
   assert.match(webDockerfile, /^COPY \. \.\/\s*$/m)
   assert.doesNotMatch(webDockerfile, /^COPY apps\/web\//m)
 
-  assert.match(workflow, /up apps\/web --ci --no-gitignore --path-as-root/)
+  assert.match(workflow, /staging-railway-deploy\.mjs apps\/web/)
+  assert.match(readFileSync('scripts/staging-railway-deploy.mjs', 'utf8'), /'--ci', '--no-gitignore', '--path-as-root'/)
   assert.match(productionRelease, /up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
   assert.match(productionRollback, /up --ci --project "\$PRODUCTION_RAILWAY_PROJECT_ID"/)
 })
@@ -152,4 +155,19 @@ test('staging uses Project Tokens only; the workflow-wide credential split is in
     assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m)
     assert.doesNotMatch(wf, /STAGING_RAILWAY/)
   }
+})
+
+test('Railway deploy recovery is narrow: no ignored exit codes, no re-upload, wrapper owns the only CLI up call', () => {
+  const wrapper = readFileSync('scripts/staging-railway-deploy.mjs', 'utf8')
+  for (const step of ['Deploy API from exact checkout', 'Deploy web from exact checkout']) {
+    const body = workflow.slice(workflow.indexOf(`- name: ${step}`), workflow.indexOf(`- name: ${step}`) + 600)
+    assert.match(body, /run: \|\s+node scripts\/staging-railway-deploy\.mjs apps\/(api|web)\s/)
+    assert.doesNotMatch(body, /continue-on-error|\|\| true|set \+e/)
+  }
+  assert.doesNotMatch(workflow, /continue-on-error/)
+  assert.equal((wrapper.match(/\['up'/g) ?? []).length, 1, 'exactly one upload call; recovery never re-uploads')
+  assert.doesNotMatch(wrapper, /redeploy|deployment', 'up'|--detach/)
+  assert.match(wrapper, /Failed to stream build logs: Failed to retrieve build log/)
+  assert.match(workflow, /Require API health, readiness, staging database, and exact SHA/, 'recovered API deploys still pass the exact-SHA health gate')
+  assert.match(workflow, /Verify deployed web\/API\/database release identity/, 'recovered web deploys still pass the release-identity check')
 })

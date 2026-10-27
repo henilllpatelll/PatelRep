@@ -261,11 +261,11 @@ jobs:
           CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
       - name: Deploy API from exact checkout
         run: |
-          npx --yes @railway/cli@4.30.0 up apps/api --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_API_SERVICE_ID"
+          node scripts/staging-railway-deploy.mjs apps/api
         env:
           RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_PROJECT_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
-          STAGING_RAILWAY_API_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
+          TARGET_SERVICE_ID: ${{ vars.STAGING_RAILWAY_API_SERVICE_ID }}
       - name: Require API health, readiness, staging database, and exact SHA
         run: |
           for attempt in {1..24}; do
@@ -327,11 +327,11 @@ jobs:
           CANDIDATE_SHA: ${{ needs.resolve-candidate.outputs.sha }}
       - name: Deploy web from exact checkout
         run: |
-          npx --yes @railway/cli@4.30.0 up apps/web --ci --no-gitignore --path-as-root --project "$STAGING_RAILWAY_PROJECT_ID" --environment staging --service "$STAGING_RAILWAY_WEB_SERVICE_ID"
+          node scripts/staging-railway-deploy.mjs apps/web
         env:
           RAILWAY_TOKEN: ${{ secrets.STAGING_RAILWAY_PROJECT_TOKEN }}
           STAGING_RAILWAY_PROJECT_ID: ${{ vars.STAGING_RAILWAY_PROJECT_ID }}
-          STAGING_RAILWAY_WEB_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
+          TARGET_SERVICE_ID: ${{ vars.STAGING_RAILWAY_WEB_SERVICE_ID }}
       - name: Restore checked-in web release identity
         if: always()
         run: git checkout -- apps/web/release-identity.json
