@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import require_role, CurrentUser
 from models.requests import EndShiftRequest, ShiftBreakRequest, StartShiftRequest
 from core.database import supabase
+from core.timezones import safe_gettz
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def _hotel_zone(hotel_id: str):
         return None
     if not row:
         return None
-    return tz.gettz(row.get("timezone") or "America/Chicago") or tz.gettz("America/Chicago")
+    return safe_gettz(row.get("timezone") or "America/Chicago") or tz.gettz("America/Chicago")
 
 
 def roster_window(target_date: date, zone) -> tuple[str, str]:
