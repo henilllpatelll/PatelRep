@@ -520,7 +520,7 @@ export default function InspectScreen() {
         keyExtractor={keyOf}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={empty}
-        ListFooterComponent={listFooter}
+        ListFooterComponent={listFooter ?? undefined}
         onEndReached={view.tab === "done" ? history.loadMore : undefined}
         onEndReachedThreshold={0.4}
         ItemSeparatorComponent={Separator}

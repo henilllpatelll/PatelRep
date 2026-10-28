@@ -374,7 +374,7 @@ export default function MyRoomsScreen() {
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
         ListHeaderComponent={header}
-        ListEmptyComponent={empty ? <View style={styles.emptyWrap}>{empty}</View> : null}
+        ListEmptyComponent={empty ? <View style={styles.emptyWrap}>{empty}</View> : undefined}
         refreshControl={refreshControl}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"

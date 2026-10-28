@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 import { useTheme } from "@/lib/theme/useTheme";
+import type { TextInstance, ScrollViewInstance } from "react-native";
 
 export const MAX_FONT_SCALE = 1.6;
 
@@ -47,8 +48,8 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
   const appTheme = useTheme();
   const theme = palette ?? appTheme;
   const insets = useSafeAreaInsets();
-  const titleRef = useRef<Text>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const titleRef = useRef<TextInstance>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const reduceMotion = useReducedMotion();
   const dragY = useRef(new Animated.Value(0)).current;
   const onCloseRef = useRef(onClose);

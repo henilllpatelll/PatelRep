@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { ViewInstance } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { serifFont } from "@/components/shared/tokens";
 import { Card } from "@/components/ui/Card";
@@ -18,13 +19,13 @@ interface Props {
   onOpenRoom: (roomId: string) => void;
   onViewRoute: () => void;
   /** Opens the "Why this room?" drawer; the ref lets focus return to the control afterwards. */
-  onWhy?: (roomId: string, opener: React.RefObject<View | null>) => void;
+  onWhy?: (roomId: string, opener: React.RefObject<ViewInstance | null>) => void;
 }
 
 /** One upcoming room from the shared cleaning order. The full list lives in My Rooms. */
 export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }: Props) {
   const theme = useTheme();
-  const whyRef = useRef<View>(null);
+  const whyRef = useRef<ViewInstance>(null);
   const room = entry.room;
   const detail = describeUpNext(entry, t, ctx);
   const context = roomContext(room, t);

@@ -264,7 +264,7 @@ export default function AppLayout() {
                 headerShown: false,
                 tabBarAccessibilityLabel: t(tab.titleKey),
                 tabBarIcon: ({ color, size }) => (
-                  <Ionicons name={tab.icon} size={size} color={color} />
+                  <Ionicons name={tab.icon} size={size} color={color as string} />
                 ),
               }}
             />

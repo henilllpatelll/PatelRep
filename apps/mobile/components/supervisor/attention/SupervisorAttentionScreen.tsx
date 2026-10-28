@@ -267,7 +267,7 @@ export function SupervisorAttentionScreen() {
         renderItem={renderItem}
         ItemSeparatorComponent={Separator}
         ListHeaderComponent={banners}
-        ListEmptyComponent={empty}
+        ListEmptyComponent={empty ?? undefined}
         contentContainerStyle={[styles.list, { paddingBottom: 110 + insets.bottom }]}
         refreshControl={<RefreshControl refreshing={pulling || (refreshing && state === "loading")} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
         initialNumToRender={10}

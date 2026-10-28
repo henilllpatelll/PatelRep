@@ -388,7 +388,7 @@ export default function RoomBoardScreen() {
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
+        ListEmptyComponent={listEmpty ?? undefined}
         // `columns` changes the row shape, so a rotation or a font-size change rebuilds the rows cleanly.
         extraData={columns}
         style={styles.list}

@@ -20,6 +20,7 @@ import { classifyAuthError, isValidEmail, normalizeEmail, type AuthFailure } fro
 import { displayFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppLockStore } from "@/stores/appLockStore";
+import type { TextInputInstance } from "react-native";
 
 type Mode = "password" | "magic";
 type FieldError = "emailRequired" | "emailInvalid" | "passwordRequired";
@@ -35,7 +36,7 @@ export default function LoginScreen() {
   const [fieldError, setFieldError] = useState<FieldError | null>(null);
   const [failure, setFailure] = useState<AuthFailure | null>(null);
   const [linkSent, setLinkSent] = useState(false);
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const inFlight = useRef(false);
 
   async function handleLogin() {

@@ -10,6 +10,7 @@ import { SupervisorCopilotBody } from "@/components/ai/SupervisorCopilotBody";
 import type { CopilotCardBrief } from "@/lib/ai/copilotCard";
 import type { SupervisorCopilotController } from "@/lib/ai/useSupervisorCopilot";
 import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
+import type { ScrollViewInstance, TextInputInstance } from "react-native";
 
 const CARD_WIDTH = 306;
 const THREAD_MAX_HEIGHT = 260;
@@ -27,8 +28,8 @@ export interface CopilotCardProps {
 
 export function CopilotCard({ onClose, insetsBottom, brief, loading, error, reload, supervisor }: CopilotCardProps) {
   const { t } = useTranslation();
-  const scrollRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   // The same controller the full-screen chat uses; the card's conversation is not saved. A verified room in
   // context is re-checked by the server before any message uses it.
   const conversation = useAssistantConversation({ persist: false, context: supervisor?.chatContext });

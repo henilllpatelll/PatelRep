@@ -938,3 +938,12 @@
 - apps/web `stripe` npm package has no imports anywhere in apps/web (unused dependency).
 - **Windows + Python text-mode writes convert LF to CRLF**: editing repo files through `python open(p,'w')` produced CRLF (breaks `run:` shell blocks, noisy diffs). Use the Edit/Write tools, or open with `newline=''`/binary mode; check with `git ls-files --eol` and `git diff --check`.
 - Heredoc Python patch scripts mangle JS regex/escape sequences (`\n`, `\b`); prefer the Edit tool for JS edits.
+
+## Expo SDK 58 upgrade (2026-10-28) - learnings
+- **SDK 58 = RN 0.88 / React 19.3 / jest-expo 58 (needs Jest 30) / expo-router 58.** `npx expo install expo@^58.0.0 --fix` leaves `@react-native/jest-preset`, `@react-native/metro-config` and `react-test-renderer` behind; align them by hand (0.88.0 / 19.3.0). The SDK 57 `expo.install.exclude: ["expo"]` pin was dropped; `expo` is `~58.0.21`.
+- **RN 0.87 strict TypeScript API:** ref types are instance types (`TextInputInstance`, `ScrollViewInstance`, `TextInstance`, `ViewInstance`, imported as types from `react-native`), and `List*Component` props no longer accept `null` (use `undefined` / `?? undefined`). `Linking.openURL` resolves `void` (mock with `undefined`).
+- **expo-router's `@testing-library/react-native >=14` peer is optional.** RNTL 14 swaps the renderer and makes `render` async; this app never uses `expo-router/testing-library`, so it stays on RNTL 13.3.3 (a 312-suite migration is not part of the SDK hop).
+- **expo-notifications 58 installs a default handler at import;** jest-expo's native stub returns a subscription with no `.remove()`, so any test that loads the real package and then `lib/notifications` fails. Mock `expo-notifications` in such tests (PersonalInformation did).
+- **`window is not defined` in `expo export -p web` came from Supabase auth init at import time** (lib/supabase.ts) reading the session via `secureSessionStorage` -> AsyncStorage web build -> `window.localStorage`. Fixed with an `isServerRender()` guard in secureSessionStorage (web + no `window` = empty storage). `expo export` also needs dummy `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY` or it fails earlier with "supabaseUrl is required".
+- **expo-speech-recognition moved to SDK-aligned versioning** (58.0.0, previously 0.3.x). Not in Expo Go; `lib/voice/speechModule.ts` try/catch degrades to no voice (pinned by __tests__/lib/speechModuleExpoGo.test.ts).
+- The mobile `npm audit` count fell from 29 (SDK 57 lock) to 20 on SDK 58; CI audits only apps/web. Do not `audit fix --force`.

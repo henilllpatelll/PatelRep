@@ -99,20 +99,20 @@ describe("openExternalUrl", () => {
   afterEach(() => jest.restoreAllMocks());
 
   it("opens a valid address while online", async () => {
-    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     await expect(openExternalUrl("https://example.com/terms", true)).resolves.toBe("opened");
     expect(open).toHaveBeenCalledWith("https://example.com/terms");
   });
 
   it("never opens an invalid address, and says so", async () => {
-    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     await expect(openExternalUrl("patelrep://profile/security", true)).resolves.toBe("invalid");
     await expect(openExternalUrl(null, true)).resolves.toBe("invalid");
     expect(open).not.toHaveBeenCalled();
   });
 
   it("does not try the network page while offline", async () => {
-    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+    const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     await expect(openExternalUrl("https://example.com", false)).resolves.toBe("offline");
     expect(open).not.toHaveBeenCalled();
   });

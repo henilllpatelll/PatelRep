@@ -49,6 +49,9 @@ jest.mock("expo-image-picker", () => ({
   launchCameraAsync: (...a: unknown[]) => mockPickCamera(...a),
   requestCameraPermissionsAsync: () => mockCameraPermission(),
 }));
+// Sign-out pulls in lib/notifications, which sets a handler at import. The real expo-notifications 58 package
+// subscribes a default handler at load, and jest-expo's native stub returns a subscription with no remove().
+jest.mock("expo-notifications", () => ({ setNotificationHandler: jest.fn() }));
 jest.mock("expo-image-manipulator", () => ({
   manipulateAsync: (...a: unknown[]) => mockManipulate(...a),
   SaveFormat: { JPEG: "jpeg" },

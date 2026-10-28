@@ -831,7 +831,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
             ) : null}
           </View>
         }
-        ListEmptyComponent={empty}
+        ListEmptyComponent={empty ?? undefined}
         contentContainerStyle={[styles.content, { paddingBottom: 96 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
