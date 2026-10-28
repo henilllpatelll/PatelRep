@@ -149,10 +149,12 @@ test('staging uses Project Tokens only; the workflow-wide credential split is in
   assert.doesNotMatch(workflow, /RAILWAY_API_TOKEN|STAGING_RAILWAY_API_TOKEN|secrets\.PRODUCTION_/)
   assert.equal((workflow.match(/RAILWAY_TOKEN: \$\{\{ secrets\.STAGING_RAILWAY_PROJECT_TOKEN \}\}/g) ?? []).length, 3, 'API deploy, web deploy, and diagnostics')
   assert.equal((workflow.match(/^\s*RAILWAY_TOKEN:/gm) ?? []).length, 3, 'RAILWAY_TOKEN is set only on the three staging Railway steps')
-  // Production keeps the account token and is not touched by this change.
+  // Production Release uses its own production-scoped project token; Rollback still uses the account token.
+  assert.match(productionRelease, /RAILWAY_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_TOKEN \}\}/)
+  assert.doesNotMatch(productionRelease, /RAILWAY_API_TOKEN/)
+  assert.match(productionRollback, /RAILWAY_API_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_API_TOKEN \}\}/)
+  assert.doesNotMatch(productionRollback, /^\s*RAILWAY_TOKEN:/m)
   for (const wf of [productionRelease, productionRollback]) {
-    assert.match(wf, /RAILWAY_API_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_API_TOKEN \}\}/)
-    assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m)
     assert.doesNotMatch(wf, /STAGING_RAILWAY/)
   }
 })

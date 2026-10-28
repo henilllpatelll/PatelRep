@@ -68,7 +68,7 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // provenance verification, run-name, actions: read, and release-based versioning (production-release-request-workflow.test.mjs
   // asserts the production Environment scoping, safety gates and concurrency lock are intact; no human Environment approval is assumed). Migration apply: production-migration-apply-workspace.test.mjs
   // pins the ephemeral-workspace apply contract.
-  // Railway account-token auth: `variables set` is preceded by an explicit `railway link` (account tokens have no project scope).
+  // Railway project-token auth: the four Railway CLI steps use RAILWAY_TOKEN from the production-environment PRODUCTION_RAILWAY_TOKEN secret; `railway link` is removed (a project token cannot list workspaces) and `variables set` resolves project/environment from the token.
   // Railway deploy: API `railway up --ci` uploads the repo root (service Root Directory apps/api selects the app); web uses `up apps/web --path-as-root` (no web Root Directory; root upload fell back to Railpack).
   // Railway variables: `variables set` passes --skip-deploys so only `railway up` deploys (no racing redeploy).
   // Skip propagation: deploy-api/deploy-web/verify/tag carry explicit fail-closed job-level `!cancelled()` conditions on direct dependency results.
@@ -86,7 +86,7 @@ test('production-release.yml changes only deliberately (trusted release path plu
   // upload-artifact v4->v7 twice, supabase/setup-cli v1->v3 twice; the CLI stays pinned to 2.112.0). github-actions-upgrade-contract.test.mjs
   // pins the exact allowed versions and every artifact option; the Actions Runtime Contract CI jobs exercise those exact versions.
   // Update deliberately whenever production-release.yml is meant to change.
-  assert.equal(digest, '8ad1da9550390b48a8c1adfffc66c9d2b9547c8d28f018f3d7eb623b1dce3397')
+  assert.equal(digest, 'bf56b7a5a4ad1fe61afd0654695b5d7f183c079bdd9ab7c65da6e3b4e9adfe00')
 })
 
 test('shared Claude settings are portable and CI-safe', () => {
