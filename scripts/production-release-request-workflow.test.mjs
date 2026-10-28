@@ -242,18 +242,20 @@ test('versioning comes from completed GitHub Releases through the tested module,
   assert.doesNotMatch(job, /ref: \$\{\{ needs\.resolve-and-verify-eligibility\.outputs\.target_sha \}\}/)
 })
 
-test('Production Release and Rollback authenticate Railway with the account token via RAILWAY_API_TOKEN only', () => {
+test('Production Release and Rollback authenticate Railway exclusively with the production-scoped project token via RAILWAY_TOKEN', () => {
   for (const [name, workflow] of [['release', release], ['rollback', rollback]]) {
     const wf = code(workflow)
-    assert.equal((wf.match(/RAILWAY_API_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_API_TOKEN \}\}/g) ?? []).length, 4, `${name}: 4 Railway steps use the account token`)
-    assert.doesNotMatch(wf, /PRODUCTION_RAILWAY_TOKEN/, `${name}: legacy secret not referenced`)
-    assert.doesNotMatch(wf, /^\s*RAILWAY_TOKEN:/m, `${name}: RAILWAY_TOKEN is never set alongside RAILWAY_API_TOKEN`)
+    assert.equal((wf.match(/^\s*RAILWAY_TOKEN: \$\{\{ secrets\.PRODUCTION_RAILWAY_TOKEN \}\}$/gm) ?? []).length, 4, '4 Railway steps (API/web identity injection and deploy) use the project token')
+    assert.equal((wf.match(/^\s*RAILWAY_TOKEN:/gm) ?? []).length, 4, 'RAILWAY_TOKEN is set only on those four steps')
+    assert.equal((wf.match(/secrets\.[A-Z_]*RAILWAY[A-Z_]*/g) ?? []).length, 4, 'no other Railway secret is referenced')
+    assert.doesNotMatch(wf, /RAILWAY_API_TOKEN|STAGING_RAILWAY/, 'no account-token or staging credential fallback')
     for (const step of wf.split(/\n {6}- name: /).filter((part) => /@railway\/cli/.test(part))) {
+      assert.match(step, /^\s*RAILWAY_TOKEN: /m, 'every Railway CLI step authenticates with the project token')
+      // 'railway link' lists workspaces, which a project token cannot do; the token itself resolves project and environment.
+      assert.doesNotMatch(step, /railway\/cli@[\d.]+ link\b/, 'no link: a project token cannot run it')
       if (/railway\/cli@[\d.]+ variables set/.test(step)) {
-        const link = step.match(/railway\/cli@[\d.]+ link --project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"\n/)
-        assert.ok(link, `${name}: an account token has no project scope, so variables set needs an explicit link first`)
-        assert.doesNotMatch(step.replace(link?.[0] ?? '', ''), /--project/, `${name}: variables set stays free of --project`)
-        assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
+        assert.match(step, /--environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID" --skip-deploys/)
+        assert.doesNotMatch(step, /--project/)
       } else {
         assert.match(step, /railway\/cli@[\d.]+ up (apps\/web )?--ci (--path-as-root )?--project "\$PRODUCTION_RAILWAY_PROJECT_ID" --environment production --service "\$PRODUCTION_RAILWAY_(API|WEB)_SERVICE_ID"/)
       }
