@@ -250,6 +250,7 @@ def compute_shift_facts(
 
 def _tz_for(db, hotel_id: str) -> tzinfo:
     from dateutil import tz as dtz
+    from core.timezones import safe_gettz
 
     name = "America/Chicago"
     try:
@@ -257,7 +258,7 @@ def _tz_for(db, hotel_id: str) -> tzinfo:
         name = ((result.data if result else None) or {}).get("timezone") or name
     except Exception:
         pass
-    return dtz.gettz(name) or dtz.gettz("America/Chicago") or timezone.utc
+    return safe_gettz(name) or dtz.gettz("America/Chicago") or timezone.utc
 
 
 def _shift_for_date(db, hotel_id: str, user_id: str, shift_date: date, tz: tzinfo) -> dict | None:

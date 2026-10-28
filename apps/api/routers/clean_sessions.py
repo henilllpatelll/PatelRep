@@ -15,6 +15,7 @@ from models.requests import (
     UpdateCleanSessionRequest,
 )
 from core.database import supabase
+from core.timezones import safe_gettz
 from core.roles import MANAGER_ROLES
 from routers.cleaning_checklists import get_checklist_template_for_clean_type
 from services.reclean_corrections import complete_correction_on_resubmission, correction_checklist, load_reclean_details
@@ -97,7 +98,7 @@ def _get_hotel_tz(hotel_id: str):
         tz_name = ((result.data if result else None) or {}).get("timezone") or tz_name
     except Exception:
         logger.warning("Failed to resolve hotel timezone for hotel_id=%s; using default", hotel_id)
-    return dateutil_tz.gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
+    return safe_gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
 
 
 def _get_signed_url(path: str) -> str:

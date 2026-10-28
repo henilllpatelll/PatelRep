@@ -19,6 +19,7 @@ from models.requests import (
     LogbookTranslationRequest,
 )
 from core.database import supabase
+from core.timezones import safe_gettz
 from core.roles import PROGRAM_MANAGER_ROLES
 from services.ai.shift_summary import STATS_KEYS as _SUMMARY_STAT_KEYS
 from services.ai.logbook_translation import translate_logbook_content
@@ -181,7 +182,7 @@ def _get_hotel_tz(hotel_id: str):
         .execute()
     )
     tz_name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
-    return dateutil_tz.gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
+    return safe_gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
 
 
 def _hotel_today(hotel_id: str) -> str:

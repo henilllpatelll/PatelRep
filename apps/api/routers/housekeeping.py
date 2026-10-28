@@ -23,6 +23,7 @@ from models.requests import (
     EndShiftSummaryRequest,
 )
 from core.database import supabase
+from core.timezones import safe_gettz
 from core.errors import CodedHTTPException
 from services.reclean_corrections import (
     ACTION_ESCALATED,
@@ -116,7 +117,7 @@ HOTEL_ACTIVITY_TIMEZONE = tz.gettz("America/Chicago") or timezone(timedelta(hour
 def _hotel_zone(hotel_id: str):
     result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
     name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
-    return tz.gettz(name) or HOTEL_ACTIVITY_TIMEZONE
+    return safe_gettz(name) or HOTEL_ACTIVITY_TIMEZONE
 
 
 def _hotel_reporting_window(start_date: date, end_date: date, zone) -> tuple[str, str]:
@@ -841,7 +842,7 @@ def _my_rooms_meta(hotel_id: str, shift_date: date) -> dict:
         tz_name = ((result.data if result else None) or {}).get("timezone") or tz_name
     except Exception:
         logger.warning("my-rooms: failed to resolve hotel timezone for hotel_id=%s; using default", hotel_id)
-    if tz.gettz(tz_name) is None:
+    if safe_gettz(tz_name) is None:
         tz_name = "America/Chicago"
     return {"timezone": tz_name, "shift_date": shift_date.isoformat()}
 

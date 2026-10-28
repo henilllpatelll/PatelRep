@@ -143,6 +143,7 @@ def sanitize_context(context: Optional[dict]) -> dict:
 
 def _hotel_tz(db: Any, hotel_id: str) -> tzinfo:
     from dateutil import tz as dtz
+    from core.timezones import safe_gettz
 
     name = "America/Chicago"
     try:
@@ -150,7 +151,7 @@ def _hotel_tz(db: Any, hotel_id: str) -> tzinfo:
         name = ((result.data if result else None) or {}).get("timezone") or name
     except Exception:
         pass
-    return dtz.gettz(name) or dtz.gettz("America/Chicago") or timezone.utc
+    return safe_gettz(name) or dtz.gettz("America/Chicago") or timezone.utc
 
 
 def _on_open_shift_started_on(db: Any, hotel_id: str, user_id: str, day: date, tz: tzinfo) -> bool:

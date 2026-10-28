@@ -20,6 +20,7 @@ from dateutil import tz as dateutil_tz
 from fastapi import HTTPException
 
 from core.database import supabase
+from core.timezones import safe_gettz
 from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
 from services.ai.providers import get_anthropic_client
 
@@ -40,7 +41,7 @@ STATS_KEYS = (
 def _get_hotel_tz(hotel_id: str):
     result = supabase.table("tenants").select("timezone").eq("id", hotel_id).maybe_single().execute()
     tz_name = ((result.data if result else None) or {}).get("timezone") or "America/Chicago"
-    return dateutil_tz.gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
+    return safe_gettz(tz_name) or dateutil_tz.gettz("America/Chicago")
 
 
 def hotel_today(hotel_id: str) -> str:
