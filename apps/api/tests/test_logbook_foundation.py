@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 import pytest
 
 from core.config import settings

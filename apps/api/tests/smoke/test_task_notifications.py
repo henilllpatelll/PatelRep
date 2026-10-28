@@ -274,7 +274,7 @@ async def test_no_device_token_means_in_app_only(db, expo):
 async def test_only_managers_can_delete_tasks(db):
     """The gate is the route dependency, so assert it on the app, not by calling the handler."""
     from fastapi.testclient import TestClient
-    from jose import jwt
+    import jwt
 
     from core.config import settings
     from main import app

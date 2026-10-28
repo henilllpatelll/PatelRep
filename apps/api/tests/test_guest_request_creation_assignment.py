@@ -6,7 +6,7 @@ FakeDB + real-JWT TestClient harness in test_guest_request_work_order_bridge.py.
 """
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

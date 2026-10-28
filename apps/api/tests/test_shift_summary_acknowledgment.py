@@ -8,7 +8,7 @@ Uses the FakeDB + TestClient + real-JWT harness shared with test_logbook_timezon
 """
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

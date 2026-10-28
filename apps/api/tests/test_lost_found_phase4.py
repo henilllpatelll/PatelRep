@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 import pytest
 
 from core.config import settings

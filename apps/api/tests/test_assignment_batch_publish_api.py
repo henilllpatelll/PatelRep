@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 from postgrest.exceptions import APIError
 
 from core.config import settings

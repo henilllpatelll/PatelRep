@@ -9,7 +9,7 @@ const gateJob = ci.slice(ci.indexOf('\n  ci-gate:\n'), ci.indexOf('\n  pr-commen
 const script = gateJob.slice(gateJob.indexOf('        run: |\n') + '        run: |\n'.length).split('\n').map((l) => l.replace(/^ {10}/, '')).join('\n')
 
 const ALL_GREEN = {
-  LINT_API: 'success', LINT_WEB: 'success', BUILD_WEB: 'success', TEST_WEB_PUBLIC_SMOKE: 'success', TEST_API: 'success', DATABASE_MIGRATION_GATE: 'success',
+  LINT_API: 'success', LINT_WEB: 'success', BUILD_WEB: 'success', TEST_WEB_PUBLIC_SMOKE: 'success', TEST_API: 'success', DATABASE_MIGRATION_GATE: 'success', SECURITY_SCAN: 'success',
   TEST_UNIT_WEB: 'success', FEATURE_FLAG_REGISTRY_GATE: 'success', FROZEN_GUARD: 'success', CONTRAST: 'success', I18N_PARITY: 'success',
   ROOM_BOARD_REGRESSION: 'success', ROOM_BOARD_HERMETIC: 'success', RELEASE_WORKFLOW_CONTRACT: 'success', SUPABASE_CLI_APPLY_CONTRACT: 'success',
   ACTIONS_RUNTIME_PRODUCE: 'success', ACTIONS_RUNTIME_CONSUME: 'success',

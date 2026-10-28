@@ -11,7 +11,7 @@ from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 from PIL import Image
 
 from core import feature_flags

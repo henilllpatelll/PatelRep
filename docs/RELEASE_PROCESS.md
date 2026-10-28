@@ -44,6 +44,7 @@ PROTECTED_PRODUCTION_BRANCHES=main,master,production npm run ship
 - `Test / Web public smoke`
 - `Test / API`
 - `Database Migration Gate` (clean isolated Supabase rebuild, schema contracts, and focused API/database compatibility)
+- `Security Scan` (`pip-audit --strict` and `npm audit --audit-level=high`; no exceptions)
 - `Test / Web unit`
 - `Feature Flag Registry Gate` (backend/frontend feature-key registries agree; see [FEATURE_FLAGS.md](FEATURE_FLAGS.md))
 - `Frozen-File Guard`
@@ -51,7 +52,7 @@ PROTECTED_PRODUCTION_BRANCHES=main,master,production npm run ship
 - `EN/ES i18n Parity`
 - `Room-Board Pixel-Diff Regression`
 
-`Security Scan` remains advisory in this phase. Its dependency-audit steps deliberately use `continue-on-error`, so including it in a required aggregate gate would make the gate’s security meaning misleading. Review its findings and decide on a separate security-policy change before making it blocking.
+`Security Scan` is a required part of the `CI Gate` aggregate (it must finish `success`; `failure`, `cancelled` and `skipped` all block). Its dependency-audit steps carry no `continue-on-error` and no `--ignore-vuln` exceptions, so a known Python vulnerability (`pip-audit --strict`) or a high/critical npm vulnerability (`npm audit --audit-level=high`) fails the job, and therefore `CI Gate`, and therefore the required merge and staging checks. `scripts/security-scan-contract.test.mjs` pins both the job and its place in the gate.
 
 ## GitHub main branch ruleset
 

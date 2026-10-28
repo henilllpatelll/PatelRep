@@ -5,7 +5,7 @@ FakeDB does not enforce foreign keys, so these lock in the router contract that 
 """
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

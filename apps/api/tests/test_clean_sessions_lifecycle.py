@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from dateutil import tz as dateutil_tz
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

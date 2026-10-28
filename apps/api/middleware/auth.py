@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
-from jose.exceptions import JWKError
+import jwt
+from jwt import PyJWTError
 from core.config import settings
 from core.roles import ALL_ROLES
 
@@ -53,6 +53,31 @@ def _resolve_application_role(payload: dict, app_metadata: dict | None = None) -
     return "none"
 
 
+def _decode_es256(token: str, jwks: dict) -> dict:
+    """Verify an ES256 token against the JWKS key whose ``kid`` matches the header.
+
+    Only ES256 is accepted here, and keys come exclusively from the fetched JWKS,
+    so a token can never be verified with attacker-chosen key material.
+    """
+    kid = jwt.get_unverified_header(token).get("kid")
+    keys = jwt.PyJWKSet.from_dict(jwks).keys
+    candidates = [k for k in keys if kid is None or k.key_id == kid]
+    if not candidates:
+        raise PyJWTError("No JWKS key matches the token kid")
+    last_error: PyJWTError | None = None
+    for jwk in candidates:
+        try:
+            return jwt.decode(
+                token,
+                jwk.key,
+                algorithms=["ES256"],
+                audience="authenticated",
+            )
+        except PyJWTError as e:
+            last_error = e
+    raise last_error  # type: ignore[misc]
+
+
 async def _decode_token(token: str) -> dict:
     # Try HS256 first (smoke tests + older Supabase projects)
     try:
@@ -62,18 +87,13 @@ async def _decode_token(token: str) -> dict:
             algorithms=["HS256"],
             audience="authenticated"
         )
-    except (JWTError, JWKError):
+    except PyJWTError:
         pass
     # Fall back to ES256 via JWKS (newer Supabase projects)
     try:
         jwks = await _fetch_jwks()
-        return jwt.decode(
-            token,
-            jwks,
-            algorithms=["ES256"],
-            audience="authenticated"
-        )
-    except (JWTError, JWKError) as e:
+        return _decode_es256(token, jwks)
+    except PyJWTError as e:
         logger.warning("JWT verification failed: %s", e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
