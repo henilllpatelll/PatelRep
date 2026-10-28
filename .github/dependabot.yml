@@ -21,6 +21,14 @@ updates:
       # Patch + minor updates grouped into one PR to reduce noise
       non-major:
         update-types: ["minor", "patch"]
+    # TEMPORARY: hold Tailwind on v3 until an intentional Tailwind 4 migration.
+    # tailwind-merge 3 only supports Tailwind 4 class names (see known_incompatibilities
+    # in .github/dependency-orchestrator.policy.json). Remove both entries together.
+    ignore:
+      - dependency-name: "tailwindcss"
+        versions: [">=4.0.0"]
+      - dependency-name: "tailwind-merge"
+        versions: [">=3.0.0"]
 
   # pip — keeps Python deps patched (cryptography, pypdf, etc.)
   - package-ecosystem: "pip"
