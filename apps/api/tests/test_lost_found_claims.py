@@ -1,7 +1,7 @@
 """Lost & Found Phase 3 guest-claim and explainable-match contracts."""
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

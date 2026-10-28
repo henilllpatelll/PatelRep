@@ -4,7 +4,7 @@ continuity chain, and the operational-history event log."""
 from datetime import datetime
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

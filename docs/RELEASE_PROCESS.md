@@ -51,7 +51,7 @@ PROTECTED_PRODUCTION_BRANCHES=main,master,production npm run ship
 - `EN/ES i18n Parity`
 - `Room-Board Pixel-Diff Regression`
 
-`Security Scan` remains advisory in this phase. Its dependency-audit steps deliberately use `continue-on-error`, so including it in a required aggregate gate would make the gate’s security meaning misleading. Review its findings and decide on a separate security-policy change before making it blocking.
+`Security Scan` is not yet part of the `CI Gate` aggregate. Its dependency-audit steps no longer use `continue-on-error` and carry no `--ignore-vuln` exceptions, so a known Python vulnerability (`pip-audit --strict`) or a high/critical npm vulnerability (`npm audit --audit-level=high`) turns the job red instead of reporting a misleading green. `scripts/security-scan-contract.test.mjs` pins this. Adding `Security Scan` to the required `CI Gate` set (so a newly published advisory blocks merges) is a separate security-policy decision.
 
 ## GitHub main branch ruleset
 

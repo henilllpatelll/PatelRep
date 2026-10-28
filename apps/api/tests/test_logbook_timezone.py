@@ -10,7 +10,7 @@ Mirrors the FakeDB + TestClient + real-JWT harness in test_lost_found_retention.
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from main import app

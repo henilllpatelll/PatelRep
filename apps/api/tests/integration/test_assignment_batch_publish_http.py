@@ -10,7 +10,7 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from batch_support import change, dated, hotel_today, make_hotel, mirror, operation_count, seed_dated, snapshot
 from core.config import settings

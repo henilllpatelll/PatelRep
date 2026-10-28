@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 from core.config import settings
 from core.roles import ALL_ROLES, MODULE_ROLE_ACCESS, modules_for_role, unsupported_modules

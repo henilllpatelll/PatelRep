@@ -6,7 +6,7 @@ staging_flag_demo endpoint's end-to-end 403/200 enforcement.
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
 
 import core.feature_flags as feature_flags_module
 from core.config import settings

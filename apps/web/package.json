@@ -73,7 +73,7 @@
     "typescript": "^5.5.2"
   },
   "overrides": {
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "postcss": "$postcss",
     "@eslint/config-array": "^0.23.5",
     "valibot": "^1.0.0",
