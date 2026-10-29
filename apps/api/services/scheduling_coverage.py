@@ -7,8 +7,9 @@ Everything here decides from values it is handed, so it is unit-testable and nev
   * whether a person is a sensible replacement, with the REASONS spelled out so the supervisor decides,
   * whether an offer is still live.
 
-Availability and approved leave belong to Phase 5. Until those records exist every candidate's availability is
-reported as `unknown`; nobody is ever called "available" just because they have no shift.
+Availability and approved leave come from services/scheduling_availability.py (Phase 5). Approved time off is a hard
+blocker; submitted availability is only evidence (outside it = a warning to acknowledge); a person who submitted nothing
+stays `unknown`. Nobody is ever called "available" just because they have no shift.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Iterable, Optional
 
 from services.scheduling import Occurrence, compute_warnings, find_conflicts
+from services.scheduling_availability import Assessment
 from services.scheduling_contracts import GM, MANAGER, SELF, SYSTEM, WORKFLOWS
 
 ABSENCE_KINDS = ("called_out", "unavailable", "leaving_early", "emergency", "other")
@@ -98,7 +100,7 @@ class Candidate:
     warnings: list[str] = field(default_factory=list)     # allowed, but the supervisor should know
     reasons: list[str] = field(default_factory=list)      # why the person qualifies
     existing_shifts: list[dict] = field(default_factory=list)
-    availability: str = "unknown"                         # Phase 5 supplies real availability; never invented here
+    availability: str = "unknown"                         # available | outside | unavailable | unknown; never invented here
     detail: dict = field(default_factory=dict)
 
     def as_dict(self) -> dict:
@@ -123,12 +125,14 @@ def evaluate_candidate(
     clocked_in_elsewhere: Optional[bool],
     hotel_today: date,
     is_absent_employee: bool = False,
+    assessment: Optional[Assessment] = None,
 ) -> Candidate:
     """
     Deterministic checks, in order. A blocker makes the person ineligible; a warning leaves them selectable.
     `stored` are the person's non-cancelled shifts around the gap; `other_pending_offers` are windows they have already
     been asked to cover. `clocked_in_elsewhere` is None when attendance could not be read (reported as a warning, never
-    silently treated as fine).
+    silently treated as fine). `assessment` is the person's availability / approved-leave verdict for the gap's window;
+    None means it could not be read, which is reported as unknown (never as available).
     """
     cand = Candidate(user_id=user_id, roles=roles)
     stored = list(stored)
@@ -162,11 +166,18 @@ def evaluate_candidate(
         elif w.code in ("insufficient_rest", "weekly_overtime", "long_shift"):
             cand.warnings.append(w.code)
 
+    if assessment is None:
+        cand.availability = "unknown"
+        cand.warnings.append("availability_unknown")
+    else:
+        cand.availability = assessment.status
+        cand.blockers.extend(b for b in assessment.blockers if b not in cand.blockers)
+        cand.warnings.extend(w for w in assessment.warnings if w not in cand.warnings)
+        cand.reasons.extend(assessment.reasons)
+        cand.detail = {"availability": assessment.detail, "leave": assessment.leave}
     cand.eligible = not cand.blockers
     if cand.eligible:
-        cand.reasons.append("eligible_by_schedule")
-    cand.availability = "unknown"
-    cand.warnings.append("availability_unknown")
+        cand.reasons.insert(0, "eligible_by_schedule")
     cand.existing_shifts = [_brief(r) for r in stored_rows]
     return cand
 
@@ -177,9 +188,14 @@ def _brief(r: dict) -> dict:
 
 
 def sort_candidates(items: list[Candidate], names: dict[str, str]) -> list[Candidate]:
-    """Eligible without warnings first, then eligible with warnings, then ineligible; alphabetical inside each tier."""
+    """
+    Eligible and inside their submitted availability first; then eligible with no availability on file; then eligible with
+    warnings; then ineligible. Alphabetical inside each tier, so the order is deterministic and explainable.
+    """
     def tier(c: Candidate) -> int:
         if not c.eligible:
+            return 3
+        if [w for w in c.warnings if w != "availability_unknown"]:
             return 2
-        return 1 if [w for w in c.warnings if w != "availability_unknown"] else 0
+        return 0 if c.availability == "available" else 1
     return sorted(items, key=lambda c: (tier(c), (names.get(c.user_id) or "~").casefold()))

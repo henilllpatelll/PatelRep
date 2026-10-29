@@ -164,8 +164,9 @@ async def find_candidates(
 ):
     """
     Replacement candidates for a gap. Deterministic and explained: every person carries the reasons they qualify, the
-    warnings a supervisor should weigh and the blockers that rule them out. `availability` is always `unknown` until
-    availability records exist (Phase 5); nobody is called available merely for having no shift.
+    warnings a supervisor should weigh and the blockers that rule them out. `availability` is what the employee
+    submitted (available / outside / unavailable) and stays `unknown` when nothing was submitted; approved time off is
+    a blocker. Nobody is called available merely for having no shift.
     """
     hotel_id = current_user.hotel_id
     departments = load_departments(hotel_id)
@@ -188,7 +189,7 @@ async def find_candidates(
     shaped = [{**c.as_dict(), "name": names.get(c.user_id, "")} for c in ranked if keep(c)]
     return {"data": shaped, "meta": {
         "gap_version": gap["version"], "total": len(ranked), "eligible": sum(1 for c in ranked if c.eligible),
-        "availability_source": "none", "truncated": capped}}
+        "availability_source": "submitted", "truncated": capped}}
 
 
 @router.post("/gaps/{gap_id}/offers")

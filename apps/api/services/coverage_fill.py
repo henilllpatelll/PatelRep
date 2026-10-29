@@ -17,7 +17,9 @@ from middleware.auth import CurrentUser
 from routers.scheduling import _existing_rows, _occurrence, _week_bounds
 from routers.shifts import load_roster
 from services import coverage_store as store
+from services.availability_store import assess_occurrences
 from services.scheduling import Occurrence
+from services.scheduling_availability import ACK_AVAILABILITY_WARNINGS
 from services.scheduling_access import (
     Departments, StaffMember, err, hotel_today, hotel_zone, load_names, load_staff, record_audit,
 )
@@ -26,7 +28,7 @@ from services.scheduling_coverage import Candidate, _ts, evaluate_candidate, off
 logger = logging.getLogger(__name__)
 
 # Warnings that need an explicit "I know" before a supervisor commits (the rest are informational).
-ACK_WARNINGS = frozenset({"insufficient_rest", "weekly_overtime", "long_shift", "pending_offer_elsewhere", "currently_clocked_in"})
+ACK_WARNINGS = frozenset({"insufficient_rest", "weekly_overtime", "long_shift", "pending_offer_elsewhere", "currently_clocked_in"}) | ACK_AVAILABILITY_WARNINGS
 
 
 def gap_occurrence(gap: dict, user_id: str = "") -> Occurrence:
@@ -75,6 +77,10 @@ def evaluate_users(hotel_id: str, gap: dict, staff: dict[str, StaffMember], depa
         absence = supabase.table("absence_records").select("user_id").eq("tenant_id", hotel_id).eq("id", gap["absence_id"]).maybe_single().execute()
         absent = str(absence.data["user_id"]) if absence and absence.data else None
 
+    # Availability + approved leave for the gap's window. None = unreadable -> every candidate reports "unknown".
+    assessed = assess_occurrences(hotel_id, [gap_occurrence(gap, uid) for uid in staff], zone)
+    assessments = dict(zip(staff, assessed)) if assessed is not None else {}
+
     out = []
     for uid, member in staff.items():
         stored_rows = by_user.get(uid, [])
@@ -87,7 +93,7 @@ def evaluate_users(hotel_id: str, gap: dict, staff: dict[str, StaffMember], depa
             user_id=uid, roles=member.roles, department_id=member.department_id, gap_department_id=str(gap["department_id"]),
             required_role=gap.get("required_role"), gap=gap_occurrence(gap, uid), stored=stored, stored_rows=stored_rows,
             other_pending_offers=offer_windows.get(uid, []), clocked_in_elsewhere=on_clock, hotel_today=today,
-            is_absent_employee=(uid == absent),
+            is_absent_employee=(uid == absent), assessment=assessments.get(uid),
         ))
     return out
 
@@ -132,6 +138,9 @@ def commit_fill(
                       current=store.load_gap(current_user.hotel_id, str(gap["id"])))
         if code == "CV003":
             raise err(404, "gap_not_found", "Coverage gap not found")
+        if code == "TO001":
+            raise err(409, "candidate_ineligible", "That employee has approved time off during this shift.",
+                      blockers=["approved_time_off"])
         if code == "23P01" or "overlap" in str(exc).lower():
             raise err(409, "schedule_conflict", "That employee's schedule changed at the same moment. Reload and try again.",
                       conflicts=[{"code": "overlapping_shift"}])

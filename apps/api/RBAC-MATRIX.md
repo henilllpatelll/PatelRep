@@ -406,32 +406,46 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | safety.py | /v1/safety/emergency/drills | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*MANAGER_ROLES) [L264] |
 | safety.py | /v1/safety/emergency/drills/{drill_id}/check-in | POST | none |  |
 | scheduling.py | /v1/schedules/shifts | GET | none |  |
-| scheduling.py | /v1/schedules/shifts | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L316] |
-| scheduling.py | /v1/schedules/shifts/{shift_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L352] |
-| scheduling.py | /v1/schedules/shifts/{shift_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L405] |
+| scheduling.py | /v1/schedules/shifts | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L355] |
+| scheduling.py | /v1/schedules/shifts/{shift_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L391] |
+| scheduling.py | /v1/schedules/shifts/{shift_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L444] |
 | scheduling.py | /v1/schedules/assignments/my-schedule | GET | none |  |
-| scheduling.py | /v1/schedules/assignments | GET | none | inline: current_user.role in SCHEDULE_VIEWER_ROLES [L487] |
-| scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L520] |
-| scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L536] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L563] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L676] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L716]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L714] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L732]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L730] |
-| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L745] |
+| scheduling.py | /v1/schedules/assignments | GET | none | inline: current_user.role in SCHEDULE_VIEWER_ROLES [L526] |
+| scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L559] |
+| scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L575] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L602] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L717] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L757]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L755] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L773]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L771] |
+| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L786] |
 | scheduling_absences.py | /v1/schedules/absences | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L42] |
 | scheduling_absences.py | /v1/schedules/absences | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L148] |
 | scheduling_absences.py | /v1/schedules/absences/{absence_id} | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L169] |
 | scheduling_absences.py | /v1/schedules/absences/{absence_id}/withdraw | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L176] |
 | scheduling_absences.py | /v1/schedules/absences/{absence_id}/impact | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L208] |
+| scheduling_availability.py | /v1/schedules/me/availability | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L130] |
+| scheduling_availability.py | /v1/schedules/me/availability | PUT | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L136] |
+| scheduling_availability.py | /v1/schedules/me/availability/exceptions | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L182] |
+| scheduling_availability.py | /v1/schedules/availability/{row_id}/retire | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L214] |
+| scheduling_availability.py | /v1/schedules/availability/team | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_VIEWER_ROLES) [L268] |
+| scheduling_availability.py | /v1/schedules/availability/team/{user_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_VIEWER_ROLES) [L309] |
 | scheduling_coverage.py | /v1/schedules/gaps | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L58] |
 | scheduling_coverage.py | /v1/schedules/gaps/{gap_id} | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L88] |
 | scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/history | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L94] |
 | scheduling_coverage.py | /v1/schedules/open-shifts | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L117] |
 | scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/candidates | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L163] |
-| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/offers | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L195] |
-| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/offers/{offer_id}/withdraw | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L229] |
-| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/assign | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L249] |
-| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/waive | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L264] |
+| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/offers | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L196] |
+| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/offers/{offer_id}/withdraw | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L230] |
+| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/assign | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L250] |
+| scheduling_coverage.py | /v1/schedules/gaps/{gap_id}/waive | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L265] |
+| scheduling_inbox.py | /v1/schedules/requests | GET | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L100] |
+| scheduling_inbox.py | /v1/schedules/me/requests | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L149] |
+| scheduling_leave.py | /v1/schedules/me/time-off | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L145] |
+| scheduling_leave.py | /v1/schedules/time-off/{request_id} | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L204] |
+| scheduling_leave.py | /v1/schedules/time-off/{request_id}/history | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L213] |
+| scheduling_leave.py | /v1/schedules/time-off/{request_id}/approve | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L267] |
+| scheduling_leave.py | /v1/schedules/time-off/{request_id}/deny | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L278] |
+| scheduling_leave.py | /v1/schedules/time-off/{request_id}/cancel | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L284] |
 | scheduling_plan.py | /v1/schedules/assignments/{assignment_id}/detail | GET | TEAM_VIEW_ROLES(unresolved) | require_role(*TEAM_VIEW_ROLES) [L87] |
 | scheduling_plan.py | /v1/schedules/assignments/preview | POST | SUPERVISOR_ROLES(unresolved) | require_role(*SUPERVISOR_ROLES) [L122] |
 | scheduling_plan.py | /v1/schedules/shifts/{shift_id}/usage | GET | SUPERVISOR_ROLES(unresolved) | require_role(*SUPERVISOR_ROLES) [L160] |
@@ -442,6 +456,15 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | scheduling_requests.py | /v1/schedules/claims/{claim_id}/withdraw | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L168] |
 | scheduling_requests.py | /v1/schedules/claims/{claim_id}/approve | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L194] |
 | scheduling_requests.py | /v1/schedules/claims/{claim_id}/decline | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L226] |
+| scheduling_swaps.py | /v1/schedules/me/swap-options | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L224] |
+| scheduling_swaps.py | /v1/schedules/me/swaps | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L267] |
+| scheduling_swaps.py | /v1/schedules/me/swaps | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L317] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id} | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L333] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id}/history | GET | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L341] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id}/respond | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L349] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id}/cancel | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*ALL_ROLES) [L387] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id}/approve | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L427] |
+| scheduling_swaps.py | /v1/schedules/swaps/{swap_id}/deny | POST | engineer, gm, housekeeping_supervisor | require_role(*SCHEDULE_MANAGER_ROLES) [L476] |
 | scheduling_team.py | /v1/schedules/team | GET | TEAM_VIEW_ROLES(unresolved) | require_role(*TEAM_VIEW_ROLES) [L51] |
 | settings_activity.py | /v1/settings/activity/categories | GET | gm | require_role('gm') [L270] |
 | settings_activity.py | /v1/settings/activity/actors | GET | gm | require_role('gm') [L278] |
@@ -556,4 +579,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1788] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1862] |
 
-**47 routers, 545 routes.**
+**51 routers, 568 routes.**

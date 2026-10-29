@@ -32,8 +32,10 @@ from models.requests import (
     UpdateShiftAssignmentRequest,
     UpdateShiftRequest,
 )
+from services.availability_store import assess_occurrences
 from services.scheduling import (
     Occurrence,
+    ScheduleWarning,
     compute_warnings,
     find_conflicts,
     format_clock,
@@ -49,6 +51,12 @@ from services.scheduling_access import (
     load_staff,
     manager_scope,
     record_audit,
+)
+from services.scheduling_availability import (
+    APPROVED_TIME_OFF,
+    MARKED_UNAVAILABLE,
+    OUTSIDE_AVAILABILITY,
+    PENDING_TIME_OFF,
 )
 
 logger = logging.getLogger(__name__)
@@ -132,6 +140,9 @@ def _template_times(start: Optional[str], end: Optional[str]) -> tuple[time, tim
 def _raise_write_error(exc: APIError):
     """Map a database refusal from the migration-225 trigger/constraints to the same errors the pre-check gives."""
     code = getattr(exc, "code", None) or ""
+    if code == "TO001":
+        raise err(409, "approved_time_off", "This person has approved time off during that shift.",
+                  conflicts=[{"code": APPROVED_TIME_OFF}])
     if code == "23P01" or "overlap" in str(exc).lower():
         raise err(409, "schedule_conflict", "This person's schedule changed at the same moment. Reload and try again.",
                   conflicts=[{"code": "overlapping_shift"}])
@@ -165,6 +176,33 @@ def _existing_rows(hotel_id: str, user_ids: list[str], low: date, high: date) ->
 
 def _week_bounds(low: date, high: date) -> tuple[date, date]:
     return low - timedelta(days=low.weekday()), high + timedelta(days=6 - high.weekday())
+
+
+_AVAILABILITY_DETAIL = {
+    MARKED_UNAVAILABLE: "The employee said they cannot work this day.",
+    OUTSIDE_AVAILABILITY: "This shift is outside the hours the employee said they can work.",
+    PENDING_TIME_OFF: "The employee has a time-off request for these hours that has not been decided.",
+}
+
+
+def _availability_warnings(hotel_id: str, occurrences: list[Occurrence], zone) -> list[ScheduleWarning]:
+    """
+    Approved time off is a restriction, not a preference: it REFUSES the write (409 approved_time_off). Everything else
+    the employee submitted is advice shown as a warning; missing availability is simply unknown and says nothing here.
+    A failed read adds nothing -- the database trigger (migration 227) still refuses approved-leave overlaps.
+    """
+    assessed = assess_occurrences(hotel_id, occurrences, zone)
+    if not assessed:
+        return []
+    blocked = [(o, a) for o, a in zip(occurrences, assessed) if APPROVED_TIME_OFF in a.blockers]
+    if blocked:
+        raise err(409, "approved_time_off", "That person has approved time off during this shift. Cancel the leave first or choose someone else.",
+                  conflicts=[{"code": APPROVED_TIME_OFF, "user_id": o.user_id, "work_date": o.work_date.isoformat(),
+                              "leave": a.leave} for o, a in blocked])
+    return [
+        ScheduleWarning(code, o.user_id, o.work_date, _AVAILABILITY_DETAIL[code])
+        for o, a in zip(occurrences, assessed) for code in a.warnings if code in _AVAILABILITY_DETAIL
+    ]
 
 
 def _prepare(items: list[dict], current_user: CurrentUser) -> dict:
@@ -266,6 +304,7 @@ def _prepare(items: list[dict], current_user: CurrentUser) -> dict:
                   conflicts=[c.as_dict() for c in conflicts])
 
     warnings = compute_warnings(fresh, stored_occ, hotel_today=today, unknown_department_users=unknown_department)
+    warnings += _availability_warnings(hotel_id, fresh, zone)
     blocking = [w for w in warnings if w.severity == "block"]
     if blocking:
         raise err(409, "schedule_policy_blocked", "This schedule breaks a rule your hotel has set to block.",
@@ -632,6 +671,8 @@ async def update_shift_assignment(
         raise err(409, "schedule_conflict", "That change overlaps another shift for the same person.",
                   conflicts=[c.as_dict() for c in conflicts])
     warnings = compute_warnings([mine], others, hotel_today=hotel_today(zone))
+    if user_changed or date_changed or "start_time" in fields or "end_time" in fields or template_changed:
+        warnings += _availability_warnings(hotel_id, [mine], zone)
 
     update = {
         "shift_id": shift_id,

@@ -57,13 +57,19 @@ def version_conflict(kind: str, current: Optional[dict]) -> Exception:
     return err(409, "version_conflict", f"This {kind} was changed by someone else. Reload to see the latest.", current=current)
 
 
-def cas_update(table: str, hotel_id: str, row_id: str, expected_version: Optional[int], patch: dict) -> Optional[dict]:
-    """UPDATE ... WHERE id AND tenant AND version = expected, bumping version. None = nothing matched (stale)."""
+def cas_update(table: str, hotel_id: str, row_id: str, expected_version: Optional[int], patch: dict,
+               where: Optional[dict] = None) -> Optional[dict]:
+    """
+    UPDATE ... WHERE id AND tenant AND version = expected, bumping version. None = nothing matched (stale).
+    `where` adds equality preconditions (e.g. {"status": "pending"}) so a decision can only land on the state it was made for.
+    """
     body = {**patch, "updated_at": now_utc().isoformat()}
     query = supabase.table(table)
     if expected_version is not None:
         body["version"] = expected_version + 1
     update = query.update(body).eq("tenant_id", hotel_id).eq("id", row_id)
+    for column, value in (where or {}).items():
+        update = update.eq(column, value)
     if expected_version is not None:
         update = update.eq("version", expected_version)
     rows = update.execute().data or []
