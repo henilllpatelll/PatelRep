@@ -38,6 +38,7 @@ from routers import (
     scheduling_absences,
     scheduling_availability,
     scheduling_coverage,
+    scheduling_forecast,
     scheduling_inbox,
     scheduling_leave,
     scheduling_plan,
@@ -356,6 +357,7 @@ app.include_router(internal.router, prefix=PREFIX)
 app.include_router(notifications.router, prefix=PREFIX)
 app.include_router(scheduling.router, prefix=PREFIX)
 app.include_router(scheduling_team.router, prefix=PREFIX)
+app.include_router(scheduling_forecast.router, prefix=PREFIX)
 app.include_router(scheduling_plan.router, prefix=PREFIX)
 app.include_router(scheduling_absences.router, prefix=PREFIX)
 app.include_router(scheduling_coverage.router, prefix=PREFIX)
