@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
+import type { Revision } from "@/lib/api/schedulingRevisions";
 import { fetchTeamSchedule, type TeamSchedule } from "@/lib/api/schedulingTeam";
+import { overlaySource } from "@/lib/scheduling/draftOverlay";
 import { currentShiftDate, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 import { STALE_AFTER_MS } from "@/lib/housekeeping/roomsFreshness";
 import { ageSource, type SourceState } from "@/lib/housekeeping/supervisorSources";
@@ -50,7 +52,7 @@ export interface UseTeamSchedule {
 
 const hasNobody = (schedule: TeamSchedule): boolean => schedule.people.length === 0;
 
-export function useTeamSchedule({ date, today, nowMs, enabled = true }: { date: string; today: string; nowMs: number; enabled?: boolean }): UseTeamSchedule {
+export function useTeamSchedule({ date, today, nowMs, enabled = true, preview = null }: { date: string; today: string; nowMs: number; enabled?: boolean; preview?: readonly Revision[] | null }): UseTeamSchedule {
   const tenantId = useAppStore((state) => state.user?.tenant_id ?? null);
   const userId = useAppStore((state) => state.user?.id ?? null);
   const isOnline = useAppStore((state) => state.isOnline);
@@ -77,7 +79,8 @@ export function useTeamSchedule({ date, today, nowMs, enabled = true }: { date: 
   }, [reloadWeek, reloadDay]);
 
   // An answer that has sat past the freshness window is shown as stale even though nothing failed.
-  const weekState = useMemo(() => ageSource(week.state, nowMs), [week.state, nowMs]);
-  const dayState = useMemo(() => ageSource(day.state, nowMs), [day.state, nowMs]);
+  // `preview` (a pending draft) is drawn over what was read; it never changes what is fetched or cached.
+  const weekState = useMemo(() => overlaySource(ageSource(week.state, nowMs), preview), [week.state, nowMs, preview]);
+  const dayState = useMemo(() => overlaySource(ageSource(day.state, nowMs), preview), [day.state, nowMs, preview]);
   return { week: weekState, day: dayState, refreshing, refresh, scopeKey };
 }

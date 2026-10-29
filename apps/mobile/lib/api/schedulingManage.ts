@@ -2,8 +2,9 @@ import { api } from "./client";
 import { parseTeamShift, type TeamShift } from "./schedulingTeam";
 
 /* ─── Shift management (Team Scheduling Phase 3) ────────────────────────────
-   Writes and the reads that sit beside them. Every shift change here is an IMMEDIATE schedule change: the server has no
-   draft or notification step yet (Phase 7 owns publishing), so nothing in this file says "draft" or "notified".
+   Writes and the reads that sit beside them. Every shift change HERE is an IMMEDIATE schedule change (the web scheduler
+   and the supervisor's "apply immediately" mode use it). Planning in a draft, reviewing and publishing live in
+   schedulingRevisions.ts; nothing in this file says "draft", "published" or "notified".
 
    Safety rules the callers rely on
      - `expected_version` travels with every edit/cancel; a 409 `version_conflict` carries the server's current row.

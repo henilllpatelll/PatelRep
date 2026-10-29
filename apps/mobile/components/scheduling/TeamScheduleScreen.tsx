@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { AttentionList } from "@/components/scheduling/AttentionList";
 import { CoverageAttention } from "@/components/scheduling/CoverageAttention";
+import { DraftBar } from "@/components/scheduling/DraftBar";
 import { ForecastSummaryCard } from "@/components/scheduling/ForecastSummaryCard";
 import { PersonScheduleCard } from "@/components/scheduling/PersonScheduleCard";
+import { PublicationHistorySheet } from "@/components/scheduling/PublicationHistorySheet";
+import { PublishSheet } from "@/components/scheduling/PublishSheet";
 import { ScheduleFilterSheet } from "@/components/scheduling/ScheduleFilterSheet";
 import { ScheduleHeader } from "@/components/scheduling/ScheduleHeader";
 import { ScheduleBanner, ScheduleEmpty, ScheduleError, ScheduleSkeleton, type EmptyKind } from "@/components/scheduling/ScheduleStates";
@@ -18,6 +21,7 @@ import { WeekDateSelector } from "@/components/scheduling/WeekDateSelector";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
 import { Button } from "@/components/ui/Button";
 import { fetchManagerRequests } from "@/lib/api/schedulingRequests";
+import { discardRevision, removeChange } from "@/lib/api/schedulingRevisions";
 import type { TeamSchedule } from "@/lib/api/schedulingTeam";
 import { knownValue } from "@/lib/housekeeping/supervisorSources";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
@@ -26,6 +30,7 @@ import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
 import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import type { TeamScheduleLink, TeamScheduleView } from "@/lib/navigation/teamScheduleLink";
 import { onCoverageChanged } from "@/lib/scheduling/coverageSignal";
+import { countDraft } from "@/lib/scheduling/draftOverlay";
 import { dayIndex } from "@/lib/scheduling/forecastModel";
 import { useRemote } from "@/lib/scheduling/requestHooks";
 import { addDaysToYmd, formatLongDate, shiftWeek } from "@/lib/scheduling/teamScheduleDates";
@@ -42,10 +47,12 @@ import {
 } from "@/lib/scheduling/teamScheduleQuery";
 import { selectDayView, selectWeekView } from "@/lib/scheduling/teamScheduleView";
 import { useCoverageGaps } from "@/lib/scheduling/useCoverageGaps";
+import { useScheduleDrafts } from "@/lib/scheduling/useScheduleDrafts";
 import { useStaffingForecast } from "@/lib/scheduling/useStaffingForecast";
 import { useHotelToday, useTeamSchedule } from "@/lib/scheduling/useTeamSchedule";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
 
 type Row = { kind: "person"; person: RosterPerson } | { kind: "group"; group: ShiftGroup };
 
@@ -74,16 +81,56 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const [pendingLink, setPendingLink] = useState<string | null>(link.userId);
   const [linkMissing, setLinkMissing] = useState(false);
 
-  const openShift = useCallback((userId: string, shiftId?: string) => {
+  const toast = useToast();
+  // Drafts (Phase 7): staged changes live on the server and never touch the published schedule or what employees see.
+  const draftsHook = useScheduleDrafts(true);
+  const [previewDraft, setPreviewDraft] = useState(false);
+  const [planInDraft, setPlanInDraft] = useState(true);
+  const [publishId, setPublishId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyId, setHistoryId] = useState<string | null>(null);
+  // The draft the bar and the publish review act on: the department draft that holds changes.
+  const activeDraft = useMemo(() => draftsHook.drafts.find((draft) => (draft.changes?.length ?? 0) > 0) ?? null, [draftsHook.drafts]);
+  const draftCounts = useMemo(() => (draftsHook.status === "failed" && !draftsHook.counts ? null : countDraft(activeDraft ? [activeDraft] : [])), [draftsHook.status, draftsHook.counts, activeDraft]);
+
+  const openShiftRaw = useCallback((userId: string, shiftId?: string) => {
     setOpenShiftId(shiftId ?? null);
     setOpenUserId(userId);
   }, []);
+  const reloadDrafts = draftsHook.reload;
+  const removeProposed = useCallback(
+    (changeId: string) => {
+      if (!activeDraft) return;
+      Alert.alert(t("teamSchedule.publish.removeProposed.title"), t("teamSchedule.publish.removeProposed.message"), [
+        { text: t("teamSchedule.manage.cancel.keep"), style: "cancel" },
+        {
+          text: t("teamSchedule.publish.removeProposed.confirm"),
+          style: "destructive",
+          onPress: () => {
+            removeChange(activeDraft.id, changeId)
+              .then(() => reloadDrafts())
+              .catch(() => toast.error(t("teamSchedule.publish.removeProposed.failed")));
+          },
+        },
+      ]);
+    },
+    [activeDraft, reloadDrafts, t, toast],
+  );
+  const openShift = useCallback(
+    (userId: string, shiftId?: string) => {
+      // A shift that exists only in the draft has no published record to open: offer to take it back out of the draft.
+      if (shiftId?.startsWith("draft:")) removeProposed(shiftId.slice("draft:".length));
+      else openShiftRaw(userId, shiftId);
+    },
+    [openShiftRaw, removeProposed],
+  );
   const closeDetail = useCallback(() => {
     setOpenUserId(null);
     setOpenShiftId(null);
   }, []);
 
-  const { week, day, refreshing, refresh: refreshSchedule } = useTeamSchedule({ date, today, nowMs });
+  const previewing = previewDraft && view === "week" && activeDraft !== null;
+  const { week, day, refreshing, refresh: refreshSchedule } = useTeamSchedule({ date, today, nowMs, preview: previewing && activeDraft ? [activeDraft] : null });
   const coverage = useCoverageGaps(isOnline);
   const reloadCoverage = coverage.refresh;
   const staffing = useStaffingForecast({ today, nowMs });
@@ -93,8 +140,8 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const requestsRemote = useRemote(() => fetchManagerRequests({ status: "pending" }), [], isOnline);
   const waitingRequests = requestsRemote.data?.counts.pending ?? null;
   const refresh = useCallback(async () => {
-    await Promise.all([refreshSchedule(), reloadCoverage(), reloadForecast()]);
-  }, [refreshSchedule, reloadCoverage, reloadForecast]);
+    await Promise.all([refreshSchedule(), reloadCoverage(), reloadForecast(), reloadDrafts()]);
+  }, [refreshSchedule, reloadCoverage, reloadForecast, reloadDrafts]);
   // Find Coverage / Open Shifts sit on top of this screen; when they change a gap, read coverage again.
   useEffect(() => onCoverageChanged(() => void reloadCoverage()), [reloadCoverage]);
   const dayGaps = useMemo(() => coverage.byDate.get(date) ?? [], [coverage.byDate, date]);
@@ -134,6 +181,29 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const openForecast = useCallback(() => router.push({ pathname: "/(app)/team-schedule/forecast", params: date === today ? {} : { date } } as never), [date, today]);
   const openAvailability = useCallback(() => router.push("/(app)/team-schedule/availability" as never), []);
 
+  const discardDraft = useCallback(() => {
+    if (!activeDraft) return;
+    Alert.alert(t("teamSchedule.publish.discard.title"), t("teamSchedule.publish.discard.message", { count: activeDraft.changes?.length ?? 0 }), [
+      { text: t("teamSchedule.manage.cancel.keep"), style: "cancel" },
+      {
+        text: t("teamSchedule.publish.discard.confirm"),
+        style: "destructive",
+        onPress: () => {
+          discardRevision(activeDraft.id, activeDraft.version)
+            .then(() => {
+              setPreviewDraft(false);
+              toast.success(t("teamSchedule.publish.discard.done"));
+              void refresh();
+            })
+            .catch(() => {
+              toast.error(t("teamSchedule.publish.discard.failed"));
+              void reloadDrafts();
+            });
+        },
+      },
+    ]);
+  }, [activeDraft, refresh, reloadDrafts, t, toast]);
+
   const select = useCallback((next: string) => setPicked(next === today ? null : next), [today]);
   const dateLabel = formatLongDate(date, language);
   const clock = dayView.verifiedAt !== null ? formatHotelTime(new Date(dayView.verifiedAt), zone, language) : null;
@@ -166,6 +236,24 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
       {!isOnline ? <ScheduleBanner icon="cloud-offline-outline" text={t("teamSchedule.offline")} testID="team-schedule-offline" /> : null}
       {dayView.state === "ready" ? (
         <>
+          <DraftBar
+            counts={draftCounts}
+            loadFailed={draftsHook.status === "failed" && draftsHook.counts === null}
+            previewing={previewing}
+            canPreview={view === "week"}
+            planInDraft={planInDraft}
+            isOnline={isOnline}
+            onTogglePreview={() => setPreviewDraft((held) => !held)}
+            onPlanInDraft={setPlanInDraft}
+            onReview={() => activeDraft && setPublishId(activeDraft.id)}
+            onDiscard={discardDraft}
+            onHistory={() => {
+              setHistoryId(null);
+              setHistoryOpen(true);
+            }}
+            onRetry={() => void reloadDrafts()}
+            t={t}
+          />
           <StaffingSummary scheduled={dayView.scheduledCount} counts={dayView.counts} attendanceNote={asOf ? t("teamSchedule.summary.attendanceAsOf", { time: asOf }) : null} attendanceMissing={isToday && roster?.mode === "unavailable"} isToday={isToday} t={t} />
           <ForecastSummaryCard day={forecastByDate[date] ?? null} loading={staffing.state.status === "loading"} isToday={isToday} onOpen={openForecast} t={t} />
           <CoverageAttention gaps={dayGaps} status={coverage.status} zone={zone} language={language} onFind={findCoverage} onRetry={() => void reloadCoverage()} t={t} />
@@ -300,11 +388,45 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
         language={language}
         isOnline={isOnline}
         onChanged={refresh}
+        stage={planInDraft}
         onOpenAssignments={openAssignments}
         onOpenTemplates={openTemplates}
         coverageFor={coverage.forAssignment}
         onFindCoverage={findCoverage}
         onCoverageChanged={() => void reloadCoverage()}
+        t={t}
+      />
+      <PublishSheet
+        revisionId={publishId}
+        zone={zone}
+        language={language}
+        isOnline={isOnline}
+        onClose={() => setPublishId(null)}
+        onPublished={() => {
+          setPreviewDraft(false);
+          void refresh();
+        }}
+        onViewPublished={() => setPublishId(null)}
+        onViewDetails={(id) => {
+          setPublishId(null);
+          setHistoryId(id);
+          setHistoryOpen(true);
+        }}
+        t={t}
+      />
+      <PublicationHistorySheet
+        visible={historyOpen}
+        initialId={historyId}
+        people={scopePeople}
+        zone={zone}
+        language={language}
+        isOnline={isOnline}
+        onClose={() => setHistoryOpen(false)}
+        onCorrectionStarted={() => {
+          setHistoryOpen(false);
+          toast.info(t("teamSchedule.publish.history.correctionOpened"));
+          void reloadDrafts();
+        }}
         t={t}
       />
     </View>

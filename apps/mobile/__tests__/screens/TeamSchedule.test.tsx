@@ -80,6 +80,7 @@ interface Server {
 function serve({ today = "ok", week = "ok" }: Server = {}) {
   get.mockImplementation(async (url: string) => {
     if (url.startsWith("/schedules/gaps")) return { data: [], meta: { count: 0 } };
+    if (url === "/schedules/revisions/drafts") return { data: [] };
     const attendance = url.includes("include_attendance=true");
     const range = /date_from=([\d-]+)&date_to=([\d-]+)/.exec(url);
     const [from, to] = [range?.[1] ?? TODAY, range?.[2] ?? TODAY];
@@ -204,7 +205,9 @@ describe("Today", () => {
     expect(all.filter((u) => u.startsWith("/schedules/requests"))).toEqual(["/schedules/requests?type=all&status=pending"]);
     // The staffing forecast (Phase 6) is one bounded read: today and the next six hotel days.
     expect(all.filter((u) => u.startsWith("/schedules/forecast"))).toEqual([`/schedules/forecast?date_from=${TODAY}&days=7`]);
-    const urls = all.filter((u) => !u.startsWith("/schedules/gaps") && !u.startsWith("/schedules/requests") && !u.startsWith("/schedules/forecast"));
+    // Drafts (Phase 7) are one bounded read of the manager's own open drafts; they never change what the team reads return.
+    expect(all.filter((u) => u.startsWith("/schedules/revisions"))).toEqual(["/schedules/revisions/drafts"]);
+    const urls = all.filter((u) => !u.startsWith("/schedules/gaps") && !u.startsWith("/schedules/requests") && !u.startsWith("/schedules/forecast") && !u.startsWith("/schedules/revisions"));
     expect(urls.some((u) => u.includes("include_attendance=true") && u.includes(`date_from=${TODAY}&date_to=${TODAY}`))).toBe(true);
     const days = weekDays(TODAY);
     expect(urls.some((u) => u.includes(`date_from=${days[0]}&date_to=${days[6]}`) && !u.includes("include_attendance"))).toBe(true);

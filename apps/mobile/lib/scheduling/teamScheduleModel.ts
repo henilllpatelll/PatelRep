@@ -37,6 +37,8 @@ export interface DayShift {
   endsNextDay: boolean;
   carried: boolean;
   draft: boolean;
+  /** A pending change drawn over the published schedule (draft preview only); null for a published shift. */
+  proposal: "new" | "changed" | "cancelled" | null;
   notes: string | null;
 }
 
@@ -95,7 +97,8 @@ export function toDayShift(shift: TeamShift, ctx: ScheduleContext): DayShift {
     endLabel: formatWallClock(endDay ?? shift.workDate, shift.endTime, shift.endsAt, ctx.zone, ctx.language),
     endsNextDay,
     carried: shift.carriedFromPreviousDay,
-    draft: shift.publication === "draft",
+    draft: shift.publication === "draft" || shift.proposal !== undefined,
+    proposal: shift.proposal?.kind ?? null,
     notes: shift.notes,
   };
 }

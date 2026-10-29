@@ -188,6 +188,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
           : undefined,
       openLink: (link) => {
         if (link.kind === "room") openRoom(link.roomId);
+        else if (link.kind === "schedule") router.push({ pathname: link.target.pathname, params: link.target.params } as never);
         else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
       },
     }),

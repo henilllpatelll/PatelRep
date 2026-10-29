@@ -39,6 +39,8 @@ interface Props {
   isOnline: boolean;
   /** Re-read the schedule after any change. */
   onChanged: () => void | Promise<void>;
+  /** Plan in the draft (default) or apply immediately. Call-outs always apply immediately: a replacement must not wait for review. */
+  stage?: boolean;
   onOpenAssignments: (userId: string) => void;
   onOpenTemplates: () => void;
   /** Call-outs and coverage (Phase 4). */
@@ -53,7 +55,7 @@ interface Props {
  * screen keeps its own editing logic. The screen keeps its own date, filters, search and scroll position, because this
  * only ever opens sheets on top of it.
  */
-export function ShiftManager({ roster, people, rows, openUserId, openShiftId, onCloseDetail, form, onForm, today, zone, language, isOnline, onChanged, onOpenAssignments, onOpenTemplates, coverageFor, onFindCoverage, onCoverageChanged, t }: Props) {
+export function ShiftManager({ roster, people, rows, openUserId, openShiftId, onCloseDetail, form, onForm, today, zone, language, isOnline, onChanged, stage = false, onOpenAssignments, onOpenTemplates, coverageFor, onFindCoverage, onCoverageChanged, t }: Props) {
   const toast = useToast();
   const [messageTo, setMessageTo] = useState<RosterPerson | null>(null);
   // The call-out drawer outlives the detail sheet it was opened from (one modal at a time), so it keeps its own copy.
@@ -90,7 +92,9 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
       onCloseDetail();
       void onChanged();
       const base =
-        summary.kind === "updated"
+        summary.kind === "drafted"
+          ? t("teamSchedule.publish.saved.drafted", { count: summary.count })
+          : summary.kind === "updated"
           ? t(summary.alreadySaved ? "teamSchedule.manage.saved.alreadySaved" : "teamSchedule.manage.saved.updated")
           : summary.count === 0
             ? t("teamSchedule.manage.saved.alreadyThere")
@@ -118,6 +122,7 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
         language={language}
         isOnline={isOnline}
         onChanged={() => void onChanged()}
+        stage={stage}
         onEdit={(shift, reassign) => onForm({ mode: "edit", source: shift, date: shift.workDate, userId: shift.userId, reassign })}
         onCopy={(shift) => onForm({ mode: "copy", source: shift, date: shift.workDate, userId: shift.userId })}
         onMessage={setMessageTo}
@@ -148,6 +153,7 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
           templatesFailed={templates.state.status === "failed" || templates.state.error}
           onRetryTemplates={() => void reloadTemplates()}
           isOnline={isOnline}
+          stage={stage}
           onSaved={saved}
           onClose={() => onForm(null)}
           onGone={gone}

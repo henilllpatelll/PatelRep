@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   createShift,
   createShiftsBatch,
@@ -11,6 +11,7 @@ import {
   type ShiftTemplate,
   type WriteFailure,
 } from "@/lib/api/schedulingManage";
+import { stageChange } from "@/lib/api/schedulingRevisions";
 import type { TeamShift } from "@/lib/api/schedulingTeam";
 import { buildInputs, buildPatch, diffShifts, draftFromShift, matchesIntent, type ChangedField, type FormMode, type ShiftDraft } from "@/lib/scheduling/shiftForm";
 import { useWriteGuard } from "@/lib/scheduling/useWriteGuard";
@@ -25,7 +26,7 @@ import { useWriteGuard } from "@/lib/scheduling/useWriteGuard";
            already scheduled); repeating an edit is checked against the server's row, so an edit that did land is
            reported as saved instead of being applied twice or flagged as someone else's change. */
 
-export type SavedKind = "created" | "updated";
+export type SavedKind = "created" | "updated" | "drafted";
 
 export interface SavedSummary {
   kind: SavedKind;
@@ -47,10 +48,14 @@ interface Args {
   onSaved: (summary: SavedSummary) => void;
   /** The shift no longer exists (removed by someone else): the form cannot continue. */
   onGone: () => void;
+  /** Add the change to the department's DRAFT instead of changing the live schedule (nothing is visible to employees until published). */
+  stage?: boolean;
 }
 
-export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone }: Args) {
+export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone, stage = false }: Args) {
   const { busy, run } = useWriteGuard();
+  // One key per open form: a retried staging request replaces itself instead of adding a second shift.
+  const formKey = useRef(`form-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
   const [original, setOriginal] = useState<TeamShift | null>(mode === "edit" ? source : null);
   const [step, setStep] = useState<FlowStep>("form");
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -69,6 +74,15 @@ export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone }: 
       if (inputs.length === 0) return;
       const series = inputs.length > 1 || draft.recurring;
       const res = await run(async (): Promise<SavedSummary> => {
+        if (stage) {
+          for (const [index, input] of inputs.entries()) {
+            await stageChange({
+              kind: "create", clientKey: `${formKey.current}:${index}`, userId: input.userId, shiftId: input.shiftId, workDate: input.workDate,
+              startTime: input.startTime ?? undefined, endTime: input.endTime ?? undefined, notes: input.notes ?? undefined,
+            });
+          }
+          return { kind: "drafted", count: inputs.length, unchanged: 0, warnings: [], alreadySaved: false };
+        }
         if (series) {
           const batch = await createShiftsBatch(inputs);
           return { kind: "created", count: batch.created, unchanged: batch.unchanged, warnings: batch.warnings, alreadySaved: false };
@@ -83,7 +97,7 @@ export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone }: 
       }
       onSaved(res.value);
     },
-    [onSaved, run],
+    [onSaved, run, stage],
   );
 
   const saveEdit = useCallback(
@@ -92,6 +106,34 @@ export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone }: 
       const patch = buildPatch(original, draft, template);
       if (!patch) return;
       setFailure(null);
+      if (stage) {
+        const staged = await run(() => stageChange({
+          kind: "update", assignmentId: original.id, expectedVersion: patch.expectedVersion, userId: patch.userId, shiftId: patch.shiftId,
+          workDate: patch.workDate, startTime: patch.startTime, endTime: patch.endTime, notes: patch.notes,
+        }));
+        if (!staged) return;
+        if (staged.ok) {
+          onSaved({ kind: "drafted", count: 1, unchanged: 0, warnings: [], alreadySaved: false });
+          return;
+        }
+        if (staged.failure.kind === "not_found") {
+          onGone();
+          return;
+        }
+        if (staged.failure.kind === "version_conflict") {
+          let current = staged.failure.current;
+          if (!current) {
+            try {
+              current = (await fetchShiftDetail(original.id)).shift;
+            } catch {
+              current = null;
+            }
+          }
+          if (current) setLatest(current);
+        }
+        setFailure(staged.failure);
+        return;
+      }
       const res = await run(() => updateShift(original.id, patch));
       if (!res) return;
       if (res.ok) {
@@ -125,7 +167,7 @@ export function useShiftFormFlow({ mode, source, templateOf, onSaved, onGone }: 
       }
       setFailure(failed);
     },
-    [onGone, onSaved, original, run],
+    [onGone, onSaved, original, run, stage],
   );
 
   /** First press: validate (create) or write (edit). */

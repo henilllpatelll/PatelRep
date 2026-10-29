@@ -8,6 +8,7 @@ import { mySchedule, type ShiftAssignment } from "@/lib/api/scheduling";
 import { SwapRequestSheet, type SwapSource } from "@/components/scheduling/SwapRequestSheet";
 import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { fetchMyOffers } from "@/lib/api/schedulingOffers";
 import { fetchMyRequests } from "@/lib/api/schedulingRequests";
 import { useRemote } from "@/lib/scheduling/requestHooks";
 import { useAppStore } from "@/stores/appStore";
@@ -42,6 +43,9 @@ export default function SchedulingScreen() {
   // Phase 5: swap proposals waiting on this employee's answer. No number is shown when the read failed.
   const myRequests = useRemote(fetchMyRequests, [], isOnline);
   const waiting = myRequests.data?.counts.action_required ?? 0;
+  // Phase 7: shift offers waiting for an answer. An offer is a question, not a shift; no number is shown when the read failed.
+  const myOffers = useRemote(fetchMyOffers, [], isOnline);
+  const offersWaiting = (myOffers.data ?? []).filter((offer) => offer.status === "pending").length;
   const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,6 +172,7 @@ export default function SchedulingScreen() {
             <Button label={t("scheduling.actions.availability")} icon="time-outline" variant="secondary" onPress={() => router.push("/(app)/scheduling/availability" as never)} testID="schedule-action-availability" />
             <Button label={t("scheduling.actions.timeOff")} icon="sunny-outline" variant="secondary" onPress={() => router.push("/(app)/scheduling/time-off" as never)} testID="schedule-action-time-off" />
             <Button label={waiting > 0 ? t("scheduling.actions.requestsCount", { count: waiting }) : t("scheduling.actions.requests")} icon="mail-outline" variant={waiting > 0 ? "primary" : "secondary"} onPress={() => router.push("/(app)/scheduling/requests" as never)} testID="schedule-action-requests" />
+            <Button label={offersWaiting > 0 ? t("scheduling.actions.offersCount", { count: offersWaiting }) : t("scheduling.actions.offers")} icon="swap-horizontal-outline" variant={offersWaiting > 0 ? "primary" : "secondary"} onPress={() => router.push("/(app)/scheduling/offers" as never)} testID="schedule-action-offers" />
           </View>
         </>
       )}

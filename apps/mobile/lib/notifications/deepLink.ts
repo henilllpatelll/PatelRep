@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/supabase";
+import { resolveScheduleTarget, type ScheduleTarget } from "@/lib/scheduling/scheduleLink";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 
 /**
@@ -15,6 +16,7 @@ export type NotificationTarget =
   | { kind: "room"; roomId: string }
   | { kind: "myRooms" }
   | { kind: "workOrder"; workOrderId: string }
+  | { kind: "schedule"; target: ScheduleTarget }
   | { kind: "none" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -27,6 +29,9 @@ const WORK_ORDER_ROLES: ReadonlySet<UserRole> = new Set(["engineer"]);
 export function resolveNotificationTarget(data: unknown, role: UserRole | null | undefined): NotificationTarget {
   if (!data || typeof data !== "object" || !role) return { kind: "none" };
   const record = data as { url?: unknown };
+
+  const schedule = resolveScheduleTarget(data, role);
+  if (schedule) return { kind: "schedule", target: schedule };
 
   const taskId = taskIdFromNotification(data);
   if (taskId) return { kind: "task", taskId };
@@ -57,6 +62,8 @@ export function routeForTarget(target: NotificationTarget): { pathname: string; 
       return { pathname: "/(app)/my-rooms" };
     case "workOrder":
       return { pathname: `/(app)/work-orders/${target.workOrderId}` };
+    case "schedule":
+      return Object.keys(target.target.params).length > 0 ? { pathname: target.target.pathname, params: target.target.params } : { pathname: target.target.pathname };
     default:
       return null;
   }

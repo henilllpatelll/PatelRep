@@ -9,6 +9,7 @@ import { ScheduleStatusBadge } from "@/components/scheduling/ScheduleStatusBadge
 import { ShiftDetailBody } from "@/components/scheduling/ShiftDetailBody";
 import type { CoverageGap } from "@/lib/api/schedulingCoverage";
 import { cancelShift } from "@/lib/api/schedulingManage";
+import { stageChange } from "@/lib/api/schedulingRevisions";
 import type { TeamShift } from "@/lib/api/schedulingTeam";
 import { formatLongDate } from "@/lib/scheduling/teamScheduleDates";
 import type { DayRoster, DayShift, RosterPerson } from "@/lib/scheduling/teamScheduleModel";
@@ -35,6 +36,8 @@ interface Props {
   isOnline: boolean;
   /** The schedule changed (a shift was cancelled): refresh it. */
   onChanged: () => void;
+  /** Removing a shift adds a cancellation to the draft instead of removing it now. */
+  stage?: boolean;
   onEdit: (shift: TeamShift, reassign: boolean) => void;
   onCopy: (shift: TeamShift) => void;
   onMessage: (person: RosterPerson) => void;
@@ -54,7 +57,7 @@ interface Props {
  * may take on it. Every change is an immediate schedule change; the server decides what is allowed, and this sheet
  * only explains up front why an action is unavailable.
  */
-export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, onEdit, onCopy, onMessage, onOpenAssignments, coverageFor, onCallOut, onFindCoverage, onClose, t }: Props) {
+export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, stage = false, onEdit, onCopy, onMessage, onOpenAssignments, coverageFor, onCallOut, onFindCoverage, onClose, t }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const visible = person !== null;
@@ -100,18 +103,21 @@ export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, l
   const confirmCancel = () => {
     if (!row || !shift) return;
     Alert.alert(
-      t("teamSchedule.manage.cancel.title"),
-      t("teamSchedule.manage.cancel.message", { name, window: windowText(shift, t), date: formatLongDate(shift.workDate, language) }),
+      t(stage ? "teamSchedule.publish.cancel.title" : "teamSchedule.manage.cancel.title"),
+      t(stage ? "teamSchedule.publish.cancel.message" : "teamSchedule.manage.cancel.message", { name, window: windowText(shift, t), date: formatLongDate(shift.workDate, language) }),
       [
         { text: t("teamSchedule.manage.cancel.keep"), style: "cancel" },
-        { text: t("teamSchedule.manage.cancel.confirm"), style: "destructive", onPress: () => void doCancel(row) },
+        { text: t(stage ? "teamSchedule.publish.cancel.confirm" : "teamSchedule.manage.cancel.confirm"), style: "destructive", onPress: () => void doCancel(row) },
       ],
     );
   };
 
   const doCancel = async (target: TeamShift) => {
     setNotice(null);
-    const res = await run(() => cancelShift(target.id, target.version));
+    const res = await run(async () => {
+      if (stage) await stageChange({ kind: "cancel", assignmentId: target.id, expectedVersion: target.version });
+      else await cancelShift(target.id, target.version);
+    });
     if (!res) return;
     if (res.ok) {
       onChanged();

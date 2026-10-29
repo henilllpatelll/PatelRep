@@ -5,7 +5,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { R } from "@/components/shared/tokens";
 import { ScheduleStatusBadge } from "@/components/scheduling/ScheduleStatusBadge";
 import type { ShiftGroup } from "@/lib/scheduling/teamScheduleModel";
-import { groupTitle, groupWindowText, periodLabel, personName, rolesLine, statusLabel, type Translate } from "@/lib/scheduling/teamScheduleText";
+import { draftText, groupTitle, groupWindowText, periodLabel, personName, rolesLine, statusLabel, type Translate } from "@/lib/scheduling/teamScheduleText";
 import { useTheme } from "@/lib/theme/useTheme";
 
 interface Props {
@@ -52,7 +52,7 @@ export const ShiftGroupCard = memo(function ShiftGroupCard({ group, onOpen, t }:
             key={`${shift.id}`}
             onPress={() => onOpen(person.userId, shift.id)}
             accessibilityRole="button"
-            accessibilityLabel={[name, role, person.status ? statusLabel(person.status, t) : null, shift.draft ? t("teamSchedule.draft") : null].filter(Boolean).join(". ")}
+            accessibilityLabel={[name, role, person.status ? statusLabel(person.status, t) : null, shift.draft ? draftText(shift, t) : null].filter(Boolean).join(". ")}
             accessibilityHint={t("teamSchedule.openShift")}
             testID={`team-schedule-member-${shift.id}`}
             style={({ pressed }) => [styles.member, { borderTopColor: theme.borderSubtle }, pressed && { opacity: 0.75 }]}
@@ -65,11 +65,11 @@ export const ShiftGroupCard = memo(function ShiftGroupCard({ group, onOpen, t }:
               {role ? (
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.role, { color: theme.textSecondary }]} numberOfLines={1}>
                   {role}
-                  {shift.draft ? `  ·  ${t("teamSchedule.draft")}` : ""}
+                  {shift.draft ? `  ·  ${draftText(shift, t)}` : ""}
                 </Text>
               ) : shift.draft ? (
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.role, { color: theme.textSecondary }]}>
-                  {t("teamSchedule.draft")}
+                  {draftText(shift, t)}
                 </Text>
               ) : null}
             </View>

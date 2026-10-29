@@ -70,6 +70,8 @@ const TEMPLATES = [
 ];
 
 interface World {
+  drafts: Record<string, unknown>[];
+  draftsFail?: boolean;
   shifts: WireShift[];
   detail: (id: string) => Record<string, unknown>;
   templates: Record<string, unknown>[];
@@ -80,6 +82,7 @@ const teamCalls = () => get.mock.calls.filter(([url]) => String(url).startsWith(
 
 function freshWorld(): World {
   return {
+    drafts: [],
     shifts: [row(TODAY, "s1", "u1"), row(TODAY, "s2", "u2", { shift_id: "t2", shift_name: "Overnight", start_time: "23:00:00", end_time: "07:00:00", starts_at: at(TODAY, 23, 0), ends_at: at(TOMORROW, 7, 0) }), row(TOMORROW, "s3", "u1"), row(TOMORROW, "s4", "u1", { shift_id: "t2", shift_name: "Evening", start_time: "16:00:00", end_time: "20:00:00", starts_at: at(TOMORROW, 16, 0), ends_at: at(TOMORROW, 20, 0) })],
     detail: (id) => ({
       data: {
@@ -98,6 +101,10 @@ function freshWorld(): World {
 function serve() {
   get.mockImplementation(async (url: string) => {
     if (url.startsWith("/schedules/gaps")) return { data: [], meta: { count: 0 } };
+    if (url === "/schedules/revisions/drafts") {
+      if (world.draftsFail) throw Object.assign(new Error("server"), { status: 500 });
+      return { data: world.drafts };
+    }
     if (url.startsWith("/schedules/team")) {
       const range = /date_from=([\d-]+)&date_to=([\d-]+)/.exec(url);
       const [from, to] = [range?.[1] ?? TODAY, range?.[2] ?? TODAY];
@@ -130,7 +137,8 @@ const settle = async () => {
     await new Promise((resolve) => setTimeout(resolve, 30));
   });
 };
-async function open(params: Record<string, string> = {}, Route?: React.ComponentType<unknown>) {
+/** `applyNow` (default) switches the planning mode to "apply immediately", the Phase 3 behavior these suites cover; the draft default has its own describe below. */
+async function open(params: Record<string, string> = {}, Route?: React.ComponentType<unknown>, applyNow = true) {
   Object.assign(mockParams, params);
   const screen = render(ui(Route));
   await settle();
@@ -138,6 +146,10 @@ async function open(params: Record<string, string> = {}, Route?: React.Component
     expect(screen.queryByTestId(Route ? "templates-screen" : "team-schedule")).toBeTruthy();
     expect(screen.queryByTestId("team-schedule-skeleton")).toBeNull();
   });
+  if (!Route && applyNow) {
+    fireEvent.press(await screen.findByTestId("draft-bar-mode"));
+    await settle();
+  }
   return screen;
 }
 const press = async (screen: ReturnType<typeof render>, id: string) => {
@@ -598,5 +610,99 @@ describe("shift templates", () => {
     expect(alertSpy.mock.calls[0][1]).toBe(tr("teamSchedule.manage.templates.archiveMessage", { upcoming: 5, past: 40 }));
     await waitFor(() => expect(del).toHaveBeenCalledWith("/schedules/shifts/t1"));
     await waitFor(() => expect(screen.queryByTestId("template-form")).toBeNull());
+  });
+});
+
+/* ─── Phase 7: planning in a draft ──────────────────────────────────────────
+   The screen's default. Nothing a supervisor does here reaches the published schedule or an employee until it is published. */
+describe("planning in a draft (the default)", () => {
+  const REVISION = { id: "r1", department_id: "d1", status: "draft", version: 2, changes: [] as unknown[] };
+  const staged = (action = "insert") => ({ data: { revision: REVISION, change: null, action } });
+  const stageCalls = () => post.mock.calls.filter(([url]) => url === "/schedules/revisions/changes");
+  const wireChange = (over: Record<string, unknown> = {}) => ({
+    id: "c1", kind: "create", assignment_id: null, base_version: null, before: null, reason: null, department_id: "d1",
+    proposed: { user_id: "u3", shift_id: "t1", shift_name: "Morning", work_date: TOMORROW, start_time: "07:00:00", end_time: "15:00:00", starts_at: at(TOMORROW, 7, 0), ends_at: at(TOMORROW, 15, 0), department_id: "d1", notes: null },
+    ...over,
+  });
+
+  it("saves a new shift to the draft, tells the supervisor it is not published, and writes nothing to the schedule", async () => {
+    post.mockImplementation(async (url: string) => (url.endsWith("/preview")
+      ? { data: { ok: true, create_count: 1, unchanged_count: 0, warnings: [], blocking: null, items: [] } }
+      : staged()));
+    const screen = await open({}, undefined, false);
+    await openAdd(screen);
+    await fillAdd(screen);
+    expect(text(screen.getByTestId("shift-form-save"))).toBe(tr("teamSchedule.publish.saveToDraft"));
+    await press(screen, "shift-form-save");
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith(tr("teamSchedule.publish.saved.drafted", { count: 1 })));
+    expect(stageCalls()).toHaveLength(1);
+    expect(stageCalls()[0][1]).toMatchObject({ kind: "create", user_id: "u1", shift_id: "t1", work_date: TODAY });
+    expect(String((stageCalls()[0][1] as { client_key: string }).client_key).length).toBeGreaterThan(8);
+    expect(post.mock.calls.map(([url]) => url)).not.toContain("/schedules/assignments");          // the live schedule is untouched
+  });
+
+  it("stages an edit with the version it read instead of patching the shift", async () => {
+    post.mockResolvedValue(staged("insert"));
+    const screen = await open({}, undefined, false);
+    await press(screen, "team-schedule-person-u1");
+    await screen.findByTestId("shift-detail-timeline");
+    await press(screen, "shift-action-edit");
+    await screen.findByTestId("shift-form");
+    fireEvent.changeText(screen.getByTestId("shift-form-notes"), "Deep clean");
+    await press(screen, "shift-form-save");
+    await waitFor(() => expect(stageCalls()).toHaveLength(1));
+    expect(stageCalls()[0][1]).toMatchObject({ kind: "update", assignment_id: "s1", expected_version: 1, notes: "Deep clean" });
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("stages a removal instead of deleting the live shift, and the confirmation says it stays published", async () => {
+    post.mockResolvedValue(staged("insert"));
+    const screen = await open({}, undefined, false);
+    await press(screen, "team-schedule-person-u1");
+    await screen.findByTestId("shift-detail-timeline");
+    await press(screen, "shift-action-cancel");
+    expect(alertSpy.mock.calls[0][0]).toBe(tr("teamSchedule.publish.cancel.title"));
+    expect(alertSpy.mock.calls[0][1]).toContain("until you publish");
+    await waitFor(() => expect(stageCalls()).toHaveLength(1));
+    expect(stageCalls()[0][1]).toEqual({ kind: "cancel", assignment_id: "s1", expected_version: 1 });
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it("shows the draft bar with exact counts, and previews proposed changes only in the Week view", async () => {
+    world.drafts = [{ ...REVISION, changes: [wireChange(), wireChange({ id: "c2", kind: "cancel", assignment_id: "s3", base_version: 1, proposed: null, before: { user_id: "u1", shift_id: "t1", shift_name: "Morning", work_date: TOMORROW, start_time: "07:00:00", end_time: "15:00:00" } })] }];
+    const screen = await open({ view: "week", date: TOMORROW }, undefined, false);
+    expect(text(await screen.findByTestId("draft-bar-active"))).toContain(tr("teamSchedule.publish.bar.title", { count: 2 }));
+    expect(screen.queryByTestId("team-schedule-member-draft:c1")).toBeNull();                       // published view by default
+    await press(screen, "draft-bar-preview");
+    const proposed = await screen.findByTestId("team-schedule-member-draft:c1");
+    expect(text(proposed)).toContain(tr("teamSchedule.publish.mark.new"));
+    expect(text(screen.getByTestId("team-schedule-member-s3"))).toContain(tr("teamSchedule.publish.mark.cancelled"));
+    await press(screen, "draft-bar-preview");                                                      // back to what employees see
+    await waitFor(() => expect(screen.queryByTestId("team-schedule-member-draft:c1")).toBeNull());
+  });
+
+  it("never draws the draft into Today (verified working status)", async () => {
+    world.drafts = [{ ...REVISION, changes: [wireChange({ proposed: { ...wireChange().proposed, work_date: TODAY, starts_at: at(TODAY, 9, 0), ends_at: at(TODAY, 17, 0) } })] }];
+    const screen = await open({}, undefined, false);
+    await screen.findByTestId("draft-bar-active");
+    expect(screen.queryByTestId("draft-bar-preview")).toBeNull();                                   // no preview toggle on Today
+    expect(screen.queryByTestId("team-schedule-person-time-draft:c1")).toBeNull();
+  });
+
+  it("says plainly when changes will apply immediately", async () => {
+    const screen = await open({}, undefined, false);
+    expect(screen.queryByTestId("draft-bar-now-warning")).toBeNull();
+    await press(screen, "draft-bar-mode");
+    expect(text(screen.getByTestId("draft-bar-now-warning"))).toContain("employees can see them");
+  });
+
+  it("reports an unreadable draft state instead of pretending there is no draft", async () => {
+    world.draftsFail = true;
+    const screen = await open({}, undefined, false);
+    expect(text(await screen.findByTestId("draft-bar-failed"))).toBe(tr("teamSchedule.publish.bar.failed"));
+    expect(screen.queryByTestId("draft-bar-none")).toBeNull();
+    world.draftsFail = false;
+    await press(screen, "draft-bar-retry");
+    expect(await screen.findByTestId("draft-bar-none")).toBeTruthy();
   });
 });

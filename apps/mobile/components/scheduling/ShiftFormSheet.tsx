@@ -57,6 +57,8 @@ export interface ShiftFormProps {
   onClose: () => void;
   onGone: () => void;
   onOpenTemplates: () => void;
+  /** Save into the department draft (employees see nothing until it is published) instead of changing the schedule now. */
+  stage?: boolean;
   t: Translate;
 }
 
@@ -83,7 +85,7 @@ export function ShiftFormSheet(props: ShiftFormProps) {
 }
 
 function ShiftFormBody(props: ShiftFormProps) {
-  const { mode, source, date, userId, reassign, today, zone, language, people, shifts, templates, templatesFailed, onRetryTemplates, isOnline, onSaved, onClose, onGone, onOpenTemplates, t } = props;
+  const { mode, source, date, userId, reassign, today, zone, language, people, shifts, templates, templatesFailed, onRetryTemplates, isOnline, onSaved, onClose, onGone, onOpenTemplates, stage = false, t } = props;
   const theme = useTheme();
   const active = useMemo(() => (templates ?? []).filter((template) => template.isActive && !template.archived), [templates]);
   const templateOf = useCallback((id: string | null) => (id ? (templates ?? []).find((template) => template.id === id) ?? null : null), [templates]);
@@ -102,7 +104,7 @@ function ShiftFormBody(props: ShiftFormProps) {
   const [pickerOpen, setPickerOpen] = useState(Boolean(reassign));
   const [showErrors, setShowErrors] = useState(false);
 
-  const flow = useShiftFormFlow({ mode, source, templateOf, onSaved, onGone });
+  const flow = useShiftFormFlow({ mode, source, templateOf, onSaved, onGone, stage });
   const template = templateOf(draft.templateId);
   const errors = validateDraft(draft, { today, template }, mode);
   const person = personOf(draft.userId);
@@ -150,7 +152,13 @@ function ShiftFormBody(props: ShiftFormProps) {
   };
 
   const title = t(mode === "edit" ? "teamSchedule.manage.form.editTitle" : mode === "copy" ? "teamSchedule.manage.form.copyTitle" : "teamSchedule.manage.form.addTitle");
-  const primaryLabel = review
+  const primaryLabel = stage && review
+    ? t("teamSchedule.publish.addCountToDraft", { count: flow.preview?.createCount ?? 0 })
+    : stage && mode !== "edit" && !draft.recurring
+      ? t("teamSchedule.publish.saveToDraft")
+      : stage && mode === "edit"
+        ? t("teamSchedule.publish.saveToDraft")
+        : review
     ? flow.preview && flow.preview.warnings.length > 0
       ? t("teamSchedule.manage.form.saveAnyway")
       : t("teamSchedule.manage.form.createCount", { count: flow.preview?.createCount ?? 0 })

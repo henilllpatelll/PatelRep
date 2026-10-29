@@ -15,6 +15,7 @@ import { isAssistantRole } from "@/lib/ai/fab";
 import { listNotifications, markAllRead, markRead, type AppNotification } from "@/lib/api/notifications";
 import { formatHotelTime, hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { notificationLinkIssue, resolveNotificationLink, senderOf, type NotificationLink } from "@/lib/housekeeping/notificationLinks";
+import { localizeNotification } from "@/lib/notifications/scheduleCopy";
 import { buildFeedItems, groupByDay, mergeFeed, type FeedDay, type FeedFilter, type FeedKind } from "@/lib/notifications/feed";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -27,6 +28,7 @@ const ICON: Record<FeedKind, ComponentProps<typeof Ionicons>["name"]> = {
   task: "checkmark-circle-outline",
   room: "bed-outline",
   message: "chatbubble-ellipses-outline",
+  schedule: "calendar-outline",
   other: "notifications-outline",
 };
 
@@ -36,6 +38,7 @@ const TONE: Record<FeedKind, "accent" | "caution" | "alert" | "ready" | "neutral
   task: "neutral",
   room: "accent",
   message: "accent",
+  schedule: "accent",
   other: "neutral",
 };
 
@@ -118,7 +121,8 @@ export default function NotificationsScreen() {
     }
   }, [setUnreadCount]);
 
-  const merged = useMemo(() => mergeFeed(unreadRows, allRows), [unreadRows, allRows]);
+  // Schedule messages are shown in the person's language from their key; everything else keeps the stored text.
+  const merged = useMemo(() => mergeFeed(unreadRows, allRows).map((row) => localizeNotification(row, t as never, language)), [unreadRows, allRows, t, language]);
   const items = useMemo(() => buildFeedItems(merged, filter), [merged, filter]);
   const groups = useMemo(() => groupByDay(items, hotelTimezone), [items, hotelTimezone]);
 
@@ -132,12 +136,12 @@ export default function NotificationsScreen() {
             body: selected.body,
             createdAt: selected.created_at ?? null,
             sender: senderOf(selected),
-            link: resolveNotificationLink(selected, myRooms),
-            linkIssue: notificationLinkIssue(selected, myRooms),
+            link: resolveNotificationLink(selected, myRooms, role),
+            linkIssue: notificationLinkIssue(selected, myRooms, role),
             read: selected.is_read,
           }
         : null,
-    [selected, myRooms],
+    [selected, myRooms, role],
   );
 
   const openDetails = useCallback((id: string) => {
@@ -169,6 +173,7 @@ export default function NotificationsScreen() {
   const openLink = useCallback((link: Exclude<NotificationLink, { kind: "none" }>) => {
     setSheetOpen(false);
     if (link.kind === "room") router.push(`/(app)/my-rooms/${link.roomId}` as never);
+    else if (link.kind === "schedule") router.push({ pathname: link.target.pathname, params: link.target.params } as never);
     else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
   }, []);
 
@@ -179,6 +184,7 @@ export default function NotificationsScreen() {
     if (link.kind === "none") return undefined;
     return () => {
       setSheetOpen(false);
+      if (link.kind === "schedule") return;
       if (link.kind === "room") assistant.openAssistant({ contextType: "room", entityId: link.roomId, label: link.roomNumber });
       else assistant.openAssistant({ contextType: "task", entityId: link.taskId, label: details.title });
     };

@@ -14,6 +14,13 @@ import { api } from "./client";
 export type WorkforceStatus = "scheduled" | "working" | "on_break" | "clocked_out" | "not_clocked_in" | "unknown";
 export type ShiftPublication = "draft" | "published";
 
+/** How a PROPOSED change shows over the published schedule. Only the draft preview sets it; the server never does. */
+export type ProposalKind = "new" | "changed" | "cancelled";
+export interface ShiftProposal {
+  kind: ProposalKind;
+  changeId: string;
+}
+
 export interface TeamPerson {
   userId: string;
   /** null = the server sent no usable name. */
@@ -48,6 +55,8 @@ export interface TeamShift {
   /** Present only when attendance was requested. */
   status: WorkforceStatus | null;
   version: number;
+  /** Set only on a shift drawn from a pending draft (see lib/scheduling/draftOverlay). */
+  proposal?: ShiftProposal;
 }
 
 export interface TeamAttendanceMeta {

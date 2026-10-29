@@ -8,6 +8,11 @@ import type { AttentionItem, DayShift, DisplayStatus, RosterPerson, ShiftGroup }
    ever an extra; every status also has an icon and a word. */
 
 export type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** The label on a shift that is not (yet) published: what kind of pending change it is, or plain Draft. */
+export function draftText(shift: { proposal?: "new" | "changed" | "cancelled" | null }, t: Translate): string {
+  return shift.proposal ? t(`teamSchedule.publish.mark.${shift.proposal}`) : t("teamSchedule.draft");
+}
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
 export type StatusTone = "ready" | "pickup" | "clean" | "neutral";

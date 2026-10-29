@@ -5,7 +5,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { R } from "@/components/shared/tokens";
 import { ScheduleStatusBadge } from "@/components/scheduling/ScheduleStatusBadge";
 import type { RosterPerson } from "@/lib/scheduling/teamScheduleModel";
-import { personA11y, personName, rolesLine, windowText, type Translate } from "@/lib/scheduling/teamScheduleText";
+import { draftText, personA11y, personName, rolesLine, windowText, type Translate } from "@/lib/scheduling/teamScheduleText";
 import { useTheme } from "@/lib/theme/useTheme";
 
 const SHIFTS_SHOWN = 2;
@@ -50,7 +50,7 @@ export const PersonScheduleCard = memo(function PersonScheduleCard({ person, onO
             {shown.map((shift) => (
               <Text key={shift.id} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.time, { color: theme.textPrimary }]} testID={`team-schedule-person-time-${shift.id}`}>
                 {windowText(shift, t)}
-                {shift.draft ? `  ·  ${t("teamSchedule.draft")}` : ""}
+                {shift.draft ? `  ·  ${draftText(shift, t)}` : ""}
                 {shift.carried ? `  ·  ${t("teamSchedule.carried")}` : ""}
               </Text>
             ))}

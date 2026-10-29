@@ -419,7 +419,8 @@
       "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo.",
       "ask": "Preguntar al asistente sobre esto",
       "roomNotOnList": "Esta habitación ya no está en tu lista (puede que la hayan reasignado), así que no se puede abrir desde aquí.",
-      "alreadyRead": "Ya marcaste esto como leído."
+      "alreadyRead": "Ya marcaste esto como leído.",
+      "viewSchedule": "Ver horario"
     },
     "attentionCenter": {
       "title": "Requiere atención",
@@ -4261,6 +4262,10 @@
         "tasks": {
           "label": "Actualizaciones de tareas",
           "description": "Te asignan una tarea, cambia, se cancela o se desbloquea"
+        },
+        "schedule": {
+          "label": "Cambios de horario",
+          "description": "Cambios en tu horario, ofertas de turno y decisiones sobre tiempo libre y cambios de turno"
         }
       },
       "criticalHint": "Las alertas de tareas urgentes siempre se entregan.",
@@ -7335,7 +7340,9 @@
       "availability": "Mi disponibilidad",
       "timeOff": "Pedir tiempo libre",
       "requests": "Mis solicitudes",
-      "requestsCount": "Mis solicitudes ({{count}} esperan tu respuesta)"
+      "requestsCount": "Mis solicitudes ({{count}} esperan tu respuesta)",
+      "offers": "Ofertas de turno",
+      "offersCount": "Ofertas de turno ({{count}})"
     },
     "swapFromShift": "Pedir cambio",
     "swapFromShiftFor": "Pedir un cambio para {{shift}} el {{date}}",
@@ -7483,6 +7490,51 @@
       "back": "Volver",
       "retry": "Intentar de nuevo",
       "offline": "Estás sin conexión. Conéctate para pedir un cambio."
+    },
+    "offers": {
+      "kicker": "Turnos",
+      "title": "Ofertas de turno",
+      "offline": "Sin conexión. Lo que ves puede estar desactualizado.",
+      "tab": {
+        "offers": "Ofertas",
+        "open": "Turnos abiertos",
+        "requests": "Mis solicitudes de turno"
+      },
+      "noOffersTitle": "Sin ofertas de turno",
+      "noOffersBody": "Cuando un supervisor te ofrezca un turno, aparecerá aquí y en tus notificaciones.",
+      "expires": "La oferta vence {{time}}",
+      "notYet": "Esto no está en tu horario a menos que lo aceptes.",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "acceptTitle": "¿Aceptar este turno?",
+      "acceptMessage": "{{date}}, {{window}}. Pasa a tu horario cuando el sistema lo confirme.",
+      "accepted": "Aceptado. El turno está en tu horario.",
+      "declined": "Oferta rechazada.",
+      "recent": "Ofertas recientes",
+      "status": {
+        "accepted": "En tu horario",
+        "declined": "La rechazaste",
+        "withdrawn": "Retirada por tu supervisor",
+        "expired": "Venció",
+        "superseded": "Ya no se necesita",
+        "claimPending": "Solicitud enviada. Esperando a tu supervisor."
+      },
+      "noOpenTitle": "Sin turnos abiertos",
+      "noOpenBody": "Los turnos que tu supervisor abra para solicitudes aparecerán aquí.",
+      "claim": "Solicitar este turno",
+      "claimHint": "Lo decide un supervisor. No está en tu horario hasta que lo apruebe.",
+      "cannotClaim": "No puedes tomar este turno ahora.",
+      "claimSent": "Solicitud enviada.",
+      "withdraw": "Retirar solicitud",
+      "claimWithdrawn": "Solicitud retirada.",
+      "noClaimsTitle": "Sin solicitudes de turno",
+      "noClaimsBody": "Los turnos que solicites aparecerán aquí con la decisión del supervisor.",
+      "claimStatus": {
+        "pending": "Esperando a tu supervisor",
+        "approved": "Aprobado. Está en tu horario.",
+        "declined": "No aprobado",
+        "withdrawn": "Retiraste esta solicitud"
+      }
     }
   },
   "sop": {
@@ -8879,7 +8931,18 @@
         "too_many_windows": "Máximo 4 horarios por día.",
         "windows_not_allowed": "Un día no disponible no tiene horas.",
         "duplicate_weekday": "Cada día de la semana puede aparecer una vez.",
-        "other": "Algo salió mal. Inténtalo de nuevo."
+        "other": "Algo salió mal. Inténtalo de nuevo.",
+        "offer_expired": "Esta oferta venció.",
+        "offer_not_pending": "Esta oferta ya se respondió o se retiró.",
+        "offer_not_found": "Esta oferta ya no está disponible.",
+        "gap_not_fillable": "Este turno se cubrió o se cerró antes de tu respuesta.",
+        "candidate_ineligible": "No puedes tomar este turno ahora (por ejemplo, se superpone con otro turno o con tiempo libre aprobado).",
+        "claim_stale": "Este turno se cubrió o se cerró.",
+        "duplicate_claim": "Ya solicitaste este turno.",
+        "gap_not_found": "Este turno ya no está abierto.",
+        "claim_not_pending": "Esta solicitud ya se resolvió.",
+        "claim_not_found": "Esta solicitud ya no está disponible.",
+        "gap_filled": "Este turno ya se cubrió."
       },
       "range": {
         "all": "Cualquier fecha",
@@ -9083,6 +9146,209 @@
         "view": "Ver pronóstico",
         "viewDay": "Ver detalles del día"
       }
+    },
+    "publish": {
+      "mark": {
+        "new": "Turno nuevo propuesto",
+        "changed": "Cambio propuesto",
+        "cancelled": "Cancelación propuesta"
+      },
+      "saveToDraft": "Guardar en borrador",
+      "addCountToDraft": "Agregar {{count}} turno al borrador",
+      "addCountToDraft_plural": "Agregar {{count}} turnos al borrador",
+      "saved": {
+        "drafted": "Agregado al borrador. El personal no lo verá hasta que publiques.",
+        "drafted_plural": "Se agregaron {{count}} turnos al borrador. El personal no los verá hasta que publiques."
+      },
+      "cancel": {
+        "title": "¿Quitar este turno?",
+        "message": "El turno de {{name}} ({{window}}) del {{date}} se marcará para quitarse en el borrador. Sigue en el horario publicado hasta que publiques.",
+        "confirm": "Agregar la baja al borrador"
+      },
+      "title": "Publicar horario",
+      "doneTitle": "Horario publicado",
+      "loading": "Revisando el borrador…",
+      "reviewFailed": "No se pudo revisar el borrador. No se publicó nada.",
+      "publishing": "Publicando…",
+      "unconfirmed": "El servidor no respondió, así que no sabemos si el horario se publicó. Vuelve a comprobarlo antes de hacer otra cosa: comprobar nunca lo publica dos veces.",
+      "checkAgain": "Comprobar de nuevo",
+      "reviewAgain": "Revisar el borrador de nuevo",
+      "viewPublished": "Ver horario publicado",
+      "viewDetails": "Ver detalles de la publicación",
+      "publishCount": "Publicar {{count}} cambio",
+      "publishCount_plural": "Publicar {{count}} cambios",
+      "done": "Publicación exitosa",
+      "dateRange": "Fechas",
+      "employees": "Empleados afectados",
+      "shifts": "Turnos",
+      "counts": "{{created}} nuevos, {{updated}} modificados, {{cancelled}} cancelados",
+      "publishedAt": "Publicado",
+      "status": {
+        "draft": "Borrador",
+        "published": "Publicado",
+        "superseded": "Reemplazado por una corrección",
+        "discarded": "Descartado"
+      },
+      "tile": {
+        "new": "Turnos nuevos",
+        "modified": "Modificados",
+        "cancelled": "Cancelados",
+        "reassigned": "Reasignados",
+        "employees": "Empleados afectados"
+      },
+      "blocking": "{{count}} problema por resolver antes de publicar",
+      "blocking_plural": "{{count}} problemas por resolver antes de publicar",
+      "warnings": "{{count}} aviso a tener en cuenta",
+      "warnings_plural": "{{count}} avisos a tener en cuenta",
+      "impactTitle": "{{count}} empleado verá cambios",
+      "impactTitle_plural": "{{count}} empleados verán cambios",
+      "showAll": "Mostrar {{count}} más",
+      "forecast": {
+        "available": "El efecto proyectado en el personal se muestra en la pantalla de Pronóstico de personal después de publicar.",
+        "unavailable": "No hay proyección de personal para estas fechas: aún no hay datos fiables de demanda para días futuros, así que se desconoce el efecto de este borrador."
+      },
+      "confirmText": "Entiendo que esto publica {{changes}} en el horario y avisa a {{employees}}.",
+      "offline": "Sin conexión. Vuelve a conectarte para publicar.",
+      "failure": {
+        "blocked": "Este borrador tiene problemas que deben resolverse antes de publicarlo. No se publicó nada.",
+        "draft_changed": "El borrador cambió después de revisarlo. No se publicó nada; revísalo de nuevo.",
+        "stale": "Un turno cambió después de crear este borrador. No se publicó nada; revisa el borrador de nuevo.",
+        "already_published": "Este borrador ya se publicó.",
+        "closed": "Este borrador se descartó o se reemplazó, así que no se puede publicar.",
+        "attendance": "Un turno de este borrador ya tiene asistencia registrada. No se publicó nada.",
+        "locked": "Un cambio de este borrador tiene fecha pasada. No se publicó nada.",
+        "commitment": "Un turno de este borrador tiene una ausencia en curso. Resuélvela primero. No se publicó nada.",
+        "leave": "Alguien en este borrador tiene tiempo libre aprobado durante un turno. No se publicó nada.",
+        "conflict": "Publicar dejaría a alguien con turnos superpuestos. No se publicó nada.",
+        "empty": "No hay nada que publicar.",
+        "forbidden": "No puedes publicar el horario de este departamento.",
+        "signed_out": "Tu sesión terminó. Inicia sesión de nuevo y comprueba el borrador.",
+        "unconfirmed": "El servidor no respondió.",
+        "other": "No se pudo publicar el horario. No se cambió nada."
+      },
+      "issue": {
+        "stale_shift": "Un turno cambió después de crear el borrador. Revisa el borrador de nuevo.",
+        "overlapping_shift": "Esto dejaría a alguien con turnos superpuestos.",
+        "duplicate_assignment": "Alguien quedaría programado dos veces en el mismo turno y día.",
+        "approved_time_off": "Alguien tiene tiempo libre aprobado durante un turno.",
+        "coverage_commitment": "Hay una ausencia o una solicitud de cobertura abierta en un turno. Resuélvela primero.",
+        "has_attendance": "Un turno ya tiene asistencia registrada y no se puede cambiar.",
+        "past_date": "Un cambio tiene fecha pasada.",
+        "department_mismatch": "Un cambio pertenece a otro departamento.",
+        "invalid_time": "Un turno tiene horas no válidas.",
+        "schedule_policy_blocked": "Esto incumple una regla de horarios que tu hotel configuró como bloqueo.",
+        "insufficient_rest": "Menos de 8 horas entre dos turnos.",
+        "weekly_overtime": "Alguien pasaría de 40 horas programadas en la semana.",
+        "long_shift": "Un turno dura más de 12 horas.",
+        "employee_department_unknown": "No se pudo determinar el departamento de un empleado.",
+        "marked_unavailable": "Un empleado dijo que no puede trabajar ese día.",
+        "outside_availability": "Un turno está fuera de las horas que un empleado dijo que puede trabajar.",
+        "pending_time_off": "Un empleado tiene una solicitud de tiempo libre sin resolver para esas horas.",
+        "other": "Algo requiere atención."
+      },
+      "impact": {
+        "added": "{{date}}: turno nuevo {{window}}",
+        "removed": "{{date}}: se quita el turno {{window}}",
+        "cancelled": "{{date}}: turno {{window}} cancelado",
+        "changed": "{{date}}: {{before}} → {{after}}"
+      },
+      "event": {
+        "draft_created": "Borrador iniciado",
+        "draft_edited": "Borrador editado",
+        "draft_discarded": "Borrador descartado",
+        "publication_attempted": "Intento de publicación",
+        "publication_succeeded": "Publicación exitosa",
+        "publication_rejected": "Publicación rechazada",
+        "notification_queued": "Notificaciones en cola",
+        "notification_sent": "Notificaciones creadas en la app",
+        "notification_failed": "Notificaciones fallidas",
+        "notification_retried": "Notificaciones reintentadas",
+        "corrective_published": "Corrección publicada"
+      },
+      "notify": {
+        "title": "Notificaciones al personal",
+        "checking": "Comprobando notificaciones…",
+        "unknown": "No se pudo leer el estado de las notificaciones. El horario sí está publicado.",
+        "none": "Ningún empleado necesitó una notificación.",
+        "processing": "{{count}} notificación en cola. Se está procesando.",
+        "processing_plural": "{{count}} notificaciones en cola. Se están procesando.",
+        "failed": "No se pudo crear {{count}} notificación.",
+        "failed_plural": "No se pudieron crear {{count}} notificaciones.",
+        "inApp": "{{count}} notificación disponible en la app.",
+        "inApp_plural": "{{count}} notificaciones disponibles en la app.",
+        "pushAccepted": "El proveedor aceptó el push de {{count}} mensaje.",
+        "pushAccepted_plural": "El proveedor aceptó el push de {{count}} mensajes.",
+        "pushFailed": "Falló el push de {{count}} mensaje.",
+        "pushFailed_plural": "Falló el push de {{count}} mensajes.",
+        "noDevice": "{{count}} empleado no tiene teléfono registrado para push.",
+        "noDevice_plural": "{{count}} empleados no tienen teléfono registrado para push.",
+        "optedOut": "{{count}} empleado desactivó el push de horarios.",
+        "optedOut_plural": "{{count}} empleados desactivaron el push de horarios.",
+        "noConfirmation": "Que el push sea aceptado no prueba que el teléfono lo recibió, y no se registran confirmaciones de lectura.",
+        "retry": "Reintentar notificaciones fallidas"
+      },
+      "bar": {
+        "failed": "No se pudo comprobar si hay un borrador.",
+        "title": "Borrador: {{count}} cambio sin publicar",
+        "title_plural": "Borrador: {{count}} cambios sin publicar",
+        "breakdown": "{{created}} nuevos · {{changed}} modificados · {{cancelled}} quitados",
+        "hidden": "El personal solo ve el horario publicado.",
+        "review": "Revisar y publicar",
+        "viewPublished": "Ver horario publicado",
+        "preview": "Vista previa del borrador",
+        "discard": "Descartar borrador",
+        "none": "Sin borrador. Los cambios que hagas se guardan primero en un borrador.",
+        "planningDraft": "Planificando en borrador",
+        "planningNow": "Aplicando cambios de inmediato",
+        "history": "Historial",
+        "nowWarning": "Los cambios se aplican al horario en vivo de inmediato y el personal puede verlos. Los reemplazos por ausencia siempre se aplican de inmediato."
+      },
+      "removeProposed": {
+        "title": "¿Quitar del borrador?",
+        "message": "Este turno solo existe en el borrador. Quitarlo elimina la propuesta; nada de lo publicado cambia.",
+        "confirm": "Quitar del borrador",
+        "failed": "No se pudo quitar del borrador."
+      },
+      "discard": {
+        "title": "¿Descartar el borrador?",
+        "message": "Esto descarta {{count}} cambio sin publicar. El horario publicado no se ve afectado.",
+        "message_plural": "Esto descarta {{count}} cambios sin publicar. El horario publicado no se ve afectado.",
+        "confirm": "Descartar borrador",
+        "done": "Borrador descartado.",
+        "failed": "No se pudo descartar el borrador. Puede que se haya publicado o cambiado."
+      },
+      "history": {
+        "title": "Historial de publicaciones",
+        "detailTitle": "Detalles de la publicación",
+        "loading": "Cargando…",
+        "failed": "No se pudo cargar.",
+        "empty": "Aún no se ha publicado nada.",
+        "undated": "Sin publicar",
+        "employees": "{{count}} empleado",
+        "employees_plural": "{{count}} empleados",
+        "back": "Todas las publicaciones",
+        "changes": "Cambios realizados",
+        "trail": "Historial",
+        "corrective": "Esto se publicó para corregir una publicación anterior.",
+        "correctHint": "Un error no se puede deshacer automáticamente. Una corrección es un borrador nuevo, creado a partir del horario de hoy, que revisas y publicas.",
+        "correct": "Iniciar una corrección",
+        "correctFailed": "No se pudo iniciar la corrección. Puede que este departamento ya tenga un borrador abierto.",
+        "correctionOpened": "Borrador de corrección iniciado. Haz tus cambios, luego revisa y publica.",
+        "filter": {
+          "all": "Todas",
+          "published": "Publicadas",
+          "discarded": "Descartadas"
+        },
+        "change": {
+          "create": "{{name}}: turno nuevo el {{date}}, {{window}}",
+          "update": "{{name}}: {{date}}, {{before}} → {{after}}",
+          "cancel": "{{name}}: se quita el turno del {{date}} ({{window}})"
+        }
+      },
+      "confirmChanges": "{{count}} cambio",
+      "confirmChanges_plural": "{{count}} cambios",
+      "confirmEmployees": "{{count}} empleado",
+      "confirmEmployees_plural": "{{count}} empleados"
     }
   },
   "supervisorToday": {
@@ -9468,6 +9734,81 @@
     },
     "attention": {
       "ask": "Preguntar a PatelRep sobre esta habitación"
+    }
+  },
+  "scheduleNotice": {
+    "published": {
+      "title": "Horario actualizado",
+      "body": "Tu horario cambió a partir del {{date}}. Ábrelo para ver qué es diferente.",
+      "bodyNoDate": "Tu horario cambió. Ábrelo para ver qué es diferente."
+    },
+    "offer_received": {
+      "title": "Oferta de turno",
+      "body": "Tienes una oferta de turno. Ábrela para aceptar o rechazar."
+    },
+    "offer_withdrawn": {
+      "title": "Oferta de turno retirada",
+      "body": "Se retiró una oferta de turno."
+    },
+    "offer_accepted": {
+      "title": "Oferta aceptada",
+      "body": "Un empleado aceptó una oferta de turno."
+    },
+    "offer_declined": {
+      "title": "Oferta rechazada",
+      "body": "Un empleado rechazó una oferta de turno."
+    },
+    "open_shift": {
+      "title": "Turno abierto",
+      "body": "Hay un turno abierto que puedes tomar. Ábrelo para solicitarlo."
+    },
+    "claim_submitted": {
+      "title": "Solicitud de turno",
+      "body": "Un empleado solicitó un turno abierto."
+    },
+    "claim_approved": {
+      "title": "Solicitud de turno aprobada",
+      "body": "Tu solicitud de turno fue aprobada. Está en tu horario."
+    },
+    "claim_declined": {
+      "title": "Solicitud de turno no aprobada",
+      "body": "Tu solicitud de turno no fue aprobada."
+    },
+    "time_off_requested": {
+      "title": "Solicitud de tiempo libre",
+      "body": "Un empleado pidió tiempo libre."
+    },
+    "time_off_approved": {
+      "title": "Tiempo libre aprobado",
+      "body": "Tu solicitud de tiempo libre fue aprobada."
+    },
+    "time_off_denied": {
+      "title": "Tiempo libre resuelto",
+      "body": "Tu solicitud de tiempo libre no fue aprobada."
+    },
+    "swap_proposed": {
+      "title": "Solicitud de cambio de turno",
+      "body": "Un compañero propuso un cambio de turno. Ábrelo para responder."
+    },
+    "swap_accepted": {
+      "title": "Cambio de turno aceptado",
+      "body": "Tu compañero aceptó el cambio. Un supervisor aún debe aprobarlo."
+    },
+    "swap_declined": {
+      "title": "Cambio de turno rechazado",
+      "body": "Tu compañero rechazó el cambio."
+    },
+    "swap_needs_approval": {
+      "title": "Cambio de turno por aprobar",
+      "body": "Un cambio de turno espera tu aprobación."
+    },
+    "swap_approved": {
+      "title": "Cambio de turno aprobado",
+      "body": "Tu cambio de turno fue aprobado. Tu horario cambió."
+    },
+    "swap_denied": {
+      "title": "Cambio de turno no aprobado",
+      "body": "Tu cambio de turno no fue aprobado."
     }
   }
 }
