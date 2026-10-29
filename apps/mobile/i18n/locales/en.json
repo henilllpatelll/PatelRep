@@ -7689,6 +7689,203 @@
       }
     }
   },
+  "teamSchedule": {
+    "loading": "Loading the schedule",
+    "title": "Team Schedule",
+    "kicker": "Housekeeping",
+    "back": "Back",
+    "refresh": "Refresh",
+    "retry": "Try again",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "backToToday": "Back to today",
+    "todayMarker": "today",
+    "unnamed": "Unnamed staff member",
+    "notScheduled": "Not on the schedule",
+    "draft": "Draft",
+    "carried": "Started the day before",
+    "openShift": "Opens shift details",
+    "moreShifts": "+{{count}} more shift",
+    "moreShifts_plural": "+{{count}} more shifts",
+    "linkMissing": "That person isn't on this day's schedule.",
+    "offline": "You're offline. What's shown may be out of date.",
+    "window": "{{start}} – {{end}}",
+    "windowNextDay": "{{start}} – {{end}} (next day)",
+    "view": {
+      "label": "Schedule view",
+      "today": "Today",
+      "week": "Week"
+    },
+    "status": {
+      "on_shift": "On shift",
+      "on_break": "On break",
+      "scheduled": "Scheduled",
+      "not_clocked_in": "Not clocked in",
+      "shift_ended": "Shift ended",
+      "unknown": "Unknown"
+    },
+    "period": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "overnight": "Overnight"
+    },
+    "roles": {
+      "housekeeper": "Housekeeper",
+      "inspector": "Inspector",
+      "housekeeping_supervisor": "Housekeeping supervisor",
+      "engineer": "Engineer",
+      "chief_engineer": "Chief engineer",
+      "front_desk": "Front desk",
+      "gm": "General manager",
+      "other": "Staff"
+    },
+    "since": {
+      "now": "just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{hours}} h {{minutes}} min ago"
+    },
+    "freshness": {
+      "updated": "Updated {{time}}",
+      "stale": "Saved schedule from {{time}} — not live"
+    },
+    "summary": {
+      "title": "Today's staffing",
+      "planTitle": "Planned staffing",
+      "scheduled": "{{count}} person scheduled",
+      "scheduled_plural": "{{count}} people scheduled",
+      "scheduledUnknown": "Scheduled staff unknown",
+      "attendanceMissing": "Attendance can't be confirmed right now, so only the plan is shown.",
+      "planOnly": "Attendance is only tracked for today. This is the plan.",
+      "unscheduledOnShift": "{{count}} working without a scheduled shift",
+      "unscheduledOnShift_plural": "{{count}} working without a scheduled shift",
+      "attendanceAsOf": "Attendance read at {{time}}",
+      "coverage": "Coverage not yet assessed",
+      "counts": {
+        "onShift": "On shift",
+        "onBreak": "On break",
+        "upcoming": "Not started yet",
+        "notClockedIn": "Not clocked in",
+        "shiftEnded": "Shift ended",
+        "unknown": "Unknown"
+      }
+    },
+    "attention": {
+      "title": "Needs a look",
+      "notClockedIn": {
+        "title": "{{name}} hasn't clocked in",
+        "body": "Shift began at {{time}} ({{since}}). No clock-in is recorded yet."
+      },
+      "endedEarly": {
+        "title": "{{name}} ended their shift",
+        "body": "Clocked out before the scheduled end at {{time}}."
+      },
+      "unscheduled": {
+        "title": "{{name}} is working without a scheduled shift",
+        "body": "Clocked in, but there is no shift for them on today's schedule."
+      },
+      "attendanceUnavailable": {
+        "title": "Attendance unavailable",
+        "body": "The clock-in records couldn't be read, so nobody's status can be confirmed. Below is the plan only."
+      },
+      "stale": {
+        "title": "Showing a saved schedule",
+        "body": "Last confirmed at {{time}}. Attendance statuses stay unknown until it refreshes."
+      },
+      "incomplete": {
+        "title": "Schedule may be incomplete",
+        "body": "Not every employee or shift could be loaded, so counts may be lower than reality. Pull down to refresh."
+      },
+      "unreadable": {
+        "title": "{{count}} shift couldn't be read",
+        "title_plural": "{{count}} shifts couldn't be read",
+        "body": "They're missing from the lists below. Pull down to refresh."
+      }
+    },
+    "team": {
+      "title": "Today's team ({{count}})",
+      "weekTitle": "Scheduled on {{date}} ({{count}})"
+    },
+    "week": {
+      "countUnknown": "schedule unknown",
+      "peopleCount": "{{count}} person scheduled",
+      "peopleCount_plural": "{{count}} people scheduled",
+      "groupCount": "{{count}} person",
+      "groupCount_plural": "{{count}} people"
+    },
+    "search": {
+      "placeholder": "Search by name",
+      "label": "Search the team schedule by name"
+    },
+    "filters": {
+      "open": "Filter and sort",
+      "title": "Filter & sort",
+      "reset": "Reset",
+      "all": "All",
+      "statusTitle": "Status",
+      "roleTitle": "Role",
+      "shiftTitle": "Shift",
+      "sortTitle": "Sort by",
+      "apply": "Show {{count}} person",
+      "apply_plural": "Show {{count}} people",
+      "sort": {
+        "start": "Shift start time",
+        "name": "Name",
+        "status": "Status (needs a look first)"
+      }
+    },
+    "detail": {
+      "planOnly": "This day is a plan. Attendance is only tracked for today.",
+      "shifts": "Shifts",
+      "noShift": "No shift on the schedule for this day.",
+      "openAssignments": "Open in Assignments",
+      "assignmentsHint": "Assignments is where rooms are given out. This screen only shows who works when.",
+      "statusHint": {
+        "on_shift": "Clocked in and working, according to the shift clock.",
+        "on_break": "Clocked in and on a break.",
+        "scheduled": "Scheduled. A shift hasn't started yet.",
+        "not_clocked_in": "No clock-in is recorded since the shift began. That doesn't mean they are absent.",
+        "shift_ended": "Clocked out for the day.",
+        "unknown": "Attendance can't be confirmed right now."
+      }
+    },
+    "error": {
+      "offline": {
+        "title": "You're offline",
+        "body": "Connect to the internet to load the team schedule."
+      },
+      "forbidden": {
+        "title": "Team schedule isn't available",
+        "body": "Your account can't view this schedule."
+      },
+      "error": {
+        "title": "Couldn't load the schedule",
+        "body": "This isn't an empty schedule — the request failed. Try again."
+      }
+    },
+    "empty": {
+      "noStaff": {
+        "title": "No team members to show",
+        "body": "There are no staff in your department yet."
+      },
+      "nobodyScheduled": {
+        "title": "Nobody is scheduled",
+        "body": "No shifts are scheduled for {{date}}."
+      },
+      "search": {
+        "title": "No one matches your search",
+        "body": "Try a different name.",
+        "action": "Clear search"
+      },
+      "filters": {
+        "title": "No one matches these filters",
+        "body": "Try removing a filter.",
+        "action": "Clear filters"
+      }
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Good morning",
@@ -7769,6 +7966,7 @@
       "onShiftStale_plural": "{{count}} on shift (last known)",
       "shiftUnknown": "Shift status unavailable",
       "manage": "Assignments",
+      "schedule": "Schedule",
       "progress": "{{done}} of {{count}} room completed",
       "progress_plural": "{{done}} of {{count}} rooms completed",
       "statusOnShift": "On shift",

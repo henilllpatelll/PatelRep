@@ -7689,6 +7689,203 @@
       }
     }
   },
+  "teamSchedule": {
+    "loading": "Cargando el horario",
+    "title": "Horario del equipo",
+    "kicker": "Limpieza",
+    "back": "Atrás",
+    "refresh": "Actualizar",
+    "retry": "Reintentar",
+    "prevDay": "Día anterior",
+    "nextDay": "Día siguiente",
+    "prevWeek": "Semana anterior",
+    "nextWeek": "Semana siguiente",
+    "backToToday": "Volver a hoy",
+    "todayMarker": "hoy",
+    "unnamed": "Empleado sin nombre",
+    "notScheduled": "Sin turno programado",
+    "draft": "Borrador",
+    "carried": "Empezó el día anterior",
+    "openShift": "Abre los detalles del turno",
+    "moreShifts": "+{{count}} turno más",
+    "moreShifts_plural": "+{{count}} turnos más",
+    "linkMissing": "Esa persona no está en el horario de este día.",
+    "offline": "Sin conexión. Lo que ves puede estar desactualizado.",
+    "window": "{{start}} – {{end}}",
+    "windowNextDay": "{{start}} – {{end}} (día siguiente)",
+    "view": {
+      "label": "Vista del horario",
+      "today": "Hoy",
+      "week": "Semana"
+    },
+    "status": {
+      "on_shift": "En turno",
+      "on_break": "En descanso",
+      "scheduled": "Programado",
+      "not_clocked_in": "Sin registrar entrada",
+      "shift_ended": "Turno terminado",
+      "unknown": "Desconocido"
+    },
+    "period": {
+      "morning": "Mañana",
+      "afternoon": "Tarde",
+      "evening": "Noche",
+      "overnight": "Madrugada"
+    },
+    "roles": {
+      "housekeeper": "Camarista",
+      "inspector": "Inspector",
+      "housekeeping_supervisor": "Supervisor de limpieza",
+      "engineer": "Ingeniero",
+      "chief_engineer": "Jefe de ingeniería",
+      "front_desk": "Recepción",
+      "gm": "Gerente general",
+      "other": "Personal"
+    },
+    "since": {
+      "now": "hace un momento",
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{hours}} h {{minutes}} min"
+    },
+    "freshness": {
+      "updated": "Actualizado a las {{time}}",
+      "stale": "Horario guardado de las {{time}} — no está en vivo"
+    },
+    "summary": {
+      "title": "Personal de hoy",
+      "planTitle": "Personal planificado",
+      "scheduled": "{{count}} persona programada",
+      "scheduled_plural": "{{count}} personas programadas",
+      "scheduledUnknown": "Personal programado desconocido",
+      "attendanceMissing": "No se puede confirmar la asistencia ahora, por eso solo se muestra el plan.",
+      "planOnly": "La asistencia solo se registra para hoy. Esto es el plan.",
+      "unscheduledOnShift": "{{count}} trabajando sin turno programado",
+      "unscheduledOnShift_plural": "{{count}} trabajando sin turno programado",
+      "attendanceAsOf": "Asistencia leída a las {{time}}",
+      "coverage": "Cobertura aún no evaluada",
+      "counts": {
+        "onShift": "En turno",
+        "onBreak": "En descanso",
+        "upcoming": "Aún no empiezan",
+        "notClockedIn": "Sin entrada",
+        "shiftEnded": "Turno terminado",
+        "unknown": "Desconocido"
+      }
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "notClockedIn": {
+        "title": "{{name}} no ha registrado su entrada",
+        "body": "El turno empezó a las {{time}} ({{since}}). Todavía no hay entrada registrada."
+      },
+      "endedEarly": {
+        "title": "{{name}} terminó su turno",
+        "body": "Registró su salida antes del final programado a las {{time}}."
+      },
+      "unscheduled": {
+        "title": "{{name}} trabaja sin turno programado",
+        "body": "Registró su entrada, pero no tiene un turno en el horario de hoy."
+      },
+      "attendanceUnavailable": {
+        "title": "Asistencia no disponible",
+        "body": "No se pudieron leer los registros de entrada, así que no se puede confirmar el estado de nadie. Abajo solo está el plan."
+      },
+      "stale": {
+        "title": "Mostrando un horario guardado",
+        "body": "Última confirmación a las {{time}}. Los estados de asistencia seguirán desconocidos hasta que se actualice."
+      },
+      "incomplete": {
+        "title": "El horario puede estar incompleto",
+        "body": "No se pudieron cargar todos los empleados o turnos, así que los conteos pueden ser menores. Desliza hacia abajo para actualizar."
+      },
+      "unreadable": {
+        "title": "No se pudo leer {{count}} turno",
+        "title_plural": "No se pudieron leer {{count}} turnos",
+        "body": "Faltan en las listas de abajo. Desliza hacia abajo para actualizar."
+      }
+    },
+    "team": {
+      "title": "Equipo de hoy ({{count}})",
+      "weekTitle": "Programados el {{date}} ({{count}})"
+    },
+    "week": {
+      "countUnknown": "horario desconocido",
+      "peopleCount": "{{count}} persona programada",
+      "peopleCount_plural": "{{count}} personas programadas",
+      "groupCount": "{{count}} persona",
+      "groupCount_plural": "{{count}} personas"
+    },
+    "search": {
+      "placeholder": "Buscar por nombre",
+      "label": "Buscar en el horario del equipo por nombre"
+    },
+    "filters": {
+      "open": "Filtrar y ordenar",
+      "title": "Filtrar y ordenar",
+      "reset": "Restablecer",
+      "all": "Todos",
+      "statusTitle": "Estado",
+      "roleTitle": "Puesto",
+      "shiftTitle": "Turno",
+      "sortTitle": "Ordenar por",
+      "apply": "Mostrar {{count}} persona",
+      "apply_plural": "Mostrar {{count}} personas",
+      "sort": {
+        "start": "Hora de inicio del turno",
+        "name": "Nombre",
+        "status": "Estado (primero lo que requiere atención)"
+      }
+    },
+    "detail": {
+      "planOnly": "Este día es un plan. La asistencia solo se registra para hoy.",
+      "shifts": "Turnos",
+      "noShift": "No hay un turno en el horario para este día.",
+      "openAssignments": "Abrir en Asignaciones",
+      "assignmentsHint": "En Asignaciones se reparten las habitaciones. Esta pantalla solo muestra quién trabaja y cuándo.",
+      "statusHint": {
+        "on_shift": "Registró su entrada y está trabajando, según el reloj de turno.",
+        "on_break": "Registró su entrada y está en descanso.",
+        "scheduled": "Programado. El turno aún no ha empezado.",
+        "not_clocked_in": "No hay entrada registrada desde que empezó el turno. Eso no significa que esté ausente.",
+        "shift_ended": "Registró su salida por hoy.",
+        "unknown": "No se puede confirmar la asistencia ahora."
+      }
+    },
+    "error": {
+      "offline": {
+        "title": "Sin conexión",
+        "body": "Conéctate a internet para cargar el horario del equipo."
+      },
+      "forbidden": {
+        "title": "El horario del equipo no está disponible",
+        "body": "Tu cuenta no puede ver este horario."
+      },
+      "error": {
+        "title": "No se pudo cargar el horario",
+        "body": "No es un horario vacío: la solicitud falló. Inténtalo de nuevo."
+      }
+    },
+    "empty": {
+      "noStaff": {
+        "title": "No hay miembros del equipo",
+        "body": "Todavía no hay personal en tu departamento."
+      },
+      "nobodyScheduled": {
+        "title": "Nadie está programado",
+        "body": "No hay turnos programados para el {{date}}."
+      },
+      "search": {
+        "title": "Nadie coincide con tu búsqueda",
+        "body": "Prueba con otro nombre.",
+        "action": "Borrar búsqueda"
+      },
+      "filters": {
+        "title": "Nadie coincide con estos filtros",
+        "body": "Prueba quitando un filtro.",
+        "action": "Borrar filtros"
+      }
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Buenos días",
@@ -7765,6 +7962,7 @@
       "title": "Pulso del equipo",
       "shiftUnknown": "Estado de turnos no disponible",
       "manage": "Asignaciones",
+      "schedule": "Horario",
       "statusOnShift": "En turno",
       "statusOnBreak": "En descanso",
       "statusEnded": "Turno terminado",
