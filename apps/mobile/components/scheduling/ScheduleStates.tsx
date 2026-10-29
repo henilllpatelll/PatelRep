@@ -69,6 +69,22 @@ export function ScheduleEmpty({ kind, dateLabel, onClear, t }: { kind: EmptyKind
   );
 }
 
+/** An empty state with its own words (the shift-template list). */
+export function ScheduleEmptyCard({ title, body, testID }: { title: string; body: string; testID: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.center} testID={testID}>
+      <Ionicons name="layers-outline" size={28} color={theme.textMuted} />
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]}>
+        {title}
+      </Text>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>
+        {body}
+      </Text>
+    </View>
+  );
+}
+
 /** A one-line banner above the list (offline, saved copy). */
 export function ScheduleBanner({ text, icon, testID }: { text: string; icon: "cloud-offline-outline" | "time-outline"; testID: string }) {
   const theme = useTheme();

@@ -29,7 +29,8 @@ jest.mock("react-i18next", () => {
 });
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 20, bottom: 0, left: 0, right: 0 }) }));
-jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn(), post: jest.fn() } }));
+jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn(), post: jest.fn(), patch: jest.fn(), delete: jest.fn() } }));
+jest.mock("@/lib/theme/useToast", () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn(), info: jest.fn() }) }));
 
 const mockAppState: { isOnline: boolean; hotelTimezone: string; user: { id: string; role: string; effective_role?: string; tenant_id: string } | null } = {
   isOnline: true,
@@ -375,8 +376,8 @@ describe("search and filters", () => {
   });
 });
 
-describe("shift details (read-only) and Assignments", () => {
-  it("opens a person's shift, with no edit controls, and a link to Assignments by their real id", async () => {
+describe("shift details and Assignments", () => {
+  it("opens a person's shift, with the Phase 3 shift actions but no later-phase workflows, and a link to Assignments by their real id", async () => {
     const screen = await open();
     fireEvent.press(screen.getByTestId("team-schedule-person-u2"));
     const sheet = await screen.findByTestId("team-schedule-detail-sheet");
@@ -384,7 +385,10 @@ describe("shift details (read-only) and Assignments", () => {
     expect(screen.getByTestId("team-schedule-detail-status")).toBeTruthy();
     expect(screen.getByTestId("team-schedule-detail-shift-t1")).toBeTruthy();
     const everything = allStrings(screen).join(" ").toLowerCase();
-    expect(everything).not.toMatch(/\bedit\b|\bdelete\b|call.?out|swap|time off|publish/);
+    // Phase 3 owns editing; call-outs, swaps, time off and publishing belong to later phases and must not appear.
+    expect(screen.getByTestId("shift-action-edit")).toBeTruthy();
+    expect(screen.getByTestId("shift-action-cancel")).toBeTruthy();
+    expect(everything).not.toMatch(/call.?out|swap|time off|publish/);
     fireEvent.press(screen.getByTestId("team-schedule-detail-assignments"));
     expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/assignments", params: { staffId: "u2" } });
     await waitFor(() => expect(screen.queryByTestId("team-schedule-detail-sheet")).toBeNull());

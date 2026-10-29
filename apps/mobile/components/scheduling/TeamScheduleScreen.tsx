@@ -9,11 +9,14 @@ import { PersonScheduleCard } from "@/components/scheduling/PersonScheduleCard";
 import { ScheduleFilterSheet } from "@/components/scheduling/ScheduleFilterSheet";
 import { ScheduleHeader } from "@/components/scheduling/ScheduleHeader";
 import { ScheduleBanner, ScheduleEmpty, ScheduleError, ScheduleSkeleton, type EmptyKind } from "@/components/scheduling/ScheduleStates";
-import { ShiftDetailSheet } from "@/components/scheduling/ShiftDetailSheet";
+import { ShiftManager, type FormRequest } from "@/components/scheduling/ShiftManager";
 import { ShiftGroupCard } from "@/components/scheduling/ShiftGroupCard";
 import { StaffingSummary } from "@/components/scheduling/StaffingSummary";
 import { WeekDateSelector } from "@/components/scheduling/WeekDateSelector";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
+import { Button } from "@/components/ui/Button";
+import type { TeamSchedule } from "@/lib/api/schedulingTeam";
+import { knownValue } from "@/lib/housekeeping/supervisorSources";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
@@ -57,8 +60,19 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const [viewState, setViewState] = useState<ScheduleViewState>(DEFAULT_VIEW_STATE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openUserId, setOpenUserId] = useState<string | null>(null);
+  const [openShiftId, setOpenShiftId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormRequest | null>(null);
   const [pendingLink, setPendingLink] = useState<string | null>(link.userId);
   const [linkMissing, setLinkMissing] = useState(false);
+
+  const openShift = useCallback((userId: string, shiftId?: string) => {
+    setOpenShiftId(shiftId ?? null);
+    setOpenUserId(userId);
+  }, []);
+  const closeDetail = useCallback(() => {
+    setOpenUserId(null);
+    setOpenShiftId(null);
+  }, []);
 
   const { week, day, refreshing, refresh } = useTeamSchedule({ date, today, nowMs });
   const ctx = useMemo(() => ({ zone, language, nowMs }), [zone, language, nowMs]);
@@ -79,13 +93,19 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   useEffect(() => {
     if (!pendingLink || dayView.state !== "ready" || !roster) return;
     const found = roster.people.some((person) => person.userId === pendingLink);
-    if (found) setOpenUserId(pendingLink);
+    if (found) openShift(pendingLink);
     else setLinkMissing(true);
     setPendingLink(null);
-  }, [pendingLink, dayView.state, roster]);
+  }, [pendingLink, dayView.state, roster, openShift]);
+
+  // Today's attendance read and the week's plan both hold shifts; either may be the only one that has answered.
+  const weekData = knownValue<TeamSchedule | null>(week, null);
+  const dayData = knownValue<TeamSchedule | null>(day, null);
+  const scopePeople = useMemo(() => [...new Map([...(weekData?.people ?? []), ...(dayData?.people ?? [])].map((person) => [person.userId, person])).values()], [weekData, dayData]);
+  const scopeShifts = useMemo(() => [...new Map([...(weekData?.shifts ?? []), ...(dayData?.shifts ?? [])].map((shift) => [shift.id, shift])).values()], [weekData, dayData]);
+  const openTemplates = useCallback(() => router.push("/(app)/team-schedule/templates" as never), []);
 
   const select = useCallback((next: string) => setPicked(next === today ? null : next), [today]);
-  const sheetPerson = roster?.people.find((person) => person.userId === openUserId) ?? null;
   const dateLabel = formatLongDate(date, language);
   const clock = dayView.verifiedAt !== null ? formatHotelTime(new Date(dayView.verifiedAt), zone, language) : null;
   const freshness = dayView.state !== "ready" || !clock ? null : { text: t(dayView.stale ? "teamSchedule.freshness.stale" : "teamSchedule.freshness.updated", { time: clock }), stale: dayView.stale };
@@ -96,9 +116,9 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
     else router.replace("/(app)/home" as never);
   }, []);
   const openAssignments = useCallback((userId: string) => {
-    setOpenUserId(null);
+    closeDetail();
     openSupervisorHref(assignmentsHref({ staffId: userId }));
-  }, []);
+  }, [closeDetail]);
   const clearAll = useCallback(() => setViewState(DEFAULT_VIEW_STATE), []);
 
   const emptyKind: EmptyKind | null =
@@ -118,8 +138,16 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
       {dayView.state === "ready" ? (
         <>
           <StaffingSummary scheduled={dayView.scheduledCount} counts={dayView.counts} attendanceNote={asOf ? t("teamSchedule.summary.attendanceAsOf", { time: asOf }) : null} attendanceMissing={isToday && roster?.mode === "unavailable"} isToday={isToday} t={t} />
-          <AttentionList items={dayView.attention} nowMs={nowMs} zone={zone} language={language} onOpenPerson={setOpenUserId} t={t} />
+          <AttentionList items={dayView.attention} nowMs={nowMs} zone={zone} language={language} onOpenPerson={openShift} t={t} />
           {linkMissing ? <BoardNotice body={t("teamSchedule.linkMissing")} closeLabel={t("common.close")} onClose={() => setLinkMissing(false)} testID="team-schedule-link-missing" /> : null}
+          <View style={styles.actions}>
+            <View style={styles.actionCell}>
+              <Button label={t("teamSchedule.manage.addShift")} icon="add" onPress={() => setForm({ mode: "add", source: null, date: date < today ? today : date })} disabled={!isOnline} testID="team-schedule-add-shift" />
+            </View>
+            <View style={styles.actionCell}>
+              <Button label={t("teamSchedule.manage.templatesLink")} icon="layers-outline" variant="secondary" onPress={openTemplates} testID="team-schedule-open-templates" />
+            </View>
+          </View>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textPrimary }]} testID="team-schedule-list-title">
             {t(view === "today" ? "teamSchedule.team.title" : "teamSchedule.team.weekTitle", { count: people.length, date: dateLabel })}
           </Text>
@@ -145,8 +173,8 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Row }) => (item.kind === "person" ? <PersonScheduleCard person={item.person} onOpen={setOpenUserId} t={t} /> : <ShiftGroupCard group={item.group} onOpen={setOpenUserId} t={t} />),
-    [t],
+    ({ item }: { item: Row }) => (item.kind === "person" ? <PersonScheduleCard person={item.person} onOpen={openShift} t={t} /> : <ShiftGroupCard group={item.group} onOpen={openShift} t={t} />),
+    [t, openShift],
   );
 
   return (
@@ -216,7 +244,24 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
         }}
         onClose={() => setFiltersOpen(false)}
       />
-      <ShiftDetailSheet person={sheetPerson} roster={roster} language={language} onOpenAssignments={openAssignments} onClose={() => setOpenUserId(null)} t={t} />
+      <ShiftManager
+        roster={roster}
+        people={scopePeople}
+        rows={scopeShifts}
+        openUserId={openUserId}
+        openShiftId={openShiftId}
+        onCloseDetail={closeDetail}
+        form={form}
+        onForm={setForm}
+        today={today}
+        zone={zone}
+        language={language}
+        isOnline={isOnline}
+        onChanged={refresh}
+        onOpenAssignments={openAssignments}
+        onOpenTemplates={openTemplates}
+        t={t}
+      />
     </View>
   );
 }
@@ -229,6 +274,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 8 },
   listHeader: { gap: 12, paddingBottom: 12 },
+  actions: { flexDirection: "row", gap: 10 },
+  actionCell: { flex: 1 },
   section: { fontSize: 17, fontWeight: "800", marginTop: 4 },
   separator: { height: 10 },
   // The shared search bar brings its own 16pt gutter; cancel the list's so it lines up with the cards.

@@ -1,13 +1,19 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
+import { SheetActionRow, SheetNotice } from "@/components/home/sheetParts";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R } from "@/components/shared/tokens";
 import { ScheduleStatusBadge } from "@/components/scheduling/ScheduleStatusBadge";
+import { ShiftDetailBody } from "@/components/scheduling/ShiftDetailBody";
+import { cancelShift } from "@/lib/api/schedulingManage";
+import type { TeamShift } from "@/lib/api/schedulingTeam";
 import { formatLongDate } from "@/lib/scheduling/teamScheduleDates";
-import type { DayRoster, RosterPerson } from "@/lib/scheduling/teamScheduleModel";
+import type { DayRoster, DayShift, RosterPerson } from "@/lib/scheduling/teamScheduleModel";
 import { periodLabel, personName, rolesLine, windowText, type Translate } from "@/lib/scheduling/teamScheduleText";
+import { useShiftDetail } from "@/lib/scheduling/useShiftDetail";
+import { useWriteGuard } from "@/lib/scheduling/useWriteGuard";
 import { useTheme } from "@/lib/theme/useTheme";
 
 /** The part-of-day label, unless the shift is already named that ("Morning · Morning" adds nothing). */
@@ -19,7 +25,18 @@ function periodText(name: string | null, period: Parameters<typeof periodLabel>[
 interface Props {
   person: RosterPerson | null;
   roster: DayRoster | null;
+  /** The schedule's own rows, for the version and template a shift needs to be edited. */
+  rows: readonly TeamShift[];
+  /** Opens on this shift when the person has several that day. */
+  initialShiftId?: string | null;
+  zone: string | null;
   language?: string;
+  isOnline: boolean;
+  /** The schedule changed (a shift was cancelled): refresh it. */
+  onChanged: () => void;
+  onEdit: (shift: TeamShift, reassign: boolean) => void;
+  onCopy: (shift: TeamShift) => void;
+  onMessage: (person: RosterPerson) => void;
   /** Opens the same person in Assignments (who cleans which rooms). Scheduling never edits room work. */
   onOpenAssignments: (userId: string) => void;
   onClose: () => void;
@@ -27,15 +44,80 @@ interface Props {
 }
 
 /**
- * Read-only shift information for one person on the selected day. There is deliberately nothing to edit here:
- * adding, changing and covering shifts arrive in a later phase, and a button that does nothing is worse than none.
+ * One person's shifts for the selected day, with the full detail of the chosen one and the actions a supervisor
+ * may take on it. Every change is an immediate schedule change; the server decides what is allowed, and this sheet
+ * only explains up front why an action is unavailable.
  */
-export function ShiftDetailSheet({ person, roster, language, onOpenAssignments, onClose, t }: Props) {
+export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, onEdit, onCopy, onMessage, onOpenAssignments, onClose, t }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const visible = person !== null;
   const name = person ? personName(person, t) : "";
   const role = person ? rolesLine(person.roles, t) : null;
+  const [selectedId, setSelectedId] = useState<string | null>(initialShiftId ?? null);
+  const [notice, setNotice] = useState<{ tone: "info" | "error"; text: string } | null>(null);
+  const { busy, run } = useWriteGuard();
+
+  // A different person (or a deep link to one of their shifts) starts from the right shift with no stale message.
+  useEffect(() => {
+    setSelectedId(initialShiftId ?? null);
+    setNotice(null);
+  }, [person?.userId, initialShiftId]);
+
+  const shift: DayShift | null = person ? (person.shifts.find((candidate) => candidate.id === selectedId) ?? person.shifts[0] ?? null) : null;
+  const row = shift ? rows.find((candidate) => candidate.id === shift.id) ?? null : null;
+  const detailState = useShiftDetail(shift?.id ?? null, row?.version ?? null, visible && shift !== null);
+  const detail = detailState.state.status === "ready" ? detailState.state.detail : null;
+  const hasAttendance = (detail?.attendance.sessions.length ?? 0) > 0;
+
+  const editBlocked = !isOnline
+    ? t("teamSchedule.manage.offline")
+    : !row
+      ? t("teamSchedule.manage.detail.notEditableData")
+      : detail && !detail.editable
+        ? t("teamSchedule.manage.detail.pastLocked")
+        : hasAttendance
+          ? t("teamSchedule.manage.detail.attendanceLocked")
+          : detail === null
+            ? t("teamSchedule.manage.detail.checking")
+            : null;
+
+  const confirmCancel = () => {
+    if (!row || !shift) return;
+    Alert.alert(
+      t("teamSchedule.manage.cancel.title"),
+      t("teamSchedule.manage.cancel.message", { name, window: windowText(shift, t), date: formatLongDate(shift.workDate, language) }),
+      [
+        { text: t("teamSchedule.manage.cancel.keep"), style: "cancel" },
+        { text: t("teamSchedule.manage.cancel.confirm"), style: "destructive", onPress: () => void doCancel(row) },
+      ],
+    );
+  };
+
+  const doCancel = async (target: TeamShift) => {
+    setNotice(null);
+    const res = await run(() => cancelShift(target.id, target.version));
+    if (!res) return;
+    if (res.ok) {
+      onChanged();
+      onClose();
+      return;
+    }
+    const kind = res.failure.kind;
+    if (kind === "not_found") {
+      // Already gone (removed by someone else, or our own earlier attempt landed): the goal is met.
+      onChanged();
+      onClose();
+    } else if (kind === "version_conflict") {
+      onChanged();
+      setNotice({ tone: "error", text: t("teamSchedule.manage.cancel.changed") });
+    } else if (kind === "unconfirmed") {
+      onChanged();
+      setNotice({ tone: "error", text: t("teamSchedule.manage.cancel.unconfirmed") });
+    } else {
+      setNotice({ tone: "error", text: t(`teamSchedule.manage.cancel.failed.${kind === "locked" || kind === "attendance" || kind === "forbidden" ? kind : "other"}`) });
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -83,38 +165,44 @@ export function ShiftDetailSheet({ person, roster, language, onOpenAssignments, 
                   {t("teamSchedule.detail.noShift")}
                 </Text>
               ) : (
-                person.shifts.map((shift) => (
-                  <View key={shift.id} style={[styles.shift, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID={`team-schedule-detail-shift-${shift.id}`}>
-                    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.shiftTime, { color: theme.textPrimary }]}>
-                      {windowText(shift, t)}
-                    </Text>
-                    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]}>
-                      {[shift.name, periodText(shift.name, shift.period, t), shift.draft ? t("teamSchedule.draft") : null, shift.carried ? t("teamSchedule.carried") : null].filter(Boolean).join(" · ")}
-                    </Text>
-                    {shift.notes ? (
-                      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.notes, { color: theme.textSecondary }]}>
-                        {shift.notes}
+                person.shifts.map((candidate) => {
+                  const selected = candidate.id === shift?.id;
+                  return (
+                    <Pressable
+                      key={candidate.id}
+                      onPress={() => setSelectedId(candidate.id)}
+                      disabled={person.shifts.length === 1}
+                      accessibilityRole={person.shifts.length === 1 ? "text" : "radio"}
+                      accessibilityState={{ selected }}
+                      style={[styles.shift, { backgroundColor: selected ? theme.primarySoft : theme.surface, borderColor: selected ? theme.primaryLine : theme.borderSubtle }]}
+                      testID={`team-schedule-detail-shift-${candidate.id}`}
+                    >
+                      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.shiftTime, { color: theme.textPrimary }]}>
+                        {windowText(candidate, t)}
                       </Text>
-                    ) : null}
-                  </View>
-                ))
+                      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]}>
+                        {[candidate.name, periodText(candidate.name, candidate.period, t), candidate.draft ? t("teamSchedule.draft") : null, candidate.carried ? t("teamSchedule.carried") : null].filter(Boolean).join(" · ")}
+                      </Text>
+                    </Pressable>
+                  );
+                })
               )}
 
-              <Pressable
-                onPress={() => onOpenAssignments(person.userId)}
-                accessibilityRole="button"
-                accessibilityLabel={t("teamSchedule.detail.openAssignments")}
-                testID="team-schedule-detail-assignments"
-                style={({ pressed }) => [styles.link, { borderColor: theme.primaryLine, backgroundColor: theme.surface }, pressed && { opacity: 0.8 }]}
-              >
-                <Ionicons name="people-outline" size={18} color={theme.primaryAction} />
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color: theme.primaryAction }]}>
-                  {t("teamSchedule.detail.openAssignments")}
-                </Text>
-              </Pressable>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-                {t("teamSchedule.detail.assignmentsHint")}
-              </Text>
+              {shift ? <ShiftDetailBody shift={shift} roles={person.roles} state={detailState.state} zone={zone} language={language} t={t} /> : null}
+              {notice ? <SheetNotice tone={notice.tone} text={notice.text} testID="shift-detail-notice" /> : null}
+
+              <View style={styles.actions}>
+                {shift && row ? (
+                  <>
+                    <SheetActionRow icon="create-outline" title={t("teamSchedule.manage.action.edit")} hint={t("teamSchedule.manage.action.editHint")} disabledReason={editBlocked} onPress={() => onEdit(row, false)} testID="shift-action-edit" />
+                    <SheetActionRow icon="swap-horizontal-outline" title={t("teamSchedule.manage.action.reassign")} hint={t("teamSchedule.manage.action.reassignHint")} disabledReason={editBlocked} onPress={() => onEdit(row, true)} testID="shift-action-reassign" />
+                    <SheetActionRow icon="copy-outline" title={t("teamSchedule.manage.action.copy")} hint={t("teamSchedule.manage.action.copyHint")} disabledReason={isOnline ? null : t("teamSchedule.manage.offline")} onPress={() => onCopy(row)} kind="form" testID="shift-action-copy" />
+                  </>
+                ) : null}
+                <SheetActionRow icon="chatbubble-ellipses-outline" title={t("teamSchedule.manage.action.message")} hint={t("teamSchedule.manage.action.messageHint")} disabledReason={isOnline ? null : t("teamSchedule.manage.offline")} onPress={() => onMessage(person)} testID="shift-action-message" />
+                <SheetActionRow icon="people-outline" title={t("teamSchedule.detail.openAssignments")} hint={t("teamSchedule.detail.assignmentsHint")} onPress={() => onOpenAssignments(person.userId)} testID="team-schedule-detail-assignments" accessibilityLabel={t("teamSchedule.detail.openAssignments")} />
+                {shift && row ? <SheetActionRow icon="trash-outline" title={t("teamSchedule.manage.action.cancel")} hint={t("teamSchedule.manage.action.cancelHint")} disabledReason={busy ? t("teamSchedule.manage.cancel.working") : editBlocked} onPress={confirmCancel} testID="shift-action-cancel" /> : null}
+              </View>
             </ScrollView>
           ) : null}
           <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t("common.close")} testID="team-schedule-detail-close" style={({ pressed }) => [styles.close, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }, pressed && { opacity: 0.8 }]}>
@@ -131,7 +219,7 @@ export function ShiftDetailSheet({ person, roster, language, onOpenAssignments, 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.45)" },
-  sheet: { maxHeight: "88%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8 },
+  sheet: { maxHeight: "92%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8 },
   grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, marginBottom: 8 },
   content: { paddingHorizontal: 16, paddingBottom: 8, gap: 12 },
   who: { flexDirection: "row", alignItems: "center", gap: 12 },
@@ -141,11 +229,9 @@ const styles = StyleSheet.create({
   block: { gap: 6 },
   hint: { fontSize: 13, lineHeight: 18 },
   section: { fontSize: 12, fontWeight: "800", letterSpacing: 0.6, marginTop: 4 },
-  shift: { borderWidth: 1, borderRadius: R.md, padding: 12, gap: 2 },
+  shift: { borderWidth: 1, borderRadius: R.md, padding: 12, gap: 2, minHeight: MIN_TARGET },
   shiftTime: { fontSize: 17, fontWeight: "700" },
-  notes: { fontSize: 13.5, lineHeight: 19, marginTop: 4 },
-  link: { minHeight: MIN_TARGET, borderWidth: 1, borderRadius: R.md, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 },
-  linkText: { fontSize: 15, fontWeight: "700" },
+  actions: { gap: 8, marginTop: 4 },
   close: { minHeight: MIN_TARGET, marginHorizontal: 16, marginTop: 8, borderWidth: 1, borderRadius: R.md, alignItems: "center", justifyContent: "center" },
   closeText: { fontSize: 15, fontWeight: "700" },
 });

@@ -39,6 +39,11 @@ export function roleLabel(role: string, t: Translate): string {
   return words ? words.charAt(0).toUpperCase() + words.slice(1) : t("teamSchedule.roles.other");
 }
 
+/** A department code ("HK") as a person would say it; a code this app has no word for is shown as it is. */
+export function departmentLabel(code: string, t: Translate): string {
+  return t(`teamSchedule.departments.${code}`, { defaultValue: code });
+}
+
 export function rolesLine(roles: readonly string[], t: Translate): string | null {
   return roles.length > 0 ? roles.map((role) => roleLabel(role, t)).join(" · ") : null;
 }

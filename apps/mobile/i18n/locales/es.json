@@ -7841,7 +7841,7 @@
       "shifts": "Turnos",
       "noShift": "No hay un turno en el horario para este día.",
       "openAssignments": "Abrir en Asignaciones",
-      "assignmentsHint": "En Asignaciones se reparten las habitaciones. Esta pantalla solo muestra quién trabaja y cuándo.",
+      "assignmentsHint": "Asignaciones es donde se reparten las habitaciones.",
       "statusHint": {
         "on_shift": "Registró su entrada y está trabajando, según el reloj de turno.",
         "on_break": "Registró su entrada y está en descanso.",
@@ -7884,6 +7884,288 @@
         "body": "Prueba quitando un filtro.",
         "action": "Borrar filtros"
       }
+    },
+    "manage": {
+      "addShift": "Agregar turno",
+      "templatesLink": "Plantillas de turno",
+      "offline": "Sin conexión. Los cambios de horario necesitan conexión.",
+      "form": {
+        "addTitle": "Agregar turno",
+        "editTitle": "Editar turno",
+        "copyTitle": "Copiar turno",
+        "immediate": "Al guardar, el horario cambia de inmediato. Los empleados no reciben aviso automático.",
+        "employee": "Empleado",
+        "chooseEmployee": "Elige un empleado",
+        "allDepartments": "Todos los departamentos",
+        "date": "Fecha",
+        "template": "Turno",
+        "noTemplates": "Aún no hay una plantilla de turno para este departamento. Crea una primero.",
+        "manageTemplates": "Administrar plantillas de turno",
+        "customTimes": "Usar otras horas para este turno",
+        "start": "Inicio",
+        "end": "Fin",
+        "notes": "Notas (opcional)",
+        "notesPlaceholder": "Algo que el equipo deba saber",
+        "recurring": "Repetir cada semana",
+        "repeatOn": "Repetir los días",
+        "until": "Hasta",
+        "recurringLimit": "Hasta {{days}} días a la vez.",
+        "save": "Guardar turno",
+        "saveChanges": "Guardar cambios",
+        "saveAnyway": "Guardar de todos modos",
+        "back": "Atrás",
+        "createCount": "Crear {{count}} turno",
+        "createCount_plural": "Crear {{count}} turnos",
+        "reviewCount": "Revisar {{count}} turno",
+        "reviewCount_plural": "Revisar {{count}} turnos",
+        "checkAndRetry": "Comprobar y guardar de nuevo"
+      },
+      "weekday": {
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb",
+        "sun": "Dom"
+      },
+      "picker": {
+        "title": "Elige un empleado",
+        "search": "Buscar por nombre o puesto",
+        "hint": "Personas que puedes programar. Se muestran sus turnos del {{date}} si tienen alguno.",
+        "nobody": "No hay nadie en tus departamentos para programar.",
+        "noMatch": "Nadie coincide con esa búsqueda.",
+        "already": "Ya programado: {{times}}",
+        "more": "{{count}} más. Afina la búsqueda para encontrarlos."
+      },
+      "formError": {
+        "employee": "Elige un empleado.",
+        "template": "Elige un turno.",
+        "date": "Elige una fecha válida.",
+        "pastDate": "Un turno no puede estar en un día que ya pasó.",
+        "startTime": "Escribe una hora de inicio, como 7:00 AM.",
+        "endTime": "Escribe una hora de fin, como 3:00 PM.",
+        "sameTimes": "El inicio y el fin no pueden ser la misma hora.",
+        "weekdays": "Elige al menos un día de la semana.",
+        "endDate": "El último día no puede ser anterior al primero.",
+        "rangeTooLong": "Es demasiado largo. Programa hasta 42 días a la vez.",
+        "noOccurrences": "Ninguna fecha de ese rango coincide con los días elegidos.",
+        "tooMany": "Eso crearía demasiados turnos a la vez.",
+        "notesTooLong": "La nota es demasiado larga."
+      },
+      "duration": {
+        "hours": "{{hours}} h",
+        "hoursMinutes": "{{hours}} h {{minutes}} min"
+      },
+      "overnight": "Termina al día siguiente",
+      "warning": {
+        "insufficient_rest": "Menos de 8 horas de descanso entre dos turnos.",
+        "weekly_overtime": "Más de 40 horas programadas en una semana.",
+        "long_shift": "Un turno de más de 12 horas.",
+        "past_date": "Un turno en un día que ya pasó.",
+        "employee_department_unknown": "No se pudo confirmar el departamento de este empleado.",
+        "other": "Revisa este horario antes de guardar."
+      },
+      "warningsTitle": "Revisa antes de guardar",
+      "warningsTitle_plural": "Revisa antes de guardar ({{count}})",
+      "conflictDates": "Se superpone en: {{dates}}",
+      "review": {
+        "summary": "{{count}} turno para {{people}} persona",
+        "summary_plural": "{{count}} turnos para {{people}} personas",
+        "existing": "{{count}} ya está en el horario. Se deja como está.",
+        "existing_plural": "{{count}} ya están en el horario. Se dejan como están.",
+        "alreadyThere": "ya programado",
+        "more": "y {{count}} más"
+      },
+      "conflict": {
+        "title": "Alguien más cambió este turno",
+        "body": "No se sobrescribió nada. Carga la versión más reciente, revísala y vuelve a guardar si aún quieres tu cambio.",
+        "changed": "Cambió: {{fields}}",
+        "reload": "Cargar la versión más reciente"
+      },
+      "field": {
+        "employee": "empleado",
+        "date": "fecha",
+        "template": "turno",
+        "startTime": "hora de inicio",
+        "endTime": "hora de fin",
+        "notes": "notas"
+      },
+      "failure": {
+        "version_conflict": {
+          "title": "Cambiado por alguien más",
+          "body": "Este turno cambió desde que lo abriste. No se guardó nada."
+        },
+        "schedule_conflict": {
+          "title": "Turnos superpuestos",
+          "body": "Esta persona ya tiene un turno que se superpone con estas horas. No se guardó nada."
+        },
+        "duplicate": {
+          "title": "Ya programado",
+          "body": "Eso ya existe. No se guardó nada."
+        },
+        "policy_blocked": {
+          "title": "Bloqueado por las reglas del hotel",
+          "body": "Este horario rompe una regla que tu hotel configuró como bloqueante. No se guardó nada."
+        },
+        "locked": {
+          "title": "Los turnos pasados están bloqueados",
+          "body": "Un turno de un día que ya pasó no se puede cambiar."
+        },
+        "attendance": {
+          "title": "Asistencia registrada",
+          "body": "Este turno ya tiene asistencia registrada y no se puede cambiar."
+        },
+        "forbidden": {
+          "title": "No permitido",
+          "body": "Solo puedes administrar los horarios de tu propio departamento."
+        },
+        "not_found": {
+          "title": "No encontrado",
+          "body": "Esa persona, turno o plantilla ya no existe o no está disponible para ti."
+        },
+        "inactive": {
+          "title": "No disponible",
+          "body": "Ese turno o empleado está inactivo y no se puede programar."
+        },
+        "department": {
+          "title": "Departamento incorrecto",
+          "body": "Ese empleado no trabaja en el departamento de este turno."
+        },
+        "invalid": {
+          "title": "Revisa los datos",
+          "body": "Algunos datos no son válidos. Revisa las horas e inténtalo de nuevo."
+        },
+        "signed_out": {
+          "title": "Sesión cerrada",
+          "body": "Tu sesión terminó. Inicia sesión de nuevo y reintenta."
+        },
+        "unconfirmed": {
+          "title": "No se pudo confirmar",
+          "body": "No llegó respuesta, así que el cambio pudo o no haberse guardado. Guardar de nuevo es seguro. No creará un duplicado."
+        },
+        "unknown": {
+          "title": "No se pudo guardar",
+          "body": "Algo salió mal. No se cambió nada."
+        }
+      },
+      "saved": {
+        "created": "Turno guardado. Ya está en el horario.",
+        "created_plural": "{{count}} turnos guardados. Ya están en el horario.",
+        "updated": "Turno actualizado. El cambio ya está en el horario.",
+        "alreadySaved": "Tu cambio ya estaba guardado.",
+        "alreadyThere": "Ya estaba en el horario. No se agregó nada nuevo.",
+        "withWarnings": "{{count}} cosa por revisar.",
+        "withWarnings_plural": "{{count}} cosas por revisar.",
+        "gone": "Alguien más eliminó ese turno."
+      },
+      "detail": {
+        "scheduled": "Programado",
+        "shift": "Turno",
+        "department": "Departamento",
+        "role": "Puesto",
+        "schedule": "Estado del horario",
+        "draft": "Borrador",
+        "published": "En el horario",
+        "updated": "Último cambio",
+        "notes": "Notas",
+        "timeline": "Cronología",
+        "loading": "Cargando los detalles…",
+        "loadFailed": "No se pudieron cargar los detalles de asistencia. Actualiza el horario y abre este turno de nuevo.",
+        "rooms": "Trabajo de habitaciones",
+        "roomsCount": "{{count}} habitación asignada",
+        "roomsCount_plural": "{{count}} habitaciones asignadas",
+        "roomsUnavailable": "No se pudieron cargar las asignaciones de habitaciones.",
+        "notEditableData": "Este turno no está cargado. Actualiza el horario.",
+        "pastLocked": "Un turno de un día que ya pasó no se puede cambiar.",
+        "attendanceLocked": "Este turno tiene asistencia registrada y no se puede cambiar.",
+        "checking": "Comprobando si este turno se puede cambiar…"
+      },
+      "timeline": {
+        "scheduled": "Programado para empezar {{time}}",
+        "started": "El turno empezó {{time}}",
+        "ended": "El turno terminó {{time}}",
+        "onBreakSince": "En descanso desde {{time}}",
+        "breakTotal": "Tiempo de descanso: {{minutes}} min",
+        "note": {
+          "future": "Este turno no ha empezado, así que aún no hay asistencia.",
+          "unverified": "No se pudo verificar la asistencia en este momento.",
+          "none": "No hay registro de entrada para este día. Eso no significa que haya faltado.",
+          "recorded": "Según el reloj de turno."
+        }
+      },
+      "action": {
+        "edit": "Editar turno",
+        "editHint": "Cambia la fecha, la hora, el turno o las notas.",
+        "reassign": "Reasignar turno",
+        "reassignHint": "Da este turno a otra persona.",
+        "copy": "Copiar turno",
+        "copyHint": "Empieza un turno nuevo a partir de este.",
+        "message": "Enviar mensaje",
+        "messageHint": "Envíale un mensaje en la app.",
+        "cancel": "Cancelar turno",
+        "cancelHint": "Quita este turno del horario."
+      },
+      "cancel": {
+        "title": "¿Cancelar este turno?",
+        "message": "El turno de {{name}} ({{window}}, {{date}}) se quitará del horario de inmediato. Los empleados no reciben aviso automático.",
+        "keep": "Conservar turno",
+        "confirm": "Cancelar turno",
+        "working": "Cancelando…",
+        "changed": "Este turno cambió antes de poder cancelarse. No se quitó. Revísalo e inténtalo de nuevo.",
+        "unconfirmed": "No llegó respuesta, así que el turno pudo o no haberse cancelado. Se actualizó el horario. Revísalo antes de intentarlo de nuevo.",
+        "failed": {
+          "locked": "Un turno de un día que ya pasó no se puede cancelar aquí.",
+          "attendance": "Este turno tiene asistencia registrada y no se puede cancelar.",
+          "forbidden": "Solo puedes administrar los horarios de tu propio departamento.",
+          "other": "No se pudo cancelar el turno. No se cambió nada."
+        }
+      },
+      "templates": {
+        "title": "Plantillas de turno",
+        "new": "Nueva plantilla",
+        "loading": "Cargando plantillas de turno…",
+        "loadFailed": "No se pudieron cargar las plantillas de turno.",
+        "refreshFailed": "No se pudo actualizar. Se muestra la última lista cargada.",
+        "unreadable": "No se pudo leer {{count}} plantilla.",
+        "unreadable_plural": "No se pudieron leer {{count}} plantillas.",
+        "showArchived": "Mostrar plantillas archivadas",
+        "emptyTitle": "Aún no hay plantillas de turno",
+        "emptyBody": "Crea una plantilla por cada patrón de turno que uses, como Mañana o Nocturno.",
+        "edit": "Editar {{name}}",
+        "status": {
+          "active": "Activa",
+          "inactive": "Inactiva",
+          "archived": "Archivada"
+        },
+        "createTitle": "Nueva plantilla de turno",
+        "editTitle": "Editar plantilla de turno",
+        "create": "Crear plantilla",
+        "name": "Nombre",
+        "namePlaceholder": "Turno de mañana",
+        "nameRequired": "Ponle un nombre a la plantilla.",
+        "department": "Departamento",
+        "departmentRequired": "Elige un departamento.",
+        "noDepartments": "No se pudieron cargar tus departamentos, así que todavía no se puede crear una plantilla.",
+        "overnightHint": "Una hora de fin anterior al inicio significa que el turno termina al día siguiente.",
+        "active": "Activa (se puede programar)",
+        "onlyNew": "Una plantilla es un patrón para turnos nuevos. Los turnos ya programados conservan sus propias horas.",
+        "usage": "La usan {{upcoming}} turnos próximos y {{past}} pasados. No cambiarán.",
+        "usageFailed": "No se pudo cargar cuántos turnos usan esta plantilla.",
+        "usageLoading": "Comprobando qué turnos usan esta plantilla…",
+        "archive": "Archivar plantilla",
+        "archiveTitle": "¿Archivar {{name}}?",
+        "archiveMessage": "Ya no se podrá programar. La usan {{upcoming}} turnos próximos y {{past}} pasados. Siguen en el horario sin cambios.",
+        "archiveMessageUnknown": "Ya no se podrá programar. Los turnos ya programados siguen en el horario sin cambios. No se pudo comprobar cuántos la usan."
+      }
+    },
+    "departments": {
+      "HK": "Limpieza",
+      "ENG": "Ingeniería",
+      "FD": "Recepción",
+      "FO": "Recepción",
+      "MGMT": "Gerencia",
+      "GM": "Gerencia"
     }
   },
   "supervisorToday": {

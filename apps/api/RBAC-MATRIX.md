@@ -413,11 +413,14 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | scheduling.py | /v1/schedules/assignments | GET | none | inline: current_user.role in SCHEDULE_VIEWER_ROLES [L487] |
 | scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L520] |
 | scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L536] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L562] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L661] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L698]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L696] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L714]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L712] |
-| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L727] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L563] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L676] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L716]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L714] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L732]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L730] |
+| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L745] |
+| scheduling_plan.py | /v1/schedules/assignments/{assignment_id}/detail | GET | TEAM_VIEW_ROLES(unresolved) | require_role(*TEAM_VIEW_ROLES) [L87] |
+| scheduling_plan.py | /v1/schedules/assignments/preview | POST | SUPERVISOR_ROLES(unresolved) | require_role(*SUPERVISOR_ROLES) [L122] |
+| scheduling_plan.py | /v1/schedules/shifts/{shift_id}/usage | GET | SUPERVISOR_ROLES(unresolved) | require_role(*SUPERVISOR_ROLES) [L160] |
 | scheduling_team.py | /v1/schedules/team | GET | TEAM_VIEW_ROLES(unresolved) | require_role(*TEAM_VIEW_ROLES) [L51] |
 | settings_activity.py | /v1/settings/activity/categories | GET | gm | require_role('gm') [L270] |
 | settings_activity.py | /v1/settings/activity/actors | GET | gm | require_role('gm') [L278] |
@@ -532,4 +535,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1788] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1862] |
 
-**43 routers, 521 routes.**
+**44 routers, 524 routes.**

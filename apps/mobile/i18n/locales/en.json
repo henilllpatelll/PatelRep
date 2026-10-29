@@ -7841,7 +7841,7 @@
       "shifts": "Shifts",
       "noShift": "No shift on the schedule for this day.",
       "openAssignments": "Open in Assignments",
-      "assignmentsHint": "Assignments is where rooms are given out. This screen only shows who works when.",
+      "assignmentsHint": "Assignments is where rooms are given out.",
       "statusHint": {
         "on_shift": "Clocked in and working, according to the shift clock.",
         "on_break": "Clocked in and on a break.",
@@ -7884,6 +7884,288 @@
         "body": "Try removing a filter.",
         "action": "Clear filters"
       }
+    },
+    "manage": {
+      "addShift": "Add shift",
+      "templatesLink": "Shift templates",
+      "offline": "You're offline. Schedule changes need a connection.",
+      "form": {
+        "addTitle": "Add shift",
+        "editTitle": "Edit shift",
+        "copyTitle": "Copy shift",
+        "immediate": "Saving changes the schedule right away. Employees are not notified automatically.",
+        "employee": "Employee",
+        "chooseEmployee": "Choose an employee",
+        "allDepartments": "All departments",
+        "date": "Date",
+        "template": "Shift",
+        "noTemplates": "There is no shift template for this department yet. Create one first.",
+        "manageTemplates": "Manage shift templates",
+        "customTimes": "Use different times for this shift",
+        "start": "Start",
+        "end": "End",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Anything the team should know",
+        "recurring": "Repeat weekly",
+        "repeatOn": "Repeat on",
+        "until": "Until",
+        "recurringLimit": "Up to {{days}} days at a time.",
+        "save": "Save shift",
+        "saveChanges": "Save changes",
+        "saveAnyway": "Save anyway",
+        "back": "Back",
+        "createCount": "Create {{count}} shift",
+        "createCount_plural": "Create {{count}} shifts",
+        "reviewCount": "Review {{count}} shift",
+        "reviewCount_plural": "Review {{count}} shifts",
+        "checkAndRetry": "Check and save again"
+      },
+      "weekday": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "picker": {
+        "title": "Choose an employee",
+        "search": "Search by name or role",
+        "hint": "People you can schedule. Their shifts on {{date}} are shown if they have any.",
+        "nobody": "There is nobody in your departments to schedule.",
+        "noMatch": "Nobody matches that search.",
+        "already": "Already scheduled: {{times}}",
+        "more": "{{count}} more. Refine the search to find them."
+      },
+      "formError": {
+        "employee": "Choose an employee.",
+        "template": "Choose a shift.",
+        "date": "Choose a valid date.",
+        "pastDate": "A shift can't be on a day that has already passed.",
+        "startTime": "Enter a start time like 7:00 AM.",
+        "endTime": "Enter an end time like 3:00 PM.",
+        "sameTimes": "The start and end can't be the same time.",
+        "weekdays": "Choose at least one day of the week.",
+        "endDate": "The last day can't be before the first day.",
+        "rangeTooLong": "That's too long. Schedule up to 42 days at a time.",
+        "noOccurrences": "No dates in that range match the days you chose.",
+        "tooMany": "That would create too many shifts at once.",
+        "notesTooLong": "The note is too long."
+      },
+      "duration": {
+        "hours": "{{hours}} h",
+        "hoursMinutes": "{{hours}} h {{minutes}} min"
+      },
+      "overnight": "Ends the next day",
+      "warning": {
+        "insufficient_rest": "Less than 8 hours of rest between two shifts.",
+        "weekly_overtime": "More than 40 scheduled hours in a week.",
+        "long_shift": "A shift longer than 12 hours.",
+        "past_date": "A shift on a day that has already passed.",
+        "employee_department_unknown": "This employee's department could not be confirmed.",
+        "other": "Check this schedule before saving."
+      },
+      "warningsTitle": "Check before saving",
+      "warningsTitle_plural": "Check before saving ({{count}})",
+      "conflictDates": "Overlaps on: {{dates}}",
+      "review": {
+        "summary": "{{count}} shift for {{people}} person",
+        "summary_plural": "{{count}} shifts for {{people}} people",
+        "existing": "{{count}} already on the schedule. Left as they are.",
+        "existing_plural": "{{count}} already on the schedule. Left as they are.",
+        "alreadyThere": "already scheduled",
+        "more": "and {{count}} more"
+      },
+      "conflict": {
+        "title": "This shift was changed by someone else",
+        "body": "Nothing was overwritten. Load the latest version, review it, and save again if you still want your change.",
+        "changed": "Changed: {{fields}}",
+        "reload": "Load the latest version"
+      },
+      "field": {
+        "employee": "employee",
+        "date": "date",
+        "template": "shift",
+        "startTime": "start time",
+        "endTime": "end time",
+        "notes": "notes"
+      },
+      "failure": {
+        "version_conflict": {
+          "title": "Changed by someone else",
+          "body": "This shift changed since you opened it. Nothing was saved."
+        },
+        "schedule_conflict": {
+          "title": "Overlapping shifts",
+          "body": "This person already has a shift that overlaps these times. Nothing was saved."
+        },
+        "duplicate": {
+          "title": "Already scheduled",
+          "body": "That already exists. Nothing was saved."
+        },
+        "policy_blocked": {
+          "title": "Blocked by your hotel's rules",
+          "body": "This schedule breaks a rule your hotel set to block. Nothing was saved."
+        },
+        "locked": {
+          "title": "Past shifts are locked",
+          "body": "A shift on a day that has passed can't be changed."
+        },
+        "attendance": {
+          "title": "Attendance recorded",
+          "body": "This shift already has recorded attendance and can't be changed."
+        },
+        "forbidden": {
+          "title": "Not allowed",
+          "body": "You can only manage schedules for your own department."
+        },
+        "not_found": {
+          "title": "Not found",
+          "body": "That person, shift or template no longer exists or isn't available to you."
+        },
+        "inactive": {
+          "title": "Not available",
+          "body": "That shift or employee is inactive and can't be scheduled."
+        },
+        "department": {
+          "title": "Wrong department",
+          "body": "That employee doesn't work in this shift's department."
+        },
+        "invalid": {
+          "title": "Check the details",
+          "body": "Some details aren't valid. Check the times and try again."
+        },
+        "signed_out": {
+          "title": "Signed out",
+          "body": "Your session ended. Sign in again, then retry."
+        },
+        "unconfirmed": {
+          "title": "Couldn't confirm",
+          "body": "No answer came back, so the change may or may not have been saved. Saving again is safe. It will not create a duplicate."
+        },
+        "unknown": {
+          "title": "Couldn't save",
+          "body": "Something went wrong. Nothing was changed."
+        }
+      },
+      "saved": {
+        "created": "Shift saved. It's on the schedule now.",
+        "created_plural": "{{count}} shifts saved. They're on the schedule now.",
+        "updated": "Shift updated. The change is on the schedule now.",
+        "alreadySaved": "Your change was already saved.",
+        "alreadyThere": "Already on the schedule. Nothing new was added.",
+        "withWarnings": "{{count}} thing to check.",
+        "withWarnings_plural": "{{count}} things to check.",
+        "gone": "That shift was removed by someone else."
+      },
+      "detail": {
+        "scheduled": "Scheduled",
+        "shift": "Shift",
+        "department": "Department",
+        "role": "Role",
+        "schedule": "Schedule status",
+        "draft": "Draft",
+        "published": "On the schedule",
+        "updated": "Last changed",
+        "notes": "Notes",
+        "timeline": "Timeline",
+        "loading": "Loading the details…",
+        "loadFailed": "The attendance details couldn't be loaded. Pull to refresh the schedule and open this shift again.",
+        "rooms": "Room work",
+        "roomsCount": "{{count}} room assigned",
+        "roomsCount_plural": "{{count}} rooms assigned",
+        "roomsUnavailable": "Room assignments couldn't be loaded.",
+        "notEditableData": "This shift isn't loaded. Refresh the schedule.",
+        "pastLocked": "A shift on a day that has passed can't be changed.",
+        "attendanceLocked": "This shift has recorded attendance and can't be changed.",
+        "checking": "Checking whether this shift can be changed…"
+      },
+      "timeline": {
+        "scheduled": "Scheduled to start {{time}}",
+        "started": "Shift started {{time}}",
+        "ended": "Shift ended {{time}}",
+        "onBreakSince": "On a break since {{time}}",
+        "breakTotal": "Break time: {{minutes}} min",
+        "note": {
+          "future": "This shift hasn't started, so there is no attendance yet.",
+          "unverified": "Attendance couldn't be verified right now.",
+          "none": "No clock-in is recorded for this day. That doesn't mean they were absent.",
+          "recorded": "From the shift clock."
+        }
+      },
+      "action": {
+        "edit": "Edit shift",
+        "editHint": "Change the date, time, shift or notes.",
+        "reassign": "Reassign shift",
+        "reassignHint": "Give this shift to someone else.",
+        "copy": "Copy shift",
+        "copyHint": "Start a new shift from this one.",
+        "message": "Send message",
+        "messageHint": "Send them an in-app message.",
+        "cancel": "Cancel shift",
+        "cancelHint": "Remove this shift from the schedule."
+      },
+      "cancel": {
+        "title": "Cancel this shift?",
+        "message": "{{name}}'s shift ({{window}}, {{date}}) will be removed from the schedule right away. Employees are not notified automatically.",
+        "keep": "Keep shift",
+        "confirm": "Cancel shift",
+        "working": "Cancelling…",
+        "changed": "This shift changed before it could be cancelled. It was not removed. Review it and try again.",
+        "unconfirmed": "No answer came back, so the shift may or may not have been cancelled. The schedule was refreshed. Check it before trying again.",
+        "failed": {
+          "locked": "A shift on a day that has passed can't be cancelled here.",
+          "attendance": "This shift has recorded attendance and can't be cancelled.",
+          "forbidden": "You can only manage schedules for your own department.",
+          "other": "The shift couldn't be cancelled. Nothing was changed."
+        }
+      },
+      "templates": {
+        "title": "Shift templates",
+        "new": "New template",
+        "loading": "Loading shift templates…",
+        "loadFailed": "Shift templates couldn't be loaded.",
+        "refreshFailed": "Couldn't refresh. Showing the last list that loaded.",
+        "unreadable": "{{count}} template couldn't be read.",
+        "unreadable_plural": "{{count}} templates couldn't be read.",
+        "showArchived": "Show archived templates",
+        "emptyTitle": "No shift templates yet",
+        "emptyBody": "Create a template for each shift pattern you use, like Morning or Overnight.",
+        "edit": "Edit {{name}}",
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive",
+          "archived": "Archived"
+        },
+        "createTitle": "New shift template",
+        "editTitle": "Edit shift template",
+        "create": "Create template",
+        "name": "Name",
+        "namePlaceholder": "Morning shift",
+        "nameRequired": "Give the template a name.",
+        "department": "Department",
+        "departmentRequired": "Choose a department.",
+        "noDepartments": "Your departments couldn't be loaded, so a template can't be created yet.",
+        "overnightHint": "An end time earlier than the start means the shift ends the next day.",
+        "active": "Active (can be scheduled)",
+        "onlyNew": "A template is a pattern for new shifts. Shifts already scheduled keep their own times.",
+        "usage": "Used by {{upcoming}} upcoming and {{past}} past shifts. They won't change.",
+        "usageFailed": "How many shifts use this template couldn't be loaded.",
+        "usageLoading": "Checking which shifts use this template…",
+        "archive": "Archive template",
+        "archiveTitle": "Archive {{name}}?",
+        "archiveMessage": "It can't be scheduled any more. {{upcoming}} upcoming and {{past}} past shifts use it. They stay on the schedule unchanged.",
+        "archiveMessageUnknown": "It can't be scheduled any more. Shifts already scheduled stay on the schedule unchanged. How many use it couldn't be checked."
+      }
+    },
+    "departments": {
+      "HK": "Housekeeping",
+      "ENG": "Engineering",
+      "FD": "Front desk",
+      "FO": "Front desk",
+      "MGMT": "Management",
+      "GM": "Management"
     }
   },
   "supervisorToday": {

@@ -1269,6 +1269,9 @@ class UpdateShiftAssignmentRequest(SanitizedBaseModel):
     """Edit one scheduled occurrence. `expected_version` is required: a stale edit is refused, never merged."""
     expected_version: int = Field(ge=1)
     shift_id: Optional[UUID4] = None
+    # Move the occurrence to another day, or hand it to another employee. Both are validated like a new shift.
+    work_date: Optional[date] = None
+    user_id: Optional[UUID4] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
@@ -1294,6 +1297,10 @@ class BulkShiftAssignmentItem(SanitizedBaseModel):
     user_id: UUID4
     shift_id: UUID4
     work_date: date
+    # Optional per-occurrence overrides, same meaning as on CreateShiftAssignmentRequest (custom recurring times).
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
 class BulkShiftAssignmentRequest(SanitizedBaseModel):

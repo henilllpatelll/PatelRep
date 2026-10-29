@@ -18,7 +18,7 @@ export function isYmd(value: unknown): value is string {
 }
 
 /** 0 = Monday … 6 = Sunday. */
-function mondayIndex(ymd: string): number {
+export function mondayIndex(ymd: string): number {
   const [y, m, d] = ymd.split("-").map(Number);
   return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
 }

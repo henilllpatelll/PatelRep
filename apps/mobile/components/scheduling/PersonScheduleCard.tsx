@@ -12,7 +12,7 @@ const SHIFTS_SHOWN = 2;
 
 interface Props {
   person: RosterPerson;
-  onOpen: (userId: string) => void;
+  onOpen: (userId: string, shiftId?: string) => void;
   t: Translate;
 }
 

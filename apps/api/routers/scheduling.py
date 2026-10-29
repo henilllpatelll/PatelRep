@@ -544,6 +544,7 @@ async def bulk_create_assignments(
         raise err(422, "batch_too_large", f"At most {MAX_BATCH} assignments per request.")
     prepared = _prepare([{
         "user_id": str(i.user_id), "shift_id": str(i.shift_id), "work_date": i.work_date,
+        "start_time": i.start_time, "end_time": i.end_time, "notes": i.notes,
     } for i in body.assignments], current_user)
     created = _insert(prepared["rows"])
     _audit_created(current_user, created)
@@ -562,7 +563,7 @@ async def update_shift_assignment(
     current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES)),
 ):
     """
-    Edit one scheduled occurrence (its shift, its own start/end, notes). `expected_version` must match the stored
+    Edit one scheduled occurrence (its shift, employee, date, its own start/end, notes). `expected_version` must match the stored
     version or the edit is refused with 409 and the current row, never merged over someone else's change. Past
     dates and shifts that already have recorded attendance are not editable.
     """
@@ -588,35 +589,44 @@ async def update_shift_assignment(
         raise err(422, "no_changes", "No valid fields to update")
 
     shift_id = str(fields.get("shift_id") or row["shift_id"])
+    target_user = str(fields.get("user_id") or row["user_id"])
+    target_date = fields.get("work_date") or work_date
     template = _load_template(hotel_id, shift_id)
-    if shift_id != str(row["shift_id"]):
-        if template.get("archived_at") or not template.get("is_active", True):
-            raise err(409, "shift_inactive", f"Shift '{template.get('name')}' is inactive and cannot be scheduled.")
-        ensure_can_manage(current_user, str(template["department_id"]), departments)
-        member = load_staff(hotel_id, departments, [str(row["user_id"])]).get(str(row["user_id"]))
-        if member is None:
+    template_changed = shift_id != str(row["shift_id"])
+    user_changed = target_user != str(row["user_id"])
+    date_changed = target_date != work_date
+    if date_changed and target_date < hotel_today(zone):
+        raise err(409, "historical_assignment_locked", "A shift cannot be moved into the past.")
+    if template_changed or user_changed or date_changed:
+        if template_changed:
+            if template.get("archived_at") or not template.get("is_active", True):
+                raise err(409, "shift_inactive", f"Shift '{template.get('name')}' is inactive and cannot be scheduled.")
+            ensure_can_manage(current_user, str(template["department_id"]), departments)
+        member = load_staff(hotel_id, departments, [target_user]).get(target_user)
+        if member is None:  # another hotel's id is indistinguishable from an unknown one, on purpose
+            if user_changed:
+                raise err(404, "staff_not_found", "Staff member not found", missing=[target_user])
             raise err(409, "staff_inactive", "That employee is no longer active.")
         if member.department_id is not None and member.department_id != str(template["department_id"]):
             raise err(422, "department_mismatch", "That employee does not work in this shift's department.")
         duplicate = (
-            supabase.table("shift_assignments").select("id").eq("tenant_id", hotel_id).eq("user_id", row["user_id"])
-            .eq("shift_id", shift_id).eq("work_date", row["work_date"]).neq("id", assignment_id).execute()
+            supabase.table("shift_assignments").select("id").eq("tenant_id", hotel_id).eq("user_id", target_user)
+            .eq("shift_id", shift_id).eq("work_date", target_date.isoformat()).neq("id", assignment_id).execute()
         )
         if duplicate.data:
             raise err(409, "duplicate_assignment", "This person is already scheduled on that shift and date.")
 
-    template_changed = shift_id != str(row["shift_id"])
     start_t = _clock(fields.get("start_time"), "start_time") or parse_clock(
         template["start_time"] if template_changed and "start_time" not in fields else row["start_time"])
     end_t = _clock(fields.get("end_time"), "end_time") or parse_clock(
         template["end_time"] if template_changed and "end_time" not in fields else row["end_time"])
     if start_t is None or end_t is None or start_t == end_t:
         raise err(422, "invalid_time", "The shift times are not valid.")
-    starts_at, ends_at = resolve_occurrence(work_date, start_t, end_t, zone)
+    starts_at, ends_at = resolve_occurrence(target_date, start_t, end_t, zone)
 
-    others = [o for o in (_occurrence(r) for r in _existing_rows(hotel_id, [str(row["user_id"])], work_date, work_date))
+    others = [o for o in (_occurrence(r) for r in _existing_rows(hotel_id, [target_user], target_date, target_date))
               if o is not None and o.id != assignment_id]
-    mine = Occurrence(str(row["user_id"]), shift_id, work_date, starts_at, ends_at, assignment_id)
+    mine = Occurrence(target_user, shift_id, target_date, starts_at, ends_at, assignment_id)
     conflicts = find_conflicts([mine], others)
     if conflicts:
         raise err(409, "schedule_conflict", "That change overlaps another shift for the same person.",
@@ -635,8 +645,14 @@ async def update_shift_assignment(
         "updated_by": current_user.user_id,
         "version": body.expected_version + 1,
     }
+    if user_changed:
+        update["user_id"] = target_user
+    if date_changed:
+        update["work_date"] = target_date.isoformat()
     if "notes" in fields:
         update["notes"] = fields["notes"]
+    audit_keys = ("user_id", "work_date", "shift_id", "start_time", "end_time", "notes")
+    old_state = {k: row.get(k) for k in audit_keys}  # captured before the write
     try:
         saved = (
             supabase.table("shift_assignments").update(update)
@@ -650,8 +666,7 @@ async def update_shift_assignment(
             raise _version_conflict(latest.data)
         raise err(404, "assignment_not_found", "Assignment not found")
     record_audit(current_user, resource_type="shift_assignment", resource_id=assignment_id, action="updated",
-                 old_state={k: row.get(k) for k in ("shift_id", "start_time", "end_time", "notes")},
-                 new_state={k: update.get(k) for k in ("shift_id", "start_time", "end_time", "notes") if k in update})
+                 old_state=old_state, new_state={k: update.get(k) for k in audit_keys if k in update})
     return {"data": _shape(saved.data[0]), "meta": {"warnings": [w.as_dict() for w in warnings]}}
 
 
@@ -659,6 +674,7 @@ async def update_shift_assignment(
 async def delete_assignment(
     assignment_id: str,
     current_user: CurrentUser = Depends(require_role(*SUPERVISOR_ROLES)),
+    expected_version: Optional[int] = None,  # query parameter: refuse if the shift changed since the caller saw it
 ):
     """
     Remove a scheduled occurrence. Refused (409) when the shift already has recorded attendance, and for past dates
@@ -670,6 +686,8 @@ async def delete_assignment(
     if not row:
         raise err(404, "assignment_not_found", "Assignment not found")
     ensure_can_manage(current_user, row.get("department_id"), load_departments(hotel_id))
+    if expected_version is not None and row.get("version", 1) != expected_version:
+        raise _version_conflict(row)  # the shift changed since the caller looked at it; never remove an unseen change
     if row.get("clocked_in_at") or row.get("is_on_shift"):
         raise err(409, "has_attendance", "This shift already has recorded attendance and cannot be removed.")
     if _day(row["work_date"]) < hotel_today(hotel_zone(hotel_id)) and manager_scope(current_user) is not None:

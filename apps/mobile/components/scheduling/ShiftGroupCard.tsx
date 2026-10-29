@@ -10,7 +10,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 interface Props {
   group: ShiftGroup;
-  onOpen: (userId: string) => void;
+  onOpen: (userId: string, shiftId?: string) => void;
   t: Translate;
 }
 
@@ -50,7 +50,7 @@ export const ShiftGroupCard = memo(function ShiftGroupCard({ group, onOpen, t }:
         return (
           <Pressable
             key={`${shift.id}`}
-            onPress={() => onOpen(person.userId)}
+            onPress={() => onOpen(person.userId, shift.id)}
             accessibilityRole="button"
             accessibilityLabel={[name, role, person.status ? statusLabel(person.status, t) : null, shift.draft ? t("teamSchedule.draft") : null].filter(Boolean).join(". ")}
             accessibilityHint={t("teamSchedule.openShift")}
