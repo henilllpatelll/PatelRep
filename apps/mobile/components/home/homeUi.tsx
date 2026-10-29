@@ -2,6 +2,7 @@ import { forwardRef, type ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, type View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import type { ViewInstance } from "react-native";
 
 /** Larger system text scales the layout up to here, then stops (it must still fit a small phone). */
 export const MAX_FONT_SCALE = 1.6;
@@ -33,7 +34,7 @@ interface LinkButtonProps {
 }
 
 /** A quiet text action with a full-size touch target ("View all →"). */
-export const LinkButton = forwardRef<View, LinkButtonProps>(function LinkButton(
+export const LinkButton = forwardRef<ViewInstance, LinkButtonProps>(function LinkButton(
   { label, onPress, icon, disabled, testID, accessibilityLabel, expanded },
   ref,
 ) {
@@ -67,7 +68,7 @@ interface MoreButtonProps {
 }
 
 /** "More" for a room card: opens that room's actions drawer. A full-size target that never competes with the primary action. */
-export const MoreButton = forwardRef<View, MoreButtonProps>(function MoreButton({ label, accessibilityLabel, onPress, testID }, ref) {
+export const MoreButton = forwardRef<ViewInstance, MoreButtonProps>(function MoreButton({ label, accessibilityLabel, onPress, testID }, ref) {
   const theme = useTheme();
   return (
     <Pressable

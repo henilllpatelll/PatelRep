@@ -179,6 +179,24 @@ describe("secureSessionStorage", () => {
     expect(mockSecure.size).toBe(0);
   });
 
+  it("behaves as empty storage during web static rendering, where there is no window", async () => {
+    Platform.OS = "web";
+    const realWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    // Node has no `window`; AsyncStorage's web build would throw "window is not defined" if it were reached.
+    // @ts-expect-error simulating the Expo Router static-render environment
+    delete globalThis.window;
+    try {
+      await expect(storage.getItem(KEY)).resolves.toBeNull();
+      await expect(storage.setItem(KEY, "v")).resolves.toBeUndefined();
+      await expect(storage.removeItem(KEY)).resolves.toBeUndefined();
+    } finally {
+      if (realWindow) Object.defineProperty(globalThis, "window", realWindow);
+    }
+    expect(AsyncStorage.getItem).not.toHaveBeenCalled();
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+    expect(mockLegacy.size).toBe(0);
+  });
+
   it("never logs session values", async () => {
     const spies = (["log", "warn", "error", "info"] as const).map((m) => jest.spyOn(console, m).mockImplementation(() => undefined));
     mockSecureFailWrites = true;

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePalette, type Palette } from "@/components/ai/palette";
 import { useVoiceInput, type VoiceState } from "@/lib/tasks/addTask/useVoiceInput";
 import { speechLocale } from "@/lib/voice/locale";
+import type { TextInputInstance } from "react-native";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -43,7 +44,7 @@ export function VoiceCapturePanel({ language, maxChars, autoStart, onUse, onClos
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const appLanguage = language ?? i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [text, setText] = useState("");
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const voice = useVoiceInput({
     language: appLanguage,

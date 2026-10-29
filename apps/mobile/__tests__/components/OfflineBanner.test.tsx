@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { render } from "@testing-library/react-native";
 import { I18nextProvider } from "react-i18next";
-import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from "react-native";
+import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { darkTheme, lightTheme } from "@/components/shared/tokens";
 import i18n from "@/i18n";
@@ -32,7 +32,7 @@ function renderBanner(mode: "light" | "dark" = "light") {
 }
 
 function flattenedStyle(node: { props: { style?: unknown } }) {
-  return StyleSheet.flatten(node.props.style) as ViewStyle & TextStyle;
+  return StyleSheet.flatten(node.props.style as StyleProp<ViewStyle & TextStyle>) as ViewStyle & TextStyle;
 }
 
 beforeEach(async () => {

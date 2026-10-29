@@ -1,5 +1,6 @@
 import { useState, type ComponentProps, type Ref } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import type { TextInputInstance } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -11,7 +12,7 @@ interface AuthTextFieldProps extends ComponentProps<typeof TextInput> {
   /** Adds a show/hide control; the field starts hidden. */
   revealable?: boolean;
   invalid?: boolean;
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
 }
 
 /** Themed single-line field shared by sign-in, recovery and password screens. */

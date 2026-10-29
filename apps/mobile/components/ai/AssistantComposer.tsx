@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { usePalette, type Palette } from "@/components/ai/palette";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/useAssistantConversation";
+import type { TextInputInstance } from "react-native";
 
 const MAX_FONT_SCALE = 1.6;
 const COUNTER_FROM = Math.floor(MAX_MESSAGE_CHARS * 0.8);
@@ -30,7 +31,7 @@ export function AssistantComposer({ value, onChangeText, onSend, onCancel, sendi
   const { t } = useTranslation();
   const theme = usePalette(palette);
   const styles = useMemo(() => makeStyles(theme), [theme]);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   useEffect(() => {
     if (focusToken > 0) inputRef.current?.focus();

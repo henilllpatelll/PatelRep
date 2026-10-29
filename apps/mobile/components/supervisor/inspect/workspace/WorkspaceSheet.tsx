@@ -6,6 +6,7 @@ import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import type { Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import type { TextInstance } from "react-native";
 
 /* ─── The one bottom drawer every workspace sheet uses ──────────────────────
    Exactly one is ever open (the screen holds a single `sheet` value), so drawers never stack. Android back and a
@@ -39,7 +40,7 @@ export function WorkspaceSheet({
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const titleRef = useRef<Text>(null);
+  const titleRef = useRef<TextInstance>(null);
 
   useEffect(() => {
     if (!visible || Platform.OS === "web") return undefined;

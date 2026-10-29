@@ -156,7 +156,7 @@ export default function TaskHistoryScreen() {
                   </Text>
                 ) : null}
               </View>
-            ) : null
+            ) : undefined
           }
         />
       )}

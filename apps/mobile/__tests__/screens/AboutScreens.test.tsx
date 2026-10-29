@@ -65,7 +65,7 @@ beforeEach(() => {
   mockLegal = {};
   mockNotes = [];
   jest.clearAllMocks();
-  jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+  jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
 });
 afterEach(() => jest.restoreAllMocks());
 

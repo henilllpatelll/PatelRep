@@ -18,6 +18,7 @@ import {
 } from "@/lib/inspections/queueView";
 import type { Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import type { TextInstance } from "react-native";
 
 /**
  * Filter & Sort bottom drawer. It edits a DRAFT: the list changes only when "Show N rooms" is tapped, and closing
@@ -44,7 +45,7 @@ export function InspectFilterSheet({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<QueueDraft>(applied);
-  const titleRef = useRef<Text>(null);
+  const titleRef = useRef<TextInstance>(null);
 
   // Every opening starts from what is applied; edits from a cancelled close are dropped. Not re-seeded on data
   // refreshes, which would wipe a half-made selection.

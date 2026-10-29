@@ -111,8 +111,17 @@ async function writeSecure(key: string, value: string): Promise<void> {
   if (previous) await deleteChunks(key, previous);
 }
 
+/**
+ * True while Expo Router statically renders the web bundle in Node. AsyncStorage's web build reads
+ * `window.localStorage`, and Supabase initialises its auth client (and reads the stored session) at import
+ * time, so without this guard the server render dies with "window is not defined". There is no browser
+ * session to restore on the server, so storage behaves as empty there; the browser rehydrates normally.
+ */
+const isServerRender = () => Platform.OS === "web" && typeof window === "undefined";
+
 const secureSessionStorage = {
   async getItem(key: string): Promise<string | null> {
+    if (isServerRender()) return null;
     if (Platform.OS === "web") return AsyncStorage.getItem(key);
 
     let secure: string | null = null;
@@ -139,12 +148,14 @@ const secureSessionStorage = {
   },
 
   async setItem(key: string, value: string): Promise<void> {
+    if (isServerRender()) return;
     if (Platform.OS === "web") return AsyncStorage.setItem(key, value);
     await writeSecure(key, value);
     await AsyncStorage.removeItem(key).catch(() => undefined);
   },
 
   async removeItem(key: string): Promise<void> {
+    if (isServerRender()) return;
     if (Platform.OS === "web") return AsyncStorage.removeItem(key);
     await removeSecure(key).catch(() => undefined);
     await AsyncStorage.removeItem(key).catch(() => undefined);

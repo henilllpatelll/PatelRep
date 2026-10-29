@@ -98,7 +98,7 @@ export function AssignRoomChooserSheet({
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.caption, { color: theme.textMuted }]}>
                   {t("assignments.v2.assign.team.chooserCaption")}
                 </Text>
-              ) : null
+              ) : undefined
             }
             ListEmptyComponent={
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textSecondary }]} testID="assign-chooser-empty">

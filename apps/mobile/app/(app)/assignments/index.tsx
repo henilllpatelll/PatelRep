@@ -617,7 +617,7 @@ export default function AssignmentsScreen() {
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
         ListHeaderComponent={listHeader}
-        ListEmptyComponent={listEmpty}
+        ListEmptyComponent={listEmpty ?? undefined}
         style={styles.list}
         contentContainerStyle={styles.listContent}
         initialNumToRender={8}
