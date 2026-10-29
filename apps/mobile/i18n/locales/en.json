@@ -7335,6 +7335,17 @@
     "dayOff": "Day off",
     "noShiftScheduled": "No shift scheduled",
     "thisWeek": "This week",
+    "week": {
+      "previous": "Previous week",
+      "next": "Next week",
+      "current": "This week",
+      "loadFailed": "We couldn't load this week.",
+      "off": "Off",
+      "onShift": "On shift",
+      "scheduled": "Scheduled",
+      "shiftUnavailable": "That shift is no longer on your schedule.",
+      "showing": "Showing the week of {{date}}"
+    },
     "actions": {
       "title": "Schedule actions",
       "availability": "My availability",
@@ -7435,6 +7446,7 @@
       }
     },
     "myRequests": {
+      "unavailable": "That request is no longer available.",
       "title": "My requests",
       "kicker": "My Schedule",
       "intro": "Everything you've asked for, and swaps waiting on you.",
@@ -7492,6 +7504,7 @@
       "offline": "You're offline. Connect to request a swap."
     },
     "offers": {
+      "unavailable": "That offer is no longer available. It may have been withdrawn, answered or expired.",
       "kicker": "Shifts",
       "title": "Shift offers",
       "offline": "You're offline. What's shown may be out of date.",

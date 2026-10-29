@@ -8,7 +8,7 @@ from routers import scheduling_leave as leave
 from routers import scheduling_requests as requests_router
 from routers import scheduling_swaps as swaps
 
-from .request_support import D2, DAY, HK1, HK2, S_MORN, SUP, U_HK1, U_HK2, U_SUP, scheduled
+from .request_support import D2, D3, DAY, HK1, HK2, S_MORN, SUP, U_HK1, U_HK2, scheduled
 from .test_scheduling_coverage import open_gap
 
 
@@ -25,57 +25,46 @@ def blob(db) -> str:
     return " ".join(str(n["payload"]) for n in db.rows["schedule_notifications"]).lower()
 
 
+REQUEST_EVENTS = {
+    "schedule_time_off_requested", "schedule_time_off_approved", "schedule_time_off_denied", "schedule_swap_proposed",
+    "schedule_swap_accepted", "schedule_swap_declined", "schedule_swap_needs_approval", "schedule_swap_approved",
+    "schedule_swap_denied", "schedule_offer_received", "schedule_offer_withdrawn", "schedule_offer_accepted",
+    "schedule_offer_declined", "schedule_claim_submitted", "schedule_claim_approved", "schedule_claim_declined",
+}
+
+
+def request_messages(db):
+    return [n for n in db.rows["schedule_notifications"] if n["event_type"] in REQUEST_EVENTS]
+
+
 @pytest.mark.asyncio
-async def test_a_time_off_request_tells_managers_it_exists_but_never_why(db):
+async def test_request_workflows_leave_their_messages_to_the_database_transaction(db):
+    """
+    Time-off, swap, offer and claim messages are written by migration 229's triggers in the SAME transaction as the
+    change (proved against real Postgres in tests/integration/test_schedule_notification_triggers.py). The API must not
+    queue a second, post-commit copy: that is the crash window the triggers close. The fake database has no triggers,
+    so after walking every one of those flows the outbox must hold nothing from the API.
+    """
     made = (await leave.create_time_off(CreateTimeOffRequest(start_date=DAY, end_date=DAY, reason_category="health", note="chemotherapy"), HK1))["data"]
-    recipients = {user for _, user in queued(db, "schedule_time_off_requested")}
-    assert U_SUP in recipients and U_HK1 not in recipients
-    assert "chemotherapy" not in blob(db) and "health" not in blob(db)
     await leave.deny_time_off(made["id"], DecideTimeOffRequest(expected_version=1, reason="coverage is too thin that week"), SUP)
-    assert queued(db, "schedule_time_off_denied") == [("schedule_time_off_denied", U_HK1)]
-    assert "thin" not in blob(db)                                           # the decision reason stays with the request
-
-
-@pytest.mark.asyncio
-async def test_approval_notifies_the_requester_only(db):
-    made = (await leave.create_time_off(CreateTimeOffRequest(start_date=DAY, end_date=DAY, reason_category="personal"), HK1))["data"]
-    await leave.approve_time_off(made["id"], DecideTimeOffRequest(expected_version=1), SUP)
-    assert queued(db, "schedule_time_off_approved") == [("schedule_time_off_approved", U_HK1)]
-
-
-@pytest.mark.asyncio
-async def test_a_swap_notifies_each_party_at_the_moment_it_matters(db):
-    a, b = await scheduled(user=U_HK1, day=DAY), await scheduled(user=U_HK2, day=D2)
-    swap = (await swaps.propose_swap(CreateSwapRequest(requester_assignment_id=a, counterpart_assignment_id=b), HK1))["data"]
-    assert queued(db, "schedule_swap_proposed") == [("schedule_swap_proposed", U_HK2)]
-    await swaps.respond_to_swap(swap["id"], RespondSwapRequest(accept=True, expected_version=1), HK2)
-    assert queued(db, "schedule_swap_accepted") == [("schedule_swap_accepted", U_HK1)]
-    assert U_SUP in {u for _, u in queued(db, "schedule_swap_needs_approval")}
-    await swaps.approve_swap(swap["id"], DecideSwapRequest(expected_version=2), SUP)
-    assert {u for _, u in queued(db, "schedule_swap_approved")} == {U_HK1, U_HK2}
-    # a retried request cannot message twice
-    from services import schedule_outbox
-    assert schedule_outbox.enqueue(HK1.hotel_id, [U_HK2], "schedule_swap_proposed", swap["id"]) >= 0
-    assert len(queued(db, "schedule_swap_proposed")) == 1
-
-
-@pytest.mark.asyncio
-async def test_an_offer_reaches_the_offered_employee_and_the_response_reaches_the_supervisor(db):
     gap_id, _ = await open_gap(db, user=U_HK1)
     sent = await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=1), SUP)
-    offer_id = sent["meta"]["offer_id"]
-    assert queued(db, "schedule_offer_received") == [("schedule_offer_received", U_HK2)]
-    assert sent["meta"]["delivered"] is False                                # queued is not delivered
-    await requests_router.respond_to_offer(offer_id, OfferResponseRequest(accept=True), HK2)
-    assert queued(db, "schedule_offer_accepted") == [("schedule_offer_accepted", U_SUP)]
+    assert sent["meta"]["delivered"] is False                                # an offer row is not a delivery
+    await coverage.withdraw_offer(gap_id, sent["meta"]["offer_id"], SUP)
+    a, b = await scheduled(user=U_HK1, day=D2), await scheduled(user=U_HK2, day=D3)
+    swap = (await swaps.propose_swap(CreateSwapRequest(requester_assignment_id=a, counterpart_assignment_id=b), HK1))["data"]
+    await swaps.respond_to_swap(swap["id"], RespondSwapRequest(accept=True, expected_version=1), HK2)
+    await swaps.approve_swap(swap["id"], DecideSwapRequest(expected_version=2), SUP)
+    assert request_messages(db) == []
 
 
 @pytest.mark.asyncio
-async def test_a_withdrawn_offer_tells_the_employee(db):
+async def test_a_withdrawn_offer_still_reopens_the_gap_without_any_api_message(db):
     gap_id, _ = await open_gap(db, user=U_HK1)
     offer_id = (await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=1), SUP))["meta"]["offer_id"]
     await coverage.withdraw_offer(gap_id, offer_id, SUP)
-    assert queued(db, "schedule_offer_withdrawn") == [("schedule_offer_withdrawn", U_HK2)]
+    assert next(o for o in db.rows["coverage_offers"] if o["id"] == offer_id)["status"] == "withdrawn"
+    assert request_messages(db) == []
 
 
 @pytest.mark.asyncio
@@ -102,6 +91,7 @@ async def test_the_offer_row_records_in_app_delivery_only_after_the_inbox_messag
     offer_id = (await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=1), SUP))["meta"]["offer_id"]
     offer = next(o for o in db.rows["coverage_offers"] if o["id"] == offer_id)
     assert offer["delivery"] == "not_sent"
+    schedule_outbox.enqueue(HK2.hotel_id, [U_HK2], "schedule_offer_received", offer_id, {"offer_id": offer_id, "gap_id": gap_id})  # what migration 229's trigger writes
     await schedule_outbox.process_batch(50)
     assert offer["delivery"] == "sent" and db.rows["notifications"][0]["data"]["offer_id"] == offer_id
 
@@ -132,4 +122,3 @@ async def test_my_claims_lists_only_the_callers_own_requests_without_the_supervi
     await requests_router.decline_claim(claim["data"]["claim_id"], ClaimDecisionRequest(expected_version=1, reason="staffing is full"), SUP)
     decided = (await requests_router.my_claims(HK2))["data"]
     assert decided[0]["status"] == "declined" and "staffing" not in str(decided)
-    assert queued(db, "schedule_claim_declined") == [("schedule_claim_declined", U_HK2)]

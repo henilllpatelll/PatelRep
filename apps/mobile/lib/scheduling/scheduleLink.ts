@@ -47,7 +47,10 @@ export function resolveScheduleTarget(data: unknown, role: string | null | undef
   if (swapId && UUID.test(swapId)) params.requestId = swapId.toLowerCase();
   const params2 = record.params && typeof record.params === "object" ? (record.params as Record<string, unknown>) : null;
   const firstDate = text(params2?.first_date) ?? text(params2?.work_date);
+  // `YMD.test` is only the shape; My Schedule re-validates the calendar day and opens the current week for anything else.
   if (firstDate && YMD.test(firstDate) && screen === "my_schedule") params.date = firstDate;
+  const assignmentId = text(record.assignment_id);
+  if (assignmentId && UUID.test(assignmentId) && screen === "my_schedule") params.assignmentId = assignmentId.toLowerCase();
   if (screen === "open_shifts") params.tab = "open";
   if (screen === "offers") params.tab = "offers";
   if (screen === "coverage" && !params.gapId) return null; // coverage needs the gap it names

@@ -21,7 +21,6 @@ from core.database import supabase
 from core.roles import ALL_ROLES, SCHEDULE_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.coverage_requests import ClaimDecisionRequest, OfferResponseRequest
-from services import schedule_outbox as notices
 from services import coverage_fill as fill
 from services import coverage_store as store
 from services.scheduling_access import ensure_can_manage, err, load_departments, load_staff, record_audit
@@ -130,8 +129,7 @@ async def respond_to_offer(offer_id: str, body: OfferResponseRequest, current_us
             raise err(409, "offer_not_pending", "This offer changed. Reload to see the latest.")
         record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="declined",
                      old_state={"status": "pending"}, new_state={"status": "declined"})
-        if offer.get("offered_by"):
-            notices.enqueue(hotel_id, [str(offer["offered_by"])], "schedule_offer_declined", offer_id, {"offer_id": offer_id, "gap_id": str(gap["id"])})
+        # The offerer's "declined" message is queued by migration 229's trigger in the status update's transaction.
         fill.reopen_if_idle(hotel_id, str(gap["id"]))
         return {"data": {"offer_id": offer_id, "status": "declined"}}
 
@@ -144,8 +142,7 @@ async def respond_to_offer(offer_id: str, body: OfferResponseRequest, current_us
                               expected_version=int(gap["version"]), offer_id=offer_id)
     record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="accepted",
                  old_state={"status": "pending"}, new_state={"status": "accepted", "recorded_by_manager": is_manager})
-    if offer.get("offered_by") and str(offer["offered_by"]) != current_user.user_id:
-        notices.enqueue(hotel_id, [str(offer["offered_by"])], "schedule_offer_accepted", offer_id, {"offer_id": offer_id, "gap_id": str(gap["id"])})
+    # The offerer's "accepted" message was queued inside fill_coverage_gap()'s transaction (migration 229's trigger).
     return {"data": {"offer_id": offer_id, "status": "accepted", "assignment_id": result["assignment_id"]}}
 
 
@@ -201,8 +198,7 @@ async def claim_open_shift(gap_id: str, current_user: CurrentUser = Depends(requ
         raise
     record_audit(current_user, resource_type="coverage_claim", resource_id=str(claim["id"]), action="created",
                  new_state={"gap_id": gap_id, "status": "pending"})
-    notices.enqueue(hotel_id, notices.managers_of(hotel_id, str(gap["department_id"]), exclude=[current_user.user_id]),
-                    "schedule_claim_submitted", str(claim["id"]), {"claim_id": str(claim["id"]), "gap_id": gap_id})
+    # Managers are told by migration 229's trigger, inside the claim insert's transaction.
     return {"data": {"claim_id": claim["id"], "status": "pending", "shift": _employee_gap_view(gap)}}
 
 
@@ -230,8 +226,7 @@ def _decide_stale(current_user: CurrentUser, claim: dict, reason: str) -> None:
         "decision_reason": reason, "updated_at": store.now_utc().isoformat()}).eq("tenant_id", current_user.hotel_id).eq("id", claim["id"]).eq("status", "pending").execute()
     record_audit(current_user, resource_type="coverage_claim", resource_id=str(claim["id"]), action="declined",
                  old_state={"status": "pending"}, new_state={"status": "declined"}, reason_note=reason)
-    notices.enqueue(current_user.hotel_id, [str(claim["user_id"])], "schedule_claim_declined", str(claim["id"]),
-                    {"claim_id": str(claim["id"]), "gap_id": str(claim["gap_id"])})
+    # The claimant's "declined" message is queued by migration 229's trigger in this same transaction.
 
 
 @router.post("/claims/{claim_id}/approve")
@@ -263,8 +258,7 @@ async def approve_claim(claim_id: str, body: ClaimDecisionRequest, current_user:
                               expected_version=body.expected_version, claim_id=claim_id)
     record_audit(current_user, resource_type="coverage_claim", resource_id=claim_id, action="approved",
                  old_state={"status": "pending"}, new_state={"status": "approved"})
-    notices.enqueue(hotel_id, [str(claim["user_id"])], "schedule_claim_approved", claim_id,
-                    {"claim_id": claim_id, "gap_id": str(gap["id"]), "work_date": str(gap["work_date"])[:10]})
+    # The claimant's "approved" message (with the shift's date) was queued inside fill_coverage_gap()'s transaction.
     return {"data": fill.full_gap(hotel_id, str(gap["id"])), "meta": {"assignment_id": result["assignment_id"]}}
 
 

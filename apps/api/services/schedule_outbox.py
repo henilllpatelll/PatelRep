@@ -1,8 +1,11 @@
 """Schedule notification outbox: enqueue, deliver, retry (Team Scheduling Phase 7).
 
 THREE STEPS, ALWAYS SEPARATE
-  1. INTENT  a row in `schedule_notifications`. Publication writes its rows inside the publish transaction (SQL);
-             request workflows (time off, swaps, offers, claims) call `enqueue()` right after their own commit.
+  1. INTENT  a row in `schedule_notifications`, ALWAYS written by the database inside the transaction of the business
+             change: publication (migration 228, `publish_schedule_revision`) and the request workflows -- time off,
+             swaps, offers, claims (migration 229, AFTER triggers). A rolled-back change leaves no message and a committed
+             one cannot lose its message to a crash. The only API-side `enqueue()` left is the open-shift announcement,
+             whose audience (who is eligible and available) is computed in Python; it is best effort by design.
   2. INBOX   `process_batch()` claims due rows (multi-replica safe, `FOR UPDATE SKIP LOCKED`), creates the in-app
              `notifications` row (idempotent through `dedupe_key`) and marks the intent `sent`. THE INBOX ROW IS THE
              RELIABLE BASELINE: "sent" means "the person can read it in the app", never "a phone buzzed".
@@ -40,7 +43,7 @@ EVENTS: dict[str, tuple[str, str, str]] = {
     "schedule_offer_declined": ("coverage", "Offer declined", "Open PatelRep to review."),
     "schedule_open_shift": ("open_shifts", "Open shift", "A shift you can take is open."),
     "schedule_claim_submitted": ("team_requests", "Shift request", "Open PatelRep to review."),
-    "schedule_claim_approved": ("open_shifts", "Shift request approved", "Open PatelRep to see your schedule."),
+    "schedule_claim_approved": ("my_schedule", "Shift request approved", "Open PatelRep to see your schedule."),
     "schedule_claim_declined": ("open_shifts", "Shift request declined", "Open PatelRep for details."),
     "schedule_time_off_requested": ("team_requests", "Time-off request", "Open PatelRep to review."),
     "schedule_time_off_approved": ("my_requests", "Time off approved", "Open PatelRep for details."),
@@ -49,7 +52,7 @@ EVENTS: dict[str, tuple[str, str, str]] = {
     "schedule_swap_accepted": ("my_requests", "Shift swap accepted", "Open PatelRep for details."),
     "schedule_swap_declined": ("my_requests", "Shift swap declined", "Open PatelRep for details."),
     "schedule_swap_needs_approval": ("team_requests", "Shift swap to approve", "Open PatelRep to review."),
-    "schedule_swap_approved": ("my_requests", "Shift swap approved", "Open PatelRep to see your schedule."),
+    "schedule_swap_approved": ("my_schedule", "Shift swap approved", "Open PatelRep to see your schedule."),
     "schedule_swap_denied": ("my_requests", "Shift swap not approved", "Open PatelRep for details."),
 }
 
@@ -93,8 +96,9 @@ def enqueue(tenant_id: str, user_ids: Iterable[str], event_type: str, key: str, 
             revision_id: Optional[str] = None) -> int:
     """
     Record an intent per recipient. Idempotent: the same (event, key, person) is stored once, so a retried request
-    cannot message twice. Best effort by design for request workflows: a failure here is logged and returns 0, it
-    never fails the caller's committed change.
+    cannot message twice. Best effort by design and ONLY for announcements whose audience is derived in Python (open
+    shifts): a failure here is logged and returns 0, it never fails the caller's committed change. Business events must
+    not use this -- their intent belongs in the database transaction (migration 229).
     """
     if event_type not in EVENTS:
         logger.warning("SCHEDULE_NOTIFY_UNKNOWN_EVENT type=%s", event_type)
@@ -112,41 +116,6 @@ def enqueue(tenant_id: str, user_ids: Iterable[str], event_type: str, key: str, 
         logger.warning("SCHEDULE_NOTIFY_ENQUEUE_FAILED type=%s", event_type, exc_info=True)
         return 0
     return len(rows)
-
-
-def department_of(tenant_id: str, user_id: str) -> Optional[str]:
-    """The department a person works in (None when it cannot be determined; never guessed)."""
-    from services.scheduling_access import load_departments, load_staff
-
-    try:
-        member = load_staff(tenant_id, load_departments(tenant_id), [user_id]).get(user_id)
-    except Exception:
-        logger.warning("SCHEDULE_NOTIFY_DEPARTMENT_FAILED", exc_info=True)
-        return None
-    return member.department_id if member else None
-
-
-def managers_of(tenant_id: str, department_id: Optional[str], *, exclude: Iterable[str] = ()) -> list[str]:
-    """Active schedule managers whose scope covers a department (GM covers all). Used for supervisor-facing events."""
-    from core.roles import SCHEDULE_MANAGER_ROLES
-    from services.scheduling_access import load_departments
-    from services.scheduling_contracts import MANAGER_DEPARTMENT_CODES
-
-    try:
-        departments = load_departments(tenant_id)
-        code = departments.code_by_id.get(str(department_id)) if department_id else None
-        rows = (supabase.table("user_roles").select("user_id, role").eq("tenant_id", tenant_id).eq("is_active", True)
-                .in_("role", list(SCHEDULE_MANAGER_ROLES)).execute().data or [])
-    except Exception:
-        logger.warning("SCHEDULE_NOTIFY_MANAGERS_FAILED", exc_info=True)
-        return []
-    skip = {str(x) for x in exclude}
-    out: list[str] = []
-    for row in rows:
-        scope = MANAGER_DEPARTMENT_CODES.get(row["role"])
-        if str(row["user_id"]) not in skip and (scope is None or (code is not None and code in scope)):
-            out.append(str(row["user_id"]))
-    return list(dict.fromkeys(out))
 
 
 async def process_batch(limit: int = 50, revision_id: Optional[str] = None) -> dict:

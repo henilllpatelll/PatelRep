@@ -92,17 +92,10 @@ async def record_absence(body: RecordAbsenceRequest, current_user: CurrentUser =
         "note": body.note, "recorded_by": current_user.user_id, "confirmed_by": current_user.user_id,
         "confirmed_at": now.isoformat(), "idempotency_key": key, "version": 1,
     }
-    try:
-        absence = store.insert_row("absence_records", row)
-    except Exception as exc:
-        if store.is_unique_violation(exc):
-            raise err(409, "duplicate_absence", "A call-out is already recorded for this shift.")
-        raise
-
     zone = hotel_zone(hotel_id)
     gap_start = leaving or starts
     gap_row = {
-        "tenant_id": hotel_id, "department_id": row["department_id"] or "", "source": "absence", "absence_id": str(absence["id"]),
+        "tenant_id": hotel_id, "department_id": row["department_id"], "source": "absence",
         "original_assignment_id": str(body.assignment_id), "shift_id": str(assignment["shift_id"]),
         "shift_name": assignment.get("shift_name") or "", "work_date": row["work_date"],
         "start_time": format_clock(gap_start.astimezone(zone).time()) if leaving else assignment.get("start_time"),
@@ -111,11 +104,19 @@ async def record_absence(body: RecordAbsenceRequest, current_user: CurrentUser =
         "created_by": current_user.user_id, "version": 1,
     }
     try:
-        gap = store.insert_row("coverage_gaps", gap_row)
-    except Exception:
-        # No half-recorded call-out: without its gap the absence would be invisible to the coverage screens.
-        supabase.table("absence_records").delete().eq("tenant_id", hotel_id).eq("id", absence["id"]).execute()
-        logger.exception("absence: gap insert failed; absence rolled back hotel_id=%s", hotel_id)
+        # ONE transaction (migration 229): the absence and its gap are saved together or not at all, so a crash can never leave
+        # a call-out that no coverage screen can see, and a retry with the same idempotency key finds the pair, not half of it.
+        saved = supabase.rpc("record_absence_with_gap", {"p_tenant_id": hotel_id, "p_absence": row, "p_gap": gap_row}).execute().data
+        saved = saved[0] if isinstance(saved, list) and saved else saved
+        absence, gap = saved["absence"], saved["gap"]
+    except Exception as exc:
+        if store.is_unique_violation(exc):
+            if key:  # a concurrent request with the same key won the race: return what it created
+                prior = supabase.table("absence_records").select("*").eq("tenant_id", hotel_id).eq("idempotency_key", key).maybe_single().execute()
+                if prior and prior.data:
+                    return await _bundle(current_user, prior.data, replayed=True)
+            raise err(409, "duplicate_absence", "A call-out is already recorded for this shift.")
+        logger.exception("absence: call-out transaction failed; nothing was recorded hotel_id=%s", hotel_id)
         raise err(503, "coverage_unavailable", "The call-out could not be saved. Nothing was recorded; try again.")
 
     _audit_absence(current_user, {**absence, "status": "reported"}, "reported")

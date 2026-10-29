@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
@@ -11,6 +11,7 @@ import { ScheduleBanner, ScheduleEmptyCard, ScheduleSkeleton } from "@/component
 import { ScreenFrame } from "@/components/scheduling/ScreenFrame";
 import { Button } from "@/components/ui/Button";
 import { fetchMyRequests, type RequestItem } from "@/lib/api/schedulingRequests";
+import { validUuid } from "@/lib/scheduling/myWeek";
 import { useRemote } from "@/lib/scheduling/requestHooks";
 import { filterMine, MY_REQUEST_FILTERS, type MyRequestsFilter } from "@/lib/scheduling/requestsModel";
 import { useAppStore } from "@/stores/appStore";
@@ -32,6 +33,18 @@ export function MyRequestsScreen() {
   const [selected, setSelected] = useState<RequestItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const list = remote.data;
+  // A notification can name one request (time off or swap). It opens straight away when it is one of THIS person's requests;
+  // anything else (cancelled elsewhere, someone else's, malformed) gets a plain "no longer available" note, never its data.
+  const wanted = validUuid(useLocalSearchParams<{ requestId?: string }>().requestId);
+  const opened = useRef<string | null>(null);
+  const match = wanted && list ? list.items.find((item) => item.id.toLowerCase() === wanted) ?? null : null;
+  const requestGone = wanted !== null && list !== null && list !== undefined && match === null;
+  useEffect(() => {
+    if (match && opened.current !== match.id) {
+      opened.current = match.id;
+      setSelected(match);
+    }
+  }, [match]);
   const rows = list ? filterMine(list.items, filter) : [];
   const action = list?.counts.action_required ?? 0;
 
@@ -44,6 +57,7 @@ export function MyRequestsScreen() {
   const header = (
     <View style={styles.header}>
       {!isOnline ? <ScheduleBanner icon="cloud-offline-outline" text={t("scheduling.myRequests.offline")} testID="my-requests-offline" /> : null}
+      {requestGone ? <ScheduleBanner icon="time-outline" text={t("scheduling.myRequests.unavailable")} testID="my-requests-unavailable" /> : null}
       {remote.failure && list ? <FailureNotice failure={remote.failure} t={t} testID="my-requests-refresh-failed" /> : null}
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textSecondary }]}>
         {t("scheduling.myRequests.intro")}

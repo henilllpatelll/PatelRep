@@ -26,6 +26,8 @@ class CoverageDB(FakeDB):
         super().__init__(rows, **kw)
         self.rpc_calls = []
         self.fill_gate = None  # optional callable run inside the "transaction" before the checks (to simulate a race)
+        self.offer_gate = None  # same, for create_coverage_offer()
+        self.absence_fault = None  # callable run after the absence insert and before the gap insert (simulates a crash/failure)
 
     def next_id(self, table_name):
         """UUID-shaped ids, because the request models validate UUID4 like production ids."""
@@ -37,11 +39,66 @@ class CoverageDB(FakeDB):
 
         class Call:
             def execute(self_inner):
-                assert name == "fill_coverage_gap", name
                 db.rpc_calls.append(params)
+                if name == "record_absence_with_gap":
+                    return SimpleNamespace(data=db._record_absence(params))
+                if name == "create_coverage_offer":
+                    return SimpleNamespace(data=db._create_offer(params))
+                assert name == "fill_coverage_gap", name
                 return SimpleNamespace(data=db._fill(params))
 
         return Call()
+
+    def _record_absence(self, p):
+        """record_absence_with_gap(): both rows or neither (a failure after the first insert restores the tables)."""
+        import copy
+
+        snapshot = {t: copy.deepcopy(self.rows.get(t, [])) for t in ("absence_records", "coverage_gaps")}
+        try:
+            a, g = p["p_absence"], p["p_gap"]
+            absences = self.rows.setdefault("absence_records", [])
+            tenant = p["p_tenant_id"]
+            if a.get("idempotency_key") and any(r["tenant_id"] == tenant and r.get("idempotency_key") == a["idempotency_key"] for r in absences):
+                raise _fail("23505", "duplicate key value violates unique constraint (idempotency)")
+            if any(r["assignment_id"] == a["assignment_id"] and r["status"] in ("reported", "confirmed", "covered") for r in absences):
+                raise _fail("23505", "duplicate key value violates unique constraint uq_absence_live_per_assignment")
+            absence = {"id": self.next_id("absence_records"), "tenant_id": tenant, "version": 1, "status": "confirmed",
+                       "created_at": datetime.now().isoformat(), **a}
+            absences.append(absence)
+            if self.absence_fault:
+                self.absence_fault()
+            if not g.get("department_id"):
+                raise _fail("23502", "null value in column department_id violates not-null constraint")
+            gap = {"id": self.next_id("coverage_gaps"), "tenant_id": tenant, "source": "absence", "absence_id": absence["id"],
+                   "status": "open", "claimable": False, "version": 1, "created_at": datetime.now().isoformat(), **g}
+            self.rows.setdefault("coverage_gaps", []).append(gap)
+            return {"absence": dict(absence), "gap": dict(gap)}
+        except Exception:
+            for table, rows in snapshot.items():
+                self.rows[table] = rows
+            raise
+
+    def _create_offer(self, p):
+        """create_coverage_offer(): lock + check the gap, insert the offer and move open -> offered in one step."""
+        if self.offer_gate:
+            self.offer_gate()
+        gap = next((g for g in self.rows.setdefault("coverage_gaps", []) if g["id"] == p["p_gap_id"] and g["tenant_id"] == p["p_tenant_id"]), None)
+        if gap is None:
+            raise _fail("CV003", "coverage gap not found")
+        if gap["status"] not in ("open", "offered"):
+            raise _fail("CV002", f"coverage gap is already {gap['status']}")
+        if gap["version"] != p["p_expected_version"]:
+            raise _fail("CV001", "coverage gap changed")
+        offers = self.rows.setdefault("coverage_offers", [])
+        if any(o["gap_id"] == gap["id"] and o["user_id"] == p["p_user_id"] and o["status"] == "pending" for o in offers):
+            raise _fail("23505", "duplicate key value violates unique constraint uq_offer_pending_per_user")
+        offer = {"id": self.next_id("coverage_offers"), "tenant_id": p["p_tenant_id"], "gap_id": gap["id"], "user_id": p["p_user_id"],
+                 "status": "pending", "expires_at": p["p_expires_at"], "offered_by": p["p_offered_by"], "delivery": "not_sent", "version": 1,
+                 "created_at": datetime.now().isoformat()}
+        offers.append(offer)
+        if gap["status"] == "open":
+            gap.update(status="offered", version=gap["version"] + 1)
+        return dict(offer)
 
     def _fill(self, p):
         if self.fill_gate:

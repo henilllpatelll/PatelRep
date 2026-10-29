@@ -73,6 +73,10 @@ class RequestsDB(CoverageDB):
                 db.rpc_calls.append(params)
                 if name == "fill_coverage_gap":
                     return SimpleNamespace(data=db._fill(params))
+                if name == "record_absence_with_gap":
+                    return SimpleNamespace(data=db._record_absence(params))
+                if name == "create_coverage_offer":
+                    return SimpleNamespace(data=db._create_offer(params))
                 if name == "replace_weekly_availability":
                     return SimpleNamespace(data=db._replace_availability(params))
                 if name == "approve_shift_swap":

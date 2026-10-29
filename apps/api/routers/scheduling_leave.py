@@ -23,7 +23,6 @@ from core.roles import ALL_ROLES, GM_ONLY_ROLES, SCHEDULE_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.leave_requests import CancelRequest, CreateTimeOffRequest, DecideTimeOffRequest
 from routers.scheduling import _existing_rows, _occurrence
-from services import schedule_outbox as notices
 from services import coverage_store as store
 from services.request_common import in_manager_scope, not_found, person, shift_brief, timeline
 from services.scheduling import parse_clock
@@ -194,9 +193,8 @@ async def create_time_off(body: CreateTimeOffRequest, current_user: CurrentUser 
         raise
     record_audit(current_user, resource_type="time_off_request", resource_id=str(saved["id"]), action="created",
                  new_state={"status": "pending", "start_date": row["start_date"], "end_date": row["end_date"], "partial": body.partial})
-    # Managers hear that a request exists, never why: the reason category and note stay on the request.
-    notices.enqueue(hotel_id, notices.managers_of(hotel_id, member.department_id, exclude=[user_id]),
-                    "schedule_time_off_requested", str(saved["id"]), {"request_id": str(saved["id"])})
+    # Managers hear that a request exists, never why: migration 229's trigger queues that message inside the insert's own
+    # transaction (the reason category and note never reach the payload).
     return {"data": full_leave(current_user, saved, is_self=True, is_manager=False), "meta": {"replayed": False}}
 
 
@@ -264,9 +262,8 @@ def _decide(current_user: CurrentUser, request_id: str, body, *, target: str):
         raise _stale(hotel_id, request_id, "pending")
     record_audit(current_user, resource_type="time_off_request", resource_id=request_id, action=target,
                  old_state={"status": "pending"}, new_state={"status": target}, reason_note=reason)
-    if str(saved["user_id"]) != current_user.user_id:
-        notices.enqueue(hotel_id, [str(saved["user_id"])], "schedule_time_off_approved" if target == "approved" else "schedule_time_off_denied",
-                        request_id, {"request_id": request_id})  # the decision reason is not copied into the message
+    # The requester's approved/denied message is queued by migration 229's trigger in the same transaction as the decision
+    # (the decision reason is never copied into it; a person deciding their own request is not messaged).
     return saved, False, is_self, is_manager
 
 

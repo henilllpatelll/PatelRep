@@ -217,20 +217,27 @@ async def create_offer(gap_id: str, body: OfferShiftRequest, current_user: Curre
     row = {"tenant_id": hotel_id, "gap_id": gap_id, "user_id": str(body.user_id), "status": "pending",
            "expires_at": expires.isoformat(), "offered_by": current_user.user_id, "delivery": "not_sent", "version": 1}
     try:
-        offer = store.insert_row("coverage_offers", row)
+        # ONE transaction (migration 229): the gap is locked and version-checked, the offer is inserted and the gap moves
+        # open -> offered together. A lost race therefore leaves no offer behind (and no message to take back).
+        made = supabase.rpc("create_coverage_offer", {
+            "p_tenant_id": hotel_id, "p_gap_id": gap_id, "p_expected_version": body.expected_version, "p_user_id": str(body.user_id),
+            "p_offered_by": current_user.user_id, "p_expires_at": row["expires_at"],
+        }).execute().data
+        offer = made[0] if isinstance(made, list) and made else made
     except Exception as exc:
+        code = getattr(exc, "code", None) or ""
+        if code == "CV001":
+            raise store.version_conflict("coverage gap", fill.full_gap(hotel_id, gap_id))
+        if code == "CV002":
+            raise err(409, "gap_not_fillable", "This shift was just filled or closed by someone else.", current=store.load_gap(hotel_id, gap_id))
+        if code == "CV003":
+            raise err(404, "gap_not_found", "Coverage gap not found")
         if store.is_unique_violation(exc):
             raise err(409, "duplicate_offer", "That employee already has a pending offer for this shift.")
         raise
-    if gap["status"] == "open":
-        moved = store.cas_update("coverage_gaps", hotel_id, gap_id, int(gap["version"]), {"status": "offered"})
-        if moved is None:  # another supervisor changed the gap between our read and write: withdraw the orphan offer
-            supabase.table("coverage_offers").update({"status": "withdrawn"}).eq("tenant_id", hotel_id).eq("id", offer["id"]).execute()
-            raise store.version_conflict("coverage gap", fill.full_gap(hotel_id, gap_id))
     record_audit(current_user, resource_type="coverage_offer", resource_id=str(offer["id"]), action="created",
                  new_state={"gap_id": gap_id, "user_id": str(body.user_id), "status": "pending", "delivery": "not_sent"})
-    notices.enqueue(hotel_id, [str(body.user_id)], "schedule_offer_received", str(offer["id"]),
-                    {"offer_id": str(offer["id"]), "gap_id": gap_id, "work_date": str(gap["work_date"])[:10]})
+    # The employee's "offer received" message is queued by migration 229's trigger inside the offer insert's transaction.
     if gap["status"] == "open":
         record_audit(current_user, resource_type="coverage_gap", resource_id=gap_id, action="offered",
                      old_state={"status": "open"}, new_state={"status": "offered"})
@@ -253,7 +260,7 @@ async def withdraw_offer(gap_id: str, offer_id: str, current_user: CurrentUser =
         raise store.version_conflict("offer", offer)
     record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="withdrawn",
                  old_state={"status": "pending"}, new_state={"status": "withdrawn"})
-    notices.enqueue(hotel_id, [str(offer["user_id"])], "schedule_offer_withdrawn", offer_id, {"offer_id": offer_id, "gap_id": gap_id})
+    # The employee's "withdrawn" message is queued by migration 229's trigger in the status update's transaction.
     fill.reopen_if_idle(hotel_id, gap_id)
     return {"data": fill.full_gap(hotel_id, gap_id)}
 

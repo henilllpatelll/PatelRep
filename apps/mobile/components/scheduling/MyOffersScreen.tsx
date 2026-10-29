@@ -22,6 +22,7 @@ import {
   type OpenShift,
 } from "@/lib/api/schedulingOffers";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { validUuid } from "@/lib/scheduling/myWeek";
 import { useRemote, useRequestAction } from "@/lib/scheduling/requestHooks";
 import { faceWindow } from "@/lib/scheduling/publishText";
 import { formatLongDate } from "@/lib/scheduling/teamScheduleDates";
@@ -46,7 +47,7 @@ export function MyOffersScreen() {
   const isOnline = useAppStore((state) => state.isOnline);
   const zone = useAppStore((state) => state.hotelTimezone) ?? null;
   const language = i18n.language;
-  const params = useLocalSearchParams<{ tab?: string }>();
+  const params = useLocalSearchParams<{ tab?: string; offerId?: string }>();
   const [tab, setTab] = useState<Tab>(params.tab === "open" ? "open" : params.tab === "requests" ? "requests" : "offers");
   const offers = useRemote(fetchMyOffers, []);
   const open = useRemote(fetchOpenShifts, [], tab === "open");
@@ -85,7 +86,11 @@ export function MyOffersScreen() {
     await Promise.all([open.refresh(), claims.refresh()]);
   };
 
+  // A notification can name one offer. It is revealed when it is still this person's live offer; otherwise they are told it is
+  // gone (withdrawn, answered, expired, or never theirs) instead of seeing an unexplained empty list.
+  const wantedOffer = validUuid(params.offerId);
   const live = (offers.data ?? []).filter((offer) => offer.status === "pending");
+  const offerGone = tab === "offers" && wantedOffer !== null && offers.data !== null && !live.some((offer) => offer.id.toLowerCase() === wantedOffer);
   const past = (offers.data ?? []).filter((offer) => offer.status !== "pending");
 
   return (
@@ -97,6 +102,7 @@ export function MyOffersScreen() {
       >
         {!isOnline ? <ScheduleBanner icon="cloud-offline-outline" text={t("scheduling.offers.offline")} testID="my-offers-offline" /> : null}
         <ChipRow options={TABS} value={tab} onChange={setTab} labelFor={(option) => `${t(`scheduling.offers.tab.${option}`)}${option === "offers" && live.length > 0 ? ` (${live.length})` : ""}`} testID="my-offers-tabs" wrap />
+        {offerGone ? <ScheduleBanner icon="time-outline" text={t("scheduling.offers.unavailable")} testID="my-offers-offer-unavailable" /> : null}
         {action.failure ? <FailureNotice failure={action.failure} t={t} testID="my-offers-failure" /> : null}
         {current.failure && current.data ? <FailureNotice failure={current.failure} t={t} testID="my-offers-refresh-failed" /> : null}
 
@@ -112,7 +118,7 @@ export function MyOffersScreen() {
           <View style={styles.stack}>
             {live.length === 0 ? <ScheduleEmptyCard title={t("scheduling.offers.noOffersTitle")} body={t("scheduling.offers.noOffersBody")} testID="my-offers-empty" /> : null}
             {live.map((offer) => (
-              <ShiftCard key={offer.id} shift={offer.shift} zone={zone} language={language} testID={`offer-${offer.id}`}>
+              <ShiftCard key={offer.id} shift={offer.shift} zone={zone} language={language} highlight={offer.id.toLowerCase() === wantedOffer} testID={offer.id.toLowerCase() === wantedOffer ? "offer-highlight" : `offer-${offer.id}`}>
                 {offer.expiresAt ? (
                   <Muted text={t("scheduling.offers.expires", { time: formatHotelTime(new Date(offer.expiresAt), zone, language) ?? "" })} />
                 ) : null}
@@ -193,10 +199,10 @@ function windowOf(shift: OfferedShift, zone: string | null, language?: string): 
   return faceWindow({ userId: "", shiftId: shift.id, shiftName: shift.name, workDate: shift.workDate, startTime: shift.startTime, endTime: shift.endTime }, zone, language);
 }
 
-function ShiftCard({ shift, zone, language, testID, children }: { shift: OfferedShift; zone: string | null; language?: string; testID: string; children: React.ReactNode }) {
+function ShiftCard({ shift, zone, language, testID, highlight, children }: { shift: OfferedShift; zone: string | null; language?: string; testID: string; highlight?: boolean; children: React.ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID={testID}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: highlight ? theme.primaryAction : theme.borderSubtle }, highlight && styles.cardHighlight]} testID={testID}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]}>
         {formatLongDate(shift.workDate, language)}
       </Text>
@@ -226,6 +232,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
   stack: { gap: 12 },
   card: { borderWidth: 1, borderRadius: R.lg, padding: 14, gap: 8 },
+  cardHighlight: { borderWidth: 2 },
   title: { fontSize: 16, fontWeight: "800" },
   body: { fontSize: 14.5, lineHeight: 20, fontWeight: "600" },
   muted: { fontSize: 13, lineHeight: 18 },

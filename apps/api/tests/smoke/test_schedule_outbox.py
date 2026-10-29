@@ -163,3 +163,47 @@ def test_messages_never_carry_leave_reasons_or_manager_notes():
         blob = str(rendered).lower()
         assert not any(secret in blob for secret in ("surgery", "sick", "family", "private")), event
     assert schedule_outbox.render("not_an_event", payload) is None
+
+
+# --- the scheduled worker path ---------------------------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_the_scheduler_job_delivers_an_intent_the_database_queued_and_a_second_run_adds_nothing(db, monkeypatch):
+    """
+    The same coroutine APScheduler runs every five minutes (core.scheduler), not a hand-called service method. The intent is
+    what migration 229's trigger writes inside the request's transaction; delivery makes exactly one inbox row, and a
+    provider refusing the push does not undo it ("sent" means readable in the app, never that a phone buzzed).
+    """
+    from core import scheduler as sched
+
+    push_recorder(monkeypatch, outcome={"sent": 0, "opted_out": [], "no_device": [], "failed": 1})
+    assert schedule_outbox.enqueue(HOTEL, [U_HK1], "schedule_offer_received", "offer-1", {"offer_id": "o1", "gap_id": "g1", "work_date": "2030-01-08"}) == 1
+    run = sched._make_job("schedule.notifications", sched._job_handlers()["schedule.notifications"])
+    await run()
+    intent = db.rows["schedule_notifications"][0]
+    assert intent["status"] == "sent" and intent["push_status"] == "failed" and len(db.rows["notifications"]) == 1
+    await run()
+    assert len(db.rows["notifications"]) == 1 and intent["attempts"] == 1       # nothing was re-delivered
+
+
+@pytest.mark.asyncio
+async def test_a_crash_between_claim_and_finish_is_retried_without_a_second_inbox_row(db, monkeypatch):
+    push_recorder(monkeypatch)
+    schedule_outbox.enqueue(HOTEL, [U_HK1], "schedule_time_off_approved", "t-1", {"request_id": "t1"})
+    real = schedule_outbox._finish
+    calls = {"n": 0}
+
+    def flaky(row_id, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1 and kw.get("status") == "sent":
+            raise RuntimeError("process died after the inbox row was written")
+        return real(row_id, **kw)
+
+    monkeypatch.setattr(schedule_outbox, "_finish", flaky)
+    first = await schedule_outbox.process_batch(50)
+    assert first["failed"] == 1 and len(db.rows["notifications"]) == 1
+    intent = db.rows["schedule_notifications"][0]
+    intent["next_attempt_at"] = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()   # the backoff has passed
+    second = await schedule_outbox.process_batch(50)
+    assert second["sent"] == 1 and len(db.rows["notifications"]) == 1                           # the dedupe key reused the first row
+    assert intent["status"] == "sent"

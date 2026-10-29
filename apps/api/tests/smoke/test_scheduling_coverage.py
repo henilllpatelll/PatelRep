@@ -619,3 +619,56 @@ def test_the_shared_workflow_contract_governs_every_transition():
     assert transition_error("coverage_offer", "pending", "declined", me) is None
     assert transition_error("coverage_claim", "pending", "approved", me) == "not_permitted"
     assert transition_error("coverage_claim", "pending", "withdrawn", me) is None
+
+
+# --- crash consistency (final audit): one transaction instead of write + compensating write ----------------------------
+
+@pytest.mark.asyncio
+async def test_a_call_out_whose_gap_cannot_be_saved_leaves_nothing_behind_and_can_be_retried(db):
+    assignment = await scheduled(user=U_HK1, shift_id=S_MORN)
+    db.absence_fault = lambda: (_ for _ in ()).throw(RuntimeError("process died between the absence and its gap"))
+    with pytest.raises(CodedHTTPException) as exc:
+        await call_out(assignment, idempotency_key="key-crash-1")
+    assert refused(exc) == "coverage_unavailable"
+    assert db.rows.get("absence_records", []) == [] and db.rows.get("coverage_gaps", []) == []      # no orphan absence
+    db.absence_fault = None
+    again = await call_out(assignment, idempotency_key="key-crash-1")                                       # the retry is a clean first attempt
+    assert again["data"]["replayed"] is False and again["data"]["gap"] is not None
+    assert len(db.rows["absence_records"]) == 1 and len(db.rows["coverage_gaps"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_two_requests_with_one_idempotency_key_record_one_call_out(db):
+    assignment = await scheduled(user=U_HK1, shift_id=S_MORN)
+    first = await call_out(assignment, idempotency_key="key-same-1")
+    second = await call_out(assignment, idempotency_key="key-same-1")
+    assert second["data"]["replayed"] is True and second["data"]["absence"]["id"] == first["data"]["absence"]["id"]
+    assert len(db.rows["absence_records"]) == 1 and len(db.rows["coverage_gaps"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_an_offer_that_loses_the_race_leaves_no_offer_and_the_gap_untouched(db):
+    gap_id, _ = await open_gap(db)
+
+    def rival_changes_the_gap():
+        gap_row(db, gap_id).update(version=2)
+
+    db.offer_gate = rival_changes_the_gap
+    with pytest.raises(CodedHTTPException) as exc:
+        await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=1), SUP)
+    assert refused(exc) == "version_conflict"
+    assert db.rows.get("coverage_offers", []) == []                       # nothing to "withdraw" later, no message to take back
+    assert gap_row(db, gap_id)["status"] == "open"
+
+
+@pytest.mark.asyncio
+async def test_an_offer_moves_the_gap_to_offered_exactly_once_and_a_second_offer_does_not_change_its_version(db):
+    gap_id, _ = await open_gap(db)
+    await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=1), SUP)
+    assert (gap_row(db, gap_id)["status"], gap_row(db, gap_id)["version"]) == ("offered", 2)
+    await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK3, expected_version=2), SUP)
+    assert (gap_row(db, gap_id)["status"], gap_row(db, gap_id)["version"]) == ("offered", 2)
+    with pytest.raises(CodedHTTPException) as exc:
+        await coverage.create_offer(gap_id, OfferShiftRequest(user_id=U_HK2, expected_version=2), SUP)
+    assert refused(exc) == "duplicate_offer"
+    assert len(db.rows["coverage_offers"]) == 2

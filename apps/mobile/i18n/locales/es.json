@@ -7335,6 +7335,17 @@
     "dayOff": "Día libre",
     "noShiftScheduled": "Sin turno programado",
     "thisWeek": "Esta semana",
+    "week": {
+      "previous": "Semana anterior",
+      "next": "Semana siguiente",
+      "current": "Esta semana",
+      "loadFailed": "No pudimos cargar esta semana.",
+      "off": "Libre",
+      "onShift": "En turno",
+      "scheduled": "Programado",
+      "shiftUnavailable": "Ese turno ya no está en tu horario.",
+      "showing": "Mostrando la semana del {{date}}"
+    },
     "actions": {
       "title": "Acciones del horario",
       "availability": "Mi disponibilidad",
@@ -7435,6 +7446,7 @@
       }
     },
     "myRequests": {
+      "unavailable": "Esa solicitud ya no está disponible.",
       "title": "Mis solicitudes",
       "kicker": "Mi horario",
       "intro": "Todo lo que has pedido y los cambios que esperan tu respuesta.",
@@ -7492,6 +7504,7 @@
       "offline": "Estás sin conexión. Conéctate para pedir un cambio."
     },
     "offers": {
+      "unavailable": "Esa oferta ya no está disponible. Pudo haberse retirado, respondido o vencido.",
       "kicker": "Turnos",
       "title": "Ofertas de turno",
       "offline": "Sin conexión. Lo que ves puede estar desactualizado.",
