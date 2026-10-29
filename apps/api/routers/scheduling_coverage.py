@@ -18,6 +18,7 @@ from core.roles import SCHEDULE_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.coverage_requests import AssignGapRequest, OfferShiftRequest, PostOpenShiftRequest, WaiveGapRequest
 from routers.scheduling import _clock, _load_template
+from services import schedule_outbox as notices
 from services import coverage_fill as fill
 from services import coverage_store as store
 from services.scheduling import format_clock, parse_clock, resolve_occurrence
@@ -151,6 +152,14 @@ async def post_open_shift(body: PostOpenShiftRequest, current_user: CurrentUser 
     gap = store.insert_row("coverage_gaps", row)
     record_audit(current_user, resource_type="coverage_gap", resource_id=str(gap["id"]), action="opened",
                  new_state={"status": "open", "source": "open_shift", "claimable": body.claimable, "work_date": body.work_date})
+    if body.claimable:
+        # Tell the people who could actually take it (same eligibility the Open Shifts screen applies), never everyone.
+        try:
+            staff = {u: m for u, m in load_staff(hotel_id, departments).items() if m.department_id == str(template["department_id"])}
+            eligible = [c.user_id for c in fill.evaluate_users(hotel_id, gap, staff, departments) if c.eligible]
+        except Exception:
+            eligible = []
+        notices.enqueue(hotel_id, eligible, "schedule_open_shift", str(gap["id"]), {"gap_id": str(gap["id"]), "work_date": body.work_date})
     return {"data": fill.full_gap(hotel_id, str(gap["id"]))}
 
 
@@ -220,6 +229,8 @@ async def create_offer(gap_id: str, body: OfferShiftRequest, current_user: Curre
             raise store.version_conflict("coverage gap", fill.full_gap(hotel_id, gap_id))
     record_audit(current_user, resource_type="coverage_offer", resource_id=str(offer["id"]), action="created",
                  new_state={"gap_id": gap_id, "user_id": str(body.user_id), "status": "pending", "delivery": "not_sent"})
+    notices.enqueue(hotel_id, [str(body.user_id)], "schedule_offer_received", str(offer["id"]),
+                    {"offer_id": str(offer["id"]), "gap_id": gap_id, "work_date": str(gap["work_date"])[:10]})
     if gap["status"] == "open":
         record_audit(current_user, resource_type="coverage_gap", resource_id=gap_id, action="offered",
                      old_state={"status": "open"}, new_state={"status": "offered"})
@@ -242,6 +253,7 @@ async def withdraw_offer(gap_id: str, offer_id: str, current_user: CurrentUser =
         raise store.version_conflict("offer", offer)
     record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="withdrawn",
                  old_state={"status": "pending"}, new_state={"status": "withdrawn"})
+    notices.enqueue(hotel_id, [str(offer["user_id"])], "schedule_offer_withdrawn", offer_id, {"offer_id": offer_id, "gap_id": gap_id})
     fill.reopen_if_idle(hotel_id, gap_id)
     return {"data": fill.full_gap(hotel_id, gap_id)}
 

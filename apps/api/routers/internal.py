@@ -518,6 +518,17 @@ async def run_report_schedules(x_cron_secret: str = Header(None)):
     return {"status": "ok", **summary}
 
 
+@router.post("/schedule/notifications")
+async def process_schedule_notifications(x_cron_secret: str = Header(None)):
+    """Cron (every 5 min): deliver due schedule notification intents (idempotent, multi-replica safe, bounded retries)."""
+    verify_cron(x_cron_secret)
+    from services.schedule_outbox import process_batch
+
+    summary = await process_batch(limit=100)
+    _record_cron_run("schedule.notifications")
+    return {"status": "ok", **summary}
+
+
 @router.post("/opera/sync-reservations")
 async def sync_opera_reservations(x_cron_secret: str = Header(None)):
     """Cron job: sync today's reservations from all connected Opera tenants."""

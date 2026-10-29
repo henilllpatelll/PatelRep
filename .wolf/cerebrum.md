@@ -964,3 +964,12 @@
 - No break policy or stayover-frequency setting exists in the schema, so capacity is paid shift minutes (labelled) and break_minutes is only a what-if query param. A confirmed absence removes the ORIGINAL shift; the fill inserts a new row, so replacements count once.
 - StaffingSummary used to claim "Coverage not yet assessed"; the forecast card now owns coverage statements (that footer and its test assertion were removed on purpose).
 - Jest Ionicons mock returns null, so a testID placed ON an icon never renders; wrap icons in a View with the testID.
+
+### Team Scheduling Phase 7 (draft/publish + notifications) learnings (2026-10-29)
+- Drafts live in revision tables, never in shift_assignments, so employee views cannot leak them; publish_schedule_revision() (migration 228) is the ONLY thing that applies a draft and writes the notification outbox in the same transaction. Cancels set publication_state='cancelled' (a hard delete would cascade absence/swap history); that is why the plain UNIQUE (user_id, shift_id, work_date) became a partial index excluding cancelled.
+- A moved/swapped shift is parked as 'cancelled' inside the publish transaction so an intermediate overlap cannot refuse a valid end state.
+- Bash tool pre-parses commands: an apostrophe inside a heredoc breaks it ("unexpected EOF"). Write scripts with the Write tool and run them; use `python`, not `python3`, on this machine.
+- BottomSheet `scrollKey` scrolls the body to its END when it changes: never key it on a review phase (the review then opens scrolled to the bottom). Found only by looking at a browser screenshot.
+- i18next v3 plurals need `count`; a sentence with two plurals must be composed from two keyed phrases (bug found by a component test).
+- The Phase 1-6 mobile "manage" tests assume immediate writes; they now switch the screen to "Apply immediately" via the DraftBar toggle. The draft mode is the default and has its own describe.
+- Local Docker Desktop must be started by hand (Start-Process); a throwaway postgres:16 + stub tables + replay of 225-228 is enough to exercise the RPC (no PostgREST).

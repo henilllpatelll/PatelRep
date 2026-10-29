@@ -26,6 +26,7 @@ from core.roles import ALL_ROLES, GM_ONLY_ROLES, SCHEDULE_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.leave_requests import CancelRequest, CreateSwapRequest, DecideSwapRequest, RespondSwapRequest
 from routers.scheduling import ASSIGNMENT_COLUMNS, _existing_rows, _occurrence
+from services import schedule_outbox as notices
 from services import coverage_store as store
 from services.availability_store import load_contexts
 from services.request_common import in_manager_scope, not_found, person, shift_brief, timeline
@@ -310,6 +311,7 @@ async def propose_swap(body: CreateSwapRequest, current_user: CurrentUser = Depe
         raise
     record_audit(current_user, resource_type="shift_swap", resource_id=str(saved["id"]), action="proposed",
                  new_state={"status": "proposed", "counterpart_id": counterpart})
+    notices.enqueue(hotel_id, [counterpart], "schedule_swap_proposed", str(saved["id"]), {"swap_id": str(saved["id"])})
     return {"data": full_swap(current_user, saved), "meta": {"replayed": False, "warnings": verdict["warnings"]}}
 
 
@@ -380,6 +382,12 @@ async def respond_to_swap(swap_id: str, body: RespondSwapRequest, current_user: 
         raise _guard_change(current_user, swap_id, "proposed")
     record_audit(current_user, resource_type="shift_swap", resource_id=swap_id, action=target,
                  old_state={"status": "proposed"}, new_state={"status": target}, reason_note=note)
+    notices.enqueue(hotel_id, [str(swap["requester_id"])], "schedule_swap_accepted" if target == "accepted" else "schedule_swap_declined",
+                    swap_id, {"swap_id": swap_id})
+    if target == "accepted":
+        notices.enqueue(hotel_id, notices.managers_of(hotel_id, notices.department_of(hotel_id, str(swap["requester_id"])),
+                                                      exclude=[str(swap["requester_id"]), str(swap["counterpart_id"])]),
+                        "schedule_swap_needs_approval", swap_id, {"swap_id": swap_id})
     return {"data": full_swap(current_user, saved), "meta": {"replayed": False}}
 
 
@@ -469,6 +477,7 @@ async def approve_swap(swap_id: str, body: DecideSwapRequest, current_user: Curr
         if code == "23P01" or "overlap" in str(exc).lower():
             raise err(409, "schedule_conflict", "One of the schedules changed at the same moment. Reload and try again.", conflicts=[{"code": "overlapping_shift"}])
         raise
+    notices.enqueue(hotel_id, [str(swap["requester_id"]), str(swap["counterpart_id"])], "schedule_swap_approved", swap_id, {"swap_id": swap_id})
     return {"data": full_swap(current_user, load_swap(hotel_id, swap_id)), "meta": {"replayed": False}}
 
 
@@ -492,4 +501,5 @@ async def deny_swap(swap_id: str, body: DecideSwapRequest, current_user: Current
         raise _guard_change(current_user, swap_id, "accepted")
     record_audit(current_user, resource_type="shift_swap", resource_id=swap_id, action="denied",
                  old_state={"status": "accepted"}, new_state={"status": "denied"}, reason_note=reason)
+    notices.enqueue(hotel_id, [str(swap["requester_id"]), str(swap["counterpart_id"])], "schedule_swap_denied", swap_id, {"swap_id": swap_id})
     return {"data": full_swap(current_user, saved), "meta": {"replayed": False}}

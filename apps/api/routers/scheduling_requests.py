@@ -7,18 +7,21 @@ A CLAIM IS NOT A SHIFT. Claiming records interest; a supervisor approves it (or 
 eligibility re-check and atomic fill as every other path, and a claim whose person or shift changed in the meantime is
 declined as stale instead of being force-fitted.
 
-There is no employee-facing UI for any of this in Phase 4 (the supervisor app owns these screens and no notification
-channel exists to tell an employee about an offer); the endpoints exist so the response foundation is real and tested.
+The employee screens (My Shift Offers, Open Shifts, My claims) are built on these endpoints in Phase 7, and an offer, a
+claim decision or a newly claimable shift now queues an in-app message through services/schedule_outbox.py. A queued
+message is not a delivered one: the offer row's `delivery` becomes `sent` only once the inbox message exists.
 """
 import logging
+from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from core.database import supabase
 from core.roles import ALL_ROLES, SCHEDULE_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.coverage_requests import ClaimDecisionRequest, OfferResponseRequest
+from services import schedule_outbox as notices
 from services import coverage_fill as fill
 from services import coverage_store as store
 from services.scheduling_access import ensure_can_manage, err, load_departments, load_staff, record_audit
@@ -39,17 +42,50 @@ def _own_offer(current_user: CurrentUser, offer_id: str) -> dict:
     return found.data if found and found.data else {}
 
 
+RECENT_DAYS = 14
+
+
 @router.get("/me/offers")
-async def my_offers(current_user: CurrentUser = Depends(require_role(*ALL_ROLES))):
+async def my_offers(current_user: CurrentUser = Depends(require_role(*ALL_ROLES)), history: bool = Query(False)):
+    """Live offers. With `history=true` the answers of the last two weeks (accepted, declined, withdrawn, expired) follow, so the
+    employee can see how an offer ended. An offer is a request, never a shift: only the shift's date, times and role are shown."""
     hotel_id, now = current_user.hotel_id, store.now_utc()
     offers = (supabase.table("coverage_offers").select("*").eq("tenant_id", hotel_id).eq("user_id", current_user.user_id)
               .eq("status", "pending").execute().data or [])
     live = [o for o in offers if offer_is_live(o, now)]
     gaps = {str(g["id"]): g for g in (supabase.table("coverage_gaps").select("*").eq("tenant_id", hotel_id)
             .in_("id", sorted({str(o["gap_id"]) for o in live})).execute().data or [])} if live else {}
-    return {"data": [
+    rows = [
         {"id": o["id"], "expires_at": o.get("expires_at"), "status": "pending", "shift": _employee_gap_view(gaps[str(o["gap_id"])])}
-        for o in live if str(o["gap_id"]) in gaps and gaps[str(o["gap_id"])]["status"] in ("open", "offered")]}
+        for o in live if str(o["gap_id"]) in gaps and gaps[str(o["gap_id"])]["status"] in ("open", "offered")]
+    if history is not True:  # (a handler called directly keeps the Query default object)
+        return {"data": rows}
+    since = (now - timedelta(days=RECENT_DAYS)).isoformat()
+    past = (supabase.table("coverage_offers").select("*").eq("tenant_id", hotel_id).eq("user_id", current_user.user_id)
+            .gte("created_at", since).order("created_at", desc=True).limit(50).execute().data or [])
+    live_ids = {str(r["id"]) for r in rows}
+    past = [o for o in past if str(o["id"]) not in live_ids]
+    past_gaps = {str(g["id"]): g for g in (supabase.table("coverage_gaps").select("*").eq("tenant_id", hotel_id)
+                 .in_("id", sorted({str(o["gap_id"]) for o in past})).execute().data or [])} if past else {}
+    rows += [
+        {"id": o["id"], "expires_at": o.get("expires_at"), "status": effective_offer_status(o, now), "responded_at": o.get("responded_at"),
+         "shift": _employee_gap_view(past_gaps[str(o["gap_id"])])}
+        for o in past if str(o["gap_id"]) in past_gaps]
+    return {"data": rows}
+
+
+@router.get("/me/claims")
+async def my_claims(current_user: CurrentUser = Depends(require_role(*ALL_ROLES))):
+    """The caller's own open-shift requests: pending ones and how recent ones ended. The supervisor's note is never shown."""
+    hotel_id, now = current_user.hotel_id, store.now_utc()
+    since = (now - timedelta(days=RECENT_DAYS)).isoformat()
+    claims = (supabase.table("coverage_claims").select("*").eq("tenant_id", hotel_id).eq("user_id", current_user.user_id)
+              .gte("created_at", since).order("created_at", desc=True).limit(50).execute().data or [])
+    gaps = {str(g["id"]): g for g in (supabase.table("coverage_gaps").select("*").eq("tenant_id", hotel_id)
+            .in_("id", sorted({str(c["gap_id"]) for c in claims})).execute().data or [])} if claims else {}
+    return {"data": [
+        {"id": c["id"], "status": c["status"], "decided_at": c.get("decided_at"), "shift": _employee_gap_view(gaps[str(c["gap_id"])])}
+        for c in claims if str(c["gap_id"]) in gaps]}
 
 
 @router.post("/offers/{offer_id}/respond")
@@ -94,6 +130,8 @@ async def respond_to_offer(offer_id: str, body: OfferResponseRequest, current_us
             raise err(409, "offer_not_pending", "This offer changed. Reload to see the latest.")
         record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="declined",
                      old_state={"status": "pending"}, new_state={"status": "declined"})
+        if offer.get("offered_by"):
+            notices.enqueue(hotel_id, [str(offer["offered_by"])], "schedule_offer_declined", offer_id, {"offer_id": offer_id, "gap_id": str(gap["id"])})
         fill.reopen_if_idle(hotel_id, str(gap["id"]))
         return {"data": {"offer_id": offer_id, "status": "declined"}}
 
@@ -106,6 +144,8 @@ async def respond_to_offer(offer_id: str, body: OfferResponseRequest, current_us
                               expected_version=int(gap["version"]), offer_id=offer_id)
     record_audit(current_user, resource_type="coverage_offer", resource_id=offer_id, action="accepted",
                  old_state={"status": "pending"}, new_state={"status": "accepted", "recorded_by_manager": is_manager})
+    if offer.get("offered_by") and str(offer["offered_by"]) != current_user.user_id:
+        notices.enqueue(hotel_id, [str(offer["offered_by"])], "schedule_offer_accepted", offer_id, {"offer_id": offer_id, "gap_id": str(gap["id"])})
     return {"data": {"offer_id": offer_id, "status": "accepted", "assignment_id": result["assignment_id"]}}
 
 
@@ -161,6 +201,8 @@ async def claim_open_shift(gap_id: str, current_user: CurrentUser = Depends(requ
         raise
     record_audit(current_user, resource_type="coverage_claim", resource_id=str(claim["id"]), action="created",
                  new_state={"gap_id": gap_id, "status": "pending"})
+    notices.enqueue(hotel_id, notices.managers_of(hotel_id, str(gap["department_id"]), exclude=[current_user.user_id]),
+                    "schedule_claim_submitted", str(claim["id"]), {"claim_id": str(claim["id"]), "gap_id": gap_id})
     return {"data": {"claim_id": claim["id"], "status": "pending", "shift": _employee_gap_view(gap)}}
 
 
@@ -188,6 +230,8 @@ def _decide_stale(current_user: CurrentUser, claim: dict, reason: str) -> None:
         "decision_reason": reason, "updated_at": store.now_utc().isoformat()}).eq("tenant_id", current_user.hotel_id).eq("id", claim["id"]).eq("status", "pending").execute()
     record_audit(current_user, resource_type="coverage_claim", resource_id=str(claim["id"]), action="declined",
                  old_state={"status": "pending"}, new_state={"status": "declined"}, reason_note=reason)
+    notices.enqueue(current_user.hotel_id, [str(claim["user_id"])], "schedule_claim_declined", str(claim["id"]),
+                    {"claim_id": str(claim["id"]), "gap_id": str(claim["gap_id"])})
 
 
 @router.post("/claims/{claim_id}/approve")
@@ -219,6 +263,8 @@ async def approve_claim(claim_id: str, body: ClaimDecisionRequest, current_user:
                               expected_version=body.expected_version, claim_id=claim_id)
     record_audit(current_user, resource_type="coverage_claim", resource_id=claim_id, action="approved",
                  old_state={"status": "pending"}, new_state={"status": "approved"})
+    notices.enqueue(hotel_id, [str(claim["user_id"])], "schedule_claim_approved", claim_id,
+                    {"claim_id": claim_id, "gap_id": str(gap["id"]), "work_date": str(gap["work_date"])[:10]})
     return {"data": fill.full_gap(hotel_id, str(gap["id"])), "meta": {"assignment_id": result["assignment_id"]}}
 
 
