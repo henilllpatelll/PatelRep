@@ -82,7 +82,9 @@ WORKFLOWS: dict[str, Workflow] = {
         key="absence", table="absence_records", initial="reported",
         transitions={
             "reported": (_t("confirmed", MANAGER), _t("withdrawn", SELF, MANAGER)),
-            "confirmed": (_t("covered", MANAGER),),
+            # Phase 4: a supervisor may retract a confirmed call-out (recorded by mistake, employee can work after
+            # all) until a replacement is confirmed. Reason required; the transition is audited. 'covered' stays final.
+            "confirmed": (_t("covered", MANAGER), _t("withdrawn", MANAGER, reason=True)),
             "covered": (), "withdrawn": (),
         },
         terminal=frozenset({"covered", "withdrawn"}), introduced_in="call-out management",
@@ -101,15 +103,37 @@ WORKFLOWS: dict[str, Workflow] = {
         },
         terminal=frozenset({"denied", "cancelled"}), introduced_in="time-off and shift requests",
     ),
-    # An open shift employees may claim; a manager approves the claim.
+    # An open shift employees may claim; a manager approves the claim. Phase 4 stores it as a claimable coverage_gaps
+    # row (the same record a call-out opens) rather than a second table: "claimed" = a pending coverage_claims row,
+    # "filled"/"cancelled" = the gap's own status. The states below are the view API clients see.
     "open_shift": Workflow(
-        key="open_shift", table="open_shifts", initial="open",
+        key="open_shift", table="coverage_gaps", initial="open",
         transitions={
             "open": (_t("claimed", SELF), _t("expired", SYSTEM), _t("cancelled", MANAGER)),
             "claimed": (_t("filled", MANAGER), _t("open", MANAGER, reason=True), _t("cancelled", SELF)),
             "filled": (), "expired": (), "cancelled": (),
         },
         terminal=frozenset({"filled", "expired", "cancelled"}), introduced_in="shift replacement and coverage recovery",
+    ),
+    # "Will you take this shift?" An offer is NOT a scheduled shift; only fill_coverage_gap() makes one.
+    "coverage_offer": Workflow(
+        key="coverage_offer", table="coverage_offers", initial="pending",
+        transitions={
+            "pending": (_t("accepted", SELF, MANAGER), _t("declined", SELF), _t("withdrawn", MANAGER),
+                        _t("expired", SYSTEM), _t("superseded", SYSTEM)),
+            "accepted": (), "declined": (), "withdrawn": (), "expired": (), "superseded": (),
+        },
+        terminal=frozenset({"accepted", "declined", "withdrawn", "expired", "superseded"}),
+        introduced_in="shift replacement and coverage recovery",
+    ),
+    # An employee's interest in a claimable open shift; never a shift until a manager approves it.
+    "coverage_claim": Workflow(
+        key="coverage_claim", table="coverage_claims", initial="pending",
+        transitions={
+            "pending": (_t("approved", MANAGER), _t("declined", MANAGER), _t("withdrawn", SELF)),
+            "approved": (), "declined": (), "withdrawn": (),
+        },
+        terminal=frozenset({"approved", "declined", "withdrawn"}), introduced_in="shift replacement and coverage recovery",
     ),
     "shift_swap": Workflow(
         key="shift_swap", table="shift_swap_requests", initial="proposed",

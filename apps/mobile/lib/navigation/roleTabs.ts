@@ -95,6 +95,8 @@ export const HIDDEN_APP_ROUTES = [
   "scheduling/index",
   "team-schedule/index",
   "team-schedule/templates",
+  "team-schedule/coverage",
+  "team-schedule/open-shifts",
   "sop/index",
   "sop/[sopId]",
   "my-rooms/[roomId]",

@@ -13,6 +13,8 @@ interface Props {
   today: string;
   /** null = the week's plan is unknown, so no day shows a count. */
   summaries: readonly DaySummary[] | null;
+  /** Shifts still needing a person, by day (only days with at least one). Omitted/empty = none known. */
+  uncovered?: Readonly<Record<string, number>>;
   language?: string;
   onSelect: (date: string) => void;
   onPrevWeek: () => void;
@@ -22,7 +24,7 @@ interface Props {
 }
 
 /** Previous / next week, the range label, a way back to today, and the seven days as 44pt+ touch targets. */
-export function WeekDateSelector({ days, selected, today, summaries, language, onSelect, onPrevWeek, onNextWeek, onToday, t }: Props) {
+export function WeekDateSelector({ days, selected, today, summaries, uncovered, language, onSelect, onPrevWeek, onNextWeek, onToday, t }: Props) {
   const theme = useTheme();
   const showingThisWeek = days.includes(today);
   return (
@@ -53,10 +55,12 @@ export function WeekDateSelector({ days, selected, today, summaries, language, o
           const isToday = date === today;
           const summary = summaries?.find((entry) => entry.date === date) ?? null;
           const count = summary ? summary.people : null;
+          const open = uncovered?.[date] ?? 0;
           const label = [
             formatLongDate(date, language),
             isToday ? t("teamSchedule.todayMarker") : null,
             count === null ? t("teamSchedule.week.countUnknown") : t("teamSchedule.week.peopleCount", { count }),
+            open > 0 ? t("teamSchedule.coverage.weekUncovered", { count: open }) : null,
           ]
             .filter(Boolean)
             .join(", ");
@@ -88,6 +92,13 @@ export function WeekDateSelector({ days, selected, today, summaries, language, o
               <Text maxFontSizeMultiplier={1.3} style={[styles.count, { color: isSelected ? theme.onPrimary : theme.textSecondary }]} testID={`team-schedule-day-count-${date}`}>
                 {count === null ? "–" : count}
               </Text>
+              {open > 0 ? (
+                <View style={[styles.flag, { backgroundColor: theme.status.pickup }]} testID={`team-schedule-day-uncovered-${date}`}>
+                  <Text maxFontSizeMultiplier={1.3} style={styles.flagText}>
+                    {open}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           );
         })}
@@ -108,4 +119,6 @@ const styles = StyleSheet.create({
   dow: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   dom: { fontSize: 18, fontWeight: "800" },
   count: { fontSize: 12, fontWeight: "700" },
+  flag: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, alignItems: "center", justifyContent: "center", marginTop: 2 },
+  flagText: { fontSize: 11, fontWeight: "800", color: "#FFFFFF" },
 });

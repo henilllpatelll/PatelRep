@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
+import { CallOutSheet } from "@/components/scheduling/CallOutSheet";
 import { ShiftDetailSheet } from "@/components/scheduling/ShiftDetailSheet";
 import { ShiftFormSheet } from "@/components/scheduling/ShiftFormSheet";
+import type { CoverageGap } from "@/lib/api/schedulingCoverage";
 import type { TeamPerson, TeamShift } from "@/lib/api/schedulingTeam";
 import type { FormMode } from "@/lib/scheduling/shiftForm";
 import type { DayRoster, RosterPerson } from "@/lib/scheduling/teamScheduleModel";
-import type { Translate } from "@/lib/scheduling/teamScheduleText";
+import { personName, rolesLine, type Translate } from "@/lib/scheduling/teamScheduleText";
 import { useTemplates } from "@/lib/scheduling/useTemplates";
 import type { SavedSummary } from "@/lib/scheduling/useShiftFormFlow";
 import { useToast } from "@/lib/theme/useToast";
@@ -39,6 +41,10 @@ interface Props {
   onChanged: () => void | Promise<void>;
   onOpenAssignments: (userId: string) => void;
   onOpenTemplates: () => void;
+  /** Call-outs and coverage (Phase 4). */
+  coverageFor: (assignmentId: string) => CoverageGap | null;
+  onFindCoverage: (gapId: string) => void;
+  onCoverageChanged: () => void;
   t: Translate;
 }
 
@@ -47,9 +53,11 @@ interface Props {
  * screen keeps its own editing logic. The screen keeps its own date, filters, search and scroll position, because this
  * only ever opens sheets on top of it.
  */
-export function ShiftManager({ roster, people, rows, openUserId, openShiftId, onCloseDetail, form, onForm, today, zone, language, isOnline, onChanged, onOpenAssignments, onOpenTemplates, t }: Props) {
+export function ShiftManager({ roster, people, rows, openUserId, openShiftId, onCloseDetail, form, onForm, today, zone, language, isOnline, onChanged, onOpenAssignments, onOpenTemplates, coverageFor, onFindCoverage, onCoverageChanged, t }: Props) {
   const toast = useToast();
   const [messageTo, setMessageTo] = useState<RosterPerson | null>(null);
+  // The call-out drawer outlives the detail sheet it was opened from (one modal at a time), so it keeps its own copy.
+  const [callOut, setCallOut] = useState<{ shift: TeamShift; name: string; role: string | null; attendance: string | null } | null>(null);
   const templates = useTemplates({ enabled: form !== null });
   const reloadTemplates = templates.reload;
 
@@ -60,6 +68,21 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
   }, [form !== null]);
 
   const sheetPerson = roster?.people.find((person) => person.userId === openUserId) ?? null;
+
+  const startCallOut = useCallback(
+    (shift: TeamShift) => {
+      const person = roster?.people.find((candidate) => candidate.userId === shift.userId) ?? null;
+      const status = person?.status ?? null;
+      setCallOut({
+        shift,
+        name: person ? personName(person, t) : t("teamSchedule.coverage.someone"),
+        role: person ? rolesLine(person.roles, t) : null,
+        attendance: status ? t(`teamSchedule.detail.statusHint.${status}`) : null,
+      });
+      onCloseDetail();
+    },
+    [roster, t, onCloseDetail],
+  );
 
   const saved = useCallback(
     (summary: SavedSummary) => {
@@ -99,6 +122,12 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
         onCopy={(shift) => onForm({ mode: "copy", source: shift, date: shift.workDate, userId: shift.userId })}
         onMessage={setMessageTo}
         onOpenAssignments={onOpenAssignments}
+        coverageFor={coverageFor}
+        onCallOut={startCallOut}
+        onFindCoverage={(gapId) => {
+          onCloseDetail();
+          onFindCoverage(gapId);
+        }}
         onClose={onCloseDetail}
         t={t}
       />
@@ -129,6 +158,29 @@ export function ShiftManager({ roster, people, rows, openUserId, openShiftId, on
           t={t}
         />
       ) : null}
+      <CallOutSheet
+        shift={callOut?.shift ?? null}
+        personName={callOut?.name ?? ""}
+        roleText={callOut?.role ?? null}
+        attendanceText={callOut?.attendance ?? null}
+        zone={zone}
+        language={language}
+        isOnline={isOnline}
+        onClose={() => setCallOut(null)}
+        onRecorded={() => {
+          void onChanged();
+          onCoverageChanged();
+        }}
+        onFindCoverage={(gapId) => {
+          setCallOut(null);
+          onFindCoverage(gapId);
+        }}
+        onReviewRooms={(userId) => {
+          setCallOut(null);
+          onOpenAssignments(userId);
+        }}
+        t={t}
+      />
       <DirectMessageModal visible={messageTo !== null} recipientId={messageTo?.userId ?? null} recipientName={messageTo?.name ?? null} isOnline={isOnline} onClose={() => setMessageTo(null)} />
     </>
   );

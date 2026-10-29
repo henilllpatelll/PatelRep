@@ -7,6 +7,7 @@ import { Avatar } from "@/components/shared/mobileHandoff";
 import { R } from "@/components/shared/tokens";
 import { ScheduleStatusBadge } from "@/components/scheduling/ScheduleStatusBadge";
 import { ShiftDetailBody } from "@/components/scheduling/ShiftDetailBody";
+import type { CoverageGap } from "@/lib/api/schedulingCoverage";
 import { cancelShift } from "@/lib/api/schedulingManage";
 import type { TeamShift } from "@/lib/api/schedulingTeam";
 import { formatLongDate } from "@/lib/scheduling/teamScheduleDates";
@@ -39,6 +40,11 @@ interface Props {
   onMessage: (person: RosterPerson) => void;
   /** Opens the same person in Assignments (who cleans which rooms). Scheduling never edits room work. */
   onOpenAssignments: (userId: string) => void;
+  /** The coverage gap a recorded call-out opened for a shift (open, offered or recently filled), if any. */
+  coverageFor: (assignmentId: string) => CoverageGap | null;
+  /** Record that the person will not work this shift (opens the call-out drawer). */
+  onCallOut: (shift: TeamShift) => void;
+  onFindCoverage: (gapId: string) => void;
   onClose: () => void;
   t: Translate;
 }
@@ -48,7 +54,7 @@ interface Props {
  * may take on it. Every change is an immediate schedule change; the server decides what is allowed, and this sheet
  * only explains up front why an action is unavailable.
  */
-export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, onEdit, onCopy, onMessage, onOpenAssignments, onClose, t }: Props) {
+export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, onEdit, onCopy, onMessage, onOpenAssignments, coverageFor, onCallOut, onFindCoverage, onClose, t }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const visible = person !== null;
@@ -81,6 +87,15 @@ export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, l
           : detail === null
             ? t("teamSchedule.manage.detail.checking")
             : null;
+
+  const gap = row ? coverageFor(row.id) : null;
+  const callOutBlocked = !isOnline
+    ? t("teamSchedule.manage.offline")
+    : !row
+      ? t("teamSchedule.manage.detail.notEditableData")
+      : Date.parse(row.endsAt) <= Date.now()
+        ? t("teamSchedule.coverage.shiftEnded")
+        : null;
 
   const confirmCancel = () => {
     if (!row || !shift) return;
@@ -190,6 +205,7 @@ export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, l
 
               {shift ? <ShiftDetailBody shift={shift} roles={person.roles} state={detailState.state} zone={zone} language={language} t={t} /> : null}
               {notice ? <SheetNotice tone={notice.tone} text={notice.text} testID="shift-detail-notice" /> : null}
+              {gap ? <SheetNotice tone={gap.status === "filled" ? "info" : "warn"} text={gap.status === "filled" ? t("teamSchedule.coverage.shiftStatus.filled", { name: gap.filledUserName ?? t("teamSchedule.coverage.someone") }) : t(`teamSchedule.coverage.shiftStatus.${gap.status}`)} testID="shift-detail-coverage" /> : null}
 
               <View style={styles.actions}>
                 {shift && row ? (
@@ -199,6 +215,8 @@ export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, l
                     <SheetActionRow icon="copy-outline" title={t("teamSchedule.manage.action.copy")} hint={t("teamSchedule.manage.action.copyHint")} disabledReason={isOnline ? null : t("teamSchedule.manage.offline")} onPress={() => onCopy(row)} kind="form" testID="shift-action-copy" />
                   </>
                 ) : null}
+                {shift && row && !gap ? <SheetActionRow icon="call-outline" title={t("teamSchedule.coverage.action.recordCallOut")} hint={t("teamSchedule.coverage.action.recordCallOutHint")} disabledReason={callOutBlocked} onPress={() => onCallOut(row)} kind="form" testID="shift-action-call-out" /> : null}
+                {gap ? <SheetActionRow icon="people-circle-outline" title={t(gap.status === "open" || gap.status === "offered" ? "teamSchedule.coverage.action.findCoverage" : "teamSchedule.coverage.action.viewCoverage")} hint={t("teamSchedule.coverage.action.coverageHint")} onPress={() => onFindCoverage(gap.id)} testID="shift-action-coverage" /> : null}
                 <SheetActionRow icon="chatbubble-ellipses-outline" title={t("teamSchedule.manage.action.message")} hint={t("teamSchedule.manage.action.messageHint")} disabledReason={isOnline ? null : t("teamSchedule.manage.offline")} onPress={() => onMessage(person)} testID="shift-action-message" />
                 <SheetActionRow icon="people-outline" title={t("teamSchedule.detail.openAssignments")} hint={t("teamSchedule.detail.assignmentsHint")} onPress={() => onOpenAssignments(person.userId)} testID="team-schedule-detail-assignments" accessibilityLabel={t("teamSchedule.detail.openAssignments")} />
                 {shift && row ? <SheetActionRow icon="trash-outline" title={t("teamSchedule.manage.action.cancel")} hint={t("teamSchedule.manage.action.cancelHint")} disabledReason={busy ? t("teamSchedule.manage.cancel.working") : editBlocked} onPress={confirmCancel} testID="shift-action-cancel" /> : null}

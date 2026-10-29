@@ -35,7 +35,10 @@ from routers import (
     internal,
     notifications,
     scheduling,
+    scheduling_absences,
+    scheduling_coverage,
     scheduling_plan,
+    scheduling_requests,
     scheduling_team,
     guest_requests,
     logbook,
@@ -350,6 +353,9 @@ app.include_router(notifications.router, prefix=PREFIX)
 app.include_router(scheduling.router, prefix=PREFIX)
 app.include_router(scheduling_team.router, prefix=PREFIX)
 app.include_router(scheduling_plan.router, prefix=PREFIX)
+app.include_router(scheduling_absences.router, prefix=PREFIX)
+app.include_router(scheduling_coverage.router, prefix=PREFIX)
+app.include_router(scheduling_requests.router, prefix=PREFIX)
 app.include_router(guest_requests.router, prefix=PREFIX)
 app.include_router(logbook.router, prefix=PREFIX)
 app.include_router(management_roi.router, prefix=PREFIX)

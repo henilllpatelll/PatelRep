@@ -88,8 +88,12 @@ describe("words: every status, role and attention kind has English and Spanish t
   });
 
   it("never calls anyone absent or a no-show", () => {
-    const strings = JSON.stringify([(en as Record<string, unknown>).teamSchedule, (es as Record<string, unknown>).teamSchedule]).toLowerCase();
-    expect(strings).not.toMatch(/no-show|no show|absent without|confirmed absent|falta injustificada/);
+    // The coverage words (Phase 4) describe a call-out a supervisor explicitly RECORDED, so they are checked on their own below;
+    // every other word must still never call anyone absent from a missing clock-in.
+    const drop = ({ coverage: _coverage, ...rest }: Record<string, unknown>) => rest;
+    const strings = JSON.stringify([drop((en as { teamSchedule: Record<string, unknown> }).teamSchedule), drop((es as { teamSchedule: Record<string, unknown> }).teamSchedule)]).toLowerCase();
+    const coverageStrings = JSON.stringify([(en as { teamSchedule: { coverage: unknown } }).teamSchedule.coverage, (es as { teamSchedule: { coverage: unknown } }).teamSchedule.coverage]).toLowerCase();
+    expect(strings + coverageStrings).not.toMatch(/no-show|no show|absent without|confirmed absent|falta injustificada/);
     // "absent" appears only to say a missing clock-in does NOT mean absent.
     for (const match of strings.matchAll(/absent|ausente/g)) {
       const around = strings.slice(Math.max(0, match.index - 40), match.index + 20);

@@ -97,6 +97,7 @@ function freshWorld(): World {
 
 function serve() {
   get.mockImplementation(async (url: string) => {
+    if (url.startsWith("/schedules/gaps")) return { data: [], meta: { count: 0 } };
     if (url.startsWith("/schedules/team")) {
       const range = /date_from=([\d-]+)&date_to=([\d-]+)/.exec(url);
       const [from, to] = [range?.[1] ?? TODAY, range?.[2] ?? TODAY];

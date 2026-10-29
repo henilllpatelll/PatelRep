@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { AttentionList } from "@/components/scheduling/AttentionList";
+import { CoverageAttention } from "@/components/scheduling/CoverageAttention";
 import { PersonScheduleCard } from "@/components/scheduling/PersonScheduleCard";
 import { ScheduleFilterSheet } from "@/components/scheduling/ScheduleFilterSheet";
 import { ScheduleHeader } from "@/components/scheduling/ScheduleHeader";
@@ -22,6 +23,7 @@ import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
 import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import type { TeamScheduleLink, TeamScheduleView } from "@/lib/navigation/teamScheduleLink";
+import { onCoverageChanged } from "@/lib/scheduling/coverageSignal";
 import { addDaysToYmd, formatLongDate, shiftWeek } from "@/lib/scheduling/teamScheduleDates";
 import type { RosterPerson, ShiftGroup } from "@/lib/scheduling/teamScheduleModel";
 import {
@@ -35,6 +37,7 @@ import {
   type ScheduleViewState,
 } from "@/lib/scheduling/teamScheduleQuery";
 import { selectDayView, selectWeekView } from "@/lib/scheduling/teamScheduleView";
+import { useCoverageGaps } from "@/lib/scheduling/useCoverageGaps";
 import { useHotelToday, useTeamSchedule } from "@/lib/scheduling/useTeamSchedule";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -74,7 +77,18 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
     setOpenShiftId(null);
   }, []);
 
-  const { week, day, refreshing, refresh } = useTeamSchedule({ date, today, nowMs });
+  const { week, day, refreshing, refresh: refreshSchedule } = useTeamSchedule({ date, today, nowMs });
+  const coverage = useCoverageGaps(isOnline);
+  const reloadCoverage = coverage.refresh;
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshSchedule(), reloadCoverage()]);
+  }, [refreshSchedule, reloadCoverage]);
+  // Find Coverage / Open Shifts sit on top of this screen; when they change a gap, read coverage again.
+  useEffect(() => onCoverageChanged(() => void reloadCoverage()), [reloadCoverage]);
+  const dayGaps = useMemo(() => coverage.byDate.get(date) ?? [], [coverage.byDate, date]);
+  const uncoveredByDay = useMemo(() => Object.fromEntries([...coverage.byDate].map(([key, list]) => [key, list.length])), [coverage.byDate]);
+  const findCoverage = useCallback((gapId: string) => router.push({ pathname: "/(app)/team-schedule/coverage", params: { gapId } } as never), []);
+  const openOpenShifts = useCallback(() => router.push({ pathname: "/(app)/team-schedule/open-shifts", params: { date } } as never), [date]);
   const ctx = useMemo(() => ({ zone, language, nowMs }), [zone, language, nowMs]);
   const dayView = useMemo(() => selectDayView(date, today, week, day, ctx), [date, today, week, day, ctx]);
   const weekView = useMemo(() => selectWeekView(date, week), [date, week]);
@@ -138,11 +152,15 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
       {dayView.state === "ready" ? (
         <>
           <StaffingSummary scheduled={dayView.scheduledCount} counts={dayView.counts} attendanceNote={asOf ? t("teamSchedule.summary.attendanceAsOf", { time: asOf }) : null} attendanceMissing={isToday && roster?.mode === "unavailable"} isToday={isToday} t={t} />
+          <CoverageAttention gaps={dayGaps} status={coverage.status} zone={zone} language={language} onFind={findCoverage} onRetry={() => void reloadCoverage()} t={t} />
           <AttentionList items={dayView.attention} nowMs={nowMs} zone={zone} language={language} onOpenPerson={openShift} t={t} />
           {linkMissing ? <BoardNotice body={t("teamSchedule.linkMissing")} closeLabel={t("common.close")} onClose={() => setLinkMissing(false)} testID="team-schedule-link-missing" /> : null}
           <View style={styles.actions}>
             <View style={styles.actionCell}>
               <Button label={t("teamSchedule.manage.addShift")} icon="add" onPress={() => setForm({ mode: "add", source: null, date: date < today ? today : date })} disabled={!isOnline} testID="team-schedule-add-shift" />
+            </View>
+            <View style={styles.actionCell}>
+              <Button label={coverage.todo.length > 0 ? t("teamSchedule.coverage.openShiftsCount", { count: coverage.todo.length }) : t("teamSchedule.coverage.openShifts")} icon="people-circle-outline" variant="secondary" onPress={openOpenShifts} testID="team-schedule-open-shifts" />
             </View>
             <View style={styles.actionCell}>
               <Button label={t("teamSchedule.manage.templatesLink")} icon="layers-outline" variant="secondary" onPress={openTemplates} testID="team-schedule-open-templates" />
@@ -200,6 +218,7 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
           selected={date}
           today={today}
           summaries={weekView.summaries}
+          uncovered={uncoveredByDay}
           language={language}
           onSelect={select}
           onPrevWeek={() => select(shiftWeek(date, -1))}
@@ -260,6 +279,9 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
         onChanged={refresh}
         onOpenAssignments={openAssignments}
         onOpenTemplates={openTemplates}
+        coverageFor={coverage.forAssignment}
+        onFindCoverage={findCoverage}
+        onCoverageChanged={() => void reloadCoverage()}
         t={t}
       />
     </View>
@@ -274,7 +296,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 8 },
   listHeader: { gap: 12, paddingBottom: 12 },
-  actions: { flexDirection: "row", gap: 10 },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   actionCell: { flex: 1 },
   section: { fontSize: 17, fontWeight: "800", marginTop: 4 },
   separator: { height: 10 },

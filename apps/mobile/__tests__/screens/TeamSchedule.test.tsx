@@ -79,6 +79,7 @@ interface Server {
 /** Doubles GET /schedules/team: the attendance-bearing single-day read and the plain week read. */
 function serve({ today = "ok", week = "ok" }: Server = {}) {
   get.mockImplementation(async (url: string) => {
+    if (url.startsWith("/schedules/gaps")) return { data: [], meta: { count: 0 } };
     const attendance = url.includes("include_attendance=true");
     const range = /date_from=([\d-]+)&date_to=([\d-]+)/.exec(url);
     const [from, to] = [range?.[1] ?? TODAY, range?.[2] ?? TODAY];
@@ -194,7 +195,10 @@ describe("Today", () => {
 
   it("reads exactly one team endpoint call per source (plan + attendance), bounded to one day", async () => {
     await open();
-    const urls = get.mock.calls.map((c) => c[0] as string);
+    const all = get.mock.calls.map((c) => c[0] as string);
+    // Coverage (Phase 4) is its own bounded read pair: work still to do, and recently filled.
+    expect(all.filter((u) => u.startsWith("/schedules/gaps"))).toHaveLength(2);
+    const urls = all.filter((u) => !u.startsWith("/schedules/gaps"));
     expect(urls.some((u) => u.includes("include_attendance=true") && u.includes(`date_from=${TODAY}&date_to=${TODAY}`))).toBe(true);
     const days = weekDays(TODAY);
     expect(urls.some((u) => u.includes(`date_from=${days[0]}&date_to=${days[6]}`) && !u.includes("include_attendance"))).toBe(true);
@@ -385,10 +389,11 @@ describe("shift details and Assignments", () => {
     expect(screen.getByTestId("team-schedule-detail-status")).toBeTruthy();
     expect(screen.getByTestId("team-schedule-detail-shift-t1")).toBeTruthy();
     const everything = allStrings(screen).join(" ").toLowerCase();
-    // Phase 3 owns editing; call-outs, swaps, time off and publishing belong to later phases and must not appear.
+    // Phase 3 owns editing and Phase 4 call-outs; swaps, time off and publishing belong to later phases and must not appear.
+    expect(screen.getByTestId("shift-action-call-out")).toBeTruthy();
     expect(screen.getByTestId("shift-action-edit")).toBeTruthy();
     expect(screen.getByTestId("shift-action-cancel")).toBeTruthy();
-    expect(everything).not.toMatch(/call.?out|swap|time off|publish/);
+    expect(everything).not.toMatch(/swap|time off|publish/);
     fireEvent.press(screen.getByTestId("team-schedule-detail-assignments"));
     expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/assignments", params: { staffId: "u2" } });
     await waitFor(() => expect(screen.queryByTestId("team-schedule-detail-sheet")).toBeNull());
