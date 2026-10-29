@@ -50,7 +50,8 @@ def test_a_time_off_request_and_its_decision_queue_their_messages_with_the_chang
     hotel = make_hotel(db, rooms={"r1": {}}, housekeepers=2)
     employee = hotel.housekeepers[0]
     day = (date.today() + timedelta(days=40)).isoformat()
-    request = time_off(db, hotel, employee, day)
+    dept = db.table("departments").insert({"tenant_id": hotel.tenant_id, "name": "Housekeeping", "code": "HK"}).execute().data[0]["id"]
+    request = time_off(db, hotel, employee, day, department_id=dept)
 
     # Managers who cover Housekeeping hear a request exists. The requester and the reason are not part of it.
     asked = messages(db, hotel.tenant_id, "schedule_time_off_requested")
