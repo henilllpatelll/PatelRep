@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.coverage_gaps (
   created_at              timestamptz NOT NULL DEFAULT now(),
   updated_at              timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT coverage_gaps_window_check CHECK (ends_at > starts_at),
-  CONSTRAINT coverage_gaps_source_check CHECK ((source = 'absence') = (absence_id IS NOT NULL)),
+  CONSTRAINT coverage_gaps_absence_link_check CHECK ((source = 'absence') = (absence_id IS NOT NULL)),
   CONSTRAINT coverage_gaps_filled_check CHECK (status <> 'filled' OR filled_assignment_id IS NOT NULL OR filled_user_id IS NOT NULL),
   CONSTRAINT coverage_gaps_waived_check CHECK (status <> 'waived' OR resolution_reason IS NOT NULL)
 );
