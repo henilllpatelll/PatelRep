@@ -9,6 +9,7 @@ from middleware.auth import require_role, CurrentUser
 from models.requests import EndShiftRequest, ShiftBreakRequest, StartShiftRequest
 from core.database import supabase
 from core.timezones import safe_gettz
+from services.scheduling import MAX_PLAUSIBLE_OPEN_SHIFT
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ _END_ATTEMPTS = 3
 
 # How far back a still-open shift is carried into a later roster day (an overnight shift). Mirrors the
 # mobile app's MAX_PLAUSIBLE_OPEN_SHIFT_MS: an open shift older than this was almost certainly never closed out.
-OPEN_SHIFT_CARRY_OVER = timedelta(hours=16)
+OPEN_SHIFT_CARRY_OVER = MAX_PLAUSIBLE_OPEN_SHIFT
 
 
 def _hotel_zone(hotel_id: str):
@@ -51,6 +52,54 @@ def roster_window(target_date: date, zone) -> tuple[str, str]:
     start = datetime.combine(target_date, time.min, tzinfo=tzinfo).astimezone(timezone.utc)
     end = datetime.combine(target_date + timedelta(days=1), time.min, tzinfo=tzinfo).astimezone(timezone.utc)
     return start.isoformat(), end.isoformat()
+
+
+def load_roster(hotel_id: str, target_date: date, zone) -> list[dict]:
+    """
+    Latest hk_shift_sessions row per person for the hotel-local `target_date` (the read behind GET /shifts/roster,
+    shared with the team schedule so attendance has exactly one interpretation). Raises on a failed read: callers
+    decide whether that means "unknown" or an error.
+    """
+    day_start, day_end = roster_window(target_date, zone)
+    columns = "user_id, status, started_at, on_break_since, break_seconds"
+
+    result = (
+        supabase.table("hk_shift_sessions")
+        .select(columns)
+        .eq("tenant_id", hotel_id)
+        .gte("started_at", day_start)
+        .lt("started_at", day_end)
+        .order("started_at", desc=True)
+        .execute()
+    )
+    rows = list(result.data or [])
+
+    # An overnight shift that began before the day window and is STILL OPEN belongs to this roster too: the
+    # person is working right now. Only meaningful for a hotel-local window (a legacy UTC window keeps its
+    # original behaviour), and bounded so a shift that was never closed out cannot linger indefinitely.
+    if zone is not None:
+        lookback = (_parse_ts(day_start) - OPEN_SHIFT_CARRY_OVER).isoformat()
+        carried = (
+            supabase.table("hk_shift_sessions")
+            .select(columns)
+            .eq("tenant_id", hotel_id)
+            .neq("status", "ended")
+            .gte("started_at", lookback)
+            .lt("started_at", day_start)
+            .order("started_at", desc=True)
+            .execute()
+        )
+        rows.extend(carried.data or [])
+        floor = datetime.min.replace(tzinfo=timezone.utc)
+        rows.sort(key=lambda row: _parse_ts(row.get("started_at")) or floor, reverse=True)
+
+    latest_by_user: dict[str, dict] = {}
+    for row in rows:
+        uid = row.get("user_id")
+        if uid and uid not in latest_by_user:
+            latest_by_user[uid] = row
+
+    return list(latest_by_user.values())
 
 
 def _get_open_shift(hotel_id: str, user_id: str) -> dict | None:
@@ -147,46 +196,7 @@ async def get_shift_roster(
         target_date = datetime.now(timezone.utc).astimezone(zone).date()
     else:
         target_date = datetime.now(timezone.utc).date()
-    day_start, day_end = roster_window(target_date, zone)
-    columns = "user_id, status, started_at, on_break_since, break_seconds"
-
-    result = (
-        supabase.table("hk_shift_sessions")
-        .select(columns)
-        .eq("tenant_id", current_user.hotel_id)
-        .gte("started_at", day_start)
-        .lt("started_at", day_end)
-        .order("started_at", desc=True)
-        .execute()
-    )
-    rows = list(result.data or [])
-
-    # An overnight shift that began before the day window and is STILL OPEN belongs to this roster too: the
-    # person is working right now. Only meaningful for a hotel-local window (a legacy UTC window keeps its
-    # original behaviour), and bounded so a shift that was never closed out cannot linger indefinitely.
-    if zone is not None:
-        lookback = (_parse_ts(day_start) - OPEN_SHIFT_CARRY_OVER).isoformat()
-        carried = (
-            supabase.table("hk_shift_sessions")
-            .select(columns)
-            .eq("tenant_id", current_user.hotel_id)
-            .neq("status", "ended")
-            .gte("started_at", lookback)
-            .lt("started_at", day_start)
-            .order("started_at", desc=True)
-            .execute()
-        )
-        rows.extend(carried.data or [])
-        floor = datetime.min.replace(tzinfo=timezone.utc)
-        rows.sort(key=lambda row: _parse_ts(row.get("started_at")) or floor, reverse=True)
-
-    latest_by_user: dict[str, dict] = {}
-    for row in rows:
-        uid = row.get("user_id")
-        if uid and uid not in latest_by_user:
-            latest_by_user[uid] = row
-
-    return {"data": list(latest_by_user.values())}
+    return {"data": load_roster(current_user.hotel_id, target_date, zone)}
 
 
 # ---------------------------------------------------------------------------

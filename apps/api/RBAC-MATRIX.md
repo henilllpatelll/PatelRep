@@ -206,14 +206,14 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | internal.py | /v1/internal/ai/failure-predictions | POST | N/A (not role-based) | verify_cron(...) [L283] |
 | internal.py | /v1/internal/billing/monthly-trueup | POST | N/A (not role-based) | verify_cron(...) [L331] |
 | internal.py | /v1/internal/logbook/shift-summary | POST | N/A (not role-based) | verify_cron(...) [L347] |
-| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L381] |
-| internal.py | /v1/internal/reports/run-schedules | POST | N/A (not role-based) | verify_cron(...) [L510] |
-| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L521] |
-| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L546] |
-| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L625] |
-| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L810] |
-| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L874] |
-| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L916] |
+| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L384] |
+| internal.py | /v1/internal/reports/run-schedules | POST | N/A (not role-based) | verify_cron(...) [L513] |
+| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L524] |
+| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L549] |
+| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L628] |
+| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L813] |
+| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L877] |
+| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L919] |
 | inventory.py | /v1/inventory/locations | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L79] |
 | inventory.py | /v1/inventory/locations | GET | none |  |
 | inventory.py | /v1/inventory/parts | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L109] |
@@ -406,28 +406,30 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | safety.py | /v1/safety/emergency/drills | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*MANAGER_ROLES) [L264] |
 | safety.py | /v1/safety/emergency/drills/{drill_id}/check-in | POST | none |  |
 | scheduling.py | /v1/schedules/shifts | GET | none |  |
-| scheduling.py | /v1/schedules/shifts | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L74] |
-| scheduling.py | /v1/schedules/shifts/{shift_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L109] |
-| scheduling.py | /v1/schedules/shifts/{shift_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L131] |
+| scheduling.py | /v1/schedules/shifts | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L316] |
+| scheduling.py | /v1/schedules/shifts/{shift_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L352] |
+| scheduling.py | /v1/schedules/shifts/{shift_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L405] |
 | scheduling.py | /v1/schedules/assignments/my-schedule | GET | none |  |
-| scheduling.py | /v1/schedules/assignments | GET | none |  |
-| scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L198] |
-| scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L214] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L246] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L280]; inline: current_user.role in SUPERVISOR_ROLES [L278] |
-| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L313]; inline: current_user.role in SUPERVISOR_ROLES [L311] |
-| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L334] |
+| scheduling.py | /v1/schedules/assignments | GET | none | inline: current_user.role in SCHEDULE_VIEWER_ROLES [L487] |
+| scheduling.py | /v1/schedules/assignments | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L520] |
+| scheduling.py | /v1/schedules/assignments/bulk | POST | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L536] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | PATCH | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L562] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id} | DELETE | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L661] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-in | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L698]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L696] |
+| scheduling.py | /v1/schedules/assignments/{assignment_id}/clock-out | PATCH | role-restricted (inline, see source) | gate: if not is_own and (not is_supervisor): raise HTTPException(...) [L714]; inline: current_user.role in SCHEDULE_MANAGER_ROLES [L712] |
+| scheduling.py | /v1/schedules/today-roster | GET | engineer, gm, housekeeping_supervisor | require_role(*SUPERVISOR_ROLES) [L727] |
+| scheduling_team.py | /v1/schedules/team | GET | TEAM_VIEW_ROLES(unresolved) | require_role(*TEAM_VIEW_ROLES) [L51] |
 | settings_activity.py | /v1/settings/activity/categories | GET | gm | require_role('gm') [L270] |
 | settings_activity.py | /v1/settings/activity/actors | GET | gm | require_role('gm') [L278] |
 | settings_activity.py | /v1/settings/activity | GET | gm | require_role('gm') [L303] |
 | settings_activity.py | /v1/settings/activity/export | GET | gm | require_role('gm') [L329] |
 | settings_activity.py | /v1/settings/activity/{event_id} | GET | gm | require_role('gm') [L392] |
-| shifts.py | /v1/shifts/current | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L100] |
-| shifts.py | /v1/shifts/roster | GET | gm, housekeeping_supervisor | require_role(*ASSIGNMENT_SUPERVISOR_ROLES) [L126] |
-| shifts.py | /v1/shifts/start | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L199] |
-| shifts.py | /v1/shifts/break | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L235] |
-| shifts.py | /v1/shifts/end | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L283] |
-| shifts.py | /v1/shifts/history | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L340] |
+| shifts.py | /v1/shifts/current | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L149] |
+| shifts.py | /v1/shifts/roster | GET | gm, housekeeping_supervisor | require_role(*ASSIGNMENT_SUPERVISOR_ROLES) [L175] |
+| shifts.py | /v1/shifts/start | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L209] |
+| shifts.py | /v1/shifts/break | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L245] |
+| shifts.py | /v1/shifts/end | POST | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L293] |
+| shifts.py | /v1/shifts/history | GET | housekeeper, housekeeping_supervisor | require_role(*SHIFT_ROLES) [L350] |
 | sop.py | /v1/sop/library | GET | none |  |
 | sop.py | /v1/sop/library/{document_id} | GET | none |  |
 | sop.py | /v1/sop/library/{document_id}/file | GET | none |  |
@@ -530,4 +532,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1788] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1862] |
 
-**42 routers, 519 routes.**
+**43 routers, 521 routes.**

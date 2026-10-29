@@ -19,6 +19,10 @@ GM_ONLY_ROLES = ("gm",)
 # (see Phase 19 RESEARCH Decision 1) — kept distinct on purpose, not merged:
 MANAGER_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer")  # leadership/compliance tier (safety.py)
 PROGRAM_MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")  # operational-program tier incl. line engineers (programs.py)
+# Team scheduling (routers/scheduling.py). Writers are additionally limited to their own department(s) by
+# services/scheduling_contracts.MANAGER_DEPARTMENT_CODES; gm is the only unrestricted one.
+SCHEDULE_MANAGER_ROLES = ("gm", "housekeeping_supervisor", "engineer")
+SCHEDULE_VIEWER_ROLES = ("gm", "housekeeping_supervisor", "engineer", "chief_engineer")  # may also READ the team-wide schedule
 TASK_ASSIGNMENT_ROLES = ("gm", "housekeeping_supervisor", "chief_engineer", "front_desk")
 
 # Phase 8 (housekeeping exception workflows): housekeeper reports what they

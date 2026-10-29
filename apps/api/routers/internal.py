@@ -348,8 +348,11 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
     from services.ai.shift_summary import generate_or_get_shift_summary, hotel_today
 
     # Find shifts that ended ~2 hours ago (give staff time to log entries)
+    # Archived templates (what DELETE /schedules/shifts/{id} does since migration 225) are removed shifts: they
+    # must stop producing summaries exactly as a hard-deleted row used to.
     shifts_result = supabase.table("shifts")\
         .select("id, tenant_id, end_time")\
+        .is_("archived_at", "null")\
         .execute()
 
     generated = 0
