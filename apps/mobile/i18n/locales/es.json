@@ -8897,6 +8897,192 @@
         "expired": "Vencida",
         "swapped": "Turnos intercambiados"
       }
+    },
+    "forecast": {
+      "title": "Pronóstico de personal",
+      "kicker": "AMA DE LLAVES",
+      "unavailable": "No disponible",
+      "updated": "Actualizado {{time}}",
+      "stale": "Última actualización {{time}}. Este pronóstico puede estar desactualizado. Desliza hacia abajo para actualizar.",
+      "offlineStale": "Sin conexión. Este pronóstico se actualizó por última vez a las {{time}} y puede estar desactualizado.",
+      "noData": "No hay pronóstico disponible para hoy.",
+      "unreadableDays": "No se pudo leer un día del pronóstico.",
+      "unreadableDays_plural": "No se pudieron leer {{count}} días del pronóstico.",
+      "weekShort": "déficit de personal proyectado",
+      "roomsCount": "{{count}} habitación",
+      "roomsCount_plural": "{{count}} habitaciones",
+      "peopleCount": "{{count}} persona",
+      "peopleCount_plural": "{{count}} personas",
+      "duration": {
+        "hm": "{{h}} h {{m}} min",
+        "h": "{{h}} h",
+        "m": "{{m}} min"
+      },
+      "quality": {
+        "estimated": "Estimado con tu horario y los estándares de habitación",
+        "partial": "Datos parciales: faltan algunos datos",
+        "unavailable": "No hay datos suficientes para evaluar"
+      },
+      "qualityShort": {
+        "estimated": "Estimado",
+        "partial": "Datos parciales",
+        "unavailable": "Datos insuficientes"
+      },
+      "hero": {
+        "short": {
+          "title": "Déficit de personal proyectado",
+          "body": "Unos {{duration}} de trabajo de limpieza no están cubiertos por la mano de obra programada.",
+          "bodyMin": "Al menos {{duration}} de trabajo de limpieza no están cubiertos por la mano de obra programada."
+        },
+        "sufficient": {
+          "title": "La cobertura parece suficiente",
+          "body": "{{capacity}} de mano de obra programada para unos {{demand}} de trabajo de limpieza.",
+          "bodyPlain": "La mano de obra programada parece cubrir el trabajo de limpieza identificado."
+        },
+        "unknown": {
+          "title": "No se puede evaluar la cobertura"
+        }
+      },
+      "metrics": {
+        "demand": "Trabajo de limpieza estimado",
+        "demandMinimum": "Al menos esto: parte del trabajo no se pudo calcular.",
+        "capacity": "Mano de obra productiva programada",
+        "capacityNow": "Desde ahora hasta el final de cada turno",
+        "capacityDay": "Turnos programados completos",
+        "gap": "Déficit proyectado",
+        "gapShort": "Faltan {{duration}}",
+        "gapSpare": "Sobran {{duration}}",
+        "gapMinimum": "Faltan al menos esto.",
+        "rooms": "Habitaciones por limpiar",
+        "staff": "Camareras programadas"
+      },
+      "outlook": {
+        "title": "Próximos 7 días",
+        "short": "Déficit proyectado",
+        "sufficient": "Suficiente (proyectado)",
+        "unknown": "Datos insuficientes",
+        "demandLine": "{{duration}} de trabajo",
+        "noDemand": "Carga de trabajo no disponible",
+        "capacityLine": "{{duration}} programadas",
+        "gap": "faltan {{duration}}",
+        "gapMin": "faltan al menos {{duration}}",
+        "openShifts": "{{count}} turno abierto",
+        "openShifts_plural": "{{count}} turnos abiertos"
+      },
+      "breakdown": {
+        "title": "Dónde está el trabajo",
+        "departure": "Salidas",
+        "stayover": "Estancias",
+        "vacant_dirty": "Vacías sucias",
+        "other": "Otra limpieza",
+        "unestimated": "{{count}} habitación no tiene tiempo de limpieza definido, por eso no se cuenta.",
+        "unestimated_plural": "{{count}} habitaciones no tienen tiempo de limpieza definido, por eso no se cuentan.",
+        "declined": "{{count}} habitación rechazó el servicio y no se cuenta.",
+        "declined_plural": "{{count}} habitaciones rechazaron el servicio y no se cuentan."
+      },
+      "reasons": {
+        "unknown": "Este día no se puede evaluar con la información disponible.",
+        "pms_not_connected": "Las llegadas y salidas futuras no están conectadas, así que no se puede evaluar el trabajo de limpieza de este día.",
+        "future_demand_unavailable": "Todavía no hay una fuente confiable del trabajo de limpieza de este día.",
+        "room_board_unreadable": "No se pudo leer el estado de las habitaciones de hoy.",
+        "unestimated_rooms": "Algunas habitaciones no tienen tiempo de limpieza definido, así que el total es un mínimo.",
+        "capacity_unavailable": "No se pudo leer la mano de obra programada.",
+        "absences_unreadable": "No se pudieron leer las ausencias, así que no se puede confiar en la mano de obra programada.",
+        "leave_unreadable": "No se pudo leer el tiempo libre, así que no se puede confiar en la mano de obra programada.",
+        "demand_incomplete": "Parte del trabajo de limpieza no se pudo calcular."
+      },
+      "limitations": {
+        "later_departures_unknown": "No se incluyen las salidas que todavía no han ocurrido.",
+        "learned_estimates_unavailable": "Los tiempos de limpieza usan los estándares de tu tipo de habitación; los tiempos aprendidos no estaban disponibles.",
+        "pending_callouts": "Una ausencia aún no está confirmada, así que su turno se sigue contando.",
+        "unknown_department_shifts": "Algunos turnos son de personas sin departamento y no se cuentan.",
+        "pending_leave": "Las solicitudes de tiempo libre pendientes podrían reducir la mano de obra programada."
+      },
+      "assumptions": {
+        "noBreakPolicy": "Minutos de turno pagados. No hay política de descansos, así que no se descuentan.",
+        "scenarioBreaks": "Minutos de turno pagados menos un descanso hipotético por turno. No se guarda nada."
+      },
+      "sources": {
+        "room_board": "Las habitaciones de hoy vienen del tablero en vivo, calculadas con los estándares de limpieza de tu propiedad.",
+        "scheduled_shifts": "La mano de obra viene de los turnos publicados, menos las ausencias confirmadas y el tiempo libre aprobado.",
+        "future_demand": "Todavía no hay una fuente para el trabajo de limpieza futuro.",
+        "unknown": "Una fuente que esta app no describe.",
+        "stale": "Última actualización {{time}}."
+      },
+      "drawer": {
+        "subtitle": "Cómo se calculó este pronóstico",
+        "comparison": "Trabajo frente a mano de obra",
+        "demand": "Trabajo de limpieza",
+        "capacity": "Mano de obra programada",
+        "difference": "Diferencia",
+        "quality": "Calidad de los datos",
+        "laborTitle": "Mano de obra programada",
+        "people": "Camareras programadas",
+        "callouts": "Ausencias confirmadas",
+        "replacements": "Reemplazos confirmados",
+        "leave": "Turnos acortados por tiempo libre aprobado",
+        "drafts": "Turnos en borrador (no se cuentan)",
+        "currentVerified": "{{working}} de {{scheduled}} programadas han registrado su entrada ahora.",
+        "currentUnverified": "No se pudo verificar el registro de entrada, así que se muestra el plan sin él.",
+        "limitations": "Lo que esto no cubre",
+        "sources": "De dónde vienen estos números"
+      },
+      "rec": {
+        "title": "Qué revisar",
+        "basisVerified": "De tus registros",
+        "basisEstimate": "Estimado",
+        "aShift": "Un turno",
+        "uncovered_shift": {
+          "title": "{{shift}} no tiene a nadie asignado",
+          "why": "Una ausencia o un turno abierto lo dejó sin cubrir, y la mano de obra programada no lo incluye."
+        },
+        "unresolved_callout": {
+          "title": "{{count}} ausencia sin confirmar",
+          "title_plural": "{{count}} ausencias sin confirmar",
+          "why": "Una ausencia sin confirmar aún cuenta como mano de obra programada, así que el pronóstico puede ser demasiado optimista."
+        },
+        "shortfall": {
+          "title": "Falta mano de obra programada",
+          "titleShifts": "Agrega unos {{count}} turno más",
+          "titleShifts_plural": "Agrega unos {{count}} turnos más",
+          "why": "El trabajo de limpieza estimado supera el tiempo productivo programado. Es una estimación, no un requisito.",
+          "whyMin": "El trabajo de limpieza ya calculado supera el tiempo productivo programado, y parte del trabajo no se pudo calcular, así que el déficit real puede ser mayor."
+        },
+        "leave_conflict": {
+          "title": "{{count}} turno coincide con tiempo libre aprobado",
+          "title_plural": "{{count}} turnos coinciden con tiempo libre aprobado",
+          "why": "El tiempo libre aprobado quita esas horas del pronóstico, pero los turnos siguen en el horario."
+        },
+        "missing_estimates": {
+          "title": "{{count}} habitación sin tiempo de limpieza",
+          "title_plural": "{{count}} habitaciones sin tiempo de limpieza",
+          "why": "Sin un tiempo de limpieza para el tipo de habitación no se pueden calcular, así que el total es un mínimo. Define los tiempos por tipo de habitación en Configuración en la web."
+        },
+        "unassigned_rooms": {
+          "title": "{{count}} habitación sin asignar",
+          "title_plural": "{{count}} habitaciones sin asignar",
+          "why": "Estas habitaciones aún necesitan limpieza hoy y nadie las tiene asignadas."
+        },
+        "pending_leave": {
+          "title": "{{count}} turno coincide con tiempo libre pendiente",
+          "title_plural": "{{count}} turnos coinciden con tiempo libre pendiente",
+          "why": "Si se aprueban estas solicitudes, la mano de obra programada baja."
+        }
+      },
+      "actions": {
+        "find_coverage": "Buscar cobertura",
+        "add_shift": "Agregar turno",
+        "view_week": "Ver horario de la semana",
+        "review_time_off": "Revisar tiempo libre",
+        "view_assignments": "Ver asignaciones"
+      },
+      "card": {
+        "notAssessed": "Cobertura sin evaluar",
+        "unreadable": "No se pudo cargar el pronóstico de personal.",
+        "scheduledOnly": "Hay {{duration}} de mano de obra programada.",
+        "view": "Ver pronóstico",
+        "viewDay": "Ver detalles del día"
+      }
     }
   },
   "supervisorToday": {

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { dayOfMonth, formatLongDate, formatWeekdayShort, formatWeekRange } from "@/lib/scheduling/teamScheduleDates";
+import type { ForecastDay } from "@/lib/api/schedulingForecast";
 import type { DaySummary } from "@/lib/scheduling/teamScheduleModel";
 import type { Translate } from "@/lib/scheduling/teamScheduleText";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -15,6 +16,8 @@ interface Props {
   summaries: readonly DaySummary[] | null;
   /** Shifts still needing a person, by day (only days with at least one). Omitted/empty = none known. */
   uncovered?: Readonly<Record<string, number>>;
+  /** The staffing forecast by day. Only a projected shortage is marked here; every other state stays quiet. */
+  forecast?: Readonly<Record<string, ForecastDay>>;
   language?: string;
   onSelect: (date: string) => void;
   onPrevWeek: () => void;
@@ -24,7 +27,7 @@ interface Props {
 }
 
 /** Previous / next week, the range label, a way back to today, and the seven days as 44pt+ touch targets. */
-export function WeekDateSelector({ days, selected, today, summaries, uncovered, language, onSelect, onPrevWeek, onNextWeek, onToday, t }: Props) {
+export function WeekDateSelector({ days, selected, today, summaries, uncovered, forecast, language, onSelect, onPrevWeek, onNextWeek, onToday, t }: Props) {
   const theme = useTheme();
   const showingThisWeek = days.includes(today);
   return (
@@ -56,11 +59,13 @@ export function WeekDateSelector({ days, selected, today, summaries, uncovered, 
           const summary = summaries?.find((entry) => entry.date === date) ?? null;
           const count = summary ? summary.people : null;
           const open = uncovered?.[date] ?? 0;
+          const short = forecast?.[date]?.status === "short";
           const label = [
             formatLongDate(date, language),
             isToday ? t("teamSchedule.todayMarker") : null,
             count === null ? t("teamSchedule.week.countUnknown") : t("teamSchedule.week.peopleCount", { count }),
             open > 0 ? t("teamSchedule.coverage.weekUncovered", { count: open }) : null,
+            short ? t("teamSchedule.forecast.weekShort") : null,
           ]
             .filter(Boolean)
             .join(", ");
@@ -92,6 +97,11 @@ export function WeekDateSelector({ days, selected, today, summaries, uncovered, 
               <Text maxFontSizeMultiplier={1.3} style={[styles.count, { color: isSelected ? theme.onPrimary : theme.textSecondary }]} testID={`team-schedule-day-count-${date}`}>
                 {count === null ? "–" : count}
               </Text>
+              {short ? (
+                <View testID={`team-schedule-day-short-${date}`}>
+                  <Ionicons name="warning-outline" size={14} color={isSelected ? theme.onPrimary : theme.status.pickup} />
+                </View>
+              ) : null}
               {open > 0 ? (
                 <View style={[styles.flag, { backgroundColor: theme.status.pickup }]} testID={`team-schedule-day-uncovered-${date}`}>
                   <Text maxFontSizeMultiplier={1.3} style={styles.flagText}>

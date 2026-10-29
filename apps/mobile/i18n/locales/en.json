@@ -8897,6 +8897,192 @@
         "expired": "Expired",
         "swapped": "Shifts exchanged"
       }
+    },
+    "forecast": {
+      "title": "Staffing Forecast",
+      "kicker": "HOUSEKEEPING",
+      "unavailable": "Not available",
+      "updated": "Updated {{time}}",
+      "stale": "Last updated {{time}}. This forecast may be out of date. Pull down to refresh.",
+      "offlineStale": "You're offline. This forecast was last updated {{time}} and may be out of date.",
+      "noData": "No forecast is available for today.",
+      "unreadableDays": "A day of the forecast could not be read.",
+      "unreadableDays_plural": "{{count}} days of the forecast could not be read.",
+      "weekShort": "projected staffing gap",
+      "roomsCount": "{{count}} room",
+      "roomsCount_plural": "{{count}} rooms",
+      "peopleCount": "{{count}} person",
+      "peopleCount_plural": "{{count}} people",
+      "duration": {
+        "hm": "{{h}} h {{m}} min",
+        "h": "{{h}} h",
+        "m": "{{m}} min"
+      },
+      "quality": {
+        "estimated": "Estimated from your schedule and room standards",
+        "partial": "Partial data — some inputs are missing",
+        "unavailable": "Not enough data to assess"
+      },
+      "qualityShort": {
+        "estimated": "Estimated",
+        "partial": "Partial data",
+        "unavailable": "Not enough data"
+      },
+      "hero": {
+        "short": {
+          "title": "Projected staffing gap",
+          "body": "About {{duration}} of cleaning work is not covered by scheduled labour.",
+          "bodyMin": "At least {{duration}} of cleaning work is not covered by scheduled labour."
+        },
+        "sufficient": {
+          "title": "Coverage appears sufficient",
+          "body": "{{capacity}} of scheduled labour for about {{demand}} of cleaning work.",
+          "bodyPlain": "Scheduled labour appears to cover the cleaning work identified."
+        },
+        "unknown": {
+          "title": "Cannot assess coverage"
+        }
+      },
+      "metrics": {
+        "demand": "Estimated cleaning work",
+        "demandMinimum": "At least this much — some work could not be sized.",
+        "capacity": "Scheduled productive labour",
+        "capacityNow": "From now to the end of each shift",
+        "capacityDay": "Whole scheduled shifts",
+        "gap": "Projected gap",
+        "gapShort": "{{duration}} short",
+        "gapSpare": "{{duration}} to spare",
+        "gapMinimum": "At least this much short.",
+        "rooms": "Rooms to clean",
+        "staff": "Room attendants scheduled"
+      },
+      "outlook": {
+        "title": "Next 7 days",
+        "short": "Projected short",
+        "sufficient": "Projected sufficient",
+        "unknown": "Not enough data",
+        "demandLine": "{{duration}} of work",
+        "noDemand": "Workload not available",
+        "capacityLine": "{{duration}} scheduled",
+        "gap": "{{duration}} short",
+        "gapMin": "at least {{duration}} short",
+        "openShifts": "{{count}} open shift",
+        "openShifts_plural": "{{count}} open shifts"
+      },
+      "breakdown": {
+        "title": "Where the work is",
+        "departure": "Departures",
+        "stayover": "Stayovers",
+        "vacant_dirty": "Vacant dirty",
+        "other": "Other cleaning",
+        "unestimated": "{{count}} room has no cleaning time set, so it is not counted.",
+        "unestimated_plural": "{{count}} rooms have no cleaning time set, so they are not counted.",
+        "declined": "{{count}} room declined service and is not counted.",
+        "declined_plural": "{{count}} rooms declined service and are not counted."
+      },
+      "reasons": {
+        "unknown": "This day cannot be assessed with the information available.",
+        "pms_not_connected": "Future arrivals and departures are not connected, so this day's cleaning workload cannot be assessed.",
+        "future_demand_unavailable": "There is no reliable source for this day's cleaning workload yet.",
+        "room_board_unreadable": "Today's room statuses could not be read.",
+        "unestimated_rooms": "Some rooms have no cleaning time set, so the total is a minimum.",
+        "capacity_unavailable": "Scheduled labour could not be read.",
+        "absences_unreadable": "Call-outs could not be read, so scheduled labour cannot be trusted.",
+        "leave_unreadable": "Time off could not be read, so scheduled labour cannot be trusted.",
+        "demand_incomplete": "Some of the cleaning work could not be sized."
+      },
+      "limitations": {
+        "later_departures_unknown": "Departures that have not happened yet are not included.",
+        "learned_estimates_unavailable": "Cleaning times use your room-type standards; learned times were unavailable.",
+        "pending_callouts": "A call-out has not been confirmed yet, so its shift is still counted.",
+        "unknown_department_shifts": "Some shifts belong to people with no department and are not counted.",
+        "pending_leave": "Pending time-off requests could reduce scheduled labour."
+      },
+      "assumptions": {
+        "noBreakPolicy": "Paid shift minutes. No break policy is set, so breaks are not deducted.",
+        "scenarioBreaks": "Paid shift minutes minus a what-if break per shift. Nothing is saved."
+      },
+      "sources": {
+        "room_board": "Today's rooms come from the live room board, sized with your property's cleaning standards.",
+        "scheduled_shifts": "Labour comes from published shifts, minus confirmed call-outs and approved time off.",
+        "future_demand": "There is no source for future cleaning workload yet.",
+        "unknown": "A source this app does not describe.",
+        "stale": "Last updated {{time}}."
+      },
+      "drawer": {
+        "subtitle": "How this forecast was worked out",
+        "comparison": "Work compared with labour",
+        "demand": "Cleaning work",
+        "capacity": "Scheduled labour",
+        "difference": "Difference",
+        "quality": "Data quality",
+        "laborTitle": "Scheduled labour",
+        "people": "Room attendants scheduled",
+        "callouts": "Confirmed call-outs",
+        "replacements": "Confirmed replacements",
+        "leave": "Shifts shortened by approved time off",
+        "drafts": "Draft shifts (not counted)",
+        "currentVerified": "{{working}} of {{scheduled}} scheduled are clocked in right now.",
+        "currentUnverified": "Clock-in status could not be verified, so the plan is shown without it.",
+        "limitations": "What this does not cover",
+        "sources": "Where these numbers come from"
+      },
+      "rec": {
+        "title": "What to look at",
+        "basisVerified": "From your records",
+        "basisEstimate": "Estimated",
+        "aShift": "A shift",
+        "uncovered_shift": {
+          "title": "{{shift}} has no one assigned",
+          "why": "A call-out or open shift left it uncovered, and scheduled labour does not include it."
+        },
+        "unresolved_callout": {
+          "title": "{{count}} call-out is not confirmed",
+          "title_plural": "{{count}} call-outs are not confirmed",
+          "why": "An unconfirmed call-out still counts as scheduled labour, so the forecast may be too optimistic."
+        },
+        "shortfall": {
+          "title": "Scheduled labour is short",
+          "titleShifts": "Add about {{count}} more shift",
+          "titleShifts_plural": "Add about {{count}} more shifts",
+          "why": "Estimated cleaning work is more than the scheduled productive time. This is an estimate, not a requirement.",
+          "whyMin": "The cleaning work already sized is more than the scheduled productive time, and some work could not be sized, so the real gap may be larger."
+        },
+        "leave_conflict": {
+          "title": "{{count}} shift overlaps approved time off",
+          "title_plural": "{{count}} shifts overlap approved time off",
+          "why": "Approved time off removes those hours from the forecast, but the shifts are still on the schedule."
+        },
+        "missing_estimates": {
+          "title": "{{count}} room has no cleaning time",
+          "title_plural": "{{count}} rooms have no cleaning time",
+          "why": "Without a cleaning time for the room type these rooms cannot be sized, so the total is a minimum. Set room-type cleaning times in Settings on the web."
+        },
+        "unassigned_rooms": {
+          "title": "{{count}} room is not assigned yet",
+          "title_plural": "{{count}} rooms are not assigned yet",
+          "why": "These rooms still need cleaning today and nobody is assigned to them."
+        },
+        "pending_leave": {
+          "title": "{{count}} shift overlaps pending time off",
+          "title_plural": "{{count}} shifts overlap pending time off",
+          "why": "If these requests are approved, scheduled labour drops."
+        }
+      },
+      "actions": {
+        "find_coverage": "Find coverage",
+        "add_shift": "Add shift",
+        "view_week": "View week schedule",
+        "review_time_off": "Review time off",
+        "view_assignments": "View assignments"
+      },
+      "card": {
+        "notAssessed": "Coverage not assessed",
+        "unreadable": "The staffing forecast could not be loaded.",
+        "scheduledOnly": "{{duration}} of labour is scheduled.",
+        "view": "View forecast",
+        "viewDay": "View day details"
+      }
     }
   },
   "supervisorToday": {

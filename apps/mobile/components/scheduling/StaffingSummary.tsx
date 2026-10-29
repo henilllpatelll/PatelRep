@@ -37,8 +37,8 @@ interface Props {
 
 /**
  * The staffing overview. The headline is always the PLAN ("N scheduled"); attendance counts appear only when a
- * fresh, verified read backs them. It never states a shortage or a required headcount — there is no coverage
- * engine yet, so it says so.
+ * fresh, verified read backs them. It states no shortage and no required headcount: coverage against the day's
+ * cleaning work is the staffing forecast's job (ForecastSummaryCard, just below), which carries its own data quality.
  */
 export function StaffingSummary({ scheduled, counts, attendanceNote, attendanceMissing, isToday, t }: Props) {
   const theme = useTheme();
@@ -73,9 +73,6 @@ export function StaffingSummary({ scheduled, counts, attendanceNote, attendanceM
           {attendanceNote}
         </Text>
       ) : null}
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.coverage, { color: theme.textMuted }]} testID="team-schedule-coverage">
-        {t("teamSchedule.summary.coverage")}
-      </Text>
     </SectionCard>
   );
 }
@@ -100,5 +97,4 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 22, fontWeight: "800" },
   statLabel: { fontSize: 12, fontWeight: "600" },
   note: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
-  coverage: { fontSize: 12.5, lineHeight: 17, fontStyle: "italic" },
 });

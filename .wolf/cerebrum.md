@@ -957,3 +957,10 @@
 ### Do-Not-Repeat (2026-10-29)
 - Dirty-checking a form draft against the NEW server baseline hides the first load; compare against the baseline it was last synced with.
 - A local venv may be older than CI pins (dateutil 2.9 vs 3.0, stripe 15 vs 16): 5 unrelated tests fail locally only.
+
+### Team Scheduling Phase 6 (staffing forecast) learnings (2026-10-29)
+- The Opera reservation sync (services/opera/sync.py) pulls ARRIVALS for today..tomorrow only and never refreshes cancellations; opera_reservations is NOT a trustworthy departure forecast. Future-day demand is therefore unavailable (never "sufficient"); ForecastData.future_work is the seam for a real feed.
+- Demand mirrors the Assignments rule (learned minutes for non-PICKUP, else room_types.base_clean_minutes, never a default); unestimated rooms make demand a lower bound that can prove "short" but not "sufficient". Board clean-type precedence: checked-out room_status.clean_type wins, else assignment clean_type, else room_status.clean_type.
+- No break policy or stayover-frequency setting exists in the schema, so capacity is paid shift minutes (labelled) and break_minutes is only a what-if query param. A confirmed absence removes the ORIGINAL shift; the fill inserts a new row, so replacements count once.
+- StaffingSummary used to claim "Coverage not yet assessed"; the forecast card now owns coverage statements (that footer and its test assertion were removed on purpose).
+- Jest Ionicons mock returns null, so a testID placed ON an icon never renders; wrap icons in a View with the testID.

@@ -259,6 +259,8 @@ async def test_date_bounds_are_enforced(db):
             await forecast(date_from=bad)
         assert refused(exc) == code
     assert len((await forecast(days=3))["data"]["days"]) == 3
+    db.rows["tenants"][0]["name"] = "Fossil Creek Inn"
+    assert (await forecast())["meta"]["hotel_name"] == "Fossil Creek Inn"
     assert (await fc.get_staffing_forecast_day(DAY + timedelta(days=2), 0, SUP))["data"]["date"] == "2030-01-10"
 
 

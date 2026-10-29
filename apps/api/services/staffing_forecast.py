@@ -50,6 +50,7 @@ class ForecastData:
     room_info: dict[str, dict] = field(default_factory=dict)
     learned: Optional[Learned] = None
     learned_available: bool = False
+    hotel_name: Optional[str] = None
     pms_connected: Optional[bool] = None             # tenants.opera_pilot_enabled; only explains WHY future demand is missing
     future_work: Optional[dict[str, list[RoomWork]]] = None  # date -> reliable work from a future-demand feed (none exists yet)
     attendance: Optional[dict[str, dict]] = None     # today's latest hk_shift_sessions per user; None = not verified

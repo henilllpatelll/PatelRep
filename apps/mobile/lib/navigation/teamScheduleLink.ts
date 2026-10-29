@@ -7,6 +7,7 @@ import { safeLinkId } from "@/lib/navigation/assignmentsLink";
      view    "today" | "week"   which view to show (default today)
      date    YYYY-MM-DD         the hotel-local day to select; omitted = follow the hotel's today
      userId  a person           opens that person's shift sheet once the schedule has loaded
+     compose "add"              opens the Add shift form for `date` (nothing is saved until the supervisor saves it)
 
    Parameters are INTENT, never authority. The screen is supervisor-only, re-fetches everything as the signed-in
    user, and says so when the named person is not in this supervisor's schedule — a link can never show another
@@ -19,12 +20,14 @@ export interface TeamScheduleLink {
   /** null = follow the hotel's current day. */
   date: string | null;
   userId: string | null;
+  compose: "add" | null;
 }
 
 export interface TeamScheduleIntent {
   view?: TeamScheduleView;
   date?: string | null;
   userId?: string | null;
+  compose?: "add";
 }
 
 function single(value: unknown): string | null {
@@ -39,6 +42,7 @@ export function teamScheduleParams(intent: TeamScheduleIntent): Record<string, s
   if (isYmd(intent.date)) params.date = intent.date;
   const userId = safeLinkId(intent.userId);
   if (userId) params.userId = userId;
+  if (intent.compose === "add") params.compose = "add";
   return params;
 }
 
@@ -50,5 +54,6 @@ export function parseTeamScheduleParams(raw: Record<string, unknown> | null | un
     view: view === "week" ? "week" : "today",
     date: isYmd(date) ? date : null,
     userId: safeLinkId(raw?.userId),
+    compose: single(raw?.compose) === "add" ? "add" : null,
   };
 }

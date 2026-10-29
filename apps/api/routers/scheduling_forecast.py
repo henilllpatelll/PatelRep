@@ -43,7 +43,7 @@ def _build(current_user: CurrentUser, start: Optional[date], days: int, break_mi
         raise err(422, "date_too_far", f"Ask for a date within {MAX_DAYS_AHEAD} days.", max_days_ahead=MAX_DAYS_AHEAD)
     data = load_forecast_data(hotel_id, load_departments(hotel_id), zone, first, days, now, today, break_minutes)
     meta = {
-        "generated_at": now.isoformat(), "hotel_today": today.isoformat(),
+        "generated_at": now.isoformat(), "hotel_today": today.isoformat(), "hotel_name": data.hotel_name,
         "date_from": first.isoformat(), "days": days, "max_days": MAX_FORECAST_DAYS, "revision": revision(data),
         "break_policy": "scenario" if break_minutes else "unknown", "break_minutes_per_shift": break_minutes,
     }

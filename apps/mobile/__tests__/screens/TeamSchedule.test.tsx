@@ -172,7 +172,9 @@ describe("Today", () => {
     expect(text(screen.getByTestId("team-schedule-scheduled-count"))).toBe(tr("teamSchedule.summary.scheduled", { count: 3 }));
     expect(screen.getByTestId("team-schedule-count-onShift").props.accessibilityLabel).toBe("On shift: 1");
     expect(screen.getByTestId("team-schedule-count-notClockedIn")).toBeTruthy();
-    expect(text(screen.getByTestId("team-schedule-coverage"))).toBe("Coverage not yet assessed");
+    // Coverage against the day's work is the staffing forecast's statement now; the summary no longer claims "not yet assessed".
+    expect(screen.queryByText("Coverage not yet assessed")).toBeNull();
+    expect(screen.getByTestId("team-schedule-forecast-card")).toBeTruthy();
     const everything = allStrings(screen).join(" ").toLowerCase();
     expect(everything).not.toMatch(/short \d|understaffed|required|recommended/);
     expect(screen.queryByTestId("team-schedule-attendance-missing")).toBeNull();
@@ -200,7 +202,9 @@ describe("Today", () => {
     expect(all.filter((u) => u.startsWith("/schedules/gaps"))).toHaveLength(2);
     // Requests (Phase 5) is its own single read: how many are waiting for a supervisor.
     expect(all.filter((u) => u.startsWith("/schedules/requests"))).toEqual(["/schedules/requests?type=all&status=pending"]);
-    const urls = all.filter((u) => !u.startsWith("/schedules/gaps") && !u.startsWith("/schedules/requests"));
+    // The staffing forecast (Phase 6) is one bounded read: today and the next six hotel days.
+    expect(all.filter((u) => u.startsWith("/schedules/forecast"))).toEqual([`/schedules/forecast?date_from=${TODAY}&days=7`]);
+    const urls = all.filter((u) => !u.startsWith("/schedules/gaps") && !u.startsWith("/schedules/requests") && !u.startsWith("/schedules/forecast"));
     expect(urls.some((u) => u.includes("include_attendance=true") && u.includes(`date_from=${TODAY}&date_to=${TODAY}`))).toBe(true);
     const days = weekDays(TODAY);
     expect(urls.some((u) => u.includes(`date_from=${days[0]}&date_to=${days[6]}`) && !u.includes("include_attendance"))).toBe(true);

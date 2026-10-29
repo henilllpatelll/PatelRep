@@ -84,10 +84,11 @@ def load_forecast_data(
             logger.warning("staffing forecast: attendance read failed hotel_id=%s", hotel_id)
 
     learned, learned_available = _learned(hotel_id)
+    pms_connected, hotel_name = _hotel_facts(hotel_id)
     return ForecastData(
         now=now, today=today, assignments=assignments, person_kind=person_kind, absences=absences, leaves=leaves, gaps=gaps,
         board=board, board_assignments=board_assignments or {}, room_info=room_info, learned=learned,
-        learned_available=learned_available, pms_connected=_pms_connected(hotel_id), attendance=attendance,
+        learned_available=learned_available, pms_connected=pms_connected, hotel_name=hotel_name, attendance=attendance,
         break_minutes=break_minutes,
     )
 
@@ -128,11 +129,13 @@ def _learned(hotel_id: str):
     return (lambda code, clean: table.get((str(code or "").strip().upper(), clean))), True
 
 
-def _pms_connected(hotel_id: str) -> Optional[bool]:
-    """Whether the Opera integration is on. It only explains why future demand is missing; it is never demand itself."""
+def _hotel_facts(hotel_id: str) -> tuple[Optional[bool], Optional[str]]:
+    """(Opera integration on?, hotel name). The flag only explains why future demand is missing; it is never demand itself."""
     try:
-        row = supabase.table("tenants").select("opera_pilot_enabled").eq("id", hotel_id).maybe_single().execute()
+        row = supabase.table("tenants").select("name, opera_pilot_enabled").eq("id", hotel_id).maybe_single().execute()
         data = row.data if row else None
     except Exception:
-        return None
-    return None if data is None else bool(data.get("opera_pilot_enabled"))
+        return None, None
+    if data is None:
+        return None, None
+    return bool(data.get("opera_pilot_enabled")), data.get("name") or None

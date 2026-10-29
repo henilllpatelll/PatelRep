@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { AttentionList } from "@/components/scheduling/AttentionList";
 import { CoverageAttention } from "@/components/scheduling/CoverageAttention";
+import { ForecastSummaryCard } from "@/components/scheduling/ForecastSummaryCard";
 import { PersonScheduleCard } from "@/components/scheduling/PersonScheduleCard";
 import { ScheduleFilterSheet } from "@/components/scheduling/ScheduleFilterSheet";
 import { ScheduleHeader } from "@/components/scheduling/ScheduleHeader";
@@ -25,6 +26,7 @@ import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
 import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import type { TeamScheduleLink, TeamScheduleView } from "@/lib/navigation/teamScheduleLink";
 import { onCoverageChanged } from "@/lib/scheduling/coverageSignal";
+import { dayIndex } from "@/lib/scheduling/forecastModel";
 import { useRemote } from "@/lib/scheduling/requestHooks";
 import { addDaysToYmd, formatLongDate, shiftWeek } from "@/lib/scheduling/teamScheduleDates";
 import type { RosterPerson, ShiftGroup } from "@/lib/scheduling/teamScheduleModel";
@@ -40,6 +42,7 @@ import {
 } from "@/lib/scheduling/teamScheduleQuery";
 import { selectDayView, selectWeekView } from "@/lib/scheduling/teamScheduleView";
 import { useCoverageGaps } from "@/lib/scheduling/useCoverageGaps";
+import { useStaffingForecast } from "@/lib/scheduling/useStaffingForecast";
 import { useHotelToday, useTeamSchedule } from "@/lib/scheduling/useTeamSchedule";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -66,7 +69,8 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [openUserId, setOpenUserId] = useState<string | null>(null);
   const [openShiftId, setOpenShiftId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormRequest | null>(null);
+  // `compose=add` (from a forecast recommendation) opens the Add shift form; nothing is saved until the supervisor saves it.
+  const [form, setForm] = useState<FormRequest | null>(() => (link.compose === "add" ? { mode: "add", source: null, date: link.date && link.date >= today ? link.date : today } : null));
   const [pendingLink, setPendingLink] = useState<string | null>(link.userId);
   const [linkMissing, setLinkMissing] = useState(false);
 
@@ -82,12 +86,15 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const { week, day, refreshing, refresh: refreshSchedule } = useTeamSchedule({ date, today, nowMs });
   const coverage = useCoverageGaps(isOnline);
   const reloadCoverage = coverage.refresh;
+  const staffing = useStaffingForecast({ today, nowMs });
+  const reloadForecast = staffing.reload;
+  const forecastByDate = useMemo(() => dayIndex(staffing.forecast), [staffing.forecast]);
   // Phase 5: how many time-off requests and swaps are waiting for a supervisor. A failed read shows no number, never a zero.
   const requestsRemote = useRemote(() => fetchManagerRequests({ status: "pending" }), [], isOnline);
   const waitingRequests = requestsRemote.data?.counts.pending ?? null;
   const refresh = useCallback(async () => {
-    await Promise.all([refreshSchedule(), reloadCoverage()]);
-  }, [refreshSchedule, reloadCoverage]);
+    await Promise.all([refreshSchedule(), reloadCoverage(), reloadForecast()]);
+  }, [refreshSchedule, reloadCoverage, reloadForecast]);
   // Find Coverage / Open Shifts sit on top of this screen; when they change a gap, read coverage again.
   useEffect(() => onCoverageChanged(() => void reloadCoverage()), [reloadCoverage]);
   const dayGaps = useMemo(() => coverage.byDate.get(date) ?? [], [coverage.byDate, date]);
@@ -124,6 +131,7 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const scopeShifts = useMemo(() => [...new Map([...(weekData?.shifts ?? []), ...(dayData?.shifts ?? [])].map((shift) => [shift.id, shift])).values()], [weekData, dayData]);
   const openTemplates = useCallback(() => router.push("/(app)/team-schedule/templates" as never), []);
   const openRequests = useCallback(() => router.push("/(app)/team-schedule/requests" as never), []);
+  const openForecast = useCallback(() => router.push({ pathname: "/(app)/team-schedule/forecast", params: date === today ? {} : { date } } as never), [date, today]);
   const openAvailability = useCallback(() => router.push("/(app)/team-schedule/availability" as never), []);
 
   const select = useCallback((next: string) => setPicked(next === today ? null : next), [today]);
@@ -159,6 +167,7 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
       {dayView.state === "ready" ? (
         <>
           <StaffingSummary scheduled={dayView.scheduledCount} counts={dayView.counts} attendanceNote={asOf ? t("teamSchedule.summary.attendanceAsOf", { time: asOf }) : null} attendanceMissing={isToday && roster?.mode === "unavailable"} isToday={isToday} t={t} />
+          <ForecastSummaryCard day={forecastByDate[date] ?? null} loading={staffing.state.status === "loading"} isToday={isToday} onOpen={openForecast} t={t} />
           <CoverageAttention gaps={dayGaps} status={coverage.status} zone={zone} language={language} onFind={findCoverage} onRetry={() => void reloadCoverage()} t={t} />
           <AttentionList items={dayView.attention} nowMs={nowMs} zone={zone} language={language} onOpenPerson={openShift} t={t} />
           {linkMissing ? <BoardNotice body={t("teamSchedule.linkMissing")} closeLabel={t("common.close")} onClose={() => setLinkMissing(false)} testID="team-schedule-link-missing" /> : null}
@@ -232,6 +241,7 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
           today={today}
           summaries={weekView.summaries}
           uncovered={uncoveredByDay}
+          forecast={forecastByDate}
           language={language}
           onSelect={select}
           onPrevWeek={() => select(shiftWeek(date, -1))}

@@ -13,17 +13,17 @@ import { CTX, TODAY, person, schedule, shift } from "../helpers/teamScheduleFixt
 
 describe("deep link contract", () => {
   it("defaults to today with no params", () => {
-    expect(parseTeamScheduleParams({})).toEqual({ view: "today", date: null, userId: null });
-    expect(parseTeamScheduleParams(null)).toEqual({ view: "today", date: null, userId: null });
+    expect(parseTeamScheduleParams({})).toEqual({ view: "today", date: null, userId: null, compose: null });
+    expect(parseTeamScheduleParams(null)).toEqual({ view: "today", date: null, userId: null, compose: null });
   });
 
   it("reads view, date and person; arrays take their first value", () => {
-    expect(parseTeamScheduleParams({ view: "week", date: "2026-11-02", userId: "abc-123" })).toEqual({ view: "week", date: "2026-11-02", userId: "abc-123" });
+    expect(parseTeamScheduleParams({ view: "week", date: "2026-11-02", userId: "abc-123" })).toEqual({ view: "week", date: "2026-11-02", userId: "abc-123", compose: null });
     expect(parseTeamScheduleParams({ view: ["week"], date: ["2026-11-02"] })).toMatchObject({ view: "week", date: "2026-11-02" });
   });
 
   it.each([{ view: "month" }, { date: "2026-02-30" }, { date: "tomorrow" }, { userId: "../../etc" }, { userId: "a b" }, { userId: "x".repeat(65) }])("drops malformed params %j instead of guessing", (raw) => {
-    expect(parseTeamScheduleParams(raw)).toEqual({ view: "today", date: null, userId: null });
+    expect(parseTeamScheduleParams(raw)).toEqual({ view: "today", date: null, userId: null, compose: null });
   });
 
   it("round-trips an intent into route params", () => {
