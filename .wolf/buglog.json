@@ -34586,6 +34586,24 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-26T20:00:00.000Z"
+    },
+    {
+      "id": "bug-2103",
+      "timestamp": "2026-10-29T16:00:00Z",
+      "error_message": "MyAvailabilityScreen never showed the server's saved week on first load (draft stayed all 'Not submitted')",
+      "file": "apps/mobile/components/scheduling/MyAvailabilityScreen.tsx",
+      "root_cause": "The draft->server sync effect only ran when the draft was 'not dirty', but dirty was computed against the NEW baseline, so on first load an untouched draft looked edited and was never replaced",
+      "fix": "Track the baseline the draft was last synced with (useRef) and treat the draft as edited only relative to THAT; a server change then replaces an untouched draft, and 'another device saved first' (resetOnLoad) still drops stale edits",
+      "tags": [
+        "mobile",
+        "react",
+        "state-sync",
+        "availability",
+        "phase5"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-29T16:00:00Z"
     }
   ]
 }

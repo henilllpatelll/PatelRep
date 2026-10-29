@@ -130,7 +130,7 @@ export function OfferShiftSheet({ gap, candidate, isOnline, zone, language, onRe
         <SheetNotice text={t("teamSchedule.coverage.offer.notDelivered", { name: candidate.name })} testID="offer-not-delivered" />
       ) : (
         <>
-          <SheetNotice text={t("teamSchedule.coverage.offer.availabilityUnknown")} testID="offer-availability" />
+          {candidate.availability === "unknown" ? <SheetNotice text={t("teamSchedule.coverage.offer.availabilityUnknown")} testID="offer-availability" /> : null}
           {warnings.map((code) => (
             <SheetNotice key={code} tone="warn" text={candidateFlagText(code, t)} testID={`offer-warning-${code}`} />
           ))}

@@ -33,7 +33,7 @@ const FILTERS: readonly Filter[] = ["eligible", "all", "warnings", "conflicts"];
    One uncovered shift, the people who could take it and what is already in motion (offers, claims). Everything shown is
    read from the server; the screen never decides eligibility. Candidates are explained, not scored: reasons they
    qualify, warnings to weigh, and the exact blocker for anyone who cannot. Nobody is called "available" — a person
-   without a shift has not agreed to work, and availability is unknown until Phase 5. */
+   without a shift has not agreed to work, and availability is only what each person submitted ("unknown" when nothing was). */
 
 export function FindCoverageScreen({ gapId }: { gapId: string }) {
   const { t, i18n } = useTranslation();
@@ -409,9 +409,9 @@ function CandidateCard({ candidate, zone, language, disabled, onPress, t }: { ca
             • {candidateFlagText(flag, t)}
           </Text>
         ))}
-        {candidate.eligible ? (
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-            {t("teamSchedule.coverage.flag.availability_unknown")}
+        {candidate.eligible && (candidate.availability === "unknown" || candidate.availability === "available") ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: candidate.availability === "available" ? theme.textSecondary : theme.textMuted }]} testID={`candidate-availability-${candidate.userId}`}>
+            {t(`teamSchedule.coverage.availability.${candidate.availability}`)}
           </Text>
         ) : null}
         {shifts ? (

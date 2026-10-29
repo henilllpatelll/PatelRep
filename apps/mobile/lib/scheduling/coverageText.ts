@@ -39,7 +39,7 @@ export function candidateSummary(candidate: Pick<CoverageCandidate, "eligible" |
 }
 
 /** Warnings a supervisor must acknowledge before assigning (mirrors the server's ACK_WARNINGS). */
-export const ACK_WARNINGS: readonly string[] = ["insufficient_rest", "weekly_overtime", "long_shift", "pending_offer_elsewhere", "currently_clocked_in"];
+export const ACK_WARNINGS: readonly string[] = ["insufficient_rest", "weekly_overtime", "long_shift", "pending_offer_elsewhere", "currently_clocked_in", "marked_unavailable", "outside_availability", "pending_time_off"];
 
 export function warningsToAcknowledge(candidate: Pick<CoverageCandidate, "warnings">): string[] {
   return candidate.warnings.filter((w) => ACK_WARNINGS.includes(w));

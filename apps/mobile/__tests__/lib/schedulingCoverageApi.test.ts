@@ -31,8 +31,12 @@ describe("reading what the server sent", () => {
     expect(blind).toMatchObject({ verified: false, roomsAssigned: null, roomsRemaining: null, estimatedMinutesRemaining: null, minutesLeftInShift: 90 });
   });
 
-  it("never calls anyone available: availability is always unknown", () => {
-    expect(parseCandidate(wireCandidate("u2", "Bea", { availability: "available" }))?.availability).toBe("unknown");
+  it("reports the availability a person SUBMITTED, and anything else as unknown (never invented)", () => {
+    for (const status of ["available", "outside", "unavailable", "unknown"]) {
+      expect(parseCandidate(wireCandidate("u2", "Bea", { availability: status }))?.availability).toBe(status);
+    }
+    expect(parseCandidate(wireCandidate("u2", "Bea", { availability: "free" }))?.availability).toBe("unknown");
+    expect(parseCandidate(wireCandidate("u2", "Bea", { availability: undefined }))?.availability).toBe("unknown");
     expect(parseCandidate({ name: "no id" })).toBeNull();
   });
 

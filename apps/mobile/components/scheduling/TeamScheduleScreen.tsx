@@ -16,6 +16,7 @@ import { StaffingSummary } from "@/components/scheduling/StaffingSummary";
 import { WeekDateSelector } from "@/components/scheduling/WeekDateSelector";
 import { BoardNotice } from "@/components/supervisor/board/BoardStates";
 import { Button } from "@/components/ui/Button";
+import { fetchManagerRequests } from "@/lib/api/schedulingRequests";
 import type { TeamSchedule } from "@/lib/api/schedulingTeam";
 import { knownValue } from "@/lib/housekeeping/supervisorSources";
 import { BoardSearchBar } from "@/components/supervisor/board/BoardSearchBar";
@@ -24,6 +25,7 @@ import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
 import { assignmentsHref } from "@/lib/navigation/supervisorRoutes";
 import type { TeamScheduleLink, TeamScheduleView } from "@/lib/navigation/teamScheduleLink";
 import { onCoverageChanged } from "@/lib/scheduling/coverageSignal";
+import { useRemote } from "@/lib/scheduling/requestHooks";
 import { addDaysToYmd, formatLongDate, shiftWeek } from "@/lib/scheduling/teamScheduleDates";
 import type { RosterPerson, ShiftGroup } from "@/lib/scheduling/teamScheduleModel";
 import {
@@ -80,6 +82,9 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const { week, day, refreshing, refresh: refreshSchedule } = useTeamSchedule({ date, today, nowMs });
   const coverage = useCoverageGaps(isOnline);
   const reloadCoverage = coverage.refresh;
+  // Phase 5: how many time-off requests and swaps are waiting for a supervisor. A failed read shows no number, never a zero.
+  const requestsRemote = useRemote(() => fetchManagerRequests({ status: "pending" }), [], isOnline);
+  const waitingRequests = requestsRemote.data?.counts.pending ?? null;
   const refresh = useCallback(async () => {
     await Promise.all([refreshSchedule(), reloadCoverage()]);
   }, [refreshSchedule, reloadCoverage]);
@@ -118,6 +123,8 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
   const scopePeople = useMemo(() => [...new Map([...(weekData?.people ?? []), ...(dayData?.people ?? [])].map((person) => [person.userId, person])).values()], [weekData, dayData]);
   const scopeShifts = useMemo(() => [...new Map([...(weekData?.shifts ?? []), ...(dayData?.shifts ?? [])].map((shift) => [shift.id, shift])).values()], [weekData, dayData]);
   const openTemplates = useCallback(() => router.push("/(app)/team-schedule/templates" as never), []);
+  const openRequests = useCallback(() => router.push("/(app)/team-schedule/requests" as never), []);
+  const openAvailability = useCallback(() => router.push("/(app)/team-schedule/availability" as never), []);
 
   const select = useCallback((next: string) => setPicked(next === today ? null : next), [today]);
   const dateLabel = formatLongDate(date, language);
@@ -164,6 +171,12 @@ export function TeamScheduleScreen({ link }: { link: TeamScheduleLink }) {
             </View>
             <View style={styles.actionCell}>
               <Button label={t("teamSchedule.manage.templatesLink")} icon="layers-outline" variant="secondary" onPress={openTemplates} testID="team-schedule-open-templates" />
+            </View>
+            <View style={styles.actionCell}>
+              <Button label={waitingRequests ? `${t("teamSchedule.requests.title")} (${waitingRequests})` : t("teamSchedule.requests.title")} icon="mail-unread-outline" variant="secondary" onPress={openRequests} testID="team-schedule-open-requests" />
+            </View>
+            <View style={styles.actionCell}>
+              <Button label={t("teamSchedule.availability.title")} icon="time-outline" variant="secondary" onPress={openAvailability} testID="team-schedule-open-availability" />
             </View>
           </View>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textPrimary }]} testID="team-schedule-list-title">

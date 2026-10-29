@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
 import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { mySchedule, type ShiftAssignment } from "@/lib/api/scheduling";
+import { SwapRequestSheet, type SwapSource } from "@/components/scheduling/SwapRequestSheet";
+import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { fetchMyRequests } from "@/lib/api/schedulingRequests";
+import { useRemote } from "@/lib/scheduling/requestHooks";
+import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -31,7 +37,12 @@ function formatTime(t: string): string {
 
 export default function SchedulingScreen() {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isOnline = useAppStore((state) => state.isOnline);
+  // Phase 5: swap proposals waiting on this employee's answer. No number is shown when the read failed.
+  const myRequests = useRemote(fetchMyRequests, [], isOnline);
+  const waiting = myRequests.data?.counts.action_required ?? 0;
+  const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -133,14 +144,34 @@ export default function SchedulingScreen() {
                         ? `${assignment.shifts.name} ${formatTime(assignment.shifts.start_time)}–${formatTime(assignment.shifts.end_time)}`
                         : "Off"}
                     </Text>
+                    {assignment?.shifts && iso >= todayIso && !assignment.clocked_in_at ? (
+                      <Pressable
+                        onPress={() => setSwapSource({ id: assignment.id, workDate: iso, shiftName: assignment.shifts?.name ?? null, startTime: assignment.shifts?.start_time ?? null, endTime: assignment.shifts?.end_time ?? null })}
+                        accessibilityRole="button"
+                        accessibilityLabel={t("scheduling.swapFromShiftFor", { shift: assignment.shifts.name, date: iso })}
+                        hitSlop={6}
+                        testID={`swap-from-${assignment.id}`}
+                        style={[styles.swapHit, { borderColor: theme.border }]}
+                      >
+                        <Text maxFontSizeMultiplier={1.6} style={[styles.swapText, { color: theme.primaryAction }]}>{t("scheduling.swapFromShift")}</Text>
+                      </Pressable>
+                    ) : null}
                     {assignment ? <View style={[styles.shiftDot, { backgroundColor: theme.primaryAction }]} /> : null}
                   </View>
                 );
               })}
             </View>
           </View>
+
+          <View style={styles.actions}>
+            <SectionLabel>{t("scheduling.actions.title")}</SectionLabel>
+            <Button label={t("scheduling.actions.availability")} icon="time-outline" variant="secondary" onPress={() => router.push("/(app)/scheduling/availability" as never)} testID="schedule-action-availability" />
+            <Button label={t("scheduling.actions.timeOff")} icon="sunny-outline" variant="secondary" onPress={() => router.push("/(app)/scheduling/time-off" as never)} testID="schedule-action-time-off" />
+            <Button label={waiting > 0 ? t("scheduling.actions.requestsCount", { count: waiting }) : t("scheduling.actions.requests")} icon="mail-outline" variant={waiting > 0 ? "primary" : "secondary"} onPress={() => router.push("/(app)/scheduling/requests" as never)} testID="schedule-action-requests" />
+          </View>
         </>
       )}
+      <SwapRequestSheet source={swapSource} isOnline={isOnline} language={i18n.language} onClose={() => setSwapSource(null)} onSent={() => void myRequests.refresh()} t={t} />
     </ScrollView>
   );
 }
@@ -169,4 +200,7 @@ const styles = StyleSheet.create({
   shift: { flex: 1, fontSize: 13, fontWeight: "600" },
   offShift: { fontWeight: "400" },
   shiftDot: { width: 8, height: 8, borderRadius: 4 },
+  swapHit: { minHeight: 44, justifyContent: "center", paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
+  swapText: { fontSize: 12, fontWeight: "700" },
+  actions: { gap: 10 },
 });

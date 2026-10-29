@@ -198,7 +198,9 @@ describe("Today", () => {
     const all = get.mock.calls.map((c) => c[0] as string);
     // Coverage (Phase 4) is its own bounded read pair: work still to do, and recently filled.
     expect(all.filter((u) => u.startsWith("/schedules/gaps"))).toHaveLength(2);
-    const urls = all.filter((u) => !u.startsWith("/schedules/gaps"));
+    // Requests (Phase 5) is its own single read: how many are waiting for a supervisor.
+    expect(all.filter((u) => u.startsWith("/schedules/requests"))).toEqual(["/schedules/requests?type=all&status=pending"]);
+    const urls = all.filter((u) => !u.startsWith("/schedules/gaps") && !u.startsWith("/schedules/requests"));
     expect(urls.some((u) => u.includes("include_attendance=true") && u.includes(`date_from=${TODAY}&date_to=${TODAY}`))).toBe(true);
     const days = weekDays(TODAY);
     expect(urls.some((u) => u.includes(`date_from=${days[0]}&date_to=${days[6]}`) && !u.includes("include_attendance"))).toBe(true);

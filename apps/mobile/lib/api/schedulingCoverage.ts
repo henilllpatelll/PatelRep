@@ -10,7 +10,8 @@ import { classifyWriteFailure, type WriteFailure } from "./schedulingManage";
        employee notification channel yet). Only `assignGap`, an accepted offer or an approved claim fills a gap.
      - `expectedVersion` travels with every write; a 409 `version_conflict` means someone else changed the gap.
      - `recordAbsence` carries an idempotency key, so a retry after a lost answer returns the SAME record.
-     - `availability` is always "unknown" until availability records exist (Phase 5): nobody is "available" here. */
+     - `availability` is what the person SUBMITTED (available / outside / unavailable) and stays "unknown" when nothing was
+       submitted: nobody is "available" merely for having no shift. Approved time off arrives as the blocker `approved_time_off`. */
 
 type Raw = Record<string, unknown>;
 
@@ -173,6 +174,8 @@ export interface CandidateShift {
   endTime: string | null;
 }
 
+export type CandidateAvailability = "available" | "outside" | "unavailable" | "unknown";
+
 export interface CoverageCandidate {
   userId: string;
   name: string;
@@ -184,7 +187,7 @@ export interface CoverageCandidate {
   warnings: string[];
   reasons: string[];
   existingShifts: CandidateShift[];
-  availability: "unknown";
+  availability: CandidateAvailability;
 }
 
 export function parseCandidate(raw: unknown): CoverageCandidate | null {
@@ -204,7 +207,7 @@ export function parseCandidate(raw: unknown): CoverageCandidate | null {
       const workDate = s ? str(s.work_date) : null;
       return s && workDate ? [{ workDate, shiftName: str(s.shift_name), startTime: str(s.start_time), endTime: str(s.end_time) }] : [];
     }),
-    availability: "unknown",
+    availability: row.availability === "available" || row.availability === "outside" || row.availability === "unavailable" ? row.availability : "unknown",
   };
 }
 
@@ -378,7 +381,7 @@ const KNOWN_CODES = new Set([
   "version_conflict", "gap_not_fillable", "gap_filled", "gap_waived", "gap_open", "gap_offered", "shift_ended", "candidate_ineligible", "warnings_need_acknowledgement",
   "duplicate_offer", "duplicate_absence", "schedule_conflict", "claim_stale", "claim_not_pending", "offer_expired", "offer_not_pending", "department_forbidden",
   "employee_inactive", "shift_cancelled", "leaving_outside_shift", "leaving_at_required", "already_covered", "assignment_not_found", "gap_not_found",
-  "duplicate_open_shift", "historical_date", "staff_not_found", "offer_not_withdrawable", "gap_not_waivable", "shift_inactive", "coverage_unavailable",
+  "duplicate_open_shift", "historical_date", "staff_not_found", "offer_not_withdrawable", "gap_not_waivable", "shift_inactive", "coverage_unavailable", "approved_time_off",
 ]);
 const STALE_CODES = new Set(["version_conflict", "gap_not_fillable", "gap_filled", "gap_waived", "claim_stale", "claim_not_pending", "offer_not_pending", "offer_expired", "offer_not_withdrawable", "gap_not_waivable", "candidate_ineligible", "schedule_conflict"]);
 
