@@ -97,8 +97,11 @@ Three separate steps, never conflated:
 1. **Intent** - a `schedule_notifications` row, always written **by the database inside the transaction of the business
    change**: publication (228) and time off / swaps / offers / claims (229 triggers). A rolled-back change leaves no
    message; a committed change cannot lose its message to a crash; the dedupe key `<event>:<id>:<user>` makes replays no-ops.
-   The one exception is the **open-shift announcement**, whose audience is computed in Python (best effort; the Open Shifts
-   screen is the source of truth).
+   The one exception is the **open-shift announcement**, whose audience is computed in Python. It is sent best effort when the
+   shift is posted; the 5-minute notification job then re-announces any still-open claimable posting 2-90 minutes old that has
+   no announcement rows (`reconcile_open_shift_announcements`), so a lost announcement is recovered within about five minutes.
+   After 90 minutes the Open Shifts screen is the source of truth. A manager-recorded offer acceptance tells the person who
+   made the offer "A shift offer was accepted" (the copy deliberately does not claim the employee did it in the app).
 2. **Inbox** - the `schedule.notifications` job (APScheduler, every 5 minutes, production only; also drained right after a
    publish) claims due rows (`FOR UPDATE SKIP LOCKED`), creates the in-app `notifications` row once, and marks the intent
    `sent`. `sent` means **readable in the app**.
@@ -112,8 +115,13 @@ shift, or the offer / request itself; if it is gone the screen says so and shows
 
 ## 9. Feature flags and configuration
 
-- There is **no feature flag** for Team Scheduling. Exposure is gated by role (supervisor for Team Schedule) and by shipping
-  the mobile build. The API routes are live as soon as the API deploys.
+- There is **no feature flag** for Team Scheduling, by decision. Most of what changed cannot be flagged: migrations 225-229
+  and the stricter rules on the existing `/schedules/*` endpoints apply as soon as the API deploys (and are covered by the
+  Database Migration Gate). The new mobile surfaces are gated by role (supervisor for Team Schedule) and by shipping a mobile
+  build; nothing in CI publishes an `eas update`, so an over-the-air release is a deliberate manual step. Mobile has no
+  flag consumer, and the existing tenant flag registry (`docs/FEATURE_FLAGS.md`) is API-side only, so a per-hotel switch would
+  need new client code. Residual risk: once a build with these screens is released, every hotel on it sees them; the only
+  off-switches are not releasing the build and `cron_scheduler_enabled` for notification delivery. Release the API first.
 - Required for notification delivery in production: `APP_ENV=production`, `cron_scheduler_enabled` not switched off,
   `CRON_SECRET` set (the in-process scheduler calls the cron handlers with it). Push additionally needs working Expo push
   devices; without them in-app delivery still works.
@@ -121,9 +129,11 @@ shift, or the offer / request itself; if it is gone the screen says so and shows
 
 ## 10. Verification
 
-Automated (all run in CI): API unit/smoke suites, `tests/integration/test_*schedul*`, `test_coverage_fill`,
-`test_availability_swaps`, `test_schedule_publishing` and `test_schedule_notification_triggers` against the migrated database
-(**Database Migration Gate**), mobile Jest/tsc/ESLint, EN/ES parity, dark-mode contrast, RBAC matrix and bare-role guard.
+Automated in CI: API unit/smoke suites, `tests/integration/test_*schedul*`, `test_coverage_fill`, `test_availability_swaps`,
+`test_schedule_publishing`, `test_schedule_notification_triggers` and `test_schedule_scenarios` against the migrated database
+(**Database Migration Gate**), the RBAC matrix and the bare-role guard. **Not run in CI:** mobile Jest, mobile `tsc` and
+mobile ESLint (the EN/ES parity and contrast gates are web scripts). Run them locally before release:
+`cd apps/mobile && npx jest --maxWorkers=1`, `npm run type-check`, `npm run lint`.
 
 Staging smoke (human, with a real device and a test hotel, never production data):
 
@@ -155,10 +165,12 @@ corrected with a new one, never edited.
 
 - Real-device behaviour of the new screens has **not** been verified; coverage is Jest component tests with the real screens
   plus a browser harness in earlier phases. Run the staging smoke on a device before release.
+- When a manager records an offer acceptance for an employee, the employee gets no separate message (they already agreed);
+  the offerer, if they recorded it themselves, receives a neutral "accepted" message about their own action.
 - Mobile Team Schedule is supervisor-only; GM / engineering managers have API access but no mobile screens.
-- Open-shift announcements are best effort (section 8).
+- Open-shift announcements are best effort at post time and reconciled within about five minutes (section 8).
 - Future-day staffing demand is unknown by design (section 6).
 - `routers/scheduling.py` is ~820 lines, above the repository's 500-line guideline; extraction was judged riskier than the
   benefit for this release.
 - Push delivery is never confirmed beyond "accepted by Expo".
-- Performance was reasoned about (bounded queries, 2000-row caps, 92-day ranges) but not load-tested.
+- Performance numbers are in the PR #185 QA matrix; they come from one isolated Postgres on a developer machine, not from production hardware.

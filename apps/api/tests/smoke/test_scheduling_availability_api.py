@@ -162,7 +162,7 @@ async def test_exceptions_are_added_once_per_date_and_can_be_retired(db):
     assert refused(exc) == "exception_exists"
     assert [e["id"] for e in (await state(HK1))["exceptions"]] == [saved["id"]]
     with pytest.raises(CodedHTTPException) as exc:
-        await avail.add_my_exception(AvailabilityExceptionRequest(exception_date=today_plus(-1), mode="unavailable"), HK1)
+        await avail.add_my_exception(AvailabilityExceptionRequest(exception_date=today_plus(-2), mode="unavailable"), HK1)
     assert refused(exc) == "date_in_past"
     with pytest.raises(CodedHTTPException) as exc:
         await avail.retire_availability(saved["id"], RetireAvailabilityRequest(expected_version=5), HK1)

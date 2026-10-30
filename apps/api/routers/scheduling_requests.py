@@ -165,10 +165,10 @@ async def my_open_shifts(current_user: CurrentUser = Depends(require_role(*ALL_R
     mine = {str(c["gap_id"]): c for c in (supabase.table("coverage_claims").select("*").eq("tenant_id", hotel_id)
             .eq("user_id", current_user.user_id).eq("status", "pending").execute().data or [])}
     out = []
-    for gap in gaps:
-        if gap_is_actionable(gap, now):
-            continue
-        cand = fill.evaluate_users(hotel_id, gap, me, departments)[0]
+    open_gaps = [g for g in gaps if not gap_is_actionable(g, now)]
+    prefetch = fill.prefetch_user(hotel_id, current_user.user_id, open_gaps)  # one set of reads, not one per posting
+    for gap in open_gaps:
+        cand = fill.evaluate_users(hotel_id, gap, me, departments, prefetch)[0]
         out.append({"shift": _employee_gap_view(gap), "can_claim": cand.eligible and str(gap["id"]) not in mine,
                     "blockers": cand.blockers, "my_claim_id": mine.get(str(gap["id"]), {}).get("id")})
     return {"data": out}

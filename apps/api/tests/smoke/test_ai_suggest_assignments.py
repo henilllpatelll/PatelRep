@@ -31,6 +31,7 @@ class FakeQuery:
         self.table_name = table_name
         self.action = "select"
         self.filters = []
+        self.neq_filters = []
         self.in_filters = []
 
     def select(self, *_args, **_kwargs):
@@ -39,6 +40,10 @@ class FakeQuery:
 
     def eq(self, column, value):
         self.filters.append((column, value))
+        return self
+
+    def neq(self, column, value):
+        self.neq_filters.append((column, value))
         return self
 
     def in_(self, column, values):
@@ -57,6 +62,8 @@ class FakeQuery:
         matched = rows
         for column, value in self.filters:
             matched = [row for row in matched if row.get(column) == value]
+        for column, value in self.neq_filters:  # the real column is NOT NULL, so a fixture row without it is a plain match
+            matched = [row for row in matched if row.get(column) != value]
         for column, values in self.in_filters:
             matched = [row for row in matched if row.get(column) in values]
         return matched

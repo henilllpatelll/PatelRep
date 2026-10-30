@@ -522,11 +522,14 @@ async def run_report_schedules(x_cron_secret: str = Header(None)):
 async def process_schedule_notifications(x_cron_secret: str = Header(None)):
     """Cron (every 5 min): deliver due schedule notification intents (idempotent, multi-replica safe, bounded retries)."""
     verify_cron(x_cron_secret)
+    from services.coverage_fill import reconcile_open_shift_announcements
     from services.schedule_outbox import process_batch
 
+    # Re-announce open shifts whose post-time announcement was lost, so the same run delivers them.
+    reconciled = reconcile_open_shift_announcements()
     summary = await process_batch(limit=100)
     _record_cron_run("schedule.notifications")
-    return {"status": "ok", **summary}
+    return {"status": "ok", **summary, "open_shift_reconcile": reconciled}
 
 
 @router.post("/opera/sync-reservations")

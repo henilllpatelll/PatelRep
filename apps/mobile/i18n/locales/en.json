@@ -9765,7 +9765,7 @@
     },
     "offer_accepted": {
       "title": "Offer accepted",
-      "body": "An employee accepted a shift offer."
+      "body": "A shift offer was accepted."
     },
     "offer_declined": {
       "title": "Offer declined",

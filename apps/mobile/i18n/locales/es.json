@@ -9765,7 +9765,7 @@
     },
     "offer_accepted": {
       "title": "Oferta aceptada",
-      "body": "Un empleado aceptó una oferta de turno."
+      "body": "Se aceptó una oferta de turno."
     },
     "offer_declined": {
       "title": "Oferta rechazada",

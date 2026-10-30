@@ -207,3 +207,24 @@ async def test_a_crash_between_claim_and_finish_is_retried_without_a_second_inbo
     second = await schedule_outbox.process_batch(50)
     assert second["sent"] == 1 and len(db.rows["notifications"]) == 1                           # the dedupe key reused the first row
     assert intent["status"] == "sent"
+
+
+@pytest.mark.asyncio
+async def test_the_notification_job_recovers_lost_open_shift_announcements_before_it_delivers(monkeypatch):
+    from routers import internal
+    from services import coverage_fill
+
+    order = []
+    monkeypatch.setattr(internal, "verify_cron", lambda *_: None)
+    monkeypatch.setattr(internal, "_record_cron_run", lambda *a, **k: None)
+    monkeypatch.setattr(coverage_fill, "reconcile_open_shift_announcements",
+                        lambda: order.append("reconcile") or {"checked": 1, "announced": 3, "failed": 0})
+
+    async def deliver(limit=50, revision_id=None):
+        order.append("deliver")
+        return {"claimed": 3, "sent": 3, "failed": 0, "exhausted": 0, "push_accepted": 0}
+
+    monkeypatch.setattr(schedule_outbox, "process_batch", deliver)
+    result = await internal.process_schedule_notifications("secret")
+    assert order == ["reconcile", "deliver"]  # recovered rows are delivered by the same run, not five minutes later
+    assert result["status"] == "ok" and result["open_shift_reconcile"]["announced"] == 3 and result["sent"] == 3

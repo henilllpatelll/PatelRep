@@ -205,6 +205,7 @@ def _active_housekeepers(hotel_id: str, target_date: date) -> list[str]:
         .select("user_id")
         .eq("tenant_id", hotel_id)
         .eq("work_date", target_date.isoformat())
+        .neq("publication_state", "cancelled")  # a shift cancelled by a published schedule revision is not "on shift"
         .execute()
     ).data or []
     ids = list({row["user_id"] for row in hk_rows if row.get("user_id")})
@@ -2062,6 +2063,7 @@ async def suggest_assignments(
         .select("user_id")
         .eq("tenant_id", current_user.hotel_id)
         .eq("work_date", target_date.isoformat())
+        .neq("publication_state", "cancelled")  # a cancelled shift is not "on shift"
     )
     if shift_id:
         hk_query = hk_query.eq("shift_id", shift_id)

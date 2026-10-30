@@ -154,10 +154,11 @@ async def post_open_shift(body: PostOpenShiftRequest, current_user: CurrentUser 
                  new_state={"status": "open", "source": "open_shift", "claimable": body.claimable, "work_date": body.work_date})
     if body.claimable:
         # Tell the people who could actually take it (same eligibility the Open Shifts screen applies), never everyone.
+        # If this fails the posting is still committed; the 5-minute notification job re-announces it (see fill.reconcile_*).
         try:
-            staff = {u: m for u, m in load_staff(hotel_id, departments).items() if m.department_id == str(template["department_id"])}
-            eligible = [c.user_id for c in fill.evaluate_users(hotel_id, gap, staff, departments) if c.eligible]
+            eligible = fill.open_shift_audience(hotel_id, gap, departments)
         except Exception:
+            logger.warning("SCHEDULE_OPEN_SHIFT_AUDIENCE_FAILED gap=%s", gap["id"], exc_info=True)
             eligible = []
         notices.enqueue(hotel_id, eligible, "schedule_open_shift", str(gap["id"]), {"gap_id": str(gap["id"]), "work_date": body.work_date})
     return {"data": fill.full_gap(hotel_id, str(gap["id"]))}
