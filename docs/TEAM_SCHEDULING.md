@@ -135,6 +135,11 @@ Automated in CI: API unit/smoke suites, `tests/integration/test_*schedul*`, `tes
 mobile ESLint (the EN/ES parity and contrast gates are web scripts). Run them locally before release:
 `cd apps/mobile && npx jest --maxWorkers=1`, `npm run type-check`, `npm run lint`.
 
+Device QA and staging verification are tracked in [TEAM_SCHEDULING_DEVICE_QA.md](TEAM_SCHEDULING_DEVICE_QA.md) (checklist,
+all cells start unrun), [TEAM_SCHEDULING_STAGING_SMOKE.md](TEAM_SCHEDULING_STAGING_SMOKE.md) (these seven scenarios, with
+prerequisites and evidence) and [TEAM_SCHEDULING_STAGING_BUILD.md](TEAM_SCHEDULING_STAGING_BUILD.md) (staging-only Android
+dev build; not yet built).
+
 Staging smoke (human, with a real device and a test hotel, never production data):
 
 1. Supervisor: create a shift, review the draft, publish; the employee sees it only after publishing.
@@ -167,6 +172,10 @@ corrected with a new one, never edited.
   plus a browser harness in earlier phases. Run the staging smoke on a device before release.
 - When a manager records an offer acceptance for an employee, the employee gets no separate message (they already agreed);
   the offerer, if they recorded it themselves, receives a neutral "accepted" message about their own action.
+- **Open navigation problem, not caused by this PR:** on Expo web every `href: null` (hidden) route, including all of the
+  scheduling routes, bounces to `/home`, and back from a secondary screen goes to Home. Reproduced on clean `main`; native
+  behaviour is unverified and must be checked on a device first (see DEVICE_QA section 0). If it also happens on a device,
+  these screens cannot be reached until the shared layout is fixed.
 - Mobile Team Schedule is supervisor-only; GM / engineering managers have API access but no mobile screens.
 - Open-shift announcements are best effort at post time and reconciled within about five minutes (section 8).
 - Future-day staffing demand is unknown by design (section 6).
