@@ -1,0 +1,103 @@
+name: Mobile CI
+
+# Advisory mobile checks: TypeScript, ESLint and the Jest suite for apps/mobile. This is deliberately a separate
+# workflow from ci.yml: it adds coverage without touching CI Gate, Staging Candidate, the Database Migration Gate or any
+# production workflow, and nothing in them depends on it.
+#
+# It is NOT a required check. Promoting it is a repository-settings decision for a human (branch protection / ruleset),
+# and if that is ever done, remove the `paths` filters first: a required check whose workflow is skipped by a path filter
+# stays "pending" forever on PRs that do not touch the mobile app.
+#
+# Read-only: no secrets, no artifacts, no deployment, no write permissions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+      - "scripts/mobile-ci-workflow.test.mjs"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+      - "scripts/mobile-ci-workflow.test.mjs"
+
+concurrency:
+  group: mobile-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  workflow-contract:
+    name: Mobile CI Workflow Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Verify the mobile CI workflow contract
+        run: node --test scripts/mobile-ci-workflow.test.mjs
+
+  type-check:
+    name: Mobile / Type-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Install dependencies
+        run: cd apps/mobile && npm ci
+      - name: Type-check
+        run: cd apps/mobile && npm run type-check
+
+  lint:
+    name: Mobile / Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Install dependencies
+        run: cd apps/mobile && npm ci
+      - name: Lint
+        run: cd apps/mobile && npm run lint
+
+  test:
+    name: Mobile / Jest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/mobile/package-lock.json
+      - name: Install dependencies
+        run: cd apps/mobile && npm ci
+      # Same worker count as apps/mobile/jest.config.js. No retries and no raised timeouts: a flaky test must stay visible.
+      - name: Jest
+        run: cd apps/mobile && npx jest --ci --maxWorkers=2
