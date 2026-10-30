@@ -4,26 +4,18 @@ name: Mobile CI
 # workflow from ci.yml: it adds coverage without touching CI Gate, Staging Candidate, the Database Migration Gate or any
 # production workflow, and nothing in them depends on it.
 #
-# It is NOT a required check. Promoting it is a repository-settings decision for a human (branch protection / ruleset),
-# and if that is ever done, remove the `paths` filters first: a required check whose workflow is skipped by a path filter
-# stays "pending" forever on PRs that do not touch the mobile app.
+# It is NOT a required check. Promoting it is a repository-settings decision for a human (branch protection / ruleset).
+# There are deliberately no `paths` filters: every PR to main receives a terminal result for each job, so the checks can
+# be made required later without a skipped workflow leaving a required check "pending" forever.
 #
 # Read-only: no secrets, no artifacts, no deployment, no write permissions.
 
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/mobile-ci.yml"
-      - "scripts/mobile-ci-workflow.test.mjs"
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/mobile-ci.yml"
-      - "scripts/mobile-ci-workflow.test.mjs"
 
 concurrency:
   group: mobile-ci-${{ github.ref }}

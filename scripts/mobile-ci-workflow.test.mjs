@@ -14,13 +14,10 @@ const jobBlock = (name) => {
   return match[1]
 }
 
-test('Mobile CI runs only on push to main and pull requests to main, scoped by path', () => {
-  assert.match(workflowCode, /^on:\n {2}push:\n {4}branches: \[main\]\n {4}paths:\n/m)
-  assert.match(workflowCode, /^ {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened\]\n {4}paths:\n/m)
+test('Mobile CI runs on push to main and every pull request to main, with no path filters', () => {
+  assert.match(workflowCode, /^on:\n {2}push:\n {4}branches: \[main\]\n {2}pull_request:\n {4}branches: \[main\]\n {4}types: \[opened, synchronize, reopened\]\n/m)
+  assert.doesNotMatch(workflowCode, /paths(-ignore)?:/)
   assert.doesNotMatch(workflowCode, /pull_request_target|workflow_run|workflow_dispatch|schedule:/)
-  for (const path of ['apps/mobile/**', '.github/workflows/mobile-ci.yml', 'scripts/mobile-ci-workflow.test.mjs']) {
-    assert.equal(workflowCode.split(`- "${path}"`).length - 1, 2, `${path} filters both triggers`)
-  }
 })
 
 test('Mobile CI is read-only and holds no secrets, environments or artifacts', () => {
