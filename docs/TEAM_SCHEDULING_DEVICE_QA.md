@@ -19,6 +19,40 @@ mandatory end-to-end scenarios).
 4. A failure is a bug to fix or a documented limitation; do not reword the check to make it pass.
 5. Re-run the affected rows after any change to the PR head; results are tied to the build id, not to the PR.
 
+## 0. Known navigation problems to resolve before device QA (found on Expo web, 2026-10-29)
+
+Investigated in a browser against the real `(app)` navigator (fake session, mocked API, nothing contacted outside localhost).
+**These were reproduced on clean `origin/main` (`f74a3563`), so they are not caused by PR #185**, but all 12 scheduling
+routes are affected. Native behaviour is **not verified**: the code path is platform-independent, so assume it applies until a
+device proves otherwise. Earlier phases' "browser-checked" results rendered screens through a temporary harness route
+*outside* this navigator, so they never exercised this.
+
+1. **Hidden routes bounce to `/home` (blocker if it also happens on a device).** Every route declared with
+   `options={{ href: null }}` in `app/(app)/_layout.tsx` (all of `HIDDEN_APP_ROUTES`: the 12 scheduling routes, `profile/*`,
+   `notifications`, `my-rooms/[roomId]`, `work-orders/[woId]`, ...) is replaced by `/home` the moment it is focused, both on
+   an in-app push (Profile > Personal Information lands on `/home`) and on a hard load. Visible tabs are unaffected.
+   Cause (read from `expo-router@58.0.28`, `standard-navigation/useVisibleTabsWithRedirect.js`): `href: null` now means
+   `hidden: true`, and a focused hidden tab triggers `router.replace` to the first visible tab ("new redirect behavior",
+   documented upstream only as a TODO). The app moved to SDK 58 in #184 (merged 2026-10-28), so this may be new with that
+   upgrade. Tested fix direction (web only, throwaway, reverted): hide the tab button by style (`tabBarItemStyle:
+   { display: "none" }`) instead of `href: null`; every hidden route then stays reachable in-app and on a hard load. Not
+   applied: it is an app-wide change to a shared layout that needs native verification and a decision.
+2. **Back from a secondary screen goes to Home, not to where you came from.** `Tabs` is used with the default
+   `backBehavior` (`firstRoute`), so header back and browser back from Team Schedule > Templates both end on `/home`.
+   Setting `backBehavior="history"` (web, throwaway, reverted) made back return to the opener. It changes hardware-back
+   behaviour for every role, so it is a product decision, not a fix to slip into this PR.
+3. With problems 1 and 2 worked around temporarily, a scripted battery passed 35/35 on web: all 12 URLs hard-load and render,
+   a housekeeper opening a supervisor route is redirected to `/home`, `/team-schedule/coverage` without `gapId` goes to
+   `/team-schedule`, `page.reload()` on a deep link is stable, header back after a hard load falls back to a sensible screen.
+   This is browser evidence on mocked data. It is **not** a device pass and no cell below was changed because of it.
+
+Reproduce: from a worktree with `apps/mobile/app.json` `web.output` temporarily `"single"`, run Metro with
+`EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:1 EXPO_PUBLIC_SUPABASE_ANON_KEY=dummy EXPO_PUBLIC_API_URL=http://127.0.0.1:1/v1
+npx expo start --web --port 8099 --clear`, seed a Supabase session in `localStorage` (`sb-127-auth-token`, JWT claims
+`user_role` and `hotel_id`) and mock `/rest/v1/*` and `/v1/*` at the network layer, then hard-load `/profile/personal`. Use
+`--clear` when switching worktrees: they share one `node_modules`, and Metro's cached `require.context` output otherwise
+serves the other tree's `app/` directory.
+
 ## Environment record (fill in per session)
 
 | Field | Value |
@@ -100,6 +134,7 @@ action, focus lands inside the sheet and returns on close, no content under the 
 
 | Check | Result |
 | --- | --- |
+| **Gate (section 0.1): a hidden route stays on screen on a device** - open Profile > Personal Information and Today > Team Schedule; neither may jump back to Home. Nothing below is meaningful until this passes | NR |
 | Every entry point reaches its route: Profile > My Schedule, Today team card, Team Schedule header links (Templates, Requests, Forecast, Availability, Open Shifts), attention rows | NR |
 | System back from each of the 12 routes returns to the screen that opened it (not to the first tab) | NR |
 | Header back arrow behaves the same as system back | NR |
