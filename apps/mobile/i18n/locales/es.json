@@ -2038,7 +2038,8 @@
       "in_progress": "En progreso",
       "on_hold": "En pausa",
       "completed": "Completada",
-      "cancelled": "Cancelada"
+      "cancelled": "Cancelada",
+      "escalated": "Escalada"
     },
     "category": {
       "plumbing": "Plomería",
@@ -2048,7 +2049,9 @@
       "appliance": "Electrodoméstico",
       "structural": "Estructural",
       "safety": "Seguridad",
-      "general": "General"
+      "general": "General",
+      "doors_locks": "Puertas y cerraduras",
+      "painting": "Pintura"
     },
     "viewOnly": "Solo lectura: tu rol no puede actualizar órdenes de trabajo.",
     "holdReason": {
@@ -9919,5 +9922,128 @@
     "help": "Ayuda",
     "signOut": "Cerrar sesión",
     "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo."
+  },
+  "workQueue": {
+    "title": "Órdenes de trabajo",
+    "subtitle": "Gestiona reparaciones y solicitudes de mantenimiento",
+    "new": "Nueva",
+    "newA11y": "Nueva orden de trabajo",
+    "searchPlaceholder": "Buscar habitación, problema o número de OT",
+    "clearSearch": "Borrar búsqueda",
+    "filterA11y": "Filtrar y ordenar",
+    "filterA11yActive": "Filtrar y ordenar, {{count}} activos",
+    "removeFilter": "Quitar filtro: {{filter}}",
+    "roomLabel": "Habitación {{room}}",
+    "views": {
+      "mine": "Mi trabajo",
+      "available": "Disponibles",
+      "team": "Equipo",
+      "waiting": "En espera",
+      "done": "Hechas"
+    },
+    "groups": {
+      "escalated": "Escaladas",
+      "in_progress": "En progreso",
+      "ready": "Asignadas / listas",
+      "on_hold": "En pausa",
+      "claimable": "Listas para tomar",
+      "needsOwner": "Escaladas · sin responsable"
+    },
+    "priority": {
+      "emergency": "Emergencia",
+      "urgent": "Urgente",
+      "normal": "Normal",
+      "low": "Baja"
+    },
+    "action": {
+      "continue": "Continuar reparación",
+      "open": "Abrir trabajo",
+      "claim": "Tomar orden de trabajo",
+      "view": "Ver",
+      "viewHold": "Ver pausa",
+      "viewReport": "Ver"
+    },
+    "overdue": "Vencida",
+    "assignedTo": "Con {{name}}",
+    "assignedUnknown": "Asignada",
+    "unassigned": "Sin asignar",
+    "guestReported": "Reportada por huésped",
+    "reportedAgo": "Reportada hace {{time}}",
+    "waitingFor": "En espera {{time}}",
+    "updatedAgo": "Actualizada hace {{time}}",
+    "doneAt": "Completada {{time}}",
+    "cancelledAt": "Cancelada {{time}}",
+    "holdReasonUnrecorded": "Motivo no registrado",
+    "holdReasonOther": "En pausa",
+    "claimQueued": "Toma guardada en este teléfono · esperando sincronizar",
+    "claimed": "Tomaste {{label}}. Búscala en Mi trabajo.",
+    "claimSavedOffline": "Toma guardada. No se confirma hasta que vuelvas a tener conexión.",
+    "claimConflict": "Otro ingeniero tomó esta orden de trabajo. Actualizando el trabajo disponible.",
+    "claimForbidden": "Tu rol no puede tomar órdenes de trabajo.",
+    "claimGone": "Esta orden de trabajo ya no está disponible. Actualizando.",
+    "claimFailed": "No se pudo tomar esta orden de trabajo. Inténtalo de nuevo.",
+    "conflict": {
+      "conflict": "No se aceptó tu toma sin conexión de {{label}}: otro ingeniero la tomó primero.",
+      "forbidden": "No se aceptó tu toma sin conexión de {{label}}: tu rol no puede tomar órdenes de trabajo.",
+      "not_found": "No se aceptó tu toma sin conexión de {{label}}: la orden de trabajo ya no existe.",
+      "unknownOrder": "una orden de trabajo"
+    },
+    "offlineCached": "Sin conexión · mostrando órdenes de las {{time}}",
+    "offlineCachedNoTime": "Sin conexión · mostrando las órdenes ya cargadas",
+    "loadMore": "Cargar más ({{count}} mostradas)",
+    "loadingMore": "Cargando más órdenes de trabajo",
+    "empty": {
+      "mine": "Estás al día.",
+      "mineHint": "No tienes órdenes de trabajo asignadas por ahora.",
+      "available": "No hay órdenes de trabajo disponibles.",
+      "availableHint": "Las nuevas reparaciones sin asignar aparecerán aquí.",
+      "team": "Nadie del equipo tiene trabajo activo.",
+      "teamHint": "El trabajo asignado a otros ingenieros aparecerá aquí.",
+      "waiting": "Nada está en espera.",
+      "waitingHint": "Los trabajos en pausa por repuestos, proveedores o aprobación aparecerán aquí.",
+      "done": "Aún no hay trabajo completado.",
+      "doneHint": "Las órdenes terminadas aparecerán aquí.",
+      "browseAvailable": "Ver trabajo disponible",
+      "noMatches": "Ninguna orden coincide.",
+      "noMatchesHint": "Prueba otra habitación, problema o número de OT, o borra los filtros.",
+      "clear": "Borrar búsqueda y filtros"
+    },
+    "filter": {
+      "title": "Filtrar y ordenar",
+      "status": "Estado",
+      "priority": "Prioridad",
+      "category": "Categoría",
+      "location": "Ubicación",
+      "floor": "Piso",
+      "building": "Edificio",
+      "buildingValue": "Edificio {{building}}",
+      "assignment": "Asignación",
+      "date": "Fecha",
+      "sort": "Ordenar por",
+      "any": "Cualquiera",
+      "reset": "Restablecer",
+      "show": "Ver resultados",
+      "assignmentOptions": {
+        "any": "Cualquiera",
+        "mine": "Mías",
+        "unassigned": "Sin asignar",
+        "others": "Otros ingenieros"
+      },
+      "dateOptions": {
+        "overdue": "Vencidas",
+        "today": "Vencen hoy",
+        "week": "Vencen esta semana",
+        "recent": "Creadas en las últimas 24 h",
+        "updated7": "Actualizadas en 7 días",
+        "updated30": "Actualizadas en 30 días"
+      },
+      "sortOptions": {
+        "priority": "Prioridad primero",
+        "due": "Vence primero",
+        "newest": "Más recientes",
+        "oldest": "Más antiguas",
+        "updated": "Actualizadas recientemente"
+      }
+    }
   }
 }

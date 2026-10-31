@@ -12,6 +12,8 @@ import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { recordConfirmedSync } from "@/lib/offline/lastSync";
+import { classifyClaimError, isTerminalClaimFailure } from "@/lib/engineering/workQueue";
+import { recordClaimConflict, type ClaimConflictReason } from "@/lib/engineering/claimConflicts";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
@@ -84,7 +86,20 @@ export async function flushSyncQueue(): Promise<void> {
         } else if (item.entity_type === "work_order" && item.action === "update") {
           await api.patch(`/work-orders/${item.entity_id}`, payload);
         } else if (item.entity_type === "work_order" && item.action === "claim") {
-          await api.post(`/work-orders/${item.entity_id}/claim`, {});
+          try {
+            await api.post(`/work-orders/${item.entity_id}/claim`, {});
+          } catch (err) {
+            // Someone else claimed it, it is gone, or the role was refused: retrying can never work, so drop it
+            // and tell the person instead of leaving a claim that looks pending forever.
+            if (!item.entity_id || !isTerminalClaimFailure(err)) throw err;
+            await recordClaimConflict({
+              woId: item.entity_id,
+              label: typeof payload?.label === "string" ? payload.label : null,
+              reason: classifyClaimError(err) as ClaimConflictReason,
+            });
+            await deleteSyncQueueItem(item.id);
+            continue;
+          }
         } else if (item.entity_type === "work_order" && item.action === "complete") {
           await api.post(`/work-orders/${item.entity_id}/complete`, payload);
         }

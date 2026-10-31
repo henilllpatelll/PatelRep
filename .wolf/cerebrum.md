@@ -985,3 +985,13 @@
 - **Windows Python line endings (2026-10-31):** `open(p,'w')` in Python on Windows writes CRLF into LF repo files, turning a small edit into a whole-file diff. Always pass `newline=''` (read AND write) or `newline='\n'`, then check `git diff --stat`.
 - **RNTL waitFor + absence (2026-10-31):** `waitFor(() => expect(queryByTestId(x)).toBeNull())` stayed red after an async state update that cleared the element; `waitForElementToBeRemoved(() => queryByTestId(x))` works.
 - **Eng Home counting (2026-10-31, Phase 2):** My Jobs = mine + open/escalated/in_progress; Urgent = emergency+urgent across all active statuses incl. on_hold; Home reads only active statuses via `listAllWorkOrders` (pages, `truncated` => "N+"), never completed history. There is no QR/barcode scanner in the app, so the quick action is "Find Asset", not "Scan Asset".
+
+## Eng mobile redesign Phase 3 (Work queue) - learnings (2026-10-31)
+- **Engineers never see colleagues' work:** `GET /work-orders` for role `engineer` returns only `assigned_to = me` + unassigned (two queries merged in Python). A 'Team' view is only truthful for `chief_engineer`/`gm`; hide it for engineers (`canViewTeamWork`).
+- **Hold reason lives only in `operational_audit_events`** (latest `work_order.transitioned` with `new_state.status = on_hold`), not on the work order. The list endpoint now attaches `hold_reason_code/note` + `held_since`; absent means never recorded - show 'not recorded', never guess. 'Next follow-up' is not stored anywhere.
+- **`priority` is TEXT** (no urgency order in SQL). Priority sort walks buckets emergency->urgent->normal->low server-side; the old `sort_by=priority` silently fell back to created_at.
+- **List `category` filter lacked `doors_locks`/`painting`** (422 for two valid categories) - widened. Queue `claim` only works on status `open`; escalated+unassigned work can't be claimed, show 'Open' not 'Claim'.
+- **onEndReached fires several times per frame:** guard load-more with a ref (`moreInFlight`), not just reducer state, or you request the same page 2-3x.
+- **Toasts render in `(app)/_layout`'s ToastViewport:** screen tests must mock `useToast` and assert calls; harness routes outside `(app)` must wrap in `ToastProvider`. Supabase web harness also needs a dummy `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- **Direct-call API tests bypass FastAPI Query defaults:** adding handler params breaks tests calling `list_work_orders(...)` as a function (Query objects leak in); pass explicit defaults. `RBAC-MATRIX.md` embeds router line numbers - regenerate after any router edit.
+- **Shared venv drift:** `tests/test_dependency_upgrade_compat.py` fails locally (dateutil 2.9 vs 3.0 pin, no httpx2) - environment, not code.

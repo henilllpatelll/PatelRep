@@ -454,11 +454,129 @@ def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> N
     ).execute()
 
 
+_LIST_SELECT = (
+    "*, rooms(room_number, floor), assets(name), "
+    "problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), "
+    "cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), "
+    "resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)"
+)
+_LIST_ACTIVE_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+_LIST_STATUSES = frozenset({*_LIST_ACTIVE_STATUSES, "completed", "cancelled"})
+_LIST_PRIORITIES = ("emergency", "urgent", "normal", "low")
+_SEARCH_MATCH_LIMIT = 50
+
+
+def _parse_status_list(raw: Optional[str]) -> list[str]:
+    values = [part.strip() for part in (raw or "").split(",") if part.strip()]
+    unknown = [value for value in values if value not in _LIST_STATUSES]
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown status: {', '.join(unknown)}")
+    return list(dict.fromkeys(values))
+
+
+def _merge_sorted(rows: list[dict], specs: list[tuple[str, bool]]) -> list[dict]:
+    """Stable multi-key sort, missing values last (a null due date is never 'due soonest')."""
+    for column, descending in reversed(specs):
+        present = [row for row in rows if row.get(column) is not None]
+        missing = [row for row in rows if row.get(column) is None]
+        present.sort(key=lambda row: row[column], reverse=descending)
+        rows = present + missing
+    return rows
+
+
+def _search_filter(term: str, tenant_id: str) -> Optional[str]:
+    """PostgREST `or` expression matching title, description, location, WO number, room number and asset name."""
+    cleaned = "".join(" " if ch in ",()%*\\" else ch for ch in term).strip()
+    if not cleaned:
+        return None
+    parts = [
+        f"title.ilike.%{cleaned}%",
+        f"description.ilike.%{cleaned}%",
+        f"location_text.ilike.%{cleaned}%",
+    ]
+    number = cleaned.upper().removeprefix("WO").lstrip("-# ").strip()
+    if number.isdigit():
+        parts.append(f"work_order_number.eq.{int(number)}")
+    rooms = (
+        supabase.table("rooms")
+        .select("id")
+        .eq("tenant_id", tenant_id)
+        .ilike("room_number", f"%{cleaned}%")
+        .limit(_SEARCH_MATCH_LIMIT)
+        .execute()
+    ).data or []
+    if rooms:
+        parts.append(f"room_id.in.({','.join(str(row['id']) for row in rooms)})")
+    assets = (
+        supabase.table("assets")
+        .select("id")
+        .eq("tenant_id", tenant_id)
+        .ilike("name", f"%{cleaned}%")
+        .limit(_SEARCH_MATCH_LIMIT)
+        .execute()
+    ).data or []
+    if assets:
+        parts.append(f"asset_id.in.({','.join(str(row['id']) for row in assets)})")
+    return ",".join(parts)
+
+
+def _enrich_list_rows(rows: list[dict], tenant_id: str) -> None:
+    """Attach assignee names and, for held orders, the recorded hold reason and time.
+
+    Both are best-effort: a failed lookup leaves the fields absent (the client then says
+    "not recorded") rather than failing the whole queue.
+    """
+    assignee_ids = sorted({row["assigned_to"] for row in rows if row.get("assigned_to")})
+    if assignee_ids:
+        try:
+            profiles = (
+                supabase.table("user_profiles")
+                .select("id, full_name, preferred_name")
+                .eq("tenant_id", tenant_id)
+                .in_("id", assignee_ids)
+                .execute()
+            ).data or []
+            names = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+            for row in rows:
+                row["assigned_to_name"] = names.get(row.get("assigned_to"))
+        except Exception:
+            logger.warning("work order list: assignee name lookup failed", exc_info=True)
+
+    held_ids = [row["id"] for row in rows if row.get("status") == "on_hold"]
+    if not held_ids:
+        return
+    try:
+        events = (
+            supabase.table("operational_audit_events")
+            .select("resource_id, new_state, reason_code, reason_note, created_at")
+            .eq("tenant_id", tenant_id)
+            .eq("resource_type", "work_order")
+            .in_("action", ["work_order.transitioned", "work_order.transition_overridden"])
+            .in_("resource_id", held_ids)
+            .order("created_at", desc=True)
+            .limit(len(held_ids) * 5)
+            .execute()
+        ).data or []
+        latest: dict[str, dict] = {}
+        for event in events:
+            if (event.get("new_state") or {}).get("status") == "on_hold":
+                latest.setdefault(str(event["resource_id"]), event)
+        for row in rows:
+            event = latest.get(str(row["id"]))
+            if row.get("status") == "on_hold" and event:
+                row["hold_reason_code"] = event.get("reason_code")
+                row["hold_reason_note"] = event.get("reason_note")
+                row["held_since"] = event.get("created_at")
+    except Exception:
+        logger.warning("work order list: hold reason lookup failed", exc_info=True)
+
+
 @router.get("")
 async def list_work_orders(
     status: Optional[
         Literal["open", "escalated", "in_progress", "on_hold", "completed", "cancelled"]
     ] = Query(None),
+    statuses: Optional[str] = Query(None, description="Comma-separated statuses; combined with `status` if both are sent"),
     category: Optional[
         Literal[
             "plumbing",
@@ -468,132 +586,164 @@ async def list_work_orders(
             "appliance",
             "structural",
             "safety",
+            "doors_locks",
+            "painting",
             "general",
         ]
     ] = Query(None),
     priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
     assigned_to: Optional[str] = Query(None),
+    mine: bool = Query(False, description="Only orders assigned to the caller"),
+    assigned_to_others: bool = Query(False, description="Only orders assigned to someone other than the caller (not visible to engineers)"),
     room_id: Optional[str] = Query(None),
+    floor: Optional[int] = Query(None),
+    building: Optional[str] = Query(None),
     asset_id: Optional[str] = None,
     problem_code_id: Optional[str] = None,
     cause_code_id: Optional[str] = None,
     resolution_code_id: Optional[str] = None,
     q: Optional[str] = Query(None),
-    sort_by: Literal["created_at", "due_at", "priority"] = Query("created_at"),
+    sort_by: Literal["created_at", "due_at", "priority", "updated_at"] = Query("created_at"),
     sort_dir: Literal["asc", "desc"] = Query("desc"),
     overdue: bool = Query(False),
     unassigned: bool = Query(False),
+    due_from: Optional[datetime] = Query(None),
+    due_to: Optional[datetime] = Query(None),
+    created_after: Optional[datetime] = Query(None),
+    updated_after: Optional[datetime] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     archived: bool = Query(False),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    # Priority has no natural SQL ordering (its enum values don't sort by
-    # urgency alphabetically), so priority sort is applied client-side on the
-    # loaded page; server-side ordering falls back to created_at for it.
-    order_col = "due_at" if sort_by == "due_at" else "created_at"
-    order_desc = sort_dir == "desc"
-    active_statuses = ["open", "escalated", "in_progress", "on_hold"]
+    status_filter = _parse_status_list(statuses)
+    if status and status not in status_filter:
+        status_filter.append(status)
     now_iso = datetime.now(timezone.utc).isoformat()
-    if current_user.role == "engineer":
-        # OR-filter (assigned_to=me OR assigned_to IS NULL) forces a seq-scan.
-        # Two indexed queries + Python merge is faster under concurrent load.
-        fetch_up_to = page * per_page  # enough rows to slice the requested page
+    tenant_id = current_user.hotel_id
+    is_engineer = current_user.role == "engineer"
 
-        def _base():
-            query = (
-                supabase.table("work_orders")
-                .select("*, rooms(room_number), assets(name), problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)")
-                .eq("tenant_id", current_user.hotel_id)
-                .order(order_col, desc=order_desc)
-                .range(0, fetch_up_to - 1)
-            )
-            if archived:
-                query = query.not_.is_("archived_at", "null")
-            else:
-                query = query.is_("archived_at", "null")
-            if status:
-                query = query.eq("status", status)
-            if category:
-                query = query.eq("category", category)
-            if priority:
-                query = query.eq("priority", priority)
-            if room_id:
-                query = query.eq("room_id", room_id)
-            if asset_id:
-                query = query.eq("asset_id", asset_id)
-            if problem_code_id:
-                query = query.eq("problem_code_id", problem_code_id)
-            if cause_code_id:
-                query = query.eq("cause_code_id", cause_code_id)
-            if resolution_code_id:
-                query = query.eq("resolution_code_id", resolution_code_id)
-            if q:
-                query = query.ilike("title", f"%{q}%")
-            if overdue:
-                query = query.lt("due_at", now_iso)
-                if not status:
-                    query = query.in_("status", active_statuses)
-            return query
+    search_expr = _search_filter(q, tenant_id) if q and q.strip() else None
+    floor_room_ids: Optional[list[str]] = None
+    if floor is not None or building:
+        rooms_query = supabase.table("rooms").select("id").eq("tenant_id", tenant_id)
+        if floor is not None:
+            rooms_query = rooms_query.eq("floor", floor)
+        if building:
+            rooms_query = rooms_query.eq("building", building)
+        floor_room_ids = [str(row["id"]) for row in (rooms_query.execute().data or [])]
+        if not floor_room_ids:
+            return {"data": [], "meta": {"page": page, "per_page": per_page, "has_more": False}}
 
-        r_mine = _base().eq("assigned_to", current_user.user_id).execute()
-        r_open = _base().is_("assigned_to", "null").execute()
-
-        seen: set = set()
-        merged = []
-        for row in (r_mine.data or []) + (r_open.data or []):
-            if row["id"] not in seen:
-                seen.add(row["id"])
-                merged.append(row)
-        merged.sort(key=lambda r: r.get(order_col) or "", reverse=order_desc)
-
-        start = (page - 1) * per_page
-        return {
-            "data": merged[start : start + per_page],
-            "meta": {"page": page, "per_page": per_page},
-        }
-
-    query = (
-        supabase.table("work_orders")
-        .select("*, rooms(room_number), assets(name), problem_code:engineering_repair_codes!work_orders_problem_code_id_fkey(id, code, label), cause_code:engineering_repair_codes!work_orders_cause_code_id_fkey(id, code, label), resolution_code:engineering_repair_codes!work_orders_resolution_code_id_fkey(id, code, label)")
-        .eq("tenant_id", current_user.hotel_id)
-        .order(order_col, desc=order_desc)
-        .range((page - 1) * per_page, page * per_page - 1)
-    )
-    if archived:
-        query = query.not_.is_("archived_at", "null")
+    # Priority is TEXT with no urgency order in SQL, so a priority sort walks the buckets
+    # emergency -> urgent -> normal -> low (each ordered by due date) and pages across them.
+    by_priority = sort_by == "priority"
+    if by_priority:
+        order_specs: list[tuple[str, bool]] = [("due_at", False), ("created_at", True)]
+        buckets: list[Optional[str]] = [priority] if priority else list(_LIST_PRIORITIES)
+        if sort_dir == "asc":
+            buckets.reverse()
     else:
-        query = query.is_("archived_at", "null")
+        order_specs = [(sort_by, sort_dir == "desc")]
+        buckets = [priority]
 
-    if status:
-        query = query.eq("status", status)
-    if category:
-        query = query.eq("category", category)
-    if priority:
-        query = query.eq("priority", priority)
-    if assigned_to:
-        query = query.eq("assigned_to", assigned_to)
-    if unassigned:
-        query = query.is_("assigned_to", "null")
-    if room_id:
-        query = query.eq("room_id", room_id)
-    if asset_id:
-        query = query.eq("asset_id", asset_id)
-    if problem_code_id:
-        query = query.eq("problem_code_id", problem_code_id)
-    if cause_code_id:
-        query = query.eq("cause_code_id", cause_code_id)
-    if resolution_code_id:
-        query = query.eq("resolution_code_id", resolution_code_id)
-    if q:
-        query = query.ilike("title", f"%{q}%")
-    if overdue:
-        query = query.lt("due_at", now_iso)
-        if not status:
-            query = query.in_("status", active_statuses)
+    # Engineers are scoped to their own and unclaimed work. Two indexed queries + a Python merge
+    # beat an OR filter (seq-scan) under concurrent load; everyone else is a single query.
+    if is_engineer:
+        if assigned_to_others:
+            sources: list[str] = []
+        elif mine:
+            sources = ["mine"]
+        elif unassigned:
+            sources = ["unassigned"]
+        else:
+            sources = ["mine", "unassigned"]
+    else:
+        sources = ["any"]
 
-    result = query.execute()
-    return {"data": result.data, "meta": {"page": page, "per_page": per_page}}
+    def build(source: str, bucket: Optional[str], start: int, end: int):
+        query = (
+            supabase.table("work_orders")
+            .select(_LIST_SELECT)
+            .eq("tenant_id", tenant_id)
+            .range(start, end)
+        )
+        for column, descending in order_specs:
+            query = query.order(column, desc=descending, nullsfirst=False)
+        if archived:
+            query = query.not_.is_("archived_at", "null")
+        else:
+            query = query.is_("archived_at", "null")
+        if status_filter:
+            query = query.in_("status", status_filter) if len(status_filter) > 1 else query.eq("status", status_filter[0])
+        if category:
+            query = query.eq("category", category)
+        if bucket:
+            query = query.eq("priority", bucket)
+        if room_id:
+            query = query.eq("room_id", room_id)
+        if floor_room_ids is not None:
+            query = query.in_("room_id", floor_room_ids)
+        if asset_id:
+            query = query.eq("asset_id", asset_id)
+        if problem_code_id:
+            query = query.eq("problem_code_id", problem_code_id)
+        if cause_code_id:
+            query = query.eq("cause_code_id", cause_code_id)
+        if resolution_code_id:
+            query = query.eq("resolution_code_id", resolution_code_id)
+        if search_expr:
+            query = query.or_(search_expr)
+        if overdue:
+            query = query.lt("due_at", now_iso)
+            if not status_filter:
+                query = query.in_("status", list(_LIST_ACTIVE_STATUSES))
+        if due_from:
+            query = query.gte("due_at", due_from.isoformat())
+        if due_to:
+            query = query.lt("due_at", due_to.isoformat())
+        if created_after:
+            query = query.gte("created_at", created_after.isoformat())
+        if updated_after:
+            query = query.gte("updated_at", updated_after.isoformat())
+        if source == "mine":
+            query = query.eq("assigned_to", current_user.user_id)
+        elif source == "unassigned":
+            query = query.is_("assigned_to", "null")
+        else:
+            if mine:
+                query = query.eq("assigned_to", current_user.user_id)
+            elif assigned_to:
+                query = query.eq("assigned_to", assigned_to)
+            elif unassigned:
+                query = query.is_("assigned_to", "null")
+            elif assigned_to_others:
+                query = query.not_.is_("assigned_to", "null").neq("assigned_to", current_user.user_id)
+        return query
+
+    start = (page - 1) * per_page
+    wanted = start + per_page + 1  # one extra row tells us whether another page exists
+    collected: list[dict] = []
+    for bucket in buckets:
+        if len(sources) == 1 and len(buckets) == 1:
+            # Single source, single bucket: let the database do the paging.
+            rows = build(sources[0], bucket, start, start + per_page).execute().data or []
+            has_more = len(rows) > per_page
+            data = rows[:per_page]
+            _enrich_list_rows(data, tenant_id)
+            return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
+        merged: dict[str, dict] = {}
+        for source in sources:
+            for row in build(source, bucket, 0, wanted - 1).execute().data or []:
+                merged.setdefault(row["id"], row)
+        collected.extend(_merge_sorted(list(merged.values()), order_specs))
+        if len(collected) >= wanted:
+            break
+
+    data = collected[start : start + per_page]
+    has_more = len(collected) > start + per_page
+    _enrich_list_rows(data, tenant_id)
+    return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
 
 
 @router.get("/stats")

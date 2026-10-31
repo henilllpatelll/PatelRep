@@ -2038,7 +2038,8 @@
       "in_progress": "In progress",
       "on_hold": "On hold",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "escalated": "Escalated"
     },
     "category": {
       "plumbing": "Plumbing",
@@ -2048,7 +2049,9 @@
       "appliance": "Appliance",
       "structural": "Structural",
       "safety": "Safety",
-      "general": "General"
+      "general": "General",
+      "doors_locks": "Doors & locks",
+      "painting": "Painting"
     },
     "viewOnly": "View only — your role can't update work orders.",
     "holdReason": {
@@ -9919,5 +9922,128 @@
     "help": "Help",
     "signOut": "Sign out",
     "hint": "Work orders, PM and assets are in the tabs below."
+  },
+  "workQueue": {
+    "title": "Work Orders",
+    "subtitle": "Manage repairs and maintenance requests",
+    "new": "New",
+    "newA11y": "New work order",
+    "searchPlaceholder": "Search room, issue or WO number",
+    "clearSearch": "Clear search",
+    "filterA11y": "Filter and sort",
+    "filterA11yActive": "Filter and sort, {{count}} active",
+    "removeFilter": "Remove filter: {{filter}}",
+    "roomLabel": "Room {{room}}",
+    "views": {
+      "mine": "My Work",
+      "available": "Available",
+      "team": "Team",
+      "waiting": "Waiting",
+      "done": "Done"
+    },
+    "groups": {
+      "escalated": "Escalated",
+      "in_progress": "In progress",
+      "ready": "Assigned / ready",
+      "on_hold": "On hold",
+      "claimable": "Ready to claim",
+      "needsOwner": "Escalated · needs an owner"
+    },
+    "priority": {
+      "emergency": "Emergency",
+      "urgent": "Urgent",
+      "normal": "Normal",
+      "low": "Low"
+    },
+    "action": {
+      "continue": "Continue Repair",
+      "open": "Open Job",
+      "claim": "Claim Work Order",
+      "view": "View",
+      "viewHold": "View Hold",
+      "viewReport": "View"
+    },
+    "overdue": "Overdue",
+    "assignedTo": "With {{name}}",
+    "assignedUnknown": "Assigned",
+    "unassigned": "Unassigned",
+    "guestReported": "Guest reported",
+    "reportedAgo": "Reported {{time}} ago",
+    "waitingFor": "Waiting {{time}}",
+    "updatedAgo": "Updated {{time}} ago",
+    "doneAt": "Completed {{time}}",
+    "cancelledAt": "Cancelled {{time}}",
+    "holdReasonUnrecorded": "Reason not recorded",
+    "holdReasonOther": "On hold",
+    "claimQueued": "Claim saved on this phone · waiting to sync",
+    "claimed": "Claimed {{label}}. Find it in My Work.",
+    "claimSavedOffline": "Claim saved. It is not confirmed until you are back online.",
+    "claimConflict": "This work order was claimed by another engineer. Refreshing available work.",
+    "claimForbidden": "Your role cannot claim work orders.",
+    "claimGone": "This work order is no longer available. Refreshing.",
+    "claimFailed": "Could not claim this work order. Try again.",
+    "conflict": {
+      "conflict": "Your offline claim for {{label}} was not accepted: another engineer claimed it first.",
+      "forbidden": "Your offline claim for {{label}} was not accepted: your role cannot claim work orders.",
+      "not_found": "Your offline claim for {{label}} was not accepted: the work order no longer exists.",
+      "unknownOrder": "a work order"
+    },
+    "offlineCached": "Offline · showing work orders as of {{time}}",
+    "offlineCachedNoTime": "Offline · showing work orders you already loaded",
+    "loadMore": "Load more ({{count}} shown)",
+    "loadingMore": "Loading more work orders",
+    "empty": {
+      "mine": "You're all caught up.",
+      "mineHint": "No work orders are currently assigned to you.",
+      "available": "No available work orders.",
+      "availableHint": "New unassigned repairs will appear here.",
+      "team": "Nobody on the team has active work.",
+      "teamHint": "Work assigned to other engineers will appear here.",
+      "waiting": "Nothing is waiting.",
+      "waitingHint": "Jobs on hold for parts, vendors or approval will appear here.",
+      "done": "No completed work yet.",
+      "doneHint": "Finished work orders will appear here.",
+      "browseAvailable": "Browse Available Work",
+      "noMatches": "No work orders match.",
+      "noMatchesHint": "Try a different room, issue or WO number, or clear your filters.",
+      "clear": "Clear search and filters"
+    },
+    "filter": {
+      "title": "Filter & Sort",
+      "status": "Status",
+      "priority": "Priority",
+      "category": "Category",
+      "location": "Location",
+      "floor": "Floor",
+      "building": "Building",
+      "buildingValue": "Building {{building}}",
+      "assignment": "Assignment",
+      "date": "Date",
+      "sort": "Sort by",
+      "any": "Any",
+      "reset": "Reset",
+      "show": "Show Results",
+      "assignmentOptions": {
+        "any": "Anyone",
+        "mine": "Mine",
+        "unassigned": "Unassigned",
+        "others": "Other engineers"
+      },
+      "dateOptions": {
+        "overdue": "Overdue",
+        "today": "Due today",
+        "week": "Due this week",
+        "recent": "Created in last 24h",
+        "updated7": "Updated last 7 days",
+        "updated30": "Updated last 30 days"
+      },
+      "sortOptions": {
+        "priority": "Priority first",
+        "due": "Due soonest",
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "updated": "Recently updated"
+      }
+    }
   }
 }

@@ -34721,6 +34721,105 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2111",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "List API 422 for category=doors_locks / painting",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "list_work_orders' category Literal omitted two categories the DB check constraint and create endpoint allow",
+      "fix": "Added doors_locks and painting to the list Literal; test covers both",
+      "tags": [
+        "api",
+        "work-orders",
+        "category",
+        "422"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2112",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Mobile queue silently truncated at one page of 100 per status; search only filtered the loaded batch",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "listWorkOrders fetched one 100-row page with no has_more; search/filter were client-side over that batch; API q matched title only",
+      "fix": "Server-paged queue (has_more), server-side filters and multi-field q search, per-view buckets with load-more",
+      "tags": [
+        "mobile",
+        "pagination",
+        "search",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2113",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Mobile 'Team' group showed unclaimed work as the team's; engineers cannot see colleagues' orders",
+      "file": "apps/mobile/lib/engineering/workOrders.ts",
+      "root_cause": "splitWorkbench treated every active order not assigned to the viewer as 'team', but the engineer API scope is own+unassigned",
+      "fix": "Team view only for chief_engineer/gm via assigned_to_others; escalated unassigned shown as 'needs an owner' with Open, not Claim",
+      "tags": [
+        "mobile",
+        "rbac",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2114",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Offline claim refused on replay (409/403/404) was retried forever and never shown to the person",
+      "file": "apps/mobile/lib/offline/sync.ts",
+      "root_cause": "sync replayed claim items and only incremented attempts on any error, so a lost race became a stuck 'failed' row",
+      "fix": "Terminal claim failures are deleted from the queue and recorded in claimConflicts, surfaced as a banner on the Work tab",
+      "tags": [
+        "mobile",
+        "offline",
+        "claim",
+        "conflict"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2115",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Optimistic claim moved the card into 'in progress' before the server or queue confirmed",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "claim() mutated local state first for both online and offline paths",
+      "fix": "Confirmed only on server success; offline shows a 'saved on this phone' marker and leaves the card in Available",
+      "tags": [
+        "mobile",
+        "offline",
+        "claim"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2116",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "onEndReached triggered duplicate next-page requests",
+      "file": "apps/mobile/lib/engineering/useWorkQueue.ts",
+      "root_cause": "'already loading more' was read from reducer state, which has not re-rendered between quick successive calls",
+      "fix": "Synchronous ref guard (moreInFlight); covered by hook test",
+      "tags": [
+        "mobile",
+        "pagination",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
     }
   ]
 }

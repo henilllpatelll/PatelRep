@@ -7,6 +7,7 @@ import type {
   WorkOrderPhoto,
   WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
+import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
 
 export interface CreateWorkOrderPayload {
   room_id?: string;
@@ -26,6 +27,35 @@ export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<
 }
 
 export const WORK_ORDER_PAGE_SIZE = 100;
+/** The Work tab's page: small enough to paint fast on a phone, paged as the list is scrolled. */
+export const WORK_QUEUE_PAGE_SIZE = 25;
+
+export interface WorkOrderPage {
+  orders: WorkOrder[];
+  /** The server says another page exists. Never inferred from a short page. */
+  hasMore: boolean;
+}
+
+function queryString(params: Record<string, string | number | boolean | undefined>): string {
+  return Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== false && value !== "")
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+}
+
+/** One page of the queue for a view's request. `has_more` comes from the API; an older API that omits it falls back to a full-page check. */
+export async function listWorkOrderPage(
+  params: WorkOrderListParams,
+  page = 1,
+  perPage = WORK_QUEUE_PAGE_SIZE
+): Promise<WorkOrderPage> {
+  const { statuses, ...rest } = params;
+  const res = await api.get<{ data: WorkOrder[]; meta?: { has_more?: boolean } }>(
+    `/work-orders?${queryString({ ...rest, statuses: statuses?.join(","), page: page > 1 ? page : undefined, per_page: perPage })}`
+  );
+  const orders = res.data ?? [];
+  return { orders, hasMore: res.meta?.has_more ?? orders.length >= perPage };
+}
 
 export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {
   const res = await api.get<{ data: WorkOrder[] }>(

@@ -179,9 +179,10 @@ describe("EngineerHome summary cards", () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("summary-my-jobs").props.accessibilityLabel).toBe("home.engineer.cardMyJobs: 0"));
     fireEvent.press(getByTestId("summary-my-jobs"));
-    expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders");
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
     fireEvent.press(getByTestId("summary-urgent"));
-    expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders");
+    // Nothing urgent in this fixture, so it falls back to My Work.
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
     fireEvent.press(getByTestId("summary-pm-due"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules");
   });
@@ -205,7 +206,7 @@ describe("EngineerHome Continue Working", () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("engineer-more-active")).toBeTruthy());
     fireEvent.press(getByTestId("engineer-more-active"));
-    expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders");
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
   });
 
   it("shows a compact empty state with an action when nothing is in progress", async () => {

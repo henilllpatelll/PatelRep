@@ -17,6 +17,7 @@ import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { getGreetingKey } from "@/lib/ai/companion";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
+import { urgentLandingView, type QueueView } from "@/lib/engineering/workQueue";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -190,6 +191,10 @@ export function EngineerHome({ name }: { name: string }) {
 
   const openOrder = useCallback((id: string) => router.push(`/(app)/work-orders/${id}` as never), []);
   const openWork = useCallback(() => router.push("/(app)/work-orders" as never), []);
+  const openQueue = useCallback(
+    (view: QueueView) => router.push({ pathname: "/(app)/work-orders", params: { view } } as never),
+    []
+  );
   const openPm = useCallback(() => router.push("/(app)/pm-schedules" as never), []);
 
   const attention = model.attention.slice(0, ATTENTION_LIMIT);
@@ -249,7 +254,7 @@ export function EngineerHome({ name }: { name: string }) {
           testID="engineer-continue"
         />
         {model.moreActive > 0 ? (
-          <Pressable onPress={openWork} accessibilityRole="button" style={styles.linkRow} testID="engineer-more-active">
+          <Pressable onPress={() => openQueue("mine")} accessibilityRole="button" style={styles.linkRow} testID="engineer-more-active">
             <Text maxFontSizeMultiplier={MAX_FONT} style={[styles.link, { color: theme.primaryAction }]}>
               {t("home.engineer.moreActive", { count: model.moreActive })}
             </Text>
@@ -356,8 +361,8 @@ export function EngineerHome({ name }: { name: string }) {
 
         <View style={styles.body}>
           <View style={styles.summaryRow}>
-            <SummaryCard label={t("home.engineer.cardMyJobs")} value={queueValue(model.myJobs)} onPress={openWork} testID="summary-my-jobs" />
-            <SummaryCard label={t("home.engineer.cardUrgent")} value={queueValue(model.urgent)} tone={queueReady && model.urgent > 0 ? "alert" : undefined} onPress={openWork} testID="summary-urgent" />
+            <SummaryCard label={t("home.engineer.cardMyJobs")} value={queueValue(model.myJobs)} onPress={() => openQueue("mine")} testID="summary-my-jobs" />
+            <SummaryCard label={t("home.engineer.cardUrgent")} value={queueValue(model.urgent)} tone={queueReady && model.urgent > 0 ? "alert" : undefined} onPress={() => openQueue(urgentLandingView(data.orders, user?.id))} testID="summary-urgent" />
             <SummaryCard label={t("home.engineer.cardPmDue")} value={pmValue} onPress={openPm} testID="summary-pm-due" />
           </View>
 

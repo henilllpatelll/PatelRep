@@ -88,6 +88,13 @@ export interface WorkOrder {
   started_at?: string | null;
   due_at?: string | null;
   completed_at?: string | null;
+  updated_at?: string | null;
+  /** Resolved by the list endpoint from the assignee's profile; absent when unassigned or the lookup failed. */
+  assigned_to_name?: string | null;
+  /** Why and since when an on-hold order is held, from the transition audit. Absent when never recorded. */
+  hold_reason_code?: string | null;
+  hold_reason_note?: string | null;
+  held_since?: string | null;
   guest_reported?: boolean;
   notes?: string | null;
   parts_used?: string | null;
