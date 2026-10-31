@@ -91,7 +91,7 @@ describe("countQueueSignals", () => {
       { ...base, id: "b", status: "on_hold", due_at: "2026-06-12T10:00:00Z" },
       { ...base, id: "c", due_at: "2026-06-12T15:00:00Z" },
     ];
-    expect(countQueueSignals(orders, now)).toEqual({ urgent: 1, pastSla: 1, guest: 1, onHold: 1 });
+    expect(countQueueSignals(orders, now)).toEqual({ emergency: 0, urgent: 1, highPriority: 1, pastSla: 1, guest: 1, onHold: 1 });
   });
 
   it("ignores completed and cancelled orders", () => {
@@ -99,7 +99,7 @@ describe("countQueueSignals", () => {
       { ...base, id: "a", status: "completed", priority: "urgent", due_at: "2026-06-12T10:00:00Z" },
       { ...base, id: "b", status: "cancelled", guest_reported: true },
     ];
-    expect(countQueueSignals(orders, now)).toEqual({ urgent: 0, pastSla: 0, guest: 0, onHold: 0 });
+    expect(countQueueSignals(orders, now)).toEqual({ emergency: 0, urgent: 0, highPriority: 0, pastSla: 0, guest: 0, onHold: 0 });
   });
 });
 

@@ -24,6 +24,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 
@@ -121,7 +122,7 @@ export default function RoomStatusScreen() {
   const toast = useToast();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline, user } = useAppStore();
-  const isEngineer = String(user?.effective_role ?? user?.role) === "engineer";
+  const isEngineer = isEngineeringRole(user?.effective_role ?? user?.role);
   const canManageOoo = user?.role === "engineer" || user?.role === "gm" || user?.role === "housekeeping_supervisor";
   const [woModal, setWoModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
   const [oooLoading, setOooLoading] = useState<string | null>(null);

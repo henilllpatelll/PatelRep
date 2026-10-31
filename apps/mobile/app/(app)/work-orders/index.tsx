@@ -1,391 +1,403 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { enqueueAction } from "@/lib/offline/db";
-import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
-import { countQueueSignals, splitWorkbench, type WorkOrder } from "@/lib/engineering/workOrders";
-import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
-import { StateBlock } from "@/components/ui/StateBlock";
+import { useToast } from "@/lib/theme/useToast";
+import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
+import { WorkFilterSheet } from "@/components/engineering/WorkFilterSheet";
+import { WorkQueueHeader, type FilterChip } from "@/components/engineering/WorkQueueHeader";
 import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
+import { resolveLoadState } from "@/lib/engineering/loadState";
+import { useWorkQueue } from "@/lib/engineering/useWorkQueue";
+import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
+import { dismissClaimConflict, useClaimConflicts } from "@/lib/engineering/claimConflicts";
+import {
+  EMPTY_FILTERS,
+  activeFilterCount,
+  allowedStatuses,
+  availableViews,
+  buildListParams,
+  compareWorkOrders,
+  dateFiltersFor,
+  effectiveSort,
+  groupMineWork,
+  hasAssignmentFilter,
+  hasStatusFilter,
+  isClaimable,
+  defaultSort,
+  workOrderLabel,
+  type QueueFilters,
+  type QueueView,
+} from "@/lib/engineering/workQueue";
+import type { WorkOrder } from "@/lib/engineering/workOrders";
 
-/* ─── Orders tab — one bench, one scroll ────────────────────────────────────
-   No tabs to hop between: the engineer's own active work sits on top ("On
-   your bench"), the open queue follows with inline Claim, other engineers'
-   active orders give context, and finished work folds away at the bottom. */
+/* ─── Work tab — five views over one queue ──────────────────────────────────
+   My Work · Available · Team (chief engineer / GM only) · Waiting · Done. Each
+   view loads its own pages from the API with the search and filters applied
+   server-side, so what is shown is what the hotel actually has — not a filter
+   over whatever happened to fit in the first page. */
+
+const SEARCH_DEBOUNCE_MS = 350;
+const REALTIME_DEBOUNCE_MS = 700;
 
 type Row =
-  | { type: "section"; key: string; title: string; hint?: string }
-  | { type: "wo"; key: string; wo: WorkOrder; claimable: boolean }
-  | { type: "doneToggle"; key: string }
-  | { type: "queueEmpty"; key: string }
-  | { type: "allEmpty"; key: string }
-  | { type: "doneEmpty"; key: string };
+  | { type: "conflict"; key: string; woId: string; label: string | null; reason: string }
+  | { type: "notice"; key: string; kind: "stale" | "offline" }
+  | { type: "section"; key: string; title: string; count: number }
+  | { type: "wo"; key: string; wo: WorkOrder };
+
+const isView = (value: unknown, views: QueueView[]): value is QueueView => typeof value === "string" && (views as string[]).includes(value);
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { isOnline, user } = useAppStore();
+  const toast = useToast();
+  const { isOnline, user, hotelTimezone, lastSyncedAt } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
+  const role = user?.effective_role ?? user?.role;
+  const userId = user?.id ?? null;
+  const tenantId = user?.tenant_id ?? null;
+  const scope = `${tenantId ?? "none"}:${userId ?? "none"}`;
+  const views = useMemo(() => availableViews(role), [role]);
 
-  const [open, setOpen] = useState<WorkOrder[]>([]);
-  const [active, setActive] = useState<WorkOrder[]>([]);
-  const [done, setDone] = useState<WorkOrder[]>([]);
-  const [doneLoaded, setDoneLoaded] = useState(false);
-  const [doneExpanded, setDoneExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ new?: string; view?: string }>();
+  const [view, setView] = useState<QueueView>(() => (isView(params.view, views) ? params.view : "mine"));
+  const [filtersByView, setFiltersByView] = useState<Record<QueueView, QueueFilters>>({
+    mine: EMPTY_FILTERS,
+    available: EMPTY_FILTERS,
+    team: EMPTY_FILTERS,
+    waiting: EMPTY_FILTERS,
+    done: EMPTY_FILTERS,
+  });
+  const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
-  const [showCreateWo, setShowCreateWo] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [pulling, setPulling] = useState(false);
 
-  const loadQueues = useCallback(async () => {
-    const [openRes, escalatedRes, progressRes, holdRes] = await Promise.allSettled([
-      listWorkOrders("open"),
-      listWorkOrders("escalated"),
-      listWorkOrders("in_progress"),
-      listWorkOrders("on_hold"),
-    ]);
-    if (openRes.status === "fulfilled") setOpen(openRes.value);
-    const escalated = escalatedRes.status === "fulfilled" ? escalatedRes.value : [];
-    const progress = progressRes.status === "fulfilled" ? progressRes.value : [];
-    const held = holdRes.status === "fulfilled" ? holdRes.value : [];
-    setActive([...escalated, ...progress, ...held]);
-  }, []);
+  // Home sends `view` to land on the right queue, and a fresh `new` to open the create sheet once per value.
+  useEffect(() => {
+    if (isView(params.view, views)) setView(params.view);
+  }, [params.view, views]);
+  const handledNew = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!params.new || handledNew.current === params.new) return;
+    handledNew.current = params.new;
+    setShowCreate(true);
+  }, [params.new]);
 
-  const loadDone = useCallback(async () => {
-    try {
-      setDone(await listWorkOrders("completed"));
-      setDoneLoaded(true);
-    } catch {
-      setDone([]);
-    }
-  }, []);
+  // A view this role cannot see (e.g. a role change) falls back to My Work.
+  useEffect(() => {
+    if (!views.includes(view)) setView("mine");
+  }, [views, view]);
 
   useEffect(() => {
-    loadQueues().finally(() => setLoading(false));
-  }, [loadQueues]);
+    const id = setTimeout(() => setSearch(searchText.trim()), searchText.trim() === "" ? 0 : SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchText]);
 
-  // Reload queues whenever this tab gains focus so completed WOs don't linger.
+  const filters = filtersByView[view];
+  const request = useMemo(
+    () => buildListParams(view, filters, search, { role, timeZone: hotelTimezone }),
+    [view, filters, search, role, hotelTimezone]
+  );
+  const viewer = useMemo(() => ({ userId, role }), [userId, role]);
+  const queue = useWorkQueue({ scope, view, params: request, viewer, enabled: userId != null });
+  const { bucket } = queue;
+
+  const claimer = useClaimWorkOrder({ isOnline, role, syncMarker: lastSyncedAt });
+  const conflicts = useClaimConflicts(scope);
+
+  const refreshRef = useRef(queue.refresh);
+  refreshRef.current = queue.refresh;
+  const invalidateRef = useRef(queue.invalidateOthers);
+  invalidateRef.current = queue.invalidateOthers;
+  const refreshQuietly = useCallback(() => {
+    invalidateRef.current();
+    void refreshRef.current();
+  }, []);
+
+  // Back from a detail screen: re-read in place (rows and filters stay) so a finished job leaves the list.
+  const focusedBefore = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      loadQueues();
-    }, [loadQueues])
+      if (focusedBefore.current) refreshQuietly();
+      focusedBefore.current = true;
+    }, [refreshQuietly])
   );
 
+  // Coming back online reloads what the connection could not.
+  const wasOnline = useRef(isOnline);
   useEffect(() => {
-    if (doneExpanded && !doneLoaded) loadDone();
-  }, [doneExpanded, doneLoaded, loadDone]);
+    if (isOnline && !wasOnline.current) refreshQuietly();
+    wasOnline.current = isOnline;
+  }, [isOnline, refreshQuietly]);
 
+  // Realtime: one subscription per hotel; any change reloads the pages already loaded in place (no duplicates, no reset).
   useEffect(() => {
-    if (!user?.tenant_id) return;
+    if (!tenantId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
-      .channel("work-orders-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "work_orders", filter: `tenant_id=eq.${user.tenant_id}` },
-        () => {
-          loadQueues();
-          if (doneLoaded) loadDone();
-        }
-      )
+      .channel(`work-orders-queue:${tenantId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "work_orders", filter: `tenant_id=eq.${tenantId}` }, () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(refreshQuietly, REALTIME_DEBOUNCE_MS);
+      })
       .subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
-  }, [user?.tenant_id, loadQueues, loadDone, doneLoaded]);
+  }, [tenantId, refreshQuietly]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadQueues();
-    if (doneLoaded) await loadDone();
-    setRefreshing(false);
-  }, [loadQueues, loadDone, doneLoaded]);
+  const onPullRefresh = useCallback(async () => {
+    setPulling(true);
+    queue.invalidateOthers();
+    await queue.refresh();
+    setPulling(false);
+  }, [queue]);
 
-  const claim = useCallback(
+  const onClaim = useCallback(
     async (wo: WorkOrder) => {
-      setClaimingId(wo.id);
-      // Optimistic update for both online and offline paths
-      setOpen((prev) => prev.filter((o) => o.id !== wo.id));
-      setActive((prev) => [
-        { ...wo, status: "in_progress", assigned_to: user?.id ?? null, started_at: new Date().toISOString() },
-        ...prev,
-      ]);
-      try {
-        if (isOnline) {
-          await claimWorkOrder(wo.id);
-          await loadQueues(); // confirm server state
-        } else {
-          await enqueueAction("work_order", "claim", {}, wo.id);
-        }
-      } catch (err) {
-        console.warn("Claim failed:", err);
-        await loadQueues(); // revert on failure
-      } finally {
-        setClaimingId(null);
+      const label = [workOrderLabel(wo), wo.title].filter(Boolean).join(" · ");
+      const outcome = await claimer.claim(wo);
+      if (outcome.kind === "ignored") return;
+      if (outcome.kind === "confirmed") {
+        queue.removeItem(wo.id);
+        toast.success(t("workQueue.claimed", { label }));
+        refreshQuietly();
+      } else if (outcome.kind === "queued") {
+        toast.info(t("workQueue.claimSavedOffline"));
+      } else if (outcome.failure === "conflict") {
+        toast.error(t("workQueue.claimConflict"));
+        refreshQuietly();
+      } else if (outcome.failure === "forbidden") {
+        toast.error(t("workQueue.claimForbidden"));
+      } else if (outcome.failure === "not_found") {
+        toast.error(t("workQueue.claimGone"));
+        refreshQuietly();
+      } else {
+        toast.error(t("workQueue.claimFailed"));
       }
     },
-    [isOnline, loadQueues, user?.id]
+    [claimer, queue, toast, t, refreshQuietly]
   );
 
-  const { bench, queue, team } = useMemo(
-    () => splitWorkbench(open, active, user?.id),
-    [open, active, user?.id]
-  );
+  const setFilters = useCallback((next: QueueFilters) => setFiltersByView((prev) => ({ ...prev, [view]: next })), [view]);
 
-  const matchesSearch = useCallback(
-    (wo: WorkOrder): boolean => {
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return (
-        wo.title.toLowerCase().includes(q) ||
-        (wo.description ?? "").toLowerCase().includes(q) ||
-        (wo.rooms?.room_number ?? "").includes(q)
-      );
-    },
-    [search]
-  );
+  const chips = useMemo<FilterChip[]>(() => {
+    const out: FilterChip[] = [];
+    const clear = (patch: Partial<QueueFilters>) => () => setFilters({ ...filters, ...patch });
+    const statuses = filters.statuses.filter((s) => allowedStatuses(view).includes(s));
+    if (hasStatusFilter(view) && statuses.length > 0 && !(view === "done" && statuses[0] === "completed")) {
+      out.push({ key: "status", label: statuses.map((s) => t(`workOrders.status.${s}`)).join(", "), onRemove: clear({ statuses: [] }) });
+    }
+    if (filters.priority) out.push({ key: "priority", label: t(`workQueue.priority.${filters.priority}`), onRemove: clear({ priority: null }) });
+    if (filters.category) out.push({ key: "category", label: t(`workOrders.category.${filters.category}`), onRemove: clear({ category: null }) });
+    if (filters.floor != null || filters.building) {
+      const label = [filters.building ? t("workQueue.filter.buildingValue", { building: filters.building }) : null, filters.floor != null ? t("workOrders.floor", { floor: filters.floor }) : null]
+        .filter(Boolean)
+        .join(" · ");
+      out.push({ key: "location", label, onRemove: clear({ floor: null, building: null }) });
+    }
+    if (filters.date && dateFiltersFor(view).includes(filters.date)) {
+      out.push({ key: "date", label: t(`workQueue.filter.dateOptions.${filters.date}`), onRemove: clear({ date: null }) });
+    }
+    if (hasAssignmentFilter(view) && filters.assignment !== "any") {
+      out.push({ key: "assignment", label: t(`workQueue.filter.assignmentOptions.${filters.assignment}`), onRemove: clear({ assignment: "any" }) });
+    }
+    if (filters.sort && filters.sort !== defaultSort(view)) {
+      out.push({ key: "sort", label: t(`workQueue.filter.sortOptions.${filters.sort}`), onRemove: clear({ sort: null }) });
+    }
+    return out;
+  }, [filters, view, t, setFilters]);
 
-  // Hero signals — built from live open + active queues, nonzero only.
-  const signals = useMemo(() => {
-    const counts = countQueueSignals([...open, ...active]);
-    return [
-      counts.urgent > 0 && {
-        key: "urgent",
-        label: t("workOrders.signalUrgent", { count: counts.urgent }),
-        fg: theme.status.dirty,
-        bg: theme.status.dirtySoft,
-        line: theme.status.dirtyLine,
-      },
-      counts.pastSla > 0 && {
-        key: "sla",
-        label: t("workOrders.signalPastSla", { count: counts.pastSla }),
-        fg: theme.status.dirty,
-        bg: theme.status.dirtySoft,
-        line: theme.status.dirtyLine,
-      },
-      counts.guest > 0 && {
-        key: "guest",
-        label: t("workOrders.signalGuest", { count: counts.guest }),
-        fg: theme.status.clean,
-        bg: theme.status.cleanSoft,
-        line: theme.status.cleanLine,
-      },
-      counts.onHold > 0 && {
-        key: "hold",
-        label: t("workOrders.signalOnHold", { count: counts.onHold }),
-        fg: theme.status.pickup,
-        bg: theme.status.pickupSoft,
-        line: theme.status.pickupLine,
-      },
-    ].filter(Boolean) as { key: string; label: string; fg: string; bg: string; line: string }[];
-  }, [open, active, t, theme]);
+  const filterCount = activeFilterCount(view, filters);
+  const hasNarrowing = filterCount > 0 || search !== "";
+  const sort = effectiveSort(view, filters);
+
+  const loadState = resolveLoadState({
+    loading: !bucket.loaded && bucket.failure == null,
+    failure: bucket.failure,
+    count: bucket.items.length,
+    offline: !isOnline && !bucket.loaded,
+  });
 
   const rows = useMemo<Row[]>(() => {
-    const filteredBench = bench.filter(matchesSearch);
-    const filteredQueue = queue.filter(matchesSearch);
-    const filteredTeam = team.filter(matchesSearch);
-    const list: Row[] = [];
-    if (filteredBench.length === 0 && filteredQueue.length === 0 && filteredTeam.length === 0 && !search) {
-      list.push({ type: "allEmpty", key: "all-empty" });
-    } else {
-      if (filteredBench.length > 0) {
-        list.push({ type: "section", key: "s-bench", title: t("workOrders.sectionBench"), hint: String(filteredBench.length) });
-        for (const wo of filteredBench) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+    const list: Row[] = conflicts.map((c) => ({ type: "conflict", key: `conflict-${c.woId}`, woId: c.woId, label: c.label, reason: c.reason }));
+    if (loadState.stale) list.push({ type: "notice", key: "stale", kind: "stale" });
+    else if (!isOnline && bucket.loaded) list.push({ type: "notice", key: "offline", kind: "offline" });
+    if (loadState.status !== "ready") return list;
+
+    const ordered = [...bucket.items].sort(compareWorkOrders(sort));
+    if (view === "mine") {
+      for (const group of groupMineWork(bucket.items, sort)) {
+        list.push({ type: "section", key: `s-${group.key}`, title: t(`workQueue.groups.${group.key}`), count: group.orders.length });
+        group.orders.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
       }
-      if (!search || filteredQueue.length > 0) {
-        list.push({ type: "section", key: "s-queue", title: t("workOrders.sectionQueue"), hint: String(filteredQueue.length) });
-        if (filteredQueue.length === 0 && !search) {
-          list.push({ type: "queueEmpty", key: "queue-empty" });
-        } else {
-          for (const wo of filteredQueue) {
-            list.push({ type: "wo", key: wo.id, wo, claimable: wo.status === "open" && !wo.assigned_to });
-          }
-        }
-      }
-      if (filteredTeam.length > 0) {
-        list.push({ type: "section", key: "s-team", title: t("workOrders.sectionTeam"), hint: String(filteredTeam.length) });
-        for (const wo of filteredTeam) list.push({ type: "wo", key: wo.id, wo, claimable: false });
-      }
-    }
-    list.push({ type: "doneToggle", key: "done-toggle" });
-    if (doneExpanded) {
-      const filteredDone = done.filter(matchesSearch);
-      if (doneLoaded && filteredDone.length === 0) {
-        list.push({ type: "doneEmpty", key: "done-empty" });
+    } else if (view === "available") {
+      const claimable = ordered.filter((wo) => isClaimable(wo, role));
+      const needsOwner = ordered.filter((wo) => !isClaimable(wo, role));
+      if (needsOwner.length > 0) {
+        list.push({ type: "section", key: "s-claim", title: t("workQueue.groups.claimable"), count: claimable.length });
+        claimable.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
+        list.push({ type: "section", key: "s-owner", title: t("workQueue.groups.needsOwner"), count: needsOwner.length });
+        needsOwner.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
       } else {
-        for (const wo of filteredDone) list.push({ type: "wo", key: wo.id, wo, claimable: false });
+        claimable.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
       }
+    } else {
+      ordered.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
     }
     return list;
-  }, [bench, queue, team, done, doneExpanded, doneLoaded, search, matchesSearch, t]);
+  }, [bucket.items, bucket.loaded, conflicts, isOnline, loadState, role, sort, t, view]);
 
-  const header = (
-    <View>
-      <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
-      <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-        <View style={styles.heroTopRow}>
-          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("workOrders.kicker")}</Text>
-          <TouchableOpacity
-            style={[styles.heroNewWoBtn, { backgroundColor: theme.primaryAction }]}
-            onPress={() => setShowCreateWo(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            testID="wo-new"
-          >
-            <Ionicons name="add" size={14} color={theme.shell.ink} />
-            <Text style={[styles.heroRoomsText, { color: theme.shell.ink }]}>{t("workOrders.newWorkOrder")}</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("workOrders.title")}</Text>
-        <Text style={[styles.heroSummary, { color: theme.shell.ink2 }]}>
-          {t("workOrders.summary", { open: open.length, active: active.length })}
-        </Text>
-        {signals.length > 0 ? (
-          <View style={styles.signalRow}>
-            {signals.map((signal) => (
-              <View key={signal.key} style={[styles.signalChip, { backgroundColor: signal.bg, borderColor: signal.line }]}>
-                <Text style={[styles.signalText, { color: signal.fg }]}>{signal.label}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </View>
-      <View style={[styles.searchBar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Ionicons name="search-outline" size={15} color={theme.textDisabled} />
-        <TextInput
-          style={[styles.searchInput, { color: theme.textPrimary }]}
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t("workOrders.searchPlaceholder", { defaultValue: "Search work orders…" })}
-          placeholderTextColor={theme.textDisabled}
-          returnKeyType="search"
-        />
-        {search ? (
-          <TouchableOpacity onPress={() => setSearch("")} hitSlop={8} accessibilityRole="button">
-            <Ionicons name="close-circle" size={16} color={theme.textDisabled} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-    </View>
-  );
+  const emptyCopy = (): { title: string; body: string; action?: { label: string; onPress: () => void } } => {
+    if (hasNarrowing) return { title: t("workQueue.empty.noMatches"), body: t("workQueue.empty.noMatchesHint") };
+    const action = view === "mine" ? { label: t("workQueue.empty.browseAvailable"), onPress: () => setView("available") } : undefined;
+    return { title: t(`workQueue.empty.${view}`), body: t(`workQueue.empty.${view}Hint`), action };
+  };
+
+  const clearNarrowing = () => {
+    setSearchText("");
+    setFilters(EMPTY_FILTERS);
+  };
 
   const renderRow = ({ item }: { item: Row }) => {
     switch (item.type) {
+      case "conflict":
+        return (
+          <View
+            style={[styles.banner, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}
+            accessibilityRole="alert"
+            testID={`claim-conflict-${item.woId}`}
+          >
+            <Ionicons name="alert-circle-outline" size={18} color={theme.status.dirty} />
+            <Text style={[styles.bannerText, { color: theme.status.dirty }]} maxFontSizeMultiplier={1.4}>
+              {t(`workQueue.conflict.${item.reason}`, { label: item.label ?? t("workQueue.conflict.unknownOrder") })}
+            </Text>
+            <Pressable onPress={() => void dismissClaimConflict(item.woId)} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("common.close")}>
+              <Ionicons name="close" size={18} color={theme.status.dirty} />
+            </Pressable>
+          </View>
+        );
+      case "notice":
+        return item.kind === "stale" ? (
+          <View style={styles.bannerWrap}>
+            <StaleBanner onRetry={() => void queue.refresh()} />
+          </View>
+        ) : (
+          <View
+            style={[styles.banner, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+            accessibilityRole="text"
+            testID="wo-offline-cached"
+          >
+            <Ionicons name="cloud-offline-outline" size={18} color={theme.status.pickup} />
+            <Text style={[styles.bannerText, { color: theme.status.pickup }]} maxFontSizeMultiplier={1.4}>
+              {bucket.fetchedAt
+                ? t("workQueue.offlineCached", { time: new Date(bucket.fetchedAt).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }) })
+                : t("workQueue.offlineCachedNoTime")}
+            </Text>
+          </View>
+        );
       case "section":
         return (
           <View style={styles.sectionRow}>
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{item.title}</Text>
-            {item.hint ? <Text style={[styles.sectionHint, { color: theme.textDisabled }]}>{item.hint}</Text> : null}
+            <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header" maxFontSizeMultiplier={1.4}>
+              {item.title}
+            </Text>
+            <Text style={[styles.sectionCount, { color: theme.textDisabled }]}>{item.count}</Text>
           </View>
         );
-      case "wo":
+      case "wo": {
+        const claimable = isClaimable(item.wo, role);
+        const queued = claimer.queuedIds.has(item.wo.id);
         return (
           <View style={styles.cardWrap}>
             <WorkOrderCard
               wo={item.wo}
               locale={locale}
+              view={view}
               onPress={() => router.push(`/(app)/work-orders/${item.wo.id}`)}
-              onClaim={item.claimable ? () => claim(item.wo) : undefined}
-              claiming={claimingId === item.wo.id}
+              onClaim={claimable && !queued ? () => void onClaim(item.wo) : undefined}
+              claiming={claimer.claimingIds.has(item.wo.id)}
+              claimQueued={claimable && queued}
             />
           </View>
         );
-      case "doneToggle":
-        return (
-          <TouchableOpacity
-            style={[styles.doneToggle, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
-            onPress={() => setDoneExpanded((prev) => !prev)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: doneExpanded }}
-            testID="wo-done-toggle"
-          >
-            <Ionicons name="checkmark-done-outline" size={15} color={theme.textSecondary} />
-            <Text style={[styles.doneToggleText, { color: theme.textSecondary }]}>{t("workOrders.sectionDone")}</Text>
-            {doneLoaded && done.length > 0 ? (
-              <Text style={[styles.doneToggleHint, { color: theme.textDisabled }]}>{done.length}</Text>
-            ) : null}
-            <Ionicons
-              name={doneExpanded ? "chevron-up" : "chevron-down"}
-              size={14}
-              color={theme.textDisabled}
-              style={styles.doneChevron}
-            />
-          </TouchableOpacity>
-        );
-      case "queueEmpty":
-        return (
-          <StateBlock
-            status="empty"
-            emptyIcon="list-outline"
-            emptyTitle={t("workOrders.emptyOpen")}
-            emptyBody={t("workOrders.emptyOpenHint")}
-            style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
-          />
-        );
-      case "doneEmpty":
-        return (
-          <StateBlock
-            status="empty"
-            emptyIcon="checkmark-done-outline"
-            emptyTitle={t("workOrders.emptyDone")}
-            emptyBody={t("workOrders.emptyDoneHint")}
-            style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
-          />
-        );
-      case "allEmpty":
-        return (
-          <StateBlock
-            status="empty"
-            emptyIcon="checkmark-done-outline"
-            emptyTitle={t("workOrders.emptyOpen")}
-            emptyBody={t("workOrders.emptyOpenHint")}
-            style={styles.empty}
-          />
-        );
-      default:
-        return null;
+      }
     }
   };
 
+  const empty = emptyCopy();
+  const listEmpty =
+    loadState.status === "loading" ? (
+      <EngineeringState status="loading" emptyTitle="" style={styles.state} />
+    ) : loadState.status === "empty" ? (
+      <View>
+        <EngineeringState status="empty" emptyIcon="checkmark-done-outline" emptyTitle={empty.title} emptyBody={empty.body} style={styles.state} />
+        {hasNarrowing ? (
+          <Pressable onPress={clearNarrowing} style={styles.linkButton} accessibilityRole="button" testID="wo-clear-narrowing">
+            <Text style={[styles.link, { color: theme.primaryAction }]}>{t("workQueue.empty.clear")}</Text>
+          </Pressable>
+        ) : empty.action ? (
+          <Pressable onPress={empty.action.onPress} style={styles.linkButton} accessibilityRole="button" testID="wo-empty-action">
+            <Text style={[styles.link, { color: theme.primaryAction }]}>{empty.action.label}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    ) : loadState.status === "ready" ? null : (
+      <EngineeringState status={loadState.status} onRetry={() => void queue.refresh()} emptyTitle="" style={styles.state} />
+    );
+
+  const footer = bucket.loadingMore ? (
+    <ActivityIndicator style={styles.footer} color={theme.primaryAction} accessibilityLabel={t("workQueue.loadingMore")} testID="wo-loading-more" />
+  ) : bucket.hasMore && loadState.status === "ready" ? (
+    <Pressable onPress={queue.loadMore} style={styles.linkButton} accessibilityRole="button" testID="wo-load-more">
+      <Text style={[styles.link, { color: theme.primaryAction }]}>{t("workQueue.loadMore", { count: bucket.items.length })}</Text>
+    </Pressable>
+  ) : null;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {loading ? (
-        <View style={styles.center}>
-          <StateBlock status="loading" />
-        </View>
-      ) : (
-        <FlatList
-          data={rows}
-          keyExtractor={(item) => item.key}
-          ListHeaderComponent={header}
-          contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
-          renderItem={renderRow}
-        />
-      )}
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => item.key}
+        renderItem={renderRow}
+        ListHeaderComponent={
+          <WorkQueueHeader
+            views={views}
+            view={view}
+            onView={setView}
+            searchText={searchText}
+            onSearchText={setSearchText}
+            filterCount={filterCount}
+            onOpenFilters={() => setShowFilters(true)}
+            chips={chips}
+            onNew={() => setShowCreate(true)}
+          />
+        }
+        ListEmptyComponent={listEmpty ?? undefined}
+        ListFooterComponent={footer ?? undefined}
+        contentContainerStyle={styles.listContent}
+        onEndReached={queue.loadMore}
+        onEndReachedThreshold={0.4}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={pulling} onRefresh={onPullRefresh} tintColor={theme.primaryAction} />}
+        testID="wo-list"
+      />
+      <WorkFilterSheet visible={showFilters} view={view} role={role} filters={filters} onApply={(next) => { setFilters(next); setShowFilters(false); }} onClose={() => setShowFilters(false)} />
       <CreateWorkOrderModal
-        visible={showCreateWo}
-        onClose={() => setShowCreateWo(false)}
+        visible={showCreate}
+        onClose={() => setShowCreate(false)}
         onCreated={() => {
-          setShowCreateWo(false);
-          loadQueues();
+          setShowCreate(false);
+          refreshQuietly();
         }}
       />
     </View>
@@ -394,97 +406,16 @@ export default function WorkOrdersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  listContent: { paddingBottom: 28 },
-
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-  },
-  heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heroNewWoBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    minHeight: 32,
-  },
-  heroKicker: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  heroRoomsText: { fontSize: 11.5, fontWeight: "700" },
-  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroSummary: { fontSize: 13, marginTop: 7 },
-  signalRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
-  signalChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 3.5,
-  },
-  signalText: { fontSize: 11, fontWeight: "800" },
-
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderRadius: R.md,
-  },
-  searchInput: { flex: 1, fontSize: 13.5, paddingVertical: 0 },
-
-  sectionRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 7,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 9,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  sectionHint: { fontSize: 11, fontWeight: "700" },
-
-  cardWrap: { paddingHorizontal: 16, paddingBottom: 11 },
-
-  doneToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 11,
-    minHeight: 46,
-    paddingHorizontal: 14,
-    borderRadius: R.md,
-    borderWidth: 1,
-  },
-  doneToggleText: { fontSize: 13, fontWeight: "700" },
-  doneToggleHint: { fontSize: 12, fontWeight: "700" },
-  doneChevron: { marginLeft: "auto" },
-
-  inlineEmpty: {
-    marginHorizontal: 16,
-    marginBottom: 11,
-    borderRadius: R.md,
-    borderWidth: 1,
-  },
-
-  empty: { paddingVertical: 52 },
+  listContent: { paddingBottom: 32 },
+  cardWrap: { paddingHorizontal: 16, paddingBottom: 12 },
+  sectionRow: { flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 10 },
+  sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  sectionCount: { fontSize: 12, fontWeight: "700" },
+  bannerWrap: { paddingHorizontal: 16, paddingTop: 12 },
+  banner: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  bannerText: { flex: 1, fontSize: 13, fontWeight: "600", lineHeight: 18 },
+  state: { paddingVertical: 48 },
+  footer: { paddingVertical: 20 },
+  linkButton: { minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  link: { fontSize: 14, fontWeight: "700" },
 });

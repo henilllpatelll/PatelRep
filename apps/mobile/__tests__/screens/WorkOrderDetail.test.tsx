@@ -33,7 +33,7 @@ jest.mock("@/lib/api/workOrders", () => ({
   getWorkOrder: jest.fn(),
   claimWorkOrder: jest.fn(),
   completeWorkOrder: jest.fn().mockResolvedValue(undefined),
-  setWorkOrderStatus: jest.fn(),
+  transitionWorkOrder: jest.fn().mockResolvedValue(undefined),
   addWorkOrderComment: jest.fn(),
   uploadWorkOrderPhoto: jest.fn(),
   workOrderPhotoUrl: jest.fn().mockReturnValue(null),
@@ -54,12 +54,13 @@ jest.mock("@/lib/offline/db", () => ({
 
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
-import { getWorkOrder, completeWorkOrder } from "@/lib/api/workOrders";
+import { getWorkOrder, completeWorkOrder, transitionWorkOrder } from "@/lib/api/workOrders";
 import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
 
 const mockGet = getWorkOrder as jest.Mock;
 const mockComplete = completeWorkOrder as jest.Mock;
+const mockTransition = transitionWorkOrder as jest.Mock;
 const mockFetchBoard = fetchBoard as jest.Mock;
 
 // WorkOrderDetailScreen consumes useTheme()/useToast(), both of which throw outside their
@@ -146,8 +147,8 @@ describe("WorkOrderDetailScreen", () => {
     await waitFor(() => expect(getByText("Occupied")).toBeTruthy());
   });
 
-  it("treats engineer with the same detail permissions as engineer", async () => {
-    mockUser = { id: "chief-1", role: "engineer", language_pref: "en" };
+  it("gives a chief engineer a read-only view of an in-progress work order", async () => {
+    mockUser = { id: "chief-1", role: "chief_engineer", language_pref: "en" };
     mockGet.mockResolvedValue({
       id: "wo-1",
       title: "Fix AC",
@@ -158,8 +159,88 @@ describe("WorkOrderDetailScreen", () => {
       work_order_comments: [],
     });
 
+    const { getByTestId, queryByText, queryByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("wo-view-only")).toBeTruthy());
+    expect(queryByText("workOrders.claimedElsewhere")).toBeNull();
+    expect(queryByTestId("completion-notes")).toBeNull();
+    expect(queryByText("workOrders.complete")).toBeNull();
+  });
+
+  it("does not offer a chief engineer the Claim action on an open work order", async () => {
+    mockUser = { id: "chief-1", role: "chief_engineer", language_pref: "en" };
+    mockGet.mockResolvedValue({
+      id: "wo-1",
+      title: "Fix AC",
+      status: "open",
+      priority: "normal",
+      assigned_to: null,
+      work_order_photos: [],
+      work_order_comments: [],
+    });
+    const { getByTestId, queryByText } = renderScreen();
+    await waitFor(() => expect(getByTestId("wo-view-only")).toBeTruthy());
+    expect(queryByText("workOrders.claimStart")).toBeNull();
+  });
+
+  it("keeps another engineer's claimed order read-only for an engineer", async () => {
+    mockGet.mockResolvedValue({
+      id: "wo-1",
+      title: "Fix AC",
+      status: "in_progress",
+      priority: "normal",
+      assigned_to: "someone-else",
+      work_order_photos: [],
+      work_order_comments: [],
+    });
     const { getByText, queryByTestId } = renderScreen();
     await waitFor(() => expect(getByText("workOrders.claimedElsewhere")).toBeTruthy());
     expect(queryByTestId("completion-notes")).toBeNull();
+  });
+
+  it("shows the emergency badge for an emergency order", async () => {
+    mockGet.mockResolvedValue({
+      id: "wo-1",
+      title: "Burst pipe",
+      status: "in_progress",
+      priority: "emergency",
+      assigned_to: "u1",
+      work_order_photos: [],
+      work_order_comments: [],
+    });
+    const { getByText, queryByText } = renderScreen();
+    await waitFor(() => expect(getByText("workOrders.chipEmergency")).toBeTruthy());
+    expect(queryByText("workOrders.chipUrgent")).toBeNull();
+  });
+
+  describe("hold and resume use the transition endpoint", () => {
+    it("asks for a reason before putting a work order on hold", async () => {
+      const { getByLabelText, getByTestId } = renderScreen();
+      await waitFor(() => expect(getByLabelText("workOrders.hold")).toBeTruthy());
+      fireEvent.press(getByLabelText("workOrders.hold"));
+      await waitFor(() => expect(getByTestId("hold-reason-sheet")).toBeTruthy());
+      // Nothing is sent until a reason is chosen — a reason is never guessed.
+      expect(mockTransition).not.toHaveBeenCalled();
+
+      fireEvent.press(getByTestId("hold-reason-awaiting_parts"));
+      await waitFor(() =>
+        expect(mockTransition).toHaveBeenCalledWith("wo-1", { status: "on_hold", reason_code: "awaiting_parts" }),
+      );
+    });
+
+    it("resumes a held order with no reason", async () => {
+      mockGet.mockResolvedValue({
+        id: "wo-1",
+        title: "Fix AC",
+        status: "on_hold",
+        priority: "normal",
+        assigned_to: "u1",
+        work_order_photos: [],
+        work_order_comments: [],
+      });
+      const { getByText } = renderScreen();
+      await waitFor(() => expect(getByText("workOrders.resume")).toBeTruthy());
+      fireEvent.press(getByText("workOrders.resume"));
+      await waitFor(() => expect(mockTransition).toHaveBeenCalledWith("wo-1", { status: "in_progress", reason_code: undefined }));
+    });
   });
 });

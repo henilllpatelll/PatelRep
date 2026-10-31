@@ -1,11 +1,13 @@
 import { API_BASE, api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import type {
+  HoldReasonCode,
   WorkOrder,
   WorkOrderComment,
   WorkOrderPhoto,
   WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
+import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
 
 export interface CreateWorkOrderPayload {
   room_id?: string;
@@ -24,9 +26,59 @@ export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<
   return res.data?.id ?? null;
 }
 
-export async function listWorkOrders(status: WorkOrderStatus): Promise<WorkOrder[]> {
-  const res = await api.get<{ data: WorkOrder[] }>(`/work-orders?status=${status}&per_page=100`);
+export const WORK_ORDER_PAGE_SIZE = 100;
+/** The Work tab's page: small enough to paint fast on a phone, paged as the list is scrolled. */
+export const WORK_QUEUE_PAGE_SIZE = 25;
+
+export interface WorkOrderPage {
+  orders: WorkOrder[];
+  /** The server says another page exists. Never inferred from a short page. */
+  hasMore: boolean;
+}
+
+function queryString(params: Record<string, string | number | boolean | undefined>): string {
+  return Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== false && value !== "")
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+}
+
+/** One page of the queue for a view's request. `has_more` comes from the API; an older API that omits it falls back to a full-page check. */
+export async function listWorkOrderPage(
+  params: WorkOrderListParams,
+  page = 1,
+  perPage = WORK_QUEUE_PAGE_SIZE
+): Promise<WorkOrderPage> {
+  const { statuses, ...rest } = params;
+  const res = await api.get<{ data: WorkOrder[]; meta?: { has_more?: boolean } }>(
+    `/work-orders?${queryString({ ...rest, statuses: statuses?.join(","), page: page > 1 ? page : undefined, per_page: perPage })}`
+  );
+  const orders = res.data ?? [];
+  return { orders, hasMore: res.meta?.has_more ?? orders.length >= perPage };
+}
+
+export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {
+  const res = await api.get<{ data: WorkOrder[] }>(
+    `/work-orders?status=${status}&per_page=${WORK_ORDER_PAGE_SIZE}${page > 1 ? `&page=${page}` : ""}`
+  );
   return res.data ?? [];
+}
+
+/**
+ * Every work order in a status, page by page, so a count is never silently cut off at one page.
+ * Stops at `maxPages`; `truncated` then says there may be more, and callers show "N+" instead of a false total.
+ */
+export async function listAllWorkOrders(
+  status: WorkOrderStatus,
+  maxPages = 5
+): Promise<{ orders: WorkOrder[]; truncated: boolean }> {
+  const orders: WorkOrder[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const rows = await listWorkOrders(status, page);
+    orders.push(...rows);
+    if (rows.length < WORK_ORDER_PAGE_SIZE) return { orders, truncated: false };
+  }
+  return { orders, truncated: true };
 }
 
 export async function getWorkOrder(woId: string): Promise<WorkOrder> {
@@ -51,8 +103,19 @@ export async function completeWorkOrder(
   await api.post(`/work-orders/${woId}/complete`, payload);
 }
 
-export async function setWorkOrderStatus(woId: string, status: WorkOrderStatus): Promise<void> {
-  await api.patch(`/work-orders/${woId}`, { status });
+export interface WorkOrderTransition {
+  status: WorkOrderStatus;
+  /** Required by the API when moving to on_hold (see HOLD_REASON_CODES). */
+  reason_code?: HoldReasonCode;
+  reason_note?: string;
+}
+
+/**
+ * The only way to change a work order's status. PATCH /work-orders/{id} rejects `status`
+ * with 422, and the transition endpoint validates the move against the allowed graph.
+ */
+export async function transitionWorkOrder(woId: string, transition: WorkOrderTransition): Promise<void> {
+  await api.post(`/work-orders/${woId}/transition`, { ...transition, source: "mobile" });
 }
 
 export async function addWorkOrderComment(
