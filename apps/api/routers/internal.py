@@ -348,8 +348,11 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
     from services.ai.shift_summary import generate_or_get_shift_summary, hotel_today
 
     # Find shifts that ended ~2 hours ago (give staff time to log entries)
+    # Archived templates (what DELETE /schedules/shifts/{id} does since migration 225) are removed shifts: they
+    # must stop producing summaries exactly as a hard-deleted row used to.
     shifts_result = supabase.table("shifts")\
         .select("id, tenant_id, end_time")\
+        .is_("archived_at", "null")\
         .execute()
 
     generated = 0
@@ -513,6 +516,20 @@ async def run_report_schedules(x_cron_secret: str = Header(None)):
     summary = await run_due(supabase)
     _record_cron_run("reports.run-schedules")
     return {"status": "ok", **summary}
+
+
+@router.post("/schedule/notifications")
+async def process_schedule_notifications(x_cron_secret: str = Header(None)):
+    """Cron (every 5 min): deliver due schedule notification intents (idempotent, multi-replica safe, bounded retries)."""
+    verify_cron(x_cron_secret)
+    from services.coverage_fill import reconcile_open_shift_announcements
+    from services.schedule_outbox import process_batch
+
+    # Re-announce open shifts whose post-time announcement was lost, so the same run delivers them.
+    reconciled = reconcile_open_shift_announcements()
+    summary = await process_batch(limit=100)
+    _record_cron_run("schedule.notifications")
+    return {"status": "ok", **summary, "open_shift_reconcile": reconciled}
 
 
 @router.post("/opera/sync-reservations")

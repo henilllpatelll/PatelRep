@@ -39,6 +39,7 @@ from models.requests import (
 from routers import rooms as rooms_router
 from routers import tasks as tasks_router
 from routers import work_orders as wo_router
+from services import scheduling_access
 from routers import staff as staff_router
 from routers import staff_invitations as staff_invitations_router
 from routers import guest_requests as gr_router
@@ -864,6 +865,7 @@ async def test_housekeeping_assignment_rejects_cross_tenant_room_and_housekeeper
 async def test_create_shift_rejects_cross_tenant_department(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(scheduling_router, "supabase", db)
+    monkeypatch.setattr(scheduling_access, "supabase", db)  # hotel/department/staff lookups live here now
 
     with pytest.raises(HTTPException) as exc:
         await scheduling_router.create_shift(
@@ -884,6 +886,7 @@ async def test_create_shift_rejects_cross_tenant_department(monkeypatch):
 async def test_create_shift_assignment_rejects_cross_tenant_user_and_shift(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(scheduling_router, "supabase", db)
+    monkeypatch.setattr(scheduling_access, "supabase", db)  # hotel/department/staff lookups live here now
 
     with pytest.raises(HTTPException) as exc:
         await scheduling_router.create_shift_assignment(
@@ -903,6 +906,7 @@ async def test_create_shift_assignment_rejects_cross_tenant_user_and_shift(monke
 async def test_bulk_shift_assignment_rejects_cross_tenant_user_and_shift(monkeypatch):
     db = FakeMultiTenantDB()
     monkeypatch.setattr(scheduling_router, "supabase", db)
+    monkeypatch.setattr(scheduling_access, "supabase", db)  # hotel/department/staff lookups live here now
 
     with pytest.raises(HTTPException) as exc:
         await scheduling_router.bulk_create_assignments(

@@ -11,6 +11,7 @@ const webRoles = [
 
 const mobileOnlyRoles = [
   ['housekeeper', 'staging-housekeeper@patelrep.test'],
+  ['second housekeeper', 'staging-housekeeper-2@patelrep.test'],
   ['engineer', 'staging-engineer@patelrep.test'],
 ] as const
 

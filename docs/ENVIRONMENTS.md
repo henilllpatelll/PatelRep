@@ -35,7 +35,7 @@ Set the following Railway variables in the `staging` environment only. Values ar
 
 ## Fixtures and verification
 
-Use only synthetic users and hotel data in staging. `apps/web/e2e/fixtures/seed-staging-tenant.mjs` safely converges a marked `is_test=true` tenant, four rooms, housekeeping state, six explicit role users, an asset, work order, task, guest request, logbook entry, and lost-and-found item. It has no `.env` fallback, requires `APP_ENV=staging`, `SEED_STAGING_FIXTURES=confirm`, an exact staging Supabase host match, and a password supplied only through `STAGING_FIXTURE_PASSWORD`. Store credentials in Railway or a team password manager, never the repository.
+Use only synthetic users and hotel data in staging. `apps/web/e2e/fixtures/seed-staging-tenant.mjs` safely converges a marked `is_test=true` tenant, four rooms, housekeeping state, seven explicit role users (two housekeepers in the housekeeping department), an asset, work order, task, guest request, logbook entry, and lost-and-found item. It has no `.env` fallback, requires `APP_ENV=staging`, `SEED_STAGING_FIXTURES=confirm`, an exact staging Supabase host match, and a password supplied only through `STAGING_FIXTURE_PASSWORD`. Store credentials in Railway or a team password manager, never the repository.
 
 After deploying the API and web candidate manually, run:
 

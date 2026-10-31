@@ -97,17 +97,17 @@ async def push(event, ids, **kw):
 @pytest.mark.asyncio
 async def test_defaults_are_on_and_listed_per_role(db):
     hk = (await notifications_router.get_notification_preferences(HK))["data"]["categories"]
-    assert [(c["key"], c["enabled"]) for c in hk] == [("room_assignments", True), ("tasks", True)]
+    assert [(c["key"], c["enabled"]) for c in hk] == [("room_assignments", True), ("tasks", True), ("schedule", True)]
     eng = (await notifications_router.get_notification_preferences(ENG))["data"]["categories"]
-    assert [c["key"] for c in eng] == ["work_orders", "tasks"]
+    assert [c["key"] for c in eng] == ["work_orders", "tasks", "schedule"]
     gm = (await notifications_router.get_notification_preferences(GM))["data"]["categories"]
-    assert [c["key"] for c in gm] == ["tasks"]
+    assert [c["key"] for c in gm] == ["tasks", "schedule"]
 
 
 @pytest.mark.asyncio
 async def test_only_the_tasks_category_is_flagged_as_containing_a_critical_alert(db):
     hk = (await notifications_router.get_notification_preferences(HK))["data"]["categories"]
-    assert {c["key"]: c["has_critical"] for c in hk} == {"room_assignments": False, "tasks": True}
+    assert {c["key"]: c["has_critical"] for c in hk} == {"room_assignments": False, "tasks": True, "schedule": False}
 
 
 @pytest.mark.asyncio
@@ -169,7 +169,7 @@ async def test_a_schedule_override_changes_which_categories_are_visible_and_edit
          "days_of_week": [db_day], "start_date": None, "end_date": None, "is_active": True}
     )
     cats = (await notifications_router.get_notification_preferences(ENG))["data"]["categories"]
-    assert [c["key"] for c in cats] == ["room_assignments", "work_orders", "tasks"]
+    assert [c["key"] for c in cats] == ["room_assignments", "work_orders", "tasks", "schedule"]
     await notifications_router.set_notification_preference("room_assignments", SetNotificationPreferenceRequest(enabled=False), ENG)
 
 

@@ -947,3 +947,29 @@
 - **`window is not defined` in `expo export -p web` came from Supabase auth init at import time** (lib/supabase.ts) reading the session via `secureSessionStorage` -> AsyncStorage web build -> `window.localStorage`. Fixed with an `isServerRender()` guard in secureSessionStorage (web + no `window` = empty storage). `expo export` also needs dummy `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY` or it fails earlier with "supabaseUrl is required".
 - **expo-speech-recognition moved to SDK-aligned versioning** (58.0.0, previously 0.3.x). Not in Expo Go; `lib/voice/speechModule.ts` try/catch degrades to no voice (pinned by __tests__/lib/speechModuleExpoGo.test.ts).
 - The mobile `npm audit` count fell from 29 (SDK 57 lock) to 20 on SDK 58; CI audits only apps/web. Do not `audit fix --force`.
+
+## Team Scheduling Phase 5 (availability, time off, swaps) - learnings (2026-10-29)
+- Approved leave is enforced by a DB trigger on shift_assignments (TO001), so every write path (bulk, edit, coverage fill, swap) is covered; the API pre-checks only give friendly errors. Approving leave NEVER edits an existing shift: `impact` lists the shifts and which are unresolved (a gap that is filled/waived resolves it, an open gap does not).
+- No availability row for a day = UNKNOWN. Window convention: end<start is overnight, start==end is a full 24h (editor 'All day' = 00:00-00:00). Verdict worst-day-wins: unavailable > outside > unknown > available.
+- Swaps are exchanged ONLY by approve_shift_swap() (one transaction, locks request+both shifts); coworker acceptance changes nothing. Test fakes: tests/smoke/request_fakes.py mirrors the SQL contract; SQL itself only runs in CI tests/integration/test_availability_swaps.py.
+- Mobile: no native date/time picker dependency exists, so pickers are steppers (DateStepper, TimeStepper 15-min). useRemote ties data to its filter key; useRequestAction runs one write at a time.
+- Existing tests that asserted 'availability is always unknown' / 'every call is /schedules/team' were intentionally updated.
+### Do-Not-Repeat (2026-10-29)
+- Dirty-checking a form draft against the NEW server baseline hides the first load; compare against the baseline it was last synced with.
+- A local venv may be older than CI pins (dateutil 2.9 vs 3.0, stripe 15 vs 16): 5 unrelated tests fail locally only.
+
+### Team Scheduling Phase 6 (staffing forecast) learnings (2026-10-29)
+- The Opera reservation sync (services/opera/sync.py) pulls ARRIVALS for today..tomorrow only and never refreshes cancellations; opera_reservations is NOT a trustworthy departure forecast. Future-day demand is therefore unavailable (never "sufficient"); ForecastData.future_work is the seam for a real feed.
+- Demand mirrors the Assignments rule (learned minutes for non-PICKUP, else room_types.base_clean_minutes, never a default); unestimated rooms make demand a lower bound that can prove "short" but not "sufficient". Board clean-type precedence: checked-out room_status.clean_type wins, else assignment clean_type, else room_status.clean_type.
+- No break policy or stayover-frequency setting exists in the schema, so capacity is paid shift minutes (labelled) and break_minutes is only a what-if query param. A confirmed absence removes the ORIGINAL shift; the fill inserts a new row, so replacements count once.
+- StaffingSummary used to claim "Coverage not yet assessed"; the forecast card now owns coverage statements (that footer and its test assertion were removed on purpose).
+- Jest Ionicons mock returns null, so a testID placed ON an icon never renders; wrap icons in a View with the testID.
+
+### Team Scheduling Phase 7 (draft/publish + notifications) learnings (2026-10-29)
+- Drafts live in revision tables, never in shift_assignments, so employee views cannot leak them; publish_schedule_revision() (migration 228) is the ONLY thing that applies a draft and writes the notification outbox in the same transaction. Cancels set publication_state='cancelled' (a hard delete would cascade absence/swap history); that is why the plain UNIQUE (user_id, shift_id, work_date) became a partial index excluding cancelled.
+- A moved/swapped shift is parked as 'cancelled' inside the publish transaction so an intermediate overlap cannot refuse a valid end state.
+- Bash tool pre-parses commands: an apostrophe inside a heredoc breaks it ("unexpected EOF"). Write scripts with the Write tool and run them; use `python`, not `python3`, on this machine.
+- BottomSheet `scrollKey` scrolls the body to its END when it changes: never key it on a review phase (the review then opens scrolled to the bottom). Found only by looking at a browser screenshot.
+- i18next v3 plurals need `count`; a sentence with two plurals must be composed from two keyed phrases (bug found by a component test).
+- The Phase 1-6 mobile "manage" tests assume immediate writes; they now switch the screen to "Apply immediately" via the DraftBar toggle. The draft mode is the default and has its own describe.
+- Local Docker Desktop must be started by hand (Start-Process); a throwaway postgres:16 + stub tables + replay of 225-228 is enough to exercise the RPC (no PostgREST).

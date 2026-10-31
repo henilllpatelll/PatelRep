@@ -1,4 +1,5 @@
 import type { Room } from "@/stores/appStore";
+import { resolveScheduleTarget, type ScheduleTarget } from "@/lib/scheduling/scheduleLink";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 
 /**
@@ -11,6 +12,7 @@ import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 export type NotificationLink =
   | { kind: "task"; taskId: string }
   | { kind: "room"; roomId: string; roomNumber: string }
+  | { kind: "schedule"; target: ScheduleTarget }
   | { kind: "none" };
 
 interface LinkableNotification {
@@ -25,8 +27,12 @@ export function roomIdFromNotificationData(data: unknown): string | null {
   return typeof id === "string" && id.trim() ? id.trim() : null;
 }
 
-export function resolveNotificationLink(notification: LinkableNotification, rooms: readonly Room[]): NotificationLink {
+export function resolveNotificationLink(notification: LinkableNotification, rooms: readonly Room[], role?: string | null): NotificationLink {
   const data = notification.data ?? null;
+  if (notification.type.startsWith("schedule_")) {
+    const target = resolveScheduleTarget(data, role);
+    return target ? { kind: "schedule", target } : { kind: "none" };
+  }
   const taskId = taskIdFromNotification({ ...(data ?? {}), type: notification.type });
   if (taskId) return { kind: "task", taskId };
   const roomId = roomIdFromNotificationData(data);
@@ -44,8 +50,8 @@ export function resolveNotificationLink(notification: LinkableNotification, room
  */
 export type NotificationLinkIssue = "room_not_on_list";
 
-export function notificationLinkIssue(notification: LinkableNotification, rooms: readonly Room[]): NotificationLinkIssue | null {
-  const link = resolveNotificationLink(notification, rooms);
+export function notificationLinkIssue(notification: LinkableNotification, rooms: readonly Room[], role?: string | null): NotificationLinkIssue | null {
+  const link = resolveNotificationLink(notification, rooms, role);
   if (link.kind !== "none") return null;
   return roomIdFromNotificationData(notification.data ?? null) ? "room_not_on_list" : null;
 }

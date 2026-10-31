@@ -5,6 +5,7 @@
  * an exact Supabase-host allowlist are required.
  */
 import { createClient } from '@supabase/supabase-js'
+import { assertValidFixtureUsers, preferredName, STAGING_FIXTURE_USERS, usersWithRole } from './staging-fixture-users.mjs'
 
 const TENANT_ID = 'b0000000-0000-4000-b000-000000000002'
 const TENANT_SLUG = 'patelrep-staging-fixture'
@@ -24,14 +25,7 @@ if (new URL(SUPABASE_URL).hostname !== EXPECTED_HOST) {
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
-const users = [
-  ['staging-gm@patelrep.test', 'Staging GM', 'gm'],
-  ['staging-front-desk@patelrep.test', 'Staging Front Desk', 'front_desk'],
-  ['staging-housekeeping-supervisor@patelrep.test', 'Staging Housekeeping Supervisor', 'housekeeping_supervisor'],
-  ['staging-housekeeper@patelrep.test', 'Staging Housekeeper', 'housekeeper'],
-  ['staging-chief-engineer@patelrep.test', 'Staging Chief Engineer', 'chief_engineer'],
-  ['staging-engineer@patelrep.test', 'Staging Engineer', 'engineer'],
-]
+const users = assertValidFixtureUsers(STAGING_FIXTURE_USERS)
 
 async function requireOk(result, context) {
   if (result.error) throw new Error(`${context}: ${result.error.message}`)
@@ -94,14 +88,20 @@ async function main() {
     await requireOk(await supabase.from('room_status').upsert({ room_id: room.id, tenant_id: TENANT_ID, status, vip_flag: false, dnd_flag: false, do_not_service: false }, { onConflict: 'room_id' }), `Upsert room status ${roomNumber}`)
   }
 
+  // Keyed by the fixture user's key, not its role: two housekeepers share a role and must keep two ids.
   const userIds = {}
-  for (const [email, fullName, role] of users) {
+  for (const user of users) {
+    const { email, fullName, role } = user
     const userId = await authUser(email, fullName, role)
-    userIds[role] = userId
-    await requireOk(await supabase.from('user_profiles').upsert({ id: userId, tenant_id: TENANT_ID, full_name: fullName, preferred_name: fullName.replace('Staging ', ''), language_pref: 'en', is_active: true }, { onConflict: 'id' }), `Upsert profile ${role}`)
-    await requireOk(await supabase.from('user_roles').upsert({ user_id: userId, tenant_id: TENANT_ID, role, is_active: true }, { onConflict: 'user_id,tenant_id,role' }), `Upsert role ${role}`)
+    userIds[user.key] = userId
+    await requireOk(await supabase.from('user_profiles').upsert({ id: userId, tenant_id: TENANT_ID, full_name: fullName, preferred_name: preferredName(fullName), language_pref: 'en', is_active: true }, { onConflict: 'id' }), `Upsert profile ${user.key}`)
+    const roleRow = { user_id: userId, tenant_id: TENANT_ID, role, is_active: true }
+    if (user.department) roleRow.department_id = departments[user.department]
+    await requireOk(await supabase.from('user_roles').upsert(roleRow, { onConflict: 'user_id,tenant_id,role' }), `Upsert role ${user.key}`)
   }
-  await requireOk(await supabase.from('housekeeper_profiles').upsert({ user_id: userIds.housekeeper, tenant_id: TENANT_ID, room_type_id: roomType.id, avg_clean_minutes: 28, completion_count: 8 }, { onConflict: 'user_id,room_type_id' }), 'Upsert housekeeper profile')
+  for (const user of usersWithRole('housekeeper')) {
+    await requireOk(await supabase.from('housekeeper_profiles').upsert({ user_id: userIds[user.key], tenant_id: TENANT_ID, room_type_id: roomType.id, avg_clean_minutes: 28, completion_count: 8 }, { onConflict: 'user_id,room_type_id' }), `Upsert housekeeper profile ${user.key}`)
+  }
 
   const assetCategory = await requireOk(await supabase.from('asset_categories').upsert({ tenant_id: TENANT_ID, code: 'HVAC', name: 'HVAC', default_pm_interval_days: 90 }, { onConflict: 'tenant_id,code' }).select('id').single(), 'Upsert asset category')
   const assetId = await first('assets', { asset_tag: 'STG-HVAC-101' })
@@ -113,7 +113,7 @@ async function main() {
   if (!await first('lost_found_items', { description: 'Synthetic blue umbrella' })) await requireOk(await supabase.from('lost_found_items').insert({ tenant_id: TENANT_ID, description: 'Synthetic blue umbrella', room_id: rooms['104'], location_found: 'Room 104', found_by: userIds.housekeeper, status: 'unclaimed', notes: 'Synthetic fixture only' }), 'Insert staging lost and found item')
   if (!await first('logbook_entries', { content: 'Synthetic staging handoff' })) await requireOk(await supabase.from('logbook_entries').insert({ tenant_id: TENANT_ID, department_id: departments.HK, content: 'Synthetic staging handoff', author_id: userIds.housekeeping_supervisor, is_ai_generated: false }), 'Insert staging logbook entry')
 
-  console.log(`Synthetic staging fixture is ready for ${TENANT_SLUG}; six role users were converged without production access.`)
+  console.log(`Synthetic staging fixture is ready for ${TENANT_SLUG}; ${users.length} role users were converged without production access.`)
 }
 
 await main()

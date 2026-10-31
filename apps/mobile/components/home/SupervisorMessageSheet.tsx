@@ -81,7 +81,7 @@ export function SupervisorMessageSheet({ visible, message, marking, error, langu
         <View style={styles.footer}>
           {link.kind !== "none" ? (
             <Button
-              label={link.kind === "room" ? t("home.message.viewRoom", { room: link.roomNumber }) : t("home.message.viewTask")}
+              label={link.kind === "room" ? t("home.message.viewRoom", { room: link.roomNumber }) : link.kind === "schedule" ? t("home.message.viewSchedule") : t("home.message.viewTask")}
               onPress={() => onOpenLink(link)}
               variant="secondary"
               testID="message-open-link"

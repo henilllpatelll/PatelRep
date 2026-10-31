@@ -116,18 +116,6 @@
       "reason": "gm-only force-override check (RBAC-AUDIT.md rooms.py row)."
     },
     {
-      "router": "scheduling.py",
-      "line": 278,
-      "code": "current_user.role in SUPERVISOR_ROLES",
-      "reason": "Genuine denial gate: is_supervisor feeds `if not is_own and not is_supervisor: raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py's classification of the clock-in route as role-gated."
-    },
-    {
-      "router": "scheduling.py",
-      "line": 311,
-      "code": "current_user.role in SUPERVISOR_ROLES",
-      "reason": "Genuine denial gate: is_supervisor feeds `if not is_own and not is_supervisor: raise HTTPException(403, ...)` -- confirmed by test_rbac_matrix_contract.py's classification of the clock-out route as role-gated."
-    },
-    {
       "router": "staff.py",
       "line": 146,
       "code": "current_user.role == 'gm'",

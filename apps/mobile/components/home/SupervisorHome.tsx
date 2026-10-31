@@ -24,7 +24,7 @@ import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeep
 import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useSupervisorToday } from "@/lib/housekeeping/useSupervisorToday";
 import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
-import { assignmentsHref, supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
+import { assignmentsHref, supervisorHref, teamScheduleHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { useAppStore } from "@/stores/appStore";
@@ -240,7 +240,7 @@ export function SupervisorHome({ name }: { name: string }) {
             onViewAll={() => go("attention")}
             onRetry={onRefresh}
           />
-          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => goTeam()} onOpenMember={setQuickViewId} onRetry={onRefresh} />
+          <TeamPulseCard team={today.team} t={t} onOpenAssignments={() => goTeam()} onOpenSchedule={() => openSupervisorHref(teamScheduleHref())} onOpenMember={setQuickViewId} onRetry={onRefresh} />
           <QuickActions t={t} onAction={onQuickAction} />
         </View>
       </ScrollView>

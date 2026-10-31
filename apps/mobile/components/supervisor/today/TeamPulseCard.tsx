@@ -24,6 +24,8 @@ interface Props {
   team: Derived<TeamPulse>;
   t: Translate;
   onOpenAssignments: () => void;
+  /** Opens the Team Schedule (who works when). Omitted = no entry point is drawn. */
+  onOpenSchedule?: () => void;
   /** Tapping a person opens their quick view; "Assignments" in the header is the way to the full Team screen. */
   onOpenMember: (userId: string) => void;
   onRetry: () => void;
@@ -51,7 +53,7 @@ function availabilityLabel(member: StaffPulseMember, t: Translate): string | nul
   }
 }
 
-export function TeamPulseCard({ team, t, onOpenAssignments, onOpenMember, onRetry }: Props) {
+export function TeamPulseCard({ team, t, onOpenAssignments, onOpenSchedule, onOpenMember, onRetry }: Props) {
   const theme = useTheme();
   const pulse = team.value;
   const preview = useMemo(() => (pulse ? selectTeamPreview(pulse, TEAM_PREVIEW_LIMIT) : null), [pulse]);
@@ -150,7 +152,12 @@ export function TeamPulseCard({ team, t, onOpenAssignments, onOpenMember, onRetr
     <SectionCard testID="today-team">
       <SectionHeader
         title={t("supervisorToday.team.title")}
-        right={<LinkAction label={t("supervisorToday.team.manage")} onPress={onOpenAssignments} testID="today-team-manage" />}
+        right={
+          <View style={styles.links}>
+            {onOpenSchedule ? <LinkAction label={t("supervisorToday.team.schedule")} onPress={onOpenSchedule} testID="today-team-schedule" /> : null}
+            <LinkAction label={t("supervisorToday.team.manage")} onPress={onOpenAssignments} testID="today-team-manage" />
+          </View>
+        }
       />
       {pulse ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]} testID="today-team-shift">
@@ -163,6 +170,7 @@ export function TeamPulseCard({ team, t, onOpenAssignments, onOpenMember, onRetr
 }
 
 const styles = StyleSheet.create({
+  links: { flexDirection: "row", alignItems: "center", gap: 14 },
   rows: { gap: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: MIN_TARGET + 8, padding: 10, borderRadius: R.md },
   rowBody: { flex: 1, gap: 5 },

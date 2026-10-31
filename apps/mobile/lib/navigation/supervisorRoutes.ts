@@ -15,8 +15,9 @@
    housekeeper Attention Center (`/(app)/attention`), which stays untouched. */
 
 import { assignmentsParams, type AssignmentsIntent } from "@/lib/navigation/assignmentsLink";
+import { teamScheduleParams, type TeamScheduleIntent } from "@/lib/navigation/teamScheduleLink";
 
-export type SupervisorScreen = "rooms" | "team" | "inspect" | "tasks" | "notifications" | "attention";
+export type SupervisorScreen = "rooms" | "team" | "schedule" | "inspect" | "tasks" | "notifications" | "attention";
 
 export interface SupervisorRouteDef {
   /** Expo Router pathname, relative to the `(app)` group's registered screens. */
@@ -30,6 +31,8 @@ export interface SupervisorRouteDef {
 export const SUPERVISOR_ROUTES: Record<SupervisorScreen, SupervisorRouteDef> = {
   rooms: { pathname: "/(app)/room-board", screenFile: "room-board/index.tsx", recordDeepLink: true },
   team: { pathname: "/(app)/assignments", screenFile: "assignments/index.tsx", recordDeepLink: true },
+  // Opened with `teamScheduleHref` (its own view/date/person params), not from a Today item's record.
+  schedule: { pathname: "/(app)/team-schedule", screenFile: "team-schedule/index.tsx", recordDeepLink: false },
   inspect: { pathname: "/(app)/inspect", screenFile: "inspect/index.tsx", recordDeepLink: false },
   tasks: { pathname: "/(app)/tasks", screenFile: "tasks/index.tsx", recordDeepLink: false },
   notifications: { pathname: "/(app)/notifications", screenFile: "notifications/index.tsx", recordDeepLink: false },
@@ -79,6 +82,14 @@ export function assignmentsHref(intent: AssignmentsIntent): SupervisorHref {
   return Object.keys(params).length > 0
     ? { pathname: SUPERVISOR_ROUTES.team.pathname, params }
     : { pathname: SUPERVISOR_ROUTES.team.pathname };
+}
+
+/** The Team Schedule href for an intent (the "who works when" screen; Assignments stays "who cleans which rooms"). */
+export function teamScheduleHref(intent: TeamScheduleIntent = {}): SupervisorHref {
+  const params = teamScheduleParams(intent);
+  return Object.keys(params).length > 0
+    ? { pathname: SUPERVISOR_ROUTES.schedule.pathname, params }
+    : { pathname: SUPERVISOR_ROUTES.schedule.pathname };
 }
 
 /** True when `pathname` is a supervisor-safe destination (registered above, not housekeeper-only). */

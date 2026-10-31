@@ -419,7 +419,8 @@
       "markAllFailed": "Couldn't mark everything as read. Your alerts are unchanged — try again.",
       "ask": "Ask the assistant about this",
       "roomNotOnList": "This room isn't on your list now (it may have been reassigned), so it can't be opened from here.",
-      "alreadyRead": "You've already marked this as read."
+      "alreadyRead": "You've already marked this as read.",
+      "viewSchedule": "View schedule"
     },
     "attentionCenter": {
       "title": "Needs attention",
@@ -4261,6 +4262,10 @@
         "tasks": {
           "label": "Task Updates",
           "description": "A task is assigned to you, changed, cancelled or unblocked"
+        },
+        "schedule": {
+          "label": "Schedule Updates",
+          "description": "Your schedule changes, shift offers, and time-off and swap decisions"
         }
       },
       "criticalHint": "Urgent task alerts are always delivered.",
@@ -7329,7 +7334,221 @@
     "clockedIn": "Clocked in",
     "dayOff": "Day off",
     "noShiftScheduled": "No shift scheduled",
-    "thisWeek": "This week"
+    "thisWeek": "This week",
+    "week": {
+      "previous": "Previous week",
+      "next": "Next week",
+      "current": "This week",
+      "loadFailed": "We couldn't load this week.",
+      "off": "Off",
+      "onShift": "On shift",
+      "scheduled": "Scheduled",
+      "shiftUnavailable": "That shift is no longer on your schedule.",
+      "showing": "Showing the week of {{date}}"
+    },
+    "actions": {
+      "title": "Schedule actions",
+      "availability": "My availability",
+      "timeOff": "Request time off",
+      "requests": "My requests",
+      "requestsCount": "My requests ({{count}} need you)",
+      "offers": "Shift offers",
+      "offersCount": "Shift offers ({{count}})"
+    },
+    "swapFromShift": "Request swap",
+    "swapFromShiftFor": "Request a swap for {{shift}} on {{date}}",
+    "availabilityScreen": {
+      "title": "My availability",
+      "intro": "Tell your supervisor which days and hours you can usually work. Saving this never changes a shift you already have.",
+      "weekTitle": "My usual week",
+      "unsetHint": "Not submitted. Your supervisor will see this as unknown, not as free.",
+      "setAvailable": "Available",
+      "setUnavailable": "Unavailable",
+      "clearDay": "Not submitted",
+      "addWindow": "Add hours",
+      "removeWindow": "Remove these hours",
+      "allDay": "All day",
+      "startsAt": "From",
+      "endsAt": "To",
+      "earlier": "Earlier",
+      "later": "Later",
+      "startLabel": "Start time {{value}}",
+      "endLabel": "End time {{value}}",
+      "effective": "Starts",
+      "effectiveToday": "Today",
+      "effectiveNext": "Later start",
+      "effectiveEarlier": "Earlier date",
+      "effectiveLater": "Later date",
+      "effectiveNote": "Your current week stays in force until this date.",
+      "save": "Save availability",
+      "saving": "Saving…",
+      "saved": "Availability saved.",
+      "savedReplay": "Availability was already saved.",
+      "unsaved": "You have changes that aren't saved.",
+      "discard": "Undo changes",
+      "upcoming": "Takes over {{date}}",
+      "exceptions": "Date exceptions",
+      "exceptionsHint": "Days that differ from your usual week.",
+      "addException": "Add a date exception",
+      "exceptionDate": "Date",
+      "exceptionMode": "On that date",
+      "exceptionNote": "Note (optional)",
+      "exceptionSave": "Add exception",
+      "exceptionRemove": "Remove",
+      "exceptionRemoved": "Exception removed.",
+      "exceptionAdded": "Exception added.",
+      "noExceptions": "No date exceptions.",
+      "offline": "You're offline. You can read your availability, but changes need a connection.",
+      "loadFailed": "We could not load your availability.",
+      "lastUpdated": "Last updated {{date}}",
+      "neverUpdated": "You haven't submitted any availability yet.",
+      "clashTitle": "Some of your shifts don't match",
+      "clashBody": "Your shifts were not changed. Your supervisor can see these and decide what to do.",
+      "clashUnavailable": "You marked this day unavailable",
+      "clashOutside": "Outside the hours you gave",
+      "error": {
+        "windows_overlap": "Two time windows on {{day}} overlap.",
+        "windows_required": "Add the hours for {{day}}.",
+        "too_many_windows": "{{day}} can have at most 4 time windows.",
+        "same_times": "On {{day}} the start and end times are the same. Use All day instead."
+      },
+      "setHours": "Set hours"
+    },
+    "timeOffForm": {
+      "title": "Request time off",
+      "intro": "Your supervisor decides. Sending a request doesn't change your shifts, and it isn't approved until you see Approved.",
+      "start": "First day",
+      "end": "Last day",
+      "partial": "Only part of a day",
+      "partialOn": "Partial day",
+      "partialHint": "Choose the hours you need off on one date.",
+      "from": "From",
+      "to": "To",
+      "reason": "Reason",
+      "reasonHint": "Pick the closest. You never need to explain a medical situation.",
+      "note": "Note for your supervisor (optional)",
+      "notePlaceholder": "Anything your supervisor should know",
+      "send": "Send request",
+      "sending": "Sending…",
+      "sent": "Request sent",
+      "sentBody": "Your request is pending. It isn't approved until your supervisor decides.",
+      "viewRequest": "View request",
+      "another": "Send another",
+      "done": "Done",
+      "previousDay": "Previous day",
+      "nextDay": "Next day",
+      "days": "{{count}} days",
+      "oneDay": "1 day",
+      "offline": "You're offline. Connect to send a request.",
+      "overlapHint": "Dates that overlap time off you already requested or have approved can't be sent again.",
+      "errors": {
+        "reason_required": "Choose a reason."
+      }
+    },
+    "myRequests": {
+      "unavailable": "That request is no longer available.",
+      "title": "My requests",
+      "kicker": "My Schedule",
+      "intro": "Everything you've asked for, and swaps waiting on you.",
+      "filter": {
+        "all": "All",
+        "action": "Needs my answer",
+        "pending": "Pending",
+        "approved": "Approved",
+        "denied": "Denied",
+        "cancelled": "Closed"
+      },
+      "empty": {
+        "all": {
+          "title": "No requests yet",
+          "body": "When you ask for time off or a swap, it shows up here."
+        },
+        "action": {
+          "title": "Nothing waiting on you",
+          "body": "No swap proposals need your answer."
+        },
+        "other": {
+          "title": "Nothing here",
+          "body": "No requests match this filter."
+        }
+      },
+      "needsYou": "Needs your answer",
+      "swapFrom": "Swap with {{name}}",
+      "swapAsked": "{{name}} asked to swap shifts",
+      "newTimeOff": "Request time off",
+      "loadFailed": "We could not load your requests.",
+      "offline": "You're offline. These may be out of date, and you can't answer until you reconnect.",
+      "refreshed": "Updated just now"
+    },
+    "swapSheet": {
+      "title": "Request a swap",
+      "yourShift": "Your shift",
+      "intro": "Pick a coworker's shift to trade for. Both of you must agree, and then a supervisor approves it.",
+      "choose": "Choose a shift to take instead",
+      "loading": "Finding coworkers…",
+      "none": "No coworker shifts can be swapped with this one right now.",
+      "unavailable": "This shift can't be swapped (it already has a pending swap or a call-out).",
+      "pick": "Swap with {{name}} for {{date}} · {{shift}}",
+      "review": "Review",
+      "reviewTitle": "Check the swap",
+      "youGive": "You give up",
+      "youTake": "You take",
+      "note": "Note for {{name}} (optional)",
+      "send": "Send swap request",
+      "sending": "Sending…",
+      "sent": "Swap request sent",
+      "sentBody": "{{name}} has to accept. Nothing changes on the schedule until a supervisor approves.",
+      "warnings": "Things to know",
+      "back": "Back",
+      "retry": "Try again",
+      "offline": "You're offline. Connect to request a swap."
+    },
+    "offers": {
+      "unavailable": "That offer is no longer available. It may have been withdrawn, answered or expired.",
+      "kicker": "Shifts",
+      "title": "Shift offers",
+      "offline": "You're offline. What's shown may be out of date.",
+      "tab": {
+        "offers": "Offers",
+        "open": "Open shifts",
+        "requests": "My shift requests"
+      },
+      "noOffersTitle": "No shift offers",
+      "noOffersBody": "When a supervisor offers you a shift, it shows up here and in your notifications.",
+      "expires": "Offer expires {{time}}",
+      "notYet": "This is not on your schedule unless you accept it.",
+      "accept": "Accept",
+      "decline": "Decline",
+      "acceptTitle": "Accept this shift?",
+      "acceptMessage": "{{date}}, {{window}}. It goes on your schedule once the system confirms it.",
+      "accepted": "Accepted. The shift is on your schedule.",
+      "declined": "Offer declined.",
+      "recent": "Recent offers",
+      "status": {
+        "accepted": "On your schedule",
+        "declined": "You declined",
+        "withdrawn": "Withdrawn by your supervisor",
+        "expired": "Expired",
+        "superseded": "No longer needed",
+        "claimPending": "Request sent. Waiting for your supervisor."
+      },
+      "noOpenTitle": "No open shifts",
+      "noOpenBody": "Shifts your supervisor opens for requests show up here.",
+      "claim": "Request this shift",
+      "claimHint": "A supervisor decides. It is not on your schedule until they approve it.",
+      "cannotClaim": "You can't take this shift right now.",
+      "claimSent": "Request sent.",
+      "withdraw": "Withdraw request",
+      "claimWithdrawn": "Request withdrawn.",
+      "noClaimsTitle": "No shift requests",
+      "noClaimsBody": "Shifts you request show up here with the supervisor's decision.",
+      "claimStatus": {
+        "pending": "Waiting for your supervisor",
+        "approved": "Approved. It's on your schedule.",
+        "declined": "Not approved",
+        "withdrawn": "You withdrew this request"
+      }
+    }
   },
   "sop": {
     "title": "How-to",
@@ -7689,6 +7908,1462 @@
       }
     }
   },
+  "teamSchedule": {
+    "loading": "Loading the schedule",
+    "title": "Team Schedule",
+    "kicker": "Housekeeping",
+    "back": "Back",
+    "refresh": "Refresh",
+    "retry": "Try again",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "backToToday": "Back to today",
+    "todayMarker": "today",
+    "unnamed": "Unnamed staff member",
+    "notScheduled": "Not on the schedule",
+    "draft": "Draft",
+    "carried": "Started the day before",
+    "openShift": "Opens shift details",
+    "moreShifts": "+{{count}} more shift",
+    "moreShifts_plural": "+{{count}} more shifts",
+    "linkMissing": "That person isn't on this day's schedule.",
+    "offline": "You're offline. What's shown may be out of date.",
+    "window": "{{start}} – {{end}}",
+    "windowNextDay": "{{start}} – {{end}} (next day)",
+    "view": {
+      "label": "Schedule view",
+      "today": "Today",
+      "week": "Week"
+    },
+    "status": {
+      "on_shift": "On shift",
+      "on_break": "On break",
+      "scheduled": "Scheduled",
+      "not_clocked_in": "Not clocked in",
+      "shift_ended": "Shift ended",
+      "unknown": "Unknown"
+    },
+    "period": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "overnight": "Overnight"
+    },
+    "roles": {
+      "housekeeper": "Housekeeper",
+      "inspector": "Inspector",
+      "housekeeping_supervisor": "Housekeeping supervisor",
+      "engineer": "Engineer",
+      "chief_engineer": "Chief engineer",
+      "front_desk": "Front desk",
+      "gm": "General manager",
+      "other": "Staff"
+    },
+    "since": {
+      "now": "just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{hours}} h {{minutes}} min ago"
+    },
+    "freshness": {
+      "updated": "Updated {{time}}",
+      "stale": "Saved schedule from {{time}} — not live"
+    },
+    "summary": {
+      "title": "Today's staffing",
+      "planTitle": "Planned staffing",
+      "scheduled": "{{count}} person scheduled",
+      "scheduled_plural": "{{count}} people scheduled",
+      "scheduledUnknown": "Scheduled staff unknown",
+      "attendanceMissing": "Attendance can't be confirmed right now, so only the plan is shown.",
+      "planOnly": "Attendance is only tracked for today. This is the plan.",
+      "unscheduledOnShift": "{{count}} working without a scheduled shift",
+      "unscheduledOnShift_plural": "{{count}} working without a scheduled shift",
+      "attendanceAsOf": "Attendance read at {{time}}",
+      "coverage": "Coverage not yet assessed",
+      "counts": {
+        "onShift": "On shift",
+        "onBreak": "On break",
+        "upcoming": "Not started yet",
+        "notClockedIn": "Not clocked in",
+        "shiftEnded": "Shift ended",
+        "unknown": "Unknown"
+      }
+    },
+    "attention": {
+      "title": "Needs a look",
+      "notClockedIn": {
+        "title": "{{name}} hasn't clocked in",
+        "body": "Shift began at {{time}} ({{since}}). No clock-in is recorded yet."
+      },
+      "endedEarly": {
+        "title": "{{name}} ended their shift",
+        "body": "Clocked out before the scheduled end at {{time}}."
+      },
+      "unscheduled": {
+        "title": "{{name}} is working without a scheduled shift",
+        "body": "Clocked in, but there is no shift for them on today's schedule."
+      },
+      "attendanceUnavailable": {
+        "title": "Attendance unavailable",
+        "body": "The clock-in records couldn't be read, so nobody's status can be confirmed. Below is the plan only."
+      },
+      "stale": {
+        "title": "Showing a saved schedule",
+        "body": "Last confirmed at {{time}}. Attendance statuses stay unknown until it refreshes."
+      },
+      "incomplete": {
+        "title": "Schedule may be incomplete",
+        "body": "Not every employee or shift could be loaded, so counts may be lower than reality. Pull down to refresh."
+      },
+      "unreadable": {
+        "title": "{{count}} shift couldn't be read",
+        "title_plural": "{{count}} shifts couldn't be read",
+        "body": "They're missing from the lists below. Pull down to refresh."
+      }
+    },
+    "team": {
+      "title": "Today's team ({{count}})",
+      "weekTitle": "Scheduled on {{date}} ({{count}})"
+    },
+    "week": {
+      "countUnknown": "schedule unknown",
+      "peopleCount": "{{count}} person scheduled",
+      "peopleCount_plural": "{{count}} people scheduled",
+      "groupCount": "{{count}} person",
+      "groupCount_plural": "{{count}} people"
+    },
+    "search": {
+      "placeholder": "Search by name",
+      "label": "Search the team schedule by name"
+    },
+    "filters": {
+      "open": "Filter and sort",
+      "title": "Filter & sort",
+      "reset": "Reset",
+      "all": "All",
+      "statusTitle": "Status",
+      "roleTitle": "Role",
+      "shiftTitle": "Shift",
+      "sortTitle": "Sort by",
+      "apply": "Show {{count}} person",
+      "apply_plural": "Show {{count}} people",
+      "sort": {
+        "start": "Shift start time",
+        "name": "Name",
+        "status": "Status (needs a look first)"
+      }
+    },
+    "detail": {
+      "planOnly": "This day is a plan. Attendance is only tracked for today.",
+      "shifts": "Shifts",
+      "noShift": "No shift on the schedule for this day.",
+      "openAssignments": "Open in Assignments",
+      "assignmentsHint": "Assignments is where rooms are given out.",
+      "statusHint": {
+        "on_shift": "Clocked in and working, according to the shift clock.",
+        "on_break": "Clocked in and on a break.",
+        "scheduled": "Scheduled. A shift hasn't started yet.",
+        "not_clocked_in": "No clock-in is recorded since the shift began. That doesn't mean they are absent.",
+        "shift_ended": "Clocked out for the day.",
+        "unknown": "Attendance can't be confirmed right now."
+      }
+    },
+    "error": {
+      "offline": {
+        "title": "You're offline",
+        "body": "Connect to the internet to load the team schedule."
+      },
+      "forbidden": {
+        "title": "Team schedule isn't available",
+        "body": "Your account can't view this schedule."
+      },
+      "error": {
+        "title": "Couldn't load the schedule",
+        "body": "This isn't an empty schedule — the request failed. Try again."
+      }
+    },
+    "empty": {
+      "noStaff": {
+        "title": "No team members to show",
+        "body": "There are no staff in your department yet."
+      },
+      "nobodyScheduled": {
+        "title": "Nobody is scheduled",
+        "body": "No shifts are scheduled for {{date}}."
+      },
+      "search": {
+        "title": "No one matches your search",
+        "body": "Try a different name.",
+        "action": "Clear search"
+      },
+      "filters": {
+        "title": "No one matches these filters",
+        "body": "Try removing a filter.",
+        "action": "Clear filters"
+      }
+    },
+    "coverage": {
+      "shiftFallback": "Shift",
+      "someone": "Someone",
+      "anyRole": "Any role",
+      "requiredRole": "Role needed: {{role}}",
+      "callOutBy": "{{name}} · {{kind}}",
+      "unavailable": "{{name}} is unavailable",
+      "needsCover": "{{shift}} needs cover",
+      "attentionTitle": "Needs cover",
+      "attentionFailed": "Coverage could not be loaded, so uncovered shifts may be missing.",
+      "openShiftNoCallOut": "Open shift",
+      "openShifts": "Open shifts",
+      "openShiftsCount": "Open shifts ({{count}})",
+      "openShiftsTitle": "Open shifts",
+      "noOpenShifts": "Nothing needs cover right now.",
+      "listFailed": "Open shifts could not be loaded.",
+      "staleList": "Showing the last list we could load. Pull down to refresh.",
+      "offlineReadOnly": "You are offline. You can read this, but nothing can be changed until you reconnect.",
+      "refreshFailed": "Could not refresh. Showing the last information we loaded.",
+      "shiftEnded": "This shift has already ended.",
+      "weekUncovered": "{{count}} shifts need cover",
+      "findTitle": "Find coverage",
+      "gone": "This shift no longer needs coverage.",
+      "covered": "Covered. The replacement is now on the schedule.",
+      "waived": "Saved. This shift will not be covered.",
+      "filledBy": "Covered by {{name}}",
+      "waivedBecause": "Not being covered: {{reason}}",
+      "roomsSeparate": "Rooms were not moved. Review the remaining rooms in Assignments and publish any changes there.",
+      "pendingOffers": "Pending offers",
+      "offerPending": "Offered. Not scheduled until they accept.",
+      "offerExpires": "expires {{time}}",
+      "offersCount": "Pending offers: {{count}}",
+      "claims": "Claims",
+      "candidates": "Replacement candidates",
+      "candidatesFailed": "Candidates could not be loaded. Pull down to try again.",
+      "noCandidates": "Nobody could be found for this shift.",
+      "noMatch": "Nobody matches that search.",
+      "searchLabel": "Search employees",
+      "searchPlaceholder": "Search by name",
+      "availabilityNote": "Availability is what each person said they can work. Someone with no hours on file is unknown, not free, and nobody has agreed to a shift until they accept it or you confirm it with them.",
+      "done": "Done",
+      "history": "Show history",
+      "action": {
+        "findReplacement": "Find replacement",
+        "findCoverage": "Find coverage",
+        "viewCoverage": "View coverage status",
+        "coverageHint": "See who could take this shift and what is already offered.",
+        "reviewRooms": "Review assigned rooms",
+        "reviewClaims": "Review claims",
+        "returnToSchedule": "Return to schedule",
+        "recordCallOut": "Record call-out",
+        "recordCallOutHint": "They will not work this shift. Opens a coverage need.",
+        "recordAccepted": "Record that they accepted",
+        "withdraw": "Withdraw offer",
+        "approve": "Approve",
+        "decline": "Decline",
+        "waive": "Do not cover",
+        "cancelOpen": "Cancel open shift",
+        "history": "Show history",
+        "hideHistory": "Hide history"
+      },
+      "status": {
+        "open": "Open",
+        "offered": "Offered",
+        "filled": "Filled",
+        "waived": "Not covered",
+        "claimed": "Claimed"
+      },
+      "shiftStatus": {
+        "open": "Called out. This shift still needs cover.",
+        "offered": "Called out. An offer is pending; nobody is confirmed yet.",
+        "filled": "Called out. Covered by {{name}}.",
+        "waived": "Called out. This shift will not be covered."
+      },
+      "kind": {
+        "called_out": "Called out",
+        "unavailable": "Reported unavailable",
+        "leaving_early": "Leaving early",
+        "emergency": "Emergency absence",
+        "other": "Other"
+      },
+      "filter": {
+        "eligible": "Eligible",
+        "all": "Everyone",
+        "warnings": "With warnings",
+        "conflicts": "Shift conflicts"
+      },
+      "openFilter": {
+        "all": "All",
+        "callouts": "Call-outs",
+        "open": "Open shifts"
+      },
+      "summary": {
+        "eligible": "Eligible based on schedule",
+        "warnings": "Eligible, with warnings"
+      },
+      "callOut": {
+        "title": "Record call-out",
+        "subtitle": "You are confirming that this employee will not work this shift.",
+        "reason": "Reason",
+        "leavingAt": "Leaving at",
+        "leavingPlaceholder": "e.g. 1:30 PM",
+        "leavingInvalid": "Enter a time like 1:30 PM.",
+        "leavingOutside": "That time is outside this shift.",
+        "note": "Operational note (optional)",
+        "notePlaceholder": "e.g. Phoned in at 5:10 AM",
+        "privacy": "Do not enter medical or other personal details. Only supervisors can see this note.",
+        "attendanceUnknown": "Attendance could not be verified.",
+        "confirm": "Confirm call-out",
+        "recorded": "Call-out recorded",
+        "recordedHint": "{{name}} is marked unavailable for this shift. Their original shift stays on the schedule."
+      },
+      "impact": {
+        "needed": "Coverage needed",
+        "oneUnavailable": "One scheduled employee is unavailable.",
+        "title": "Impact",
+        "unassessed": "The impact could not be fully assessed because room workload could not be read right now.",
+        "noRooms": "No rooms are assigned to them for this day.",
+        "rooms": "{{remaining}} of {{assigned}} assigned rooms are not finished.",
+        "inProgress": "{{count}} in progress now.",
+        "workload": "Estimated remaining cleaning: {{time}}.",
+        "timeLeft": "Time left in the shift: {{time}}.",
+        "roomsStay": "Their rooms stay assigned to them until you review and publish changes in Assignments."
+      },
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "hoursMinutes": "{{hours}} h {{minutes}} min",
+      "offer": {
+        "title": "Offer this shift",
+        "created": "Offer created",
+        "assignNow": "Assign now",
+        "createOffer": "Create offer",
+        "alsoScheduled": "Also scheduled: {{shifts}}",
+        "noOtherShifts": "No other shifts around this time.",
+        "availabilityUnknown": "Availability is unknown. Ask before you assign.",
+        "acknowledge": "I have reviewed these warnings and still want to assign.",
+        "explain": "Assign now puts them on the schedule immediately. An offer is only a request: they are not scheduled until they accept.",
+        "notDelivered": "{{name}} is not scheduled yet and has not been notified by the app. Tell them directly, then record their answer."
+      },
+      "waive": {
+        "title": "Do not cover this shift",
+        "hint": "Say why this shift will go uncovered. This is recorded.",
+        "cancelTitle": "Cancel open shift",
+        "cancelHint": "Say why this shift is no longer needed. This is recorded.",
+        "reason": "Reason",
+        "reasonPlaceholder": "e.g. Low occupancy",
+        "confirm": "Confirm",
+        "cancelConfirm": "Cancel open shift"
+      },
+      "post": {
+        "open": "Post open shift",
+        "title": "Post an open shift",
+        "hint": "A shift nobody holds yet. Choose the shift and the day.",
+        "confirm": "Post open shift",
+        "noTemplates": "There are no shift templates to post. Create one first.",
+        "templatesFailed": "Shift templates could not be loaded.",
+        "posted": "Open shift posted for {{date}}."
+      },
+      "flag": {
+        "is_absent_employee": "They are the person who is out",
+        "other_department": "Works in another department",
+        "role_mismatch": "Does not have the role this shift needs",
+        "overlapping_shift": "Already scheduled during this shift",
+        "department_unknown": "Department could not be confirmed",
+        "pending_offer_elsewhere": "Has a pending offer for another shift at this time",
+        "currently_clocked_in": "Currently clocked in",
+        "attendance_unverified": "Attendance could not be checked",
+        "insufficient_rest": "Little rest between shifts",
+        "weekly_overtime": "May exceed the weekly hours limit",
+        "long_shift": "A long shift",
+        "past_date": "This date has passed",
+        "employee_department_unknown": "Department could not be confirmed",
+        "availability_unknown": "Availability unknown",
+        "eligible_by_schedule": "Eligible based on schedule",
+        "other": "Cannot take this shift",
+        "approved_time_off": "Has approved time off during this shift",
+        "marked_unavailable": "Said they can't work that day",
+        "outside_availability": "Outside the hours they gave",
+        "pending_time_off": "Has time off requested for these hours",
+        "within_availability": "Within the hours they gave"
+      },
+      "event": {
+        "absence": {
+          "reported": "Call-out reported",
+          "confirmed": "Call-out confirmed",
+          "covered": "Call-out covered",
+          "withdrawn": "Call-out withdrawn"
+        },
+        "coverage_gap": {
+          "opened": "Coverage needed",
+          "offered": "Offer made",
+          "filled": "Shift filled",
+          "waived": "Not covered",
+          "cancelled": "Open shift cancelled",
+          "reopened": "Offers ended, open again"
+        },
+        "coverage_offer": {
+          "created": "Offer created",
+          "withdrawn": "Offer withdrawn",
+          "accepted": "Offer accepted",
+          "declined": "Offer declined"
+        },
+        "coverage_claim": {
+          "created": "Claim made",
+          "approved": "Claim approved",
+          "declined": "Claim declined",
+          "withdrawn": "Claim withdrawn"
+        },
+        "shift_assignment": {
+          "created": "Shift scheduled"
+        }
+      },
+      "historyEmpty": "No history yet.",
+      "historyFailed": "History could not be loaded.",
+      "failure": {
+        "version_conflict": "Someone else changed this. We reloaded it; check and try again.",
+        "gap_not_fillable": "This shift was just filled or closed by someone else.",
+        "gap_filled": "This shift is already filled.",
+        "gap_waived": "This shift is no longer being covered.",
+        "gap_open": "This shift is still open.",
+        "gap_offered": "This shift already has an offer.",
+        "shift_ended": "This shift has already ended.",
+        "candidate_ineligible": "That employee can no longer take this shift. We reloaded the list.",
+        "warnings_need_acknowledgement": "Review the warnings and confirm before assigning.",
+        "duplicate_offer": "That employee already has a pending offer for this shift.",
+        "duplicate_absence": "A call-out is already recorded for this shift.",
+        "schedule_conflict": "That employee's schedule changed at the same moment. Reload and try again.",
+        "claim_stale": "That claim is out of date and was declined.",
+        "claim_not_pending": "That claim was already decided.",
+        "offer_expired": "That offer has expired.",
+        "offer_not_pending": "That offer was already answered.",
+        "department_forbidden": "You can only manage your own department.",
+        "employee_inactive": "That employee is no longer active.",
+        "shift_cancelled": "That shift was cancelled.",
+        "leaving_outside_shift": "The leaving time must be inside the shift.",
+        "leaving_at_required": "Say when the employee is leaving.",
+        "already_covered": "A replacement is already confirmed for this shift.",
+        "assignment_not_found": "That shift no longer exists.",
+        "gap_not_found": "That shift no longer needs coverage.",
+        "duplicate_open_shift": "This shift is already posted as open.",
+        "historical_date": "An open shift cannot be posted for a date that has passed.",
+        "staff_not_found": "That employee is not an active member of this hotel.",
+        "offer_not_withdrawable": "That offer can no longer be withdrawn.",
+        "gap_not_waivable": "This shift is already resolved.",
+        "shift_inactive": "That shift template is inactive.",
+        "coverage_unavailable": "Nothing was saved. Try again.",
+        "signed_out": "You were signed out. Sign in again; nothing was changed.",
+        "unconfirmed": "No answer came back, so it may or may not have saved. Reload before trying again.",
+        "forbidden": "You do not have permission to do that.",
+        "other": "That did not work. Nothing was changed.",
+        "approved_time_off": "That employee has approved time off during this shift. We reloaded the list."
+      },
+      "availability": {
+        "available": "Within the hours they gave",
+        "outside": "Outside the hours they gave",
+        "unavailable": "Said they can't work that day",
+        "unknown": "Availability unknown"
+      }
+    },
+    "manage": {
+      "addShift": "Add shift",
+      "templatesLink": "Shift templates",
+      "offline": "You're offline. Schedule changes need a connection.",
+      "form": {
+        "addTitle": "Add shift",
+        "editTitle": "Edit shift",
+        "copyTitle": "Copy shift",
+        "immediate": "Saving changes the schedule right away. Employees are not notified automatically.",
+        "employee": "Employee",
+        "chooseEmployee": "Choose an employee",
+        "allDepartments": "All departments",
+        "date": "Date",
+        "template": "Shift",
+        "noTemplates": "There is no shift template for this department yet. Create one first.",
+        "manageTemplates": "Manage shift templates",
+        "customTimes": "Use different times for this shift",
+        "start": "Start",
+        "end": "End",
+        "notes": "Notes (optional)",
+        "notesPlaceholder": "Anything the team should know",
+        "recurring": "Repeat weekly",
+        "repeatOn": "Repeat on",
+        "until": "Until",
+        "recurringLimit": "Up to {{days}} days at a time.",
+        "save": "Save shift",
+        "saveChanges": "Save changes",
+        "saveAnyway": "Save anyway",
+        "back": "Back",
+        "createCount": "Create {{count}} shift",
+        "createCount_plural": "Create {{count}} shifts",
+        "reviewCount": "Review {{count}} shift",
+        "reviewCount_plural": "Review {{count}} shifts",
+        "checkAndRetry": "Check and save again"
+      },
+      "weekday": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "picker": {
+        "title": "Choose an employee",
+        "search": "Search by name or role",
+        "hint": "People you can schedule. Their shifts on {{date}} are shown if they have any.",
+        "nobody": "There is nobody in your departments to schedule.",
+        "noMatch": "Nobody matches that search.",
+        "already": "Already scheduled: {{times}}",
+        "more": "{{count}} more. Refine the search to find them."
+      },
+      "formError": {
+        "employee": "Choose an employee.",
+        "template": "Choose a shift.",
+        "date": "Choose a valid date.",
+        "pastDate": "A shift can't be on a day that has already passed.",
+        "startTime": "Enter a start time like 7:00 AM.",
+        "endTime": "Enter an end time like 3:00 PM.",
+        "sameTimes": "The start and end can't be the same time.",
+        "weekdays": "Choose at least one day of the week.",
+        "endDate": "The last day can't be before the first day.",
+        "rangeTooLong": "That's too long. Schedule up to 42 days at a time.",
+        "noOccurrences": "No dates in that range match the days you chose.",
+        "tooMany": "That would create too many shifts at once.",
+        "notesTooLong": "The note is too long."
+      },
+      "duration": {
+        "hours": "{{hours}} h",
+        "hoursMinutes": "{{hours}} h {{minutes}} min"
+      },
+      "overnight": "Ends the next day",
+      "warning": {
+        "insufficient_rest": "Less than 8 hours of rest between two shifts.",
+        "weekly_overtime": "More than 40 scheduled hours in a week.",
+        "long_shift": "A shift longer than 12 hours.",
+        "past_date": "A shift on a day that has already passed.",
+        "employee_department_unknown": "This employee's department could not be confirmed.",
+        "other": "Check this schedule before saving."
+      },
+      "warningsTitle": "Check before saving",
+      "warningsTitle_plural": "Check before saving ({{count}})",
+      "conflictDates": "Overlaps on: {{dates}}",
+      "review": {
+        "summary": "{{count}} shift for {{people}} person",
+        "summary_plural": "{{count}} shifts for {{people}} people",
+        "existing": "{{count}} already on the schedule. Left as they are.",
+        "existing_plural": "{{count}} already on the schedule. Left as they are.",
+        "alreadyThere": "already scheduled",
+        "more": "and {{count}} more"
+      },
+      "conflict": {
+        "title": "This shift was changed by someone else",
+        "body": "Nothing was overwritten. Load the latest version, review it, and save again if you still want your change.",
+        "changed": "Changed: {{fields}}",
+        "reload": "Load the latest version"
+      },
+      "field": {
+        "employee": "employee",
+        "date": "date",
+        "template": "shift",
+        "startTime": "start time",
+        "endTime": "end time",
+        "notes": "notes"
+      },
+      "failure": {
+        "version_conflict": {
+          "title": "Changed by someone else",
+          "body": "This shift changed since you opened it. Nothing was saved."
+        },
+        "schedule_conflict": {
+          "title": "Overlapping shifts",
+          "body": "This person already has a shift that overlaps these times. Nothing was saved."
+        },
+        "duplicate": {
+          "title": "Already scheduled",
+          "body": "That already exists. Nothing was saved."
+        },
+        "policy_blocked": {
+          "title": "Blocked by your hotel's rules",
+          "body": "This schedule breaks a rule your hotel set to block. Nothing was saved."
+        },
+        "locked": {
+          "title": "Past shifts are locked",
+          "body": "A shift on a day that has passed can't be changed."
+        },
+        "attendance": {
+          "title": "Attendance recorded",
+          "body": "This shift already has recorded attendance and can't be changed."
+        },
+        "forbidden": {
+          "title": "Not allowed",
+          "body": "You can only manage schedules for your own department."
+        },
+        "not_found": {
+          "title": "Not found",
+          "body": "That person, shift or template no longer exists or isn't available to you."
+        },
+        "inactive": {
+          "title": "Not available",
+          "body": "That shift or employee is inactive and can't be scheduled."
+        },
+        "department": {
+          "title": "Wrong department",
+          "body": "That employee doesn't work in this shift's department."
+        },
+        "invalid": {
+          "title": "Check the details",
+          "body": "Some details aren't valid. Check the times and try again."
+        },
+        "signed_out": {
+          "title": "Signed out",
+          "body": "Your session ended. Sign in again, then retry."
+        },
+        "unconfirmed": {
+          "title": "Couldn't confirm",
+          "body": "No answer came back, so the change may or may not have been saved. Saving again is safe. It will not create a duplicate."
+        },
+        "unknown": {
+          "title": "Couldn't save",
+          "body": "Something went wrong. Nothing was changed."
+        }
+      },
+      "saved": {
+        "created": "Shift saved. It's on the schedule now.",
+        "created_plural": "{{count}} shifts saved. They're on the schedule now.",
+        "updated": "Shift updated. The change is on the schedule now.",
+        "alreadySaved": "Your change was already saved.",
+        "alreadyThere": "Already on the schedule. Nothing new was added.",
+        "withWarnings": "{{count}} thing to check.",
+        "withWarnings_plural": "{{count}} things to check.",
+        "gone": "That shift was removed by someone else."
+      },
+      "detail": {
+        "scheduled": "Scheduled",
+        "shift": "Shift",
+        "department": "Department",
+        "role": "Role",
+        "schedule": "Schedule status",
+        "draft": "Draft",
+        "published": "On the schedule",
+        "updated": "Last changed",
+        "notes": "Notes",
+        "timeline": "Timeline",
+        "loading": "Loading the details…",
+        "loadFailed": "The attendance details couldn't be loaded. Pull to refresh the schedule and open this shift again.",
+        "rooms": "Room work",
+        "roomsCount": "{{count}} room assigned",
+        "roomsCount_plural": "{{count}} rooms assigned",
+        "roomsUnavailable": "Room assignments couldn't be loaded.",
+        "notEditableData": "This shift isn't loaded. Refresh the schedule.",
+        "pastLocked": "A shift on a day that has passed can't be changed.",
+        "attendanceLocked": "This shift has recorded attendance and can't be changed.",
+        "checking": "Checking whether this shift can be changed…"
+      },
+      "timeline": {
+        "scheduled": "Scheduled to start {{time}}",
+        "started": "Shift started {{time}}",
+        "ended": "Shift ended {{time}}",
+        "onBreakSince": "On a break since {{time}}",
+        "breakTotal": "Break time: {{minutes}} min",
+        "note": {
+          "future": "This shift hasn't started, so there is no attendance yet.",
+          "unverified": "Attendance couldn't be verified right now.",
+          "none": "No clock-in is recorded for this day. That doesn't mean they were absent.",
+          "recorded": "From the shift clock."
+        }
+      },
+      "action": {
+        "edit": "Edit shift",
+        "editHint": "Change the date, time, shift or notes.",
+        "reassign": "Reassign shift",
+        "reassignHint": "Give this shift to someone else.",
+        "copy": "Copy shift",
+        "copyHint": "Start a new shift from this one.",
+        "message": "Send message",
+        "messageHint": "Send them an in-app message.",
+        "cancel": "Cancel shift",
+        "cancelHint": "Remove this shift from the schedule."
+      },
+      "cancel": {
+        "title": "Cancel this shift?",
+        "message": "{{name}}'s shift ({{window}}, {{date}}) will be removed from the schedule right away. Employees are not notified automatically.",
+        "keep": "Keep shift",
+        "confirm": "Cancel shift",
+        "working": "Cancelling…",
+        "changed": "This shift changed before it could be cancelled. It was not removed. Review it and try again.",
+        "unconfirmed": "No answer came back, so the shift may or may not have been cancelled. The schedule was refreshed. Check it before trying again.",
+        "failed": {
+          "locked": "A shift on a day that has passed can't be cancelled here.",
+          "attendance": "This shift has recorded attendance and can't be cancelled.",
+          "forbidden": "You can only manage schedules for your own department.",
+          "other": "The shift couldn't be cancelled. Nothing was changed."
+        }
+      },
+      "templates": {
+        "title": "Shift templates",
+        "new": "New template",
+        "loading": "Loading shift templates…",
+        "loadFailed": "Shift templates couldn't be loaded.",
+        "refreshFailed": "Couldn't refresh. Showing the last list that loaded.",
+        "unreadable": "{{count}} template couldn't be read.",
+        "unreadable_plural": "{{count}} templates couldn't be read.",
+        "showArchived": "Show archived templates",
+        "emptyTitle": "No shift templates yet",
+        "emptyBody": "Create a template for each shift pattern you use, like Morning or Overnight.",
+        "edit": "Edit {{name}}",
+        "status": {
+          "active": "Active",
+          "inactive": "Inactive",
+          "archived": "Archived"
+        },
+        "createTitle": "New shift template",
+        "editTitle": "Edit shift template",
+        "create": "Create template",
+        "name": "Name",
+        "namePlaceholder": "Morning shift",
+        "nameRequired": "Give the template a name.",
+        "department": "Department",
+        "departmentRequired": "Choose a department.",
+        "noDepartments": "Your departments couldn't be loaded, so a template can't be created yet.",
+        "overnightHint": "An end time earlier than the start means the shift ends the next day.",
+        "active": "Active (can be scheduled)",
+        "onlyNew": "A template is a pattern for new shifts. Shifts already scheduled keep their own times.",
+        "usage": "Used by {{upcoming}} upcoming and {{past}} past shifts. They won't change.",
+        "usageFailed": "How many shifts use this template couldn't be loaded.",
+        "usageLoading": "Checking which shifts use this template…",
+        "archive": "Archive template",
+        "archiveTitle": "Archive {{name}}?",
+        "archiveMessage": "It can't be scheduled any more. {{upcoming}} upcoming and {{past}} past shifts use it. They stay on the schedule unchanged.",
+        "archiveMessageUnknown": "It can't be scheduled any more. Shifts already scheduled stay on the schedule unchanged. How many use it couldn't be checked."
+      }
+    },
+    "departments": {
+      "HK": "Housekeeping",
+      "ENG": "Engineering",
+      "FD": "Front desk",
+      "FO": "Front desk",
+      "MGMT": "Management",
+      "GM": "Management"
+    },
+    "availability": {
+      "title": "Team availability",
+      "kicker": "Team Schedule",
+      "note": "What people say they can work. It is not attendance and it is not approved time off. A blank day means nothing was submitted, not that the person is free.",
+      "search": "Search by name",
+      "filters": {
+        "all": "Everyone",
+        "submitted": "Submitted",
+        "none": "Not submitted",
+        "stale": "Not updated lately"
+      },
+      "count": "{{shown}} of {{total}} people",
+      "empty": {
+        "title": "No one to show",
+        "body": "No one in your departments matches this filter.",
+        "clear": "Show everyone"
+      },
+      "notSubmitted": "Nothing submitted",
+      "fresh": {
+        "current": "Updated {{date}}",
+        "stale": "Last updated {{date}}. It may be out of date.",
+        "none": "Nothing submitted yet"
+      },
+      "exceptionsCount": "{{count}} date exceptions",
+      "leaveSoon": "Time off: {{range}} ({{status}})",
+      "open": "Open {{name}}'s availability",
+      "week": "Usual week",
+      "upcoming": "Starting {{date}}",
+      "exceptions": "Date exceptions",
+      "noExceptions": "No date exceptions coming up.",
+      "leave": "Time off requests",
+      "noLeave": "No upcoming time off requests.",
+      "clash": {
+        "title": "Shifts that don't match this availability",
+        "body": "These shifts are still scheduled. Availability never changes a shift; review each one in Team Schedule.",
+        "unavailable": "Marked unavailable that day",
+        "outside": "Outside the hours given"
+      },
+      "day": {
+        "long": {
+          "0": "Monday",
+          "1": "Tuesday",
+          "2": "Wednesday",
+          "3": "Thursday",
+          "4": "Friday",
+          "5": "Saturday",
+          "6": "Sunday"
+        },
+        "short": {
+          "0": "Mon",
+          "1": "Tue",
+          "2": "Wed",
+          "3": "Thu",
+          "4": "Fri",
+          "5": "Sat",
+          "6": "Sun"
+        }
+      },
+      "state": {
+        "available": "Available",
+        "unavailable": "Unavailable",
+        "unset": "Not submitted"
+      },
+      "window": "{{start}} – {{end}}",
+      "windowNextDay": "{{start}} – {{end}} (next day)",
+      "allDay": "All day",
+      "unavailableOn": "Unavailable {{date}}",
+      "availableOn": "Only {{windows}} on {{date}}"
+    },
+    "requests": {
+      "title": "Requests",
+      "kicker": "Team Schedule",
+      "waiting": "{{count}} waiting for you",
+      "nothingWaiting": "Nothing waiting for you",
+      "search": "Search by name",
+      "filter": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "denied": "Denied",
+        "all": "All"
+      },
+      "type": {
+        "all": "All requests",
+        "time_off": "Time off",
+        "shift_swap": "Shift swaps"
+      },
+      "dateRange": "Dates",
+      "dateAny": "Any dates",
+      "dateFrom": "From {{date}}",
+      "dateTo": "Until {{date}}",
+      "clearDates": "Any dates",
+      "empty": {
+        "pending": {
+          "title": "All caught up",
+          "body": "No requests are waiting for a decision."
+        },
+        "approved": {
+          "title": "Nothing approved",
+          "body": "No approved requests match these filters."
+        },
+        "denied": {
+          "title": "Nothing denied",
+          "body": "No denied requests match these filters."
+        },
+        "all": {
+          "title": "No requests",
+          "body": "No requests match these filters."
+        }
+      },
+      "loadFailed": "We could not load requests.",
+      "someUnreadable": "{{count}} requests could not be shown.",
+      "truncated": "Showing the most recent requests only.",
+      "offline": "You're offline. Requests below may be out of date, and decisions are paused until you reconnect.",
+      "card": {
+        "submitted": "Submitted {{date}}",
+        "timeOff": "Time off",
+        "swap": "Shift swap",
+        "partialDay": "{{start}} – {{end}}",
+        "swapWith": "with {{name}}",
+        "impactNone": "No scheduled shifts in these dates",
+        "impactSome": "{{count}} scheduled shift(s) in these dates",
+        "impactUnknown": "Schedule impact could not be checked",
+        "review": "Review",
+        "open": "Open request from {{name}}"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "denied": "Denied",
+        "cancelled": "Cancelled",
+        "proposed": "Waiting for coworker",
+        "accepted": "Waiting for supervisor",
+        "declined": "Declined",
+        "expired": "Expired"
+      },
+      "reason": {
+        "vacation": "Vacation",
+        "personal": "Personal",
+        "family": "Family",
+        "appointment": "Appointment",
+        "health": "Health",
+        "other": "Other"
+      },
+      "detail": {
+        "title": "Request",
+        "close": "Close",
+        "employee": "Employee",
+        "type": "Type",
+        "dates": "Dates",
+        "reason": "Reason",
+        "note": "Employee's note",
+        "noNote": "No note",
+        "submitted": "Submitted",
+        "status": "Status",
+        "decisionBy": "Decided by {{name}}",
+        "decisionReason": "Reason given",
+        "cancelReason": "Reason for cancelling",
+        "impact": "Effect on the schedule",
+        "impactOk": "This person has no scheduled shifts in these dates.",
+        "impactUnknown": "The schedule could not be read, so the effect is unknown.",
+        "impactBody": "{{count}} scheduled shift(s) fall inside these dates.",
+        "impactApproved": "Approving does not remove or move these shifts. Resolve each one in Team Schedule or Find Coverage.",
+        "impactPending": "If you approve, these shifts stay on the schedule until you resolve them.",
+        "overlapFull": "Whole shift is inside the time off",
+        "overlapPartial": "Part of the shift is inside the time off",
+        "coverageOpen": "Open gap — not covered yet",
+        "coverageOffered": "Offered — still waiting for an answer",
+        "coverageFilled": "Covered by {{name}}",
+        "coverageFilledUnknown": "Covered by someone else",
+        "coverageWaived": "Decided not to cover",
+        "unresolved": "{{count}} shift(s) still need a decision",
+        "allResolved": "Every shift in these dates has been covered or closed.",
+        "openShift": "Open shift",
+        "timeline": "History",
+        "noTimeline": "No history recorded yet.",
+        "timelineEvent": "{{action}}",
+        "reloaded": "We reloaded this request. Check it and decide again.",
+        "approve": "Approve",
+        "deny": "Deny",
+        "denyReason": "Reason for denying",
+        "denyReasonHint": "The employee will see this reason.",
+        "confirmDeny": "Deny request",
+        "back": "Back",
+        "cancelApproved": "Cancel approved time off",
+        "confirmCancel": "Cancel time off",
+        "withdraw": "Withdraw request",
+        "withdrawn": "Request withdrawn.",
+        "approvedNotice": "Approved. The decision is recorded.",
+        "followUpTitle": "Approved. Shifts still need attention",
+        "followUpBody": "{{count}} of this person's shifts fall inside these dates. Approving did not change them.",
+        "followUpOpen": "Open Team Schedule",
+        "deniedNotice": "Denied. The employee will see your reason.",
+        "cancelledNotice": "Cancelled. Shifts that were covered or closed while this was approved were not restored.",
+        "cancelReview": "{{count}} shift(s) were covered or closed while this was approved. Nothing was restored automatically."
+      },
+      "swap": {
+        "title": "Shift swap",
+        "gives": "Gives up",
+        "receives": "Takes",
+        "exchange": "{{from}} gives up this shift and takes the other one.",
+        "shiftLine": "{{date}} · {{shift}} · {{window}}",
+        "roles": "Roles",
+        "sameDepartment": "Same department",
+        "checks": "Checks right now",
+        "checksOk": "Both schedules still work after the exchange.",
+        "blockers": "Cannot go ahead",
+        "warnings": "To review",
+        "acknowledge": "I have reviewed these warnings and still want to approve.",
+        "approve": "Approve swap",
+        "approveNote": "Approving exchanges both shifts at once. Nothing changes until you approve.",
+        "deny": "Deny swap",
+        "denyReason": "Reason for denying",
+        "confirmDeny": "Deny swap",
+        "accept": "Accept swap",
+        "decline": "Decline",
+        "cancel": "Cancel swap",
+        "cancelReason": "Reason (optional)",
+        "acceptNote": "Accepting does not change your schedule. A supervisor still has to approve the swap.",
+        "waitingCoworker": "Waiting for {{name}} to answer.",
+        "waitingSupervisor": "Accepted. A supervisor still has to approve it; nothing has changed on the schedule yet.",
+        "approvedNotice": "Both shifts were exchanged.",
+        "expires": "Answer by {{time}}",
+        "responseNote": "Their note",
+        "yourNote": "Your note",
+        "thisWillMove": "After approval {{name}} will work: {{shift}}"
+      },
+      "finding": {
+        "approved_time_off": "Approved time off during that shift",
+        "overlapping_shift": "Already works during that shift",
+        "shift_changed": "A shift changed after the swap was agreed",
+        "employee_inactive": "An employee is no longer active",
+        "shifts_overlap": "The two shifts overlap each other",
+        "different_departments": "The shifts are in different departments",
+        "same_person": "Both shifts belong to the same person",
+        "shift_too_soon": "A shift starts too soon to swap",
+        "shift_not_published": "A shift is not published",
+        "shift_has_attendance": "A shift already has attendance",
+        "shift_times_unknown": "A shift's times are unknown",
+        "insufficient_rest": "Little rest between shifts",
+        "weekly_overtime": "May exceed the weekly hours limit",
+        "long_shift": "A long shift",
+        "marked_unavailable": "Said they cannot work that day",
+        "outside_availability": "Outside the hours they gave",
+        "pending_time_off": "Has time off requested for these hours",
+        "past_date": "This date has passed",
+        "other": "Needs a look"
+      },
+      "failure": {
+        "signed_out": "Your session ended. Sign in again.",
+        "unconfirmed": "We could not confirm that. Check the request before you try again.",
+        "forbidden": "You can't do that.",
+        "not_found": "We could not find that request.",
+        "conflict": "Someone else changed this. We reloaded it.",
+        "invalid": "Check what you entered and try again.",
+        "version_conflict": "Someone else changed this. We reloaded it; check and decide again.",
+        "request_not_pending": "This request was already decided. We reloaded it.",
+        "request_not_cancellable": "This request can't be cancelled any more.",
+        "request_not_found": "We could not find that request.",
+        "leave_overlap": "This overlaps other time off that is already requested or approved.",
+        "leave_over": "That time off has already passed.",
+        "reason_required": "Add a reason first.",
+        "cannot_decide_own": "You can't decide your own request.",
+        "not_active_staff": "Only active staff can send this request.",
+        "swap_not_found": "We could not find that swap.",
+        "swap_not_approvable": "This swap isn't waiting for a supervisor any more. We reloaded it.",
+        "swap_not_cancellable": "This swap can't be cancelled any more.",
+        "swap_not_proposed": "This swap was already answered.",
+        "swap_expired": "This swap request expired.",
+        "swap_invalid": "These two shifts can't be exchanged right now.",
+        "shift_changed": "One of the shifts changed after you both agreed. Start a new swap.",
+        "shift_missing": "One of the shifts no longer exists.",
+        "shift_started": "One of the shifts has already started.",
+        "employee_inactive": "An employee is no longer active.",
+        "different_departments": "The shifts are in different departments.",
+        "shifts_overlap": "The two shifts overlap each other.",
+        "shift_has_callout": "A shift with a call-out can't be swapped. Resolve coverage first.",
+        "shift_in_live_swap": "One of these shifts is already in another swap.",
+        "approved_time_off": "Someone has approved time off during a shift they would take.",
+        "warnings_need_acknowledgement": "Review the warnings and confirm first.",
+        "not_counterpart": "Only the coworker who was asked can answer.",
+        "assignment_not_found": "We could not find that shift.",
+        "schedule_conflict": "A schedule changed at the same moment. Reload and try again.",
+        "end_before_start": "The end date is before the start date.",
+        "dates_in_past": "That time off is already over.",
+        "range_too_long": "Time off can cover at most 60 days in one request.",
+        "partial_must_be_one_day": "A partial day covers one date.",
+        "invalid_partial_times": "Choose different start and end times.",
+        "times_need_partial": "Times only apply to a partial day.",
+        "availability_changed": "Your availability changed on another device. We reloaded it.",
+        "exception_exists": "You already have an exception for that date. Remove it first.",
+        "availability_not_found": "We could not find that availability.",
+        "availability_not_active": "That availability is already removed.",
+        "effective_in_past": "Availability can only start today or later.",
+        "date_in_past": "Choose today or a later date.",
+        "windows_required": "Add the hours for this day.",
+        "windows_overlap": "Time windows on one day can't overlap.",
+        "too_many_windows": "At most 4 time windows a day.",
+        "windows_not_allowed": "A day marked unavailable has no hours.",
+        "duplicate_weekday": "Each weekday can appear once.",
+        "other": "Something went wrong. Try again.",
+        "offer_expired": "This offer has expired.",
+        "offer_not_pending": "This offer was already answered or withdrawn.",
+        "offer_not_found": "This offer is no longer available.",
+        "gap_not_fillable": "This shift was filled or closed before your answer.",
+        "candidate_ineligible": "You can't take this shift now (for example, it overlaps another shift or approved time off).",
+        "claim_stale": "This shift was filled or closed.",
+        "duplicate_claim": "You already requested this shift.",
+        "gap_not_found": "This shift is no longer open.",
+        "claim_not_pending": "This request was already decided.",
+        "claim_not_found": "This request is no longer available.",
+        "gap_filled": "This shift was already filled."
+      },
+      "range": {
+        "all": "Any dates",
+        "week": "This week",
+        "month": "Next 30 days"
+      },
+      "event": {
+        "created": "Request sent",
+        "approved": "Approved",
+        "denied": "Denied",
+        "cancelled": "Cancelled",
+        "proposed": "Swap proposed",
+        "accepted": "Accepted by coworker",
+        "declined": "Declined by coworker",
+        "expired": "Expired",
+        "swapped": "Shifts exchanged"
+      }
+    },
+    "forecast": {
+      "title": "Staffing Forecast",
+      "kicker": "HOUSEKEEPING",
+      "unavailable": "Not available",
+      "updated": "Updated {{time}}",
+      "stale": "Last updated {{time}}. This forecast may be out of date. Pull down to refresh.",
+      "offlineStale": "You're offline. This forecast was last updated {{time}} and may be out of date.",
+      "noData": "No forecast is available for today.",
+      "unreadableDays": "A day of the forecast could not be read.",
+      "unreadableDays_plural": "{{count}} days of the forecast could not be read.",
+      "weekShort": "projected staffing gap",
+      "roomsCount": "{{count}} room",
+      "roomsCount_plural": "{{count}} rooms",
+      "peopleCount": "{{count}} person",
+      "peopleCount_plural": "{{count}} people",
+      "duration": {
+        "hm": "{{h}} h {{m}} min",
+        "h": "{{h}} h",
+        "m": "{{m}} min"
+      },
+      "quality": {
+        "estimated": "Estimated from your schedule and room standards",
+        "partial": "Partial data — some inputs are missing",
+        "unavailable": "Not enough data to assess"
+      },
+      "qualityShort": {
+        "estimated": "Estimated",
+        "partial": "Partial data",
+        "unavailable": "Not enough data"
+      },
+      "hero": {
+        "short": {
+          "title": "Projected staffing gap",
+          "body": "About {{duration}} of cleaning work is not covered by scheduled labour.",
+          "bodyMin": "At least {{duration}} of cleaning work is not covered by scheduled labour."
+        },
+        "sufficient": {
+          "title": "Coverage appears sufficient",
+          "body": "{{capacity}} of scheduled labour for about {{demand}} of cleaning work.",
+          "bodyPlain": "Scheduled labour appears to cover the cleaning work identified."
+        },
+        "unknown": {
+          "title": "Cannot assess coverage"
+        }
+      },
+      "metrics": {
+        "demand": "Estimated cleaning work",
+        "demandMinimum": "At least this much — some work could not be sized.",
+        "capacity": "Scheduled productive labour",
+        "capacityNow": "From now to the end of each shift",
+        "capacityDay": "Whole scheduled shifts",
+        "gap": "Projected gap",
+        "gapShort": "{{duration}} short",
+        "gapSpare": "{{duration}} to spare",
+        "gapMinimum": "At least this much short.",
+        "rooms": "Rooms to clean",
+        "staff": "Room attendants scheduled"
+      },
+      "outlook": {
+        "title": "Next 7 days",
+        "short": "Projected short",
+        "sufficient": "Projected sufficient",
+        "unknown": "Not enough data",
+        "demandLine": "{{duration}} of work",
+        "noDemand": "Workload not available",
+        "capacityLine": "{{duration}} scheduled",
+        "gap": "{{duration}} short",
+        "gapMin": "at least {{duration}} short",
+        "openShifts": "{{count}} open shift",
+        "openShifts_plural": "{{count}} open shifts"
+      },
+      "breakdown": {
+        "title": "Where the work is",
+        "departure": "Departures",
+        "stayover": "Stayovers",
+        "vacant_dirty": "Vacant dirty",
+        "other": "Other cleaning",
+        "unestimated": "{{count}} room has no cleaning time set, so it is not counted.",
+        "unestimated_plural": "{{count}} rooms have no cleaning time set, so they are not counted.",
+        "declined": "{{count}} room declined service and is not counted.",
+        "declined_plural": "{{count}} rooms declined service and are not counted."
+      },
+      "reasons": {
+        "unknown": "This day cannot be assessed with the information available.",
+        "pms_not_connected": "Future arrivals and departures are not connected, so this day's cleaning workload cannot be assessed.",
+        "future_demand_unavailable": "There is no reliable source for this day's cleaning workload yet.",
+        "room_board_unreadable": "Today's room statuses could not be read.",
+        "unestimated_rooms": "Some rooms have no cleaning time set, so the total is a minimum.",
+        "capacity_unavailable": "Scheduled labour could not be read.",
+        "absences_unreadable": "Call-outs could not be read, so scheduled labour cannot be trusted.",
+        "leave_unreadable": "Time off could not be read, so scheduled labour cannot be trusted.",
+        "demand_incomplete": "Some of the cleaning work could not be sized."
+      },
+      "limitations": {
+        "later_departures_unknown": "Departures that have not happened yet are not included.",
+        "learned_estimates_unavailable": "Cleaning times use your room-type standards; learned times were unavailable.",
+        "pending_callouts": "A call-out has not been confirmed yet, so its shift is still counted.",
+        "unknown_department_shifts": "Some shifts belong to people with no department and are not counted.",
+        "pending_leave": "Pending time-off requests could reduce scheduled labour."
+      },
+      "assumptions": {
+        "noBreakPolicy": "Paid shift minutes. No break policy is set, so breaks are not deducted.",
+        "scenarioBreaks": "Paid shift minutes minus a what-if break per shift. Nothing is saved."
+      },
+      "sources": {
+        "room_board": "Today's rooms come from the live room board, sized with your property's cleaning standards.",
+        "scheduled_shifts": "Labour comes from published shifts, minus confirmed call-outs and approved time off.",
+        "future_demand": "There is no source for future cleaning workload yet.",
+        "unknown": "A source this app does not describe.",
+        "stale": "Last updated {{time}}."
+      },
+      "drawer": {
+        "subtitle": "How this forecast was worked out",
+        "comparison": "Work compared with labour",
+        "demand": "Cleaning work",
+        "capacity": "Scheduled labour",
+        "difference": "Difference",
+        "quality": "Data quality",
+        "laborTitle": "Scheduled labour",
+        "people": "Room attendants scheduled",
+        "callouts": "Confirmed call-outs",
+        "replacements": "Confirmed replacements",
+        "leave": "Shifts shortened by approved time off",
+        "drafts": "Draft shifts (not counted)",
+        "currentVerified": "{{working}} of {{scheduled}} scheduled are clocked in right now.",
+        "currentUnverified": "Clock-in status could not be verified, so the plan is shown without it.",
+        "limitations": "What this does not cover",
+        "sources": "Where these numbers come from"
+      },
+      "rec": {
+        "title": "What to look at",
+        "basisVerified": "From your records",
+        "basisEstimate": "Estimated",
+        "aShift": "A shift",
+        "uncovered_shift": {
+          "title": "{{shift}} has no one assigned",
+          "why": "A call-out or open shift left it uncovered, and scheduled labour does not include it."
+        },
+        "unresolved_callout": {
+          "title": "{{count}} call-out is not confirmed",
+          "title_plural": "{{count}} call-outs are not confirmed",
+          "why": "An unconfirmed call-out still counts as scheduled labour, so the forecast may be too optimistic."
+        },
+        "shortfall": {
+          "title": "Scheduled labour is short",
+          "titleShifts": "Add about {{count}} more shift",
+          "titleShifts_plural": "Add about {{count}} more shifts",
+          "why": "Estimated cleaning work is more than the scheduled productive time. This is an estimate, not a requirement.",
+          "whyMin": "The cleaning work already sized is more than the scheduled productive time, and some work could not be sized, so the real gap may be larger."
+        },
+        "leave_conflict": {
+          "title": "{{count}} shift overlaps approved time off",
+          "title_plural": "{{count}} shifts overlap approved time off",
+          "why": "Approved time off removes those hours from the forecast, but the shifts are still on the schedule."
+        },
+        "missing_estimates": {
+          "title": "{{count}} room has no cleaning time",
+          "title_plural": "{{count}} rooms have no cleaning time",
+          "why": "Without a cleaning time for the room type these rooms cannot be sized, so the total is a minimum. Set room-type cleaning times in Settings on the web."
+        },
+        "unassigned_rooms": {
+          "title": "{{count}} room is not assigned yet",
+          "title_plural": "{{count}} rooms are not assigned yet",
+          "why": "These rooms still need cleaning today and nobody is assigned to them."
+        },
+        "pending_leave": {
+          "title": "{{count}} shift overlaps pending time off",
+          "title_plural": "{{count}} shifts overlap pending time off",
+          "why": "If these requests are approved, scheduled labour drops."
+        }
+      },
+      "actions": {
+        "find_coverage": "Find coverage",
+        "add_shift": "Add shift",
+        "view_week": "View week schedule",
+        "review_time_off": "Review time off",
+        "view_assignments": "View assignments"
+      },
+      "card": {
+        "notAssessed": "Coverage not assessed",
+        "unreadable": "The staffing forecast could not be loaded.",
+        "scheduledOnly": "{{duration}} of labour is scheduled.",
+        "view": "View forecast",
+        "viewDay": "View day details"
+      }
+    },
+    "publish": {
+      "mark": {
+        "new": "Proposed new shift",
+        "changed": "Proposed change",
+        "cancelled": "Proposed cancellation"
+      },
+      "saveToDraft": "Save to draft",
+      "addCountToDraft": "Add {{count}} shift to draft",
+      "addCountToDraft_plural": "Add {{count}} shifts to draft",
+      "saved": {
+        "drafted": "Added to the draft. Employees won't see it until you publish.",
+        "drafted_plural": "Added {{count}} shifts to the draft. Employees won't see them until you publish."
+      },
+      "cancel": {
+        "title": "Remove this shift?",
+        "message": "{{name}}'s {{window}} shift on {{date}} will be marked for removal in the draft. It stays on the published schedule until you publish.",
+        "confirm": "Add removal to draft"
+      },
+      "title": "Publish schedule",
+      "doneTitle": "Schedule published",
+      "loading": "Checking the draft…",
+      "reviewFailed": "The draft could not be checked. Nothing was published.",
+      "publishing": "Publishing…",
+      "unconfirmed": "No answer from the server, so we can't tell whether the schedule was published. Check again before doing anything else: checking never publishes it twice.",
+      "checkAgain": "Check again",
+      "reviewAgain": "Review the draft again",
+      "viewPublished": "View published schedule",
+      "viewDetails": "View publication details",
+      "publishCount": "Publish {{count}} change",
+      "publishCount_plural": "Publish {{count}} changes",
+      "done": "Publication successful",
+      "dateRange": "Dates",
+      "employees": "Employees affected",
+      "shifts": "Shifts",
+      "counts": "{{created}} new, {{updated}} changed, {{cancelled}} cancelled",
+      "publishedAt": "Published",
+      "status": {
+        "draft": "Draft",
+        "published": "Published",
+        "superseded": "Replaced by a correction",
+        "discarded": "Discarded"
+      },
+      "tile": {
+        "new": "New shifts",
+        "modified": "Changed",
+        "cancelled": "Cancelled",
+        "reassigned": "Reassigned",
+        "employees": "Employees affected"
+      },
+      "blocking": "{{count}} problem to fix before publishing",
+      "blocking_plural": "{{count}} problems to fix before publishing",
+      "warnings": "{{count}} thing to be aware of",
+      "warnings_plural": "{{count}} things to be aware of",
+      "impactTitle": "{{count}} employee will see changes",
+      "impactTitle_plural": "{{count}} employees will see changes",
+      "showAll": "Show {{count}} more",
+      "forecast": {
+        "available": "Projected staffing effect is shown on the Staffing Forecast screen after publishing.",
+        "unavailable": "No staffing projection for these dates: there is no reliable demand data for future days yet, so this draft's effect on staffing is unknown."
+      },
+      "confirmText": "I understand this publishes {{changes}} to the schedule and notifies {{employees}}.",
+      "offline": "You're offline. Reconnect to publish.",
+      "failure": {
+        "blocked": "This draft has problems that must be fixed before it can be published. Nothing was published.",
+        "draft_changed": "The draft was changed after you reviewed it. Nothing was published; review it again.",
+        "stale": "A shift changed after this draft was made. Nothing was published; review the draft again.",
+        "already_published": "This draft was already published.",
+        "closed": "This draft was discarded or replaced, so it can't be published.",
+        "attendance": "A shift in this draft already has recorded attendance. Nothing was published.",
+        "locked": "A change in this draft is dated in the past. Nothing was published.",
+        "commitment": "A shift in this draft has a call-out in progress. Resolve it first. Nothing was published.",
+        "leave": "Someone in this draft has approved time off during a shift. Nothing was published.",
+        "conflict": "Publishing would double-book someone. Nothing was published.",
+        "empty": "There is nothing to publish.",
+        "forbidden": "You can't publish this department's schedule.",
+        "signed_out": "Your session ended. Sign in again, then check the draft.",
+        "unconfirmed": "No answer from the server.",
+        "other": "The schedule could not be published. Nothing was changed."
+      },
+      "issue": {
+        "stale_shift": "A shift changed after the draft was made. Review the draft again.",
+        "overlapping_shift": "This would double-book someone.",
+        "duplicate_assignment": "Someone would be scheduled twice on the same shift and day.",
+        "approved_time_off": "Someone has approved time off during a shift.",
+        "coverage_commitment": "A call-out or coverage request is open on a shift. Resolve it first.",
+        "has_attendance": "A shift already has recorded attendance and can't be changed.",
+        "past_date": "A change is dated in the past.",
+        "department_mismatch": "A change belongs to another department.",
+        "invalid_time": "A shift has invalid times.",
+        "schedule_policy_blocked": "This breaks a scheduling rule your hotel set to block.",
+        "insufficient_rest": "Less than 8 hours between two shifts.",
+        "weekly_overtime": "Someone would go over 40 scheduled hours in the week.",
+        "long_shift": "A shift is longer than 12 hours.",
+        "employee_department_unknown": "An employee's department could not be determined.",
+        "marked_unavailable": "An employee said they can't work that day.",
+        "outside_availability": "A shift is outside the hours an employee said they can work.",
+        "pending_time_off": "An employee has a time-off request for those hours that hasn't been decided.",
+        "other": "Something needs attention."
+      },
+      "impact": {
+        "added": "{{date}}: new shift {{window}}",
+        "removed": "{{date}}: shift {{window}} removed",
+        "cancelled": "{{date}}: shift {{window}} cancelled",
+        "changed": "{{date}}: {{before}} → {{after}}"
+      },
+      "event": {
+        "draft_created": "Draft started",
+        "draft_edited": "Draft edited",
+        "draft_discarded": "Draft discarded",
+        "publication_attempted": "Publication attempted",
+        "publication_succeeded": "Publication succeeded",
+        "publication_rejected": "Publication rejected",
+        "notification_queued": "Notifications queued",
+        "notification_sent": "Notifications created in the app",
+        "notification_failed": "Notifications failed",
+        "notification_retried": "Notifications retried",
+        "corrective_published": "Correction published"
+      },
+      "notify": {
+        "title": "Employee notifications",
+        "checking": "Checking notifications…",
+        "unknown": "Couldn't read the notification status. The schedule itself is published.",
+        "none": "No employee needed a notification.",
+        "processing": "{{count}} notification queued. Being processed.",
+        "processing_plural": "{{count}} notifications queued. Being processed.",
+        "failed": "{{count}} notification could not be created.",
+        "failed_plural": "{{count}} notifications could not be created.",
+        "inApp": "{{count}} notification available in the app.",
+        "inApp_plural": "{{count}} notifications available in the app.",
+        "pushAccepted": "Push accepted by the provider for {{count}} message.",
+        "pushAccepted_plural": "Push accepted by the provider for {{count}} messages.",
+        "pushFailed": "Push failed for {{count}} message.",
+        "pushFailed_plural": "Push failed for {{count}} messages.",
+        "noDevice": "{{count}} employee has no phone registered for push.",
+        "noDevice_plural": "{{count}} employees have no phone registered for push.",
+        "optedOut": "{{count}} employee turned schedule push off.",
+        "optedOut_plural": "{{count}} employees turned schedule push off.",
+        "noConfirmation": "Push acceptance isn't proof the phone received it, and read receipts aren't tracked.",
+        "retry": "Retry failed notifications"
+      },
+      "bar": {
+        "failed": "Couldn't check for a draft.",
+        "title": "Draft: {{count}} change not published",
+        "title_plural": "Draft: {{count}} changes not published",
+        "breakdown": "{{created}} new · {{changed}} changed · {{cancelled}} removed",
+        "hidden": "Employees only see the published schedule.",
+        "review": "Review & publish",
+        "viewPublished": "View published schedule",
+        "preview": "Preview draft",
+        "discard": "Discard draft",
+        "none": "No draft. Changes you make are saved to a draft first.",
+        "planningDraft": "Planning in draft",
+        "planningNow": "Applying changes immediately",
+        "history": "History",
+        "nowWarning": "Changes apply to the live schedule right away and employees can see them. Call-out replacements always apply right away."
+      },
+      "removeProposed": {
+        "title": "Remove from draft?",
+        "message": "This shift only exists in the draft. Removing it deletes the proposal; nothing published changes.",
+        "confirm": "Remove from draft",
+        "failed": "Couldn't remove it from the draft."
+      },
+      "discard": {
+        "title": "Discard the draft?",
+        "message": "This throws away {{count}} unpublished change. The published schedule is not affected.",
+        "message_plural": "This throws away {{count}} unpublished changes. The published schedule is not affected.",
+        "confirm": "Discard draft",
+        "done": "Draft discarded.",
+        "failed": "Couldn't discard the draft. It may have been published or changed."
+      },
+      "history": {
+        "title": "Publication history",
+        "detailTitle": "Publication details",
+        "loading": "Loading…",
+        "failed": "Couldn't load this.",
+        "empty": "Nothing has been published yet.",
+        "undated": "Not published",
+        "employees": "{{count}} employee",
+        "employees_plural": "{{count}} employees",
+        "back": "All publications",
+        "changes": "Changes made",
+        "trail": "History",
+        "corrective": "This was published to correct an earlier publication.",
+        "correctHint": "A mistake can't be undone automatically. A correction is a new draft built from today's schedule that you review and publish.",
+        "correct": "Start a correction",
+        "correctFailed": "Couldn't start a correction. This department may already have an open draft.",
+        "correctionOpened": "Correction draft started. Make your changes, then review and publish.",
+        "filter": {
+          "all": "All",
+          "published": "Published",
+          "discarded": "Discarded"
+        },
+        "change": {
+          "create": "{{name}}: new shift on {{date}}, {{window}}",
+          "update": "{{name}}: {{date}}, {{before}} → {{after}}",
+          "cancel": "{{name}}: shift on {{date}} removed ({{window}})"
+        }
+      },
+      "confirmChanges": "{{count}} change",
+      "confirmChanges_plural": "{{count}} changes",
+      "confirmEmployees": "{{count}} employee",
+      "confirmEmployees_plural": "{{count}} employees"
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Good morning",
@@ -7769,6 +9444,7 @@
       "onShiftStale_plural": "{{count}} on shift (last known)",
       "shiftUnknown": "Shift status unavailable",
       "manage": "Assignments",
+      "schedule": "Schedule",
       "progress": "{{done}} of {{count}} room completed",
       "progress_plural": "{{done}} of {{count}} rooms completed",
       "statusOnShift": "On shift",
@@ -8071,6 +9747,81 @@
     },
     "attention": {
       "ask": "Ask PatelRep about this room"
+    }
+  },
+  "scheduleNotice": {
+    "published": {
+      "title": "Schedule updated",
+      "body": "Your schedule changed starting {{date}}. Open it to see what is different.",
+      "bodyNoDate": "Your schedule changed. Open it to see what is different."
+    },
+    "offer_received": {
+      "title": "Shift offer",
+      "body": "You have a shift offer. Open it to accept or decline."
+    },
+    "offer_withdrawn": {
+      "title": "Shift offer withdrawn",
+      "body": "A shift offer was withdrawn."
+    },
+    "offer_accepted": {
+      "title": "Offer accepted",
+      "body": "A shift offer was accepted."
+    },
+    "offer_declined": {
+      "title": "Offer declined",
+      "body": "An employee declined a shift offer."
+    },
+    "open_shift": {
+      "title": "Open shift",
+      "body": "A shift you can take is open. Open it to request it."
+    },
+    "claim_submitted": {
+      "title": "Shift request",
+      "body": "An employee requested an open shift."
+    },
+    "claim_approved": {
+      "title": "Shift request approved",
+      "body": "Your shift request was approved. It is on your schedule."
+    },
+    "claim_declined": {
+      "title": "Shift request not approved",
+      "body": "Your shift request was not approved."
+    },
+    "time_off_requested": {
+      "title": "Time-off request",
+      "body": "An employee asked for time off."
+    },
+    "time_off_approved": {
+      "title": "Time off approved",
+      "body": "Your time-off request was approved."
+    },
+    "time_off_denied": {
+      "title": "Time off decided",
+      "body": "Your time-off request was not approved."
+    },
+    "swap_proposed": {
+      "title": "Shift swap request",
+      "body": "A coworker proposed a shift swap. Open it to answer."
+    },
+    "swap_accepted": {
+      "title": "Shift swap accepted",
+      "body": "Your coworker accepted the swap. A supervisor still has to approve it."
+    },
+    "swap_declined": {
+      "title": "Shift swap declined",
+      "body": "Your coworker declined the swap."
+    },
+    "swap_needs_approval": {
+      "title": "Shift swap to approve",
+      "body": "A shift swap is waiting for your approval."
+    },
+    "swap_approved": {
+      "title": "Shift swap approved",
+      "body": "Your shift swap was approved. Your schedule has changed."
+    },
+    "swap_denied": {
+      "title": "Shift swap not approved",
+      "body": "Your shift swap was not approved."
     }
   }
 }

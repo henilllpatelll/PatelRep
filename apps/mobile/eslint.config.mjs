@@ -52,6 +52,8 @@ const config = [
       'components/home/**/*.{ts,tsx,js,jsx}',
       'components/settings/**/*.{ts,tsx,js,jsx}',
       'components/security/**/*.{ts,tsx,js,jsx}',
+      'components/scheduling/**/*.{ts,tsx,js,jsx}',
+      'app/(app)/team-schedule/**/*.{ts,tsx,js,jsx}',
     ],
     ignores: [
       '**/*.test.*',

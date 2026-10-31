@@ -91,6 +91,7 @@ def _scheduled_housekeepers_by_date(
         .eq("tenant_id", hotel_id)
         .in_("work_date", target_dates)
         .in_("shift_id", hk_shift_ids)
+        .neq("publication_state", "cancelled")  # a cancelled shift was not worked
         .execute()
     ).data or []
     by_date: dict[str, set] = {}

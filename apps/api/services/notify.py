@@ -17,6 +17,7 @@ all other events are inbox-only and are listed so an unclassified type is caught
   push      wo_assignment                                -> work_orders (engineer, chief_engineer)
   push      task_assigned, task_reassigned,
             task_cancelled, task_blocker_resolved        -> tasks (everyone)
+  push      schedule_*                                   -> schedule (everyone; written by services/schedule_outbox.py)
   push      task_assigned_urgent                         -> tasks, CRITICAL (an opt-out never applies)
   inbox     everything in INBOX_ONLY_EVENTS below
 
@@ -60,6 +61,7 @@ CATEGORIES: dict[str, Category] = {
         Category("room_assignments", ("housekeeper",)),
         Category("work_orders", ("engineer", "chief_engineer")),
         Category("tasks", ALL_STAFF_ROLES),
+        Category("schedule", ALL_STAFF_ROLES),
     )
 }
 
@@ -80,6 +82,25 @@ PUSH_EVENTS: dict[str, PushPolicy] = {
     "task_reassigned": PushPolicy("tasks", CHANNEL_UPDATES),
     "task_cancelled": PushPolicy("tasks", CHANNEL_UPDATES),
     "task_blocker_resolved": PushPolicy("tasks", CHANNEL_UPDATES),
+    # Schedule events (services/schedule_outbox.py). A shift offer is time-sensitive; everything else is an update.
+    "schedule_published": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_offer_received": PushPolicy("schedule", CHANNEL_ALERTS),
+    "schedule_offer_withdrawn": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_offer_accepted": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_offer_declined": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_open_shift": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_claim_submitted": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_claim_approved": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_claim_declined": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_time_off_requested": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_time_off_approved": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_time_off_denied": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_proposed": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_accepted": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_declined": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_needs_approval": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_approved": PushPolicy("schedule", CHANNEL_UPDATES),
+    "schedule_swap_denied": PushPolicy("schedule", CHANNEL_UPDATES),
 }
 
 # Written to the inbox by a producer, never pushed. Candidates for push later (documented, not built).

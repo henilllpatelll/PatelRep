@@ -89,6 +89,7 @@ export function AttentionCenterScreen() {
           : undefined,
       openLink: (link) => {
         if (link.kind === "room") router.push(`/(app)/my-rooms/${link.roomId}?from=attention` as never);
+        else if (link.kind === "schedule") router.push({ pathname: link.target.pathname, params: link.target.params } as never);
         else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
       },
     }),

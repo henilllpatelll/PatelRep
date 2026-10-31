@@ -419,7 +419,8 @@
       "markAllFailed": "No se pudo marcar todo como leído. Tus alertas siguen igual — inténtalo de nuevo.",
       "ask": "Preguntar al asistente sobre esto",
       "roomNotOnList": "Esta habitación ya no está en tu lista (puede que la hayan reasignado), así que no se puede abrir desde aquí.",
-      "alreadyRead": "Ya marcaste esto como leído."
+      "alreadyRead": "Ya marcaste esto como leído.",
+      "viewSchedule": "Ver horario"
     },
     "attentionCenter": {
       "title": "Requiere atención",
@@ -4261,6 +4262,10 @@
         "tasks": {
           "label": "Actualizaciones de tareas",
           "description": "Te asignan una tarea, cambia, se cancela o se desbloquea"
+        },
+        "schedule": {
+          "label": "Cambios de horario",
+          "description": "Cambios en tu horario, ofertas de turno y decisiones sobre tiempo libre y cambios de turno"
         }
       },
       "criticalHint": "Las alertas de tareas urgentes siempre se entregan.",
@@ -7329,7 +7334,221 @@
     "clockedIn": "Marcado",
     "dayOff": "Día libre",
     "noShiftScheduled": "Sin turno programado",
-    "thisWeek": "Esta semana"
+    "thisWeek": "Esta semana",
+    "week": {
+      "previous": "Semana anterior",
+      "next": "Semana siguiente",
+      "current": "Esta semana",
+      "loadFailed": "No pudimos cargar esta semana.",
+      "off": "Libre",
+      "onShift": "En turno",
+      "scheduled": "Programado",
+      "shiftUnavailable": "Ese turno ya no está en tu horario.",
+      "showing": "Mostrando la semana del {{date}}"
+    },
+    "actions": {
+      "title": "Acciones del horario",
+      "availability": "Mi disponibilidad",
+      "timeOff": "Pedir tiempo libre",
+      "requests": "Mis solicitudes",
+      "requestsCount": "Mis solicitudes ({{count}} esperan tu respuesta)",
+      "offers": "Ofertas de turno",
+      "offersCount": "Ofertas de turno ({{count}})"
+    },
+    "swapFromShift": "Pedir cambio",
+    "swapFromShiftFor": "Pedir un cambio para {{shift}} el {{date}}",
+    "availabilityScreen": {
+      "title": "Mi disponibilidad",
+      "intro": "Dile a tu supervisor qué días y horas puedes trabajar normalmente. Guardar esto nunca cambia un turno que ya tienes.",
+      "weekTitle": "Mi semana habitual",
+      "unsetHint": "Sin enviar. Tu supervisor lo verá como desconocido, no como libre.",
+      "setAvailable": "Disponible",
+      "setUnavailable": "No disponible",
+      "clearDay": "Sin enviar",
+      "addWindow": "Agregar horario",
+      "removeWindow": "Quitar este horario",
+      "allDay": "Todo el día",
+      "startsAt": "Desde",
+      "endsAt": "Hasta",
+      "earlier": "Más temprano",
+      "later": "Más tarde",
+      "startLabel": "Hora de inicio {{value}}",
+      "endLabel": "Hora de fin {{value}}",
+      "effective": "Empieza",
+      "effectiveToday": "Hoy",
+      "effectiveNext": "Inicio posterior",
+      "effectiveEarlier": "Fecha anterior",
+      "effectiveLater": "Fecha posterior",
+      "effectiveNote": "Tu semana actual sigue vigente hasta esta fecha.",
+      "save": "Guardar disponibilidad",
+      "saving": "Guardando…",
+      "saved": "Disponibilidad guardada.",
+      "savedReplay": "La disponibilidad ya estaba guardada.",
+      "unsaved": "Tienes cambios sin guardar.",
+      "discard": "Deshacer cambios",
+      "upcoming": "Entra en vigor el {{date}}",
+      "exceptions": "Excepciones de fecha",
+      "exceptionsHint": "Días que difieren de tu semana habitual.",
+      "addException": "Agregar una excepción de fecha",
+      "exceptionDate": "Fecha",
+      "exceptionMode": "Ese día",
+      "exceptionNote": "Nota (opcional)",
+      "exceptionSave": "Agregar excepción",
+      "exceptionRemove": "Quitar",
+      "exceptionRemoved": "Excepción quitada.",
+      "exceptionAdded": "Excepción agregada.",
+      "noExceptions": "Sin excepciones de fecha.",
+      "offline": "Estás sin conexión. Puedes leer tu disponibilidad, pero los cambios necesitan conexión.",
+      "loadFailed": "No pudimos cargar tu disponibilidad.",
+      "lastUpdated": "Última actualización el {{date}}",
+      "neverUpdated": "Todavía no has enviado disponibilidad.",
+      "clashTitle": "Algunos de tus turnos no coinciden",
+      "clashBody": "Tus turnos no se cambiaron. Tu supervisor puede verlos y decidir qué hacer.",
+      "clashUnavailable": "Marcaste este día como no disponible",
+      "clashOutside": "Fuera del horario que indicaste",
+      "error": {
+        "windows_overlap": "Dos horarios del {{day}} se traslapan.",
+        "windows_required": "Agrega las horas del {{day}}.",
+        "too_many_windows": "El {{day}} puede tener máximo 4 horarios.",
+        "same_times": "El {{day}} la hora de inicio y la de fin son iguales. Usa Todo el día."
+      },
+      "setHours": "Elegir horas"
+    },
+    "timeOffForm": {
+      "title": "Pedir tiempo libre",
+      "intro": "Tu supervisor decide. Enviar una solicitud no cambia tus turnos y no está aprobada hasta que veas Aprobada.",
+      "start": "Primer día",
+      "end": "Último día",
+      "partial": "Solo parte de un día",
+      "partialOn": "Día parcial",
+      "partialHint": "Elige las horas que necesitas libres en una sola fecha.",
+      "from": "Desde",
+      "to": "Hasta",
+      "reason": "Motivo",
+      "reasonHint": "Elige el más cercano. Nunca necesitas explicar una situación médica.",
+      "note": "Nota para tu supervisor (opcional)",
+      "notePlaceholder": "Algo que tu supervisor deba saber",
+      "send": "Enviar solicitud",
+      "sending": "Enviando…",
+      "sent": "Solicitud enviada",
+      "sentBody": "Tu solicitud está pendiente. No está aprobada hasta que tu supervisor decida.",
+      "viewRequest": "Ver solicitud",
+      "another": "Enviar otra",
+      "done": "Listo",
+      "previousDay": "Día anterior",
+      "nextDay": "Día siguiente",
+      "days": "{{count}} días",
+      "oneDay": "1 día",
+      "offline": "Estás sin conexión. Conéctate para enviar una solicitud.",
+      "overlapHint": "Las fechas que se traslapan con tiempo libre ya solicitado o aprobado no se pueden enviar de nuevo.",
+      "errors": {
+        "reason_required": "Elige un motivo."
+      }
+    },
+    "myRequests": {
+      "unavailable": "Esa solicitud ya no está disponible.",
+      "title": "Mis solicitudes",
+      "kicker": "Mi horario",
+      "intro": "Todo lo que has pedido y los cambios que esperan tu respuesta.",
+      "filter": {
+        "all": "Todas",
+        "action": "Esperan mi respuesta",
+        "pending": "Pendientes",
+        "approved": "Aprobadas",
+        "denied": "Denegadas",
+        "cancelled": "Cerradas"
+      },
+      "empty": {
+        "all": {
+          "title": "Aún no hay solicitudes",
+          "body": "Cuando pidas tiempo libre o un cambio, aparecerá aquí."
+        },
+        "action": {
+          "title": "Nada espera tu respuesta",
+          "body": "Ninguna propuesta de cambio necesita tu respuesta."
+        },
+        "other": {
+          "title": "Nada aquí",
+          "body": "Ninguna solicitud coincide con este filtro."
+        }
+      },
+      "needsYou": "Espera tu respuesta",
+      "swapFrom": "Cambio con {{name}}",
+      "swapAsked": "{{name}} pidió cambiar turnos",
+      "newTimeOff": "Pedir tiempo libre",
+      "loadFailed": "No pudimos cargar tus solicitudes.",
+      "offline": "Estás sin conexión. Esto puede estar desactualizado y no puedes responder hasta que te reconectes.",
+      "refreshed": "Actualizado hace un momento"
+    },
+    "swapSheet": {
+      "title": "Pedir un cambio",
+      "yourShift": "Tu turno",
+      "intro": "Elige el turno de un compañero para intercambiar. Ambos deben estar de acuerdo y luego lo aprueba un supervisor.",
+      "choose": "Elige un turno para tomar en su lugar",
+      "loading": "Buscando compañeros…",
+      "none": "Ahora mismo ningún turno de un compañero se puede cambiar por este.",
+      "unavailable": "Este turno no se puede cambiar (ya tiene un cambio pendiente o un aviso de ausencia).",
+      "pick": "Cambiar con {{name}} por el {{date}} · {{shift}}",
+      "review": "Revisar",
+      "reviewTitle": "Revisa el cambio",
+      "youGive": "Tú cedes",
+      "youTake": "Tú tomas",
+      "note": "Nota para {{name}} (opcional)",
+      "send": "Enviar solicitud de cambio",
+      "sending": "Enviando…",
+      "sent": "Solicitud de cambio enviada",
+      "sentBody": "{{name}} tiene que aceptar. No cambia nada en el horario hasta que un supervisor apruebe.",
+      "warnings": "Ten en cuenta",
+      "back": "Volver",
+      "retry": "Intentar de nuevo",
+      "offline": "Estás sin conexión. Conéctate para pedir un cambio."
+    },
+    "offers": {
+      "unavailable": "Esa oferta ya no está disponible. Pudo haberse retirado, respondido o vencido.",
+      "kicker": "Turnos",
+      "title": "Ofertas de turno",
+      "offline": "Sin conexión. Lo que ves puede estar desactualizado.",
+      "tab": {
+        "offers": "Ofertas",
+        "open": "Turnos abiertos",
+        "requests": "Mis solicitudes de turno"
+      },
+      "noOffersTitle": "Sin ofertas de turno",
+      "noOffersBody": "Cuando un supervisor te ofrezca un turno, aparecerá aquí y en tus notificaciones.",
+      "expires": "La oferta vence {{time}}",
+      "notYet": "Esto no está en tu horario a menos que lo aceptes.",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "acceptTitle": "¿Aceptar este turno?",
+      "acceptMessage": "{{date}}, {{window}}. Pasa a tu horario cuando el sistema lo confirme.",
+      "accepted": "Aceptado. El turno está en tu horario.",
+      "declined": "Oferta rechazada.",
+      "recent": "Ofertas recientes",
+      "status": {
+        "accepted": "En tu horario",
+        "declined": "La rechazaste",
+        "withdrawn": "Retirada por tu supervisor",
+        "expired": "Venció",
+        "superseded": "Ya no se necesita",
+        "claimPending": "Solicitud enviada. Esperando a tu supervisor."
+      },
+      "noOpenTitle": "Sin turnos abiertos",
+      "noOpenBody": "Los turnos que tu supervisor abra para solicitudes aparecerán aquí.",
+      "claim": "Solicitar este turno",
+      "claimHint": "Lo decide un supervisor. No está en tu horario hasta que lo apruebe.",
+      "cannotClaim": "No puedes tomar este turno ahora.",
+      "claimSent": "Solicitud enviada.",
+      "withdraw": "Retirar solicitud",
+      "claimWithdrawn": "Solicitud retirada.",
+      "noClaimsTitle": "Sin solicitudes de turno",
+      "noClaimsBody": "Los turnos que solicites aparecerán aquí con la decisión del supervisor.",
+      "claimStatus": {
+        "pending": "Esperando a tu supervisor",
+        "approved": "Aprobado. Está en tu horario.",
+        "declined": "No aprobado",
+        "withdrawn": "Retiraste esta solicitud"
+      }
+    }
   },
   "sop": {
     "title": "Cómo hacerlo",
@@ -7689,6 +7908,1462 @@
       }
     }
   },
+  "teamSchedule": {
+    "loading": "Cargando el horario",
+    "title": "Horario del equipo",
+    "kicker": "Limpieza",
+    "back": "Atrás",
+    "refresh": "Actualizar",
+    "retry": "Reintentar",
+    "prevDay": "Día anterior",
+    "nextDay": "Día siguiente",
+    "prevWeek": "Semana anterior",
+    "nextWeek": "Semana siguiente",
+    "backToToday": "Volver a hoy",
+    "todayMarker": "hoy",
+    "unnamed": "Empleado sin nombre",
+    "notScheduled": "Sin turno programado",
+    "draft": "Borrador",
+    "carried": "Empezó el día anterior",
+    "openShift": "Abre los detalles del turno",
+    "moreShifts": "+{{count}} turno más",
+    "moreShifts_plural": "+{{count}} turnos más",
+    "linkMissing": "Esa persona no está en el horario de este día.",
+    "offline": "Sin conexión. Lo que ves puede estar desactualizado.",
+    "window": "{{start}} – {{end}}",
+    "windowNextDay": "{{start}} – {{end}} (día siguiente)",
+    "view": {
+      "label": "Vista del horario",
+      "today": "Hoy",
+      "week": "Semana"
+    },
+    "status": {
+      "on_shift": "En turno",
+      "on_break": "En descanso",
+      "scheduled": "Programado",
+      "not_clocked_in": "Sin registrar entrada",
+      "shift_ended": "Turno terminado",
+      "unknown": "Desconocido"
+    },
+    "period": {
+      "morning": "Mañana",
+      "afternoon": "Tarde",
+      "evening": "Noche",
+      "overnight": "Madrugada"
+    },
+    "roles": {
+      "housekeeper": "Camarista",
+      "inspector": "Inspector",
+      "housekeeping_supervisor": "Supervisor de limpieza",
+      "engineer": "Ingeniero",
+      "chief_engineer": "Jefe de ingeniería",
+      "front_desk": "Recepción",
+      "gm": "Gerente general",
+      "other": "Personal"
+    },
+    "since": {
+      "now": "hace un momento",
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{hours}} h {{minutes}} min"
+    },
+    "freshness": {
+      "updated": "Actualizado a las {{time}}",
+      "stale": "Horario guardado de las {{time}} — no está en vivo"
+    },
+    "summary": {
+      "title": "Personal de hoy",
+      "planTitle": "Personal planificado",
+      "scheduled": "{{count}} persona programada",
+      "scheduled_plural": "{{count}} personas programadas",
+      "scheduledUnknown": "Personal programado desconocido",
+      "attendanceMissing": "No se puede confirmar la asistencia ahora, por eso solo se muestra el plan.",
+      "planOnly": "La asistencia solo se registra para hoy. Esto es el plan.",
+      "unscheduledOnShift": "{{count}} trabajando sin turno programado",
+      "unscheduledOnShift_plural": "{{count}} trabajando sin turno programado",
+      "attendanceAsOf": "Asistencia leída a las {{time}}",
+      "coverage": "Cobertura aún no evaluada",
+      "counts": {
+        "onShift": "En turno",
+        "onBreak": "En descanso",
+        "upcoming": "Aún no empiezan",
+        "notClockedIn": "Sin entrada",
+        "shiftEnded": "Turno terminado",
+        "unknown": "Desconocido"
+      }
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "notClockedIn": {
+        "title": "{{name}} no ha registrado su entrada",
+        "body": "El turno empezó a las {{time}} ({{since}}). Todavía no hay entrada registrada."
+      },
+      "endedEarly": {
+        "title": "{{name}} terminó su turno",
+        "body": "Registró su salida antes del final programado a las {{time}}."
+      },
+      "unscheduled": {
+        "title": "{{name}} trabaja sin turno programado",
+        "body": "Registró su entrada, pero no tiene un turno en el horario de hoy."
+      },
+      "attendanceUnavailable": {
+        "title": "Asistencia no disponible",
+        "body": "No se pudieron leer los registros de entrada, así que no se puede confirmar el estado de nadie. Abajo solo está el plan."
+      },
+      "stale": {
+        "title": "Mostrando un horario guardado",
+        "body": "Última confirmación a las {{time}}. Los estados de asistencia seguirán desconocidos hasta que se actualice."
+      },
+      "incomplete": {
+        "title": "El horario puede estar incompleto",
+        "body": "No se pudieron cargar todos los empleados o turnos, así que los conteos pueden ser menores. Desliza hacia abajo para actualizar."
+      },
+      "unreadable": {
+        "title": "No se pudo leer {{count}} turno",
+        "title_plural": "No se pudieron leer {{count}} turnos",
+        "body": "Faltan en las listas de abajo. Desliza hacia abajo para actualizar."
+      }
+    },
+    "team": {
+      "title": "Equipo de hoy ({{count}})",
+      "weekTitle": "Programados el {{date}} ({{count}})"
+    },
+    "week": {
+      "countUnknown": "horario desconocido",
+      "peopleCount": "{{count}} persona programada",
+      "peopleCount_plural": "{{count}} personas programadas",
+      "groupCount": "{{count}} persona",
+      "groupCount_plural": "{{count}} personas"
+    },
+    "search": {
+      "placeholder": "Buscar por nombre",
+      "label": "Buscar en el horario del equipo por nombre"
+    },
+    "filters": {
+      "open": "Filtrar y ordenar",
+      "title": "Filtrar y ordenar",
+      "reset": "Restablecer",
+      "all": "Todos",
+      "statusTitle": "Estado",
+      "roleTitle": "Puesto",
+      "shiftTitle": "Turno",
+      "sortTitle": "Ordenar por",
+      "apply": "Mostrar {{count}} persona",
+      "apply_plural": "Mostrar {{count}} personas",
+      "sort": {
+        "start": "Hora de inicio del turno",
+        "name": "Nombre",
+        "status": "Estado (primero lo que requiere atención)"
+      }
+    },
+    "detail": {
+      "planOnly": "Este día es un plan. La asistencia solo se registra para hoy.",
+      "shifts": "Turnos",
+      "noShift": "No hay un turno en el horario para este día.",
+      "openAssignments": "Abrir en Asignaciones",
+      "assignmentsHint": "Asignaciones es donde se reparten las habitaciones.",
+      "statusHint": {
+        "on_shift": "Registró su entrada y está trabajando, según el reloj de turno.",
+        "on_break": "Registró su entrada y está en descanso.",
+        "scheduled": "Programado. El turno aún no ha empezado.",
+        "not_clocked_in": "No hay entrada registrada desde que empezó el turno. Eso no significa que esté ausente.",
+        "shift_ended": "Registró su salida por hoy.",
+        "unknown": "No se puede confirmar la asistencia ahora."
+      }
+    },
+    "error": {
+      "offline": {
+        "title": "Sin conexión",
+        "body": "Conéctate a internet para cargar el horario del equipo."
+      },
+      "forbidden": {
+        "title": "El horario del equipo no está disponible",
+        "body": "Tu cuenta no puede ver este horario."
+      },
+      "error": {
+        "title": "No se pudo cargar el horario",
+        "body": "No es un horario vacío: la solicitud falló. Inténtalo de nuevo."
+      }
+    },
+    "empty": {
+      "noStaff": {
+        "title": "No hay miembros del equipo",
+        "body": "Todavía no hay personal en tu departamento."
+      },
+      "nobodyScheduled": {
+        "title": "Nadie está programado",
+        "body": "No hay turnos programados para el {{date}}."
+      },
+      "search": {
+        "title": "Nadie coincide con tu búsqueda",
+        "body": "Prueba con otro nombre.",
+        "action": "Borrar búsqueda"
+      },
+      "filters": {
+        "title": "Nadie coincide con estos filtros",
+        "body": "Prueba quitando un filtro.",
+        "action": "Borrar filtros"
+      }
+    },
+    "coverage": {
+      "shiftFallback": "Turno",
+      "someone": "Alguien",
+      "anyRole": "Cualquier puesto",
+      "requiredRole": "Puesto necesario: {{role}}",
+      "callOutBy": "{{name}} · {{kind}}",
+      "unavailable": "{{name}} no está disponible",
+      "needsCover": "{{shift}} necesita cobertura",
+      "attentionTitle": "Necesita cobertura",
+      "attentionFailed": "No se pudo cargar la cobertura, así que pueden faltar turnos sin cubrir.",
+      "openShiftNoCallOut": "Turno abierto",
+      "openShifts": "Turnos abiertos",
+      "openShiftsCount": "Turnos abiertos ({{count}})",
+      "openShiftsTitle": "Turnos abiertos",
+      "noOpenShifts": "Nada necesita cobertura por ahora.",
+      "listFailed": "No se pudieron cargar los turnos abiertos.",
+      "staleList": "Se muestra la última lista que pudimos cargar. Desliza para actualizar.",
+      "offlineReadOnly": "Estás sin conexión. Puedes leer esto, pero no se puede cambiar nada hasta que te reconectes.",
+      "refreshFailed": "No se pudo actualizar. Se muestra la última información cargada.",
+      "shiftEnded": "Este turno ya terminó.",
+      "weekUncovered": "{{count}} turnos necesitan cobertura",
+      "findTitle": "Buscar cobertura",
+      "gone": "Este turno ya no necesita cobertura.",
+      "covered": "Cubierto. El reemplazo ya está en el horario.",
+      "waived": "Guardado. Este turno no se cubrirá.",
+      "filledBy": "Cubierto por {{name}}",
+      "waivedBecause": "No se cubre: {{reason}}",
+      "roomsSeparate": "No se movieron habitaciones. Revisa las habitaciones pendientes en Asignaciones y publica los cambios allí.",
+      "pendingOffers": "Ofertas pendientes",
+      "offerPending": "Ofrecido. No está en el horario hasta que acepte.",
+      "offerExpires": "vence {{time}}",
+      "offersCount": "Ofertas pendientes: {{count}}",
+      "claims": "Solicitudes",
+      "candidates": "Candidatos de reemplazo",
+      "candidatesFailed": "No se pudieron cargar los candidatos. Desliza para intentar de nuevo.",
+      "noCandidates": "No se encontró a nadie para este turno.",
+      "noMatch": "Nadie coincide con esa búsqueda.",
+      "searchLabel": "Buscar empleados",
+      "searchPlaceholder": "Buscar por nombre",
+      "availabilityNote": "La disponibilidad es lo que cada persona dijo que puede trabajar. Quien no tiene horas registradas es desconocido, no libre, y nadie ha aceptado un turno hasta que lo acepta o lo confirmas con esa persona.",
+      "done": "Listo",
+      "history": "Ver historial",
+      "action": {
+        "findReplacement": "Buscar reemplazo",
+        "findCoverage": "Buscar cobertura",
+        "viewCoverage": "Ver estado de cobertura",
+        "coverageHint": "Mira quién podría tomar este turno y qué ya se ofreció.",
+        "reviewRooms": "Revisar habitaciones asignadas",
+        "reviewClaims": "Revisar solicitudes",
+        "returnToSchedule": "Volver al horario",
+        "recordCallOut": "Registrar ausencia",
+        "recordCallOutHint": "No trabajará este turno. Abre una necesidad de cobertura.",
+        "recordAccepted": "Registrar que aceptó",
+        "withdraw": "Retirar oferta",
+        "approve": "Aprobar",
+        "decline": "Rechazar",
+        "waive": "No cubrir",
+        "cancelOpen": "Cancelar turno abierto",
+        "history": "Ver historial",
+        "hideHistory": "Ocultar historial"
+      },
+      "status": {
+        "open": "Abierto",
+        "offered": "Ofrecido",
+        "filled": "Cubierto",
+        "waived": "Sin cubrir",
+        "claimed": "Solicitado"
+      },
+      "shiftStatus": {
+        "open": "Ausente. Este turno aún necesita cobertura.",
+        "offered": "Ausente. Hay una oferta pendiente; aún no hay nadie confirmado.",
+        "filled": "Ausente. Cubierto por {{name}}.",
+        "waived": "Ausente. Este turno no se cubrirá."
+      },
+      "kind": {
+        "called_out": "Avisó que no viene",
+        "unavailable": "Reportó no estar disponible",
+        "leaving_early": "Se va temprano",
+        "emergency": "Ausencia de emergencia",
+        "other": "Otro"
+      },
+      "filter": {
+        "eligible": "Elegibles",
+        "all": "Todos",
+        "warnings": "Con advertencias",
+        "conflicts": "Conflictos de turno"
+      },
+      "openFilter": {
+        "all": "Todos",
+        "callouts": "Ausencias",
+        "open": "Turnos abiertos"
+      },
+      "summary": {
+        "eligible": "Elegible según el horario",
+        "warnings": "Elegible, con advertencias"
+      },
+      "callOut": {
+        "title": "Registrar ausencia",
+        "subtitle": "Confirmas que este empleado no trabajará este turno.",
+        "reason": "Motivo",
+        "leavingAt": "Se va a las",
+        "leavingPlaceholder": "p. ej. 1:30 PM",
+        "leavingInvalid": "Escribe una hora como 1:30 PM.",
+        "leavingOutside": "Esa hora está fuera de este turno.",
+        "note": "Nota operativa (opcional)",
+        "notePlaceholder": "p. ej. Llamó a las 5:10 AM",
+        "privacy": "No escribas datos médicos ni personales. Solo los supervisores ven esta nota.",
+        "attendanceUnknown": "No se pudo verificar la asistencia.",
+        "confirm": "Confirmar ausencia",
+        "recorded": "Ausencia registrada",
+        "recordedHint": "{{name}} queda como no disponible para este turno. Su turno original sigue en el horario."
+      },
+      "impact": {
+        "needed": "Cobertura necesaria",
+        "oneUnavailable": "Un empleado programado no está disponible.",
+        "title": "Impacto",
+        "unassessed": "No se pudo evaluar por completo el impacto porque ahora no se pudo leer la carga de habitaciones.",
+        "noRooms": "No tiene habitaciones asignadas para este día.",
+        "rooms": "{{remaining}} de {{assigned}} habitaciones asignadas no están terminadas.",
+        "inProgress": "{{count}} en curso ahora.",
+        "workload": "Limpieza restante estimada: {{time}}.",
+        "timeLeft": "Tiempo restante del turno: {{time}}.",
+        "roomsStay": "Sus habitaciones siguen asignadas a esa persona hasta que revises y publiques cambios en Asignaciones."
+      },
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "hoursMinutes": "{{hours}} h {{minutes}} min",
+      "offer": {
+        "title": "Ofrecer este turno",
+        "created": "Oferta creada",
+        "assignNow": "Asignar ahora",
+        "createOffer": "Crear oferta",
+        "alsoScheduled": "También programado: {{shifts}}",
+        "noOtherShifts": "No tiene otros turnos cerca de esta hora.",
+        "availabilityUnknown": "Se desconoce la disponibilidad. Pregunta antes de asignar.",
+        "acknowledge": "Revisé estas advertencias y aun así quiero asignar.",
+        "explain": "Asignar ahora lo pone en el horario de inmediato. Una oferta es solo una solicitud: no está en el horario hasta que acepte.",
+        "notDelivered": "{{name}} aún no está en el horario y la app no le avisó. Avísale directamente y luego registra su respuesta."
+      },
+      "waive": {
+        "title": "No cubrir este turno",
+        "hint": "Explica por qué este turno quedará sin cubrir. Se registra.",
+        "cancelTitle": "Cancelar turno abierto",
+        "cancelHint": "Explica por qué ya no se necesita este turno. Se registra.",
+        "reason": "Motivo",
+        "reasonPlaceholder": "p. ej. Baja ocupación",
+        "confirm": "Confirmar",
+        "cancelConfirm": "Cancelar turno abierto"
+      },
+      "post": {
+        "open": "Publicar turno abierto",
+        "title": "Publicar un turno abierto",
+        "hint": "Un turno que nadie tiene todavía. Elige el turno y el día.",
+        "confirm": "Publicar turno abierto",
+        "noTemplates": "No hay plantillas de turno para publicar. Crea una primero.",
+        "templatesFailed": "No se pudieron cargar las plantillas de turno.",
+        "posted": "Turno abierto publicado para {{date}}."
+      },
+      "flag": {
+        "is_absent_employee": "Es la persona que está ausente",
+        "other_department": "Trabaja en otro departamento",
+        "role_mismatch": "No tiene el puesto que necesita este turno",
+        "overlapping_shift": "Ya está programado durante este turno",
+        "department_unknown": "No se pudo confirmar el departamento",
+        "pending_offer_elsewhere": "Tiene una oferta pendiente para otro turno a esta hora",
+        "currently_clocked_in": "Está registrado en turno ahora",
+        "attendance_unverified": "No se pudo revisar la asistencia",
+        "insufficient_rest": "Poco descanso entre turnos",
+        "weekly_overtime": "Podría superar el límite semanal de horas",
+        "long_shift": "Un turno largo",
+        "past_date": "Esta fecha ya pasó",
+        "employee_department_unknown": "No se pudo confirmar el departamento",
+        "availability_unknown": "Disponibilidad desconocida",
+        "eligible_by_schedule": "Elegible según el horario",
+        "other": "No puede tomar este turno",
+        "approved_time_off": "Tiene tiempo libre aprobado durante este turno",
+        "marked_unavailable": "Dijo que no puede trabajar ese día",
+        "outside_availability": "Fuera del horario que indicó",
+        "pending_time_off": "Tiene tiempo libre solicitado en estas horas",
+        "within_availability": "Dentro del horario que indicó"
+      },
+      "event": {
+        "absence": {
+          "reported": "Ausencia reportada",
+          "confirmed": "Ausencia confirmada",
+          "covered": "Ausencia cubierta",
+          "withdrawn": "Ausencia retirada"
+        },
+        "coverage_gap": {
+          "opened": "Cobertura necesaria",
+          "offered": "Oferta hecha",
+          "filled": "Turno cubierto",
+          "waived": "Sin cubrir",
+          "cancelled": "Turno abierto cancelado",
+          "reopened": "Ofertas terminadas, abierto otra vez"
+        },
+        "coverage_offer": {
+          "created": "Oferta creada",
+          "withdrawn": "Oferta retirada",
+          "accepted": "Oferta aceptada",
+          "declined": "Oferta rechazada"
+        },
+        "coverage_claim": {
+          "created": "Solicitud hecha",
+          "approved": "Solicitud aprobada",
+          "declined": "Solicitud rechazada",
+          "withdrawn": "Solicitud retirada"
+        },
+        "shift_assignment": {
+          "created": "Turno programado"
+        }
+      },
+      "historyEmpty": "Aún no hay historial.",
+      "historyFailed": "No se pudo cargar el historial.",
+      "failure": {
+        "version_conflict": "Otra persona cambió esto. Lo recargamos; revisa e intenta de nuevo.",
+        "gap_not_fillable": "Alguien acaba de cubrir o cerrar este turno.",
+        "gap_filled": "Este turno ya está cubierto.",
+        "gap_waived": "Este turno ya no se va a cubrir.",
+        "gap_open": "Este turno sigue abierto.",
+        "gap_offered": "Este turno ya tiene una oferta.",
+        "shift_ended": "Este turno ya terminó.",
+        "candidate_ineligible": "Ese empleado ya no puede tomar este turno. Recargamos la lista.",
+        "warnings_need_acknowledgement": "Revisa las advertencias y confirma antes de asignar.",
+        "duplicate_offer": "Ese empleado ya tiene una oferta pendiente para este turno.",
+        "duplicate_absence": "Ya hay una ausencia registrada para este turno.",
+        "schedule_conflict": "El horario de ese empleado cambió en ese momento. Recarga e intenta de nuevo.",
+        "claim_stale": "Esa solicitud estaba desactualizada y se rechazó.",
+        "claim_not_pending": "Esa solicitud ya se decidió.",
+        "offer_expired": "Esa oferta venció.",
+        "offer_not_pending": "Esa oferta ya fue respondida.",
+        "department_forbidden": "Solo puedes administrar tu propio departamento.",
+        "employee_inactive": "Ese empleado ya no está activo.",
+        "shift_cancelled": "Ese turno fue cancelado.",
+        "leaving_outside_shift": "La hora de salida debe estar dentro del turno.",
+        "leaving_at_required": "Indica a qué hora se va el empleado.",
+        "already_covered": "Ya hay un reemplazo confirmado para este turno.",
+        "assignment_not_found": "Ese turno ya no existe.",
+        "gap_not_found": "Ese turno ya no necesita cobertura.",
+        "duplicate_open_shift": "Este turno ya está publicado como abierto.",
+        "historical_date": "No se puede publicar un turno abierto en una fecha que ya pasó.",
+        "staff_not_found": "Ese empleado no es un miembro activo de este hotel.",
+        "offer_not_withdrawable": "Esa oferta ya no se puede retirar.",
+        "gap_not_waivable": "Este turno ya está resuelto.",
+        "shift_inactive": "Esa plantilla de turno está inactiva.",
+        "coverage_unavailable": "No se guardó nada. Intenta de nuevo.",
+        "signed_out": "Se cerró tu sesión. Inicia sesión de nuevo; no se cambió nada.",
+        "unconfirmed": "No llegó respuesta, así que pudo guardarse o no. Recarga antes de intentar de nuevo.",
+        "forbidden": "No tienes permiso para hacer eso.",
+        "other": "No funcionó. No se cambió nada.",
+        "approved_time_off": "Ese empleado tiene tiempo libre aprobado durante este turno. Volvimos a cargar la lista."
+      },
+      "availability": {
+        "available": "Dentro del horario que indicó",
+        "outside": "Fuera del horario que indicó",
+        "unavailable": "Dijo que no puede trabajar ese día",
+        "unknown": "Disponibilidad desconocida"
+      }
+    },
+    "manage": {
+      "addShift": "Agregar turno",
+      "templatesLink": "Plantillas de turno",
+      "offline": "Sin conexión. Los cambios de horario necesitan conexión.",
+      "form": {
+        "addTitle": "Agregar turno",
+        "editTitle": "Editar turno",
+        "copyTitle": "Copiar turno",
+        "immediate": "Al guardar, el horario cambia de inmediato. Los empleados no reciben aviso automático.",
+        "employee": "Empleado",
+        "chooseEmployee": "Elige un empleado",
+        "allDepartments": "Todos los departamentos",
+        "date": "Fecha",
+        "template": "Turno",
+        "noTemplates": "Aún no hay una plantilla de turno para este departamento. Crea una primero.",
+        "manageTemplates": "Administrar plantillas de turno",
+        "customTimes": "Usar otras horas para este turno",
+        "start": "Inicio",
+        "end": "Fin",
+        "notes": "Notas (opcional)",
+        "notesPlaceholder": "Algo que el equipo deba saber",
+        "recurring": "Repetir cada semana",
+        "repeatOn": "Repetir los días",
+        "until": "Hasta",
+        "recurringLimit": "Hasta {{days}} días a la vez.",
+        "save": "Guardar turno",
+        "saveChanges": "Guardar cambios",
+        "saveAnyway": "Guardar de todos modos",
+        "back": "Atrás",
+        "createCount": "Crear {{count}} turno",
+        "createCount_plural": "Crear {{count}} turnos",
+        "reviewCount": "Revisar {{count}} turno",
+        "reviewCount_plural": "Revisar {{count}} turnos",
+        "checkAndRetry": "Comprobar y guardar de nuevo"
+      },
+      "weekday": {
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb",
+        "sun": "Dom"
+      },
+      "picker": {
+        "title": "Elige un empleado",
+        "search": "Buscar por nombre o puesto",
+        "hint": "Personas que puedes programar. Se muestran sus turnos del {{date}} si tienen alguno.",
+        "nobody": "No hay nadie en tus departamentos para programar.",
+        "noMatch": "Nadie coincide con esa búsqueda.",
+        "already": "Ya programado: {{times}}",
+        "more": "{{count}} más. Afina la búsqueda para encontrarlos."
+      },
+      "formError": {
+        "employee": "Elige un empleado.",
+        "template": "Elige un turno.",
+        "date": "Elige una fecha válida.",
+        "pastDate": "Un turno no puede estar en un día que ya pasó.",
+        "startTime": "Escribe una hora de inicio, como 7:00 AM.",
+        "endTime": "Escribe una hora de fin, como 3:00 PM.",
+        "sameTimes": "El inicio y el fin no pueden ser la misma hora.",
+        "weekdays": "Elige al menos un día de la semana.",
+        "endDate": "El último día no puede ser anterior al primero.",
+        "rangeTooLong": "Es demasiado largo. Programa hasta 42 días a la vez.",
+        "noOccurrences": "Ninguna fecha de ese rango coincide con los días elegidos.",
+        "tooMany": "Eso crearía demasiados turnos a la vez.",
+        "notesTooLong": "La nota es demasiado larga."
+      },
+      "duration": {
+        "hours": "{{hours}} h",
+        "hoursMinutes": "{{hours}} h {{minutes}} min"
+      },
+      "overnight": "Termina al día siguiente",
+      "warning": {
+        "insufficient_rest": "Menos de 8 horas de descanso entre dos turnos.",
+        "weekly_overtime": "Más de 40 horas programadas en una semana.",
+        "long_shift": "Un turno de más de 12 horas.",
+        "past_date": "Un turno en un día que ya pasó.",
+        "employee_department_unknown": "No se pudo confirmar el departamento de este empleado.",
+        "other": "Revisa este horario antes de guardar."
+      },
+      "warningsTitle": "Revisa antes de guardar",
+      "warningsTitle_plural": "Revisa antes de guardar ({{count}})",
+      "conflictDates": "Se superpone en: {{dates}}",
+      "review": {
+        "summary": "{{count}} turno para {{people}} persona",
+        "summary_plural": "{{count}} turnos para {{people}} personas",
+        "existing": "{{count}} ya está en el horario. Se deja como está.",
+        "existing_plural": "{{count}} ya están en el horario. Se dejan como están.",
+        "alreadyThere": "ya programado",
+        "more": "y {{count}} más"
+      },
+      "conflict": {
+        "title": "Alguien más cambió este turno",
+        "body": "No se sobrescribió nada. Carga la versión más reciente, revísala y vuelve a guardar si aún quieres tu cambio.",
+        "changed": "Cambió: {{fields}}",
+        "reload": "Cargar la versión más reciente"
+      },
+      "field": {
+        "employee": "empleado",
+        "date": "fecha",
+        "template": "turno",
+        "startTime": "hora de inicio",
+        "endTime": "hora de fin",
+        "notes": "notas"
+      },
+      "failure": {
+        "version_conflict": {
+          "title": "Cambiado por alguien más",
+          "body": "Este turno cambió desde que lo abriste. No se guardó nada."
+        },
+        "schedule_conflict": {
+          "title": "Turnos superpuestos",
+          "body": "Esta persona ya tiene un turno que se superpone con estas horas. No se guardó nada."
+        },
+        "duplicate": {
+          "title": "Ya programado",
+          "body": "Eso ya existe. No se guardó nada."
+        },
+        "policy_blocked": {
+          "title": "Bloqueado por las reglas del hotel",
+          "body": "Este horario rompe una regla que tu hotel configuró como bloqueante. No se guardó nada."
+        },
+        "locked": {
+          "title": "Los turnos pasados están bloqueados",
+          "body": "Un turno de un día que ya pasó no se puede cambiar."
+        },
+        "attendance": {
+          "title": "Asistencia registrada",
+          "body": "Este turno ya tiene asistencia registrada y no se puede cambiar."
+        },
+        "forbidden": {
+          "title": "No permitido",
+          "body": "Solo puedes administrar los horarios de tu propio departamento."
+        },
+        "not_found": {
+          "title": "No encontrado",
+          "body": "Esa persona, turno o plantilla ya no existe o no está disponible para ti."
+        },
+        "inactive": {
+          "title": "No disponible",
+          "body": "Ese turno o empleado está inactivo y no se puede programar."
+        },
+        "department": {
+          "title": "Departamento incorrecto",
+          "body": "Ese empleado no trabaja en el departamento de este turno."
+        },
+        "invalid": {
+          "title": "Revisa los datos",
+          "body": "Algunos datos no son válidos. Revisa las horas e inténtalo de nuevo."
+        },
+        "signed_out": {
+          "title": "Sesión cerrada",
+          "body": "Tu sesión terminó. Inicia sesión de nuevo y reintenta."
+        },
+        "unconfirmed": {
+          "title": "No se pudo confirmar",
+          "body": "No llegó respuesta, así que el cambio pudo o no haberse guardado. Guardar de nuevo es seguro. No creará un duplicado."
+        },
+        "unknown": {
+          "title": "No se pudo guardar",
+          "body": "Algo salió mal. No se cambió nada."
+        }
+      },
+      "saved": {
+        "created": "Turno guardado. Ya está en el horario.",
+        "created_plural": "{{count}} turnos guardados. Ya están en el horario.",
+        "updated": "Turno actualizado. El cambio ya está en el horario.",
+        "alreadySaved": "Tu cambio ya estaba guardado.",
+        "alreadyThere": "Ya estaba en el horario. No se agregó nada nuevo.",
+        "withWarnings": "{{count}} cosa por revisar.",
+        "withWarnings_plural": "{{count}} cosas por revisar.",
+        "gone": "Alguien más eliminó ese turno."
+      },
+      "detail": {
+        "scheduled": "Programado",
+        "shift": "Turno",
+        "department": "Departamento",
+        "role": "Puesto",
+        "schedule": "Estado del horario",
+        "draft": "Borrador",
+        "published": "En el horario",
+        "updated": "Último cambio",
+        "notes": "Notas",
+        "timeline": "Cronología",
+        "loading": "Cargando los detalles…",
+        "loadFailed": "No se pudieron cargar los detalles de asistencia. Actualiza el horario y abre este turno de nuevo.",
+        "rooms": "Trabajo de habitaciones",
+        "roomsCount": "{{count}} habitación asignada",
+        "roomsCount_plural": "{{count}} habitaciones asignadas",
+        "roomsUnavailable": "No se pudieron cargar las asignaciones de habitaciones.",
+        "notEditableData": "Este turno no está cargado. Actualiza el horario.",
+        "pastLocked": "Un turno de un día que ya pasó no se puede cambiar.",
+        "attendanceLocked": "Este turno tiene asistencia registrada y no se puede cambiar.",
+        "checking": "Comprobando si este turno se puede cambiar…"
+      },
+      "timeline": {
+        "scheduled": "Programado para empezar {{time}}",
+        "started": "El turno empezó {{time}}",
+        "ended": "El turno terminó {{time}}",
+        "onBreakSince": "En descanso desde {{time}}",
+        "breakTotal": "Tiempo de descanso: {{minutes}} min",
+        "note": {
+          "future": "Este turno no ha empezado, así que aún no hay asistencia.",
+          "unverified": "No se pudo verificar la asistencia en este momento.",
+          "none": "No hay registro de entrada para este día. Eso no significa que haya faltado.",
+          "recorded": "Según el reloj de turno."
+        }
+      },
+      "action": {
+        "edit": "Editar turno",
+        "editHint": "Cambia la fecha, la hora, el turno o las notas.",
+        "reassign": "Reasignar turno",
+        "reassignHint": "Da este turno a otra persona.",
+        "copy": "Copiar turno",
+        "copyHint": "Empieza un turno nuevo a partir de este.",
+        "message": "Enviar mensaje",
+        "messageHint": "Envíale un mensaje en la app.",
+        "cancel": "Cancelar turno",
+        "cancelHint": "Quita este turno del horario."
+      },
+      "cancel": {
+        "title": "¿Cancelar este turno?",
+        "message": "El turno de {{name}} ({{window}}, {{date}}) se quitará del horario de inmediato. Los empleados no reciben aviso automático.",
+        "keep": "Conservar turno",
+        "confirm": "Cancelar turno",
+        "working": "Cancelando…",
+        "changed": "Este turno cambió antes de poder cancelarse. No se quitó. Revísalo e inténtalo de nuevo.",
+        "unconfirmed": "No llegó respuesta, así que el turno pudo o no haberse cancelado. Se actualizó el horario. Revísalo antes de intentarlo de nuevo.",
+        "failed": {
+          "locked": "Un turno de un día que ya pasó no se puede cancelar aquí.",
+          "attendance": "Este turno tiene asistencia registrada y no se puede cancelar.",
+          "forbidden": "Solo puedes administrar los horarios de tu propio departamento.",
+          "other": "No se pudo cancelar el turno. No se cambió nada."
+        }
+      },
+      "templates": {
+        "title": "Plantillas de turno",
+        "new": "Nueva plantilla",
+        "loading": "Cargando plantillas de turno…",
+        "loadFailed": "No se pudieron cargar las plantillas de turno.",
+        "refreshFailed": "No se pudo actualizar. Se muestra la última lista cargada.",
+        "unreadable": "No se pudo leer {{count}} plantilla.",
+        "unreadable_plural": "No se pudieron leer {{count}} plantillas.",
+        "showArchived": "Mostrar plantillas archivadas",
+        "emptyTitle": "Aún no hay plantillas de turno",
+        "emptyBody": "Crea una plantilla por cada patrón de turno que uses, como Mañana o Nocturno.",
+        "edit": "Editar {{name}}",
+        "status": {
+          "active": "Activa",
+          "inactive": "Inactiva",
+          "archived": "Archivada"
+        },
+        "createTitle": "Nueva plantilla de turno",
+        "editTitle": "Editar plantilla de turno",
+        "create": "Crear plantilla",
+        "name": "Nombre",
+        "namePlaceholder": "Turno de mañana",
+        "nameRequired": "Ponle un nombre a la plantilla.",
+        "department": "Departamento",
+        "departmentRequired": "Elige un departamento.",
+        "noDepartments": "No se pudieron cargar tus departamentos, así que todavía no se puede crear una plantilla.",
+        "overnightHint": "Una hora de fin anterior al inicio significa que el turno termina al día siguiente.",
+        "active": "Activa (se puede programar)",
+        "onlyNew": "Una plantilla es un patrón para turnos nuevos. Los turnos ya programados conservan sus propias horas.",
+        "usage": "La usan {{upcoming}} turnos próximos y {{past}} pasados. No cambiarán.",
+        "usageFailed": "No se pudo cargar cuántos turnos usan esta plantilla.",
+        "usageLoading": "Comprobando qué turnos usan esta plantilla…",
+        "archive": "Archivar plantilla",
+        "archiveTitle": "¿Archivar {{name}}?",
+        "archiveMessage": "Ya no se podrá programar. La usan {{upcoming}} turnos próximos y {{past}} pasados. Siguen en el horario sin cambios.",
+        "archiveMessageUnknown": "Ya no se podrá programar. Los turnos ya programados siguen en el horario sin cambios. No se pudo comprobar cuántos la usan."
+      }
+    },
+    "departments": {
+      "HK": "Limpieza",
+      "ENG": "Ingeniería",
+      "FD": "Recepción",
+      "FO": "Recepción",
+      "MGMT": "Gerencia",
+      "GM": "Gerencia"
+    },
+    "availability": {
+      "title": "Disponibilidad del equipo",
+      "kicker": "Horario del equipo",
+      "note": "Lo que cada persona dice que puede trabajar. No es asistencia ni tiempo libre aprobado. Un día en blanco significa que no se envió nada, no que la persona esté libre.",
+      "search": "Buscar por nombre",
+      "filters": {
+        "all": "Todos",
+        "submitted": "Enviada",
+        "none": "Sin enviar",
+        "stale": "Sin actualizar"
+      },
+      "count": "{{shown}} de {{total}} personas",
+      "empty": {
+        "title": "Nadie que mostrar",
+        "body": "Nadie de tus departamentos coincide con este filtro.",
+        "clear": "Mostrar a todos"
+      },
+      "notSubmitted": "No ha enviado nada",
+      "fresh": {
+        "current": "Actualizada el {{date}}",
+        "stale": "Última actualización el {{date}}. Puede estar desactualizada.",
+        "none": "Aún no ha enviado nada"
+      },
+      "exceptionsCount": "{{count}} excepciones de fecha",
+      "leaveSoon": "Tiempo libre: {{range}} ({{status}})",
+      "open": "Abrir la disponibilidad de {{name}}",
+      "week": "Semana habitual",
+      "upcoming": "A partir del {{date}}",
+      "exceptions": "Excepciones de fecha",
+      "noExceptions": "No hay excepciones de fecha próximas.",
+      "leave": "Solicitudes de tiempo libre",
+      "noLeave": "No hay solicitudes de tiempo libre próximas.",
+      "clash": {
+        "title": "Turnos que no coinciden con esta disponibilidad",
+        "body": "Estos turnos siguen programados. La disponibilidad nunca cambia un turno; revisa cada uno en el Horario del equipo.",
+        "unavailable": "Marcó ese día como no disponible",
+        "outside": "Fuera del horario indicado"
+      },
+      "day": {
+        "long": {
+          "0": "Lunes",
+          "1": "Martes",
+          "2": "Miércoles",
+          "3": "Jueves",
+          "4": "Viernes",
+          "5": "Sábado",
+          "6": "Domingo"
+        },
+        "short": {
+          "0": "Lun",
+          "1": "Mar",
+          "2": "Mié",
+          "3": "Jue",
+          "4": "Vie",
+          "5": "Sáb",
+          "6": "Dom"
+        }
+      },
+      "state": {
+        "available": "Disponible",
+        "unavailable": "No disponible",
+        "unset": "Sin enviar"
+      },
+      "window": "{{start}} – {{end}}",
+      "windowNextDay": "{{start}} – {{end}} (día siguiente)",
+      "allDay": "Todo el día",
+      "unavailableOn": "No disponible el {{date}}",
+      "availableOn": "Solo {{windows}} el {{date}}"
+    },
+    "requests": {
+      "title": "Solicitudes",
+      "kicker": "Horario del equipo",
+      "waiting": "{{count}} esperan tu decisión",
+      "nothingWaiting": "Nada espera tu decisión",
+      "search": "Buscar por nombre",
+      "filter": {
+        "pending": "Pendientes",
+        "approved": "Aprobadas",
+        "denied": "Denegadas",
+        "all": "Todas"
+      },
+      "type": {
+        "all": "Todas las solicitudes",
+        "time_off": "Tiempo libre",
+        "shift_swap": "Cambios de turno"
+      },
+      "dateRange": "Fechas",
+      "dateAny": "Cualquier fecha",
+      "dateFrom": "Desde el {{date}}",
+      "dateTo": "Hasta el {{date}}",
+      "clearDates": "Cualquier fecha",
+      "empty": {
+        "pending": {
+          "title": "Todo al día",
+          "body": "Ninguna solicitud espera una decisión."
+        },
+        "approved": {
+          "title": "Nada aprobado",
+          "body": "Ninguna solicitud aprobada coincide con estos filtros."
+        },
+        "denied": {
+          "title": "Nada denegado",
+          "body": "Ninguna solicitud denegada coincide con estos filtros."
+        },
+        "all": {
+          "title": "Sin solicitudes",
+          "body": "Ninguna solicitud coincide con estos filtros."
+        }
+      },
+      "loadFailed": "No pudimos cargar las solicitudes.",
+      "someUnreadable": "No se pudieron mostrar {{count}} solicitudes.",
+      "truncated": "Solo se muestran las solicitudes más recientes.",
+      "offline": "Estás sin conexión. Las solicitudes pueden estar desactualizadas y las decisiones quedan en pausa hasta que vuelvas a conectarte.",
+      "card": {
+        "submitted": "Enviada el {{date}}",
+        "timeOff": "Tiempo libre",
+        "swap": "Cambio de turno",
+        "partialDay": "{{start}} – {{end}}",
+        "swapWith": "con {{name}}",
+        "impactNone": "Sin turnos programados en estas fechas",
+        "impactSome": "{{count}} turno(s) programado(s) en estas fechas",
+        "impactUnknown": "No se pudo revisar el efecto en el horario",
+        "review": "Revisar",
+        "open": "Abrir solicitud de {{name}}"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobada",
+        "denied": "Denegada",
+        "cancelled": "Cancelada",
+        "proposed": "Esperando al compañero",
+        "accepted": "Esperando al supervisor",
+        "declined": "Rechazada",
+        "expired": "Vencida"
+      },
+      "reason": {
+        "vacation": "Vacaciones",
+        "personal": "Personal",
+        "family": "Familia",
+        "appointment": "Cita",
+        "health": "Salud",
+        "other": "Otro"
+      },
+      "detail": {
+        "title": "Solicitud",
+        "close": "Cerrar",
+        "employee": "Empleado",
+        "type": "Tipo",
+        "dates": "Fechas",
+        "reason": "Motivo",
+        "note": "Nota del empleado",
+        "noNote": "Sin nota",
+        "submitted": "Enviada",
+        "status": "Estado",
+        "decisionBy": "Decidida por {{name}}",
+        "decisionReason": "Motivo indicado",
+        "cancelReason": "Motivo de la cancelación",
+        "impact": "Efecto en el horario",
+        "impactOk": "Esta persona no tiene turnos programados en estas fechas.",
+        "impactUnknown": "No se pudo leer el horario, así que el efecto se desconoce.",
+        "impactBody": "{{count}} turno(s) programado(s) caen dentro de estas fechas.",
+        "impactApproved": "Aprobar no quita ni mueve estos turnos. Resuelve cada uno en el Horario del equipo o en Buscar cobertura.",
+        "impactPending": "Si apruebas, estos turnos seguirán en el horario hasta que los resuelvas.",
+        "overlapFull": "Todo el turno cae dentro del tiempo libre",
+        "overlapPartial": "Parte del turno cae dentro del tiempo libre",
+        "coverageOpen": "Hueco abierto: aún sin cubrir",
+        "coverageOffered": "Ofrecido: esperando respuesta",
+        "coverageFilled": "Cubierto por {{name}}",
+        "coverageFilledUnknown": "Cubierto por otra persona",
+        "coverageWaived": "Se decidió no cubrirlo",
+        "unresolved": "{{count}} turno(s) aún necesitan una decisión",
+        "allResolved": "Todos los turnos de estas fechas se cubrieron o se cerraron.",
+        "openShift": "Turno abierto",
+        "timeline": "Historial",
+        "noTimeline": "Aún no hay historial.",
+        "timelineEvent": "{{action}}",
+        "reloaded": "Volvimos a cargar esta solicitud. Revísala y decide de nuevo.",
+        "approve": "Aprobar",
+        "deny": "Denegar",
+        "denyReason": "Motivo de la denegación",
+        "denyReasonHint": "El empleado verá este motivo.",
+        "confirmDeny": "Denegar solicitud",
+        "back": "Volver",
+        "cancelApproved": "Cancelar tiempo libre aprobado",
+        "confirmCancel": "Cancelar tiempo libre",
+        "withdraw": "Retirar solicitud",
+        "withdrawn": "Solicitud retirada.",
+        "approvedNotice": "Aprobada. La decisión quedó registrada.",
+        "followUpTitle": "Aprobada. Aún hay turnos que atender",
+        "followUpBody": "{{count}} turno(s) de esta persona caen dentro de estas fechas. Aprobar no los cambió.",
+        "followUpOpen": "Abrir Horario del equipo",
+        "deniedNotice": "Denegada. El empleado verá tu motivo.",
+        "cancelledNotice": "Cancelada. Los turnos que se cubrieron o cerraron mientras estuvo aprobada no se restauraron.",
+        "cancelReview": "{{count}} turno(s) se cubrieron o cerraron mientras estuvo aprobada. No se restauró nada automáticamente."
+      },
+      "swap": {
+        "title": "Cambio de turno",
+        "gives": "Cede",
+        "receives": "Toma",
+        "exchange": "{{from}} cede este turno y toma el otro.",
+        "shiftLine": "{{date}} · {{shift}} · {{window}}",
+        "roles": "Puestos",
+        "sameDepartment": "Mismo departamento",
+        "checks": "Revisión en este momento",
+        "checksOk": "Ambos horarios siguen funcionando después del cambio.",
+        "blockers": "No puede continuar",
+        "warnings": "Para revisar",
+        "acknowledge": "Revisé estas advertencias y aun así quiero aprobar.",
+        "approve": "Aprobar cambio",
+        "approveNote": "Aprobar intercambia ambos turnos a la vez. No cambia nada hasta que apruebes.",
+        "deny": "Denegar cambio",
+        "denyReason": "Motivo de la denegación",
+        "confirmDeny": "Denegar cambio",
+        "accept": "Aceptar cambio",
+        "decline": "Rechazar",
+        "cancel": "Cancelar cambio",
+        "cancelReason": "Motivo (opcional)",
+        "acceptNote": "Aceptar no cambia tu horario. Un supervisor todavía tiene que aprobar el cambio.",
+        "waitingCoworker": "Esperando la respuesta de {{name}}.",
+        "waitingSupervisor": "Aceptado. Un supervisor aún debe aprobarlo; todavía no cambió nada en el horario.",
+        "approvedNotice": "Se intercambiaron ambos turnos.",
+        "expires": "Responde antes de {{time}}",
+        "responseNote": "Su nota",
+        "yourNote": "Tu nota",
+        "thisWillMove": "Después de aprobar, {{name}} trabajará: {{shift}}"
+      },
+      "finding": {
+        "approved_time_off": "Tiempo libre aprobado durante ese turno",
+        "overlapping_shift": "Ya trabaja durante ese turno",
+        "shift_changed": "Un turno cambió después de acordar el cambio",
+        "employee_inactive": "Un empleado ya no está activo",
+        "shifts_overlap": "Los dos turnos se traslapan entre sí",
+        "different_departments": "Los turnos son de departamentos distintos",
+        "same_person": "Ambos turnos son de la misma persona",
+        "shift_too_soon": "Un turno empieza demasiado pronto para cambiarlo",
+        "shift_not_published": "Un turno no está publicado",
+        "shift_has_attendance": "Un turno ya tiene asistencia",
+        "shift_times_unknown": "No se conocen las horas de un turno",
+        "insufficient_rest": "Poco descanso entre turnos",
+        "weekly_overtime": "Podría superar el límite semanal de horas",
+        "long_shift": "Un turno largo",
+        "marked_unavailable": "Dijo que no puede trabajar ese día",
+        "outside_availability": "Fuera del horario que indicó",
+        "pending_time_off": "Tiene tiempo libre solicitado en esas horas",
+        "past_date": "Esta fecha ya pasó",
+        "other": "Necesita revisión"
+      },
+      "failure": {
+        "signed_out": "Tu sesión terminó. Inicia sesión de nuevo.",
+        "unconfirmed": "No pudimos confirmarlo. Revisa la solicitud antes de intentarlo otra vez.",
+        "forbidden": "No puedes hacer eso.",
+        "not_found": "No encontramos esa solicitud.",
+        "conflict": "Alguien más cambió esto. Lo volvimos a cargar.",
+        "invalid": "Revisa lo que escribiste e inténtalo de nuevo.",
+        "version_conflict": "Alguien más cambió esto. Lo volvimos a cargar; revisa y decide de nuevo.",
+        "request_not_pending": "Esta solicitud ya se decidió. La volvimos a cargar.",
+        "request_not_cancellable": "Esta solicitud ya no se puede cancelar.",
+        "request_not_found": "No encontramos esa solicitud.",
+        "leave_overlap": "Esto se traslapa con tiempo libre ya solicitado o aprobado.",
+        "leave_over": "Ese tiempo libre ya pasó.",
+        "reason_required": "Primero escribe un motivo.",
+        "cannot_decide_own": "No puedes decidir tu propia solicitud.",
+        "not_active_staff": "Solo el personal activo puede enviar esta solicitud.",
+        "swap_not_found": "No encontramos ese cambio.",
+        "swap_not_approvable": "Este cambio ya no espera a un supervisor. Lo volvimos a cargar.",
+        "swap_not_cancellable": "Este cambio ya no se puede cancelar.",
+        "swap_not_proposed": "Este cambio ya fue respondido.",
+        "swap_expired": "Esta solicitud de cambio venció.",
+        "swap_invalid": "Estos dos turnos no se pueden intercambiar ahora.",
+        "shift_changed": "Uno de los turnos cambió después de que ambos aceptaron. Inicia un cambio nuevo.",
+        "shift_missing": "Uno de los turnos ya no existe.",
+        "shift_started": "Uno de los turnos ya empezó.",
+        "employee_inactive": "Un empleado ya no está activo.",
+        "different_departments": "Los turnos son de departamentos distintos.",
+        "shifts_overlap": "Los dos turnos se traslapan entre sí.",
+        "shift_has_callout": "Un turno con aviso de ausencia no se puede cambiar. Resuelve primero la cobertura.",
+        "shift_in_live_swap": "Uno de estos turnos ya está en otro cambio.",
+        "approved_time_off": "Alguien tiene tiempo libre aprobado durante un turno que tomaría.",
+        "warnings_need_acknowledgement": "Revisa las advertencias y confirma primero.",
+        "not_counterpart": "Solo el compañero a quien se lo pidieron puede responder.",
+        "assignment_not_found": "No encontramos ese turno.",
+        "schedule_conflict": "Un horario cambió en el mismo momento. Vuelve a cargar e inténtalo de nuevo.",
+        "end_before_start": "La fecha final es anterior a la inicial.",
+        "dates_in_past": "Ese tiempo libre ya terminó.",
+        "range_too_long": "El tiempo libre puede abarcar máximo 60 días por solicitud.",
+        "partial_must_be_one_day": "Un día parcial abarca una sola fecha.",
+        "invalid_partial_times": "Elige horas de inicio y fin distintas.",
+        "times_need_partial": "Las horas solo aplican a un día parcial.",
+        "availability_changed": "Tu disponibilidad cambió en otro dispositivo. La volvimos a cargar.",
+        "exception_exists": "Ya tienes una excepción para esa fecha. Quítala primero.",
+        "availability_not_found": "No encontramos esa disponibilidad.",
+        "availability_not_active": "Esa disponibilidad ya se quitó.",
+        "effective_in_past": "La disponibilidad solo puede empezar hoy o después.",
+        "date_in_past": "Elige hoy o una fecha posterior.",
+        "windows_required": "Agrega las horas de este día.",
+        "windows_overlap": "Los horarios de un mismo día no pueden traslaparse.",
+        "too_many_windows": "Máximo 4 horarios por día.",
+        "windows_not_allowed": "Un día no disponible no tiene horas.",
+        "duplicate_weekday": "Cada día de la semana puede aparecer una vez.",
+        "other": "Algo salió mal. Inténtalo de nuevo.",
+        "offer_expired": "Esta oferta venció.",
+        "offer_not_pending": "Esta oferta ya se respondió o se retiró.",
+        "offer_not_found": "Esta oferta ya no está disponible.",
+        "gap_not_fillable": "Este turno se cubrió o se cerró antes de tu respuesta.",
+        "candidate_ineligible": "No puedes tomar este turno ahora (por ejemplo, se superpone con otro turno o con tiempo libre aprobado).",
+        "claim_stale": "Este turno se cubrió o se cerró.",
+        "duplicate_claim": "Ya solicitaste este turno.",
+        "gap_not_found": "Este turno ya no está abierto.",
+        "claim_not_pending": "Esta solicitud ya se resolvió.",
+        "claim_not_found": "Esta solicitud ya no está disponible.",
+        "gap_filled": "Este turno ya se cubrió."
+      },
+      "range": {
+        "all": "Cualquier fecha",
+        "week": "Esta semana",
+        "month": "Próximos 30 días"
+      },
+      "event": {
+        "created": "Solicitud enviada",
+        "approved": "Aprobada",
+        "denied": "Denegada",
+        "cancelled": "Cancelada",
+        "proposed": "Cambio propuesto",
+        "accepted": "Aceptado por el compañero",
+        "declined": "Rechazado por el compañero",
+        "expired": "Vencida",
+        "swapped": "Turnos intercambiados"
+      }
+    },
+    "forecast": {
+      "title": "Pronóstico de personal",
+      "kicker": "AMA DE LLAVES",
+      "unavailable": "No disponible",
+      "updated": "Actualizado {{time}}",
+      "stale": "Última actualización {{time}}. Este pronóstico puede estar desactualizado. Desliza hacia abajo para actualizar.",
+      "offlineStale": "Sin conexión. Este pronóstico se actualizó por última vez a las {{time}} y puede estar desactualizado.",
+      "noData": "No hay pronóstico disponible para hoy.",
+      "unreadableDays": "No se pudo leer un día del pronóstico.",
+      "unreadableDays_plural": "No se pudieron leer {{count}} días del pronóstico.",
+      "weekShort": "déficit de personal proyectado",
+      "roomsCount": "{{count}} habitación",
+      "roomsCount_plural": "{{count}} habitaciones",
+      "peopleCount": "{{count}} persona",
+      "peopleCount_plural": "{{count}} personas",
+      "duration": {
+        "hm": "{{h}} h {{m}} min",
+        "h": "{{h}} h",
+        "m": "{{m}} min"
+      },
+      "quality": {
+        "estimated": "Estimado con tu horario y los estándares de habitación",
+        "partial": "Datos parciales: faltan algunos datos",
+        "unavailable": "No hay datos suficientes para evaluar"
+      },
+      "qualityShort": {
+        "estimated": "Estimado",
+        "partial": "Datos parciales",
+        "unavailable": "Datos insuficientes"
+      },
+      "hero": {
+        "short": {
+          "title": "Déficit de personal proyectado",
+          "body": "Unos {{duration}} de trabajo de limpieza no están cubiertos por la mano de obra programada.",
+          "bodyMin": "Al menos {{duration}} de trabajo de limpieza no están cubiertos por la mano de obra programada."
+        },
+        "sufficient": {
+          "title": "La cobertura parece suficiente",
+          "body": "{{capacity}} de mano de obra programada para unos {{demand}} de trabajo de limpieza.",
+          "bodyPlain": "La mano de obra programada parece cubrir el trabajo de limpieza identificado."
+        },
+        "unknown": {
+          "title": "No se puede evaluar la cobertura"
+        }
+      },
+      "metrics": {
+        "demand": "Trabajo de limpieza estimado",
+        "demandMinimum": "Al menos esto: parte del trabajo no se pudo calcular.",
+        "capacity": "Mano de obra productiva programada",
+        "capacityNow": "Desde ahora hasta el final de cada turno",
+        "capacityDay": "Turnos programados completos",
+        "gap": "Déficit proyectado",
+        "gapShort": "Faltan {{duration}}",
+        "gapSpare": "Sobran {{duration}}",
+        "gapMinimum": "Faltan al menos esto.",
+        "rooms": "Habitaciones por limpiar",
+        "staff": "Camareras programadas"
+      },
+      "outlook": {
+        "title": "Próximos 7 días",
+        "short": "Déficit proyectado",
+        "sufficient": "Suficiente (proyectado)",
+        "unknown": "Datos insuficientes",
+        "demandLine": "{{duration}} de trabajo",
+        "noDemand": "Carga de trabajo no disponible",
+        "capacityLine": "{{duration}} programadas",
+        "gap": "faltan {{duration}}",
+        "gapMin": "faltan al menos {{duration}}",
+        "openShifts": "{{count}} turno abierto",
+        "openShifts_plural": "{{count}} turnos abiertos"
+      },
+      "breakdown": {
+        "title": "Dónde está el trabajo",
+        "departure": "Salidas",
+        "stayover": "Estancias",
+        "vacant_dirty": "Vacías sucias",
+        "other": "Otra limpieza",
+        "unestimated": "{{count}} habitación no tiene tiempo de limpieza definido, por eso no se cuenta.",
+        "unestimated_plural": "{{count}} habitaciones no tienen tiempo de limpieza definido, por eso no se cuentan.",
+        "declined": "{{count}} habitación rechazó el servicio y no se cuenta.",
+        "declined_plural": "{{count}} habitaciones rechazaron el servicio y no se cuentan."
+      },
+      "reasons": {
+        "unknown": "Este día no se puede evaluar con la información disponible.",
+        "pms_not_connected": "Las llegadas y salidas futuras no están conectadas, así que no se puede evaluar el trabajo de limpieza de este día.",
+        "future_demand_unavailable": "Todavía no hay una fuente confiable del trabajo de limpieza de este día.",
+        "room_board_unreadable": "No se pudo leer el estado de las habitaciones de hoy.",
+        "unestimated_rooms": "Algunas habitaciones no tienen tiempo de limpieza definido, así que el total es un mínimo.",
+        "capacity_unavailable": "No se pudo leer la mano de obra programada.",
+        "absences_unreadable": "No se pudieron leer las ausencias, así que no se puede confiar en la mano de obra programada.",
+        "leave_unreadable": "No se pudo leer el tiempo libre, así que no se puede confiar en la mano de obra programada.",
+        "demand_incomplete": "Parte del trabajo de limpieza no se pudo calcular."
+      },
+      "limitations": {
+        "later_departures_unknown": "No se incluyen las salidas que todavía no han ocurrido.",
+        "learned_estimates_unavailable": "Los tiempos de limpieza usan los estándares de tu tipo de habitación; los tiempos aprendidos no estaban disponibles.",
+        "pending_callouts": "Una ausencia aún no está confirmada, así que su turno se sigue contando.",
+        "unknown_department_shifts": "Algunos turnos son de personas sin departamento y no se cuentan.",
+        "pending_leave": "Las solicitudes de tiempo libre pendientes podrían reducir la mano de obra programada."
+      },
+      "assumptions": {
+        "noBreakPolicy": "Minutos de turno pagados. No hay política de descansos, así que no se descuentan.",
+        "scenarioBreaks": "Minutos de turno pagados menos un descanso hipotético por turno. No se guarda nada."
+      },
+      "sources": {
+        "room_board": "Las habitaciones de hoy vienen del tablero en vivo, calculadas con los estándares de limpieza de tu propiedad.",
+        "scheduled_shifts": "La mano de obra viene de los turnos publicados, menos las ausencias confirmadas y el tiempo libre aprobado.",
+        "future_demand": "Todavía no hay una fuente para el trabajo de limpieza futuro.",
+        "unknown": "Una fuente que esta app no describe.",
+        "stale": "Última actualización {{time}}."
+      },
+      "drawer": {
+        "subtitle": "Cómo se calculó este pronóstico",
+        "comparison": "Trabajo frente a mano de obra",
+        "demand": "Trabajo de limpieza",
+        "capacity": "Mano de obra programada",
+        "difference": "Diferencia",
+        "quality": "Calidad de los datos",
+        "laborTitle": "Mano de obra programada",
+        "people": "Camareras programadas",
+        "callouts": "Ausencias confirmadas",
+        "replacements": "Reemplazos confirmados",
+        "leave": "Turnos acortados por tiempo libre aprobado",
+        "drafts": "Turnos en borrador (no se cuentan)",
+        "currentVerified": "{{working}} de {{scheduled}} programadas han registrado su entrada ahora.",
+        "currentUnverified": "No se pudo verificar el registro de entrada, así que se muestra el plan sin él.",
+        "limitations": "Lo que esto no cubre",
+        "sources": "De dónde vienen estos números"
+      },
+      "rec": {
+        "title": "Qué revisar",
+        "basisVerified": "De tus registros",
+        "basisEstimate": "Estimado",
+        "aShift": "Un turno",
+        "uncovered_shift": {
+          "title": "{{shift}} no tiene a nadie asignado",
+          "why": "Una ausencia o un turno abierto lo dejó sin cubrir, y la mano de obra programada no lo incluye."
+        },
+        "unresolved_callout": {
+          "title": "{{count}} ausencia sin confirmar",
+          "title_plural": "{{count}} ausencias sin confirmar",
+          "why": "Una ausencia sin confirmar aún cuenta como mano de obra programada, así que el pronóstico puede ser demasiado optimista."
+        },
+        "shortfall": {
+          "title": "Falta mano de obra programada",
+          "titleShifts": "Agrega unos {{count}} turno más",
+          "titleShifts_plural": "Agrega unos {{count}} turnos más",
+          "why": "El trabajo de limpieza estimado supera el tiempo productivo programado. Es una estimación, no un requisito.",
+          "whyMin": "El trabajo de limpieza ya calculado supera el tiempo productivo programado, y parte del trabajo no se pudo calcular, así que el déficit real puede ser mayor."
+        },
+        "leave_conflict": {
+          "title": "{{count}} turno coincide con tiempo libre aprobado",
+          "title_plural": "{{count}} turnos coinciden con tiempo libre aprobado",
+          "why": "El tiempo libre aprobado quita esas horas del pronóstico, pero los turnos siguen en el horario."
+        },
+        "missing_estimates": {
+          "title": "{{count}} habitación sin tiempo de limpieza",
+          "title_plural": "{{count}} habitaciones sin tiempo de limpieza",
+          "why": "Sin un tiempo de limpieza para el tipo de habitación no se pueden calcular, así que el total es un mínimo. Define los tiempos por tipo de habitación en Configuración en la web."
+        },
+        "unassigned_rooms": {
+          "title": "{{count}} habitación sin asignar",
+          "title_plural": "{{count}} habitaciones sin asignar",
+          "why": "Estas habitaciones aún necesitan limpieza hoy y nadie las tiene asignadas."
+        },
+        "pending_leave": {
+          "title": "{{count}} turno coincide con tiempo libre pendiente",
+          "title_plural": "{{count}} turnos coinciden con tiempo libre pendiente",
+          "why": "Si se aprueban estas solicitudes, la mano de obra programada baja."
+        }
+      },
+      "actions": {
+        "find_coverage": "Buscar cobertura",
+        "add_shift": "Agregar turno",
+        "view_week": "Ver horario de la semana",
+        "review_time_off": "Revisar tiempo libre",
+        "view_assignments": "Ver asignaciones"
+      },
+      "card": {
+        "notAssessed": "Cobertura sin evaluar",
+        "unreadable": "No se pudo cargar el pronóstico de personal.",
+        "scheduledOnly": "Hay {{duration}} de mano de obra programada.",
+        "view": "Ver pronóstico",
+        "viewDay": "Ver detalles del día"
+      }
+    },
+    "publish": {
+      "mark": {
+        "new": "Turno nuevo propuesto",
+        "changed": "Cambio propuesto",
+        "cancelled": "Cancelación propuesta"
+      },
+      "saveToDraft": "Guardar en borrador",
+      "addCountToDraft": "Agregar {{count}} turno al borrador",
+      "addCountToDraft_plural": "Agregar {{count}} turnos al borrador",
+      "saved": {
+        "drafted": "Agregado al borrador. El personal no lo verá hasta que publiques.",
+        "drafted_plural": "Se agregaron {{count}} turnos al borrador. El personal no los verá hasta que publiques."
+      },
+      "cancel": {
+        "title": "¿Quitar este turno?",
+        "message": "El turno de {{name}} ({{window}}) del {{date}} se marcará para quitarse en el borrador. Sigue en el horario publicado hasta que publiques.",
+        "confirm": "Agregar la baja al borrador"
+      },
+      "title": "Publicar horario",
+      "doneTitle": "Horario publicado",
+      "loading": "Revisando el borrador…",
+      "reviewFailed": "No se pudo revisar el borrador. No se publicó nada.",
+      "publishing": "Publicando…",
+      "unconfirmed": "El servidor no respondió, así que no sabemos si el horario se publicó. Vuelve a comprobarlo antes de hacer otra cosa: comprobar nunca lo publica dos veces.",
+      "checkAgain": "Comprobar de nuevo",
+      "reviewAgain": "Revisar el borrador de nuevo",
+      "viewPublished": "Ver horario publicado",
+      "viewDetails": "Ver detalles de la publicación",
+      "publishCount": "Publicar {{count}} cambio",
+      "publishCount_plural": "Publicar {{count}} cambios",
+      "done": "Publicación exitosa",
+      "dateRange": "Fechas",
+      "employees": "Empleados afectados",
+      "shifts": "Turnos",
+      "counts": "{{created}} nuevos, {{updated}} modificados, {{cancelled}} cancelados",
+      "publishedAt": "Publicado",
+      "status": {
+        "draft": "Borrador",
+        "published": "Publicado",
+        "superseded": "Reemplazado por una corrección",
+        "discarded": "Descartado"
+      },
+      "tile": {
+        "new": "Turnos nuevos",
+        "modified": "Modificados",
+        "cancelled": "Cancelados",
+        "reassigned": "Reasignados",
+        "employees": "Empleados afectados"
+      },
+      "blocking": "{{count}} problema por resolver antes de publicar",
+      "blocking_plural": "{{count}} problemas por resolver antes de publicar",
+      "warnings": "{{count}} aviso a tener en cuenta",
+      "warnings_plural": "{{count}} avisos a tener en cuenta",
+      "impactTitle": "{{count}} empleado verá cambios",
+      "impactTitle_plural": "{{count}} empleados verán cambios",
+      "showAll": "Mostrar {{count}} más",
+      "forecast": {
+        "available": "El efecto proyectado en el personal se muestra en la pantalla de Pronóstico de personal después de publicar.",
+        "unavailable": "No hay proyección de personal para estas fechas: aún no hay datos fiables de demanda para días futuros, así que se desconoce el efecto de este borrador."
+      },
+      "confirmText": "Entiendo que esto publica {{changes}} en el horario y avisa a {{employees}}.",
+      "offline": "Sin conexión. Vuelve a conectarte para publicar.",
+      "failure": {
+        "blocked": "Este borrador tiene problemas que deben resolverse antes de publicarlo. No se publicó nada.",
+        "draft_changed": "El borrador cambió después de revisarlo. No se publicó nada; revísalo de nuevo.",
+        "stale": "Un turno cambió después de crear este borrador. No se publicó nada; revisa el borrador de nuevo.",
+        "already_published": "Este borrador ya se publicó.",
+        "closed": "Este borrador se descartó o se reemplazó, así que no se puede publicar.",
+        "attendance": "Un turno de este borrador ya tiene asistencia registrada. No se publicó nada.",
+        "locked": "Un cambio de este borrador tiene fecha pasada. No se publicó nada.",
+        "commitment": "Un turno de este borrador tiene una ausencia en curso. Resuélvela primero. No se publicó nada.",
+        "leave": "Alguien en este borrador tiene tiempo libre aprobado durante un turno. No se publicó nada.",
+        "conflict": "Publicar dejaría a alguien con turnos superpuestos. No se publicó nada.",
+        "empty": "No hay nada que publicar.",
+        "forbidden": "No puedes publicar el horario de este departamento.",
+        "signed_out": "Tu sesión terminó. Inicia sesión de nuevo y comprueba el borrador.",
+        "unconfirmed": "El servidor no respondió.",
+        "other": "No se pudo publicar el horario. No se cambió nada."
+      },
+      "issue": {
+        "stale_shift": "Un turno cambió después de crear el borrador. Revisa el borrador de nuevo.",
+        "overlapping_shift": "Esto dejaría a alguien con turnos superpuestos.",
+        "duplicate_assignment": "Alguien quedaría programado dos veces en el mismo turno y día.",
+        "approved_time_off": "Alguien tiene tiempo libre aprobado durante un turno.",
+        "coverage_commitment": "Hay una ausencia o una solicitud de cobertura abierta en un turno. Resuélvela primero.",
+        "has_attendance": "Un turno ya tiene asistencia registrada y no se puede cambiar.",
+        "past_date": "Un cambio tiene fecha pasada.",
+        "department_mismatch": "Un cambio pertenece a otro departamento.",
+        "invalid_time": "Un turno tiene horas no válidas.",
+        "schedule_policy_blocked": "Esto incumple una regla de horarios que tu hotel configuró como bloqueo.",
+        "insufficient_rest": "Menos de 8 horas entre dos turnos.",
+        "weekly_overtime": "Alguien pasaría de 40 horas programadas en la semana.",
+        "long_shift": "Un turno dura más de 12 horas.",
+        "employee_department_unknown": "No se pudo determinar el departamento de un empleado.",
+        "marked_unavailable": "Un empleado dijo que no puede trabajar ese día.",
+        "outside_availability": "Un turno está fuera de las horas que un empleado dijo que puede trabajar.",
+        "pending_time_off": "Un empleado tiene una solicitud de tiempo libre sin resolver para esas horas.",
+        "other": "Algo requiere atención."
+      },
+      "impact": {
+        "added": "{{date}}: turno nuevo {{window}}",
+        "removed": "{{date}}: se quita el turno {{window}}",
+        "cancelled": "{{date}}: turno {{window}} cancelado",
+        "changed": "{{date}}: {{before}} → {{after}}"
+      },
+      "event": {
+        "draft_created": "Borrador iniciado",
+        "draft_edited": "Borrador editado",
+        "draft_discarded": "Borrador descartado",
+        "publication_attempted": "Intento de publicación",
+        "publication_succeeded": "Publicación exitosa",
+        "publication_rejected": "Publicación rechazada",
+        "notification_queued": "Notificaciones en cola",
+        "notification_sent": "Notificaciones creadas en la app",
+        "notification_failed": "Notificaciones fallidas",
+        "notification_retried": "Notificaciones reintentadas",
+        "corrective_published": "Corrección publicada"
+      },
+      "notify": {
+        "title": "Notificaciones al personal",
+        "checking": "Comprobando notificaciones…",
+        "unknown": "No se pudo leer el estado de las notificaciones. El horario sí está publicado.",
+        "none": "Ningún empleado necesitó una notificación.",
+        "processing": "{{count}} notificación en cola. Se está procesando.",
+        "processing_plural": "{{count}} notificaciones en cola. Se están procesando.",
+        "failed": "No se pudo crear {{count}} notificación.",
+        "failed_plural": "No se pudieron crear {{count}} notificaciones.",
+        "inApp": "{{count}} notificación disponible en la app.",
+        "inApp_plural": "{{count}} notificaciones disponibles en la app.",
+        "pushAccepted": "El proveedor aceptó el push de {{count}} mensaje.",
+        "pushAccepted_plural": "El proveedor aceptó el push de {{count}} mensajes.",
+        "pushFailed": "Falló el push de {{count}} mensaje.",
+        "pushFailed_plural": "Falló el push de {{count}} mensajes.",
+        "noDevice": "{{count}} empleado no tiene teléfono registrado para push.",
+        "noDevice_plural": "{{count}} empleados no tienen teléfono registrado para push.",
+        "optedOut": "{{count}} empleado desactivó el push de horarios.",
+        "optedOut_plural": "{{count}} empleados desactivaron el push de horarios.",
+        "noConfirmation": "Que el push sea aceptado no prueba que el teléfono lo recibió, y no se registran confirmaciones de lectura.",
+        "retry": "Reintentar notificaciones fallidas"
+      },
+      "bar": {
+        "failed": "No se pudo comprobar si hay un borrador.",
+        "title": "Borrador: {{count}} cambio sin publicar",
+        "title_plural": "Borrador: {{count}} cambios sin publicar",
+        "breakdown": "{{created}} nuevos · {{changed}} modificados · {{cancelled}} quitados",
+        "hidden": "El personal solo ve el horario publicado.",
+        "review": "Revisar y publicar",
+        "viewPublished": "Ver horario publicado",
+        "preview": "Vista previa del borrador",
+        "discard": "Descartar borrador",
+        "none": "Sin borrador. Los cambios que hagas se guardan primero en un borrador.",
+        "planningDraft": "Planificando en borrador",
+        "planningNow": "Aplicando cambios de inmediato",
+        "history": "Historial",
+        "nowWarning": "Los cambios se aplican al horario en vivo de inmediato y el personal puede verlos. Los reemplazos por ausencia siempre se aplican de inmediato."
+      },
+      "removeProposed": {
+        "title": "¿Quitar del borrador?",
+        "message": "Este turno solo existe en el borrador. Quitarlo elimina la propuesta; nada de lo publicado cambia.",
+        "confirm": "Quitar del borrador",
+        "failed": "No se pudo quitar del borrador."
+      },
+      "discard": {
+        "title": "¿Descartar el borrador?",
+        "message": "Esto descarta {{count}} cambio sin publicar. El horario publicado no se ve afectado.",
+        "message_plural": "Esto descarta {{count}} cambios sin publicar. El horario publicado no se ve afectado.",
+        "confirm": "Descartar borrador",
+        "done": "Borrador descartado.",
+        "failed": "No se pudo descartar el borrador. Puede que se haya publicado o cambiado."
+      },
+      "history": {
+        "title": "Historial de publicaciones",
+        "detailTitle": "Detalles de la publicación",
+        "loading": "Cargando…",
+        "failed": "No se pudo cargar.",
+        "empty": "Aún no se ha publicado nada.",
+        "undated": "Sin publicar",
+        "employees": "{{count}} empleado",
+        "employees_plural": "{{count}} empleados",
+        "back": "Todas las publicaciones",
+        "changes": "Cambios realizados",
+        "trail": "Historial",
+        "corrective": "Esto se publicó para corregir una publicación anterior.",
+        "correctHint": "Un error no se puede deshacer automáticamente. Una corrección es un borrador nuevo, creado a partir del horario de hoy, que revisas y publicas.",
+        "correct": "Iniciar una corrección",
+        "correctFailed": "No se pudo iniciar la corrección. Puede que este departamento ya tenga un borrador abierto.",
+        "correctionOpened": "Borrador de corrección iniciado. Haz tus cambios, luego revisa y publica.",
+        "filter": {
+          "all": "Todas",
+          "published": "Publicadas",
+          "discarded": "Descartadas"
+        },
+        "change": {
+          "create": "{{name}}: turno nuevo el {{date}}, {{window}}",
+          "update": "{{name}}: {{date}}, {{before}} → {{after}}",
+          "cancel": "{{name}}: se quita el turno del {{date}} ({{window}})"
+        }
+      },
+      "confirmChanges": "{{count}} cambio",
+      "confirmChanges_plural": "{{count}} cambios",
+      "confirmEmployees": "{{count}} empleado",
+      "confirmEmployees_plural": "{{count}} empleados"
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Buenos días",
@@ -7765,6 +9440,7 @@
       "title": "Pulso del equipo",
       "shiftUnknown": "Estado de turnos no disponible",
       "manage": "Asignaciones",
+      "schedule": "Horario",
       "statusOnShift": "En turno",
       "statusOnBreak": "En descanso",
       "statusEnded": "Turno terminado",
@@ -8071,6 +9747,81 @@
     },
     "attention": {
       "ask": "Preguntar a PatelRep sobre esta habitación"
+    }
+  },
+  "scheduleNotice": {
+    "published": {
+      "title": "Horario actualizado",
+      "body": "Tu horario cambió a partir del {{date}}. Ábrelo para ver qué es diferente.",
+      "bodyNoDate": "Tu horario cambió. Ábrelo para ver qué es diferente."
+    },
+    "offer_received": {
+      "title": "Oferta de turno",
+      "body": "Tienes una oferta de turno. Ábrela para aceptar o rechazar."
+    },
+    "offer_withdrawn": {
+      "title": "Oferta de turno retirada",
+      "body": "Se retiró una oferta de turno."
+    },
+    "offer_accepted": {
+      "title": "Oferta aceptada",
+      "body": "Se aceptó una oferta de turno."
+    },
+    "offer_declined": {
+      "title": "Oferta rechazada",
+      "body": "Un empleado rechazó una oferta de turno."
+    },
+    "open_shift": {
+      "title": "Turno abierto",
+      "body": "Hay un turno abierto que puedes tomar. Ábrelo para solicitarlo."
+    },
+    "claim_submitted": {
+      "title": "Solicitud de turno",
+      "body": "Un empleado solicitó un turno abierto."
+    },
+    "claim_approved": {
+      "title": "Solicitud de turno aprobada",
+      "body": "Tu solicitud de turno fue aprobada. Está en tu horario."
+    },
+    "claim_declined": {
+      "title": "Solicitud de turno no aprobada",
+      "body": "Tu solicitud de turno no fue aprobada."
+    },
+    "time_off_requested": {
+      "title": "Solicitud de tiempo libre",
+      "body": "Un empleado pidió tiempo libre."
+    },
+    "time_off_approved": {
+      "title": "Tiempo libre aprobado",
+      "body": "Tu solicitud de tiempo libre fue aprobada."
+    },
+    "time_off_denied": {
+      "title": "Tiempo libre resuelto",
+      "body": "Tu solicitud de tiempo libre no fue aprobada."
+    },
+    "swap_proposed": {
+      "title": "Solicitud de cambio de turno",
+      "body": "Un compañero propuso un cambio de turno. Ábrelo para responder."
+    },
+    "swap_accepted": {
+      "title": "Cambio de turno aceptado",
+      "body": "Tu compañero aceptó el cambio. Un supervisor aún debe aprobarlo."
+    },
+    "swap_declined": {
+      "title": "Cambio de turno rechazado",
+      "body": "Tu compañero rechazó el cambio."
+    },
+    "swap_needs_approval": {
+      "title": "Cambio de turno por aprobar",
+      "body": "Un cambio de turno espera tu aprobación."
+    },
+    "swap_approved": {
+      "title": "Cambio de turno aprobado",
+      "body": "Tu cambio de turno fue aprobado. Tu horario cambió."
+    },
+    "swap_denied": {
+      "title": "Cambio de turno no aprobado",
+      "body": "Tu cambio de turno no fue aprobado."
     }
   }
 }

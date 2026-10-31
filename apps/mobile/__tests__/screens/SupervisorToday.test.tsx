@@ -308,6 +308,16 @@ describe("Supervisor Today — team pulse", () => {
     expect(push).toHaveBeenCalledTimes(1); // the row alone does not navigate
   });
 
+  it("opens the Team Schedule from its own header link, leaving Assignments (who cleans which rooms) untouched", async () => {
+    const screen = renderHome();
+    await waitFor(() => screen.getByTestId("today-team-row-hk-1"));
+    expect(screen.getByTestId("today-team-schedule")).toHaveTextContent("Schedule");
+    expect(screen.getByTestId("today-team-schedule").props.accessibilityRole).toBe("link");
+    fireEvent.press(screen.getByTestId("today-team-schedule"));
+    expect(push.mock.calls.map((call) => call[0])).toEqual(["/(app)/team-schedule"]); // no params, so a plain path
+    expect(screen.getByTestId("today-team-manage")).toBeTruthy();
+  });
+
   it("quick view: View all assignments closes the sheet and opens Assignments", async () => {
     const screen = renderHome();
     await waitFor(() => screen.getByTestId("today-team-row-hk-1"));

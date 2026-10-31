@@ -10,7 +10,7 @@ import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 
 export type FeedFilter = "all" | "unread";
 
-export type FeedKind = "priority" | "maintenance" | "task" | "room" | "message" | "other";
+export type FeedKind = "priority" | "maintenance" | "task" | "room" | "message" | "schedule" | "other";
 
 const KIND_BY_TYPE: Record<string, FeedKind> = {
   task_assigned_urgent: "priority",
@@ -39,6 +39,7 @@ const KIND_BY_TYPE: Record<string, FeedKind> = {
 };
 
 export function kindOf(type: string | null | undefined): FeedKind {
+  if (type?.startsWith("schedule_")) return "schedule";
   return (type && KIND_BY_TYPE[type]) || "other";
 }
 

@@ -35,6 +35,17 @@ from routers import (
     internal,
     notifications,
     scheduling,
+    scheduling_absences,
+    scheduling_availability,
+    scheduling_coverage,
+    scheduling_forecast,
+    scheduling_inbox,
+    scheduling_leave,
+    scheduling_plan,
+    scheduling_requests,
+    scheduling_revisions,
+    scheduling_swaps,
+    scheduling_team,
     guest_requests,
     logbook,
     management_roi,
@@ -200,6 +211,8 @@ CRON_TOLERANCE_MINUTES = {
     "reports.daily-summary-email": 1560,
     # Scheduled report delivery runs every 15 minutes.
     "reports.run-schedules": 45,
+    # Schedule notification outbox runs every 5 minutes.
+    "schedule.notifications": 20,
     "evidence.reminders": 1560,
     "safety.training-assignments": 1560,
     "safety.drill-follow-up": 1560,
@@ -346,6 +359,17 @@ app.include_router(integrations.router, prefix=PREFIX)
 app.include_router(internal.router, prefix=PREFIX)
 app.include_router(notifications.router, prefix=PREFIX)
 app.include_router(scheduling.router, prefix=PREFIX)
+app.include_router(scheduling_team.router, prefix=PREFIX)
+app.include_router(scheduling_revisions.router, prefix=PREFIX)
+app.include_router(scheduling_forecast.router, prefix=PREFIX)
+app.include_router(scheduling_plan.router, prefix=PREFIX)
+app.include_router(scheduling_absences.router, prefix=PREFIX)
+app.include_router(scheduling_coverage.router, prefix=PREFIX)
+app.include_router(scheduling_requests.router, prefix=PREFIX)
+app.include_router(scheduling_availability.router, prefix=PREFIX)
+app.include_router(scheduling_leave.router, prefix=PREFIX)
+app.include_router(scheduling_swaps.router, prefix=PREFIX)
+app.include_router(scheduling_inbox.router, prefix=PREFIX)
 app.include_router(guest_requests.router, prefix=PREFIX)
 app.include_router(logbook.router, prefix=PREFIX)
 app.include_router(management_roi.router, prefix=PREFIX)
