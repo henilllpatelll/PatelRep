@@ -245,7 +245,8 @@ describe("EngineerHome Needs Attention", () => {
     fireEvent.press(getByTestId("attention-wo:emg"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/emg");
     fireEvent.press(getByTestId("attention-pm:pm1"));
-    expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules");
+    // An overdue PM signal opens that schedule's detail, not just the list.
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules/pm1");
   });
 
   it("includes escalated work in the urgent count and in the list", async () => {

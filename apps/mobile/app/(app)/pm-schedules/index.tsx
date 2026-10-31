@@ -1,348 +1,255 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { listPmSchedules, type PmScheduleRow } from "@/lib/api/assets";
 import { useAppStore } from "@/stores/appStore";
-import { monoFont } from "@/components/shared/tokens";
-import { SectionLabel } from "@/components/shared/mobileHandoff";
-import { Card } from "@/components/ui/Card";
-import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
-import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { useTheme } from "@/lib/theme/useTheme";
-import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
-import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
-import {
-  adaptPmSchedules,
-  countPmSchedules,
-  filterPmSchedules,
-  formatDueDate,
-  type PmDueState,
-  type PmFilter,
-  type PmScheduleView,
-} from "@/lib/engineering/pmSchedules";
+import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
+import { PmMetricCards } from "@/components/engineering/pm/PmMetricCards";
+import { PmTodayView } from "@/components/engineering/pm/PmTodayView";
+import { PmWeekView } from "@/components/engineering/pm/PmWeekView";
+import { PmCalendarView } from "@/components/engineering/pm/PmCalendarView";
+import { PmHistoryView } from "@/components/engineering/pm/PmHistoryView";
+import { PmFilterSheet } from "@/components/engineering/pm/PmFilterSheet";
+import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { resolveLoadState } from "@/lib/engineering/loadState";
+import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
+import { activeFilterCount, applyPmFilters, categoriesOf, DEFAULT_PM_FILTERS, type PmFilterState } from "@/lib/engineering/pmFilters";
+import { listPmDraftIds } from "@/lib/engineering/pmDraftStore";
 import { canCompletePm } from "@/lib/engineering/roles";
-import { classifyLoadFailure, resolveLoadState, type LoadFailure } from "@/lib/engineering/loadState";
 
-const STATUS_KEY: Record<PmDueState, StatusKey> = {
-  overdue: "overdue",
-  due_today: "pickup",
-  due_soon: "clean",
-  upcoming: "clean",
-  unscheduled: "low",
-};
+type PmView = "today" | "week" | "calendar" | "history";
+const VIEWS: readonly PmView[] = ["today", "week", "calendar", "history"];
 
-export default function PMSchedulesScreen() {
+function parseView(value: string | string[] | undefined): PmView {
+  const v = Array.isArray(value) ? value[0] : value;
+  return VIEWS.includes(v as PmView) ? (v as PmView) : "today";
+}
+
+export default function PreventiveMaintenanceScreen() {
   const { t, i18n } = useTranslation();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
-  useHotelTimezone();
-  const hotelTimezone = useAppStore((s) => s.hotelTimezone);
+  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ view?: string }>();
+  const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
-  const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
-  const [rows, setRows] = useState<PmScheduleRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [failure, setFailure] = useState<LoadFailure | null>(null);
-  const [filter, setFilter] = useState<PmFilter>("all");
-  const [now, setNow] = useState(() => new Date());
+  const hotelTimezone = useAppStore((s) => s.hotelTimezone);
+  const role = user?.effective_role ?? user?.role;
+  const canInspect = canCompletePm(role);
+  const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
 
-  const loadSchedules = useCallback(async () => {
-    if (!isOnline) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setRows(await listPmSchedules());
-      setFailure(null);
-      setNow(new Date());
-    } catch (err) {
-      setFailure(classifyLoadFailure(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [isOnline]);
+  const data = usePmSchedules();
+  const [view, setView] = useState<PmView>(() => parseView(params.view));
+  const [filters, setFilters] = useState<PmFilterState>(DEFAULT_PM_FILTERS);
+  const [searching, setSearching] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [draftIds, setDraftIds] = useState<ReadonlySet<string>>(new Set());
+  const [historyToken, setHistoryToken] = useState(0);
 
-  useEffect(() => { void loadSchedules(); }, [loadSchedules]);
+  // Tabs stay mounted: coming back from an inspection re-reads schedules (due dates moved), history and local drafts.
+  const focusedOnce = useRef(false);
+  const { reload } = data;
+  useFocusEffect(
+    useCallback(() => {
+      void listPmDraftIds().then((ids) => setDraftIds(new Set(ids)));
+      if (focusedOnce.current) {
+        void reload();
+        setHistoryToken((n) => n + 1);
+      }
+      focusedOnce.current = true;
+    }, [reload]),
+  );
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadSchedules();
-    setRefreshing(false);
-  }, [loadSchedules]);
+  const visible = useMemo(() => applyPmFilters(data.schedules, filters), [data.schedules, filters]);
+  const categories = useMemo(() => categoriesOf(data.schedules), [data.schedules]);
+  const filtersActive = activeFilterCount(filters) > 0;
 
-  const schedules = useMemo(() => adaptPmSchedules(rows, hotelTimezone, now), [rows, hotelTimezone, now]);
-  const counts = useMemo(() => countPmSchedules(schedules), [schedules]);
-  const filtered = useMemo(() => filterPmSchedules(schedules, filter), [schedules, filter]);
+  const load = resolveLoadState({ loading: data.loading && !data.hasData, failure: data.failure, count: data.schedules.length, offline: !isOnline && !data.hasData });
+  const showMetrics = data.hasData;
+  const listState = view === "history" ? "ready" : load.status === "ready" && visible.length === 0 ? "empty" : load.status;
 
-  // Filtering down to nothing is an honest empty list; only a failed load is an error.
-  const load = resolveLoadState({ loading, failure, count: schedules.length, offline: !isOnline });
-  const listState = load.status === "ready" && filtered.length === 0 ? "empty" : load.status;
-
-  const stateLabel = (state: PmDueState): string => {
-    switch (state) {
-      case "overdue": return t("pmSchedules.overdue");
-      case "due_today": return t("pmSchedules.dueToday");
-      case "due_soon": return t("pmSchedules.dueSoon");
-      case "unscheduled": return t("pmSchedules.unscheduled");
-      default: return t("pmSchedules.upcoming");
-    }
-  };
-  const intervalLabel = (s: PmScheduleView): string | null => {
-    if (s.intervalType === "custom" && s.intervalDays) return t("pmSchedules.everyDays", { count: s.intervalDays });
-    return s.intervalType ? t(`pmSchedules.interval.${s.intervalType}`) : null;
-  };
+  const open = (id: string) => router.push(`/(app)/pm-schedules/${id}` as never);
+  const inspect = (id: string) => router.push(`/(app)/pm-schedules/inspect/${id}` as never);
+  const language = i18n.language;
+  const listProps = { schedules: visible, language, draftIds, canInspect, onOpen: open, onInspect: inspect };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={() => void data.refresh()} tintColor={theme.primaryAction} />}
       >
         <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
         <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-          <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("pmSchedules.kicker")}</Text>
-          <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("pmSchedules.title")}</Text>
-          {schedules.length > 0 ? (
-            <View style={styles.stats}>
-              {counts.overdue > 0 ? (
-                <View style={[styles.statChip, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-                  <Text style={[styles.statNum, { color: theme.status.dirty }]}>{counts.overdue}</Text>
-                  <Text style={[styles.statLabel, { color: theme.status.dirty }]}>{t("pmSchedules.overdue")}</Text>
-                </View>
-              ) : null}
-              {counts.dueToday > 0 ? (
-                <View style={[styles.statChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
-                  <Text style={[styles.statNum, { color: theme.status.pickup }]}>{counts.dueToday}</Text>
-                  <Text style={[styles.statLabel, { color: theme.status.pickup }]}>{t("pmSchedules.dueToday")}</Text>
-                </View>
-              ) : null}
-              <View style={[styles.statChip, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
-                <Text style={[styles.statNum, { color: theme.shell.ink }]}>{counts.total}</Text>
-                <Text style={[styles.statLabel, { color: theme.shell.ink2 }]}>{t("pmSchedules.total")}</Text>
-              </View>
+          <View style={styles.heroRow}>
+            <View style={styles.heroCopy}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heroTitle, { color: theme.shell.ink }]} accessibilityRole="header">
+                {t("pm.title")}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heroSub, { color: theme.shell.ink3 }]}>
+                {t("pm.subtitle")}
+              </Text>
             </View>
+            <Pressable
+              onPress={() => setSearching((s) => !s)}
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel={t("pm.search")}
+              accessibilityState={{ expanded: searching }}
+              testID="pm-search-toggle"
+            >
+              <Ionicons name="search-outline" size={22} color={theme.shell.ink} />
+            </Pressable>
+            <Pressable
+              onPress={() => setSheetOpen(true)}
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel={t("pm.filter.title")}
+              testID="pm-filter-open"
+            >
+              <Ionicons name="options-outline" size={22} color={theme.shell.ink} />
+              {filtersActive ? <View style={[styles.badge, { backgroundColor: theme.status.pickup }]} /> : null}
+            </Pressable>
+          </View>
+          {searching ? (
+            <TextInput
+              value={filters.query}
+              onChangeText={(query) => setFilters((f) => ({ ...f, query }))}
+              placeholder={t("pm.searchPlaceholder")}
+              placeholderTextColor={theme.shell.ink3}
+              style={[styles.search, { color: theme.shell.ink, borderColor: theme.shell.line, backgroundColor: theme.shell.surface }]}
+              autoFocus
+              returnKeyType="search"
+              accessibilityLabel={t("pm.search")}
+              testID="pm-search-input"
+            />
           ) : null}
         </View>
 
+        <View style={styles.metrics}>
+          <PmMetricCards
+            overdue={showMetrics ? data.summary.overdue : null}
+            dueToday={showMetrics ? data.summary.dueToday : null}
+            thisWeek={showMetrics ? data.summary.thisWeek : null}
+            onSelect={(card) => setView(card === "week" ? "week" : "today")}
+          />
+        </View>
+
+        <View style={[styles.segmented, { backgroundColor: theme.surfaceSubtle }]} accessibilityRole="tablist">
+          {VIEWS.map((v) => {
+            const active = view === v;
+            return (
+              <Pressable
+                key={v}
+                onPress={() => setView(v)}
+                style={[styles.segment, active && { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                testID={`pm-view-${v}`}
+              >
+                <Text maxFontSizeMultiplier={1.3} style={[styles.segmentLabel, { color: active ? theme.textPrimary : theme.textMuted }]}>
+                  {t(`pm.views.${v}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {filtersActive && view !== "history" ? (
+          <View style={styles.activeRow} testID="pm-active-filters">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.activeText, { color: theme.textSecondary }]}>
+              {t("pm.filter.showing", { shown: visible.length, total: data.schedules.length })}
+            </Text>
+            <Pressable onPress={() => setFilters(DEFAULT_PM_FILTERS)} accessibilityRole="button" style={styles.resetButton} testID="pm-filters-reset">
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.resetText, { color: theme.primaryAction }]}>
+                {t("pm.filter.reset")}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {load.stale ? (
-          <View style={styles.banner}>
-            <StaleBanner onRetry={() => void loadSchedules()} />
+          <View style={styles.pad}>
+            <StaleBanner onRetry={() => void data.reload()} />
           </View>
         ) : null}
-
-        {canCompletePm(role) && schedules.length > 0 ? (
-          <View
-            style={[styles.inspectionNote, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
-            testID="pm-inspection-required"
-          >
-            <Ionicons name="clipboard-outline" size={18} color={theme.textMuted} />
-            <View style={styles.inspectionCopy}>
-              <Text style={[styles.inspectionTitle, { color: theme.textPrimary }]}>{t("pmSchedules.inspectionRequiredTitle")}</Text>
-              <Text style={[styles.inspectionBody, { color: theme.textMuted }]}>{t("pmSchedules.inspectionRequiredBody")}</Text>
-            </View>
-          </View>
-        ) : null}
-
-        {schedules.length > 0 ? (
-          <View style={styles.segmented}>
-            {(["all", "due", "overdue"] as const).map((f) => {
-              const isActive = filter === f;
-              return (
-                <Pressable
-                  key={f}
-                  style={({ pressed }) => [
-                    styles.segment,
-                    isActive && styles.segmentActive,
-                    isActive && { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
-                    { opacity: pressed ? 0.8 : 1 },
-                  ]}
-                  onPress={() => setFilter(f)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                >
-                  <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive, { color: isActive ? theme.textPrimary : theme.textMuted }]}>
-                    {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        {!isOnline && data.hasData ? (
+          <Text style={[styles.offline, { color: theme.status.pickup }]} accessibilityLiveRegion="polite" testID="pm-offline-note">
+            {t("pm.offlineStale")}
+          </Text>
         ) : null}
 
         <View style={styles.body}>
-          {schedules.length > 0 ? (
-            <SectionLabel hint={`${filtered.length} ${t("pmSchedules.schedules")}`}>
-              {filter === "all" ? t("pmSchedules.allTasks") : filter === "due" ? t("pmSchedules.dueToday") : t("pmSchedules.overdue")}
-            </SectionLabel>
+          {view === "history" ? (
+            <PmHistoryView
+              scope={scope}
+              hotelTimezone={hotelTimezone}
+              language={language}
+              refreshToken={historyToken}
+              onOpen={(row) => router.push(`/(app)/pm-schedules/record/${row.id}?scheduleId=${row.pm_schedule_id}` as never)}
+            />
+          ) : load.status === "ready" && visible.length > 0 ? (
+            view === "today" ? (
+              <PmTodayView {...listProps} />
+            ) : view === "week" ? (
+              <PmWeekView {...listProps} today={data.today} />
+            ) : (
+              <PmCalendarView {...listProps} today={data.today} />
+            )
           ) : null}
-
-          {filtered.map((schedule) => {
-            const tone = {
-              overdue: { fg: theme.status.dirty, bg: theme.status.dirtySoft },
-              due_today: { fg: theme.status.pickup, bg: theme.status.pickupSoft },
-              due_soon: { fg: theme.status.clean, bg: theme.status.cleanSoft },
-              upcoming: { fg: theme.status.clean, bg: theme.status.cleanSoft },
-              unscheduled: { fg: theme.textMuted, bg: theme.surfaceSubtle },
-            }[schedule.state];
-            const dueText = formatDueDate(schedule.dueDate, i18n.language);
-            const lastText = formatDueDate(hotelDateKey(schedule.lastCompletedAt, hotelTimezone), i18n.language);
-            const interval = intervalLabel(schedule);
-            return (
-              <Card key={schedule.id} style={styles.card}>
-                <View style={[styles.rail, { backgroundColor: tone.fg }]} />
-                <View style={styles.cardTop}>
-                  <View style={[styles.cardTile, { backgroundColor: tone.bg }]}>
-                    <Ionicons name="calendar-outline" size={16} color={tone.fg} />
-                  </View>
-                  <View style={styles.cardLeft}>
-                    <Text style={[styles.assetName, { color: theme.textPrimary }]}>{schedule.name || t("pmSchedules.title")}</Text>
-                    <Text style={[styles.location, { color: theme.textMuted }]}>{schedule.assetName ?? t("pmSchedules.unknownAsset")}</Text>
-                  </View>
-                  <StatusBadge statusKey={STATUS_KEY[schedule.state]} label={stateLabel(schedule.state)} />
-                </View>
-                {schedule.description ? (
-                  <Text style={[styles.taskName, { color: theme.textSecondary }]}>{schedule.description}</Text>
-                ) : null}
-                <View style={styles.cardMeta}>
-                  {interval ? (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="refresh-outline" size={12} color={theme.textDisabled} />
-                      <Text style={[styles.metaText, { color: theme.textDisabled }]}>{interval}</Text>
-                    </View>
-                  ) : null}
-                  {schedule.estimatedMinutes ? (
-                    <View style={styles.metaItem}>
-                      <Ionicons name="time-outline" size={12} color={theme.textDisabled} />
-                      <Text style={[styles.metaText, { color: theme.textDisabled }]}>{t("pmSchedules.minutes", { count: schedule.estimatedMinutes })}</Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.metaItem}>
-                    <Ionicons name="calendar-outline" size={12} color={theme.textDisabled} />
-                    <Text style={[styles.metaText, { color: schedule.state === "overdue" ? theme.status.dirty : theme.textDisabled }]}>
-                      {schedule.state === "overdue" && schedule.daysUntilDue != null
-                        ? t("pmSchedules.daysOverdue", { count: Math.abs(schedule.daysUntilDue) })
-                        : dueText
-                          ? t("pmSchedules.dueOn", { date: dueText })
-                          : t("pmSchedules.unscheduled")}
-                    </Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="checkmark-circle-outline" size={12} color={lastText ? theme.status.ready : theme.textDisabled} />
-                    <Text style={[styles.metaText, { color: lastText ? theme.status.ready : theme.textDisabled }]}>
-                      {lastText ? t("pmSchedules.lastDone", { date: lastText }) : t("pmSchedules.never")}
-                    </Text>
-                  </View>
-                </View>
-              </Card>
-            );
-          })}
 
           <EngineeringState
             status={listState}
-            onRetry={() => void loadSchedules()}
+            onRetry={() => void data.reload()}
             emptyIcon="calendar-outline"
-            emptyTitle={t("pmSchedules.noSchedules")}
-            emptyBody={filter === "all" ? t("pmSchedules.noSchedulesConfigured") : t("pmSchedules.noItemsFound", { filter })}
+            emptyTitle={filtersActive ? t("pm.noMatches") : t("pmSchedules.noSchedules")}
+            emptyBody={filtersActive ? t("pm.noMatchesBody") : t("pmSchedules.noSchedulesConfigured")}
             style={[styles.emptyCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
           />
         </View>
       </ScrollView>
+
+      <PmFilterSheet
+        visible={sheetOpen}
+        filters={filters}
+        categories={categories}
+        onApply={(next) => {
+          setFilters(next);
+          setSheetOpen(false);
+        }}
+        onClose={() => setSheetOpen(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    gap: 4,
-  },
-  heroKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600" },
-  stats: { flexDirection: "row", gap: 8, marginTop: 10 },
-  statChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  statNum: { fontSize: 14, fontWeight: "700" },
-  statLabel: { fontSize: 11 },
-  banner: { paddingHorizontal: 16, paddingTop: 12 },
-  inspectionNote: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  inspectionCopy: { flex: 1, gap: 2 },
-  inspectionTitle: { fontSize: 13, fontWeight: "700" },
-  inspectionBody: { fontSize: 12, lineHeight: 17 },
-  segmented: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 12,
-    padding: 3,
-    gap: 3,
-  },
-  segment: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentActive: {
-    borderWidth: 1,
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  segmentLabel: { fontSize: 12.5, fontWeight: "700" },
-  segmentLabelActive: {},
   scroll: { flex: 1 },
-  content: { paddingBottom: 32 },
-  body: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
-  card: {
-    position: "relative",
-    overflow: "hidden",
-    paddingVertical: 14,
-    paddingRight: 14,
-    paddingLeft: 16,
-    gap: 6,
-  },
-  rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  cardTile: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  cardLeft: { flex: 1 },
-  assetName: { fontSize: 14, fontWeight: "700" },
-  location: { fontSize: 11 },
-  taskName: { fontSize: 13 },
-  cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 2 },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
-  metaText: { fontSize: 11, fontFamily: monoFont },
+  content: { paddingBottom: 40 },
+  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
+  hero: { paddingHorizontal: 18, paddingBottom: 18, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, gap: 10 },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  heroCopy: { flex: 1, gap: 2 },
+  heroTitle: { fontSize: 24, lineHeight: 30, fontWeight: "700" },
+  heroSub: { fontSize: 13 },
+  iconButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  badge: { position: "absolute", top: 9, right: 9, width: 9, height: 9, borderRadius: 5 },
+  search: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, fontSize: 15 },
+  metrics: { marginTop: -14 },
+  segmented: { flexDirection: "row", marginHorizontal: 16, marginTop: 14, borderRadius: 12, padding: 3, gap: 3 },
+  segment: { flex: 1, minHeight: 40, borderRadius: 9, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
+  segmentLabel: { fontSize: 13, fontWeight: "700" },
+  activeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, marginTop: 10 },
+  activeText: { fontSize: 13, flex: 1 },
+  resetButton: { minHeight: 44, justifyContent: "center", paddingLeft: 12 },
+  resetText: { fontSize: 14, fontWeight: "700" },
+  pad: { paddingHorizontal: 16, paddingTop: 12 },
+  offline: { fontSize: 13, paddingHorizontal: 16, paddingTop: 10 },
+  body: { paddingHorizontal: 16, paddingTop: 14, gap: 8 },
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8, borderWidth: 1 },
 });

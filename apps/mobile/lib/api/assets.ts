@@ -1,4 +1,4 @@
-import { assertPmCompletionAllowed, type PmCompletionPayload } from "@/lib/engineering/pmCompletion";
+import { assertPmCompletionAllowed, type PmCompletionPayload, type PmCompletionResult } from "@/lib/engineering/pmCompletion";
 import { api } from "./client";
 
 export interface Asset {
@@ -26,7 +26,7 @@ export interface FailurePrediction {
   assets?: Asset & { asset_categories?: { name: string } };
 }
 
-/** A row of GET /assets/pm-schedules: the `pm_schedules` columns plus the joined `assets(name, room_id)`. */
+/** A row of GET /assets/pm-schedules: the `pm_schedules` columns plus the joined `assets(name, room_id, asset_tag, location_text, manufacturer, asset_categories, rooms)`. */
 export interface PmScheduleRow {
   id: string;
   asset_id: string;
@@ -40,7 +40,15 @@ export interface PmScheduleRow {
   last_completed_at?: string | null;
   next_due_at?: string | null;
   is_active?: boolean | null;
-  assets?: { name?: string | null; room_id?: string | null } | null;
+  assets?: {
+    name?: string | null;
+    room_id?: string | null;
+    asset_tag?: string | null;
+    location_text?: string | null;
+    manufacturer?: string | null;
+    asset_categories?: { name?: string | null; code?: string | null } | null;
+    rooms?: { room_number?: string | null } | null;
+  } | null;
 }
 
 export async function listPmSchedules(): Promise<PmScheduleRow[]> {
@@ -49,9 +57,10 @@ export async function listPmSchedules(): Promise<PmScheduleRow[]> {
 }
 
 /** Completes a PM. Refuses (throws PmCompletionBlockedError) rather than send a body the API would reject. */
-export async function completePmSchedule(scheduleId: string, payload: PmCompletionPayload): Promise<void> {
+export async function completePmSchedule(scheduleId: string, payload: PmCompletionPayload): Promise<PmCompletionResult> {
   assertPmCompletionAllowed(payload);
-  await api.post(`/assets/pm-schedules/${scheduleId}/complete`, payload);
+  const res: { data: PmCompletionResult } = await api.post(`/assets/pm-schedules/${scheduleId}/complete`, payload);
+  return res.data;
 }
 
 export async function listAssets(): Promise<{ data: Asset[] }> {

@@ -285,7 +285,7 @@ export function EngineerHome({ name }: { name: string }) {
     return (
       <Pressable
         key={item.key}
-        onPress={() => (isWo ? openOrder(item.wo.id) : openPm())}
+        onPress={() => (item.kind === "wo" ? openOrder(item.wo.id) : router.push(`/(app)/pm-schedules/${item.pm.id}` as never))}
         accessibilityRole="button"
         accessibilityLabel={[heading, title, detail].filter(Boolean).join(". ")}
         testID={`attention-${item.key}`}

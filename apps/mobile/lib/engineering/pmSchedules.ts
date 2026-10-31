@@ -19,6 +19,12 @@ export interface PmScheduleView {
   assetId: string | null;
   assetName: string | null;
   roomId: string | null;
+  assetTag: string | null;
+  /** Free-text location of the asset, if recorded. */
+  location: string | null;
+  roomNumber: string | null;
+  categoryName: string | null;
+  manufacturer: string | null;
   name: string;
   description: string | null;
   intervalType: PmScheduleRow["interval_type"] | null;
@@ -69,6 +75,11 @@ export function adaptPmSchedule(
     assetId: row.asset_id ?? null,
     assetName: clean(row.assets?.name),
     roomId: row.assets?.room_id ?? null,
+    assetTag: clean(row.assets?.asset_tag),
+    location: clean(row.assets?.location_text),
+    roomNumber: clean(row.assets?.rooms?.room_number),
+    categoryName: clean(row.assets?.asset_categories?.name),
+    manufacturer: clean(row.assets?.manufacturer),
     name: clean(row.name) ?? "",
     description: clean(row.description),
     intervalType: row.interval_type ?? null,

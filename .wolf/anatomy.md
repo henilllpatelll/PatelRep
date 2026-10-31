@@ -928,3 +928,13 @@
 - components/engineering/workorder/ - WorkOrderHeader(+Summary), ActionBar, ReportedIssue, AssetContext, RepairTools, ActivityTimeline, RecordCard, CompletionResult, MoreActionsSheet; sheets: Labor, Diagnosis, Evidence, Parts, Hold, Escalation, Note, Completion; CodePicker, sheetKit, useSheetSubmit (~14k tok)
 - app/(app)/work-orders/[woId].tsx - rewritten detail screen orchestrating the above (~5k tok)
 - apps/api/tests/test_work_order_repair_workspace.py - detail enrichment + GET /work-orders/{id}/audit
+- lib/engineering/pmCalendar.ts - Monday-first week/month maths over hotel-day keys: planWeek (each schedule once, carried overdue), countThisWeek, monthGrid, dayMarkers (~1k tok)
+- lib/engineering/pmFilters.ts - search/filter/sort over the complete schedule list (name, asset, tag, location, category, frequency, state) + todaySections (~1k tok)
+- lib/engineering/pmReadings.ts - meter adapter, parseReading, evaluateReading (mirrors server), reference range (~1k tok)
+- lib/engineering/pmChecklist.ts - template adapter, local draft model, progress, validateInspection, buildCompletionPayload (never empty/defaulted), draft-vs-template drift + rebase (~3k tok)
+- lib/engineering/pmDraftStore.ts - AsyncStorage drafts scoped tenant:user:schedule (~0.6k tok)
+- lib/engineering/usePmSchedules.ts - single schedule source for PM screens (cache, stale-response guard, summary incl. thisWeek); usePmInspection.ts - inspection session: load, autosave, evidence upload locks, guarded submit with unknown-outcome check (~3k tok)
+- lib/api/pm.ts - templates/meters/asset/history/record, uploadPmEvidence (+cleanup), submitPmCompletion + findLandedCompletion (~2k tok)
+- components/engineering/pm/ - PmScheduleCard, PmMetricCards, PmTodayView, PmWeekView, PmCalendarView, PmHistoryView, PmFilterSheet, PmChecklistItem, PmPhotoField, PmReadingInput, PmExtrasSection, PmReviewSection, PmCompletionSummary, pmUi
+- app/(app)/pm-schedules/{index,[scheduleId],inspect/[scheduleId],record/[completionId]}.tsx - dashboard (Today/Week/Calendar/History), detail, guided inspection (fill -> review -> recorded), read-only record
+- apps/api/tests/test_pm_mobile_reads.py - GET /assets/pm-completions + GET /programs/pm-templates

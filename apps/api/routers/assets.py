@@ -380,7 +380,7 @@ async def get_recurring_issues(
 @router.get("/pm-schedules")
 async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user)):
     result = supabase.table("pm_schedules")\
-        .select("*, assets(name, room_id)")\
+        .select("*, assets(name, room_id, asset_tag, location_text, manufacturer, asset_categories(name, code), rooms(room_number))")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("next_due_at")\
@@ -461,6 +461,59 @@ async def list_pm_schedule_completions(
         "completed_at", desc=True
     ).limit(12).execute()
     return {"data": records.data or []}
+
+
+# ---------------------------------------------------------------------------
+# 10b. GET /pm-completions — property-wide PM inspection history (paged, newest first)
+# ---------------------------------------------------------------------------
+
+@router.get("/pm-completions")
+async def list_pm_completions(
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0, le=10000),
+    asset_id: Optional[str] = Query(None),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Slim, read-only summaries for the mobile History view. Full records (items, signed evidence)
+    stay on GET /pm-schedules/{id}/completions/{completion_id}."""
+    query = supabase.table("pm_completion_records").select(
+        "id, pm_schedule_id, asset_id, technician_id, completed_at, checklist_template_id, "
+        "checklist_version, labor_minutes, defects, pm_completion_items(result)"
+    ).eq("tenant_id", current_user.hotel_id)
+    if asset_id:
+        query = query.eq("asset_id", asset_id)
+    rows = (query.order("completed_at", desc=True).range(offset, offset + limit).execute().data) or []
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
+    def _names(table: str, column: str, ids: set, field: str = "name") -> dict:
+        if not ids:
+            return {}
+        found = supabase.table(table).select(f"id, {field}").eq("tenant_id", current_user.hotel_id).in_(
+            "id", sorted(ids)
+        ).execute().data or []
+        return {row["id"]: row.get(field) for row in found}
+
+    schedule_names = _names("pm_schedules", "id", {r["pm_schedule_id"] for r in rows if r.get("pm_schedule_id")})
+    asset_names = _names("assets", "id", {r["asset_id"] for r in rows if r.get("asset_id")})
+    profiles = supabase.table("user_profiles").select("id, full_name, preferred_name").eq(
+        "tenant_id", current_user.hotel_id
+    ).in_("id", sorted({r["technician_id"] for r in rows if r.get("technician_id")})).execute().data or [] if rows else []
+    technicians = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+
+    data = []
+    for row in rows:
+        results = [item.get("result") for item in (row.pop("pm_completion_items", None) or [])]
+        data.append({
+            **row,
+            "schedule_name": schedule_names.get(row.get("pm_schedule_id")),
+            "asset_name": asset_names.get(row.get("asset_id")),
+            "technician_name": technicians.get(row.get("technician_id")),
+            "passed_count": results.count("passed"),
+            "failed_count": results.count("failed"),
+            "not_applicable_count": results.count("not_applicable"),
+        })
+    return {"data": data, "meta": {"offset": offset, "limit": limit, "has_more": has_more}}
 
 
 # ---------------------------------------------------------------------------

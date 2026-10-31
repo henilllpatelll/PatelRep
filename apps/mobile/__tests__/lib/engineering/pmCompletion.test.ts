@@ -87,14 +87,14 @@ describe("no screen can post an empty PM completion", () => {
       .filter((file) => /\.(post|put|patch)\(\s*[`"'][^`"']*pm-schedules[^`"']*\/complete/.test(fs.readFileSync(file, "utf8")))
       .map((file) => path.relative(MOBILE, file).replace(/\\/g, "/"));
     expect(offenders).toEqual(["lib/api/assets.ts"]);
-    expect(fs.readFileSync(path.join(MOBILE, "lib/api/assets.ts"), "utf8")).toMatch(/assertPmCompletionAllowed\(payload\);\s*\n\s*await api\.post/);
+    expect(fs.readFileSync(path.join(MOBILE, "lib/api/assets.ts"), "utf8")).toMatch(/assertPmCompletionAllowed\(payload\);\s*\n\s*(const \w+[^=\n]*= )?await api\.post/);
   });
 });
 
 describe("the PM screen offers no one-tap completion", () => {
-  it("renders the inspection-required notice instead of a Log Complete action", () => {
+  it("sends technicians into the guided inspection instead of a Log Complete action", () => {
     const screen = fs.readFileSync(path.resolve(__dirname, "../../../app/(app)/pm-schedules/index.tsx"), "utf8");
     expect(screen).not.toMatch(/logComplete|handleComplete|\/complete/);
-    expect(screen).toContain("inspectionRequiredTitle");
+    expect(screen).toContain("pm-schedules/inspect/");
   });
 });

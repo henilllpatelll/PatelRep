@@ -34836,6 +34836,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2118",
+      "timestamp": "2026-10-31T15:00:00.000Z",
+      "error_message": "git diff showed 1825/890 changed lines in routers/assets.py and programs.py after a small edit",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "Rewriting the files from Python on Windows in text mode converted LF to CRLF",
+      "fix": "Converted both files and the new test back to LF with sed; diffs are now +55/+10. RBAC-MATRIX.md stays CRLF because it is committed that way",
+      "tags": [
+        "windows",
+        "line-endings",
+        "python"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-31T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2119",
+      "timestamp": "2026-10-31T15:00:00.000Z",
+      "error_message": "TypeError: Cannot read properties of undefined (reading 'then') at AccessibilityInfo.isReduceMotionEnabled in screen tests after the first test",
+      "file": "apps/mobile/__tests__/screens/PmDashboard.test.tsx",
+      "root_cause": "jest.resetAllMocks() in beforeEach also reset React Native's built-in jest mocks",
+      "fix": "Use clearAllMocks plus mockReset() only on the suite's own api mocks (which also drops leaked mockRejectedValueOnce queues)",
+      "tags": [
+        "jest",
+        "mobile",
+        "test-hygiene"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T15:00:00.000Z"
     }
   ]
 }
