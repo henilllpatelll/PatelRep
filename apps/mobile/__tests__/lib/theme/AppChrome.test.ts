@@ -90,11 +90,18 @@ describe("protected navigation chrome", () => {
       "{HIDDEN_APP_ROUTES.map((name) => (",
     );
     expect(protectedLayoutSource).toMatch(
-      /name=\{name\} options=\{\{ href: null \}\}/,
+      /name=\{name\} options=\{HIDDEN_TAB_OPTIONS\}/,
     );
     expect(protectedLayoutSource).toMatch(
       /tabBarBadge:\s*name === "notifications\/index" && unreadCount > 0/,
     );
+    // expo-router 58 maps the href-null option to `hidden: true`, and a focused hidden tab is redirected to the first visible tab,
+    // so every secondary screen would bounce to Home. Hidden screens are declared with a hidden tab item instead, and back
+    // must return to the previous screen rather than the first tab.
+    expect(protectedLayoutSource).not.toMatch(/options=\{\{[^}]*href:\s*null/);
+    expect(protectedLayoutSource).not.toMatch(/^\s*href:\s*null,?\s*$/m);
+    expect(protectedLayoutSource).toContain('tabBarItemStyle: { display: "none" as const }');
+    expect(protectedLayoutSource).toContain('backBehavior="history"');
     // Opening the alerts screen must not clear the unread count: only a persisted read (or the server's own list) does.
     expect(protectedLayoutSource).not.toContain("setUnreadCount(0)");
     expect(protectedLayoutSource).not.toContain("focus:");
