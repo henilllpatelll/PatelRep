@@ -23,7 +23,7 @@ Status of every scenario today: **NOT RUN**. Record outcomes in the result log o
 | Android build from `staging-dev`, installed on a real device (and a second device or emulator for scenarios 2, 3 and 5) | all scenarios | NR |
 | Staging anon key in `STAGING_SUPABASE_ANON_KEY` and `npm run check:staging-env` passing | the app talks to staging only | NR |
 | Seeded accounts exist: `staging-housekeeping-supervisor@patelrep.test` (supervisor), `staging-housekeeper@patelrep.test`, `staging-gm@patelrep.test` (`seed-staging-tenant.mjs`) | roles | NR |
-| **A second synthetic housekeeper** in the Housekeeping department. The seed creates only one, and scenarios 3 and 5 need two employees (an absent one and a replacement; two swappers) | not in the seed today | **Missing - needs a human decision** |
+| **Two synthetic housekeepers** in the Housekeeping department: `staging-housekeeper@patelrep.test` and `staging-housekeeper-2@patelrep.test`, both seeded by the trusted Staging Candidate (scenarios 3 and 5 need two) | seed + `staging-fixture-users.mjs` | NR |
 | Both housekeepers have the Housekeeping department and appear in the supervisor's roster | eligibility for coverage and schedule visibility | NR |
 | Staging `CRON_SECRET`, to trigger `POST /v1/internal/schedule/notifications` with header `X-Cron-Secret` | the in-process scheduler is disabled in staging (`CRON_SCHEDULER_ENABLED=false`), so the 5-minute delivery job never runs by itself. Publishing drains the outbox immediately; every other event (time off, swap, offer, claim) is delivered only when this endpoint is called | NR |
 | Push registered: each device signed in once with notifications allowed, so a `push_devices` row exists | scenarios 6 and 7 | NR |
