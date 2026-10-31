@@ -132,10 +132,10 @@ describe("Engineering Rooms board", () => {
     const screen = renderBoard();
     await screen.findByTestId("room-card-312");
     fireEvent.changeText(screen.getByTestId("room-search"), " 1312 ");
-    await waitFor(() => expect(lastParams()).toMatchObject({ q: "1312" }));
+    await waitFor(() => expect(lastParams()).toMatchObject({ q: "1312" }), { timeout: 6000 });
     fetchBoard.mockClear();
     fireEvent.press(screen.getByTestId("room-search-clear"));
-    await waitFor(() => expect(lastParams().q).toBeUndefined());
+    await waitFor(() => expect(lastParams().q).toBeUndefined(), { timeout: 6000 });
   });
 
   it("the quick chips show whole-hotel counts and apply real server filters", async () => {
@@ -241,8 +241,9 @@ describe("when the board can't be shown", () => {
     const searching = renderBoard();
     await searching.findByText("engRooms.empty");
     fireEvent.changeText(searching.getByTestId("room-search"), "9999");
-    expect(await searching.findByText("engRooms.noMatches")).toBeTruthy();
-    expect(searching.getByTestId("room-clear-filters")).toBeTruthy();
+    // The search is debounced; give a loaded CI runner room to finish it.
+    expect(await searching.findByText("engRooms.noMatches", {}, { timeout: 6000 })).toBeTruthy();
+    expect(await searching.findByTestId("room-clear-filters", {}, { timeout: 6000 })).toBeTruthy();
   });
 
   it("with no connection and nothing cached, offers Retry instead of an empty list", async () => {

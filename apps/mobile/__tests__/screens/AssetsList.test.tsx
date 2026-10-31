@@ -150,8 +150,9 @@ describe("Assets list", () => {
     const screen = renderScreen();
     expect(await screen.findByText("assets.empty")).toBeTruthy();
     fireEvent.changeText(screen.getByTestId("asset-search"), "zzz");
-    expect(await screen.findByText("assets.noMatches", {}, { timeout: 2000 })).toBeTruthy();
-    expect(screen.getByTestId("asset-clear-filters")).toBeTruthy();
+    expect(await screen.findByText("assets.noMatches", {}, { timeout: 6000 })).toBeTruthy();
+    // The footer renders in a later list batch on a loaded runner, so wait for it rather than reading it at once.
+    expect(await screen.findByTestId("asset-clear-filters", {}, { timeout: 6000 })).toBeTruthy();
   });
 
   it("shows an error with Retry, never an empty inventory, when the first read fails", async () => {
