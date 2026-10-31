@@ -499,7 +499,18 @@ describe("Request a swap", () => {
 /* ─── My Schedule ─────────────────────────────────────────────────────────── */
 
 describe("My Schedule entry points", () => {
-  const upcoming = ymd(2);
+  // My Schedule only lists the current week, so "two days from now" fell off the screen on Saturdays and Sundays.
+  // Pin only the clock (timers stay real) to a Wednesday so the upcoming shift is always inside the displayed week.
+  const upcoming = "2026-10-30";
+  beforeAll(() => {
+    jest.useFakeTimers({
+      now: new Date("2026-10-28T17:00:00Z"),
+      doNotFake: ["hrtime", "nextTick", "performance", "queueMicrotask", "requestAnimationFrame", "cancelAnimationFrame", "requestIdleCallback", "cancelIdleCallback", "setImmediate", "clearImmediate", "setInterval", "clearInterval", "setTimeout", "clearTimeout"],
+    });
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
   const serve = () => {
     const base = get.getMockImplementation() as (url: string) => Promise<unknown>;
     get.mockImplementation(async (url: string) => {
