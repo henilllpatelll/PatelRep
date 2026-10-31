@@ -31,6 +31,11 @@ import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 
+// Secondary screens (profile/*, detail pages, role-hidden tab roots) are declared as tabs but never shown in the bar.
+// Do not hide them with the href-null shortcut: expo-router 58 turns that into `hidden: true`, and a focused hidden tab is
+// replaced by the first visible tab, so every secondary screen bounced straight back to Home.
+const HIDDEN_TAB_OPTIONS = { tabBarItemStyle: { display: "none" as const } };
+
 export default function AppLayout() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -232,6 +237,7 @@ export default function AppLayout() {
         </View>
         <ToastViewport topOffset={insets.top + bannerHeight} />
         <Tabs
+          backBehavior="history"
           screenOptions={{
             tabBarActiveTintColor: theme.shell.ink,
             tabBarInactiveTintColor: theme.shell.ink3,
@@ -270,14 +276,14 @@ export default function AppLayout() {
             />
           ))}
           {ALL_ROLE_TAB_ROUTES.filter((name) => !visibleNames.has(name)).map((name) => (
-            <Tabs.Screen key={name} name={name} options={{ href: null }} />
+            <Tabs.Screen key={name} name={name} options={HIDDEN_TAB_OPTIONS} />
           ))}
           {HIDDEN_APP_ROUTES.map((name) => (
             <Tabs.Screen
               key={name}
               name={name}
               options={{
-                href: null,
+                ...HIDDEN_TAB_OPTIONS,
                 headerShown: false,
                 tabBarBadge: name === "notifications/index" && unreadCount > 0 ? unreadCount : undefined,
                 // The active inspection is full-screen with its own sticky action area. (Only this route sets the key:
