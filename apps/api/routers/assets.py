@@ -659,7 +659,10 @@ def _asset_search_text(asset: dict) -> str:
 
 def _sort_key(sort_by: str):
     far = datetime.max.replace(tzinfo=timezone.utc)
-    name = lambda a: (a.get("name") or "").casefold()
+
+    def name(a: dict) -> str:
+        return (a.get("name") or "").casefold()
+
     if sort_by == "location":
         return lambda a: ((((a.get("rooms") or {}).get("room_number")) or a.get("location_text") or "~").casefold(), name(a))
     if sort_by == "last_serviced":

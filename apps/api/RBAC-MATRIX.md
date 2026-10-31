@@ -55,20 +55,20 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | assets.py | /v1/assets/browse | GET | none |  |
 | assets.py | /v1/assets/lookup | GET | none |  |
 | assets.py | /v1/assets/{asset_id}/downtime | GET | none |  |
-| assets.py | /v1/assets/{asset_id}/downtime | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L884] |
-| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L901] |
+| assets.py | /v1/assets/{asset_id}/downtime | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L887] |
+| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L904] |
 | assets.py | /v1/assets/{asset_id}/reliability | GET | none |  |
-| assets.py | /v1/assets/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L956] |
+| assets.py | /v1/assets/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L959] |
 | assets.py | /v1/assets/meters/{meter_id} | GET | none |  |
-| assets.py | /v1/assets/meters/{meter_id} | PATCH | chief_engineer, gm | require_role('chief_engineer', 'gm') [L979] |
+| assets.py | /v1/assets/meters/{meter_id} | PATCH | chief_engineer, gm | require_role('chief_engineer', 'gm') [L982] |
 | assets.py | /v1/assets/meters/{meter_id}/readings | GET | none |  |
-| assets.py | /v1/assets/meters/{meter_id}/readings | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1020] |
+| assets.py | /v1/assets/meters/{meter_id}/readings | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1023] |
 | assets.py | /v1/assets/{asset_id}/meters | GET | none |  |
-| assets.py | /v1/assets/{asset_id}/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1047] |
+| assets.py | /v1/assets/{asset_id}/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1050] |
 | assets.py | /v1/assets/{asset_id}/condition-summary | GET | none |  |
 | assets.py | /v1/assets/{asset_id} | GET | none |  |
-| assets.py | /v1/assets/{asset_id} | PATCH | engineer, gm | require_role('gm', 'engineer') [L1119] |
-| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L1144] |
+| assets.py | /v1/assets/{asset_id} | PATCH | engineer, gm | require_role('gm', 'engineer') [L1122] |
+| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L1147] |
 | assets.py | /v1/assets/pm-schedules/{schedule_id}/completions/{completion_id} | GET | none |  |
 | auth.py | /v1/auth/me | GET | none |  |
 | auth.py | /v1/auth/hotel-context | POST | none |  |
