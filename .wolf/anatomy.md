@@ -921,3 +921,10 @@
 - scripts/dependency-orchestrator-{policy,engine,run,workflow}.test.mjs, ci-gate-room-board.test.mjs - 85 tests incl. negative security scenarios; the gate test executes the real CI Gate shell step (~12k tok)
 - apps/web/e2e/hermetic/{mock-backend.mjs,run.mjs,mock-backend.test.mjs}, apps/web/playwright.hermetic.config.ts - credential-free Room-Board gate (mock Supabase auth + API origin) (~4k tok)
 - docs/DEPENDENCY_ORCHESTRATOR.md - operating contract, security model, controls, costs (~3k tok)
+
+## Engineering Phase 4 - repair workspace (apps/mobile)
+- lib/engineering/repairWorkspace.ts - pure rules: deriveRepairActions state machine, summarizeLabor/skew, buildTimeline, completion draft/validate/body/outcome, parts staging, offline completion block (~5k tok)
+- lib/engineering/useWorkOrderDetail.ts - order + lazy labor/history/parts/related loaders with stale-response tokens; useSecondTicker (~2k tok)
+- components/engineering/workorder/ - WorkOrderHeader(+Summary), ActionBar, ReportedIssue, AssetContext, RepairTools, ActivityTimeline, RecordCard, CompletionResult, MoreActionsSheet; sheets: Labor, Diagnosis, Evidence, Parts, Hold, Escalation, Note, Completion; CodePicker, sheetKit, useSheetSubmit (~14k tok)
+- app/(app)/work-orders/[woId].tsx - rewritten detail screen orchestrating the above (~5k tok)
+- apps/api/tests/test_work_order_repair_workspace.py - detail enrichment + GET /work-orders/{id}/audit

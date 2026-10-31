@@ -34820,6 +34820,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2117",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Restored labor timer showed 00:00:00 (screen test expected 00:2x:xx)",
+      "file": "apps/mobile/lib/engineering/useWorkOrderDetail.ts",
+      "root_cause": "The clock-skew estimate treated any running session older than 90s as phone-clock skew, so an old restored session cancelled its own elapsed time",
+      "fix": "Skew is estimated only on the refresh that follows the app's own labor start (opts.startedLabor); restored sessions trust the device clock. Tests cover restored, just-started and slow-phone cases",
+      "tags": [
+        "mobile",
+        "labor",
+        "clock-skew"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
     }
   ]
 }

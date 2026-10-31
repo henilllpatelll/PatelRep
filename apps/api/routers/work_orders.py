@@ -928,7 +928,10 @@ async def get_work_order(
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Work order not found")
-    return {"data": result.data[0]}
+    row = result.data[0]
+    # Same best-effort enrichment the queue uses: assignee name and, when held, the recorded reason.
+    _enrich_list_rows([row], current_user.hotel_id)
+    return {"data": row}
 
 
 async def _send_wo_assignment_push(tenant_id: str, engineer_id: str, wo_id: str, title: str) -> None:
@@ -1085,6 +1088,42 @@ async def get_work_order_events(wo_id: str, current_user: CurrentUser = Depends(
     _timing_work_order_or_404(wo_id, current_user)
     result = supabase.table("work_order_events").select("*").eq("tenant_id", current_user.hotel_id).eq("work_order_id", wo_id).order("occurred_at").execute()
     return {"data": result.data or []}
+
+
+@router.get("/{wo_id}/audit")
+async def get_work_order_audit(wo_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """Recorded state changes and repair-coding changes for the activity timeline.
+
+    Read-only view of `operational_audit_events`; nothing here is synthesized. Actor names are
+    best-effort, so a failed lookup leaves `actor_name` null instead of failing the read.
+    """
+    _timing_work_order_or_404(wo_id, current_user)
+    events = (
+        supabase.table("operational_audit_events")
+        .select("id, action, actor_id, actor_role, old_state, new_state, reason_code, reason_note, created_at")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("resource_type", "work_order")
+        .eq("resource_id", wo_id)
+        .order("created_at")
+        .execute()
+    ).data or []
+    actor_ids = sorted({e["actor_id"] for e in events if e.get("actor_id")})
+    names: dict[str, str | None] = {}
+    if actor_ids:
+        try:
+            profiles = (
+                supabase.table("user_profiles")
+                .select("id, full_name, preferred_name")
+                .eq("tenant_id", current_user.hotel_id)
+                .in_("id", actor_ids)
+                .execute()
+            ).data or []
+            names = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+        except Exception:
+            logger.warning("work order audit: actor name lookup failed", exc_info=True)
+    for event in events:
+        event["actor_name"] = names.get(event.get("actor_id"))
+    return {"data": events}
 
 
 @router.get("/{wo_id}/labor")

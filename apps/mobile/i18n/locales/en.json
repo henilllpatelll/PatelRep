@@ -2060,6 +2060,298 @@
       "awaiting_vendor": "Waiting on a vendor",
       "schedule_deferral": "Scheduled for later",
       "safety_review": "Safety review"
+    },
+    "repair": {
+      "errorForbidden": "You don't have access to this work order.",
+      "needsConnection": "Needs a connection. Nothing is saved until you're back online.",
+      "priority": {
+        "emergency": "Emergency",
+        "urgent": "Urgent",
+        "normal": "Normal",
+        "low": "Low"
+      },
+      "actions": {
+        "claim": "Claim this job",
+        "startRepair": "Start Repair",
+        "resumeWork": "Resume Work",
+        "reviewCompletion": "Review Completion",
+        "startLabor": "Start Labor",
+        "resumeLabor": "Resume Labor",
+        "pauseLabor": "Pause Labor"
+      },
+      "summary": {
+        "labor": "Labor",
+        "laborRunning": "Labor running",
+        "noLabor": "None recorded",
+        "noDeadline": "No deadline set"
+      },
+      "banner": {
+        "offline": "You're offline. You can read this order; most actions need a connection.",
+        "claimQueued": "Your claim is saved on this phone and not confirmed yet. It will be sent when you're online.",
+        "completeQueued": "Completion is saved on this phone and not confirmed yet. The order stays open until it syncs.",
+        "onHold": "On hold",
+        "escalated": "Escalated. Resume work when you can continue.",
+        "cancelled": "This work order was cancelled."
+      },
+      "issue": {
+        "title": "Reported problem",
+        "noDescription": "No description was entered.",
+        "source": "Source",
+        "sources": {
+          "guest": "Guest request",
+          "staff_patrol": "Staff patrol",
+          "pm": "Preventive maintenance",
+          "self": "Self-reported"
+        },
+        "assignedTo": "Assigned to",
+        "assigned": "Assigned",
+        "unassigned": "Unassigned"
+      },
+      "asset": {
+        "title": "Linked equipment",
+        "previous": "Earlier completed repairs: {{count}}",
+        "noPrevious": "No earlier repairs on this equipment.",
+        "relatedFailed": "Earlier repairs couldn't be loaded.",
+        "open": "Open earlier repair {{title}}"
+      },
+      "tools": {
+        "title": "Repair tools",
+        "recordTitle": "Repair record",
+        "acknowledge": "Acknowledge",
+        "tapToAcknowledge": "Tap to acknowledge",
+        "acknowledgedAt": "Acknowledged {{time}}",
+        "arrive": "Arrival",
+        "tapToArrive": "Arrived on site",
+        "arrivedAt": "Arrived {{time}}",
+        "labor": "Labor",
+        "diagnosis": "Diagnosis",
+        "notRecorded": "Not recorded",
+        "evidence": "Evidence",
+        "photos": "Photos: {{count}}",
+        "parts": "Parts",
+        "partsCount": "Parts: {{count}}",
+        "note": "Note",
+        "addNote": "Add a note"
+      },
+      "more": {
+        "title": "More actions",
+        "none": "No other actions are available right now.",
+        "note": "Add note",
+        "evidence": "Add evidence",
+        "hold": "Put on hold",
+        "escalate": "Escalate",
+        "resumeWork": "Resume work"
+      },
+      "labor": {
+        "title": "Labor tracking",
+        "activeMine": "Your active session",
+        "activeOther": "A session is running",
+        "total": "Total labor: {{time}}",
+        "start": "Start Labor",
+        "resume": "Resume Labor",
+        "pause": "Pause Labor",
+        "sessions": "Recorded sessions",
+        "none": "No labor recorded yet.",
+        "you": "You",
+        "technician": "Technician",
+        "running": "Running",
+        "needsConnection": "Labor needs a connection so the server records the exact time. Nothing is counted offline.",
+        "loadFailed": "Labor couldn't be loaded. The totals shown may be incomplete."
+      },
+      "codes": {
+        "choose": "Choose",
+        "none": "No codes are set up for this trade.",
+        "failed": "The code list couldn't be loaded.",
+        "forbidden": "You don't have access to the code list.",
+        "describeOther": "Describe it",
+        "otherRequired": "Describe what \"Other\" means here."
+      },
+      "diagnosis": {
+        "title": "Diagnosis",
+        "hint": "A working diagnosis. The verified outcome is recorded when you complete the repair. To write findings in your own words, add a note.",
+        "problem": "Problem",
+        "cause": "Root cause",
+        "choose": "Choose a problem or a cause to save.",
+        "save": "Save Diagnosis"
+      },
+      "evidence": {
+        "title": "Evidence",
+        "takePhoto": "Take Photo",
+        "library": "Choose From Library",
+        "preview": "Photo preview",
+        "remove": "Remove photo",
+        "type": "Photo type",
+        "types": {
+          "before": "Before",
+          "progress": "During",
+          "after": "After"
+        },
+        "caption": "Caption (optional)",
+        "attach": "Attach Evidence",
+        "uploading": "Uploading...",
+        "needsConnection": "Photos upload straight away and need a connection.",
+        "existing": "On this order: {{count}}",
+        "pick": {
+          "permission_denied": "Allow camera or photo access in Settings to add a photo.",
+          "unsupported": "That file isn't a photo we can use. Choose a JPEG, PNG or WebP image.",
+          "too_large": "That photo is too large. Choose one under 5 MB.",
+          "failed": "The photo couldn't be opened. Try again."
+        }
+      },
+      "parts": {
+        "title": "Parts used",
+        "recorded": "Recorded on this order",
+        "staged": "Chosen for completion",
+        "none": "No parts chosen.",
+        "deductNote": "Stock is deducted only when the server accepts the completion.",
+        "search": "Search inventory",
+        "searchPlaceholder": "Part name or SKU",
+        "needsConnection": "Searching inventory needs a connection.",
+        "loadFailed": "Inventory couldn't be loaded.",
+        "forbidden": "You don't have access to inventory.",
+        "pick": "{{name}}, {{count}} on hand",
+        "onHand": "On hand: {{count}}",
+        "location": "Take from",
+        "quantity": "Quantity",
+        "add": "Add Part",
+        "remove": "Remove {{name}}",
+        "outOfStock": "None in stock at any location.",
+        "stockFailed": "Stock couldn't be loaded for this part.",
+        "freeText": "Other parts (not in inventory)",
+        "done": "Done",
+        "issue": {
+          "quantity": "Enter a quantity above zero.",
+          "overStock": "More than is on hand at that location.",
+          "noLocation": "Choose where it comes from."
+        }
+      },
+      "hold": {
+        "title": "Put on hold",
+        "reason": "Reason",
+        "note": "Notes (optional)",
+        "confirm": "Confirm Hold",
+        "pauseLabor": "Pause my labor timer. Holding does not stop it by itself."
+      },
+      "escalate": {
+        "title": "Escalate",
+        "explain": "This marks the order Escalated for follow-up. It does not change its priority ({{priority}}).",
+        "reason": "Why are you escalating?",
+        "placeholder": "What is blocking you, and what is needed?",
+        "confirm": "Escalate"
+      },
+      "note": {
+        "title": "Add note",
+        "label": "Note",
+        "save": "Add Note"
+      },
+      "complete": {
+        "title": "Review completion",
+        "room": "Room {{room}}",
+        "problem": "Problem",
+        "cause": "Cause",
+        "resolution": "Resolution",
+        "labor": "Labor",
+        "laborNone": "None recorded",
+        "laborUnknown": "Couldn't load labor",
+        "laborRunning": "A labor timer is still running. Completing stops it at the server's time.",
+        "parts": "Parts",
+        "editParts": "Edit parts",
+        "evidence": "Evidence",
+        "photos": "Photos: {{count}}",
+        "verification": "Verification",
+        "verify": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "follow_up_required": "Follow-up required"
+        },
+        "verifyHint": {
+          "passed": "Working properly",
+          "failed": "Additional repair needed",
+          "follow_up_required": "Fixed for now, more work needed"
+        },
+        "verificationNotes": "Verification notes",
+        "assetRestoration": "Equipment status",
+        "asset": {
+          "restore": "Back in service",
+          "keep_unavailable": "Keep out of service"
+        },
+        "roomNote": "Completing this order does not release the room. Housekeeping and the front desk do that.",
+        "review": "Review",
+        "back": "Back to edit",
+        "confirm": "Confirm Completion",
+        "confirmQueue": "Save Completion for Later",
+        "queued": "Completion saved on this phone. It isn't confirmed until it syncs.",
+        "offlineQueue": "You're offline. The completion will be saved on this phone and sent later. The order stays open until the server confirms it.",
+        "offlineBlock": {
+          "parts": "Parts come out of inventory, so this needs a connection. Go online to complete with parts.",
+          "failedVerification": "A failed test is recorded on the server, so this needs a connection."
+        },
+        "failedNote": "A failed test keeps the order in progress. It will not be closed.",
+        "followUpNote": "The order will be completed and marked follow-up required. No new work order is created.",
+        "errors": {
+          "resolution": "Choose how it was resolved.",
+          "verification": "Choose a verification result.",
+          "verificationNotes": "Add a note explaining the result.",
+          "parts": "Fix the parts that are marked.",
+          "stock": "There isn't enough stock for one of the parts. Review them."
+        },
+        "outcome": {
+          "verificationFailed": "Failed test recorded. The order stays in progress. Nothing was closed.",
+          "conflict": "The order changed while you were working. It was reloaded. {{message}}"
+        }
+      },
+      "result": {
+        "title": "REPAIR COMPLETED",
+        "recorded": "Recorded",
+        "verification": {
+          "passed": "Verified: working properly",
+          "failed": "Verification failed",
+          "follow_up_required": "Verified: follow-up required"
+        },
+        "labor": "Labor {{time}}",
+        "parts": "Parts: {{count}}",
+        "evidence": "Photos: {{count}}",
+        "assetRestored": "Equipment back in service",
+        "followUp": "Follow-up is still required.",
+        "viewRecord": "View Repair Record",
+        "backToWork": "Back to My Work"
+      },
+      "record": {
+        "title": "Repair record",
+        "otherParts": "Other parts"
+      },
+      "timeline": {
+        "created": "Work order created",
+        "acknowledged": "Acknowledged",
+        "assigned": "Assigned",
+        "arrived": "Arrived on site",
+        "laborStarted": "Labor started",
+        "laborPaused": "Labor paused",
+        "laborResumed": "Labor resumed",
+        "completed": "Work completed",
+        "reopened": "Reopened",
+        "held": "Put on hold",
+        "escalated": "Escalated",
+        "cancelled": "Cancelled",
+        "resumedWork": "Work resumed",
+        "diagnosisSaved": "Diagnosis saved",
+        "verificationFailed": "Verification failed",
+        "photoAttached": "Photo attached ({{type}})",
+        "noteMine": "YOUR NOTE",
+        "noteOther": "NOTE",
+        "showEarlier": "Show {{count}} earlier",
+        "loadFailed": "The history couldn't be fully loaded."
+      },
+      "toast": {
+        "claimed": "Claimed",
+        "claimQueued": "Claim saved on this phone. Not confirmed until it syncs.",
+        "startFailed": "Couldn't start the repair.",
+        "laborFailed": "Couldn't update labor.",
+        "ackFailed": "Couldn't acknowledge.",
+        "diagnosisSaved": "Diagnosis saved",
+        "photoAttached": "Photo attached",
+        "busy": "Another action is still running."
+      }
     }
   },
   "assets": {

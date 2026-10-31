@@ -80,7 +80,29 @@ export interface WorkOrder {
   work_order_number?: string | null;
   category?: WorkOrderCategory | null;
   rooms?: { room_number?: string | null; floor?: number | null } | null;
-  assets?: { id?: string; name?: string | null; location_text?: string | null } | null;
+  assets?: {
+    id?: string;
+    name?: string | null;
+    asset_tag?: string | null;
+    location_text?: string | null;
+    asset_categories?: { name?: string | null } | null;
+  } | null;
+  asset_id?: string | null;
+  source?: string | null;
+  /** Server-confirmed timing (migration 111); absent until the event happens. */
+  acknowledged_at?: string | null;
+  arrived_at?: string | null;
+  /** Repair coding and verification, set by diagnosis/completion. */
+  problem_code?: { id: string; code: string; label: string } | null;
+  cause_code?: { id: string; code: string; label: string } | null;
+  resolution_code?: { id: string; code: string; label: string } | null;
+  problem_other_text?: string | null;
+  cause_other_text?: string | null;
+  resolution_other_text?: string | null;
+  verification_result?: "passed" | "failed" | "follow_up_required" | null;
+  verification_notes?: string | null;
+  verified_at?: string | null;
+  labor_hours?: number | null;
   location_text?: string | null;
   assigned_to?: string | null;
   created_by?: string | null;

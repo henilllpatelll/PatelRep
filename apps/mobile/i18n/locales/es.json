@@ -2060,6 +2060,298 @@
       "awaiting_vendor": "Esperando a un proveedor",
       "schedule_deferral": "Programada para después",
       "safety_review": "Revisión de seguridad"
+    },
+    "repair": {
+      "errorForbidden": "No tienes acceso a esta orden de trabajo.",
+      "needsConnection": "Requiere conexión. No se guarda nada hasta que vuelvas a estar en línea.",
+      "priority": {
+        "emergency": "Emergencia",
+        "urgent": "Urgente",
+        "normal": "Normal",
+        "low": "Baja"
+      },
+      "actions": {
+        "claim": "Tomar este trabajo",
+        "startRepair": "Iniciar reparación",
+        "resumeWork": "Reanudar trabajo",
+        "reviewCompletion": "Revisar finalización",
+        "startLabor": "Iniciar mano de obra",
+        "resumeLabor": "Reanudar mano de obra",
+        "pauseLabor": "Pausar mano de obra"
+      },
+      "summary": {
+        "labor": "Mano de obra",
+        "laborRunning": "Mano de obra en curso",
+        "noLabor": "Sin registro",
+        "noDeadline": "Sin fecha límite"
+      },
+      "banner": {
+        "offline": "Estás sin conexión. Puedes leer esta orden; la mayoría de las acciones requieren conexión.",
+        "claimQueued": "Tu solicitud está guardada en este teléfono y aún no está confirmada. Se enviará cuando estés en línea.",
+        "completeQueued": "La finalización está guardada en este teléfono y aún no está confirmada. La orden sigue abierta hasta que se sincronice.",
+        "onHold": "En espera",
+        "escalated": "Escalada. Reanuda el trabajo cuando puedas continuar.",
+        "cancelled": "Esta orden de trabajo fue cancelada."
+      },
+      "issue": {
+        "title": "Problema reportado",
+        "noDescription": "No se ingresó una descripción.",
+        "source": "Origen",
+        "sources": {
+          "guest": "Solicitud de huésped",
+          "staff_patrol": "Ronda del personal",
+          "pm": "Mantenimiento preventivo",
+          "self": "Reportado por el propio personal"
+        },
+        "assignedTo": "Asignada a",
+        "assigned": "Asignada",
+        "unassigned": "Sin asignar"
+      },
+      "asset": {
+        "title": "Equipo vinculado",
+        "previous": "Reparaciones anteriores completadas: {{count}}",
+        "noPrevious": "No hay reparaciones anteriores en este equipo.",
+        "relatedFailed": "No se pudieron cargar las reparaciones anteriores.",
+        "open": "Abrir reparación anterior {{title}}"
+      },
+      "tools": {
+        "title": "Herramientas de reparación",
+        "recordTitle": "Registro de reparación",
+        "acknowledge": "Confirmar recepción",
+        "tapToAcknowledge": "Toca para confirmar",
+        "acknowledgedAt": "Confirmada {{time}}",
+        "arrive": "Llegada",
+        "tapToArrive": "Llegué al sitio",
+        "arrivedAt": "Llegada {{time}}",
+        "labor": "Mano de obra",
+        "diagnosis": "Diagnóstico",
+        "notRecorded": "Sin registro",
+        "evidence": "Evidencia",
+        "photos": "Fotos: {{count}}",
+        "parts": "Piezas",
+        "partsCount": "Piezas: {{count}}",
+        "note": "Nota",
+        "addNote": "Agregar una nota"
+      },
+      "more": {
+        "title": "Más acciones",
+        "none": "No hay otras acciones disponibles ahora.",
+        "note": "Agregar nota",
+        "evidence": "Agregar evidencia",
+        "hold": "Poner en espera",
+        "escalate": "Escalar",
+        "resumeWork": "Reanudar trabajo"
+      },
+      "labor": {
+        "title": "Control de mano de obra",
+        "activeMine": "Tu sesión activa",
+        "activeOther": "Hay una sesión en curso",
+        "total": "Mano de obra total: {{time}}",
+        "start": "Iniciar mano de obra",
+        "resume": "Reanudar mano de obra",
+        "pause": "Pausar mano de obra",
+        "sessions": "Sesiones registradas",
+        "none": "Aún no hay mano de obra registrada.",
+        "you": "Tú",
+        "technician": "Técnico",
+        "running": "En curso",
+        "needsConnection": "La mano de obra requiere conexión para que el servidor registre la hora exacta. No se cuenta nada sin conexión.",
+        "loadFailed": "No se pudo cargar la mano de obra. Los totales pueden estar incompletos."
+      },
+      "codes": {
+        "choose": "Elegir",
+        "none": "No hay códigos configurados para este oficio.",
+        "failed": "No se pudo cargar la lista de códigos.",
+        "forbidden": "No tienes acceso a la lista de códigos.",
+        "describeOther": "Descríbelo",
+        "otherRequired": "Describe qué significa \"Otro\" aquí."
+      },
+      "diagnosis": {
+        "title": "Diagnóstico",
+        "hint": "Un diagnóstico de trabajo. El resultado verificado se registra al completar la reparación. Para escribir tus hallazgos con tus palabras, agrega una nota.",
+        "problem": "Problema",
+        "cause": "Causa raíz",
+        "choose": "Elige un problema o una causa para guardar.",
+        "save": "Guardar diagnóstico"
+      },
+      "evidence": {
+        "title": "Evidencia",
+        "takePhoto": "Tomar foto",
+        "library": "Elegir de la galería",
+        "preview": "Vista previa de la foto",
+        "remove": "Quitar foto",
+        "type": "Tipo de foto",
+        "types": {
+          "before": "Antes",
+          "progress": "Durante",
+          "after": "Después"
+        },
+        "caption": "Descripción (opcional)",
+        "attach": "Adjuntar evidencia",
+        "uploading": "Subiendo...",
+        "needsConnection": "Las fotos se suben de inmediato y requieren conexión.",
+        "existing": "En esta orden: {{count}}",
+        "pick": {
+          "permission_denied": "Permite el acceso a la cámara o a las fotos en Configuración para agregar una foto.",
+          "unsupported": "Ese archivo no es una foto que podamos usar. Elige una imagen JPEG, PNG o WebP.",
+          "too_large": "Esa foto es demasiado grande. Elige una de menos de 5 MB.",
+          "failed": "No se pudo abrir la foto. Inténtalo de nuevo."
+        }
+      },
+      "parts": {
+        "title": "Piezas usadas",
+        "recorded": "Registradas en esta orden",
+        "staged": "Elegidas para la finalización",
+        "none": "No se eligieron piezas.",
+        "deductNote": "El inventario se descuenta solo cuando el servidor acepta la finalización.",
+        "search": "Buscar en el inventario",
+        "searchPlaceholder": "Nombre o SKU de la pieza",
+        "needsConnection": "Buscar en el inventario requiere conexión.",
+        "loadFailed": "No se pudo cargar el inventario.",
+        "forbidden": "No tienes acceso al inventario.",
+        "pick": "{{name}}, {{count}} disponibles",
+        "onHand": "Disponible: {{count}}",
+        "location": "Tomar de",
+        "quantity": "Cantidad",
+        "add": "Agregar pieza",
+        "remove": "Quitar {{name}}",
+        "outOfStock": "No hay existencias en ninguna ubicación.",
+        "stockFailed": "No se pudo cargar el inventario de esta pieza.",
+        "freeText": "Otras piezas (que no están en el inventario)",
+        "done": "Listo",
+        "issue": {
+          "quantity": "Ingresa una cantidad mayor que cero.",
+          "overStock": "Es más de lo disponible en esa ubicación.",
+          "noLocation": "Elige de dónde sale."
+        }
+      },
+      "hold": {
+        "title": "Poner en espera",
+        "reason": "Motivo",
+        "note": "Notas (opcional)",
+        "confirm": "Confirmar espera",
+        "pauseLabor": "Pausar mi cronómetro de mano de obra. Poner en espera no lo detiene por sí solo."
+      },
+      "escalate": {
+        "title": "Escalar",
+        "explain": "Esto marca la orden como Escalada para seguimiento. No cambia su prioridad ({{priority}}).",
+        "reason": "¿Por qué escalas?",
+        "placeholder": "¿Qué te bloquea y qué se necesita?",
+        "confirm": "Escalar"
+      },
+      "note": {
+        "title": "Agregar nota",
+        "label": "Nota",
+        "save": "Agregar nota"
+      },
+      "complete": {
+        "title": "Revisar finalización",
+        "room": "Habitación {{room}}",
+        "problem": "Problema",
+        "cause": "Causa",
+        "resolution": "Resolución",
+        "labor": "Mano de obra",
+        "laborNone": "Sin registro",
+        "laborUnknown": "No se pudo cargar la mano de obra",
+        "laborRunning": "Aún hay un cronómetro de mano de obra en curso. Al completar se detiene con la hora del servidor.",
+        "parts": "Piezas",
+        "editParts": "Editar piezas",
+        "evidence": "Evidencia",
+        "photos": "Fotos: {{count}}",
+        "verification": "Verificación",
+        "verify": {
+          "passed": "Aprobada",
+          "failed": "Fallida",
+          "follow_up_required": "Requiere seguimiento"
+        },
+        "verifyHint": {
+          "passed": "Funciona correctamente",
+          "failed": "Se necesita otra reparación",
+          "follow_up_required": "Arreglado por ahora, falta más trabajo"
+        },
+        "verificationNotes": "Notas de verificación",
+        "assetRestoration": "Estado del equipo",
+        "asset": {
+          "restore": "De nuevo en servicio",
+          "keep_unavailable": "Mantener fuera de servicio"
+        },
+        "roomNote": "Completar esta orden no libera la habitación. Eso lo hacen ama de llaves y recepción.",
+        "review": "Revisar",
+        "back": "Volver a editar",
+        "confirm": "Confirmar finalización",
+        "confirmQueue": "Guardar finalización para después",
+        "queued": "Finalización guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "offlineQueue": "Estás sin conexión. La finalización se guardará en este teléfono y se enviará después. La orden sigue abierta hasta que el servidor la confirme.",
+        "offlineBlock": {
+          "parts": "Las piezas salen del inventario, por lo que esto requiere conexión. Conéctate para completar con piezas.",
+          "failedVerification": "Una prueba fallida se registra en el servidor, por lo que esto requiere conexión."
+        },
+        "failedNote": "Una prueba fallida mantiene la orden en curso. No se cerrará.",
+        "followUpNote": "La orden se completará y se marcará como que requiere seguimiento. No se crea una nueva orden de trabajo.",
+        "errors": {
+          "resolution": "Elige cómo se resolvió.",
+          "verification": "Elige un resultado de verificación.",
+          "verificationNotes": "Agrega una nota que explique el resultado.",
+          "parts": "Corrige las piezas marcadas.",
+          "stock": "No hay suficiente inventario para una de las piezas. Revísalas."
+        },
+        "outcome": {
+          "verificationFailed": "Prueba fallida registrada. La orden sigue en curso. No se cerró nada.",
+          "conflict": "La orden cambió mientras trabajabas. Se volvió a cargar. {{message}}"
+        }
+      },
+      "result": {
+        "title": "REPARACIÓN COMPLETADA",
+        "recorded": "Registrado",
+        "verification": {
+          "passed": "Verificada: funciona correctamente",
+          "failed": "Verificación fallida",
+          "follow_up_required": "Verificada: requiere seguimiento"
+        },
+        "labor": "Mano de obra {{time}}",
+        "parts": "Piezas: {{count}}",
+        "evidence": "Fotos: {{count}}",
+        "assetRestored": "Equipo de nuevo en servicio",
+        "followUp": "Aún se requiere seguimiento.",
+        "viewRecord": "Ver registro de reparación",
+        "backToWork": "Volver a mi trabajo"
+      },
+      "record": {
+        "title": "Registro de reparación",
+        "otherParts": "Otras piezas"
+      },
+      "timeline": {
+        "created": "Orden de trabajo creada",
+        "acknowledged": "Recepción confirmada",
+        "assigned": "Asignada",
+        "arrived": "Llegada al sitio",
+        "laborStarted": "Mano de obra iniciada",
+        "laborPaused": "Mano de obra pausada",
+        "laborResumed": "Mano de obra reanudada",
+        "completed": "Trabajo completado",
+        "reopened": "Reabierta",
+        "held": "Puesta en espera",
+        "escalated": "Escalada",
+        "cancelled": "Cancelada",
+        "resumedWork": "Trabajo reanudado",
+        "diagnosisSaved": "Diagnóstico guardado",
+        "verificationFailed": "Verificación fallida",
+        "photoAttached": "Foto adjunta ({{type}})",
+        "noteMine": "TU NOTA",
+        "noteOther": "NOTA",
+        "showEarlier": "Mostrar {{count}} anteriores",
+        "loadFailed": "No se pudo cargar todo el historial."
+      },
+      "toast": {
+        "claimed": "Tomada",
+        "claimQueued": "Solicitud guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "startFailed": "No se pudo iniciar la reparación.",
+        "laborFailed": "No se pudo actualizar la mano de obra.",
+        "ackFailed": "No se pudo confirmar la recepción.",
+        "diagnosisSaved": "Diagnóstico guardado",
+        "photoAttached": "Foto adjuntada",
+        "busy": "Otra acción sigue en curso."
+      }
     }
   },
   "assets": {

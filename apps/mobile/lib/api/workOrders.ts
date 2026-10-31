@@ -1,4 +1,4 @@
-import { API_BASE, api } from "@/lib/api/client";
+import { API_BASE, api, toApiError } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import type {
   HoldReasonCode,
@@ -8,6 +8,17 @@ import type {
   WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
 import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
+import type {
+  AuditEvent,
+  CompleteWorkOrderBody,
+  ConsumedPartRow,
+  InventoryPart,
+  LaborSession,
+  PartStockLocation,
+  PhotoType,
+  RepairCode,
+  TimingEvent,
+} from "@/lib/engineering/repairWorkspace";
 
 export interface CreateWorkOrderPayload {
   room_id?: string;
@@ -91,21 +102,25 @@ export async function claimWorkOrder(woId: string): Promise<WorkOrder | null> {
   return res.data;
 }
 
-export interface CompleteWorkOrderPayload {
-  notes?: string;
-  parts_used?: string;
+/** The body POST /work-orders/{id}/complete takes (see buildCompletionBody). */
+export type CompleteWorkOrderPayload = CompleteWorkOrderBody;
+
+export interface CompleteWorkOrderResult {
+  /** Present when the completion asked for the asset to be restored. */
+  asset_downtime?: unknown;
 }
 
 export async function completeWorkOrder(
   woId: string,
   payload: CompleteWorkOrderPayload
-): Promise<void> {
-  await api.post(`/work-orders/${woId}/complete`, payload);
+): Promise<CompleteWorkOrderResult> {
+  const res = await api.post<CompleteWorkOrderResult>(`/work-orders/${woId}/complete`, payload);
+  return res ?? {};
 }
 
 export interface WorkOrderTransition {
   status: WorkOrderStatus;
-  /** Required by the API when moving to on_hold (see HOLD_REASON_CODES). */
+  /** Required by the API when moving to on_hold (see HOLD_REASON_CODES); escalation and resume take none. */
   reason_code?: HoldReasonCode;
   reason_note?: string;
 }
@@ -128,10 +143,13 @@ export async function addWorkOrderComment(
   return res.data;
 }
 
+export const WORK_ORDER_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+
 /** Multipart upload — bypasses the JSON client. Returns the stored photo with its public URL. */
 export async function uploadWorkOrderPhoto(
   woId: string,
-  uri: string
+  uri: string,
+  options: { photoType?: PhotoType; caption?: string; signal?: AbortSignal } = {}
 ): Promise<(WorkOrderPhoto & { photo_url?: string }) | null> {
   const {
     data: { session },
@@ -144,17 +162,16 @@ export async function uploadWorkOrderPhoto(
     type: "image/jpeg",
     name: `wo_${Date.now()}.jpg`,
   } as unknown as Blob);
-  formData.append("photo_type", "progress");
+  formData.append("photo_type", options.photoType ?? "progress");
+  if (options.caption?.trim()) formData.append("caption", options.caption.trim());
 
   const response = await fetch(`${API_BASE}/work-orders/${woId}/photos`, {
     method: "POST",
     headers: { Authorization: `Bearer ${session.access_token}` },
     body: formData,
+    signal: options.signal,
   });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: "Upload failed" }));
-    throw new Error(err.detail ?? `HTTP ${response.status}`);
-  }
+  if (!response.ok) throw await toApiError(response);
   const json = (await response.json()) as { data: (WorkOrderPhoto & { photo_url?: string }) | null };
   return json.data;
 }
@@ -164,4 +181,86 @@ export function workOrderPhotoUrl(photo: WorkOrderPhoto & { photo_url?: string }
   if (!photo.storage_path) return null;
   const { data } = supabase.storage.from("work-order-photos").getPublicUrl(photo.storage_path);
   return data.publicUrl || null;
+}
+
+/* ── Repair workspace endpoints (apps/api/routers/work_orders.py) ───────────── */
+
+/** Structured arrival (not a comment): stamps `arrived_at` once, on the server. */
+export async function arriveAtWorkOrder(woId: string): Promise<void> {
+  await api.post(`/work-orders/${woId}/arrive`, {});
+}
+
+export async function acknowledgeWorkOrder(woId: string): Promise<void> {
+  await api.post(`/work-orders/${woId}/acknowledge`, {});
+}
+
+/** Starts (or resumes) the caller's labor timer. On an open order the server also claims and starts it. */
+export async function startWorkOrderLabor(woId: string): Promise<void> {
+  await api.post(`/work-orders/${woId}/labor/start`, {});
+}
+
+export async function pauseWorkOrderLabor(woId: string): Promise<void> {
+  await api.post(`/work-orders/${woId}/labor/pause`, {});
+}
+
+export async function getWorkOrderLabor(woId: string, signal?: AbortSignal): Promise<LaborSession[]> {
+  const res = await api.get<{ data: LaborSession[] }>(`/work-orders/${woId}/labor`, { signal });
+  return res.data ?? [];
+}
+
+export async function getWorkOrderEvents(woId: string, signal?: AbortSignal): Promise<TimingEvent[]> {
+  const res = await api.get<{ data: TimingEvent[] }>(`/work-orders/${woId}/events`, { signal });
+  return res.data ?? [];
+}
+
+export async function getWorkOrderAudit(woId: string, signal?: AbortSignal): Promise<AuditEvent[]> {
+  const res = await api.get<{ data: AuditEvent[] }>(`/work-orders/${woId}/audit`, { signal });
+  return res.data ?? [];
+}
+
+/** Parts the server has already consumed against this order (recorded at completion). */
+export async function getWorkOrderParts(woId: string, signal?: AbortSignal): Promise<ConsumedPartRow[]> {
+  const res = await api.get<{ data: ConsumedPartRow[] }>(`/work-orders/${woId}/parts`, { signal });
+  return res.data ?? [];
+}
+
+/** Active problem / cause / resolution codes for a trade — the API is the only source of codes. */
+export async function listRepairCodes(category?: string, signal?: AbortSignal): Promise<RepairCode[]> {
+  const res = await api.get<{ data: RepairCode[] }>(
+    `/work-orders/repair-codes${category ? `?category=${encodeURIComponent(category)}` : ""}`,
+    { signal }
+  );
+  return res.data ?? [];
+}
+
+export interface DiagnosisPayload {
+  problem_code_id?: string;
+  cause_code_id?: string;
+  problem_other_text?: string;
+  cause_other_text?: string;
+}
+
+export async function saveDiagnosis(woId: string, payload: DiagnosisPayload): Promise<WorkOrder | null> {
+  const res = await api.patch<{ data: WorkOrder | null }>(`/work-orders/${woId}/diagnosis`, payload);
+  return res.data;
+}
+
+export async function listInventoryParts(signal?: AbortSignal): Promise<InventoryPart[]> {
+  const res = await api.get<{ data: InventoryPart[] }>("/inventory/parts", { signal });
+  return res.data ?? [];
+}
+
+/** On-hand stock for one part, per location. */
+export async function getPartStock(partId: string, signal?: AbortSignal): Promise<PartStockLocation[]> {
+  const res = await api.get<{ data: { stock_by_location?: PartStockLocation[] } }>(`/inventory/parts/${partId}`, { signal });
+  return res.data?.stock_by_location ?? [];
+}
+
+/** Earlier completed repairs on the same asset (the only relationship the API exposes for read). */
+export async function listAssetRepairs(assetId: string, signal?: AbortSignal): Promise<WorkOrder[]> {
+  const res = await api.get<{ data: WorkOrder[] }>(
+    `/work-orders?${queryString({ asset_id: assetId, statuses: "completed", per_page: 5 })}`,
+    { signal }
+  );
+  return res.data ?? [];
 }

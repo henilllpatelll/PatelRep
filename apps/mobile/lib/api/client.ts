@@ -177,10 +177,10 @@ async function postForm<T>(path: string, form: FormData, options: RequestOptions
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
+  get: <T>(path: string, options?: RequestOptions) => request<T>("GET", path, undefined, false, options),
   post: <T>(path: string, body: unknown, options?: RequestOptions) => request<T>("POST", path, body, false, options),
   postForm: <T>(path: string, form: FormData, options?: RequestOptions) => postForm<T>(path, form, options),
-  patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
+  patch: <T>(path: string, body: unknown, options?: RequestOptions) => request<T>("PATCH", path, body, false, options),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),
 };
