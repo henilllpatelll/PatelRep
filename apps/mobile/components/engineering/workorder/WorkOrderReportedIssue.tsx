@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -29,8 +30,8 @@ export function WorkOrderReportedIssue({ wo, locale, occupancy, technicianName }
   const { room, text: locationText } = workOrderLocation(wo);
   const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
   const category = CATEGORY_META[categoryKey];
-  const rows: { label: string; value: string }[] = [];
-  if (room) rows.push({ label: t("workOrders.location"), value: `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}${occupancy ? `  ·  ${t(`workOrders.roomOccupancy.${occupancy}`)}` : ""}` });
+  const rows: { label: string; value: string; roomId?: string }[] = [];
+  if (room) rows.push({ roomId: wo.room_id ?? undefined, label: t("workOrders.location"), value: `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}${occupancy ? `  ·  ${t(`workOrders.roomOccupancy.${occupancy}`)}` : ""}` });
   else if (locationText) rows.push({ label: t("workOrders.location"), value: locationText });
   if (wo.source) rows.push({ label: t("workOrders.repair.issue.source"), value: t(`workOrders.repair.issue.sources.${wo.source}`, { defaultValue: wo.source }) });
   if (wo.guest_reported) rows.push({ label: t("workOrders.repair.issue.source"), value: t("workOrders.chipGuest") });
@@ -57,12 +58,26 @@ export function WorkOrderReportedIssue({ wo, locale, occupancy, technicianName }
         ) : (
           <Text style={{ color: theme.textDisabled, fontSize: 13.5 }}>{t("workOrders.repair.issue.noDescription")}</Text>
         )}
-        {rows.map((row) => (
-          <View key={`${row.label}-${row.value}`} style={[styles.row, { borderTopColor: theme.borderSubtle }]}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>{row.label}</Text>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.textPrimary }]}>{row.value}</Text>
-          </View>
-        ))}
+        {rows.map((row) =>
+          row.roomId ? (
+            <Pressable
+              key={`${row.label}-${row.value}`}
+              onPress={() => router.push({ pathname: "/(app)/room-status/[roomId]", params: { roomId: row.roomId } } as never)}
+              accessibilityRole="link"
+              accessibilityLabel={t("workOrders.repair.issue.openRoom", { room })}
+              style={[styles.row, { borderTopColor: theme.borderSubtle, minHeight: 44, alignItems: "center" }]}
+              testID="wo-open-room"
+            >
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>{row.label}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.primaryAction, textDecorationLine: "underline" }]}>{row.value}</Text>
+            </Pressable>
+          ) : (
+            <View key={`${row.label}-${row.value}`} style={[styles.row, { borderTopColor: theme.borderSubtle }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>{row.label}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.textPrimary }]}>{row.value}</Text>
+            </View>
+          ),
+        )}
       </View>
     </View>
   );

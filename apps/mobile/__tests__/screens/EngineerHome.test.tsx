@@ -333,14 +333,12 @@ describe("EngineerHome load, error and refresh states", () => {
 });
 
 describe("EngineerHome quick actions", () => {
-  it("opens Report Issue on the Work tab with a fresh request, and the other three destinations", async () => {
+  it("opens the Report an Issue form directly, and the other three destinations", async () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("quick-report")).toBeTruthy());
 
     fireEvent.press(getByTestId("quick-report"));
-    const arg = (router.push as jest.Mock).mock.calls.at(-1)[0];
-    expect(arg.pathname).toBe("/(app)/work-orders");
-    expect(arg.params.new).toMatch(/^\d+$/);
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/new");
 
     fireEvent.press(getByTestId("quick-room"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/room-status");

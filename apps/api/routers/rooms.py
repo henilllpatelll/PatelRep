@@ -22,7 +22,7 @@ from models.requests import (
 from core.database import supabase
 from services.notify import send_push
 from services.settings_audit import record_settings_event
-from core.roles import ASSIGNMENT_BOUND_ROLES, HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
+from core.roles import ENGINEERING_ROOM_BOARD_ROLES, SCOPED_REPAIR_ROLES, ASSIGNMENT_BOUND_ROLES, HOUSEKEEPING_EXCEPTION_REPORT_ROLES, RUSH_MANAGER_ROLES, DISCREPANCY_RESOLVER_ROLES
 from services.room_status_transitions import (
     close_active_sessions_for_room,
     update_housekeeper_profile,
@@ -314,6 +314,206 @@ async def room_directory(current_user: CurrentUser = Depends(get_current_user)):
         .execute()
     )
     return {"data": result.data or []}
+
+
+# ---------------------------------------------------------------------------
+# GET /rooms/engineering-board  (mobile Engineering Rooms, read-only)
+# Registered before /{room_id} so the static name is not captured as an id.
+# ---------------------------------------------------------------------------
+
+_BOARD_ACTIVE_WO_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+_BOARD_PRIORITY_RANK = {"emergency": 0, "urgent": 1, "normal": 2, "low": 3}
+_BOARD_SORTS = ("room", "floor", "urgency", "updated")
+_BOARD_CHUNK = 1000
+_BOARD_MAX_ROWS = 20000
+
+
+def _board_fetch_all(build) -> list[dict]:
+    """Walk a tenant-scoped query in fixed chunks: PostgREST caps one response and a hotel can exceed it."""
+    rows: list[dict] = []
+    while len(rows) < _BOARD_MAX_ROWS:
+        chunk = build().range(len(rows), len(rows) + _BOARD_CHUNK - 1).execute().data or []
+        rows.extend(chunk)
+        if len(chunk) < _BOARD_CHUNK:
+            break
+    return rows
+
+
+def _board_room_key(room: dict) -> tuple:
+    number = str(room.get("room_number") or "")
+    digits = "".join(ch for ch in number if ch.isdigit())
+    return (int(digits) if digits else 10**9, number.casefold())
+
+
+def _board_occupancy(fo_status: Optional[str], status: Optional[str]) -> str:
+    """Guest occupancy from the two signals we hold; missing or conflicting signals are `unknown`, never vacant."""
+    stay_driven = status in ("OCCUPIED", "PICKUP")
+    if fo_status == "OCC":
+        return "occupied"
+    if fo_status == "VAC":
+        return "unknown" if stay_driven else "vacant"
+    return "occupied" if stay_driven else "unknown"
+
+
+def _board_search_text(room: dict, room_type_name: Optional[str]) -> str:
+    floor = room.get("floor")
+    fields = (
+        room.get("room_number"), floor, f"floor {floor}" if floor is not None else None,
+        room.get("building"), room_type_name, room.get("id"),
+    )
+    return " ".join(str(value) for value in fields if value not in (None, "")).casefold()
+
+
+@router.get("/engineering-board")
+async def engineering_room_board(
+    q: Optional[str] = Query(None, max_length=100),
+    maintenance: Optional[str] = Query(None, pattern="^(active|none|unavailable|ooo|oos)$"),
+    occupancy: Optional[str] = Query(None, pattern="^(occupied|vacant|unknown)$"),
+    priority: Optional[str] = Query(None, pattern="^(emergency|urgent|normal|low)$"),
+    floor: Optional[int] = Query(None),
+    building: Optional[str] = Query(None, max_length=60),
+    room_id: Optional[str] = Query(None, max_length=64),
+    sort_by: str = Query("room"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, ge=1, le=100),
+    current_user: CurrentUser = Depends(require_role(*ENGINEERING_ROOM_BOARD_ROLES)),
+):
+    """Rooms with their maintenance and availability picture, searched, filtered, sorted and paged server-side.
+
+    Every filter runs over all of the hotel's rooms, never just the page on screen. Guest occupancy, housekeeping
+    status, the out-of-order/out-of-service period and active repairs are separate fields, and nothing here says a
+    room is sellable. A line engineer sees repairs assigned to them or unclaimed, the same visibility as
+    ``GET /work-orders``; repairs held by colleagues are counted in ``others_active_count`` without detail.
+    """
+    if sort_by not in _BOARD_SORTS:
+        raise HTTPException(status_code=422, detail="Unknown sort")
+    tenant_id = current_user.hotel_id
+    line_engineer = current_user.role in SCOPED_REPAIR_ROLES
+
+    def rooms_query():
+        query = supabase.table("rooms").select("id, room_number, floor, building, room_types(name, code)").eq("tenant_id", tenant_id).order("id")
+        if room_id:
+            query = query.eq("id", room_id)
+        return query
+
+    rooms = _board_fetch_all(rooms_query)
+    statuses = {
+        str(row["room_id"]): row
+        for row in _board_fetch_all(lambda: supabase.table("room_status").select("room_id, status, fo_status, updated_at").eq("tenant_id", tenant_id).order("room_id"))
+    }
+    periods = {
+        str(row["room_id"]): row
+        for row in _board_fetch_all(lambda: supabase.table("room_unavailability_periods").select(
+            "id, room_id, type, reason_code, reason_label, started_at, expected_return_at, primary_work_order_id, source, status, updated_at"
+        ).eq("tenant_id", tenant_id).eq("status", "ACTIVE").order("id"))
+    }
+    repairs: dict[str, list[dict]] = {}
+    others: dict[str, int] = {}
+    for wo in _board_fetch_all(lambda: supabase.table("work_orders").select(
+        "id, room_id, work_order_number, title, priority, status, assigned_to, updated_at"
+    ).eq("tenant_id", tenant_id).in_("status", list(_BOARD_ACTIVE_WO_STATUSES)).is_("archived_at", "null").not_.is_("room_id", "null").order("id")):
+        key = str(wo["room_id"])
+        if line_engineer and wo.get("assigned_to") not in (None, current_user.user_id):
+            others[key] = others.get(key, 0) + 1
+            continue
+        repairs.setdefault(key, []).append(wo)
+
+    now = datetime.now(timezone.utc)
+    rows: list[dict] = []
+    for room in rooms:
+        key = str(room["id"])
+        status_row = statuses.get(key) or {}
+        period = periods.get(key)
+        room_wos = sorted(
+            repairs.get(key, []),
+            key=lambda wo: (_BOARD_PRIORITY_RANK.get(wo.get("priority"), 9), str(wo.get("updated_at") or "")),
+        )
+        top = room_wos[0] if room_wos else None
+        if period:
+            availability = "out_of_service" if period.get("type") == "OUT_OF_SERVICE" else "out_of_order"
+        elif status_row.get("status") == "OOO":
+            availability = "unrecorded_down"  # the room status says down but PatelRep holds no period for it
+        else:
+            availability = None
+        expected = _parse_dt(period.get("expected_return_at")) if period else None
+        activity = [str(wo["updated_at"]) for wo in room_wos if wo.get("updated_at")]
+        if period and period.get("updated_at"):
+            activity.append(str(period["updated_at"]))
+        room_type = room.get("room_types") or None
+        rows.append({
+            "id": key,
+            "room_number": room.get("room_number"),
+            "floor": room.get("floor"),
+            "building": room.get("building"),
+            "room_type": {"name": room_type.get("name"), "code": room_type.get("code")} if room_type else None,
+            "occupancy": _board_occupancy(status_row.get("fo_status"), status_row.get("status")),
+            "housekeeping_status": status_row.get("status"),
+            "availability": availability,
+            "unavailability": ({**period, "is_past_eta": bool(expected and expected < now)} if period else None),
+            "active_repair_count": len(room_wos),
+            "others_active_count": others.get(key, 0) if line_engineer else 0,
+            "top_priority": top.get("priority") if top else None,
+            "top_repair": ({k: top.get(k) for k in ("id", "work_order_number", "title", "priority", "status", "assigned_to")} if top else None),
+            "last_activity_at": max(activity) if activity else None,
+            "status_updated_at": status_row.get("updated_at"),
+            "_search": _board_search_text(room, (room_type or {}).get("name")),
+        })
+
+    counts = {
+        "total": len(rows),
+        "active_repairs": sum(1 for r in rows if r["active_repair_count"]),
+        "unavailable": sum(1 for r in rows if r["availability"]),
+        "occupied": sum(1 for r in rows if r["occupancy"] == "occupied"),
+    }
+    facets = {
+        "floors": sorted({r["floor"] for r in rows if r["floor"] is not None}),
+        "buildings": sorted({r["building"] for r in rows if r["building"]}),
+    }
+
+    terms = [term for term in (q or "").casefold().split() if term]
+    if terms:
+        rows = [r for r in rows if all(term in r["_search"] for term in terms)]
+    if floor is not None:
+        rows = [r for r in rows if r["floor"] == floor]
+    if building:
+        rows = [r for r in rows if r["building"] == building]
+    if occupancy:
+        rows = [r for r in rows if r["occupancy"] == occupancy]
+    if priority:
+        rows = [r for r in rows if r["top_priority"] == priority]
+    if maintenance == "active":
+        rows = [r for r in rows if r["active_repair_count"]]
+    elif maintenance == "none":
+        rows = [r for r in rows if not r["active_repair_count"]]
+    elif maintenance == "unavailable":
+        rows = [r for r in rows if r["availability"]]
+    elif maintenance == "ooo":
+        rows = [r for r in rows if r["availability"] in ("out_of_order", "unrecorded_down")]
+    elif maintenance == "oos":
+        rows = [r for r in rows if r["availability"] == "out_of_service"]
+
+    def by_number(r: dict) -> tuple:
+        return _board_room_key(r)
+
+    if sort_by == "floor":
+        rows.sort(key=lambda r: (r["floor"] if r["floor"] is not None else 10**6, *by_number(r)))
+    elif sort_by == "urgency":
+        rows.sort(key=lambda r: (_BOARD_PRIORITY_RANK.get(r["top_priority"], 9), 0 if r["availability"] else 1, *by_number(r)))
+    elif sort_by == "updated":
+        rows.sort(key=by_number)
+        rows.sort(key=lambda r: r["last_activity_at"] or "", reverse=True)
+    else:
+        rows.sort(key=by_number)
+
+    for row in rows:
+        row.pop("_search", None)
+    total = len(rows)
+    start = (page - 1) * per_page
+    return {
+        "data": rows[start:start + per_page],
+        "meta": {"page": page, "per_page": per_page, "total": total, "has_more": start + per_page < total, "counts": counts, "facets": facets},
+    }
+
 
 
 @router.post("", status_code=201)

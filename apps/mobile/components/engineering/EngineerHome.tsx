@@ -42,8 +42,7 @@ const QUICK_ACTIONS: { key: string; labelKey: string; icon: IconName; go: () => 
     key: "report",
     labelKey: "home.engineer.quickReport",
     icon: "alert-circle-outline",
-    // The Work tab opens its existing create-work-order sheet when it receives a fresh `new` value.
-    go: () => router.push({ pathname: "/(app)/work-orders", params: { new: String(Date.now()) } } as never),
+    go: () => router.push("/(app)/work-orders/new" as never),
   },
   { key: "room", labelKey: "home.engineer.quickRoom", icon: "bed-outline", go: () => router.push("/(app)/room-status" as never) },
   // There is no scanner in the app yet, so this opens the asset list and search instead of pretending to scan.

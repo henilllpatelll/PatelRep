@@ -11,7 +11,7 @@ import { EngineeringState, StaleBanner } from "@/components/engineering/Engineer
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
 import { WorkFilterSheet } from "@/components/engineering/WorkFilterSheet";
 import { WorkQueueHeader, type FilterChip } from "@/components/engineering/WorkQueueHeader";
-import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
+import { PendingReportsBanner } from "@/components/engineering/report/PendingReportsBanner";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { useWorkQueue } from "@/lib/engineering/useWorkQueue";
 import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
@@ -77,10 +77,9 @@ export default function WorkOrdersScreen() {
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [pulling, setPulling] = useState(false);
 
-  // Home sends `view` to land on the right queue, and a fresh `new` to open the create sheet once per value.
+  // Home sends `view` to land on the right queue, and a fresh `new` to open the report form once per value.
   useEffect(() => {
     if (isView(params.view, views)) setView(params.view);
   }, [params.view, views]);
@@ -88,7 +87,7 @@ export default function WorkOrdersScreen() {
   useEffect(() => {
     if (!params.new || handledNew.current === params.new) return;
     handledNew.current = params.new;
-    setShowCreate(true);
+    router.push("/(app)/work-orders/new" as never);
   }, [params.new]);
 
   // A view this role cannot see (e.g. a role change) falls back to My Work.
@@ -370,6 +369,7 @@ export default function WorkOrdersScreen() {
         keyExtractor={(item) => item.key}
         renderItem={renderRow}
         ListHeaderComponent={
+          <>
           <WorkQueueHeader
             views={views}
             view={view}
@@ -379,8 +379,10 @@ export default function WorkOrdersScreen() {
             filterCount={filterCount}
             onOpenFilters={() => setShowFilters(true)}
             chips={chips}
-            onNew={() => setShowCreate(true)}
+            onNew={() => router.push("/(app)/work-orders/new" as never)}
           />
+          <PendingReportsBanner />
+          </>
         }
         ListEmptyComponent={listEmpty ?? undefined}
         ListFooterComponent={footer ?? undefined}
@@ -392,14 +394,6 @@ export default function WorkOrdersScreen() {
         testID="wo-list"
       />
       <WorkFilterSheet visible={showFilters} view={view} role={role} filters={filters} onApply={(next) => { setFilters(next); setShowFilters(false); }} onClose={() => setShowFilters(false)} />
-      <CreateWorkOrderModal
-        visible={showCreate}
-        onClose={() => setShowCreate(false)}
-        onCreated={() => {
-          setShowCreate(false);
-          refreshQuietly();
-        }}
-      />
     </View>
   );
 }

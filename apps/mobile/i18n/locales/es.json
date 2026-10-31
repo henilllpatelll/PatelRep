@@ -12,7 +12,8 @@
     "errorGeneric": {
       "title": "Algo salió mal",
       "body": "Ocurrió un error al cargar estos datos."
-    }
+    },
+    "done": "Listo"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -2105,7 +2106,8 @@
         },
         "assignedTo": "Asignada a",
         "assigned": "Asignada",
-        "unassigned": "Sin asignar"
+        "unassigned": "Sin asignar",
+        "openRoom": "Abrir habitación {{room}}"
       },
       "asset": {
         "title": "Equipo vinculado",
@@ -2551,7 +2553,8 @@
       "unavailableTitle": "Este equipo no está disponible",
       "unavailableBody": "Puede haberse eliminado o no pertenecer a este hotel.",
       "backToAssets": "Volver a equipos",
-      "offlineUncached": "Sin conexión, y este equipo aún no se ha abierto en este dispositivo."
+      "offlineUncached": "Sin conexión, y este equipo aún no se ha abierto en este dispositivo.",
+      "viewRoom": "Ver habitación {{room}}"
     },
     "workOrders": {
       "active": "Activas",
@@ -10870,6 +10873,404 @@
       "completedOn": "Completado {{date}}",
       "version": "Versión de la lista {{version}}",
       "labor": "Mano de obra: {{count}} min"
+    }
+  },
+  "engRooms": {
+    "title": "Habitaciones de ingeniería",
+    "subtitle": "Mantenimiento y disponibilidad de habitaciones",
+    "searchPlaceholder": "Buscar número de habitación o ubicación...",
+    "clearSearch": "Borrar búsqueda",
+    "roomKicker": "HABITACIÓN",
+    "roomLabel": "Habitación {{room}}",
+    "floorShort": "Piso {{floor}}",
+    "floorHeader": "Piso {{floor}}",
+    "floorUnknown": "Piso sin definir",
+    "viewRoom": "Ver habitación",
+    "noActiveRepair": "Sin reparación activa",
+    "maintenanceActive": "Mantenimiento activo",
+    "maintenanceActive_plural": "{{count}} reparaciones activas",
+    "moreRepairs": "+{{count}} más",
+    "moreRepairs_plural": "+{{count}} más",
+    "withColleagues": "{{count}} reparación con un compañero",
+    "withColleagues_plural": "{{count}} reparaciones con compañeros",
+    "expectedBack": "Regreso previsto {{time}}",
+    "returnOverdue": "Regreso atrasado (era {{time}})",
+    "resultCount": "{{count}} habitación",
+    "resultCount_plural": "{{count}} habitaciones",
+    "empty": "Aún no hay habitaciones",
+    "emptyHint": "Las habitaciones aparecen aquí cuando se configuran para este hotel.",
+    "noMatches": "Ninguna habitación coincide",
+    "noMatchesHint": "Prueba otro número de habitación o borra los filtros.",
+    "clearFilters": "Borrar filtros",
+    "pmsNote": "PatelRep no envía la disponibilidad de habitaciones a su sistema de gestión hotelera. Actualícela allí por separado.",
+    "stale": {
+      "failed": "No se pudo actualizar. Mostrando habitaciones de las {{time}}.",
+      "offline": "Sin conexión. Mostrando habitaciones de las {{time}}."
+    },
+    "quick": {
+      "all": "Todas",
+      "active": "Reparaciones activas",
+      "unavailable": "FDO / FDS",
+      "occupied": "Ocupadas"
+    },
+    "occupancy": {
+      "occupied": "Ocupada",
+      "vacant": "Vacía",
+      "unknown": "Ocupación desconocida"
+    },
+    "availability": {
+      "out_of_order": "Fuera de orden",
+      "out_of_service": "Fuera de servicio",
+      "unrecorded_down": "No disponible - sin registro"
+    },
+    "periodStatus": {
+      "RELEASED": "Devuelta",
+      "CANCELLED": "Cancelada",
+      "ACTIVE": "Activa"
+    },
+    "filter": {
+      "title": "Filtrar y ordenar",
+      "open": "Filtrar habitaciones",
+      "openActive": "Filtrar habitaciones, {{count}} activos",
+      "all": "Todas",
+      "any": "Cualquiera",
+      "maintenance": "Mantenimiento",
+      "maintenanceOptions": {
+        "active": "Reparaciones activas",
+        "none": "Sin reparaciones activas",
+        "unavailable": "Fuera de orden o de servicio",
+        "ooo": "Fuera de orden",
+        "oos": "Fuera de servicio"
+      },
+      "occupancy": "Ocupación",
+      "floor": "Piso",
+      "building": "Edificio",
+      "priority": "Prioridad de reparación",
+      "priorityNote": "La prioridad se aplica a la reparación más urgente que puedes ver en la habitación, no a la habitación.",
+      "sort": "Ordenar por",
+      "sortOptions": {
+        "room": "Número de habitación",
+        "floor": "Piso",
+        "urgency": "Urgencia de mantenimiento",
+        "updated": "Actualizadas recientemente"
+      },
+      "reset": "Restablecer",
+      "show": "Mostrar habitaciones"
+    },
+    "detail": {
+      "overview": "Resumen de la habitación",
+      "occupancy": "Ocupación de huéspedes",
+      "housekeeping": "Estado de limpieza",
+      "availabilityRecord": "Registro de fuera de orden",
+      "noDownRecord": "Ninguno en PatelRep",
+      "activeRepairs": "Reparaciones activas",
+      "lastActivity": "Última actividad de reparación",
+      "notReported": "Sin reportar",
+      "separateNote": "Son datos distintos. Una habitación sin reparaciones no está necesariamente lista para vender.",
+      "availability": "Disponibilidad de la habitación",
+      "availabilityFailed": "No se pudo cargar el registro de disponibilidad.",
+      "since": "Desde",
+      "expectedBack": "Regreso previsto",
+      "overdue": "atrasado",
+      "updateReturn": "Actualizar regreso previsto",
+      "returnToService": "Devolver habitación al servicio",
+      "unrecorded": "El estado de la habitación indica fuera de orden, pero PatelRep no tiene un registro. Regístralo para dar seguimiento al regreso.",
+      "recordDown": "Registrar fuera de orden",
+      "noDownBody": "Sin registro de fuera de orden ni de servicio. Limpieza y recepción ven el estado normal de la habitación.",
+      "readOnly": "Tu rol puede ver la disponibilidad, pero no cambiarla.",
+      "repairs": "Reparaciones activas",
+      "repairsFailed": "No se pudieron cargar las reparaciones de esta habitación.",
+      "noRepairs": "No hay reparaciones activas que puedas ver en esta habitación.",
+      "openRepairLabel": "Abrir reparación: {{title}}",
+      "reportHere": "Reportar un problema aquí",
+      "equipment": "Equipos en esta habitación",
+      "equipmentFailed": "No se pudieron cargar los equipos de esta habitación.",
+      "noEquipment": "No hay equipos registrados en esta habitación.",
+      "equipmentTruncated": "Mostrando los primeros {{count}}.",
+      "assetRepairs": "{{count}} reparación activa",
+      "assetRepairs_plural": "{{count}} reparaciones activas",
+      "viewAssetLabel": "Ver equipo: {{name}}",
+      "history": "Historial de reparaciones",
+      "historyFailed": "No se pudo cargar el historial de reparaciones.",
+      "historyMoreFailed": "No se pudo cargar más. Inténtalo de nuevo.",
+      "noHistory": "No hay reparaciones terminadas en esta habitación.",
+      "showMore": "Mostrar más",
+      "downHistory": "Historial de fuera de orden",
+      "downHistoryFailed": "No se pudo cargar el historial de fuera de orden.",
+      "noDownHistory": "No hay periodos anteriores de fuera de orden.",
+      "notFound": "Habitación no encontrada",
+      "notFoundHint": "Puede pertenecer a otra propiedad o ya no existir.",
+      "loadFailed": "No se pudo cargar esta habitación."
+    },
+    "manage": {
+      "open": "Gestionar disponibilidad",
+      "title": "Gestionar disponibilidad",
+      "subtitle": "Habitación {{room}}",
+      "review": "Revisar",
+      "back": "Volver a editar",
+      "confirm": "Confirmar no disponibilidad",
+      "offline": "Cambiar la disponibilidad necesita conexión. Nunca se guarda para después.",
+      "linkedRepair": "Reparación vinculada",
+      "noRepairs": "No hay reparaciones activas para vincular. Puedes continuar.",
+      "none": "Ninguna",
+      "review_room": "Habitación",
+      "review_start": "Comienza",
+      "review_startNow": "Ahora, al confirmar",
+      "impactOoo": "Limpieza y recepción verán esta habitación como fuera de orden hasta que se devuelva.",
+      "impactOos": "Limpieza y recepción verán esta habitación como fuera de servicio hasta que se devuelva.",
+      "doneTitle": "Registrado",
+      "doneBody": "La habitación {{room}} ahora está registrada como {{type}} en PatelRep.",
+      "alreadyTitle": "Ya no estaba disponible",
+      "alreadyBody": "La habitación {{room}} ya estaba registrada como {{type}}, con regreso previsto {{time}}. Tu solicitud no se aplicó.",
+      "serverState": "Estado actual de la habitación: {{status}}"
+    },
+    "eta": {
+      "title": "Actualizar regreso previsto",
+      "current": "Actualmente se espera {{time}}",
+      "note": "Motivo del cambio",
+      "notePlaceholder": "¿Por qué cambia la hora de regreso?",
+      "laterNeedsNote": "Retrasar el regreso requiere un motivo.",
+      "noteRequired": "Agrega un motivo para retrasar el regreso.",
+      "unchanged": "Es la misma hora de ahora.",
+      "confirm": "Guardar regreso previsto",
+      "done": "Regreso previsto actualizado",
+      "doneBody": "El nuevo regreso previsto está guardado. Es una estimación, no una garantía."
+    },
+    "down": {
+      "type": "Disponibilidad",
+      "types": {
+        "OUT_OF_ORDER": "Fuera de orden",
+        "OUT_OF_SERVICE": "Fuera de servicio"
+      },
+      "typeHints": {
+        "OUT_OF_ORDER": "Un defecto o reparación hace la habitación inutilizable.",
+        "OUT_OF_SERVICE": "No disponible temporalmente por una razón operativa."
+      },
+      "reason": "Motivo",
+      "reasonsLoading": "Cargando motivos...",
+      "reasonsFailed": "No se pudo cargar la lista de motivos. Revisa tu conexión e inténtalo de nuevo.",
+      "returnTitle": "Regreso previsto",
+      "presets": {
+        "in_2h": "En 2 horas",
+        "in_4h": "En 4 horas",
+        "tonight": "Esta noche, 6 PM",
+        "tomorrow": "Mañana, 9 AM",
+        "in_3d": "En 3 días",
+        "in_1w": "En 1 semana",
+        "custom": "Personalizado"
+      },
+      "today": "Hoy",
+      "inDays": "En {{count}} día",
+      "inDays_plural": "En {{count}} días",
+      "earlierDay": "Un día antes",
+      "laterDay": "Un día después",
+      "expectedBack": "Regreso previsto {{time}}",
+      "noReturnYet": "Elige cuándo esperas la habitación de vuelta.",
+      "estimateNote": "Es una estimación, no una hora de liberación garantizada. Las horas usan el reloj de este dispositivo.",
+      "details": "Detalles",
+      "detailsPlaceholder": "¿Qué está mal y qué se necesita?",
+      "errors": {
+        "type_required": "Elige Fuera de orden o Fuera de servicio.",
+        "reason_required": "Elige un motivo.",
+        "return_required": "Elige un regreso previsto.",
+        "return_past": "El regreso previsto debe ser en el futuro.",
+        "return_too_far": "El regreso previsto no puede estar a más de {{days}} días.",
+        "details_too_long": "Los detalles son demasiado largos."
+      },
+      "noAnswer": "No se entendió la respuesta del servidor. Revisa la habitación antes de intentar de nuevo.",
+      "unconfirmed": "No pudimos confirmar si se guardó. Abre la habitación para comprobarlo antes de intentar de nuevo.",
+      "notRecorded": "No se registró. No cambió nada. Puedes intentarlo de nuevo."
+    },
+    "release": {
+      "title": "Revisar restauración de la habitación",
+      "record": "Habitación {{room}}",
+      "since": "Desde {{time}}",
+      "linkedRepair": "Reparación vinculada",
+      "noLinkedRepair": "No hay una reparación vinculada a este registro.",
+      "blocked": "Esta reparación sigue abierta. Termínala o ciérrala antes de devolver la habitación.",
+      "otherOpen": "Otras reparaciones abiertas en esta habitación",
+      "verify": "Revisé esta habitación y la reparación está terminada y es segura.",
+      "acknowledge": "Sé que hay otras reparaciones abiertas en esta habitación.",
+      "notes": "Notas",
+      "notesPlaceholder": "¿Qué se hizo?",
+      "impact": "La habitación vuelve a limpieza como Sucia. Aún necesita limpieza e inspección antes de poder venderse. No se marca como limpia ni lista.",
+      "confirm": "Confirmar liberación de ingeniería",
+      "offline": "Devolver una habitación necesita conexión. Nunca se guarda para después.",
+      "doneTitle": "Habitación {{room}} devuelta",
+      "doneBody": "El estado de limpieza ahora es: {{status}}. La habitación aún necesita limpieza e inspección.",
+      "alreadyTitle": "La habitación {{room}} ya no está fuera de orden",
+      "alreadyBody": "Ya se había devuelto, quizá otra persona o tu intento anterior.",
+      "noAnswer": "No se entendió la respuesta del servidor. Revisa la habitación antes de intentar de nuevo.",
+      "unconfirmed": "No pudimos confirmar si se devolvió la habitación. Ábrela para comprobarlo antes de intentar de nuevo."
+    }
+  },
+  "report": {
+    "open": "Reportar un problema",
+    "title": "Reportar un problema",
+    "subtitle": "Crear una solicitud de mantenimiento",
+    "submit": "Crear orden de trabajo",
+    "submitOffline": "Guardar en este dispositivo",
+    "submitReview": "Revisar y crear",
+    "restored": "Se restauró tu borrador sin enviar.",
+    "startOver": "Empezar de nuevo",
+    "offline": "Sin conexión. Este reporte se guardará en este dispositivo y se enviará cuando te reconectes.",
+    "fields": {
+      "location": "Ubicación",
+      "locationPlaceholder": "Elige una habitación o lugar",
+      "forEquipment": "Para el equipo: {{name}}",
+      "title": "Problema",
+      "titlePlaceholder": "¿Qué hay que arreglar?",
+      "description": "Detalles",
+      "descriptionPlaceholder": "Describe qué pasó o qué hay que arreglar.",
+      "remaining": "Queda {{count}} carácter",
+      "remaining_plural": "Quedan {{count}} caracteres",
+      "category": "Categoría",
+      "priority": "Prioridad",
+      "evidence": "Fotos"
+    },
+    "priority": {
+      "hints": {
+        "emergency": "Seguridad inmediata o gran impacto operativo.",
+        "urgent": "Necesita atención pronto.",
+        "normal": "Reparación de rutina.",
+        "low": "Mantenimiento no urgente."
+      },
+      "emergencyConfirm": "Confirmo que es una emergencia: afecta la seguridad o la operación importante ahora mismo."
+    },
+    "location": {
+      "title": "Ubicación",
+      "tabRoom": "Habitación",
+      "tabOther": "Otro lugar",
+      "recent": "Recientes",
+      "useRecent": "Usar {{place}}",
+      "roomLabel": "Habitación {{room}}",
+      "searchRooms": "Buscar número de habitación, piso...",
+      "offlineRooms": "Buscar habitaciones necesita conexión. Usa Otro lugar para escribir una ubicación.",
+      "roomsFailed": "No se pudieron buscar habitaciones. Revisa tu conexión.",
+      "noRooms": "Ninguna habitación coincide.",
+      "moreRooms": "Mostrando {{shown}} de {{total}}. Sigue escribiendo para acotar.",
+      "otherLabel": "¿Dónde está?",
+      "otherPlaceholder": "Por ejemplo: área de la piscina, lavandería",
+      "useThis": "Usar esta ubicación",
+      "suggestions": {
+        "lobby": "Vestíbulo",
+        "pool": "Área de la piscina",
+        "laundry": "Lavandería",
+        "mechanical_room": "Cuarto de máquinas",
+        "parking": "Estacionamiento",
+        "exterior": "Exterior"
+      }
+    },
+    "evidence": {
+      "take": "Tomar foto",
+      "choose": "Elegir foto",
+      "caption": "Descripción (opcional)",
+      "captionLabel": "Descripción de la foto {{n}}",
+      "previewLabel": "Foto {{n}}",
+      "removeLabel": "Quitar foto {{n}}",
+      "count": "{{count}} de {{max}} fotos",
+      "full": "Máximo de {{max}} fotos.",
+      "offline": "Las fotos no se pueden guardar sin conexión. Se omiten si guardas este reporte en este dispositivo."
+    },
+    "more": {
+      "title": "Más opciones",
+      "equipment": "Equipo",
+      "linkEquipment": "Vincular equipo de esta habitación",
+      "equipmentIn": "Equipos en la habitación {{room}}",
+      "removeEquipment": "Quitar equipo vinculado",
+      "impact": "Impacto en el equipo",
+      "impacts": {
+        "operating": "Sigue funcionando",
+        "degraded": "Degradado",
+        "out_of_service": "Fuera de servicio"
+      },
+      "impactHints": {
+        "operating": "No se registra inactividad.",
+        "degraded": "Registra la inactividad del equipo como degradado.",
+        "out_of_service": "Registra la inactividad del equipo como fuera de servicio."
+      },
+      "source": "Cómo se encontró",
+      "sources": {
+        "self": "Interno",
+        "guest": "Reporte de huésped",
+        "staff_patrol": "Ronda del personal",
+        "pm": "Mantenimiento preventivo"
+      },
+      "assignMe": "Asignarme",
+      "assignMeHint": "Serás el técnico de esta reparación.",
+      "repeat": "Repetición de una reparación anterior",
+      "repeatPick": "Elige una reparación anterior",
+      "repeatHint": "Vincula esto como falla repetida de una reparación terminada.",
+      "repeatNone": "No se encontraron reparaciones terminadas para vincular.",
+      "removeRepeat": "Quitar vínculo de repetición",
+      "roomDown": "También sacar esta habitación de orden o de servicio",
+      "roomDownHint": "Registra la no disponibilidad junto con este reporte.",
+      "roomDownWarning": "La prioridad de emergencia nunca lo hace por sí sola. Es una decisión aparte.",
+      "roomDownOffline": "Sacar una habitación de orden necesita conexión."
+    },
+    "discard": {
+      "title": "¿Salir de este reporte?",
+      "body": "Tu texto y tus opciones se guardan en este dispositivo como borrador. Las fotos no.",
+      "keep": "Seguir editando",
+      "saveLeave": "Salir y guardar borrador",
+      "discard": "Descartar reporte"
+    },
+    "review": {
+      "title": "Revisar impacto en la habitación",
+      "body": "Al crear esta orden de trabajo también se registrará la habitación {{room}} como {{type}}.",
+      "confirm": "Crear orden y registrar habitación",
+      "edit": "Volver a editar"
+    },
+    "errors": {
+      "location_required": "Elige dónde está el problema.",
+      "location_too_long": "La ubicación es demasiado larga.",
+      "title_required": "Describe el problema en pocas palabras.",
+      "emergency_unconfirmed": "Confirma que es una emergencia o elige otra prioridad.",
+      "asset_room_mismatch": "Este equipo pertenece a otra habitación. Cambia la ubicación o quita el equipo.",
+      "impact_needs_asset": "Elige un equipo antes de indicar su impacto.",
+      "room_down_needs_room": "Sacar una habitación de orden requiere una habitación como ubicación.",
+      "needsConnection": "Esto necesita conexión y no se puede guardar para después.",
+      "ambiguous": "No pudimos saber si se recibió el reporte.",
+      "ambiguousHint": "Es seguro intentarlo de nuevo: la misma solicitud nunca se crea dos veces.",
+      "forbidden": "Tu rol no puede crear esto."
+    },
+    "success": {
+      "title": "Orden de trabajo creada",
+      "body": "El servidor aceptó tu reporte.",
+      "replayedBody": "Este reporte ya se había recibido. Aquí está la orden original.",
+      "queuedTitle": "Guardado en este dispositivo",
+      "queuedBody": "Guardado en este dispositivo. Está esperando sincronizarse y el servidor aún no lo ha aceptado. Verás el número de la orden cuando se sincronice.",
+      "number": "Orden de trabajo",
+      "issue": "Problema",
+      "location": "Ubicación",
+      "priority": "Prioridad",
+      "status": "Estado",
+      "statusQueued": "Esperando sincronizar",
+      "statusUnknown": "Abierta",
+      "photosFailed": "El reporte se creó, pero {{count}} foto no se subió.",
+      "photosFailed_plural": "El reporte se creó, pero {{count}} fotos no se subieron.",
+      "photosNotSaved": "{{count}} foto no se guardó. Agrégala a la orden cuando se sincronice.",
+      "photosNotSaved_plural": "{{count}} fotos no se guardaron. Agrégalas a la orden cuando se sincronice.",
+      "retryPhotos": "Reintentar fotos",
+      "roomDownConfirmed": "La habitación {{room}} está registrada como no disponible en PatelRep.",
+      "roomDownUnconfirmed": "No pudimos confirmar la disponibilidad de la habitación {{room}}. Ábrela para comprobarlo.",
+      "view": "Ver orden de trabajo",
+      "backWork": "Volver a órdenes de trabajo",
+      "backRoom": "Volver a la habitación",
+      "backAsset": "Volver al equipo",
+      "another": "Reportar otro problema"
+    },
+    "pending": {
+      "waiting": "{{count}} reporte guardado en este dispositivo, esperando sincronizar",
+      "waiting_plural": "{{count}} reportes guardados en este dispositivo, esperando sincronizar",
+      "syncing": "Sincronizando {{count}} reporte...",
+      "syncing_plural": "Sincronizando {{count}} reportes...",
+      "synced": "Reporte sincronizado: {{number}}",
+      "refused": "No se pudo aceptar un reporte guardado",
+      "workOrder": "Orden de trabajo",
+      "untitled": "Reporte sin título",
+      "open": "Abrir orden de trabajo",
+      "dismiss": "Descartar"
     }
   }
 }

@@ -112,6 +112,8 @@ export const HIDDEN_APP_ROUTES = [
   "inspect/record/[inspectionId]",
   "tasks/history",
   "work-orders/[woId]",
+  "work-orders/new",
+  "room-status/[roomId]",
   "assets/[assetId]",
   "assets/scan",
   "pm-schedules/[scheduleId]",

@@ -31,8 +31,15 @@ jest.mock("@/lib/theme/useToast", () => ({
 let mockStoreUser: { role: string; effective_role?: string } | null = null;
 let mockIsOnline = true;
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({ isOnline: mockIsOnline, user: mockStoreUser }),
+  useAppStore: (selector?: (state: unknown) => unknown) => {
+    const state = { isOnline: mockIsOnline, user: mockStoreUser };
+    return selector ? selector(state) : state;
+  },
 }));
+jest.mock("@/components/engineering/rooms/EngineeringRoomBoard", () => {
+  const { View } = require("react-native");
+  return { EngineeringRoomBoard: () => <View testID="engineering-room-board" /> };
+});
 jest.mock("@/lib/api/workOrders", () => ({
   createWorkOrder: jest.fn(),
 }));
@@ -168,97 +175,38 @@ describe("RoomStatusScreen", () => {
     expect(screen.getByText("roomStatus.statusLabels.OUT_OF_SERVICE")).toBeTruthy();
   });
 
-  it("opens the room-scoped work-order modal from the room action sheet", async () => {
+  it("gives engineers Engineering Rooms and every other role this property board", async () => {
     mockStoreUser = { role: "engineer", effective_role: "engineer" };
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId("room-status-card-r1")).toBeTruthy());
+    const engineer = renderScreen();
+    expect(engineer.getByTestId("engineering-room-board")).toBeTruthy();
+    expect(mockApiGet).not.toHaveBeenCalled();
+    engineer.unmount();
 
-    fireEvent.press(screen.getByTestId("room-status-card-r1"));
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
-    await pressAlertButton(0, "roomStatus.createWo");
+    mockStoreUser = { role: "chief_engineer", effective_role: "chief_engineer" };
+    const chief = renderScreen();
+    expect(chief.getByTestId("engineering-room-board")).toBeTruthy();
+    chief.unmount();
 
-    fireEvent.changeText(screen.getByPlaceholderText("workOrders.whatNeedsFixing"), "Replace lamp");
-    fireEvent.press(screen.getByText("Create Work Order"));
-
-    await waitFor(() =>
-      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ room_id: "r1", title: "Replace lamp" }),
-      ),
-    );
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
+    for (const role of ["front_desk", "gm", "housekeeping_supervisor"]) {
+      mockStoreUser = { role, effective_role: role };
+      const other = renderScreen();
+      await waitFor(() => expect(other.getByTestId("room-status-card-r1")).toBeTruthy());
+      expect(other.queryByTestId("engineering-room-board")).toBeNull();
+      other.unmount();
+    }
   });
 
-  it("keeps the OOO reason sheet and reports no-reason failures with toast.error", async () => {
-    mockStoreUser = { role: "engineer", effective_role: "engineer" };
-    mockApiPatch.mockRejectedValueOnce(new Error("offline"));
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId("room-status-card-r1")).toBeTruthy());
-
-    fireEvent.press(screen.getByTestId("room-status-card-r1"));
-    await pressAlertButton(0, "roomStatus.placeOOO");
-    expect(Alert.alert).toHaveBeenCalledTimes(2);
-    await pressAlertButton(1, "roomStatus.oooNoReason");
-
-    await waitFor(() =>
-      expect(mockApiPatch).toHaveBeenCalledWith("/rooms/r1/status", { status: "OOO", notes: undefined }),
-    );
-    expect(mockToastError).toHaveBeenCalledWith("roomStatus.oooError");
-    expect(Alert.alert).toHaveBeenCalledTimes(2);
-  });
-
-  it("reloads the tenant-scoped board after a successful no-reason OOO update", async () => {
-    mockStoreUser = { role: "engineer", effective_role: "engineer" };
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId("room-status-card-r1")).toBeTruthy());
-
-    fireEvent.press(screen.getByTestId("room-status-card-r1"));
-    await pressAlertButton(0, "roomStatus.placeOOO");
-    await pressAlertButton(1, "roomStatus.oooNoReason");
-
-    await waitFor(() => expect(mockApiGet).toHaveBeenCalledTimes(2));
-    expect(mockApiPatch).toHaveBeenCalledWith("/rooms/r1/status", {
-      status: "OOO",
-      notes: undefined,
-    });
-    expect(mockToastError).not.toHaveBeenCalled();
-  });
-
-  it("reports return-to-service failures with toast.error without adding another alert", async () => {
-    mockStoreUser = { role: "engineer", effective_role: "engineer" };
-    mockApiPatch.mockRejectedValueOnce(new Error("offline"));
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId("room-status-card-r5")).toBeTruthy());
-
-    fireEvent.press(screen.getByTestId("room-status-card-r5"));
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
-    await pressAlertButton(0, "roomStatus.removeOoo");
-
-    await waitFor(() =>
-      expect(mockApiPatch).toHaveBeenCalledWith("/rooms/r5/status", { status: "DIRTY" }),
-    );
-    expect(mockToastError).toHaveBeenCalledWith("roomStatus.removeOooError");
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports custom-reason OOO failures with toast.error after the reason sheet", async () => {
-    mockStoreUser = { role: "engineer", effective_role: "engineer" };
-    mockApiPatch.mockRejectedValueOnce(new Error("offline"));
-    renderScreen();
-    await waitFor(() => expect(screen.getByTestId("room-status-card-r1")).toBeTruthy());
-
-    fireEvent.press(screen.getByTestId("room-status-card-r1"));
-    await pressAlertButton(0, "roomStatus.placeOOO");
-    await pressAlertButton(1, "roomStatus.oooAddReason");
-    fireEvent.changeText(screen.getByPlaceholderText("roomStatus.oooReasonPlaceholder"), "Broken fan");
-    fireEvent.press(screen.getByText("roomStatus.oooReasonModalConfirm"));
-
-    await waitFor(() =>
-      expect(mockApiPatch).toHaveBeenCalledWith("/rooms/r1/status", {
-        status: "OOO",
-        notes: "Broken fan",
-      }),
-    );
-    expect(mockToastError).toHaveBeenCalledWith("roomStatus.oooError");
-    expect(Alert.alert).toHaveBeenCalledTimes(2);
+  it("is a read-only board: no room card opens an action sheet, a work order, or changes a room's status", async () => {
+    for (const role of ["front_desk", "gm", "housekeeping_supervisor"]) {
+      mockStoreUser = { role, effective_role: role };
+      const view = renderScreen();
+      await waitFor(() => expect(view.getByTestId("room-status-card-r1")).toBeTruthy());
+      fireEvent.press(view.getByTestId("room-status-card-r1"));
+      fireEvent.press(view.getByTestId("room-status-card-r5"));
+      view.unmount();
+    }
+    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(mockApiPatch).not.toHaveBeenCalled();
+    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
   });
 });

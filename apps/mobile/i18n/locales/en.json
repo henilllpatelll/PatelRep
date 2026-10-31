@@ -12,7 +12,8 @@
     "errorGeneric": {
       "title": "Something went wrong",
       "body": "Something went wrong loading this data."
-    }
+    },
+    "done": "Done"
   },
   "auth": {
     "login": "Log In",
@@ -2105,7 +2106,8 @@
         },
         "assignedTo": "Assigned to",
         "assigned": "Assigned",
-        "unassigned": "Unassigned"
+        "unassigned": "Unassigned",
+        "openRoom": "Open room {{room}}"
       },
       "asset": {
         "title": "Linked equipment",
@@ -2551,7 +2553,8 @@
       "unavailableTitle": "This equipment isn't available",
       "unavailableBody": "It may have been removed, or it isn't part of this hotel.",
       "backToAssets": "Back to assets",
-      "offlineUncached": "No connection, and this equipment hasn't been opened on this device yet."
+      "offlineUncached": "No connection, and this equipment hasn't been opened on this device yet.",
+      "viewRoom": "View room {{room}}"
     },
     "workOrders": {
       "active": "Active",
@@ -10870,6 +10873,404 @@
       "completedOn": "Completed {{date}}",
       "version": "Checklist version {{version}}",
       "labor": "Labor: {{count}} min"
+    }
+  },
+  "engRooms": {
+    "title": "Engineering Rooms",
+    "subtitle": "Room maintenance and availability",
+    "searchPlaceholder": "Find room number or location...",
+    "clearSearch": "Clear search",
+    "roomKicker": "ROOM",
+    "roomLabel": "Room {{room}}",
+    "floorShort": "Floor {{floor}}",
+    "floorHeader": "Floor {{floor}}",
+    "floorUnknown": "Floor not set",
+    "viewRoom": "View room",
+    "noActiveRepair": "No active repair",
+    "maintenanceActive": "Maintenance active",
+    "maintenanceActive_plural": "{{count}} active repairs",
+    "moreRepairs": "+{{count}} more",
+    "moreRepairs_plural": "+{{count}} more",
+    "withColleagues": "{{count}} repair with a colleague",
+    "withColleagues_plural": "{{count}} repairs with colleagues",
+    "expectedBack": "Expected back {{time}}",
+    "returnOverdue": "Return overdue (was {{time}})",
+    "resultCount": "{{count}} room",
+    "resultCount_plural": "{{count}} rooms",
+    "empty": "No rooms yet",
+    "emptyHint": "Rooms appear here once they are set up for this hotel.",
+    "noMatches": "No rooms match",
+    "noMatchesHint": "Try a different room number, or clear the filters.",
+    "clearFilters": "Clear filters",
+    "pmsNote": "PatelRep does not send room availability to your property management system. Update it there separately.",
+    "stale": {
+      "failed": "Couldn't refresh. Showing rooms from {{time}}.",
+      "offline": "You're offline. Showing rooms from {{time}}."
+    },
+    "quick": {
+      "all": "All rooms",
+      "active": "Active repairs",
+      "unavailable": "OOO / OOS",
+      "occupied": "Occupied"
+    },
+    "occupancy": {
+      "occupied": "Occupied",
+      "vacant": "Vacant",
+      "unknown": "Occupancy unknown"
+    },
+    "availability": {
+      "out_of_order": "Out of Order",
+      "out_of_service": "Out of Service",
+      "unrecorded_down": "Down - no record"
+    },
+    "periodStatus": {
+      "RELEASED": "Returned",
+      "CANCELLED": "Cancelled",
+      "ACTIVE": "Active"
+    },
+    "filter": {
+      "title": "Filter & sort",
+      "open": "Filter rooms",
+      "openActive": "Filter rooms, {{count}} active",
+      "all": "All",
+      "any": "Any",
+      "maintenance": "Maintenance",
+      "maintenanceOptions": {
+        "active": "Active repairs",
+        "none": "No active repairs",
+        "unavailable": "OOO or OOS",
+        "ooo": "Out of Order",
+        "oos": "Out of Service"
+      },
+      "occupancy": "Occupancy",
+      "floor": "Floor",
+      "building": "Building",
+      "priority": "Repair priority",
+      "priorityNote": "Priority applies to the most urgent repair you can see in the room, not to the room itself.",
+      "sort": "Sort by",
+      "sortOptions": {
+        "room": "Room number",
+        "floor": "Floor",
+        "urgency": "Maintenance urgency",
+        "updated": "Recently updated"
+      },
+      "reset": "Reset",
+      "show": "Show rooms"
+    },
+    "detail": {
+      "overview": "Room overview",
+      "occupancy": "Guest occupancy",
+      "housekeeping": "Housekeeping status",
+      "availabilityRecord": "Out-of-order record",
+      "noDownRecord": "None in PatelRep",
+      "activeRepairs": "Active repairs",
+      "lastActivity": "Last repair activity",
+      "notReported": "Not reported",
+      "separateNote": "These are separate facts. A room with no repair is not necessarily ready to sell.",
+      "availability": "Room availability",
+      "availabilityFailed": "Couldn't load the availability record.",
+      "since": "Since",
+      "expectedBack": "Expected back",
+      "overdue": "overdue",
+      "updateReturn": "Update expected return",
+      "returnToService": "Return room to service",
+      "unrecorded": "The room status says this room is out of order, but PatelRep has no out-of-order record for it. Record it so the return is tracked.",
+      "recordDown": "Record out of order",
+      "noDownBody": "No out-of-order or out-of-service record. Housekeeping and the front desk see this room's normal status.",
+      "readOnly": "Your role can view availability but not change it.",
+      "repairs": "Active repairs",
+      "repairsFailed": "Couldn't load this room's repairs.",
+      "noRepairs": "No active repairs you can see in this room.",
+      "openRepairLabel": "Open repair: {{title}}",
+      "reportHere": "Report an issue here",
+      "equipment": "Equipment in this room",
+      "equipmentFailed": "Couldn't load this room's equipment.",
+      "noEquipment": "No equipment is registered to this room.",
+      "equipmentTruncated": "Showing the first {{count}} items.",
+      "assetRepairs": "{{count}} active repair",
+      "assetRepairs_plural": "{{count}} active repairs",
+      "viewAssetLabel": "View equipment: {{name}}",
+      "history": "Repair history",
+      "historyFailed": "Couldn't load repair history.",
+      "historyMoreFailed": "Couldn't load more. Try again.",
+      "noHistory": "No finished repairs recorded for this room.",
+      "showMore": "Show more",
+      "downHistory": "Out-of-order history",
+      "downHistoryFailed": "Couldn't load out-of-order history.",
+      "noDownHistory": "No earlier out-of-order periods.",
+      "notFound": "Room not found",
+      "notFoundHint": "It may belong to another property or no longer exist.",
+      "loadFailed": "Couldn't load this room."
+    },
+    "manage": {
+      "open": "Manage room availability",
+      "title": "Manage Room Availability",
+      "subtitle": "Room {{room}}",
+      "review": "Review",
+      "back": "Back to edit",
+      "confirm": "Confirm Room Unavailability",
+      "offline": "Changing room availability needs a connection. It is never saved for later.",
+      "linkedRepair": "Linked repair",
+      "noRepairs": "No active repairs to link. You can still continue.",
+      "none": "None",
+      "review_room": "Room",
+      "review_start": "Starts",
+      "review_startNow": "Now, when confirmed",
+      "impactOoo": "Housekeeping and the front desk will see this room as out of order until it is returned.",
+      "impactOos": "Housekeeping and the front desk will see this room as out of service until it is returned.",
+      "doneTitle": "Recorded",
+      "doneBody": "Room {{room}} is now recorded as {{type}} in PatelRep.",
+      "alreadyTitle": "Already unavailable",
+      "alreadyBody": "Room {{room}} was already recorded as {{type}}, expected back {{time}}. Your request was not applied.",
+      "serverState": "Room status now: {{status}}"
+    },
+    "eta": {
+      "title": "Update expected return",
+      "current": "Currently expected back {{time}}",
+      "note": "Reason for the change",
+      "notePlaceholder": "Why is the return time changing?",
+      "laterNeedsNote": "Moving the return later needs a reason.",
+      "noteRequired": "Add a reason for moving the return later.",
+      "unchanged": "That is the same time as now.",
+      "confirm": "Save expected return",
+      "done": "Expected return updated",
+      "doneBody": "The new expected return is saved. It is an estimate, not a guarantee."
+    },
+    "down": {
+      "type": "Availability",
+      "types": {
+        "OUT_OF_ORDER": "Out of Order",
+        "OUT_OF_SERVICE": "Out of Service"
+      },
+      "typeHints": {
+        "OUT_OF_ORDER": "A defect or repair makes the room unusable.",
+        "OUT_OF_SERVICE": "Temporarily unavailable for an operational reason."
+      },
+      "reason": "Reason",
+      "reasonsLoading": "Loading reasons...",
+      "reasonsFailed": "Couldn't load the reasons list. Check your connection and try again.",
+      "returnTitle": "Expected return",
+      "presets": {
+        "in_2h": "In 2 hours",
+        "in_4h": "In 4 hours",
+        "tonight": "Tonight, 6 PM",
+        "tomorrow": "Tomorrow, 9 AM",
+        "in_3d": "In 3 days",
+        "in_1w": "In 1 week",
+        "custom": "Custom"
+      },
+      "today": "Today",
+      "inDays": "In {{count}} day",
+      "inDays_plural": "In {{count}} days",
+      "earlierDay": "One day earlier",
+      "laterDay": "One day later",
+      "expectedBack": "Expected back {{time}}",
+      "noReturnYet": "Choose when you expect the room back.",
+      "estimateNote": "This is an estimate, not a guaranteed release time. Times use this device's clock.",
+      "details": "Details",
+      "detailsPlaceholder": "What is wrong, and what is needed?",
+      "errors": {
+        "type_required": "Choose Out of Order or Out of Service.",
+        "reason_required": "Choose a reason.",
+        "return_required": "Choose an expected return.",
+        "return_past": "The expected return must be in the future.",
+        "return_too_far": "The expected return can't be more than {{days}} days away.",
+        "details_too_long": "Details are too long."
+      },
+      "noAnswer": "The server's answer wasn't understood. Check the room before trying again.",
+      "unconfirmed": "We couldn't confirm whether this was saved. Open the room to check before trying again.",
+      "notRecorded": "This was not recorded. Nothing changed. You can try again."
+    },
+    "release": {
+      "title": "Review Room Restoration",
+      "record": "Room {{room}}",
+      "since": "Since {{time}}",
+      "linkedRepair": "Linked repair",
+      "noLinkedRepair": "No repair is linked to this record.",
+      "blocked": "This repair is still open. Finish or close it before returning the room.",
+      "otherOpen": "Other repairs still open in this room",
+      "verify": "I checked this room and the repair is finished and safe.",
+      "acknowledge": "I know other repairs are still open in this room.",
+      "notes": "Notes",
+      "notesPlaceholder": "What was done?",
+      "impact": "The room goes back to housekeeping as Dirty. It still needs cleaning and inspection before it can be sold. It is not marked clean or ready.",
+      "confirm": "Confirm Engineering Release",
+      "offline": "Returning a room needs a connection. It is never saved for later.",
+      "doneTitle": "Room {{room}} returned",
+      "doneBody": "Housekeeping status is now: {{status}}. The room still needs cleaning and inspection.",
+      "alreadyTitle": "Room {{room}} is no longer out of order",
+      "alreadyBody": "It was already returned, possibly by someone else or by your earlier attempt.",
+      "noAnswer": "The server's answer wasn't understood. Check the room before trying again.",
+      "unconfirmed": "We couldn't confirm whether the room was returned. Open the room to check before trying again."
+    }
+  },
+  "report": {
+    "open": "Report an issue",
+    "title": "Report an Issue",
+    "subtitle": "Create a maintenance request",
+    "submit": "Create Work Order",
+    "submitOffline": "Save on this device",
+    "submitReview": "Review and create",
+    "restored": "Restored your unsent draft.",
+    "startOver": "Start over",
+    "offline": "You're offline. This report will be saved on this device and sent when you reconnect.",
+    "fields": {
+      "location": "Location",
+      "locationPlaceholder": "Choose a room or place",
+      "forEquipment": "For equipment: {{name}}",
+      "title": "Issue",
+      "titlePlaceholder": "What needs fixing?",
+      "description": "Details",
+      "descriptionPlaceholder": "Describe what happened or what needs fixing.",
+      "remaining": "{{count}} character left",
+      "remaining_plural": "{{count}} characters left",
+      "category": "Category",
+      "priority": "Priority",
+      "evidence": "Photos"
+    },
+    "priority": {
+      "hints": {
+        "emergency": "Immediate safety or major operational impact.",
+        "urgent": "Needs prompt attention.",
+        "normal": "Routine repair.",
+        "low": "Non-urgent maintenance."
+      },
+      "emergencyConfirm": "I confirm this is an emergency: it affects safety or major operations right now."
+    },
+    "location": {
+      "title": "Location",
+      "tabRoom": "Guest room",
+      "tabOther": "Other place",
+      "recent": "Recent",
+      "useRecent": "Use {{place}}",
+      "roomLabel": "Room {{room}}",
+      "searchRooms": "Search room number, floor...",
+      "offlineRooms": "Searching rooms needs a connection. Use Other place to type a location.",
+      "roomsFailed": "Couldn't search rooms. Check your connection.",
+      "noRooms": "No rooms match.",
+      "moreRooms": "Showing {{shown}} of {{total}}. Keep typing to narrow it down.",
+      "otherLabel": "Where is it?",
+      "otherPlaceholder": "For example: pool deck, laundry room",
+      "useThis": "Use this location",
+      "suggestions": {
+        "lobby": "Lobby",
+        "pool": "Pool area",
+        "laundry": "Laundry",
+        "mechanical_room": "Mechanical room",
+        "parking": "Parking",
+        "exterior": "Exterior"
+      }
+    },
+    "evidence": {
+      "take": "Take photo",
+      "choose": "Choose photo",
+      "caption": "Caption (optional)",
+      "captionLabel": "Caption for photo {{n}}",
+      "previewLabel": "Photo {{n}}",
+      "removeLabel": "Remove photo {{n}}",
+      "count": "{{count}} of {{max}} photos",
+      "full": "Maximum of {{max}} photos.",
+      "offline": "Photos can't be saved offline. They are left out if you save this report on this device."
+    },
+    "more": {
+      "title": "More options",
+      "equipment": "Equipment",
+      "linkEquipment": "Link equipment in this room",
+      "equipmentIn": "Equipment in room {{room}}",
+      "removeEquipment": "Remove linked equipment",
+      "impact": "Equipment impact",
+      "impacts": {
+        "operating": "Still operating",
+        "degraded": "Degraded",
+        "out_of_service": "Out of service"
+      },
+      "impactHints": {
+        "operating": "No downtime is recorded.",
+        "degraded": "Records equipment downtime as degraded.",
+        "out_of_service": "Records equipment downtime as out of service."
+      },
+      "source": "How it was found",
+      "sources": {
+        "self": "Internal",
+        "guest": "Guest report",
+        "staff_patrol": "Staff patrol",
+        "pm": "Preventive maintenance"
+      },
+      "assignMe": "Assign to me",
+      "assignMeHint": "You become the technician on this repair.",
+      "repeat": "Repeat of an earlier repair",
+      "repeatPick": "Choose an earlier repair",
+      "repeatHint": "Links this as a repeat failure of a finished repair.",
+      "repeatNone": "No earlier finished repairs found to link.",
+      "removeRepeat": "Remove repeat link",
+      "roomDown": "Also take this room out of order or service",
+      "roomDownHint": "Records the unavailability together with this report.",
+      "roomDownWarning": "Emergency priority never does this by itself. This is a separate choice.",
+      "roomDownOffline": "Taking a room out of order needs a connection."
+    },
+    "discard": {
+      "title": "Leave this report?",
+      "body": "Your text and choices are kept on this device as a draft. Photos are not.",
+      "keep": "Keep editing",
+      "saveLeave": "Leave and keep draft",
+      "discard": "Discard report"
+    },
+    "review": {
+      "title": "Review room impact",
+      "body": "Creating this work order will also record room {{room}} as {{type}}.",
+      "confirm": "Create work order and record room",
+      "edit": "Back to edit"
+    },
+    "errors": {
+      "location_required": "Choose where the problem is.",
+      "location_too_long": "The location is too long.",
+      "title_required": "Describe the issue in a few words.",
+      "emergency_unconfirmed": "Confirm this is an emergency, or choose a different priority.",
+      "asset_room_mismatch": "This equipment belongs to a different room. Change the location or remove the equipment.",
+      "impact_needs_asset": "Choose equipment before setting an equipment impact.",
+      "room_down_needs_room": "Taking a room out of order needs a guest room as the location.",
+      "needsConnection": "This needs a connection and can't be saved for later.",
+      "ambiguous": "We couldn't tell whether the report was received.",
+      "ambiguousHint": "It's safe to try again: the same request is never created twice.",
+      "forbidden": "Your role isn't allowed to create this."
+    },
+    "success": {
+      "title": "Work Order Created",
+      "body": "The server accepted your report.",
+      "replayedBody": "This report had already been received. Here is the original work order.",
+      "queuedTitle": "Saved on this device",
+      "queuedBody": "Saved on this device. It is waiting to sync and has not been accepted by the server yet. You'll see the work order number once it syncs.",
+      "number": "Work order",
+      "issue": "Issue",
+      "location": "Location",
+      "priority": "Priority",
+      "status": "Status",
+      "statusQueued": "Waiting to sync",
+      "statusUnknown": "Open",
+      "photosFailed": "The report was created, but {{count}} photo didn't upload.",
+      "photosFailed_plural": "The report was created, but {{count}} photos didn't upload.",
+      "photosNotSaved": "{{count}} photo was not saved. Add it to the work order once it syncs.",
+      "photosNotSaved_plural": "{{count}} photos were not saved. Add them to the work order once it syncs.",
+      "retryPhotos": "Retry photos",
+      "roomDownConfirmed": "Room {{room}} is recorded as unavailable in PatelRep.",
+      "roomDownUnconfirmed": "We couldn't confirm room {{room}}'s availability. Open the room to check.",
+      "view": "View Work Order",
+      "backWork": "Back to Work Orders",
+      "backRoom": "Back to room",
+      "backAsset": "Back to equipment",
+      "another": "Report another issue"
+    },
+    "pending": {
+      "waiting": "{{count}} report saved on this device, waiting to sync",
+      "waiting_plural": "{{count}} reports saved on this device, waiting to sync",
+      "syncing": "Syncing {{count}} report...",
+      "syncing_plural": "Syncing {{count}} reports...",
+      "synced": "Report synced: {{number}}",
+      "refused": "A saved report couldn't be accepted",
+      "workOrder": "Work order",
+      "untitled": "Untitled report",
+      "open": "Open work order",
+      "dismiss": "Dismiss"
     }
   }
 }

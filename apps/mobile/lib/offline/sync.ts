@@ -14,6 +14,7 @@ import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { recordConfirmedSync } from "@/lib/offline/lastSync";
 import { classifyClaimError, isTerminalClaimFailure } from "@/lib/engineering/workQueue";
 import { recordClaimConflict, type ClaimConflictReason } from "@/lib/engineering/claimConflicts";
+import { REPORT_QUEUE_MARK, isTerminalReportFailure, recordReport } from "@/lib/engineering/pendingReports";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
@@ -81,6 +82,31 @@ export async function flushSyncQueue(): Promise<void> {
           await api.patch(`/rooms/${item.entity_id}/status`, payload);
         } else if (item.entity_type === "task" && item.action === "create") {
           await api.post("/tasks", payload);
+        } else if (item.entity_type === "work_order" && item.action === "create" && item.entity_id?.startsWith(REPORT_QUEUE_MARK)) {
+          // An engineering report: the payload carries its client_request_id, so a replay can never make a second order.
+          const requestId = item.entity_id.slice(REPORT_QUEUE_MARK.length);
+          try {
+            const res = await api.post<{ data?: { id?: string; work_order_number?: string | number | null } | null }>("/work-orders", payload);
+            await recordReport({
+              requestId,
+              kind: "synced",
+              title: typeof payload?.title === "string" ? payload.title : "",
+              workOrderId: res?.data?.id ?? null,
+              workOrderNumber: res?.data?.work_order_number != null ? String(res.data.work_order_number) : null,
+            });
+          } catch (err) {
+            // The server refused it for good (validation, a room that no longer exists): retrying cannot help, so
+            // drop it and tell the person instead of leaving a report that looks pending forever.
+            if (!isTerminalReportFailure(err)) throw err;
+            await recordReport({
+              requestId,
+              kind: "refused",
+              title: typeof payload?.title === "string" ? payload.title : "",
+              message: err instanceof Error ? err.message : null,
+            });
+            await deleteSyncQueueItem(item.id);
+            continue;
+          }
         } else if (item.entity_type === "work_order" && item.action === "create") {
           await api.post("/work-orders", payload);
         } else if (item.entity_type === "work_order" && item.action === "update") {

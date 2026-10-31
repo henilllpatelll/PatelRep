@@ -204,6 +204,8 @@ class CreateRoomUnavailabilityRequest(SanitizedBaseModel):
     details: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     owner_id: Optional[UUID4] = None
     primary_work_order_id: Optional[UUID4] = None
+    # Where the change was made, recorded on the audit trail (the column also allows PMS/API/AUTOMATION, which a client cannot claim).
+    source: Literal["WEB", "MOBILE"] = "WEB"
 
 
 class UpdateRoomUnavailabilityEtaRequest(SanitizedBaseModel):
@@ -213,6 +215,7 @@ class UpdateRoomUnavailabilityEtaRequest(SanitizedBaseModel):
 
 class ReleaseRoomUnavailabilityRequest(SanitizedBaseModel):
     release_notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    source: Literal["WEB", "MOBILE"] = "WEB"
 
 
 class ManualCheckoutRequest(SanitizedBaseModel):

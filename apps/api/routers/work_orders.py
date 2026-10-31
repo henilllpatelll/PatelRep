@@ -84,7 +84,7 @@ def _mark_room_out_of_order(wo: dict, request: CreateWorkOrderRequest, current_u
             "p_owner_id": None,
             "p_work_order_id": wo["id"],
             "p_created_by": current_user.user_id,
-            "p_source": "WEB",
+            "p_source": room_down.source if room_down else "WEB",
         },
     ).execute()
     return True

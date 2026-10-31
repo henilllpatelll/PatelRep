@@ -19,7 +19,6 @@ const ROOT = path.resolve(__dirname, "../../..");
 const SOURCES = [
   "app/(app)/assets",
   "components/engineering/assets",
-  "components/engineering/CreateWorkOrderModal.tsx",
 ].flatMap((entry) => {
   const full = path.join(ROOT, entry);
   return fs.statSync(full).isDirectory() ? fs.readdirSync(full).map((f) => path.join(full, f)) : [full];

@@ -32,11 +32,57 @@ export interface CreateWorkOrderPayload {
   source?: "guest" | "staff_patrol" | "pm" | "self";
   /** Client-generated UUID4: the server returns the first work order for a repeated key. */
   client_request_id?: string;
+  /** Needs `asset_id`; the API refuses a non-"operating" impact without a linked asset. */
+  asset_impact?: "operating" | "degraded" | "out_of_service";
+  /** The creator's own id (self-assignment). Mobile never offers anyone else. */
+  assigned_to?: string;
+  /** A canonical earlier work order this one repeats (recorded as a repeat-failure relationship). */
+  repeat_of_work_order_id?: string;
+  /** Take the room down together with the report. The API creates both or neither. */
+  room_unavailability?: {
+    room_id: string;
+    type: "OUT_OF_ORDER" | "OUT_OF_SERVICE";
+    reason_code: string;
+    reason_label: string;
+    expected_return_at: string;
+    details?: string;
+    source?: "WEB" | "MOBILE";
+  };
 }
 
 export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {
   const res = await api.post<{ data: { id?: string } | null }>("/work-orders", payload);
   return res.data?.id ?? null;
+}
+
+export interface CreatedWorkOrder {
+  id: string | null;
+  workOrderNumber: string | null;
+  status: string | null;
+  title: string | null;
+  priority: string | null;
+  /** The server answered with the work order a repeated request id had already made. */
+  replayed: boolean;
+  roomMarkedOutOfOrder: boolean;
+}
+
+/** Same request as createWorkOrder, keeping what the confirmation screen shows (number, status) from the server's own answer. */
+export async function createWorkOrderDetailed(payload: CreateWorkOrderPayload): Promise<CreatedWorkOrder> {
+  const res = await api.post<{
+    data: { id?: string; work_order_number?: string | number | null; status?: string; title?: string; priority?: string } | null;
+    idempotent_replay?: boolean;
+    room_marked_out_of_order?: boolean;
+  }>("/work-orders", payload);
+  const wo = res.data;
+  return {
+    id: wo?.id ?? null,
+    workOrderNumber: wo?.work_order_number != null ? String(wo.work_order_number) : null,
+    status: wo?.status ?? null,
+    title: wo?.title ?? null,
+    priority: wo?.priority ?? null,
+    replayed: Boolean(res.idempotent_replay),
+    roomMarkedOutOfOrder: Boolean(res.room_marked_out_of_order),
+  };
 }
 
 export const WORK_ORDER_PAGE_SIZE = 100;

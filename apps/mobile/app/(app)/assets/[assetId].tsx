@@ -10,7 +10,6 @@ import { useToast } from "@/lib/theme/useToast";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { StateBlock } from "@/components/ui/StateBlock";
-import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
 import { AssetHistorySection } from "@/components/engineering/assets/AssetHistorySection";
 import { AssetMaintenanceSection } from "@/components/engineering/assets/AssetMaintenanceSection";
 import { AssetOverview, type AssetSection } from "@/components/engineering/assets/AssetOverview";
@@ -72,7 +71,6 @@ export default function AssetDetailScreen() {
 
   const [section, setSection] = useState<AssetSection>("overview");
   const [visited, setVisited] = useState<ReadonlySet<AssetSection>>(new Set(["overview"]));
-  const [createOpen, setCreateOpen] = useState(false);
   const [readingFor, setReadingFor] = useState<string | null>(null);
   const [readingToken, setReadingToken] = useState(0);
   const scroller = useRef<ScrollViewInstance>(null);
@@ -81,10 +79,31 @@ export default function AssetDetailScreen() {
   useEffect(() => {
     setSection("overview");
     setVisited(new Set(["overview"]));
-    setCreateOpen(false);
     setReadingFor(null);
     setPmHistory(null);
   }, [id]);
+
+  // Report an issue for this equipment: the shared form opens with it linked and its room as the location.
+  const openReport = useCallback(() => {
+    const detail = asset.data;
+    if (!detail) return;
+    router.push({
+      pathname: "/(app)/work-orders/new",
+      params: {
+        from: "asset",
+        assetId: detail.id,
+        assetName: detail.name,
+        assetCategory: detail.asset_categories?.code ?? "",
+        assetLocation: detail.location_text ?? "",
+        assetRoomId: detail.room_id ?? "",
+        assetRoomNumber: detail.rooms?.room_number ?? "",
+      },
+    } as never);
+  }, [asset.data]);
+  const openRoom = useCallback(() => {
+    const roomId = asset.data?.room_id;
+    if (roomId) router.push({ pathname: "/(app)/room-status/[roomId]", params: { roomId } } as never);
+  }, [asset.data]);
 
   const go = useCallback((next: AssetSection) => {
     setSection(next);
@@ -268,7 +287,8 @@ export default function AssetDetailScreen() {
               timezone={timezone}
               offline={!isOnline}
               canRecordReading={canRecord && recordMeters.length > 0}
-              onCreateWorkOrder={() => setCreateOpen(true)}
+              onCreateWorkOrder={openReport}
+              onOpenRoom={data.room_id ? openRoom : undefined}
               onGoto={go}
             />
             <AssetReliabilityPanel
@@ -332,24 +352,6 @@ export default function AssetDetailScreen() {
           />
         ) : null}
       </ScrollView>
-
-      <CreateWorkOrderModal
-        visible={createOpen}
-        onClose={() => setCreateOpen(false)}
-        asset={{
-          id: data.id,
-          name: data.name,
-          locationText: data.location_text,
-          categoryCode: data.asset_categories?.code,
-          roomId: data.room_id,
-          roomNumber: data.rooms?.room_number,
-        }}
-        onCreated={() => {
-          markAssetListStale();
-          reloadAll();
-          go("workOrders");
-        }}
-      />
 
       <RecordReadingSheet
         visible={readingFor != null}

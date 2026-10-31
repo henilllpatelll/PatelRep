@@ -55,12 +55,6 @@ jest.mock("@/lib/offline/db", () => ({
 }));
 const mockToast = { success: jest.fn(), info: jest.fn(), error: jest.fn() };
 jest.mock("@/lib/theme/useToast", () => ({ useToast: () => mockToast }));
-jest.mock("@/components/engineering/CreateWorkOrderModal", () => {
-  const { View } = require("react-native");
-  return function MockCreate({ visible }: { visible: boolean }) {
-    return <View testID="create-modal" accessibilityLabel={visible ? "open" : "closed"} />;
-  };
-});
 
 import { claimWorkOrder, listWorkOrderPage } from "@/lib/api/workOrders";
 import { enqueueAction, getSyncQueueSummary } from "@/lib/offline/db";
@@ -240,13 +234,14 @@ describe("views", () => {
     expect(screen.queryByText("Fixed it")).toBeNull();
   });
 
-  it("lands on the view Home asked for and opens the create sheet once for a fresh request", async () => {
+  it("lands on the view Home asked for and opens the report form once for a fresh request", async () => {
     mockParams = { view: "available", new: "123" };
     server(() => [wo({ id: "o", title: "Open one" })]);
     renderScreen();
     await waitFor(() => screen.getByText("Open one"));
     expect(reqs()[0]).toMatchObject({ unassigned: true });
-    expect(screen.getByTestId("create-modal").props.accessibilityLabel).toBe("open");
+    expect(mockPush).toHaveBeenCalledWith("/(app)/work-orders/new");
+    expect(mockPush.mock.calls.filter(([to]) => to === "/(app)/work-orders/new")).toHaveLength(1);
   });
 });
 

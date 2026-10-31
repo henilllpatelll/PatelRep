@@ -34,6 +34,8 @@ interface Props {
   offline: boolean;
   canRecordReading: boolean;
   onCreateWorkOrder: () => void;
+  /** Opens the room this equipment is registered to (absent when it is not in a guest room). */
+  onOpenRoom?: () => void;
   onGoto: (section: AssetSection) => void;
 }
 
@@ -50,7 +52,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Equipment identity, what is happening to it right now, and the actions an engineer takes from here. */
-export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, onCreateWorkOrder, onGoto }: Props) {
+export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const location = asset.rooms?.room_number ? t("assets.roomLabel", { room: asset.rooms.room_number }) : asset.location_text?.trim() || null;
@@ -86,6 +88,9 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
         <View style={styles.actions}>
           <Button label={t("assets.detail.viewPm")} variant="secondary" size="sm" onPress={() => onGoto("maintenance")} style={styles.action} testID="asset-action-pm" disabled={pm.length === 0} />
           <Button label={t("assets.detail.repairHistory")} variant="secondary" size="sm" onPress={() => onGoto("workOrders")} style={styles.action} testID="asset-action-history" />
+          {onOpenRoom && asset.rooms?.room_number ? (
+            <Button label={t("assets.detail.viewRoom", { room: asset.rooms.room_number })} variant="secondary" size="sm" onPress={onOpenRoom} style={styles.action} testID="asset-action-room" />
+          ) : null}
           {canRecordReading ? (
             <Button label={t("assets.detail.recordReading")} variant="secondary" size="sm" onPress={() => onGoto("readings")} style={styles.action} testID="asset-action-reading" />
           ) : null}

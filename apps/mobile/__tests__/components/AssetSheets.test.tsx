@@ -23,7 +23,6 @@ jest.mock("@/lib/api/workOrders", () => ({ createWorkOrder: jest.fn() }));
 
 import * as assetsApi from "@/lib/api/assets";
 import { createWorkOrder } from "@/lib/api/workOrders";
-import CreateWorkOrderModal, { type LinkedAsset } from "@/components/engineering/CreateWorkOrderModal";
 import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReliabilityPanel";
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
 import { ReadingTrend } from "@/components/engineering/assets/ReadingTrend";
@@ -239,59 +238,5 @@ describe("Reliability panel", () => {
     expect(getByTestId("asset-reliability-panel")).toBeTruthy();
     expect(queryByTestId("asset-signal-create")).toBeNull();
     expect(queryByTestId("asset-signal-ack")).toBeNull();
-  });
-});
-
-describe("Create work order from equipment", () => {
-  const linked: LinkedAsset = { id: "a1", name: "PTAC Unit", locationText: "Hall", categoryCode: "HVAC", roomId: "r312", roomNumber: "312" };
-  const open = (asset?: LinkedAsset | null, extra: Record<string, unknown> = {}) =>
-    wrap(<CreateWorkOrderModal visible onClose={jest.fn()} asset={asset} {...extra} />);
-  const fill = (screen: ReturnType<typeof open>) => fireEvent.changeText(screen.getByPlaceholderText("workOrders.whatNeedsFixing"), "No cooling");
-
-  it("sends the canonical asset id, room and a request key, with the category matched but never the issue prefilled", async () => {
-    (createWorkOrder as jest.Mock).mockResolvedValue("wo-1");
-    const screen = open(linked);
-    expect(screen.getByTestId("create-wo-asset")).toBeTruthy();
-    expect(screen.getByPlaceholderText("workOrders.whatNeedsFixing").props.value).toBe("");
-    fill(screen);
-    fireEvent.press(screen.getByText("Create Work Order"));
-    await waitFor(() => expect(createWorkOrder).toHaveBeenCalledTimes(1));
-    const body = (createWorkOrder as jest.Mock).mock.calls[0][0];
-    expect(body).toMatchObject({ asset_id: "a1", room_id: "r312", category: "hvac", title: "No cooling" });
-    expect(body.client_request_id).toMatch(/^[0-9a-f-]{36}$/);
-    expect(body).not.toHaveProperty("room_unavailability");
-  });
-
-  it("reuses the same request key when the first attempt gets no answer, so a retry can't duplicate", async () => {
-    (createWorkOrder as jest.Mock).mockRejectedValueOnce(new Error("Network request failed")).mockResolvedValueOnce("wo-1");
-    const screen = open(linked);
-    fill(screen);
-    fireEvent.press(screen.getByText("Create Work Order"));
-    await waitFor(() => expect(createWorkOrder).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect((createWorkOrder as jest.Mock).mock.calls.length).toBe(1));
-    fireEvent.press(screen.getByText("Create Work Order"));
-    await waitFor(() => expect(createWorkOrder).toHaveBeenCalledTimes(2));
-    const [first, second] = (createWorkOrder as jest.Mock).mock.calls.map((c) => c[0].client_request_id);
-    expect(first).toBe(second);
-  });
-
-  it("without equipment it behaves exactly as before: no asset id", async () => {
-    (createWorkOrder as jest.Mock).mockResolvedValue("wo-2");
-    const screen = open(null, { roomId: "r9", roomNumber: "9" });
-    fill(screen);
-    fireEvent.press(screen.getByText("Create Work Order"));
-    await waitFor(() => expect(createWorkOrder).toHaveBeenCalled());
-    const body = (createWorkOrder as jest.Mock).mock.calls[0][0];
-    expect(body).toMatchObject({ room_id: "r9" });
-    expect(body).not.toHaveProperty("asset_id");
-  });
-
-  it("does not pre-select a category the work order list doesn't have", async () => {
-    (createWorkOrder as jest.Mock).mockResolvedValue("wo-3");
-    const screen = open({ ...linked, categoryCode: "ELEV", roomId: null, roomNumber: null });
-    fill(screen);
-    fireEvent.press(screen.getByText("Create Work Order"));
-    await waitFor(() => expect(createWorkOrder).toHaveBeenCalled());
-    expect((createWorkOrder as jest.Mock).mock.calls[0][0]).toMatchObject({ category: "general", asset_id: "a1" });
   });
 });

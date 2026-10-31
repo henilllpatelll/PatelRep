@@ -34932,6 +34932,71 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2124",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "Old mobile Rooms screen set a room out of order with a bare status PATCH (no reason, no return time, 'Unknown / legacy') and returned it by PATCHing DIRTY with no repair or verification check",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "The screen predated the room-unavailability model; the API quietly routed the PATCH into the same RPCs with placeholder data",
+      "fix": "Engineers now use Engineering Rooms: structured Manage Room Availability (type, hotel reason list, return time, linked repair, review) and a gated Review Room Restoration sheet, both through /room-unavailability with source MOBILE; the PATCH code, Alert flow and modal were removed and roomSafety.test.ts guards against a status write returning",
+      "tags": [
+        "mobile",
+        "rooms",
+        "ooo",
+        "safety"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2125",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "useReportIssue.addPhoto let 6 photos through a 4-photo limit when called several times in one tick",
+      "file": "apps/mobile/lib/engineering/useReportIssue.ts",
+      "root_cause": "The limit read photosRef.current, which was only refreshed on render, so calls in the same tick all saw the old length",
+      "fix": "Write the ref synchronously (writePhotos) in add/remove/caption; covered by the 'holds at most four photos' test",
+      "tags": [
+        "mobile",
+        "react",
+        "refs",
+        "found-by-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2126",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "WorkOrderDetail.test router mock was undefined for components that import `router` from expo-router",
+      "file": "apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+      "root_cause": "The jest.mock factory captured `mockRouter` before its const initialised (babel hoists imports above it)",
+      "fix": "Delegate router.push/back/replace/canGoBack through arrow functions that read mockRouter at call time",
+      "tags": [
+        "jest",
+        "mock",
+        "hoisting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2127",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "eslint --max-warnings=0 failed: Definition for rule 'react-hooks/exhaustive-deps' was not found",
+      "file": "apps/mobile/app/(app)/work-orders/new.tsx",
+      "root_cause": "I copied an eslint-disable comment for a rule this config does not load",
+      "fix": "Removed the comments; the prefill is memoised once with an empty dependency list",
+      "tags": [
+        "eslint",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
     }
   ]
 }

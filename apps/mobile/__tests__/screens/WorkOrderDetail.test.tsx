@@ -4,7 +4,13 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => ({ woId: "wo-1" }),
-  router: mockRouter,
+  // Delegates at call time: the const above is not initialised yet when the factory first runs.
+  router: {
+    back: (...args: unknown[]) => mockRouter.back(...args),
+    canGoBack: () => mockRouter.canGoBack(),
+    replace: (...args: unknown[]) => mockRouter.replace(...args),
+    push: (...args: unknown[]) => mockRouter.push(...args),
+  },
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -145,6 +151,13 @@ describe("header and reported problem", () => {
     expect(getByTestId("wo-status-line").props.children).toBe("WORKORDERS.REPAIR.PRIORITY.URGENT · WORKORDERS.STATUS.IN_PROGRESS");
     expect(getByTestId("wo-description").props.children).toBe("Room is not cooling; guest called twice.");
     await waitFor(() => expect(getByText(/Occupied/)).toBeTruthy());
+  });
+
+  it("opens Room Detail from the room named on the work order, by the room's canonical id", async () => {
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("wo-open-room")).toBeTruthy());
+    fireEvent.press(getByTestId("wo-open-room"));
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: "/(app)/room-status/[roomId]", params: { roomId: "room-101" } });
   });
 
   it("says 'no deadline' rather than inventing one, and shows no labor until the server has some", async () => {

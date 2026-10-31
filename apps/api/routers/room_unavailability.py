@@ -118,7 +118,7 @@ async def create_period(
         "p_details": request.details, "p_expected_return_at": request.expected_return_at.isoformat(),
         "p_owner_id": str(request.owner_id) if request.owner_id else None,
         "p_work_order_id": str(request.primary_work_order_id) if request.primary_work_order_id else None,
-        "p_created_by": current_user.user_id, "p_source": "WEB",
+        "p_created_by": current_user.user_id, "p_source": request.source,
     }).execute()
     return {"data": result.data}
 
@@ -152,6 +152,6 @@ async def release_period(
     result = supabase.rpc("release_room_unavailability", {
         "p_period_id": period_id, "p_tenant_id": current_user.hotel_id,
         "p_released_by": current_user.user_id, "p_release_notes": request.release_notes,
-        "p_source": "WEB",
+        "p_source": request.source,
     }).execute()
     return {"data": result.data}
