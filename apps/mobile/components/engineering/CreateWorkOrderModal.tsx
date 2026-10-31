@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { createWorkOrder } from "@/lib/api/workOrders";
+import { newClientRequestId } from "@/lib/engineering/requestId";
 import { monoFont, R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -51,10 +52,27 @@ interface Props {
   roomId?: string | null;
   roomNumber?: string | null;
   onClose: () => void;
-  onCreated?: () => void;
+  /** Receives the new work order's id when the server returned one. */
+  onCreated?: (workOrderId?: string | null) => void;
+  /** Equipment this repair is for. Its canonical id is sent to the API; the person still describes the issue. */
+  asset?: LinkedAsset | null;
 }
 
-export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onClose, onCreated }: Props) {
+export interface LinkedAsset {
+  id: string;
+  name: string;
+  locationText?: string | null;
+  /** The asset category code (e.g. HVAC); used to pre-select a matching work order category, never to invent one. */
+  categoryCode?: string | null;
+  roomId?: string | null;
+  roomNumber?: string | null;
+}
+
+export default function CreateWorkOrderModal({ visible, roomId: roomIdProp, roomNumber: roomNumberProp, onClose, onCreated, asset }: Props) {
+  const roomId = roomIdProp ?? asset?.roomId ?? null;
+  const roomNumber = roomNumberProp ?? asset?.roomNumber ?? null;
+  // One key per attempt: a retry after a lost response returns the first work order instead of creating a second.
+  const requestId = useRef(newClientRequestId());
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -76,6 +94,15 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
     return theme.primaryAction;
   }
 
+  // Pre-fill what the equipment already says. Category only when it names one of ours.
+  const assetId = asset?.id ?? null;
+  useEffect(() => {
+    if (!visible || !asset) return;
+    const code = asset.categoryCode?.trim().toLowerCase();
+    if (code && CATEGORIES.some((c) => c.key === code)) setCategory(code);
+    if (!roomId && asset.locationText) setLocation(asset.locationText);
+  }, [visible, assetId]);
+
   function reset() {
     setTitle("");
     setDescription("");
@@ -87,20 +114,23 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
 
   async function submit() {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    if (!trimmedTitle || loading) return;
     setLoading(true);
     try {
-      await createWorkOrder({
+      const createdId = await createWorkOrder({
         ...(roomId ? { room_id: roomId } : {}),
+        ...(asset ? { asset_id: asset.id } : {}),
         title: trimmedTitle,
         description: description.trim() || undefined,
         category,
         priority,
         location_text: location.trim() || undefined,
         source,
+        client_request_id: requestId.current,
       });
+      requestId.current = newClientRequestId();
       reset();
-      onCreated?.();
+      onCreated?.(createdId);
       const body = roomNumber ? `Submitted for room ${roomNumber}.` : "Work order submitted.";
       toast.success(body);
       onClose();
@@ -127,6 +157,14 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
               </View>
             ) : null}
           </View>
+          {asset ? (
+            <View style={[styles.assetRow, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} testID="create-wo-asset">
+              <Ionicons name="cube-outline" size={15} color={theme.textMuted} />
+              <Text style={[styles.assetText, { color: theme.textPrimary }]} numberOfLines={1} accessibilityLabel={t("assets.createWo.forEquipment", { name: asset.name })}>
+                {t("assets.createWo.forEquipment", { name: asset.name })}
+              </Text>
+            </View>
+          ) : null}
 
           <TextInput
             style={[styles.input, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
@@ -267,6 +305,8 @@ export default function CreateWorkOrderModal({ visible, roomId, roomNumber, onCl
 }
 
 const styles = StyleSheet.create({
+  assetRow: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10 },
+  assetText: { flex: 1, fontSize: 13, fontWeight: "600" },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   sheet: {
     borderTopLeftRadius: 22,

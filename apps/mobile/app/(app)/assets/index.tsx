@@ -1,310 +1,289 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { monoFont } from "@/components/shared/tokens";
-import { CopilotHero } from "@/components/shared/mobileHandoff";
-import { SectionHeader } from "@/components/shared/evening";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { StateBlock } from "@/components/ui/StateBlock";
 import { useTheme } from "@/lib/theme/useTheme";
-import { useToast } from "@/lib/theme/useToast";
+import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { Button } from "@/components/ui/Button";
+import { EngineeringState } from "@/components/engineering/EngineeringState";
+import { AssetCard } from "@/components/engineering/assets/AssetCard";
+import { AssetFilterSheet } from "@/components/engineering/assets/AssetFilterSheet";
+import { Pill, StaleNote } from "@/components/engineering/assets/assetUi";
+import { getFailurePredictions, listAssetCategories } from "@/lib/api/assets";
 import {
-  listAssets,
-  getFailurePredictions,
-  acknowledgePrediction,
-  createWorkOrderFromPrediction,
-  type Asset,
-  type FailurePrediction,
-} from "@/lib/api/assets";
+  ASSET_QUICK_FILTERS,
+  EMPTY_ASSET_FILTERS,
+  activeAssetFilterCount,
+  hasAnyAssetFilter,
+  type AssetFilters,
+  type AssetRow,
+} from "@/lib/engineering/assetModel";
+import { resolveLoadState } from "@/lib/engineering/loadState";
+import { recallAssetView, rememberAssetView, takeAssetListStale, useAssetBrowse } from "@/lib/engineering/useAssetBrowse";
+import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
+import { useAppStore } from "@/stores/appStore";
 
-/* ─── Assets tab — equipment health in the Evening Lobby language ───────────
-   Dark shell hero with live fleet counts, the real AI failure-prediction
-   hero (paid action stays behind an explicit tap), and the fleet split into
-   a risk-sorted watch list and the healthy remainder. */
+const SEARCH_DEBOUNCE_MS = 350;
 
-function riskTone(score: number): "alert" | "caution" | "ready" {
-  if (score >= 70) return "alert";
-  if (score >= 40) return "caution";
-  return "ready";
+function useDebounced<T>(value: T, ms: number): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return settled;
 }
-
-function AssetCard({ asset, sub }: { asset: Asset; sub: string }) {
-  const theme = useTheme();
-  const toneColors = {
-    alert: { fg: theme.status.dirty, bg: theme.status.dirtySoft },
-    caution: { fg: theme.status.pickup, bg: theme.status.pickupSoft },
-    ready: { fg: theme.status.ready, bg: theme.status.readySoft },
-  } as const;
-  const tone = toneColors[riskTone(asset.failure_risk_score)];
-  const score = Math.max(0, Math.min(100, asset.failure_risk_score));
-  return (
-    <Card style={cardStyles.card}>
-      <View style={[cardStyles.rail, { backgroundColor: tone.fg }]} />
-      <View style={[cardStyles.tile, { backgroundColor: tone.bg }]}>
-        <Ionicons name="cube-outline" size={17} color={tone.fg} />
-      </View>
-      <View style={cardStyles.body}>
-        <Text style={[cardStyles.name, { color: theme.textPrimary }]} numberOfLines={1}>
-          {asset.name}
-        </Text>
-        {sub ? (
-          <Text style={[cardStyles.sub, { color: theme.textMuted }]} numberOfLines={1}>
-            {sub}
-          </Text>
-        ) : null}
-        <View style={[cardStyles.meterTrack, { backgroundColor: theme.surfaceMuted }]}>
-          <View style={[cardStyles.meterFill, { width: `${score}%`, backgroundColor: tone.fg }]} />
-        </View>
-      </View>
-      <Text style={[cardStyles.score, { color: tone.fg }]}>{asset.failure_risk_score}%</Text>
-    </Card>
-  );
-}
-
-const cardStyles = StyleSheet.create({
-  card: {
-    position: "relative",
-    overflow: "hidden",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 11,
-    paddingLeft: 15,
-    paddingRight: 13,
-    paddingVertical: 12,
-  },
-  rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
-  tile: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  body: { flex: 1, minWidth: 0, gap: 4 },
-  name: { fontSize: 14, fontWeight: "700" },
-  sub: { fontSize: 11.5 },
-  meterTrack: { height: 4, borderRadius: 2, overflow: "hidden", marginTop: 2 },
-  meterFill: { height: 4, borderRadius: 2 },
-  score: { fontSize: 12.5, fontWeight: "800", fontFamily: monoFont },
-});
 
 export default function AssetsScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const toast = useToast();
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [predictions, setPredictions] = useState<FailurePrediction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const insets = useSafeAreaInsets();
+  const user = useAppStore((s) => s.user);
+  const isOnline = useAppStore((s) => s.isOnline);
+  const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
 
-  const load = useCallback(async () => {
-    try {
-      const [assetsRes, predsRes] = await Promise.allSettled([listAssets(), getFailurePredictions()]);
-      if (assetsRes.status === "fulfilled") setAssets(assetsRes.value.data);
-      if (predsRes.status === "fulfilled") {
-        setPredictions(predsRes.value.data.filter((p) => !p.is_acknowledged));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [filters, setFilters] = useState<AssetFilters>(() => recallAssetView(scope)?.filters ?? EMPTY_ASSET_FILTERS);
+  const [text, setText] = useState(() => recallAssetView(scope)?.text ?? "");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const query = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    rememberAssetView(scope, { filters, text });
+  }, [scope, filters, text]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }, [load]);
+  const browse = useAssetBrowse({ scope, filters, query });
+  const refreshBrowse = browse.refresh;
+  // Hidden tab screens stay mounted: a work order opened or a signal handled elsewhere is picked up on return.
+  useFocusEffect(
+    useCallback(() => {
+      if (takeAssetListStale()) void refreshBrowse();
+    }, [refreshBrowse]),
+  );
+  const categories = useAsyncResource((signal) => listAssetCategories(signal), { scope, key: "asset-categories" });
+  const signals = useAsyncResource(async () => (await getFailurePredictions()).data.filter((p) => !p.is_acknowledged), { scope, key: "open-predictions" });
 
-  const handleDismiss = useCallback(async () => {
-    const pred = predictions[0];
-    if (!pred || actionLoading) return;
-    setActionLoading(true);
-    try {
-      await acknowledgePrediction(pred.id);
-      setPredictions((prev) => prev.filter((p) => p.id !== pred.id));
-    } catch {
-      toast.error(t("assets.dismissError"));
-    } finally {
-      setActionLoading(false);
-    }
-  }, [predictions, actionLoading, t, toast]);
+  const openAsset = useCallback((assetId: string) => router.push({ pathname: "/(app)/assets/[assetId]", params: { assetId } } as never), []);
+  const scan = useCallback(() => router.push("/(app)/assets/scan" as never), []);
+  const clearAll = useCallback(() => {
+    setFilters(EMPTY_ASSET_FILTERS);
+    setText("");
+  }, []);
 
-  const handlePreemptRepair = useCallback(async () => {
-    const pred = predictions[0];
-    if (!pred || actionLoading) return;
-    setActionLoading(true);
-    try {
-      await createWorkOrderFromPrediction(pred.id);
-      toast.success(
-        `${t("assets.woCreatedTitle")}: ${t("assets.woCreatedBody", {
-          name: pred.assets?.name ?? t("assets.fallbackAsset"),
-        })}`
-      );
-      setPredictions((prev) => prev.filter((p) => p.id !== pred.id));
-    } catch {
-      toast.error(t("assets.woCreateError"));
-    } finally {
-      setActionLoading(false);
-    }
-  }, [predictions, actionLoading, t, toast]);
+  const filtered = hasAnyAssetFilter(filters, query);
+  const sheetCount = activeAssetFilterCount(filters);
+  const state = resolveLoadState({ loading: browse.loading, failure: browse.failure, count: browse.rows.length, offline: !isOnline && !browse.loaded });
+  // A finished read with no rows is "empty"; a failed one never is.
+  const emptyStatus = state.status === "ready" || !browse.loaded ? state.status : "empty";
+  const signalCount = signals.data?.length ?? 0;
 
-  const topPred = predictions[0];
-  const highRisk = assets.filter((a) => a.failure_risk_score >= 70).length;
+  const renderItem = useCallback(({ item }: { item: AssetRow }) => <AssetCard row={item} onPress={openAsset} />, [openAsset]);
 
-  const { watch, healthy } = useMemo(() => {
-    const sorted = [...assets].sort((a, b) => b.failure_risk_score - a.failure_risk_score);
-    return {
-      watch: sorted.filter((a) => a.failure_risk_score >= 40),
-      healthy: sorted.filter((a) => a.failure_risk_score < 40),
-    };
-  }, [assets]);
-
-  const assetSub = (asset: Asset): string =>
-    [
-      asset.asset_categories?.name,
-      asset.rooms?.room_number ? t("assets.roomLabel", { room: asset.rooms.room_number }) : asset.location_text,
-    ]
-      .filter(Boolean)
-      .join(" — ");
+  const header = useMemo(
+    () => (
+      <View style={styles.listHeader}>
+        <ScrollChips
+          filters={filters}
+          onQuick={(quick) => setFilters((f) => ({ ...f, quick }))}
+          sheetCount={sheetCount}
+          onOpenSheet={() => setSheetOpen(true)}
+        />
+        {signalCount > 0 && filters.reliability !== "active_prediction" ? (
+          <Pressable
+            onPress={() => setFilters((f) => ({ ...f, quick: "all", reliability: "active_prediction" }))}
+            accessibilityRole="button"
+            accessibilityLabel={t("assets.signals.open", { count: signalCount })}
+            style={[styles.signalRow, { backgroundColor: theme.status.pickupSoft }]}
+            testID="asset-signals-row"
+          >
+            <Ionicons name="pulse-outline" size={16} color={theme.status.pickup} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.signalText, { color: theme.textPrimary }]}>
+              {t("assets.signals.open", { count: signalCount })}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+          </Pressable>
+        ) : null}
+        {state.status === "ready" && filtered ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.count, { color: theme.textMuted }]} accessibilityLiveRegion="polite" testID="asset-result-count">
+            {t("assets.resultCount", { count: browse.total })}
+          </Text>
+        ) : null}
+        {state.stale ? (
+          <StaleNote testID="asset-stale">
+            {browse.failure === "offline" || !isOnline
+              ? t("assets.stale.offline", { time: formatTime(browse.syncedAt) })
+              : t("assets.stale.failed", { time: formatTime(browse.syncedAt) })}
+          </StaleNote>
+        ) : null}
+      </View>
+    ),
+    [filters, sheetCount, signalCount, state.status, state.stale, filtered, browse.total, browse.failure, browse.syncedAt, isOnline, t, theme],
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {loading ? (
-        <View style={styles.center}>
-          <StateBlock status="loading" />
+    <View style={[styles.container, { backgroundColor: theme.background }]} testID="assets-screen">
+      <View style={[styles.hero, { paddingTop: insets.top + 12, backgroundColor: theme.shell.bg }]}>
+        <View style={styles.heroRow}>
+          <View style={styles.heroText}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heroTitle, { color: theme.shell.ink }]}>
+              {t("assets.title")}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heroSub, { color: theme.shell.ink2 }]}>
+              {t("assets.subtitle")}
+            </Text>
+          </View>
+          <Pressable
+            onPress={scan}
+            accessibilityRole="button"
+            accessibilityLabel={t("assets.scan.open")}
+            style={[styles.scanButton, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}
+            testID="asset-scan-button"
+          >
+            <Ionicons name="qr-code-outline" size={22} color={theme.shell.ink} />
+          </Pressable>
         </View>
-      ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
-        >
-          <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
-          <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-            <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("assets.kicker")}</Text>
-            <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("assets.title")}</Text>
-            <View style={styles.heroStats}>
-              <View style={[styles.heroStat, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
-                <Text style={[styles.heroStatValue, { color: theme.shell.ink }]}>{assets.length}</Text>
-                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>{t("assets.statTotal")}</Text>
-              </View>
-              <View style={[styles.heroStat, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
-                <Text style={[styles.heroStatValue, { color: highRisk > 0 ? theme.status.dirty : theme.shell.ink }]}>{highRisk}</Text>
-                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>{t("assets.statHighRisk")}</Text>
-              </View>
-              <View style={[styles.heroStat, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
-                <Text style={[styles.heroStatValue, { color: predictions.length > 0 ? theme.accentBrass : theme.shell.ink }]}>
-                  {predictions.length}
-                </Text>
-                <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>{t("assets.statPredictions")}</Text>
-              </View>
-            </View>
-          </View>
+        <View style={[styles.search, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
+          <Ionicons name="search-outline" size={18} color={theme.shell.ink3} />
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={t("assets.searchPlaceholder")}
+            placeholderTextColor={theme.shell.ink3}
+            style={[styles.searchInput, { color: theme.shell.ink }]}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={100}
+            accessibilityLabel={t("assets.searchPlaceholder")}
+            testID="asset-search"
+          />
+          {text.length > 0 ? (
+            <Pressable onPress={() => setText("")} accessibilityRole="button" accessibilityLabel={t("assets.clearSearch")} hitSlop={12} testID="asset-search-clear">
+              <Ionicons name="close-circle" size={18} color={theme.shell.ink3} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
 
-          <View style={styles.body}>
-            {topPred ? (
-              <CopilotHero
-                kicker={t("assets.predictionKicker")}
-                confidence={topPred.risk_score}
-                actions={
-                  <>
-                    <Button
-                      label={actionLoading ? t("assets.working") : t("assets.preempt")}
-                      icon="construct-outline"
-                      loading={actionLoading}
-                      onPress={handlePreemptRepair}
-                      size="sm"
-                    />
-                    <Button
-                      label={t("assets.dismiss")}
-                      onPress={handleDismiss}
-                      disabled={actionLoading}
-                      variant="secondary"
-                      size="sm"
-                    />
-                  </>
-                }
-              >
-                <Text style={styles.heroText}>
-                  <Text style={[styles.heroStrong, { color: theme.background }]}>
-                    {topPred.assets?.name ?? t("assets.fallbackAsset")}
-                  </Text>: {" "}
-                  {topPred.recommendation}
-                </Text>
-              </CopilotHero>
-            ) : null}
+      <FlatList
+        data={state.status === "ready" ? browse.rows : []}
+        keyExtractor={(row) => row.id}
+        renderItem={renderItem}
+        ItemSeparatorComponent={Separator}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          state.status === "ready" ? undefined : (
+            <EngineeringState
+              status={emptyStatus}
+              onRetry={browse.retry}
+              emptyIcon="cube-outline"
+              emptyTitle={filtered ? t("assets.noMatches") : t("assets.empty")}
+              emptyBody={filtered ? t("assets.noMatchesHint") : t("assets.emptyHint")}
+              style={styles.empty}
+            />
+          )
+        }
+        ListFooterComponent={
+          browse.loadingMore ? (
+            <ActivityIndicator style={styles.footer} color={theme.primaryAction} accessibilityLabel={t("common.loading")} />
+          ) : emptyStatus === "empty" && filtered ? (
+            <Button label={t("assets.clearFilters")} variant="secondary" onPress={clearAll} style={styles.clear} testID="asset-clear-filters" />
+          ) : undefined
+        }
+        onEndReached={browse.loadMore}
+        onEndReachedThreshold={0.6}
+        refreshControl={<RefreshControl refreshing={browse.refreshing} onRefresh={browse.refresh} tintColor={theme.primaryAction} />}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        initialNumToRender={10}
+        windowSize={7}
+        removeClippedSubviews
+      />
 
-            {assets.length === 0 ? (
-              <StateBlock
-                status="empty"
-                emptyIcon="cube-outline"
-                emptyTitle={t("assets.empty")}
-                emptyBody={t("assets.emptyHint")}
-                style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              />
-            ) : (
-              <>
-                {watch.length > 0 ? (
-                  <View>
-                    <SectionHeader title={t("assets.watchList")} hint={String(watch.length)} />
-                    <View style={styles.rows}>
-                      {watch.map((asset) => (
-                        <AssetCard key={asset.id} asset={asset} sub={assetSub(asset)} />
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-                {healthy.length > 0 ? (
-                  <View>
-                    <SectionHeader title={t("assets.healthy")} hint={String(healthy.length)} />
-                    <View style={styles.rows}>
-                      {healthy.map((asset) => (
-                        <AssetCard key={asset.id} asset={asset} sub={assetSub(asset)} />
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-              </>
-            )}
-          </View>
-        </ScrollView>
-      )}
+      <AssetFilterSheet
+        visible={sheetOpen}
+        filters={filters}
+        categories={categories.data ?? []}
+        categoriesFailed={categories.failure != null && !categories.data}
+        onApply={(next) => {
+          setFilters(next);
+          setSheetOpen(false);
+        }}
+        onClose={() => setSheetOpen(false)}
+      />
+    </View>
+  );
+}
+
+function Separator() {
+  return <View style={styles.separator} />;
+}
+
+function formatTime(at: Date | null): string {
+  return at ? at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+}
+
+function ScrollChips({
+  filters,
+  onQuick,
+  sheetCount,
+  onOpenSheet,
+}: {
+  filters: AssetFilters;
+  onQuick: (quick: AssetFilters["quick"]) => void;
+  sheetCount: number;
+  onOpenSheet: () => void;
+}) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  return (
+    <View style={styles.chipRow}>
+      <View style={styles.chips} accessibilityRole="tablist">
+        {ASSET_QUICK_FILTERS.map((quick) => (
+          <Pill key={quick} label={t(`assets.quick.${quick}`)} selected={filters.quick === quick} onPress={() => onQuick(quick)} testID={`asset-quick-${quick}`} />
+        ))}
+      </View>
+      <Pressable
+        onPress={onOpenSheet}
+        accessibilityRole="button"
+        accessibilityLabel={sheetCount > 0 ? t("assets.filter.openActive", { count: sheetCount }) : t("assets.filter.open")}
+        style={[styles.filterButton, { borderColor: sheetCount > 0 ? theme.primaryAction : theme.border, backgroundColor: sheetCount > 0 ? theme.primarySoft : theme.surface }]}
+        testID="asset-filter-open"
+      >
+        <Ionicons name="options-outline" size={18} color={sheetCount > 0 ? theme.primary : theme.textSecondary} />
+        {sheetCount > 0 ? (
+          <Text style={[styles.filterCount, { color: theme.primary }]} maxFontSizeMultiplier={1.3}>
+            {sheetCount}
+          </Text>
+        ) : null}
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  scroll: { flex: 1 },
-  content: { paddingBottom: 32 },
-
-  topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
-  hero: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-  },
-  heroKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600", marginTop: 4 },
-  heroStats: { flexDirection: "row", gap: 9, marginTop: 14 },
-  heroStat: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  heroStatValue: { fontSize: 22, lineHeight: 26, fontWeight: "700", fontFamily: monoFont },
-  heroStatLabel: { fontSize: 10.5, marginTop: 3 },
-
-  body: { paddingHorizontal: 18, paddingTop: 14, gap: 13 },
-  heroText: { color: "rgba(241,237,228,0.9)", fontSize: 14, lineHeight: 20 },
-  heroStrong: { fontWeight: "700" },
-  rows: { gap: 8 },
-  empty: { borderWidth: 1, padding: 20, alignItems: "center" },
+  hero: { paddingHorizontal: 18, paddingBottom: 16, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, gap: 14 },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  heroText: { flex: 1 },
+  heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600" },
+  heroSub: { fontSize: 13, marginTop: 2 },
+  scanButton: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  search: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12 },
+  searchInput: { flex: 1, fontSize: 15, minHeight: 44 },
+  content: { paddingHorizontal: 18 },
+  listHeader: { paddingTop: 14, paddingBottom: 12, gap: 10 },
+  chipRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  chips: { flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  filterButton: { minWidth: 44, minHeight: 44, borderRadius: 22, borderWidth: 1, flexDirection: "row", gap: 4, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 },
+  filterCount: { fontSize: 13, fontWeight: "800" },
+  signalRow: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, borderRadius: 12, paddingHorizontal: 12 },
+  signalText: { flex: 1, fontSize: 13.5, fontWeight: "600" },
+  count: { fontSize: 12.5 },
+  separator: { height: 8 },
+  empty: { marginTop: 24 },
+  footer: { paddingVertical: 16 },
+  clear: { marginTop: 14 },
 });

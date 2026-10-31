@@ -28,3 +28,17 @@ const PM_COMPLETION_ROLES: readonly string[] = ["engineer", "gm", "chief_enginee
 export function canCompletePm(role: string | null | undefined): boolean {
   return role != null && PM_COMPLETION_ROLES.includes(role);
 }
+
+/** Record a meter reading - API guard `require_role("engineer", "chief_engineer", "gm")`. */
+const READING_ROLES: readonly string[] = ["engineer", "chief_engineer", "gm"];
+
+export function canRecordReadings(role: string | null | undefined): boolean {
+  return role != null && READING_ROLES.includes(role);
+}
+
+/** Open a work order from a failure signal or acknowledge one - API guard `require_role("gm", "engineer")`. */
+const SIGNAL_ACTOR_ROLES: readonly string[] = ["engineer", "gm"];
+
+export function canActOnSignals(role: string | null | undefined): boolean {
+  return role != null && SIGNAL_ACTOR_ROLES.includes(role);
+}

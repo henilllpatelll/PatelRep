@@ -34868,6 +34868,70 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2120",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "git diff showed 1,191 inserted / 939 deleted lines for a ~250-line change in apps/api/routers/assets.py",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "The Edit/Write tools write CRLF into an LF repo on Windows (same trap as bug-2118), so the whole file looked rewritten",
+      "fix": "Normalised every new or edited file to LF with a bytes-level replace before committing; RBAC-MATRIX.md stays CRLF because it is committed that way",
+      "tags": [
+        "windows",
+        "line-endings",
+        "edit-tool"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2121",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "expect(el).toHaveTextContent('AC-312') failed although the element contained AC-312",
+      "file": "apps/mobile/__tests__/screens/AssetDetail.test.tsx",
+      "root_cause": "RNTL toHaveTextContent treats a string argument as a FULL match of the element text, not 'contains'",
+      "fix": "Assert with a RegExp (small escaped has() helper); loops over variable strings need it too",
+      "tags": [
+        "jest",
+        "rntl",
+        "test-hygiene"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2122",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "AssetsList tests failed after the first one: filters and search text from an earlier test were still applied",
+      "file": "apps/mobile/app/(app)/assets/index.tsx",
+      "root_cause": "The screen kept the last view in a module-level Map inside the route file, which no test could reset",
+      "fix": "Moved it to lib/engineering/useAssetBrowse.ts (recallAssetView/rememberAssetView) and cleared it in resetAssetBrowseCache()",
+      "tags": [
+        "jest",
+        "module-state",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2123",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "apps/api tests/smoke/test_rbac_matrix_contract.py failed after adding GET /assets/browse and /assets/lookup",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The matrix embeds source line numbers; I regenerated it before the last router edits",
+      "fix": "Regenerate with scripts/generate_rbac_matrix.py as the LAST step after every router edit, then re-run the smoke test",
+      "tags": [
+        "api",
+        "rbac",
+        "contract-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
     }
   ]
 }

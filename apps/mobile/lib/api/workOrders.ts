@@ -22,6 +22,8 @@ import type {
 
 export interface CreateWorkOrderPayload {
   room_id?: string;
+  /** Canonical equipment link; the API checks it belongs to the caller's hotel. */
+  asset_id?: string;
   title: string;
   description?: string;
   category: string;
@@ -66,6 +68,34 @@ export async function listWorkOrderPage(
   );
   const orders = res.data ?? [];
   return { orders, hasMore: res.meta?.has_more ?? orders.length >= perPage };
+}
+
+export const ASSET_WORK_ORDER_PAGE_SIZE = 10;
+
+/**
+ * Work orders linked to one asset, newest first. The API scopes an engineer to their own and unclaimed orders, so
+ * for that role this is "your repairs on this equipment", not the equipment's whole history (the screen says so).
+ */
+export async function listAssetWorkOrderPage(
+  assetId: string,
+  kind: "active" | "completed",
+  page = 1,
+  signal?: AbortSignal
+): Promise<WorkOrderPage> {
+  const statuses = kind === "active" ? "open,escalated,in_progress,on_hold" : "completed";
+  const res = await api.get<{ data: WorkOrder[]; meta?: { has_more?: boolean } }>(
+    `/work-orders?${queryString({
+      asset_id: assetId,
+      statuses,
+      sort_by: kind === "active" ? "created_at" : "updated_at",
+      sort_dir: "desc",
+      page: page > 1 ? page : undefined,
+      per_page: ASSET_WORK_ORDER_PAGE_SIZE,
+    })}`,
+    { signal }
+  );
+  const orders = res.data ?? [];
+  return { orders, hasMore: res.meta?.has_more ?? orders.length >= ASSET_WORK_ORDER_PAGE_SIZE };
 }
 
 export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {

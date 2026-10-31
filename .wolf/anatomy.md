@@ -938,3 +938,14 @@
 - components/engineering/pm/ - PmScheduleCard, PmMetricCards, PmTodayView, PmWeekView, PmCalendarView, PmHistoryView, PmFilterSheet, PmChecklistItem, PmPhotoField, PmReadingInput, PmExtrasSection, PmReviewSection, PmCompletionSummary, pmUi
 - app/(app)/pm-schedules/{index,[scheduleId],inspect/[scheduleId],record/[completionId]}.tsx - dashboard (Today/Week/Calendar/History), detail, guided inspection (fill -> review -> recorded), read-only record
 - apps/api/tests/test_pm_mobile_reads.py - GET /assets/pm-completions + GET /programs/pm-templates
+- lib/engineering/assetModel.ts - AssetRow/filters/quick chips, assetBrowseParams/Key, mergeAssetPages, assetCardModel, buildAssetTimeline (only stated events), riskBand (~2.5k tok)
+- lib/engineering/assetQr.ts - parseAssetCode: versioned patelrep:asset:v1:<uuid>, bare uuid, asset tag; refuses URLs/unknown; buildAssetQrPayload (~0.8k tok)
+- lib/engineering/assetReadings.ts - meter/reading types, parseReadingValue, limitState (meter's own limits only), trendPoints/trendGeometry/trendDirection (~2k tok)
+- lib/engineering/assetLookup.ts - resolveAssetCode: parse, property-scoped lookup, outcomes; offline = cached-in-scope only (~0.8k tok)
+- lib/engineering/assetFormat.ts - hotel-zone date wording, formatSpan (~0.7k tok)
+- lib/engineering/{useAssetBrowse,useAssetWorkOrders,useAsyncResource}.ts - paged browse (tickets, scope, cache, findCachedAsset, view memory, list-stale flag), paged asset WOs, generic guarded server read (~3k tok)
+- lib/engineering/requestId.ts - newClientRequestId (uuid v4)
+- components/engineering/assets/ - AssetCard, AssetFilterSheet, assetUi, AssetOverview, AssetWorkOrdersSection, AssetMaintenanceSection, AssetReadingsSection, ReadingTrend (no chart dependency), RecordReadingSheet, AssetHistorySection, AssetReliabilityPanel
+- app/(app)/assets/{index,[assetId],scan}.tsx - searchable inventory, asset detail (Overview/Work orders/Maintenance/Readings/History), scanner + manual lookup
+- apps/api/tests/test_asset_browse.py - GET /assets/browse, /assets/lookup, detail derived status
+- apps/mobile/__tests__/{screens/AssetsList,screens/AssetDetail,screens/AssetScan,components/AssetSheets,lib/engineering/asset*,lib/engineering/useAssetBrowse}.test.* - Phase 6 tests

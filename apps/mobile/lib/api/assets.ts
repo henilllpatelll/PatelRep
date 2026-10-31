@@ -1,4 +1,6 @@
 import { assertPmCompletionAllowed, type PmCompletionPayload, type PmCompletionResult } from "@/lib/engineering/pmCompletion";
+import { ASSET_PAGE_SIZE, assetBrowseParams, type AssetFilters, type AssetPage, type AssetRow, type AssetServiceStatus } from "@/lib/engineering/assetModel";
+import type { AssetMeter, MeterReading } from "@/lib/engineering/assetReadings";
 import { api } from "./client";
 
 export interface Asset {
@@ -77,4 +79,181 @@ export async function acknowledgePrediction(predictionId: string): Promise<void>
 
 export async function createWorkOrderFromPrediction(predictionId: string): Promise<void> {
   await api.post<{ data: unknown }>(`/assets/failure-predictions/${predictionId}/create-work-order`, {});
+}
+
+/* ── Inventory (Phase 6) ──────────────────────────────────────────────────── */
+
+function queryString(params: Record<string, string | number | boolean | undefined | null>): string {
+  return Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== false && value !== "")
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+}
+
+interface BrowseBody {
+  data: AssetRow[] | null;
+  meta?: { has_more?: boolean; total?: number; per_page?: number };
+}
+
+/** One page of the property inventory. Search, filters and sort run on the server over every asset. */
+export async function browseAssets(filters: AssetFilters, query: string, page: number, signal?: AbortSignal): Promise<AssetPage> {
+  const res = await api.get<BrowseBody>(`/assets/browse?${queryString(assetBrowseParams(filters, query, page))}`, { signal });
+  const rows = res.data ?? [];
+  return { rows, hasMore: res.meta?.has_more ?? rows.length >= ASSET_PAGE_SIZE, total: res.meta?.total ?? rows.length };
+}
+
+export interface AssetLookupResult {
+  id: string;
+  name: string;
+  asset_tag?: string | null;
+}
+
+/** Resolves a scanned/typed code to one asset in the caller's own property. 404 = not found here (never "elsewhere"). */
+export async function lookupAsset(code: { kind: "id" | "tag"; value: string }, signal?: AbortSignal): Promise<AssetLookupResult> {
+  const query = code.kind === "id" ? { asset_id: code.value } : { tag: code.value };
+  const res = await api.get<{ data: AssetLookupResult }>(`/assets/lookup?${queryString(query)}`, { signal });
+  return res.data;
+}
+
+export interface AssetCategory {
+  id: string;
+  name: string;
+  code?: string | null;
+}
+
+export async function listAssetCategories(signal?: AbortSignal): Promise<AssetCategory[]> {
+  const res = await api.get<{ data: AssetCategory[] | null }>("/assets/categories", { signal });
+  return res.data ?? [];
+}
+
+export interface AssetDowntime {
+  id: string;
+  started_at: string;
+  restored_at?: string | null;
+  downtime_type?: "planned" | "unplanned" | string;
+  impact_level?: "degraded" | "out_of_service" | string;
+  work_order_id?: string | null;
+  reason_code?: string | null;
+  notes?: string | null;
+  elapsed_minutes?: number | null;
+}
+
+export interface AssetDetail {
+  id: string;
+  name: string;
+  asset_tag?: string | null;
+  category_id?: string | null;
+  room_id?: string | null;
+  location_text?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  installation_date?: string | null;
+  purchase_date?: string | null;
+  warranty_expires?: string | null;
+  notes?: string | null;
+  expected_lifespan_years?: number | null;
+  failure_risk_score?: number | null;
+  failure_risk_updated_at?: string | null;
+  is_active?: boolean;
+  updated_at?: string | null;
+  asset_categories?: { name?: string | null; code?: string | null } | null;
+  rooms?: { room_number?: string | null } | null;
+  active_downtime?: AssetDowntime | null;
+  /** Derived by the API with the same rule as the inventory list. */
+  service_status?: AssetServiceStatus;
+  /** Property-wide count of open/escalated/in-progress/on-hold orders linked to this asset (counts only, no content). */
+  active_work_order_count?: number;
+  /** Completed repairs on this asset in the last 90 days, property-wide. */
+  repeat_repairs_90d?: number;
+  pm_schedules?: Array<{
+    id: string;
+    name: string;
+    interval_type?: string;
+    next_due_at?: string | null;
+    last_completed_at?: string | null;
+    is_active?: boolean | null;
+  }> | null;
+}
+
+export async function getAsset(assetId: string, signal?: AbortSignal): Promise<AssetDetail> {
+  const res = await api.get<{ data: AssetDetail }>(`/assets/${assetId}`, { signal });
+  return res.data;
+}
+
+export async function listAssetDowntime(assetId: string, signal?: AbortSignal): Promise<AssetDowntime[]> {
+  const res = await api.get<{ data: AssetDowntime[] | null }>(`/assets/${assetId}/downtime?limit=25`, { signal });
+  return res.data ?? [];
+}
+
+export interface AssetReliability {
+  tracking_started_at?: string | null;
+  downtime_12mo_minutes?: number | null;
+  unplanned_downtime_12mo_minutes?: number | null;
+  failure_count_12mo?: number | null;
+  mttr_minutes?: number | null;
+  mtbf_minutes?: number | null;
+  repeat_failure_count?: number | null;
+  reopen_count?: number | null;
+}
+
+export async function getAssetReliability(assetId: string, signal?: AbortSignal): Promise<AssetReliability> {
+  const res = await api.get<{ data: AssetReliability }>(`/assets/${assetId}/reliability`, { signal });
+  return res.data;
+}
+
+export async function getAssetMeters(assetId: string, signal?: AbortSignal): Promise<AssetMeter[]> {
+  const res = await api.get<{ data: AssetMeter[] | null }>(`/assets/${assetId}/meters`, { signal });
+  return (res.data ?? []).filter((meter) => meter.is_active !== false);
+}
+
+export async function listMeterReadings(meterId: string, limit = 12, signal?: AbortSignal): Promise<MeterReading[]> {
+  const res = await api.get<{ data: MeterReading[] | null }>(`/assets/meters/${meterId}/readings?limit=${limit}`, { signal });
+  return res.data ?? [];
+}
+
+export interface RecordedReading extends MeterReading {
+  /** Present when this critical reading opened (or joined) the meter's corrective work order. */
+  work_order?: { id: string; work_order_number?: string | number | null } | null;
+}
+
+/** Appends one reading. The API has no idempotency key, so callers must re-read before any retry of an unconfirmed attempt. */
+export async function recordMeterReading(meterId: string, input: { value: number; notes?: string }): Promise<RecordedReading> {
+  const res = await api.post<{ data: RecordedReading }>(`/assets/meters/${meterId}/readings`, {
+    value: input.value,
+    ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
+  });
+  return res.data;
+}
+
+export interface AssetDocument {
+  id: string;
+  label: string;
+  evidence_type: string;
+  file_name?: string | null;
+  file_content_type?: string | null;
+  collected_at?: string | null;
+  created_at?: string | null;
+  expires_at?: string | null;
+  storage_path?: string | null;
+}
+
+/** Evidence records linked to this asset. `storage_path` is never rendered; a file opens through a short-lived signed URL. */
+export async function listAssetDocuments(assetId: string, signal?: AbortSignal): Promise<AssetDocument[]> {
+  const res = await api.get<{ data: AssetDocument[] | null }>(
+    `/evidence/records?${queryString({ related_entity_type: "asset", related_entity_id: assetId })}`,
+    { signal },
+  );
+  return (res.data ?? []).filter((doc) => !!doc.storage_path);
+}
+
+export async function getAssetDocumentUrl(recordId: string): Promise<string> {
+  const res = await api.get<{ data: { url: string } }>(`/evidence/records/${recordId}/file-url`);
+  return res.data.url;
+}
+
+/** Open predictions for one asset (the global list is capped at ten, so a specific asset can be missing from it). */
+export async function getAssetPredictions(assetId: string, signal?: AbortSignal): Promise<FailurePrediction[]> {
+  const res = await api.get<{ data: FailurePrediction[] | null }>(`/assets/failure-predictions?${queryString({ asset_id: assetId })}`, { signal });
+  return res.data ?? [];
 }
