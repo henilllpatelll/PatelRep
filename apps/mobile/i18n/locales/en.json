@@ -1999,6 +1999,14 @@
       "structural": "Structural",
       "safety": "Safety",
       "general": "General"
+    },
+    "viewOnly": "View only — your role can't update work orders.",
+    "holdReason": {
+      "title": "Why is it on hold?",
+      "awaiting_parts": "Waiting on parts",
+      "awaiting_vendor": "Waiting on a vendor",
+      "schedule_deferral": "Scheduled for later",
+      "safety_review": "Safety review"
     }
   },
   "assets": {
@@ -4815,6 +4823,12 @@
     "hoursAgo": "{{count}}h ago",
     "daysAgo": "{{count}}d ago"
   },
+  "engineeringState": {
+    "loadFailed": "Couldn't load this. Nothing was lost — try again.",
+    "forbidden": "Your role doesn't have access to this.",
+    "offline": "You're offline and nothing is saved on this phone yet.",
+    "stale": "Couldn't refresh — showing what was last loaded."
+  },
   "pmSchedules": {
     "kicker": "Preventive maintenance",
     "title": "PM Schedules",
@@ -4830,8 +4844,27 @@
     "noItemsFound": "No {{filter}} items found.",
     "done": "Done",
     "upcoming": "Upcoming",
-    "logComplete": "Log Complete",
-    "completeError": "Could not mark PM complete. Try again."
+    "dueSoon": "Due this week",
+    "unscheduled": "No due date",
+    "daysOverdue": "{{count}} day overdue",
+    "daysOverdue_plural": "{{count}} days overdue",
+    "dueOn": "Due {{date}}",
+    "lastDone": "Last done {{date}}",
+    "never": "Not completed yet",
+    "minutes": "{{count}} min",
+    "inspectionRequiredTitle": "Inspection required",
+    "inspectionRequiredBody": "A PM is completed with its checklist and evidence, so it can't be marked done with one tap. Guided completion is coming to the app soon.",
+    "interval": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annual": "Annual",
+      "custom": "Custom"
+    },
+    "everyDays": "Every {{count}} day",
+    "everyDays_plural": "Every {{count}} days",
+    "unknownAsset": "Asset not listed"
   },
   "engineerRooms": {
     "kicker": "Engineering",
@@ -5573,6 +5606,7 @@
       "housekeeper": "Housekeeper",
       "inspector": "Inspector",
       "engineer": "Engineer",
+      "chief_engineer": "Chief Engineer",
       "housekeeping_supervisor": "HK Supervisor",
       "front_desk": "Front Desk",
       "gm": "GM"

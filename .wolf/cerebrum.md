@@ -973,3 +973,11 @@
 - i18next v3 plurals need `count`; a sentence with two plurals must be composed from two keyed phrases (bug found by a component test).
 - The Phase 1-6 mobile "manage" tests assume immediate writes; they now switch the screen to "Apply immediately" via the DraftBar toggle. The draft mode is the default and has its own describe.
 - Local Docker Desktop must be started by hand (Start-Process); a throwaway postgres:16 + stub tables + replay of 225-228 is enough to exercise the RPC (no PostgREST).
+
+### Engineering Mobile Redesign Phase 1 learnings (2026-10-31)
+- chief_engineer is LIVE (migration 092 restored it after 064 merged it). On mobile it must map to the engineering tabs and Home, but the API only lets engineer + gm claim/transition/edit/complete a work order; chief_engineer reads orders and can complete PMs, run downtime, meters, checklist, snooze and merge. Use lib/engineering/roles.ts, never string compares.
+- GET /assets/pm-schedules returns raw pm_schedules rows plus assets(name, room_id). There is no status/asset_name/task_name/frequency/next_due; derive due state from next_due_at by hotel calendar day (adaptPmSchedules). PM completion needs items (min 1) with results and evidence ids for controlled items; never post {}.
+- Work order status changes go through POST /work-orders/{id}/transition (PATCH rejects status with 422). on_hold needs reason_code in awaiting_parts/awaiting_vendor/schedule_deferral/safety_review; cancelled and reopen need their own reasons (not wired on mobile yet).
+- Promise.allSettled + per-request setState hides failures as empty lists. Use combineFailures/resolveLoadState and keep the last data with a stale banner.
+- Drift tests read apps/api files (core/roles.py, routers/work_orders.py, services/work_orders/transitions.py) from the mobile Jest suite; keep them regex-simple.
+- A fresh git worktree has no node_modules; npm ci inside apps/mobile (about 3 minutes) is enough for tsc, eslint and jest.

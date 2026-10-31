@@ -34604,6 +34604,123 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-29T16:00:00Z"
+    },
+    {
+      "id": "bug-2104",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "A chief_engineer login got housekeeper navigation and Home",
+      "file": "apps/mobile/lib/supabase.ts",
+      "root_cause": "Commit 402a2fa6 merged chief_engineer away on mobile (the second engineer entries in UserRole/APP_ROLES/getTabsForRole are that rename). Migration 092 restored chief_engineer on the API, so toAppRole returned null and app/_layout.tsx fell back to role housekeeper.",
+      "fix": "Restored chief_engineer in UserRole + APP_ROLES, mapped it to the engineering tabs, and centralised the engineering role rules in lib/engineering/roles.ts. Drift tests read apps/api/core/roles.py and the work-order/PM role guards.",
+      "tags": [
+        "mobile",
+        "roles",
+        "navigation",
+        "chief_engineer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2105",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Mobile PM schedules screen showed blank/zero data and counts",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "The screen and EngineerHome read fields GET /assets/pm-schedules never returns (asset_name, task_name, frequency, next_due, status). The API sends raw pm_schedules rows (name, next_due_at, last_completed_at, interval_type, assets.name), so the Home PM strip was always 0.",
+      "fix": "lib/engineering/pmSchedules.ts adapts the real rows into a view model and derives overdue/due_today/due_soon/upcoming/unscheduled by hotel-calendar day (hotelDateKey). Screen and Home now share it.",
+      "tags": [
+        "mobile",
+        "pm",
+        "contract",
+        "adapter"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2106",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Mobile PM Log Complete sent an empty body and could never succeed",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "POST /assets/pm-schedules/{id}/complete {} fails CompletePMProgramRequest (items min_length=1, per-item result, evidence for controlled items); the screen showed a generic error.",
+      "fix": "Removed the one-tap action; the screen shows an inspection-required notice. completePmSchedule() runs assertPmCompletionAllowed() before any request, and a source-scan test pins lib/api/assets.ts as the only caller.",
+      "tags": [
+        "mobile",
+        "pm",
+        "completion",
+        "guard"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2107",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Work order Hold and Resume always failed with 422",
+      "file": "apps/mobile/lib/api/workOrders.ts",
+      "root_cause": "setWorkOrderStatus sent PATCH /work-orders/{id} {status}, which the API rejects (use /transition), and on_hold also needs a structured reason_code.",
+      "fix": "transitionWorkOrder() posts /work-orders/{id}/transition with source=mobile; Hold opens HoldReasonSheet so the engineer chooses awaiting_parts/awaiting_vendor/schedule_deferral/safety_review. Transition graph and reasons are drift-tested against services/work_orders/transitions.py.",
+      "tags": [
+        "mobile",
+        "work-orders",
+        "transition",
+        "422"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2108",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "A failed engineering request rendered as an empty healthy queue",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "Promise.allSettled results were applied per request and rejected ones were dropped; Home showed Bench is clear, the Orders list showed the empty queue, PM/Assets/Rooms swallowed errors into [].",
+      "fix": "lib/engineering/loadState.ts (classifyLoadFailure, combineFailures, resolveLoadState) + EngineeringState/StaleBanner: a failed queue load keeps the last data with a stale banner, or shows error/forbidden/offline with Retry. Assets and Room Status keep their existing handling (follow-up).",
+      "tags": [
+        "mobile",
+        "error-state",
+        "offline",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2109",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Emergency work orders were missing from urgent counts and badges",
+      "file": "apps/mobile/lib/engineering/workOrders.ts",
+      "root_cause": "countQueueSignals, Home highlighting and the detail badge only checked priority === urgent, so emergency (the most severe value) was not counted or shown.",
+      "fix": "isHighPriority/priorityRank helpers; QueueSignals now has emergency, urgent and highPriority; the detail screen has an emergency badge. sortQueue already ranked emergency first.",
+      "tags": [
+        "mobile",
+        "priority",
+        "emergency"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2110",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "chief_engineer was offered work-order actions the API rejects",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Claim/transition/complete are require_role(engineer, gm); chief_engineer can only read work orders.",
+      "fix": "canActOnWorkOrders() gates claim, hold, resume, complete, photo, escalate and Home/Orders claim buttons; chief_engineer gets a view-only notice. PM completion stays open to chief_engineer.",
+      "tags": [
+        "mobile",
+        "rbac",
+        "chief_engineer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
     }
   ]
 }

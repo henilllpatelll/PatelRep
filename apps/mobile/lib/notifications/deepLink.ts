@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/supabase";
+import { ENGINEERING_ROLES } from "@/lib/engineering/roles";
 import { resolveScheduleTarget, type ScheduleTarget } from "@/lib/scheduling/scheduleLink";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 
@@ -24,7 +25,7 @@ const ROOM_URL = new RegExp(`^/\\(app\\)/my-rooms/(${UUID})$`, "i");
 const WORK_ORDER_URL = new RegExp(`^/\\(app\\)/work-orders/(${UUID})$`, "i");
 
 const ROOM_ROLES: ReadonlySet<UserRole> = new Set(["housekeeper", "housekeeping_supervisor"]);
-const WORK_ORDER_ROLES: ReadonlySet<UserRole> = new Set(["engineer"]);
+const WORK_ORDER_ROLES: ReadonlySet<UserRole> = new Set(ENGINEERING_ROLES);
 
 export function resolveNotificationTarget(data: unknown, role: UserRole | null | undefined): NotificationTarget {
   if (!data || typeof data !== "object" || !role) return { kind: "none" };

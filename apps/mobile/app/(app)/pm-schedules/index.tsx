@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -10,71 +10,68 @@ import {
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { api } from "@/lib/api/client";
+import { listPmSchedules, type PmScheduleRow } from "@/lib/api/assets";
 import { useAppStore } from "@/stores/appStore";
 import { monoFont } from "@/components/shared/tokens";
 import { SectionLabel } from "@/components/shared/mobileHandoff";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { useTheme } from "@/lib/theme/useTheme";
-import { useToast } from "@/lib/theme/useToast";
+import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
+import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
+import {
+  adaptPmSchedules,
+  countPmSchedules,
+  filterPmSchedules,
+  formatDueDate,
+  type PmDueState,
+  type PmFilter,
+  type PmScheduleView,
+} from "@/lib/engineering/pmSchedules";
+import { canCompletePm } from "@/lib/engineering/roles";
+import { classifyLoadFailure, resolveLoadState, type LoadFailure } from "@/lib/engineering/loadState";
 
-type PMSchedule = {
-  id: string;
-  asset_name: string;
-  location: string;
-  task_name: string;
-  frequency: string;
-  next_due: string;
-  last_completed: string | null;
-  status: "due" | "upcoming" | "overdue" | "completed";
+const STATUS_KEY: Record<PmDueState, StatusKey> = {
+  overdue: "overdue",
+  due_today: "pickup",
+  due_soon: "clean",
+  upcoming: "clean",
+  unscheduled: "low",
 };
 
-function dueStatusKey(status: PMSchedule["status"]): StatusKey {
-  if (status === "overdue") return "overdue";
-  if (status === "due") return "pickup";
-  if (status === "completed") return "completed";
-  return "clean";
-}
-
-function useDueLabel() {
-  const { t } = useTranslation();
-  return (status: PMSchedule["status"]): string => {
-    if (status === "overdue") return t("pmSchedules.overdue");
-    if (status === "due") return t("pmSchedules.dueToday");
-    if (status === "completed") return t("pmSchedules.done");
-    return t("pmSchedules.upcoming");
-  };
-}
-
 export default function PMSchedulesScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const toast = useToast();
-  const dueLabel = useDueLabel();
-  const { isOnline } = useAppStore();
-  const [schedules, setSchedules] = useState<PMSchedule[]>([]);
+  useHotelTimezone();
+  const hotelTimezone = useAppStore((s) => s.hotelTimezone);
+  const isOnline = useAppStore((s) => s.isOnline);
+  const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
+  const [rows, setRows] = useState<PmScheduleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<"all" | "due" | "overdue">("all");
-  const [completing, setCompleting] = useState<string | null>(null);
+  const [failure, setFailure] = useState<LoadFailure | null>(null);
+  const [filter, setFilter] = useState<PmFilter>("all");
+  const [now, setNow] = useState(() => new Date());
 
   const loadSchedules = useCallback(async () => {
-    if (!isOnline) { setLoading(false); return; }
+    if (!isOnline) {
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await api.get<{ data: PMSchedule[] }>("/assets/pm-schedules");
-      setSchedules(res.data ?? []);
-    } catch {
-      setSchedules([]);
+      setRows(await listPmSchedules());
+      setFailure(null);
+      setNow(new Date());
+    } catch (err) {
+      setFailure(classifyLoadFailure(err));
     } finally {
       setLoading(false);
     }
   }, [isOnline]);
 
-  useEffect(() => { loadSchedules(); }, [loadSchedules]);
+  useEffect(() => { void loadSchedules(); }, [loadSchedules]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -82,33 +79,27 @@ export default function PMSchedulesScreen() {
     setRefreshing(false);
   }, [loadSchedules]);
 
-  const handleComplete = useCallback(async (scheduleId: string) => {
-    if (completing) return;
-    setCompleting(scheduleId);
-    try {
-      await api.post(`/assets/pm-schedules/${scheduleId}/complete`, {});
-      await loadSchedules();
-    } catch {
-      toast.error(t("pmSchedules.completeError"));
-    } finally {
-      setCompleting(null);
+  const schedules = useMemo(() => adaptPmSchedules(rows, hotelTimezone, now), [rows, hotelTimezone, now]);
+  const counts = useMemo(() => countPmSchedules(schedules), [schedules]);
+  const filtered = useMemo(() => filterPmSchedules(schedules, filter), [schedules, filter]);
+
+  // Filtering down to nothing is an honest empty list; only a failed load is an error.
+  const load = resolveLoadState({ loading, failure, count: schedules.length, offline: !isOnline });
+  const listState = load.status === "ready" && filtered.length === 0 ? "empty" : load.status;
+
+  const stateLabel = (state: PmDueState): string => {
+    switch (state) {
+      case "overdue": return t("pmSchedules.overdue");
+      case "due_today": return t("pmSchedules.dueToday");
+      case "due_soon": return t("pmSchedules.dueSoon");
+      case "unscheduled": return t("pmSchedules.unscheduled");
+      default: return t("pmSchedules.upcoming");
     }
-  }, [completing, loadSchedules, t, toast]);
-
-  const filtered = filter === "all"
-    ? schedules
-    : schedules.filter((s) => s.status === filter);
-
-  const overdueCount = schedules.filter((s) => s.status === "overdue").length;
-  const dueCount = schedules.filter((s) => s.status === "due").length;
-
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.background }]}>
-        <StateBlock status="loading" />
-      </View>
-    );
-  }
+  };
+  const intervalLabel = (s: PmScheduleView): string | null => {
+    if (s.intervalType === "custom" && s.intervalDays) return t("pmSchedules.everyDays", { count: s.intervalDays });
+    return s.intervalType ? t(`pmSchedules.interval.${s.intervalType}`) : null;
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -121,123 +112,149 @@ export default function PMSchedulesScreen() {
         <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
           <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("pmSchedules.kicker")}</Text>
           <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("pmSchedules.title")}</Text>
-          <View style={styles.stats}>
-            {overdueCount > 0 ? (
-              <View style={[styles.statChip, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-                <Text style={[styles.statNum, { color: theme.status.dirty }]}>{overdueCount}</Text>
-                <Text style={[styles.statLabel, { color: theme.status.dirty }]}>{t("pmSchedules.overdue")}</Text>
+          {schedules.length > 0 ? (
+            <View style={styles.stats}>
+              {counts.overdue > 0 ? (
+                <View style={[styles.statChip, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
+                  <Text style={[styles.statNum, { color: theme.status.dirty }]}>{counts.overdue}</Text>
+                  <Text style={[styles.statLabel, { color: theme.status.dirty }]}>{t("pmSchedules.overdue")}</Text>
+                </View>
+              ) : null}
+              {counts.dueToday > 0 ? (
+                <View style={[styles.statChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
+                  <Text style={[styles.statNum, { color: theme.status.pickup }]}>{counts.dueToday}</Text>
+                  <Text style={[styles.statLabel, { color: theme.status.pickup }]}>{t("pmSchedules.dueToday")}</Text>
+                </View>
+              ) : null}
+              <View style={[styles.statChip, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
+                <Text style={[styles.statNum, { color: theme.shell.ink }]}>{counts.total}</Text>
+                <Text style={[styles.statLabel, { color: theme.shell.ink2 }]}>{t("pmSchedules.total")}</Text>
               </View>
-            ) : null}
-            {dueCount > 0 ? (
-              <View style={[styles.statChip, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
-                <Text style={[styles.statNum, { color: theme.status.pickup }]}>{dueCount}</Text>
-                <Text style={[styles.statLabel, { color: theme.status.pickup }]}>{t("pmSchedules.dueToday")}</Text>
-              </View>
-            ) : null}
-            <View style={[styles.statChip, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}>
-              <Text style={[styles.statNum, { color: theme.shell.ink }]}>{schedules.length}</Text>
-              <Text style={[styles.statLabel, { color: theme.shell.ink2 }]}>{t("pmSchedules.total")}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {load.stale ? (
+          <View style={styles.banner}>
+            <StaleBanner onRetry={() => void loadSchedules()} />
+          </View>
+        ) : null}
+
+        {canCompletePm(role) && schedules.length > 0 ? (
+          <View
+            style={[styles.inspectionNote, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
+            testID="pm-inspection-required"
+          >
+            <Ionicons name="clipboard-outline" size={18} color={theme.textMuted} />
+            <View style={styles.inspectionCopy}>
+              <Text style={[styles.inspectionTitle, { color: theme.textPrimary }]}>{t("pmSchedules.inspectionRequiredTitle")}</Text>
+              <Text style={[styles.inspectionBody, { color: theme.textMuted }]}>{t("pmSchedules.inspectionRequiredBody")}</Text>
             </View>
           </View>
-        </View>
+        ) : null}
 
-        <View style={styles.segmented}>
-          {(["all", "due", "overdue"] as const).map((f) => {
-            const isActive = filter === f;
-            return (
-              <Pressable
-                key={f}
-                style={({ pressed }) => [
-                  styles.segment,
-                  isActive && styles.segmentActive,
-                  isActive && { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
-                  { opacity: pressed ? 0.8 : 1 },
-                ]}
-                onPress={() => setFilter(f)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-              >
-                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive, { color: isActive ? theme.textPrimary : theme.textMuted }]}>
-                  {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={styles.body}>
-        <SectionLabel hint={`${filtered.length} ${t("pmSchedules.schedules")}`}>
-          {filter === "all" ? t("pmSchedules.allTasks") : filter === "due" ? t("pmSchedules.dueToday") : t("pmSchedules.overdue")}
-        </SectionLabel>
-
-        {filtered.map((schedule) => {
-          const tone = {
-            overdue: { fg: theme.status.dirty, bg: theme.status.dirtySoft },
-            due: { fg: theme.status.pickup, bg: theme.status.pickupSoft },
-            completed: { fg: theme.status.ready, bg: theme.status.readySoft },
-            upcoming: { fg: theme.status.clean, bg: theme.status.cleanSoft },
-          }[schedule.status];
-          return (
-            <Card key={schedule.id} style={styles.card}>
-              <View style={[styles.rail, { backgroundColor: tone.fg }]} />
-              <View style={styles.cardTop}>
-                <View style={[styles.cardTile, { backgroundColor: tone.bg }]}>
-                  <Ionicons name="calendar-outline" size={16} color={tone.fg} />
-                </View>
-                <View style={styles.cardLeft}>
-                  <Text style={[styles.assetName, { color: theme.textPrimary }]}>{schedule.asset_name}</Text>
-                  <Text style={[styles.location, { color: theme.textMuted }]}>{schedule.location}</Text>
-                </View>
-                <StatusBadge statusKey={dueStatusKey(schedule.status)} label={dueLabel(schedule.status)} />
-              </View>
-              <Text style={[styles.taskName, { color: theme.textSecondary }]}>{schedule.task_name}</Text>
-              <View style={styles.cardMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="refresh-outline" size={12} color={theme.textDisabled} />
-                  <Text style={[styles.metaText, { color: theme.textDisabled }]}>{schedule.frequency}</Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="calendar-outline" size={12} color={theme.textDisabled} />
-                  <Text style={[styles.metaText, { color: theme.textDisabled }]}>
-                    {t("pmSchedules.due")} {schedule.next_due}
+        {schedules.length > 0 ? (
+          <View style={styles.segmented}>
+            {(["all", "due", "overdue"] as const).map((f) => {
+              const isActive = filter === f;
+              return (
+                <Pressable
+                  key={f}
+                  style={({ pressed }) => [
+                    styles.segment,
+                    isActive && styles.segmentActive,
+                    isActive && { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: theme.textPrimary },
+                    { opacity: pressed ? 0.8 : 1 },
+                  ]}
+                  onPress={() => setFilter(f)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive, { color: isActive ? theme.textPrimary : theme.textMuted }]}>
+                    {f === "all" ? t("pmSchedules.all") : f === "due" ? t("pmSchedules.due") : t("pmSchedules.overdue")}
                   </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
+        <View style={styles.body}>
+          {schedules.length > 0 ? (
+            <SectionLabel hint={`${filtered.length} ${t("pmSchedules.schedules")}`}>
+              {filter === "all" ? t("pmSchedules.allTasks") : filter === "due" ? t("pmSchedules.dueToday") : t("pmSchedules.overdue")}
+            </SectionLabel>
+          ) : null}
+
+          {filtered.map((schedule) => {
+            const tone = {
+              overdue: { fg: theme.status.dirty, bg: theme.status.dirtySoft },
+              due_today: { fg: theme.status.pickup, bg: theme.status.pickupSoft },
+              due_soon: { fg: theme.status.clean, bg: theme.status.cleanSoft },
+              upcoming: { fg: theme.status.clean, bg: theme.status.cleanSoft },
+              unscheduled: { fg: theme.textMuted, bg: theme.surfaceSubtle },
+            }[schedule.state];
+            const dueText = formatDueDate(schedule.dueDate, i18n.language);
+            const lastText = formatDueDate(hotelDateKey(schedule.lastCompletedAt, hotelTimezone), i18n.language);
+            const interval = intervalLabel(schedule);
+            return (
+              <Card key={schedule.id} style={styles.card}>
+                <View style={[styles.rail, { backgroundColor: tone.fg }]} />
+                <View style={styles.cardTop}>
+                  <View style={[styles.cardTile, { backgroundColor: tone.bg }]}>
+                    <Ionicons name="calendar-outline" size={16} color={tone.fg} />
+                  </View>
+                  <View style={styles.cardLeft}>
+                    <Text style={[styles.assetName, { color: theme.textPrimary }]}>{schedule.name || t("pmSchedules.title")}</Text>
+                    <Text style={[styles.location, { color: theme.textMuted }]}>{schedule.assetName ?? t("pmSchedules.unknownAsset")}</Text>
+                  </View>
+                  <StatusBadge statusKey={STATUS_KEY[schedule.state]} label={stateLabel(schedule.state)} />
                 </View>
-                {schedule.last_completed ? (
+                {schedule.description ? (
+                  <Text style={[styles.taskName, { color: theme.textSecondary }]}>{schedule.description}</Text>
+                ) : null}
+                <View style={styles.cardMeta}>
+                  {interval ? (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="refresh-outline" size={12} color={theme.textDisabled} />
+                      <Text style={[styles.metaText, { color: theme.textDisabled }]}>{interval}</Text>
+                    </View>
+                  ) : null}
+                  {schedule.estimatedMinutes ? (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={12} color={theme.textDisabled} />
+                      <Text style={[styles.metaText, { color: theme.textDisabled }]}>{t("pmSchedules.minutes", { count: schedule.estimatedMinutes })}</Text>
+                    </View>
+                  ) : null}
                   <View style={styles.metaItem}>
-                    <Ionicons name="checkmark-circle-outline" size={12} color={theme.status.ready} />
-                    <Text style={[styles.metaText, { color: theme.status.ready }]}>
-                      {t("pmSchedules.done")}: {schedule.last_completed}
+                    <Ionicons name="calendar-outline" size={12} color={theme.textDisabled} />
+                    <Text style={[styles.metaText, { color: schedule.state === "overdue" ? theme.status.dirty : theme.textDisabled }]}>
+                      {schedule.state === "overdue" && schedule.daysUntilDue != null
+                        ? t("pmSchedules.daysOverdue", { count: Math.abs(schedule.daysUntilDue) })
+                        : dueText
+                          ? t("pmSchedules.dueOn", { date: dueText })
+                          : t("pmSchedules.unscheduled")}
                     </Text>
                   </View>
-                ) : null}
-              </View>
-              {schedule.status !== "completed" ? (
-                <Button
-                  label={t("pmSchedules.logComplete")}
-                  onPress={() => void handleComplete(schedule.id)}
-                  disabled={completing !== null}
-                  loading={completing === schedule.id}
-                  variant="secondary"
-                  size="sm"
-                  icon="checkmark-circle-outline"
-                  style={[
-                    styles.completeBtn,
-                    { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine },
-                  ]}
-                />
-              ) : null}
-            </Card>
-          );
-        })}
+                  <View style={styles.metaItem}>
+                    <Ionicons name="checkmark-circle-outline" size={12} color={lastText ? theme.status.ready : theme.textDisabled} />
+                    <Text style={[styles.metaText, { color: lastText ? theme.status.ready : theme.textDisabled }]}>
+                      {lastText ? t("pmSchedules.lastDone", { date: lastText }) : t("pmSchedules.never")}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            );
+          })}
 
-        {filtered.length === 0 ? (
-          <StateBlock
-            status="empty"
+          <EngineeringState
+            status={listState}
+            onRetry={() => void loadSchedules()}
             emptyIcon="calendar-outline"
             emptyTitle={t("pmSchedules.noSchedules")}
             emptyBody={filter === "all" ? t("pmSchedules.noSchedulesConfigured") : t("pmSchedules.noItemsFound", { filter })}
             style={[styles.emptyCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
           />
-        ) : null}
         </View>
       </ScrollView>
     </View>
@@ -246,7 +263,6 @@ export default function PMSchedulesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   topBleed: { position: "absolute", top: -600, left: 0, right: 0, height: 600 },
   hero: {
     paddingHorizontal: 18,
@@ -269,6 +285,20 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 14, fontWeight: "700" },
   statLabel: { fontSize: 11 },
+  banner: { paddingHorizontal: 16, paddingTop: 12 },
+  inspectionNote: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "flex-start",
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  inspectionCopy: { flex: 1, gap: 2 },
+  inspectionTitle: { fontSize: 13, fontWeight: "700" },
+  inspectionBody: { fontSize: 12, lineHeight: 17 },
   segmented: {
     flexDirection: "row",
     marginHorizontal: 16,
@@ -315,7 +345,4 @@ const styles = StyleSheet.create({
   metaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
   metaText: { fontSize: 11, fontFamily: monoFont },
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8, borderWidth: 1 },
-  completeBtn: {
-    marginTop: 4,
-  },
 });

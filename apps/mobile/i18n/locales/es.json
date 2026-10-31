@@ -1999,6 +1999,14 @@
       "structural": "Estructural",
       "safety": "Seguridad",
       "general": "General"
+    },
+    "viewOnly": "Solo lectura: tu rol no puede actualizar órdenes de trabajo.",
+    "holdReason": {
+      "title": "¿Por qué está en espera?",
+      "awaiting_parts": "Esperando repuestos",
+      "awaiting_vendor": "Esperando a un proveedor",
+      "schedule_deferral": "Programada para después",
+      "safety_review": "Revisión de seguridad"
     }
   },
   "assets": {
@@ -4815,6 +4823,12 @@
     "hoursAgo": "hace {{count}}h",
     "daysAgo": "hace {{count}}d"
   },
+  "engineeringState": {
+    "loadFailed": "No se pudo cargar. No se perdió nada: inténtalo de nuevo.",
+    "forbidden": "Tu rol no tiene acceso a esto.",
+    "offline": "Estás sin conexión y aún no hay nada guardado en este teléfono.",
+    "stale": "No se pudo actualizar: se muestra lo último cargado."
+  },
   "pmSchedules": {
     "kicker": "Mantenimiento preventivo",
     "title": "Programas de MP",
@@ -4830,8 +4844,27 @@
     "noItemsFound": "Sin elementos {{filter}} encontrados.",
     "done": "Listo",
     "upcoming": "Próximo",
-    "logComplete": "Registrar Completado",
-    "completeError": "No se pudo marcar el PM como completado. Intenta de nuevo."
+    "dueSoon": "Vence esta semana",
+    "unscheduled": "Sin fecha",
+    "daysOverdue": "{{count}} día de retraso",
+    "daysOverdue_plural": "{{count}} días de retraso",
+    "dueOn": "Vence {{date}}",
+    "lastDone": "Última vez {{date}}",
+    "never": "Aún sin completar",
+    "minutes": "{{count}} min",
+    "inspectionRequiredTitle": "Se requiere inspección",
+    "inspectionRequiredBody": "Un MP se completa con su lista de verificación y evidencia, así que no se puede marcar con un toque. La finalización guiada llegará pronto a la app.",
+    "interval": {
+      "daily": "Diario",
+      "weekly": "Semanal",
+      "monthly": "Mensual",
+      "quarterly": "Trimestral",
+      "annual": "Anual",
+      "custom": "Personalizado"
+    },
+    "everyDays": "Cada {{count}} día",
+    "everyDays_plural": "Cada {{count}} días",
+    "unknownAsset": "Activo no listado"
   },
   "engineerRooms": {
     "kicker": "Mantenimiento",
@@ -5573,6 +5606,7 @@
       "housekeeper": "Camarera",
       "inspector": "Inspector",
       "engineer": "Técnico",
+      "chief_engineer": "Jefe de ingeniería",
       "housekeeping_supervisor": "Supervisora HK",
       "front_desk": "Recepcionista",
       "gm": "Gerente"

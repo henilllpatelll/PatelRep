@@ -138,7 +138,7 @@ export function getTabsForRole(role: UserRole): RoleTabDef[] {
     case "inspector":
       return INSPECTOR_TABS;
     case "engineer":
-    case "engineer":
+    case "chief_engineer":
       return ENGINEER_TABS;
     case "housekeeping_supervisor":
       return SUPERVISOR_TABS;

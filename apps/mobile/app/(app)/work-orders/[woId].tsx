@@ -26,7 +26,7 @@ import {
   claimWorkOrder,
   completeWorkOrder,
   getWorkOrder,
-  setWorkOrderStatus,
+  transitionWorkOrder,
   uploadWorkOrderPhoto,
   workOrderPhotoUrl,
 } from "@/lib/api/workOrders";
@@ -35,8 +35,10 @@ import {
   dueState,
   formatClock,
   formatDuration,
+  isHighPriority,
   minutesSince,
   workOrderLocation,
+  type HoldReasonCode,
   type WorkOrder,
   type WorkOrderComment,
   type WorkOrderPhoto,
@@ -45,6 +47,8 @@ import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
 import { localDate } from "@/lib/utils/date";
 import { R, monoFont } from "@/components/shared/tokens";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
+import { HoldReasonSheet } from "@/components/engineering/HoldReasonSheet";
+import { canActOnWorkOrders } from "@/lib/engineering/roles";
 import { SectionHeader } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -125,6 +129,7 @@ export default function WorkOrderDetailScreen() {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState<"claim" | "complete" | "hold" | "resume" | "comment" | "photo" | "arrive" | "escalate" | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [holdSheetOpen, setHoldSheetOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -151,11 +156,14 @@ export default function WorkOrderDetailScreen() {
 
   const isMine = wo?.assigned_to != null && wo.assigned_to === user?.id;
   const isManager = role === "gm";
-  const canClaim = wo?.status === "open" && !wo.assigned_to;
-  const canComplete = wo?.status === "in_progress" && (isManager || isMine);
-  const canResume = wo?.status === "on_hold" && (isManager || isMine);
+  // The API only lets engineer + gm claim, transition and complete; chief_engineer reads the order.
+  const canAct = canActOnWorkOrders(role);
+  const canClaim = canAct && wo?.status === "open" && !wo.assigned_to;
+  const canComplete = canAct && wo?.status === "in_progress" && (isManager || isMine);
+  const canResume = canAct && wo?.status === "on_hold" && (isManager || isMine);
   const claimedElsewhere =
-    wo != null && (wo.status === "in_progress" || wo.status === "on_hold") && !isMine && !isManager;
+    canAct && wo != null && (wo.status === "in_progress" || wo.status === "on_hold") && !isMine && !isManager;
+  const viewOnly = !canAct && wo != null && wo.status !== "completed" && wo.status !== "cancelled";
 
   const due = wo ? dueState(wo, locale, now) : null;
   const elapsed = wo?.status === "in_progress" ? minutesSince(wo.started_at, now) : null;
@@ -212,11 +220,11 @@ export default function WorkOrderDetailScreen() {
     }
   }
 
-  async function handleSetStatus(status: "on_hold" | "in_progress") {
+  async function handleSetStatus(status: "on_hold" | "in_progress", reason?: HoldReasonCode) {
     if (!wo) return;
     setBusy(status === "on_hold" ? "hold" : "resume");
     try {
-      await setWorkOrderStatus(wo.id, status);
+      await transitionWorkOrder(wo.id, { status, reason_code: reason });
       await load();
     } catch (err) {
       toast.error((err as Error).message ?? t("workOrders.alerts.setStatusFailed"));
@@ -354,7 +362,9 @@ export default function WorkOrderDetailScreen() {
           <View style={styles.headerBody}>
             <Text style={[styles.headerKicker, { color: theme.shell.ink3 }]}>{t("workOrders.detailKicker")}</Text>
           </View>
-          {wo.priority === "urgent" ? (
+          {wo.priority === "emergency" ? (
+            <StatusBadge statusKey="emergency" label={t("workOrders.chipEmergency")} />
+          ) : wo.priority === "urgent" ? (
             <StatusBadge statusKey="urgent" label={t("workOrders.chipUrgent")} />
           ) : null}
           {WO_STATUS_BADGE_KEY[wo.status] ? (
@@ -457,6 +467,13 @@ export default function WorkOrderDetailScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, hasFooter && styles.contentWithFooter]}>
+        {viewOnly ? (
+          <View style={styles.noticeRow} testID="wo-view-only">
+            <Ionicons name="eye-outline" size={14} color={theme.textMuted} />
+            <Text style={[styles.noticeText, { color: theme.textMuted }]}>{t("workOrders.viewOnly")}</Text>
+          </View>
+        ) : null}
+
         {claimedElsewhere ? (
           <View style={styles.noticeRow}>
             <Ionicons name="information-circle-outline" size={14} color={theme.textMuted} />
@@ -517,7 +534,7 @@ export default function WorkOrderDetailScreen() {
                 <Image key={photo.id} source={{ uri: url }} style={[styles.photoThumb, { backgroundColor: theme.surfaceMuted }]} />
               ) : null;
             })}
-            {wo.status !== "completed" && wo.status !== "cancelled" ? (
+            {canAct && wo.status !== "completed" && wo.status !== "cancelled" ? (
               <TouchableOpacity
                 style={[
                   styles.photoAdd,
@@ -627,7 +644,7 @@ export default function WorkOrderDetailScreen() {
           </View>
         </View>
 
-        {(canComplete || (wo.status === "in_progress" && isMine)) && wo.priority !== "urgent" ? (
+        {canAct && (canComplete || (wo.status === "in_progress" && isMine)) && !isHighPriority(wo.priority) ? (
           <Button
             label={t("workOrders.escalate")}
             onPress={handleEscalate}
@@ -712,7 +729,7 @@ export default function WorkOrderDetailScreen() {
                   { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
                   (!isOnline || busy != null) && styles.disabled,
                 ]}
-                onPress={() => handleSetStatus("on_hold")}
+                onPress={() => setHoldSheetOpen(true)}
                 disabled={!isOnline || busy != null}
                 activeOpacity={0.85}
                 accessibilityRole="button"
@@ -754,6 +771,14 @@ export default function WorkOrderDetailScreen() {
           ) : null}
         </View>
       ) : null}
+      <HoldReasonSheet
+        visible={holdSheetOpen}
+        onCancel={() => setHoldSheetOpen(false)}
+        onSelect={(reason) => {
+          setHoldSheetOpen(false);
+          void handleSetStatus("on_hold", reason);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

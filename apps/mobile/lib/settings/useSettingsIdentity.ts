@@ -10,6 +10,7 @@ const KNOWN_ROLES = new Set([
   "housekeeper",
   "inspector",
   "engineer",
+  "chief_engineer",
   "housekeeping_supervisor",
   "front_desk",
   "gm",

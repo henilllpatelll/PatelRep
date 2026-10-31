@@ -1,6 +1,7 @@
 import { API_BASE, api } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
 import type {
+  HoldReasonCode,
   WorkOrder,
   WorkOrderComment,
   WorkOrderPhoto,
@@ -51,8 +52,19 @@ export async function completeWorkOrder(
   await api.post(`/work-orders/${woId}/complete`, payload);
 }
 
-export async function setWorkOrderStatus(woId: string, status: WorkOrderStatus): Promise<void> {
-  await api.patch(`/work-orders/${woId}`, { status });
+export interface WorkOrderTransition {
+  status: WorkOrderStatus;
+  /** Required by the API when moving to on_hold (see HOLD_REASON_CODES). */
+  reason_code?: HoldReasonCode;
+  reason_note?: string;
+}
+
+/**
+ * The only way to change a work order's status. PATCH /work-orders/{id} rejects `status`
+ * with 422, and the transition endpoint validates the move against the allowed graph.
+ */
+export async function transitionWorkOrder(woId: string, transition: WorkOrderTransition): Promise<void> {
+  await api.post(`/work-orders/${woId}/transition`, { ...transition, source: "mobile" });
 }
 
 export async function addWorkOrderComment(

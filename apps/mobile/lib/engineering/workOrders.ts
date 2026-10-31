@@ -12,7 +12,47 @@ export type WorkOrderCategory =
   | "appliance"
   | "structural"
   | "safety"
+  | "doors_locks"
+  | "painting"
   | "general";
+
+/** Most to least severe — the order the API enum and the queue sort share. */
+export const WORK_ORDER_PRIORITIES: readonly WorkOrderPriority[] = ["emergency", "urgent", "normal", "low"];
+
+export const ACTIVE_WORK_ORDER_STATUSES: readonly WorkOrderStatus[] = ["open", "escalated", "in_progress", "on_hold"];
+
+export function isActiveWorkOrder(wo: Pick<WorkOrder, "status">): boolean {
+  return ACTIVE_WORK_ORDER_STATUSES.includes(wo.status);
+}
+
+/** emergency and urgent both demand attention now; they stay distinct values (emergency outranks urgent). */
+export function isHighPriority(priority: WorkOrderPriority | null | undefined): boolean {
+  return priority === "emergency" || priority === "urgent";
+}
+
+/** 0 = emergency … 3 = low; unknown values sort last. */
+export function priorityRank(priority: WorkOrderPriority | null | undefined): number {
+  const index = priority ? WORK_ORDER_PRIORITIES.indexOf(priority) : -1;
+  return index === -1 ? WORK_ORDER_PRIORITIES.length : index;
+}
+
+/** Mirrors apps/api/services/work_orders/transitions.py `_ALLOWED_TRANSITIONS` (the server is the authority). */
+export const WORK_ORDER_TRANSITIONS: Readonly<Record<WorkOrderStatus, readonly WorkOrderStatus[]>> = {
+  open: ["in_progress", "escalated", "cancelled"],
+  escalated: ["in_progress", "on_hold", "cancelled"],
+  in_progress: ["on_hold", "completed", "escalated", "cancelled"],
+  on_hold: ["in_progress", "escalated", "cancelled"],
+  completed: ["open"],
+  cancelled: ["open"],
+};
+
+export function canTransitionWorkOrder(from: WorkOrderStatus, to: WorkOrderStatus): boolean {
+  return WORK_ORDER_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+/** Structured reasons the API requires for a target status (`_REASONS_BY_TARGET`). */
+export const HOLD_REASON_CODES = ["awaiting_parts", "awaiting_vendor", "schedule_deferral", "safety_review"] as const;
+export type HoldReasonCode = (typeof HOLD_REASON_CODES)[number];
 
 export interface WorkOrderPhoto {
   id: string;
@@ -102,7 +142,12 @@ export function dueState(wo: WorkOrder, locale: string, now: Date = new Date()):
 }
 
 export interface QueueSignals {
+  /** priority === "emergency" only. */
+  emergency: number;
+  /** priority === "urgent" only. */
   urgent: number;
+  /** emergency + urgent — the number to show on an "urgent" chip. */
+  highPriority: number;
   pastSla: number;
   guest: number;
   onHold: number;
@@ -110,12 +155,14 @@ export interface QueueSignals {
 
 /** Live shape of the day across open + active orders — feeds hero signal chips. */
 export function countQueueSignals(orders: WorkOrder[], now: Date = new Date()): QueueSignals {
+  let emergency = 0;
   let urgent = 0;
   let pastSla = 0;
   let guest = 0;
   let onHold = 0;
   for (const wo of orders) {
     if (wo.status === "completed" || wo.status === "cancelled") continue;
+    if (wo.priority === "emergency") emergency += 1;
     if (wo.priority === "urgent") urgent += 1;
     if (wo.guest_reported) guest += 1;
     if (wo.status === "on_hold") onHold += 1;
@@ -124,7 +171,7 @@ export function countQueueSignals(orders: WorkOrder[], now: Date = new Date()): 
       if (!Number.isNaN(due) && due < now.getTime()) pastSla += 1;
     }
   }
-  return { urgent, pastSla, guest, onHold };
+  return { emergency, urgent, highPriority: emergency + urgent, pastSla, guest, onHold };
 }
 
 export interface Workbench {
@@ -156,7 +203,7 @@ export function splitWorkbench(
   };
 }
 
-/** Bench order: urgent first, then SLA-overdue, then newest first. */
+/** Bench order: emergency, then urgent, then SLA-overdue, then newest first. */
 export function sortQueue(orders: WorkOrder[], now: Date = new Date()): WorkOrder[] {
   const rank = (wo: WorkOrder): number => {
     if (wo.priority === "emergency") return 0;

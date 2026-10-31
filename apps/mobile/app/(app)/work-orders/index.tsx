@@ -17,6 +17,14 @@ import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
 import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
 import { countQueueSignals, splitWorkbench, type WorkOrder } from "@/lib/engineering/workOrders";
+import { canActOnWorkOrders } from "@/lib/engineering/roles";
+import {
+  classifyLoadFailure,
+  combineFailures,
+  resolveLoadState,
+  type LoadFailure,
+} from "@/lib/engineering/loadState";
+import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -34,7 +42,10 @@ type Row =
   | { type: "doneToggle"; key: string }
   | { type: "queueEmpty"; key: string }
   | { type: "allEmpty"; key: string }
-  | { type: "doneEmpty"; key: string };
+  | { type: "doneEmpty"; key: string }
+  | { type: "doneError"; key: string }
+  | { type: "loadError"; key: string }
+  | { type: "stale"; key: string };
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
@@ -42,6 +53,7 @@ export default function WorkOrdersScreen() {
   const theme = useTheme();
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
+  const canClaim = canActOnWorkOrders(user?.effective_role ?? user?.role);
 
   const [open, setOpen] = useState<WorkOrder[]>([]);
   const [active, setActive] = useState<WorkOrder[]>([]);
@@ -49,31 +61,36 @@ export default function WorkOrdersScreen() {
   const [doneLoaded, setDoneLoaded] = useState(false);
   const [doneExpanded, setDoneExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [failure, setFailure] = useState<LoadFailure | null>(null);
+  const [doneFailure, setDoneFailure] = useState<LoadFailure | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showCreateWo, setShowCreateWo] = useState(false);
 
   const loadQueues = useCallback(async () => {
-    const [openRes, escalatedRes, progressRes, holdRes] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       listWorkOrders("open"),
       listWorkOrders("escalated"),
       listWorkOrders("in_progress"),
       listWorkOrders("on_hold"),
     ]);
-    if (openRes.status === "fulfilled") setOpen(openRes.value);
-    const escalated = escalatedRes.status === "fulfilled" ? escalatedRes.value : [];
-    const progress = progressRes.status === "fulfilled" ? progressRes.value : [];
-    const held = holdRes.status === "fulfilled" ? holdRes.value : [];
-    setActive([...escalated, ...progress, ...held]);
+    // A failed request is not an empty queue: keep what was last shown and surface the failure instead.
+    const queueFailure = combineFailures(results);
+    setFailure(queueFailure);
+    if (queueFailure) return;
+    const [openRes, escalatedRes, progressRes, holdRes] = results as PromiseFulfilledResult<WorkOrder[]>[];
+    setOpen(openRes.value);
+    setActive([...escalatedRes.value, ...progressRes.value, ...holdRes.value]);
   }, []);
 
   const loadDone = useCallback(async () => {
     try {
       setDone(await listWorkOrders("completed"));
       setDoneLoaded(true);
-    } catch {
-      setDone([]);
+      setDoneFailure(null);
+    } catch (err) {
+      setDoneFailure(classifyLoadFailure(err));
     }
   }, []);
 
@@ -89,8 +106,8 @@ export default function WorkOrdersScreen() {
   );
 
   useEffect(() => {
-    if (doneExpanded && !doneLoaded) loadDone();
-  }, [doneExpanded, doneLoaded, loadDone]);
+    if (doneExpanded && !doneLoaded && !doneFailure) loadDone();
+  }, [doneExpanded, doneLoaded, doneFailure, loadDone]);
 
   useEffect(() => {
     if (!user?.tenant_id) return;
@@ -165,9 +182,9 @@ export default function WorkOrdersScreen() {
   const signals = useMemo(() => {
     const counts = countQueueSignals([...open, ...active]);
     return [
-      counts.urgent > 0 && {
+      counts.highPriority > 0 && {
         key: "urgent",
-        label: t("workOrders.signalUrgent", { count: counts.urgent }),
+        label: t("workOrders.signalUrgent", { count: counts.highPriority }),
         fg: theme.status.dirty,
         bg: theme.status.dirtySoft,
         line: theme.status.dirtyLine,
@@ -201,9 +218,13 @@ export default function WorkOrdersScreen() {
     const filteredQueue = queue.filter(matchesSearch);
     const filteredTeam = team.filter(matchesSearch);
     const list: Row[] = [];
-    if (filteredBench.length === 0 && filteredQueue.length === 0 && filteredTeam.length === 0 && !search) {
+    const hasWork = open.length + active.length > 0;
+    if (failure && !hasWork) {
+      list.push({ type: "loadError", key: "load-error" });
+    } else if (filteredBench.length === 0 && filteredQueue.length === 0 && filteredTeam.length === 0 && !search) {
       list.push({ type: "allEmpty", key: "all-empty" });
     } else {
+      if (failure) list.push({ type: "stale", key: "stale" });
       if (filteredBench.length > 0) {
         list.push({ type: "section", key: "s-bench", title: t("workOrders.sectionBench"), hint: String(filteredBench.length) });
         for (const wo of filteredBench) list.push({ type: "wo", key: wo.id, wo, claimable: false });
@@ -214,7 +235,7 @@ export default function WorkOrdersScreen() {
           list.push({ type: "queueEmpty", key: "queue-empty" });
         } else {
           for (const wo of filteredQueue) {
-            list.push({ type: "wo", key: wo.id, wo, claimable: wo.status === "open" && !wo.assigned_to });
+            list.push({ type: "wo", key: wo.id, wo, claimable: canClaim && wo.status === "open" && !wo.assigned_to });
           }
         }
       }
@@ -226,14 +247,16 @@ export default function WorkOrdersScreen() {
     list.push({ type: "doneToggle", key: "done-toggle" });
     if (doneExpanded) {
       const filteredDone = done.filter(matchesSearch);
-      if (doneLoaded && filteredDone.length === 0) {
+      if (doneFailure && done.length === 0) {
+        list.push({ type: "doneError", key: "done-error" });
+      } else if (doneLoaded && filteredDone.length === 0) {
         list.push({ type: "doneEmpty", key: "done-empty" });
       } else {
         for (const wo of filteredDone) list.push({ type: "wo", key: wo.id, wo, claimable: false });
       }
     }
     return list;
-  }, [bench, queue, team, done, doneExpanded, doneLoaded, search, matchesSearch, t]);
+  }, [bench, queue, team, open, active, done, doneExpanded, doneLoaded, failure, doneFailure, canClaim, search, matchesSearch, t]);
 
   const header = (
     <View>
@@ -346,6 +369,30 @@ export default function WorkOrdersScreen() {
             emptyIcon="checkmark-done-outline"
             emptyTitle={t("workOrders.emptyDone")}
             emptyBody={t("workOrders.emptyDoneHint")}
+            style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
+          />
+        );
+      case "loadError":
+        return (
+          <EngineeringState
+            status={resolveLoadState({ loading: false, failure, count: 0, offline: !isOnline }).status}
+            onRetry={() => void loadQueues()}
+            emptyTitle={t("workOrders.emptyOpen")}
+            style={styles.empty}
+          />
+        );
+      case "stale":
+        return (
+          <View style={styles.cardWrap}>
+            <StaleBanner onRetry={() => void loadQueues()} />
+          </View>
+        );
+      case "doneError":
+        return (
+          <EngineeringState
+            status={resolveLoadState({ loading: false, failure: doneFailure, count: 0 }).status}
+            onRetry={() => void loadDone()}
+            emptyTitle={t("workOrders.emptyDone")}
             style={[styles.inlineEmpty, { borderColor: theme.borderSubtle, backgroundColor: theme.surfaceSubtle }]}
           />
         );

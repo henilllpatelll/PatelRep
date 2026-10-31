@@ -14,22 +14,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { enqueueAction } from "@/lib/offline/db";
-import { api } from "@/lib/api/client";
 import { claimWorkOrder, listWorkOrders } from "@/lib/api/workOrders";
 import {
   acknowledgePrediction,
   createWorkOrderFromPrediction,
   getFailurePredictions,
+  listPmSchedules,
   type FailurePrediction,
+  type PmScheduleRow,
 } from "@/lib/api/assets";
 import {
   countQueueSignals,
   formatDuration,
+  isHighPriority,
   minutesSince,
   splitWorkbench,
   workOrderLocation,
   type WorkOrder,
 } from "@/lib/engineering/workOrders";
+import { adaptPmSchedules, countPmSchedules } from "@/lib/engineering/pmSchedules";
+import { canActOnWorkOrders } from "@/lib/engineering/roles";
+import { combineFailures, resolveLoadState, type LoadFailure } from "@/lib/engineering/loadState";
+import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
+import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { getGreetingKey } from "@/lib/ai/companion";
 import { dynamicShiftMeta } from "@/lib/utils/date";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -45,9 +52,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
    Everything here is live: the workload mosaic and signal chips come from the
    real open + active queues, the focus card is the engineer's actual bench
    (or the top of the queue), the AI card is a real unacknowledged failure
-   prediction, and the PM strip (chief only) reads the real schedule. */
-
-type PMScheduleLite = { id: string; status: "due" | "upcoming" | "overdue" | "completed" };
+   prediction, and the PM strip reads the real schedule. A failed load is an
+   error state with Retry, never "Bench is clear". */
 
 const QUICK_LINKS = [
   { key: "orders", labelKey: "home.engineer.quickOrders", href: "/(app)/work-orders", icon: "construct-outline" },
@@ -89,7 +95,7 @@ function WorkloadMosaic({
     <View style={mosaicStyles.wrap}>
       {orders.map((wo) => {
         const overdue = wo.due_at != null && new Date(wo.due_at).getTime() < now;
-        const hot = wo.priority === "urgent" || overdue;
+        const hot = isHighPriority(wo.priority) || overdue;
         const mine = viewerId != null && wo.assigned_to === viewerId;
         const tone = hot
           ? { bg: "rgba(169, 54, 63, 0.22)", line: "rgba(231, 169, 176, 0.45)", fg: "#E7A9B0" }
@@ -137,12 +143,17 @@ export function EngineerHome({ name }: { name: string }) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { user, isOnline } = useAppStore();
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  const role = user?.effective_role ?? user?.role;
+  const canClaim = canActOnWorkOrders(role);
+  useHotelTimezone();
 
   const [open, setOpen] = useState<WorkOrder[]>([]);
   const [active, setActive] = useState<WorkOrder[]>([]);
   const [doneToday, setDoneToday] = useState(0);
   const [prediction, setPrediction] = useState<FailurePrediction | null>(null);
-  const [pm, setPm] = useState<{ overdue: number; due: number }>({ overdue: 0, due: 0 });
+  const [pmRows, setPmRows] = useState<PmScheduleRow[]>([]);
+  const [failure, setFailure] = useState<LoadFailure | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<"claim" | "preempt" | "dismiss" | null>(null);
@@ -155,13 +166,17 @@ export function EngineerHome({ name }: { name: string }) {
       listWorkOrders("on_hold"),
       listWorkOrders("completed"),
       getFailurePredictions(),
-      api.get<{ data: PMScheduleLite[] }>("/assets/pm-schedules"),
+      listPmSchedules(),
     ];
     const [openRes, progressRes, holdRes, doneRes, predRes, pmRes] = await Promise.allSettled(requests);
-    if (openRes.status === "fulfilled") setOpen(openRes.value as WorkOrder[]);
-    const progress = progressRes.status === "fulfilled" ? (progressRes.value as WorkOrder[]) : [];
-    const held = holdRes.status === "fulfilled" ? (holdRes.value as WorkOrder[]) : [];
-    setActive([...progress, ...held]);
+    // The queue is the work: if any part of it failed, keep what was last shown and say so, rather than
+    // replacing it with a partial (or empty) list that reads as a healthy, clear bench.
+    const queueFailure = combineFailures([openRes, progressRes, holdRes]);
+    setFailure(queueFailure);
+    if (!queueFailure && openRes.status === "fulfilled" && progressRes.status === "fulfilled" && holdRes.status === "fulfilled") {
+      setOpen(openRes.value as WorkOrder[]);
+      setActive([...(progressRes.value as WorkOrder[]), ...(holdRes.value as WorkOrder[])]);
+    }
     if (doneRes.status === "fulfilled") {
       setDoneToday((doneRes.value as WorkOrder[]).filter((wo) => isToday(wo.completed_at)).length);
     }
@@ -169,13 +184,7 @@ export function EngineerHome({ name }: { name: string }) {
       const preds = (predRes.value as { data: FailurePrediction[] }).data ?? [];
       setPrediction(preds.find((p) => !p.is_acknowledged) ?? null);
     }
-    if (pmRes?.status === "fulfilled") {
-      const schedules = (pmRes.value as { data: PMScheduleLite[] }).data ?? [];
-      setPm({
-        overdue: schedules.filter((s) => s.status === "overdue").length,
-        due: schedules.filter((s) => s.status === "due").length,
-      });
-    }
+    if (pmRes.status === "fulfilled") setPmRows(pmRes.value as PmScheduleRow[]);
   }, []);
 
   useEffect(() => {
@@ -211,6 +220,11 @@ export function EngineerHome({ name }: { name: string }) {
     setRefreshing(false);
   }, [load]);
 
+  const pm = useMemo(() => {
+    const counts = countPmSchedules(adaptPmSchedules(pmRows, hotelTimezone, now));
+    return { overdue: counts.overdue, due: counts.dueToday };
+  }, [pmRows, hotelTimezone, now]);
+
   const watching = useMemo(() => [...active, ...open], [active, open]);
   const signals = useMemo(() => countQueueSignals(watching, now), [watching, now]);
   const { bench, queue } = useMemo(
@@ -228,7 +242,7 @@ export function EngineerHome({ name }: { name: string }) {
   }, []);
 
   const claimFocus = useCallback(async () => {
-    if (!focusOrder || focusIsBench || busy) return;
+    if (!focusOrder || focusIsBench || busy || !canClaim) return;
     setBusy("claim");
     try {
       if (isOnline) {
@@ -249,7 +263,7 @@ export function EngineerHome({ name }: { name: string }) {
     } finally {
       setBusy(null);
     }
-  }, [focusOrder, focusIsBench, busy, isOnline, load, user?.id]);
+  }, [focusOrder, focusIsBench, busy, canClaim, isOnline, load, user?.id]);
 
   const handlePreempt = useCallback(async () => {
     if (!prediction || busy) return;
@@ -279,10 +293,10 @@ export function EngineerHome({ name }: { name: string }) {
   }, [prediction, busy]);
 
   const signalChips = [
-    signals.urgent > 0 && {
+    signals.highPriority > 0 && {
       key: "urgent",
       statusKey: "urgent" as const,
-      label: t("workOrders.signalUrgent", { count: signals.urgent }),
+      label: t("workOrders.signalUrgent", { count: signals.highPriority }),
     },
     signals.pastSla > 0 && {
       key: "sla",
@@ -298,7 +312,7 @@ export function EngineerHome({ name }: { name: string }) {
   ].filter(Boolean) as { key: string; label: string; statusKey?: "urgent" | "overdue" | "onHold" }[];
 
   const focusReason = (wo: WorkOrder): string => {
-    if (wo.priority === "urgent") return t("home.engineer.reasonUrgent");
+    if (isHighPriority(wo.priority)) return t("home.engineer.reasonUrgent");
     if (wo.due_at && new Date(wo.due_at).getTime() < now.getTime()) return t("home.engineer.reasonOverdue");
     if (wo.guest_reported) return t("home.engineer.reasonGuest");
     return t("home.engineer.reasonDefault");
@@ -363,6 +377,7 @@ export function EngineerHome({ name }: { name: string }) {
         </View>
 
         <View style={styles.body}>
+          {failure && focusOrder ? <StaleBanner onRetry={() => void load()} /> : null}
           {focusOrder ? (
             <View testID="engineer-focus">
               <Card style={styles.focusCard}>
@@ -411,10 +426,10 @@ export function EngineerHome({ name }: { name: string }) {
                     );
                   })()}
                 </View>
-                {!focusIsBench ? (
+                {!focusIsBench && canClaim ? (
                   <Text style={[styles.focusReason, { color: theme.textMuted }]}>{focusReason(focusOrder)}</Text>
                 ) : null}
-                {focusIsBench ? (
+                {focusIsBench || !canClaim ? (
                   <Button
                     label={t("home.engineer.openOrder")}
                     icon="construct-outline"
@@ -433,9 +448,10 @@ export function EngineerHome({ name }: { name: string }) {
               </Card>
             </View>
           ) : (
-            <View testID="engineer-clear">
-              <StateBlock
-                status="empty"
+            <View testID={failure ? "engineer-load-error" : "engineer-clear"}>
+              <EngineeringState
+                status={resolveLoadState({ loading: false, failure, count: 0, offline: !isOnline }).status}
+                onRetry={() => void load()}
                 emptyIcon="checkmark-done-outline"
                 emptyTitle={t("home.engineer.benchClear")}
                 emptyBody={t("home.engineer.benchClearHint")}
