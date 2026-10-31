@@ -25,9 +25,30 @@ export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<
   return res.data?.id ?? null;
 }
 
-export async function listWorkOrders(status: WorkOrderStatus): Promise<WorkOrder[]> {
-  const res = await api.get<{ data: WorkOrder[] }>(`/work-orders?status=${status}&per_page=100`);
+export const WORK_ORDER_PAGE_SIZE = 100;
+
+export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {
+  const res = await api.get<{ data: WorkOrder[] }>(
+    `/work-orders?status=${status}&per_page=${WORK_ORDER_PAGE_SIZE}${page > 1 ? `&page=${page}` : ""}`
+  );
   return res.data ?? [];
+}
+
+/**
+ * Every work order in a status, page by page, so a count is never silently cut off at one page.
+ * Stops at `maxPages`; `truncated` then says there may be more, and callers show "N+" instead of a false total.
+ */
+export async function listAllWorkOrders(
+  status: WorkOrderStatus,
+  maxPages = 5
+): Promise<{ orders: WorkOrder[]; truncated: boolean }> {
+  const orders: WorkOrder[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const rows = await listWorkOrders(status, page);
+    orders.push(...rows);
+    if (rows.length < WORK_ORDER_PAGE_SIZE) return { orders, truncated: false };
+  }
+  return { orders, truncated: true };
 }
 
 export async function getWorkOrder(woId: string): Promise<WorkOrder> {

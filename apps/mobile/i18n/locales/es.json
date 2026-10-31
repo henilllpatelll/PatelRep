@@ -108,7 +108,9 @@
     "lostFound": "Objetos",
     "alerts": "Alertas",
     "staff": "Personal",
-    "logbook": "Bitácora"
+    "logbook": "Bitácora",
+    "work": "Trabajo",
+    "pm": "MP"
   },
   "home": {
     "greetingMorning": "Buenos días, {{name}}.",
@@ -163,7 +165,55 @@
       "quickOrders": "Órdenes",
       "quickRooms": "Cuartos",
       "quickAssets": "Activos",
-      "quickPm": "MP"
+      "quickPm": "Calendario de MP",
+      "headerLabel": "Ingeniería · Hoy",
+      "unavailable": "no disponible",
+      "syncJustNow": "ahora mismo",
+      "syncMinutes": "hace {{minutes}} min",
+      "syncDone": "Sincronizado {{ago}}",
+      "syncSyncing": "Sincronizando…",
+      "syncFailed": "No se pudo actualizar — mostrando los últimos datos",
+      "syncPending": "{{count}} pendientes de sincronizar",
+      "syncNone": "Aún sin sincronizar",
+      "syncOffline": "Sin conexión",
+      "syncOfflineSince": "Sin conexión · última sincronización {{ago}}",
+      "notificationsUnread": "Notificaciones, {{count}} sin leer",
+      "cardMyJobs": "Mis trabajos",
+      "cardUrgent": "Urgentes",
+      "cardPmDue": "MP vencido",
+      "roomLabel": "Habitación {{room}}",
+      "continueKicker": "Continuar trabajando",
+      "continueRepair": "Continuar reparación",
+      "viewOrder": "Ver orden",
+      "startedAt": "Inició {{time}}",
+      "dueAt": "Vence {{time}}",
+      "overdueBy": "Vencida hace {{duration}}",
+      "moreActive": "{{count}} más en curso — abrir Trabajo",
+      "noActiveTitle": "Ninguna reparación en curso",
+      "viewWork": "Ver trabajo disponible",
+      "priority": {
+        "emergency": "Emergencia",
+        "urgent": "Urgente"
+      },
+      "attentionTitle": "Requiere atención",
+      "attentionEmpty": "Nada requiere atención por ahora.",
+      "attentionMore": "+{{count}} más — abrir Trabajo",
+      "reason": {
+        "emergency": "Emergencia",
+        "urgentUnassigned": "Urgente",
+        "pastDue": "Vencida",
+        "pmOverdue": "MP vencido",
+        "onHold": "En espera"
+      },
+      "notAssigned": "Sin asignar",
+      "assignedToYou": "Asignada a ti",
+      "pmDaysOverdue": "vencido hace {{days}} d",
+      "pmUnavailable": "No se pudo cargar el calendario de MP",
+      "quickTitle": "Acciones rápidas",
+      "quickReport": "Reportar problema",
+      "quickRoom": "Buscar habitación",
+      "quickAsset": "Buscar equipo",
+      "syncFailedEmpty": "No se pudieron cargar las órdenes"
     },
     "supervisor": {
       "shiftMeta": "Supervisora de Housekeeping",
@@ -9857,5 +9907,17 @@
       "title": "Cambio de turno no aprobado",
       "body": "Tu cambio de turno no fue aprobado."
     }
+  },
+  "engineeringMore": {
+    "operations": "Operaciones",
+    "account": "Cuenta",
+    "management": "Gestión",
+    "rooms": "Habitaciones",
+    "notifications": "Notificaciones",
+    "profile": "Mi perfil",
+    "settings": "Configuración",
+    "help": "Ayuda",
+    "signOut": "Cerrar sesión",
+    "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo."
   }
 }

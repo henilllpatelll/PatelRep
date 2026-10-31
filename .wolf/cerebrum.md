@@ -981,3 +981,7 @@
 - Promise.allSettled + per-request setState hides failures as empty lists. Use combineFailures/resolveLoadState and keep the last data with a stale banner.
 - Drift tests read apps/api files (core/roles.py, routers/work_orders.py, services/work_orders/transitions.py) from the mobile Jest suite; keep them regex-simple.
 - A fresh git worktree has no node_modules; npm ci inside apps/mobile (about 3 minutes) is enough for tsc, eslint and jest.
+
+- **Windows Python line endings (2026-10-31):** `open(p,'w')` in Python on Windows writes CRLF into LF repo files, turning a small edit into a whole-file diff. Always pass `newline=''` (read AND write) or `newline='\n'`, then check `git diff --stat`.
+- **RNTL waitFor + absence (2026-10-31):** `waitFor(() => expect(queryByTestId(x)).toBeNull())` stayed red after an async state update that cleared the element; `waitForElementToBeRemoved(() => queryByTestId(x))` works.
+- **Eng Home counting (2026-10-31, Phase 2):** My Jobs = mine + open/escalated/in_progress; Urgent = emergency+urgent across all active statuses incl. on_hold; Home reads only active statuses via `listAllWorkOrders` (pages, `truncated` => "N+"), never completed history. There is no QR/barcode scanner in the app, so the quick action is "Find Asset", not "Scan Asset".

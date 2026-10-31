@@ -155,6 +155,7 @@ jest.mock("@/stores/appStore", () => {
 });
 
 import SettingsHome from "@/app/(app)/profile";
+import { getEngineeringMoreSections } from "@/lib/engineering/moreMenu";
 import NotificationSettings from "@/app/(app)/profile/notifications";
 import AppearanceScreen from "@/app/(app)/profile/appearance";
 import LanguageScreen from "@/app/(app)/profile/language";
@@ -252,8 +253,9 @@ describe("Settings home", () => {
     expect(getByText("Account")).toBeTruthy();
     expect(getByText("Preferences")).toBeTruthy();
     expect(getByText("App & support")).toBeTruthy();
-    // Every role has the Profile tab that opens this screen.
-    expect(getTabsForRole(role).some((tab) => tab.name === "profile/index")).toBe(true);
+    // Every role reaches this screen: through the Profile tab, or for engineering roles through the More tab.
+    const viaMore = getEngineeringMoreSections(role).some((section) => section.items.some((item) => item.href === "/(app)/profile"));
+    expect(getTabsForRole(role).some((tab) => tab.name === "profile/index") || viaMore).toBe(true);
     // No GM-only administration is exposed to anyone (no supported mobile destination).
     expect(queryByTestId("row-property-admin")).toBeNull();
   });

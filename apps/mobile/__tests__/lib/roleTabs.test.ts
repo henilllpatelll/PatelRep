@@ -1,7 +1,7 @@
-import { HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
+import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import type { UserRole } from "@/lib/supabase";
 
-const ENGINEER_KEYS = ["home", "orders", "rooms", "assets", "me"];
+const ENGINEER_KEYS = ["home", "work", "pm", "assets", "more"];
 const ALL_ROLES: UserRole[] = [
   "housekeeper",
   "inspector",
@@ -32,14 +32,21 @@ describe("getTabsForRole", () => {
     ]);
   });
 
-  it("maps engineer to Orders, Rooms, Assets, and Profile", () => {
+  it("maps engineer to Home, Work, PM, Assets, and More", () => {
     expect(getTabsForRole("engineer").map((tab) => tab.key)).toEqual(ENGINEER_KEYS);
     expect(getTabsForRole("engineer").map((tab) => tab.titleKey)).toEqual([
       "tabs.home",
-      "tabs.orders",
-      "tabs.rooms",
+      "tabs.work",
+      "tabs.pm",
       "tabs.assets",
-      "tabs.profile",
+      "tabs.more",
+    ]);
+    expect(getTabsForRole("engineer").map((tab) => tab.name)).toEqual([
+      "home/index",
+      "work-orders/index",
+      "pm-schedules/index",
+      "assets/index",
+      "more/index",
     ]);
   });
 
@@ -64,8 +71,21 @@ describe("getTabsForRole", () => {
   it("every engineering tab route is a real tab or a registered hidden route", () => {
     const hidden = new Set(HIDDEN_APP_ROUTES);
     for (const tab of getTabsForRole("chief_engineer")) expect(hidden.has(tab.name)).toBe(false);
-    // The PM screen is reached from Home, not a tab.
-    expect(hidden.has("pm-schedules/index")).toBe(true);
+    // PM is a real tab now: declaring it hidden as well would register the same screen twice.
+    expect(hidden.has("pm-schedules/index")).toBe(false);
     expect(hidden.has("work-orders/[woId]")).toBe(true);
+  });
+
+  it("keeps Rooms and Profile reachable for engineers even though they are no longer tabs", () => {
+    const tabNames = new Set(getTabsForRole("engineer").map((tab) => tab.name));
+    expect(tabNames.has("room-status/index")).toBe(false);
+    expect(tabNames.has("profile/index")).toBe(false);
+    // Still registered (hidden from the bar) because other roles list them as tabs, so router.push resolves.
+    expect(ALL_ROLE_TAB_ROUTES).toEqual(expect.arrayContaining(["room-status/index", "profile/index", "more/index"]));
+  });
+
+  it("no route is both a visible tab for some role and a hidden app route", () => {
+    const hidden = new Set(HIDDEN_APP_ROUTES);
+    for (const name of ALL_ROLE_TAB_ROUTES) expect(hidden.has(name)).toBe(false);
   });
 });

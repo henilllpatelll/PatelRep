@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -67,6 +67,14 @@ export default function WorkOrdersScreen() {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showCreateWo, setShowCreateWo] = useState(false);
+  // Home's "Report Issue" navigates here with a fresh `new` value; open the existing create sheet once per value.
+  const { new: newRequest } = useLocalSearchParams<{ new?: string }>();
+  const handledNew = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!newRequest || handledNew.current === newRequest) return;
+    handledNew.current = newRequest;
+    setShowCreateWo(true);
+  }, [newRequest]);
 
   const loadQueues = useCallback(async () => {
     const results = await Promise.allSettled([

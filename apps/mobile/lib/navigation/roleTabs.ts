@@ -7,6 +7,8 @@ export type RoleTabKey =
   | "rooms"
   | "inspect"
   | "orders"
+  | "work"
+  | "more"
   | "copilot"
   | "tasks"
   | "assets"
@@ -45,10 +47,10 @@ const INSPECTOR_TABS: RoleTabDef[] = [
 
 const ENGINEER_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
-  { key: "orders", name: "work-orders/index", titleKey: "tabs.orders", icon: "construct-outline" },
-  { key: "rooms", name: "room-status/index", titleKey: "tabs.rooms", icon: "bed-outline" },
+  { key: "work", name: "work-orders/index", titleKey: "tabs.work", icon: "construct-outline" },
+  { key: "pm", name: "pm-schedules/index", titleKey: "tabs.pm", icon: "calendar-outline" },
   { key: "assets", name: "assets/index", titleKey: "tabs.assets", icon: "cube-outline" },
-  { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
+  { key: "more", name: "more/index", titleKey: "tabs.more", icon: "ellipsis-horizontal-circle-outline" },
 ];
 
 const SUPERVISOR_TABS: RoleTabDef[] = [
@@ -88,7 +90,6 @@ export const ALL_ROLE_TAB_ROUTES = Array.from(new Set(ALL_TAB_ARRAYS.map((tab) =
 
 export const HIDDEN_APP_ROUTES = [
   "copilot/index",
-  "pm-schedules/index",
   "notifications/index",
   "attention/index",
   "supervisor-attention/index",

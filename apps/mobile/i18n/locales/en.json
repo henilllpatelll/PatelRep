@@ -108,7 +108,9 @@
     "lostFound": "Lost & Found",
     "alerts": "Alerts",
     "staff": "Staff",
-    "logbook": "Logbook"
+    "logbook": "Logbook",
+    "work": "Work",
+    "pm": "PM"
   },
   "home": {
     "greetingMorning": "Good morning, {{name}}.",
@@ -163,7 +165,55 @@
       "quickOrders": "Orders",
       "quickRooms": "Rooms",
       "quickAssets": "Assets",
-      "quickPm": "PM"
+      "quickPm": "PM Schedule",
+      "headerLabel": "Engineering · Today",
+      "unavailable": "unavailable",
+      "syncJustNow": "just now",
+      "syncMinutes": "{{minutes}} min ago",
+      "syncDone": "Synced {{ago}}",
+      "syncSyncing": "Syncing…",
+      "syncFailed": "Couldn't refresh — showing last data",
+      "syncPending": "{{count}} waiting to sync",
+      "syncNone": "Not synced yet",
+      "syncOffline": "Offline",
+      "syncOfflineSince": "Offline · last synced {{ago}}",
+      "notificationsUnread": "Notifications, {{count}} unread",
+      "cardMyJobs": "My Jobs",
+      "cardUrgent": "Urgent",
+      "cardPmDue": "PM Due",
+      "roomLabel": "Room {{room}}",
+      "continueKicker": "Continue working",
+      "continueRepair": "Continue Repair",
+      "viewOrder": "View order",
+      "startedAt": "Started {{time}}",
+      "dueAt": "Due {{time}}",
+      "overdueBy": "Overdue {{duration}}",
+      "moreActive": "{{count}} more in progress — open Work",
+      "noActiveTitle": "No repair in progress",
+      "viewWork": "View available work",
+      "priority": {
+        "emergency": "Emergency",
+        "urgent": "Urgent"
+      },
+      "attentionTitle": "Needs attention",
+      "attentionEmpty": "Nothing needs attention right now.",
+      "attentionMore": "+{{count}} more — open Work",
+      "reason": {
+        "emergency": "Emergency",
+        "urgentUnassigned": "Urgent",
+        "pastDue": "Past due",
+        "pmOverdue": "Overdue PM",
+        "onHold": "On hold"
+      },
+      "notAssigned": "Not assigned",
+      "assignedToYou": "Assigned to you",
+      "pmDaysOverdue": "{{days}}d overdue",
+      "pmUnavailable": "PM schedule couldn't load",
+      "quickTitle": "Quick actions",
+      "quickReport": "Report Issue",
+      "quickRoom": "Find Room",
+      "quickAsset": "Find Asset",
+      "syncFailedEmpty": "Couldn't load work orders"
     },
     "supervisor": {
       "shiftMeta": "Housekeeping supervisor",
@@ -9857,5 +9907,17 @@
       "title": "Shift swap not approved",
       "body": "Your shift swap was not approved."
     }
+  },
+  "engineeringMore": {
+    "operations": "Operations",
+    "account": "Account",
+    "management": "Management",
+    "rooms": "Rooms",
+    "notifications": "Notifications",
+    "profile": "My Profile",
+    "settings": "Settings",
+    "help": "Help",
+    "signOut": "Sign out",
+    "hint": "Work orders, PM and assets are in the tabs below."
   }
 }

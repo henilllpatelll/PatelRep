@@ -1,9 +1,12 @@
 import React from "react";
+import { Modal } from "react-native";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react-native";
 
+let mockParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useFocusEffect: jest.fn((cb: () => void) => cb()),
+  useLocalSearchParams: jest.fn(() => mockParams),
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -155,5 +158,25 @@ describe("WorkOrdersScreen", () => {
       await waitFor(() => expect(screen.getByText("workOrders.emptyOpen")).toBeTruthy());
       expect(screen.queryByText("engineeringState.loadFailed")).toBeNull();
     });
+  });
+});
+
+describe("WorkOrdersScreen report-issue entry from Home", () => {
+  afterEach(() => {
+    mockParams = {};
+  });
+
+  const createSheetVisible = () => screen.UNSAFE_getByType(Modal).props.visible;
+
+  it("does not open the create sheet on a plain visit", async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("Fix AC")).toBeTruthy());
+    expect(createSheetVisible()).toBe(false);
+  });
+
+  it("opens the existing create sheet when Home asks for a new issue", async () => {
+    mockParams = { new: "1700000000000" };
+    renderScreen();
+    await waitFor(() => expect(createSheetVisible()).toBe(true));
   });
 });
