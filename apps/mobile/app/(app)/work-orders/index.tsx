@@ -10,10 +10,12 @@ import { useToast } from "@/lib/theme/useToast";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
 import { WorkFilterSheet } from "@/components/engineering/WorkFilterSheet";
+import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineering/team/AssignTechnicianSheet";
 import { WorkQueueHeader, type FilterChip } from "@/components/engineering/WorkQueueHeader";
 import { PendingReportsBanner } from "@/components/engineering/report/PendingReportsBanner";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { useWorkQueue } from "@/lib/engineering/useWorkQueue";
+import { canManageTeam, isAssignable } from "@/lib/engineering/teamModel";
 import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
 import { dismissClaimConflict, useClaimConflicts } from "@/lib/engineering/claimConflicts";
 import {
@@ -111,6 +113,8 @@ export default function WorkOrdersScreen() {
 
   const claimer = useClaimWorkOrder({ isOnline, role, syncMarker: lastSyncedAt });
   const conflicts = useClaimConflicts(scope);
+  const [assignTarget, setAssignTarget] = useState<AssignTarget | null>(null);
+  const manager = canManageTeam(role);
 
   const refreshRef = useRef(queue.refresh);
   refreshRef.current = queue.refresh;
@@ -326,6 +330,19 @@ export default function WorkOrdersScreen() {
               onClaim={claimable && !queued ? () => void onClaim(item.wo) : undefined}
               claiming={claimer.claimingIds.has(item.wo.id)}
               claimQueued={claimable && queued}
+              onAssign={
+                manager && view !== "done" && isAssignable(item.wo)
+                  ? () =>
+                      setAssignTarget({
+                        id: item.wo.id,
+                        code: workOrderLabel(item.wo),
+                        title: item.wo.title,
+                        priority: item.wo.priority,
+                        assignedTo: item.wo.assigned_to ?? null,
+                        assignedToName: item.wo.assigned_to_name,
+                      })
+                  : undefined
+              }
             />
           </View>
         );
@@ -392,6 +409,18 @@ export default function WorkOrdersScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={pulling} onRefresh={onPullRefresh} tintColor={theme.primaryAction} />}
         testID="wo-list"
+      />
+      <AssignTechnicianSheet
+        visible={assignTarget != null}
+        target={assignTarget}
+        scope={scope}
+        online={isOnline}
+        onClose={() => setAssignTarget(null)}
+        onNeedsRefresh={refreshQuietly}
+        onAssigned={(tech, changed) => {
+          toast.success(changed ? t("engineeringTeam.assign.done", { name: tech.name ?? t("engineeringTeam.technician") }) : t("engineeringTeam.assign.alreadyDone"));
+          refreshQuietly();
+        }}
       />
       <WorkFilterSheet visible={showFilters} view={view} role={role} filters={filters} onApply={(next) => { setFilters(next); setShowFilters(false); }} onClose={() => setShowFilters(false)} />
     </View>

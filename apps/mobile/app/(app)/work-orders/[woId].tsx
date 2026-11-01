@@ -42,6 +42,12 @@ import { localDate } from "@/lib/utils/date";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { Button } from "@/components/ui/Button";
+import { useAiCapability } from "@/lib/ai/capabilities";
+import { canOfferAssist } from "@/lib/engineering/repairAssist";
+import { canManageTeam, isAssignable, teamScope } from "@/lib/engineering/teamModel";
+import { RepairAssistSheet } from "@/components/engineering/workorder/RepairAssistSheet";
+import { AssignTechnicianSheet } from "@/components/engineering/team/AssignTechnicianSheet";
 import { WorkOrderHeader, WorkOrderSummary } from "@/components/engineering/workorder/WorkOrderHeader";
 import { WorkOrderActionBar, type BarAction } from "@/components/engineering/workorder/WorkOrderActionBar";
 import { WorkOrderReportedIssue } from "@/components/engineering/workorder/WorkOrderReportedIssue";
@@ -67,7 +73,7 @@ import { CompletionSheet } from "@/components/engineering/workorder/CompletionSh
    Offline: claim and a plain completion queue (the existing sync); every other action needs a connection, because
    a labor session, arrival or inventory movement made offline would be a record the server never confirmed. */
 
-type Sheet = "more" | "labor" | "diagnosis" | "evidence" | "parts" | "hold" | "escalate" | "note" | "complete" | null;
+type Sheet = "more" | "labor" | "diagnosis" | "evidence" | "parts" | "hold" | "escalate" | "note" | "complete" | "assist" | "assign" | null;
 
 export default function WorkOrderDetailScreen() {
   const { woId } = useLocalSearchParams<{ woId: string }>();
@@ -81,6 +87,7 @@ export default function WorkOrderDetailScreen() {
   const userId = user?.id ?? null;
 
   const detail = useWorkOrderDetail(String(woId), userId);
+  const assistSwitchedOn = useAiCapability("repairAssist");
   const { wo, secondary, sectionFailed, queued, skewMs } = detail;
 
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -189,7 +196,7 @@ export default function WorkOrderDetailScreen() {
     }
     // Offline: the existing queue keeps the claim; the order is NOT shown as claimed until the server confirms.
     await mutate("claim", async () => {
-      await enqueueAction("work_order", "claim", { label }, order.id);
+      await enqueueAction("work_order", "claim", { label }, order.id, label);
       toast.info(t("workOrders.repair.toast.claimQueued"));
       await refreshAfter([]);
     }, t("workOrders.alerts.claimFailed"));
@@ -293,7 +300,7 @@ export default function WorkOrderDetailScreen() {
     const body = buildCompletionBody(draft, { hasAsset: Boolean(order.asset_id || order.assets?.id) });
     if (!isOnline) {
       if (offlineCompletionBlock(draft) != null) return { kind: "failed", message: t("workOrders.repair.complete.offlineBlock.parts") };
-      await enqueueAction("work_order", "complete", body, order.id);
+      await enqueueAction("work_order", "complete", body, order.id, label);
       toast.info(t("workOrders.repair.complete.queued"));
       await refreshAfter([]);
       return { kind: "queued" };
@@ -352,6 +359,8 @@ export default function WorkOrderDetailScreen() {
 
   const laborLabel = labor.active ? formatStopwatch(labor.activeSeconds) : labor.recordedMinutes > 0 ? formatDuration(Math.round(labor.recordedMinutes)) : t("workOrders.repair.summary.noLabor");
   const showBar = actions.primary != null && !result;
+  const manageable = canManageTeam(role) && isAssignable(order) && !result;
+  const assistable = canOfferAssist({ capability: assistSwitchedOn, status: order.status, role }) && !result;
   const heldBanner = order.status === "on_hold";
 
   return (
@@ -368,6 +377,25 @@ export default function WorkOrderDetailScreen() {
         ) : (
           <>
             <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => setSheet("labor")} />
+
+            {manageable || assistable ? (
+              <View style={styles.extras}>
+                {manageable ? (
+                  <Button
+                    label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
+                    variant="secondary"
+                    size="sm"
+                    icon="person-add-outline"
+                    onPress={() => setSheet("assign")}
+                    disabled={!isOnline}
+                    testID="wo-assign-open"
+                  />
+                ) : null}
+                {assistable ? (
+                  <Button label={t("repairAssist.open")} variant="secondary" size="sm" icon="sparkles-outline" onPress={() => setSheet("assist")} testID="wo-assist-open" />
+                ) : null}
+              </View>
+            ) : null}
 
             {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" /> : null}
             {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" /> : null}
@@ -446,6 +474,31 @@ export default function WorkOrderDetailScreen() {
       />
       <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} laborRunning={myRunning} onConfirm={holdWork} />
       <EscalationSheet visible={sheet === "escalate"} onClose={() => setSheet(null)} online={isOnline} wo={order} onConfirm={escalate} />
+      <AssignTechnicianSheet
+        visible={sheet === "assign"}
+        onClose={() => setSheet(null)}
+        scope={teamScope(user)}
+        online={isOnline}
+        target={{ id: order.id, code: label, title: order.title, priority: order.priority, assignedTo: order.assigned_to ?? null, assignedToName: order.assigned_to_name }}
+        onNeedsRefresh={() => void refreshAfter(["history"])}
+        onAssigned={(tech, changed) => {
+          toast.success(changed ? t("engineeringTeam.assign.done", { name: tech.name ?? t("engineeringTeam.technician") }) : t("engineeringTeam.assign.alreadyDone"));
+          void refreshAfter(["history"]);
+        }}
+      />
+      <RepairAssistSheet
+        visible={sheet === "assist"}
+        onClose={() => setSheet(null)}
+        workOrderId={order.id}
+        online={isOnline}
+        language={locale}
+        technicianNotes={draft.notes}
+        onUseInCompletion={(text) => {
+          setDraft((d) => ({ ...d, notes: text }));
+          toast.info(t("repairAssist.addedToCompletion"));
+        }}
+        onSaveAsNote={addNote}
+      />
       <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} onSave={addNote} />
       <CompletionSheet
         visible={sheet === "complete"}
@@ -483,4 +536,5 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
   withBar: { paddingBottom: 150 },
   banner: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  extras: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });

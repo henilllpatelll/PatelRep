@@ -35,7 +35,7 @@ describe("sync_queue ownership", () => {
     await enqueueAction("work_order", "claim", {}, "wo-1");
     const insert = mockRuns.find((run) => /INSERT INTO sync_queue/.test(run.sql));
     expect(insert?.sql).toMatch(/owner_scope/);
-    expect(insert?.params.at(-1)).toBe("hotel-1:user-a");
+    expect(insert?.params.at(-2)).toBe("hotel-1:user-a");
   });
 
   it("refuses to queue when nobody is signed in", async () => {

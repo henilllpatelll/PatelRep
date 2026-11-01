@@ -13,7 +13,7 @@ import { onAssistantSessionReset } from "@/lib/ai/session";
    switched off, and every paid call is still subject to the hotel's AI credit cap. Manual alternatives
    (typing a task, reporting an issue yourself, reading the original instructions) never depend on any of this. */
 
-export type AiCapability = "unifiedAssistant" | "photoAnalysis" | "taskTranslation";
+export type AiCapability = "unifiedAssistant" | "photoAnalysis" | "taskTranslation" | "repairAssist";
 export type AiCapabilities = Record<AiCapability, boolean>;
 
 export const CAPABILITIES_PATH = "/ai/capabilities";
@@ -23,12 +23,13 @@ export const CAPABILITIES_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 /** Do not ask again sooner than this unless forced. */
 export const CAPABILITIES_REFRESH_AFTER_MS = 10 * 60 * 1000;
 
-export const NO_CAPABILITIES: AiCapabilities = { unifiedAssistant: false, photoAnalysis: false, taskTranslation: false };
+export const NO_CAPABILITIES: AiCapabilities = { unifiedAssistant: false, photoAnalysis: false, taskTranslation: false, repairAssist: false };
 
 const WIRE: Record<AiCapability, string> = {
   unifiedAssistant: "unified_assistant",
   photoAnalysis: "photo_analysis",
   taskTranslation: "task_translation",
+  repairAssist: "repair_assist",
 };
 
 export function capabilitiesStorageKey(scope: string): string {
@@ -42,6 +43,7 @@ export function parseCapabilities(raw: unknown): AiCapabilities {
     unifiedAssistant: value[WIRE.unifiedAssistant] === true,
     photoAnalysis: value[WIRE.photoAnalysis] === true,
     taskTranslation: value[WIRE.taskTranslation] === true,
+    repairAssist: value[WIRE.repairAssist] === true,
   };
 }
 

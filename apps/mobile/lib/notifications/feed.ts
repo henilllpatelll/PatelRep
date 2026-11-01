@@ -20,6 +20,7 @@ const KIND_BY_TYPE: Record<string, FeedKind> = {
   escalation_auto_asset: "priority",
   re_clean_dispatched: "priority",
   wo_assignment: "maintenance",
+  wo_reassigned: "maintenance",
   work_order_complete: "maintenance",
   guest_request_wo_completed: "maintenance",
   asset_risk_high: "maintenance",

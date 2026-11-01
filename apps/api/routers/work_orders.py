@@ -7,6 +7,7 @@ from models.requests import (
     CreateWorkOrderRequest,
     CompleteWorkOrderRequest,
     TransitionWorkOrderRequest,
+    AssignWorkOrderRequest,
     UpdateWorkOrderRequest,
     AddCommentRequest,
     BulkArchiveWorkOrdersRequest,
@@ -1030,6 +1031,105 @@ async def claim_work_order(
             )
         )
     return {"data": wo}
+
+
+ASSIGNABLE_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+
+
+def _assignment_inbox_row(*, tenant_id: str, user_id: str, event: str, title: str, body: str, wo_id: str, link: bool = True) -> Optional[str]:
+    """One UNREAD inbox row per (person, event, work order), so a retried or doubled request cannot alert
+    twice. Returns the new row id, or None when one already exists or it could not be written (best effort:
+    the committed assignment never fails because of a notification)."""
+    try:
+        existing = (
+            supabase.table("notifications").select("id").eq("tenant_id", tenant_id).eq("user_id", user_id)
+            .eq("type", event).eq("is_read", False).contains("data", {"wo_id": wo_id}).limit(1).execute()
+        )
+        if existing.data:
+            return None
+        written = supabase.table("notifications").insert({
+            "tenant_id": tenant_id, "user_id": user_id, "type": event, "title": title, "body": body,
+            # No link for a reassignment-away: that engineer can no longer open the order.
+            "data": {"url": f"/(app)/work-orders/{wo_id}", "wo_id": wo_id} if link else {"wo_id": wo_id}, "is_read": False,
+        }).execute()
+        return (written.data or [{}])[0].get("id")
+    except Exception:  # noqa: BLE001
+        logger.warning("assignment inbox row failed wo=%s event=%s", wo_id, event, exc_info=True)
+        return None
+
+
+@router.post("/{wo_id}/assign")
+async def assign_work_order(
+    wo_id: str,
+    request: AssignWorkOrderRequest,
+    current_user: CurrentUser = Depends(require_role("chief_engineer", "gm")),
+):
+    """Assign or reassign an active work order to a technician. Chief engineers manage the queue but cannot
+    claim or transition, so this is their one write on a work order.
+
+    Server-checked: the order is in this hotel and still active; the target is an active engineer here; and the
+    change applies only when the order still has the assignee the caller saw (a conditional update, so two
+    managers cannot silently overwrite each other - the loser gets 409). Assigning to the person it is already
+    assigned to succeeds without a second audit row or alert. Status is never changed here."""
+    tenant_id = current_user.hotel_id
+    wo = (
+        supabase.table("work_orders")
+        .select("id, title, status, priority, assigned_to, work_order_number")
+        .eq("id", wo_id).eq("tenant_id", tenant_id).maybe_single().execute()
+    )
+    if not wo or not wo.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    row = wo.data
+    if row["status"] not in ASSIGNABLE_STATUSES:
+        raise HTTPException(status_code=409, detail="This work order is closed and can no longer be assigned")
+
+    target = str(request.assigned_to)
+    technician = (
+        supabase.table("user_roles").select("id").eq("tenant_id", tenant_id).eq("user_id", target)
+        .eq("role", "engineer").eq("is_active", True).limit(1).execute()
+    )
+    if not technician.data:
+        raise HTTPException(status_code=422, detail="That person is not an active engineer at this hotel")
+
+    previous = str(row["assigned_to"]) if row.get("assigned_to") else None
+    if previous == target:
+        return {"data": {**row, "changed": False}}
+    expected = str(request.expected_assigned_to) if request.expected_assigned_to else None
+    if previous != expected:
+        raise HTTPException(status_code=409, detail="This work order was assigned by someone else. Refresh and try again.")
+
+    update = supabase.table("work_orders").update({"assigned_to": target}).eq("id", wo_id).eq("tenant_id", tenant_id).eq("status", row["status"])
+    update = update.is_("assigned_to", "null") if previous is None else update.eq("assigned_to", previous)
+    result = update.execute()
+    if not result.data:
+        raise HTTPException(status_code=409, detail="This work order changed while you were assigning it. Refresh and try again.")
+
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": tenant_id, "resource_type": "work_order", "resource_id": wo_id,
+        "action": "work_order.reassigned" if previous else "work_order.assigned",
+        "actor_id": current_user.user_id, "actor_role": current_user.role,
+        "old_state": {"assigned_to": previous}, "new_state": {"assigned_to": target},
+        "reason_note": request.note, "source": "api",
+    }).execute()
+
+    label = row.get("title") or "Work order"
+    if target != current_user.user_id:
+        notification_id = _assignment_inbox_row(
+            tenant_id=tenant_id, user_id=target, event="wo_assignment", title="Work Order Assigned", body=label, wo_id=wo_id
+        )
+        if notification_id:
+            asyncio.create_task(send_push(
+                tenant_id=tenant_id, recipient_ids=[target], event_type="wo_assignment",
+                title="Work Order Assigned", body=label,
+                data={"url": f"/(app)/work-orders/{wo_id}", "wo_id": wo_id},
+                notification_ids={target: notification_id},
+            ))
+    if previous and previous not in (target, current_user.user_id):
+        _assignment_inbox_row(
+            tenant_id=tenant_id, user_id=previous, event="wo_reassigned", title="Work Order Reassigned",
+            body=label, wo_id=wo_id, link=False,
+        )
+    return {"data": {**result.data[0], "changed": True}}
 
 
 def _timing_work_order_or_404(wo_id: str, current_user: CurrentUser) -> dict:

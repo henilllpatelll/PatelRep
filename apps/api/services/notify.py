@@ -112,7 +112,7 @@ INBOX_ONLY_EVENTS: frozenset[str] = frozenset(
         "logbook_acknowledgment_reminder", "logbook_acknowledgment_requested", "logbook_mention",
         "occupancy_discrepancy_reported", "occupancy_discrepancy_resolved", "re_clean_dispatched", "room_risk_high", "room_stayover",
         "safety_drill_follow_up_escalation", "safety_training_escalation", "safety_training_overdue",
-        "safety_training_reminder", "shift_summary", "task_blocked", "welfare_check_requested",
+        "safety_training_reminder", "shift_summary", "task_blocked", "welfare_check_requested", "wo_reassigned",
     }
 )
 

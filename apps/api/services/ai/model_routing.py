@@ -11,6 +11,7 @@ DEFAULT_MODEL_ROUTES = {
     "failure_prediction": "claude-sonnet-4-6",
     "room_readiness": "claude-sonnet-4-6",
     "sop_rag": "claude-sonnet-4-6",
+    "repair_assist": "claude-sonnet-4-6",
 }
 
 

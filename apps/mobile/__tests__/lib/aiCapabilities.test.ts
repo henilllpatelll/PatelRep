@@ -27,6 +27,7 @@ describe("parseCapabilities", () => {
       unifiedAssistant: true,
       photoAnalysis: false,
       taskTranslation: false,
+      repairAssist: false,
     });
     expect(parseCapabilities(null)).toEqual(NO_CAPABILITIES);
     expect(parseCapabilities("on")).toEqual(NO_CAPABILITIES);
@@ -45,7 +46,7 @@ describe("capabilities store", () => {
     await useAiCapabilities.getState().hydrate("h1:u1");
     mockGet.mockResolvedValueOnce({ data: ALL_ON });
     await expect(useAiCapabilities.getState().refresh("h1:u1", { now: NOW })).resolves.toBe(true);
-    expect(useAiCapabilities.getState().capabilities).toEqual({ unifiedAssistant: true, photoAnalysis: true, taskTranslation: true });
+    expect(useAiCapabilities.getState().capabilities).toEqual({ unifiedAssistant: true, photoAnalysis: true, taskTranslation: true, repairAssist: false });
 
     await useAiCapabilities.getState().hydrate("h2:u2"); // another hotel never sees them
     expect(useAiCapabilities.getState().capabilities).toEqual(NO_CAPABILITIES);
@@ -60,7 +61,7 @@ describe("capabilities store", () => {
     await useAiCapabilities.getState().refresh("h1:u1", { now: NOW });
     mockGet.mockResolvedValueOnce({ data: { ...ALL_ON, photo_analysis: false } });
     await useAiCapabilities.getState().refresh("h1:u1", { now: NOW + CAPABILITIES_REFRESH_AFTER_MS + 1 });
-    expect(useAiCapabilities.getState().capabilities).toEqual({ unifiedAssistant: true, photoAnalysis: false, taskTranslation: true });
+    expect(useAiCapabilities.getState().capabilities).toEqual({ unifiedAssistant: true, photoAnalysis: false, taskTranslation: true, repairAssist: false });
   });
 
   it("keeps the last answer when the service cannot be reached, and stays off if there never was one", async () => {

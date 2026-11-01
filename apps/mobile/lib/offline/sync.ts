@@ -6,6 +6,7 @@ import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
   incrementSyncQueueAttempts,
+  markSyncQueueItemRefused,
 } from "@/lib/offline/db";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
@@ -14,6 +15,8 @@ import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { recordConfirmedSync } from "@/lib/offline/lastSync";
 import { classifyClaimError, isTerminalClaimFailure } from "@/lib/engineering/workQueue";
 import { recordClaimConflict, type ClaimConflictReason } from "@/lib/engineering/claimConflicts";
+import { classifyReplayFailure, reconcileCompletion } from "@/lib/engineering/offlineActions";
+import { getWorkOrder } from "@/lib/api/workOrders";
 import { REPORT_QUEUE_MARK, isTerminalReportFailure, recordReport } from "@/lib/engineering/pendingReports";
 
 let _syncInProgress = false;
@@ -127,7 +130,27 @@ export async function flushSyncQueue(): Promise<void> {
             continue;
           }
         } else if (item.entity_type === "work_order" && item.action === "complete") {
-          await api.post(`/work-orders/${item.entity_id}/complete`, payload);
+          try {
+            await api.post(`/work-orders/${item.entity_id}/complete`, payload);
+          } catch (err) {
+            const failure = classifyReplayFailure(err);
+            if (failure === "retry") throw err; // network / server trouble: bounded retries, never a silent success
+            if (failure === "conflict") {
+              // The reply to an earlier attempt may have been lost: confirm against the server before calling it a conflict.
+              try {
+                const order = await getWorkOrder(String(item.entity_id));
+                if (reconcileCompletion(order, useAppStore.getState().user?.id ?? null) === "confirmed") {
+                  await deleteSyncQueueItem(item.id);
+                  continue;
+                }
+              } catch {
+                throw err; // could not verify: leave it queued rather than guess
+              }
+            }
+            // Refused for good: keep what was saved (notes), stop replaying, let the person decide.
+            await markSyncQueueItemRefused(item.id, failure);
+            continue;
+          }
         }
 
         await deleteSyncQueueItem(item.id);

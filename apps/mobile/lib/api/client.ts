@@ -45,6 +45,8 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 export interface RequestOptions {
   /** Abort the request from the caller's side (e.g. the person cancelled). Rejects with an `AbortError`. */
   signal?: AbortSignal;
+  /** Longer than the 12 s default, for the few requests that wait on a model (the server caps those itself). */
+  timeoutMs?: number;
 }
 
 function abortError(): Error {
@@ -93,7 +95,7 @@ async function request<T>(
       didTimeout = true;
       controller?.abort();
       reject(new Error(API_TIMEOUT_MESSAGE));
-    }, API_TIMEOUT_MS);
+    }, options.timeoutMs ?? API_TIMEOUT_MS);
   });
 
   let response: Response;

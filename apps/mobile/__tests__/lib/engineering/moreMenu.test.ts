@@ -16,10 +16,15 @@ describe("getEngineeringMoreSections", () => {
     }
   });
 
-  it("shows no Management section until real chief-engineer screens exist", () => {
-    for (const role of ["engineer", "chief_engineer"]) {
-      expect(getEngineeringMoreSections(role).map((s) => s.key)).toEqual(["operations", "account"]);
-    }
+  it("shows the Management section (Team Overview) to the chief engineer only", () => {
+    expect(getEngineeringMoreSections("engineer").map((s) => s.key)).toEqual(["operations", "account"]);
+    const chief = getEngineeringMoreSections("chief_engineer");
+    expect(chief.map((s) => s.key)).toEqual(["operations", "account", "management"]);
+    expect(chief[2].items.map((i) => i.href)).toEqual(["/(app)/team"]);
+  });
+
+  it("offers Sync Status to every engineering role", () => {
+    for (const role of ["engineer", "chief_engineer"]) expect(items(role).some((i) => i.href === "/(app)/engineering-sync")).toBe(true);
   });
 
   it("every row is a real route or the sign-out action, never a placeholder", () => {

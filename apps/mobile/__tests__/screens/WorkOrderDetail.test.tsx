@@ -198,7 +198,7 @@ describe("who can do what", () => {
     const { getByTestId } = renderScreen();
     await waitFor(() => expect(getByTestId("wo-claim")).toBeTruthy());
     fireEvent.press(getByTestId("wo-claim"));
-    await waitFor(() => expect(enqueueAction).toHaveBeenCalledWith("work_order", "claim", { label: "WO-1042" }, "wo-1"));
+    await waitFor(() => expect(enqueueAction).toHaveBeenCalledWith("work_order", "claim", { label: "WO-1042" }, "wo-1", "WO-1042"));
     expect(api.claimWorkOrder).not.toHaveBeenCalled();
     expect(getByTestId("wo-banner-offline")).toBeTruthy();
   });
@@ -500,7 +500,7 @@ describe("completion", () => {
     await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
     fireEvent.press(utils.getByTestId("wo-complete-confirm"));
     await waitFor(() =>
-      expect(enqueueAction).toHaveBeenCalledWith("work_order", "complete", { resolution_code_id: "res-1", verification_result: "passed" }, "wo-1"),
+      expect(enqueueAction).toHaveBeenCalledWith("work_order", "complete", { resolution_code_id: "res-1", verification_result: "passed" }, "wo-1", expect.anything()),
     );
     expect(api.completeWorkOrder).not.toHaveBeenCalled();
     expect(utils.queryByTestId("wo-completion-result")).toBeNull();

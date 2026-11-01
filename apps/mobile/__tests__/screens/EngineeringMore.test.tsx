@@ -74,11 +74,19 @@ describe("Engineering More screen", () => {
     expect(getByTestId("more-notifications").props.accessibilityLabel).toContain("4");
   });
 
-  it("does not show Management rows to a chief engineer until those screens exist", () => {
+  it("shows Team Overview under Management to a chief engineer only", () => {
     mockRole = "chief_engineer";
     const { queryByText, getByTestId } = renderMore();
     expect(getByTestId("more-rooms")).toBeTruthy();
-    expect(queryByText("engineeringMore.management")).toBeNull();
+    expect(getByTestId("more-team")).toBeTruthy();
+    expect(queryByText("engineeringMore.management")).toBeTruthy();
+  });
+
+  it("hides Management from a regular engineer", () => {
+    mockRole = "engineer";
+    const { queryByTestId, getByTestId } = renderMore();
+    expect(getByTestId("more-sync")).toBeTruthy();
+    expect(queryByTestId("more-team")).toBeNull();
   });
 
   it("sends any other role back to Home", () => {

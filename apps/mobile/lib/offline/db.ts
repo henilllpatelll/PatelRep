@@ -160,6 +160,16 @@ async function initSchema(db: SQLite.SQLiteDatabase): Promise<void> {
     // column already exists — safe to ignore
   }
   await db.runAsync("DELETE FROM sync_queue WHERE owner_scope IS NULL");
+
+  // A short, non-sensitive caption ("WO-1042 · AC not cooling") and, for a change the server refused for good, the
+  // refusal code. A refused row keeps its saved content (notes) but is never replayed again on its own.
+  for (const statement of ["ALTER TABLE sync_queue ADD COLUMN label TEXT", "ALTER TABLE sync_queue ADD COLUMN last_error TEXT"]) {
+    try {
+      await db.runAsync(statement);
+    } catch {
+      // column already exists — safe to ignore
+    }
+  }
 }
 
 // Room operations
@@ -314,15 +324,16 @@ export async function enqueueAction(
   entityType: string,
   action: string,
   payload: unknown,
-  entityId?: string
+  entityId?: string,
+  label?: string | null
 ): Promise<void> {
   const owner = getQueueOwner();
   if (!owner) throw new Error("Cannot queue a change without a signed-in user");
   const db = await getDb();
   await db.runAsync(
-    `INSERT INTO sync_queue (entity_type, entity_id, action, payload, created_at, owner_scope)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [entityType, entityId ?? null, action, JSON.stringify(payload), new Date().toISOString(), owner]
+    `INSERT INTO sync_queue (entity_type, entity_id, action, payload, created_at, owner_scope, label)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [entityType, entityId ?? null, action, JSON.stringify(payload), new Date().toISOString(), owner, label ?? null]
   );
 }
 
@@ -348,6 +359,10 @@ export interface SyncQueueSummaryRow {
   attempts: number;
   /** When the change was saved on this device (ISO), when the row has it. */
   created_at?: string | null;
+  /** A short caption saved with the change ("WO-1042 · AC not cooling"). Never the typed content. */
+  label?: string | null;
+  /** Why the server refused it for good (conflict, forbidden, not_found, invalid). Set => never replayed on its own. */
+  last_error?: string | null;
 }
 
 /** Everything the signed-in person still has queued, including items that ran out of retries (they stay visible, not hidden). */
@@ -355,8 +370,8 @@ export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
   const owner = getQueueOwner();
   if (!owner) return [];
   const db = await getDb();
-  const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number; created_at: string | null }>(
-    "SELECT id, entity_type, action, entity_id, payload, attempts, created_at FROM sync_queue WHERE owner_scope = ? ORDER BY created_at ASC LIMIT 100",
+  const rows = await db.getAllAsync<{ id: number; entity_type: string; action: string; entity_id: string | null; payload: string; attempts: number; created_at: string | null; label: string | null; last_error: string | null }>(
+    "SELECT id, entity_type, action, entity_id, payload, attempts, created_at, label, last_error FROM sync_queue WHERE owner_scope = ? ORDER BY created_at ASC LIMIT 100",
     [owner]
   );
   return rows.map((row) => {
@@ -367,7 +382,7 @@ export async function getSyncQueueSummary(): Promise<SyncQueueSummaryRow[]> {
     } catch {
       roomId = null;
     }
-    return { id: row.id, entity_type: row.entity_type, action: row.action, entity_id: row.entity_id, room_id: roomId, attempts: row.attempts, created_at: row.created_at ?? null };
+    return { id: row.id, entity_type: row.entity_type, action: row.action, entity_id: row.entity_id, room_id: roomId, attempts: row.attempts, created_at: row.created_at ?? null, label: row.label ?? null, last_error: row.last_error ?? null };
   });
 }
 
@@ -381,9 +396,24 @@ export async function resetFailedSyncQueueAttempts(): Promise<void> {
   if (!owner) return;
   const db = await getDb();
   await db.runAsync(
-    `UPDATE sync_queue SET attempts = 0 WHERE owner_scope = ? AND attempts >= ${MAX_SYNC_ATTEMPTS}`,
+    `UPDATE sync_queue SET attempts = 0 WHERE owner_scope = ? AND attempts >= ${MAX_SYNC_ATTEMPTS} AND last_error IS NULL`,
     [owner]
   );
+}
+
+/** The server refused this change for good: stop replaying it, keep what was saved, and remember why. */
+export async function markSyncQueueItemRefused(id: number, code: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE sync_queue SET attempts = ${MAX_SYNC_ATTEMPTS}, last_error = ? WHERE id = ? AND owner_scope = ?`,
+    [code, id, getQueueOwner()]
+  );
+}
+
+/** Give ONE stuck (not refused) change another go. A refused change is never reset: its cause has to be resolved first. */
+export async function retrySyncQueueItem(id: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE sync_queue SET attempts = 0 WHERE id = ? AND owner_scope = ? AND last_error IS NULL", [id, getQueueOwner()]);
 }
 
 export async function incrementSyncQueueAttempts(id: number): Promise<void> {

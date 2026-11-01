@@ -1,7 +1,7 @@
 /* ─── Engineering More menu ─────────────────────────────────────────────────
    What the More tab offers. Only destinations that exist today are listed; the
-   Management section stays empty (and is not rendered) until Phase 8 adds real
-   chief-engineer screens, so there is never a row that leads nowhere. Role
+   Management section (Team Overview) is chief_engineer only, so there is never a row
+   that leads nowhere. Role
    checks here only decide what is shown — the API enforces every permission. */
 
 import type { ComponentProps } from "react";
@@ -43,6 +43,7 @@ export function getEngineeringMoreSections(role: string | null | undefined): Mor
           href: "/(app)/notifications",
           badge: "unread",
         },
+        { key: "sync", labelKey: "engineeringMore.sync", icon: "sync-outline", href: "/(app)/engineering-sync" },
       ],
     },
     {
@@ -56,8 +57,10 @@ export function getEngineeringMoreSections(role: string | null | undefined): Mor
       ],
     },
   ];
-  // Phase 8 adds Team Overview / Team Assignments for chief_engineer once those screens exist.
-  const management: MoreItem[] = [];
+  // Management screens exist only for chief_engineer; the API re-checks every call.
+  const management: MoreItem[] = [
+    { key: "team", labelKey: "engineeringMore.team", icon: "people-outline", href: "/(app)/team" },
+  ];
   if (role === "chief_engineer" && management.length > 0) {
     sections.push({ key: "management", titleKey: "engineeringMore.management", items: management });
   }

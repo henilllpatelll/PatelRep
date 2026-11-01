@@ -11,30 +11,31 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
 | ai_copilot.py | /v1/ai/copilot/chat | POST | none |  |
-| ai_copilot.py | /v1/ai/housekeeping/briefing | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L575] |
-| ai_copilot.py | /v1/ai/housekeeping/shift-summary | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L650] |
-| ai_copilot.py | /v1/ai/supervisor/briefing | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L715] |
-| ai_copilot.py | /v1/ai/supervisor/today-summary | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L765] |
-| ai_copilot.py | /v1/ai/engineer/briefing | POST | chief_engineer, engineer | require_role('engineer', 'chief_engineer') [L820] |
-| ai_copilot.py | /v1/ai/front-desk/briefing | POST | front_desk | require_role('front_desk') [L865] |
-| ai_copilot.py | /v1/ai/gm/briefing | GET | gm | require_role('gm') [L911] |
+| ai_copilot.py | /v1/ai/housekeeping/briefing | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L577] |
+| ai_copilot.py | /v1/ai/housekeeping/shift-summary | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L652] |
+| ai_copilot.py | /v1/ai/supervisor/briefing | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L717] |
+| ai_copilot.py | /v1/ai/supervisor/today-summary | POST | housekeeping_supervisor | require_role('housekeeping_supervisor') [L767] |
+| ai_copilot.py | /v1/ai/engineer/briefing | POST | chief_engineer, engineer | require_role('engineer', 'chief_engineer') [L822] |
+| ai_copilot.py | /v1/ai/engineer/work-orders/{wo_id}/assist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L868] |
+| ai_copilot.py | /v1/ai/front-desk/briefing | POST | front_desk | require_role('front_desk') [L948] |
+| ai_copilot.py | /v1/ai/gm/briefing | GET | gm | require_role('gm') [L994] |
 | ai_copilot.py | /v1/ai/tasks/confirm | POST | none |  |
 | ai_copilot.py | /v1/ai/work-orders/confirm | POST | none |  |
-| ai_copilot.py | /v1/ai/photo-analysis | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_photo_analysis') [L1165] |
-| ai_copilot.py | /v1/ai/tasks/{task_id}/translate | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_task_translation') [L1225] |
+| ai_copilot.py | /v1/ai/photo-analysis | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_photo_analysis') [L1248] |
+| ai_copilot.py | /v1/ai/tasks/{task_id}/translate | POST | N/A (feature-gated, not role-based) | require_feature('hk_ai_task_translation') [L1308] |
 | ai_copilot.py | /v1/ai/guest-requests/confirm | POST | none |  |
-| ai_copilot.py | /v1/ai/assignments/confirm | POST | gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'gm') [L1456] |
+| ai_copilot.py | /v1/ai/assignments/confirm | POST | gm, housekeeping_supervisor | require_role('housekeeping_supervisor', 'gm') [L1539] |
 | ai_copilot.py | /v1/ai/risk-alerts | GET | none |  |
 | ai_copilot.py | /v1/ai/capabilities | GET | none |  |
-| ai_copilot.py | /v1/ai/usage | GET | gm | require_role('gm') [L1574] |
-| ai_copilot.py | /v1/ai/insights | GET | role-restricted (inline, see source) | gate: if current_user.role not in GM_ONLY_ROLES: raise HTTPException(...) [L1600]; inline: current_user.role not in GM_ONLY_ROLES [L1600] |
-| ai_copilot.py | /v1/ai/recommendations | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1632] |
-| ai_copilot.py | /v1/ai/recommendations/metrics | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1646] |
-| ai_copilot.py | /v1/ai/failure-predictions/{prediction_id}/recommendation | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1658] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/authorize | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1707] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/mark-executed | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1737] |
-| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/outcome | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1758] |
-| ai_copilot.py | /v1/ai/model-routes/{purpose} | PUT | gm | require_role('gm') [L1780] |
+| ai_copilot.py | /v1/ai/usage | GET | gm | require_role('gm') [L1658] |
+| ai_copilot.py | /v1/ai/insights | GET | role-restricted (inline, see source) | gate: if current_user.role not in GM_ONLY_ROLES: raise HTTPException(...) [L1684]; inline: current_user.role not in GM_ONLY_ROLES [L1684] |
+| ai_copilot.py | /v1/ai/recommendations | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1716] |
+| ai_copilot.py | /v1/ai/recommendations/metrics | GET | chief_engineer, gm, housekeeping_supervisor | require_role('gm', 'chief_engineer', 'housekeeping_supervisor') [L1730] |
+| ai_copilot.py | /v1/ai/failure-predictions/{prediction_id}/recommendation | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1742] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/authorize | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1791] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/mark-executed | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1821] |
+| ai_copilot.py | /v1/ai/recommendations/{recommendation_id}/outcome | POST | chief_engineer, gm | require_role('gm', 'chief_engineer') [L1842] |
+| ai_copilot.py | /v1/ai/model-routes/{purpose} | PUT | gm | require_role('gm') [L1864] |
 | assets.py | /v1/assets | GET | none |  |
 | assets.py | /v1/assets | POST | engineer, gm | require_role('gm', 'engineer') [L78] |
 | assets.py | /v1/assets/failure-predictions | GET | none |  |
@@ -92,6 +93,8 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type} | PUT | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L147] |
 | cleaning_checklists.py | /v1/housekeeping/checklists/{clean_type}/reset | POST | gm, housekeeping_supervisor | require_role('gm', 'housekeeping_supervisor') [L216] |
 | engineering_insights.py | /v1/engineering/insights | GET | chief_engineer, gm | require_role('gm', 'chief_engineer') [L47] |
+| engineering_team.py | /v1/engineering/team/technicians | GET | chief_engineer, gm | require_role(*TEAM_ROLES) [L191] |
+| engineering_team.py | /v1/engineering/team/overview | GET | chief_engineer, gm | require_role(*TEAM_ROLES) [L199] |
 | evidence.py | /v1/evidence/applicability | GET | none |  |
 | evidence.py | /v1/evidence/applicability | PUT | gm | require_role('gm') [L269] |
 | evidence.py | /v1/evidence/documents | GET | none |  |
@@ -569,36 +572,37 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | webhooks.py | /v1/webhooks/twilio-sms | POST | UNVERIFIED (no auth dependency detected) |  |
 | webhooks.py | /v1/webhooks/twilio-status | POST | UNVERIFIED (no auth dependency detected) |  |
 | work_orders.py | /v1/work-orders | POST | none |  |
-| work_orders.py | /v1/work-orders | GET | none | inline: current_user.role == 'engineer' [L624] |
-| work_orders.py | /v1/work-orders/stats | GET | none | inline: current_user.role == 'engineer' [L759]; inline: current_user.role == 'gm' [L850] |
+| work_orders.py | /v1/work-orders | GET | none | inline: current_user.role == 'engineer' [L625] |
+| work_orders.py | /v1/work-orders/stats | GET | none | inline: current_user.role == 'engineer' [L760]; inline: current_user.role == 'gm' [L851] |
 | work_orders.py | /v1/work-orders/repair-codes | GET | none |  |
 | work_orders.py | /v1/work-orders/repeat-suggestion | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id} | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L996] |
-| work_orders.py | /v1/work-orders/{wo_id}/acknowledge | POST | engineer, gm | require_role('engineer', 'gm') [L1051] |
-| work_orders.py | /v1/work-orders/{wo_id}/arrive | POST | engineer, gm | require_role('engineer', 'gm') [L1058] |
-| work_orders.py | /v1/work-orders/{wo_id}/labor/start | POST | engineer, gm | require_role('engineer', 'gm') [L1065] |
-| work_orders.py | /v1/work-orders/{wo_id}/labor/pause | POST | engineer, gm | require_role('engineer', 'gm') [L1080] |
+| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L997] |
+| work_orders.py | /v1/work-orders/{wo_id}/assign | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1065] |
+| work_orders.py | /v1/work-orders/{wo_id}/acknowledge | POST | engineer, gm | require_role('engineer', 'gm') [L1151] |
+| work_orders.py | /v1/work-orders/{wo_id}/arrive | POST | engineer, gm | require_role('engineer', 'gm') [L1158] |
+| work_orders.py | /v1/work-orders/{wo_id}/labor/start | POST | engineer, gm | require_role('engineer', 'gm') [L1165] |
+| work_orders.py | /v1/work-orders/{wo_id}/labor/pause | POST | engineer, gm | require_role('engineer', 'gm') [L1180] |
 | work_orders.py | /v1/work-orders/{wo_id}/events | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/audit | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/labor | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/diagnosis | PATCH | engineer, gm | require_role('engineer', 'gm') [L1140]; inline: current_user.role not in GM_ONLY_ROLES [L1152] |
-| work_orders.py | /v1/work-orders/{wo_id}/relationships | POST | engineer, gm | require_role('engineer', 'gm') [L1179] |
-| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L1197] |
-| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L1394] |
-| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L1436] |
-| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L1484] |
-| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L1511] |
-| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L1523] |
-| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L1597] |
-| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm, housekeeper | require_role('engineer', 'gm', 'housekeeper') [L1645]; inline: current_user.role in FLOOR_STAFF_ROLES [L1668] |
+| work_orders.py | /v1/work-orders/{wo_id}/diagnosis | PATCH | engineer, gm | require_role('engineer', 'gm') [L1240]; inline: current_user.role not in GM_ONLY_ROLES [L1252] |
+| work_orders.py | /v1/work-orders/{wo_id}/relationships | POST | engineer, gm | require_role('engineer', 'gm') [L1279] |
+| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L1297] |
+| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L1494] |
+| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L1536] |
+| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L1584] |
+| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L1611] |
+| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L1623] |
+| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L1697] |
+| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm, housekeeper | require_role('engineer', 'gm', 'housekeeper') [L1745]; inline: current_user.role in FLOOR_STAFF_ROLES [L1768] |
 | work_orders.py | /v1/work-orders/{wo_id}/comments | POST | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/checklist | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1770] |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1806] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1870] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1906] |
 | work_orders.py | /v1/work-orders/{wo_id}/parts | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/duplicate-signal | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1977] |
-| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2051] |
+| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2077] |
+| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2151] |
 
-**53 routers, 590 routes.**
+**54 routers, 594 routes.**

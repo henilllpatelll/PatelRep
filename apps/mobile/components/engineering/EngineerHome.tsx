@@ -350,12 +350,21 @@ export function EngineerHome({ name }: { name: string }) {
               {hotelName}
             </Text>
           ) : null}
-          <View style={styles.syncRow} accessibilityLiveRegion="polite" testID="engineer-sync">
+          <Pressable
+            style={styles.syncRow}
+            accessibilityLiveRegion="polite"
+            accessibilityRole="button"
+            accessibilityLabel={syncText}
+            accessibilityHint={t("engineeringSync.openHint")}
+            onPress={() => router.push("/(app)/engineering-sync" as never)}
+            hitSlop={8}
+            testID="engineer-sync"
+          >
             <Ionicons name={syncIcon} size={13} color={theme.shell.ink3} />
             <Text maxFontSizeMultiplier={MAX_FONT} style={[styles.syncText, { color: theme.shell.ink3 }]}>
               {syncText}
             </Text>
-          </View>
+          </Pressable>
         </View>
 
         <View style={styles.body}>

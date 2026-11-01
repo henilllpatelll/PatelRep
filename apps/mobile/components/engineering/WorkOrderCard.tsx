@@ -92,6 +92,8 @@ export interface WorkOrderCardProps {
   claiming?: boolean;
   /** A claim is saved on this phone and waiting to sync — not confirmed by the server. */
   claimQueued?: boolean;
+  /** Present only for a chief engineer / GM on an order that can still be assigned. */
+  onAssign?: () => void;
 }
 
 function holdReasonKey(code: string | null | undefined): string {
@@ -101,7 +103,7 @@ function holdReasonKey(code: string | null | undefined): string {
     : "workQueue.holdReasonOther";
 }
 
-export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, claimQueued }: WorkOrderCardProps) {
+export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, claimQueued, onAssign }: WorkOrderCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -307,6 +309,19 @@ export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, cl
           accessibilityLabel={onClaim ? t("workOrders.claimA11y", { title: wo.title }) : `${actionLabel}: ${wo.title}`}
         />
       )}
+
+      {onAssign ? (
+        <Button
+          label={wo.assigned_to ? t("engineeringTeam.assign.reassignShort") : t("engineeringTeam.assign.assignShort")}
+          onPress={onAssign}
+          variant="ghost"
+          size="sm"
+          icon="person-add-outline"
+          style={styles.action}
+          testID={`wo-assign-${wo.id}`}
+          accessibilityLabel={`${wo.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}: ${wo.title}`}
+        />
+      ) : null}
     </Card>
   );
 }

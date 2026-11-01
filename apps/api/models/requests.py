@@ -442,6 +442,30 @@ class TransitionWorkOrderRequest(SanitizedBaseModel):
     source: Literal["web", "mobile", "api", "automation"] = "api"
 
 
+class AssignWorkOrderRequest(SanitizedBaseModel):
+    """A chief engineer's assignment. ``expected_assigned_to`` is the assignee the client was looking at
+    (null = it saw the order unassigned); the server refuses the change when the order has moved on since."""
+
+    assigned_to: UUID4
+    expected_assigned_to: Optional[UUID4] = Field(...)
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+class RepairAssistTurn(SanitizedBaseModel):
+    role: Literal["user", "assistant"]
+    text: str = Field(min_length=1, max_length=600)
+
+
+class RepairAssistRequest(SanitizedBaseModel):
+    """What the phone may send. It never supplies the work-order facts: the server loads those itself."""
+
+    mode: Literal["suggest", "followup", "draft_notes"]
+    question: Optional[str] = Field(default=None, max_length=500)
+    technician_notes: Optional[str] = Field(default=None, max_length=1500)
+    history: List["RepairAssistTurn"] = Field(default_factory=list, max_length=4)
+    language: Literal["en", "es"] = "en"
+
+
 class UpdateWorkOrderRequest(SanitizedBaseModel):
     title: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     description: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)

@@ -131,6 +131,8 @@ export interface WorkOrderListParams {
   priority?: WorkOrderPriority;
   category?: WorkOrderCategory;
   mine?: boolean;
+  /** A specific technician (managers only; the API scopes an engineer to their own and unclaimed orders anyway). */
+  assigned_to?: string;
   unassigned?: boolean;
   assigned_to_others?: boolean;
   floor?: number;

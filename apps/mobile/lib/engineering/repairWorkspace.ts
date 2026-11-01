@@ -324,6 +324,11 @@ function auditItem(event: AuditEvent): TimelineItem | null {
         return { ...base, labelKey: "resumedWork", text: event.reason_note ?? null };
       }
       return null;
+    // A manager's assignment (POST /work-orders/{id}/assign); the optional note is the reason they gave.
+    case "work_order.assigned":
+      return { ...base, labelKey: "assignedByManager", text: event.reason_note ?? null };
+    case "work_order.reassigned":
+      return { ...base, labelKey: "reassigned", text: event.reason_note ?? null };
     case "work_order.diagnosis_updated":
       return { ...base, labelKey: "diagnosisSaved" };
     case "work_order.repair_verification_failed":
