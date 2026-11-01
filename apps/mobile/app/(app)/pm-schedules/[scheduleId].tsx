@@ -15,6 +15,7 @@ import { adaptPmMeters, referenceRange, type PmMeter } from "@/lib/engineering/p
 import { loadPmDraft } from "@/lib/engineering/pmDraftStore";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { canCompletePm } from "@/lib/engineering/roles";
+import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE as PM_LIST, assetRoute, pmInspectRoute, pmRecordRoute } from "@/lib/engineering/routes";
 import { formatDueDate } from "@/lib/engineering/pmSchedules";
 import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { useAppStore } from "@/stores/appStore";
@@ -58,6 +59,8 @@ export default function PmScheduleDetailScreen() {
   const canInspect = canCompletePm(user?.effective_role ?? user?.role);
   const data = usePmSchedules();
   const schedule = useMemo(() => data.schedules.find((s) => s.id === scheduleId) ?? null, [data.schedules, scheduleId]);
+  /** The exact equipment this schedule is for; the general list is only the fallback when it is unknown or malformed. */
+  const exactAssetRoute = assetRoute(schedule?.assetId);
   const tone = useDueTone(schedule?.state ?? "unscheduled");
 
   const [asset, setAsset] = useState<PmAssetDetail | null>(null);
@@ -177,7 +180,7 @@ export default function PmScheduleDetailScreen() {
                 history.map((row) => (
                   <Pressable
                     key={row.id}
-                    onPress={() => router.push(`/(app)/pm-schedules/record/${row.id}?scheduleId=${row.pm_schedule_id}` as never)}
+                    onPress={() => router.push((pmRecordRoute(row.id, row.pm_schedule_id) ?? PM_LIST) as never)}
                     style={styles.historyRow}
                     accessibilityRole="button"
                     testID={`pm-detail-history-${row.id}`}
@@ -197,14 +200,14 @@ export default function PmScheduleDetailScreen() {
             </Section>
 
             <Pressable
-              onPress={() => router.push("/(app)/assets" as never)}
+              onPress={() => router.push((exactAssetRoute ?? ASSETS_LIST_ROUTE) as never)}
               style={styles.assetLink}
               accessibilityRole="button"
               testID="pm-detail-assets"
             >
               <Ionicons name="cube-outline" size={18} color={theme.primaryAction} />
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.assetLinkText, { color: theme.primaryAction }]}>
-                {t("pm.detail.openAssets")}
+                {exactAssetRoute ? t("pm.detail.openAsset") : t("pm.detail.openAssets")}
               </Text>
             </Pressable>
           </>
@@ -225,7 +228,7 @@ export default function PmScheduleDetailScreen() {
         <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
           <Button
             label={hasDraft ? t("pm.continueInspection") : t("pm.startInspection")}
-            onPress={() => router.push(`/(app)/pm-schedules/inspect/${schedule.id}` as never)}
+            onPress={() => router.push((pmInspectRoute(schedule.id) ?? PM_LIST) as never)}
             size="lg"
             testID="pm-detail-start"
           />

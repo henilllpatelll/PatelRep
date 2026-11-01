@@ -1044,6 +1044,28 @@ class CheckInEmergencyDrillRequest(SanitizedBaseModel):
 
 
 # --- Assets ---
+ASSET_TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-/#]{0,63}$")
+
+
+def _check_asset_fields(model: Any) -> Any:
+    """Rules shared by create and update: a label the scanner can read, and dates that can be true together."""
+    tag = getattr(model, "asset_tag", None)
+    if tag is not None and tag != "" and not ASSET_TAG_RE.match(tag):
+        raise ValueError("asset_tag may use letters, digits and . _ - / # only (max 64)")
+    installed = getattr(model, "installation_date", None)
+    purchased = getattr(model, "purchase_date", None)
+    warranty = getattr(model, "warranty_expires", None)
+    if installed and installed > date.today().replace(year=date.today().year + 1):
+        raise ValueError("installation_date cannot be more than a year in the future")
+    if warranty and installed and warranty < installed:
+        raise ValueError("warranty_expires cannot be before installation_date")
+    if warranty and purchased and warranty < purchased:
+        raise ValueError("warranty_expires cannot be before purchase_date")
+    if installed and purchased and installed < purchased:
+        raise ValueError("installation_date cannot be before purchase_date")
+    return model
+
+
 class CreateAssetRequest(SanitizedBaseModel):
     name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     category_id: UUID4
@@ -1059,6 +1081,10 @@ class CreateAssetRequest(SanitizedBaseModel):
     notes: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
     expected_lifespan_years: Optional[int] = Field(default=None, ge=1, le=100)
     replacement_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+
+    @model_validator(mode="after")
+    def _validate_asset(self):
+        return _check_asset_fields(self)
 
 
 class StartAssetDowntimeRequest(SanitizedBaseModel):
@@ -1090,6 +1116,11 @@ class UpdateAssetRequest(SanitizedBaseModel):
     replacement_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     zone: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+    serial_number: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
+
+    @model_validator(mode="after")
+    def _validate_asset(self):
+        return _check_asset_fields(self)
 
 
 MeterType = Literal[
@@ -1156,6 +1187,15 @@ class CreatePMScheduleRequest(SanitizedBaseModel):
     estimated_minutes: int = Field(default=30, ge=1, le=1440)
     next_due_at: datetime
     recurrence_basis: Literal["scheduled_date", "completion_date"] = "scheduled_date"
+    # The procedure a technician follows. Optional: a schedule without one stays "unassigned" and the technician
+    # chooses, exactly as before. Validated server-side (same property, engineering, active).
+    checklist_template_id: Optional[UUID4] = None
+
+
+class AssignPMChecklistRequest(SanitizedBaseModel):
+    """Bind (or, with null, unbind) a PM schedule's checklist procedure."""
+
+    checklist_template_id: Optional[UUID4] = None
 
 
 # --- Operational programs (Phase 4) ---
@@ -1180,6 +1220,10 @@ class CompletePMProgramRequest(SanitizedBaseModel):
     `related_entity_type='pm_completion'`.
     """
 
+    # One logical completion attempt. The client generates it once and reuses it on every retry of that attempt, so a
+    # lost response or a double tap records the inspection once. Optional only for older app builds, which keep the
+    # previous (non-idempotent) behaviour.
+    submission_id: Optional[UUID4] = None
     checklist_template_id: Optional[str] = Field(default=None, max_length=100)
     checklist_version: Optional[int] = Field(default=None, ge=1, le=1000)
     verifier_id: Optional[str] = Field(default=None, max_length=100)
@@ -1200,11 +1244,18 @@ class CompletePMProgramRequest(SanitizedBaseModel):
 
 
 class CreatePMDeferralRequest(SanitizedBaseModel):
+    """A deferral REQUEST. It never changes the schedule: an independent reviewer decides it through
+    POST /programs/pm-deferrals/{id}/approve|reject, using their own authenticated identity."""
+
     reason: str = Field(min_length=1, max_length=LONG_TEXT_MAX)
     deferred_until: datetime
-    # Must be an active user at this tenant, distinct from the requester (D-07 separation
-    # of duty) — the handler rejects approved_by == current_user.user_id with 422.
-    approved_by: str = Field(min_length=1, max_length=100)
+    # Deprecated and ignored. Approval used to be "supplying another user's id", which proves nothing; the reviewer is
+    # now whoever authenticates on the decision endpoint. Accepted so older clients keep validating.
+    approved_by: Optional[str] = Field(default=None, max_length=100)
+
+
+class DecidePMDeferralRequest(SanitizedBaseModel):
+    note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
 class ProgramTemplateItemInput(SanitizedBaseModel):

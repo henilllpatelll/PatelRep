@@ -4,16 +4,63 @@ from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
+from core.roles import ASSET_MANAGER_ROLES, PM_EXECUTION_ROLES, PM_SCHEDULE_MANAGER_ROLES
+from models.requests import AssignPMChecklistRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
-from services.programs.execution import persist_pm_completion
+from services.programs.checklist_binding import PmChecklistUnavailable, load_assignable_template, load_resolutions
+from services.programs.execution import PmCompletionRefused, persist_pm_completion
 from services.asset_reliability import calculate_asset_reliability, restore_asset_downtime as restore_asset_downtime_service, start_asset_downtime as start_asset_downtime_service, with_elapsed_minutes
 from services.reporting.periods import hotel_timezone
 from services.condition_monitoring import meter_freshness_status, persist_condition_reading
 
 router = APIRouter(prefix="/assets", tags=["assets"])
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers: audit, tag identity, same-property references
+# ---------------------------------------------------------------------------
+
+def _audit(*, current_user: CurrentUser, resource_type: str, resource_id: str, action: str, old_state: dict, new_state: dict, reason_note: Optional[str] = None) -> None:
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": current_user.hotel_id, "resource_type": resource_type, "resource_id": resource_id,
+        "action": action, "actor_id": current_user.user_id, "actor_role": current_user.role,
+        "old_state": old_state, "new_state": new_state, "reason_note": reason_note, "source": "api",
+    }).execute()
+
+
+def _is_unique_violation(exc: Exception) -> bool:
+    text = str(exc)
+    return "23505" in text or "duplicate key" in text.lower()
+
+
+def _normalize_tag(tag: Optional[str]) -> Optional[str]:
+    """The stored form of a physical label: trimmed, and absent when blank. Case is kept (it is what is printed)."""
+    cleaned = (tag or "").strip()
+    return cleaned or None
+
+
+def _require_tag_free(tag: Optional[str], current_user: CurrentUser, *, except_asset_id: Optional[str] = None) -> None:
+    """An active asset's tag identifies it at the scanner, so two active assets cannot share one (case-insensitive)."""
+    if not tag:
+        return
+    pattern = tag.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    rows = supabase.table("assets").select("id, asset_tag").eq("tenant_id", current_user.hotel_id).eq(
+        "is_active", True
+    ).ilike("asset_tag", pattern).limit(5).execute().data or []
+    clash = [r for r in rows if (r.get("asset_tag") or "").strip().lower() == tag.lower() and str(r["id"]) != str(except_asset_id or "")]
+    if clash:
+        raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."})
+
+
+def _require_same_property(table: str, row_id: Optional[str], current_user: CurrentUser, label: str) -> None:
+    """A category or room named in a request must belong to the caller's own property."""
+    if not row_id:
+        return
+    found = supabase.table(table).select("id").eq("id", str(row_id)).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not found or not found.data:
+        raise HTTPException(status_code=422, detail=f"{label} not found at this property")
 
 
 class CreateCategoryRequest(BaseModel):
@@ -75,7 +122,7 @@ async def list_assets(
 @router.post("")
 async def create_asset(
     request: CreateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES))
 ):
     asset_data = {
         "tenant_id": current_user.hotel_id,
@@ -89,8 +136,24 @@ async def create_asset(
         if date_field in asset_data:
             asset_data[date_field] = str(asset_data[date_field])
 
-    result = supabase.table("assets").insert(asset_data).execute()
-    return {"data": result.data[0] if result.data else None}
+    _require_same_property("asset_categories", asset_data.get("category_id"), current_user, "Category")
+    _require_same_property("rooms", asset_data.get("room_id"), current_user, "Room")
+    tag = _normalize_tag(asset_data.pop("asset_tag", None))
+    if tag:
+        _require_tag_free(tag, current_user)
+        asset_data["asset_tag"] = tag
+
+    try:
+        result = supabase.table("assets").insert(asset_data).execute()
+    except Exception as exc:  # noqa: BLE001 - only the tag race is translated
+        if _is_unique_violation(exc):
+            raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."}) from exc
+        raise
+    created = result.data[0] if result.data else None
+    if created:
+        _audit(current_user=current_user, resource_type="asset", resource_id=created["id"], action="asset.created",
+               old_state={}, new_state={"name": created.get("name"), "asset_tag": created.get("asset_tag"), "room_id": created.get("room_id")})
+    return {"data": created}
 
 
 # ---------------------------------------------------------------------------
@@ -383,15 +446,39 @@ async def get_recurring_issues(
 # 7. GET /pm-schedules  — list PM schedules
 # ---------------------------------------------------------------------------
 
+_PM_SCHEDULE_SELECT = "*, assets(name, room_id, asset_tag, location_text, manufacturer, is_active, asset_categories(name, code), rooms(room_number))"
+
+
 @router.get("/pm-schedules")
 async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user)):
     result = supabase.table("pm_schedules")\
-        .select("*, assets(name, room_id, asset_tag, location_text, manufacturer, asset_categories(name, code), rooms(room_number))")\
+        .select(_PM_SCHEDULE_SELECT)\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("next_due_at")\
         .execute()
-    return {"data": result.data}
+    schedules = result.data or []
+    resolutions = load_resolutions(supabase, current_user.hotel_id, schedules)
+    for schedule in schedules:
+        schedule["checklist"] = resolutions[str(schedule["id"])]
+    return {"data": schedules}
+
+
+@router.get("/pm-schedules/{schedule_id}")
+async def get_pm_schedule(schedule_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """One schedule with its exact asset and checklist state: the target of every "open this PM" link."""
+    try:
+        UUID(schedule_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    result = supabase.table("pm_schedules").select(_PM_SCHEDULE_SELECT).eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    schedule = result.data if result else None
+    if not schedule:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    schedule["checklist"] = load_resolutions(supabase, current_user.hotel_id, [schedule])[str(schedule["id"])]
+    return {"data": schedule}
 
 
 # ---------------------------------------------------------------------------
@@ -401,13 +488,64 @@ async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user
 @router.post("/pm-schedules")
 async def create_pm_schedule(
     request: CreatePMScheduleRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    result = supabase.table("pm_schedules").insert({
-        "tenant_id": current_user.hotel_id,
-        **request.model_dump(),
-    }).execute()
-    return {"data": result.data[0] if result.data else None}
+    asset = supabase.table("assets").select("id, is_active").eq("id", str(request.asset_id)).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not asset or not asset.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.data.get("is_active"):
+        raise HTTPException(status_code=409, detail="A PM schedule cannot be created for inactive equipment")
+    row = {"tenant_id": current_user.hotel_id, **request.model_dump(mode="json", exclude={"checklist_template_id"})}
+    if request.checklist_template_id:
+        try:
+            template = load_assignable_template(supabase, current_user.hotel_id, str(request.checklist_template_id))
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        row["checklist_template_id"] = template["id"]
+        row["checklist_template_code"] = template["code"]
+    result = supabase.table("pm_schedules").insert(row).execute()
+    created = result.data[0] if result.data else None
+    if created:
+        _audit(current_user=current_user, resource_type="pm_schedule", resource_id=created["id"], action="pm_schedule.created",
+               old_state={}, new_state={"asset_id": created["asset_id"], "next_due_at": created["next_due_at"], "checklist_template_id": created.get("checklist_template_id")})
+    return {"data": created}
+
+
+@router.put("/pm-schedules/{schedule_id}/checklist")
+async def assign_pm_schedule_checklist(
+    schedule_id: str,
+    request: AssignPMChecklistRequest,
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES)),
+):
+    """Bind (or with null, unbind) the checklist a technician follows for this schedule. Past completions keep the
+    procedure they were done against; only future inspections use the new binding."""
+    schedule = supabase.table("pm_schedules").select("id, checklist_template_id, checklist_template_code").eq(
+        "id", schedule_id
+    ).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not schedule or not schedule.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    update = {"checklist_template_id": None, "checklist_template_code": None}
+    if request.checklist_template_id:
+        try:
+            template = load_assignable_template(supabase, current_user.hotel_id, str(request.checklist_template_id))
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        update = {"checklist_template_id": template["id"], "checklist_template_code": template["code"]}
+    result = supabase.table("pm_schedules").update(update).eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
+    _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.checklist_assigned",
+           old_state={"checklist_template_id": schedule.data.get("checklist_template_id")}, new_state={"checklist_template_id": update["checklist_template_id"]})
+    updated = result.data[0] if result.data else None
+    if updated:
+        updated["checklist"] = load_resolutions(supabase, current_user.hotel_id, [updated])[str(updated["id"])]
+    return {"data": updated}
 
 
 # ---------------------------------------------------------------------------
@@ -418,9 +556,13 @@ async def create_pm_schedule(
 async def complete_pm_schedule(
     schedule_id: str,
     request: CompletePMProgramRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role(*PM_EXECUTION_ROLES))
 ):
-    """Record PM proof and advance the schedule only after a valid completion."""
+    """Record PM proof and advance the schedule, atomically and at most once per `submission_id`."""
+    try:
+        UUID(schedule_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
     sched_result = supabase.table("pm_schedules")\
         .select("*")\
         .eq("id", schedule_id)\
@@ -441,9 +583,19 @@ async def complete_pm_schedule(
             schedule=sched,
             payload=request.model_dump(mode="json"),
         )
+    except PmChecklistUnavailable as exc:
+        raise HTTPException(status_code=409, detail={
+            "code": "checklist_unavailable",
+            "message": "This schedule's checklist is not available. Ask a chief engineer to assign a current one.",
+            "checklist": exc.resolution,
+        }) from exc
+    except PmCompletionRefused as exc:
+        raise HTTPException(status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (EvidenceRequiredError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"data": record}
+    return {"data": record, "meta": {"replayed": bool(record.get("replayed"))}}
 
 
 # ---------------------------------------------------------------------------
@@ -526,13 +678,16 @@ async def list_pm_completions(
 # 10. PATCH /pm-schedules/{schedule_id}  — update PM schedule (NEW)
 # ---------------------------------------------------------------------------
 
+_SCHEDULE_AUDITED_FIELDS = ("next_due_at", "is_active", "interval_type", "interval_days", "recurrence_basis")
+
+
 @router.patch("/pm-schedules/{schedule_id}")
 async def update_pm_schedule(
     schedule_id: str,
     request: Request,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    """Update a PM schedule (reschedule, deactivate, change interval)."""
+    """Update a PM schedule (reschedule, deactivate, change interval). Due-date, interval and active changes are audited."""
     body = await request.json()
     allowed = {"name", "description", "interval_type", "interval_days",
                "estimated_minutes", "next_due_at", "is_active", "assigned_to_role", "recurrence_basis"}
@@ -541,11 +696,22 @@ async def update_pm_schedule(
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
+    before = supabase.table("pm_schedules").select("*").eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not before or not before.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    previous = dict(before.data)
+
     result = supabase.table("pm_schedules")\
         .update(update_data)\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
+    changed = {k: v for k, v in update_data.items() if k in _SCHEDULE_AUDITED_FIELDS and previous.get(k) != v}
+    if changed:
+        _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.updated",
+               old_state={k: previous.get(k) for k in changed}, new_state=changed)
 
     return {"data": result.data[0] if result.data else None}
 
@@ -557,16 +723,19 @@ async def update_pm_schedule(
 @router.delete("/pm-schedules/{schedule_id}")
 async def deactivate_pm_schedule(
     schedule_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    """Soft-delete (deactivate) a PM schedule."""
+    """Soft-delete (deactivate) a PM schedule. Its completions stay readable."""
     result = supabase.table("pm_schedules")\
         .update({"is_active": False})\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
-
-    return {"data": result.data[0] if result.data else None}
+    if not result.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.deactivated",
+           old_state={"is_active": True}, new_state={"is_active": False})
+    return {"data": result.data[0]}
 
 
 # ---------------------------------------------------------------------------
@@ -1108,6 +1277,8 @@ async def get_asset(
     ).execute().data or []
     asset["repeat_repairs_90d"] = len(recent)
     asset["service_status"] = _service_status(asset["active_downtime"], in_progress)
+    # Administrative status (is the record in use?) is deliberately separate from service_status (is it working?).
+    asset["administrative_status"] = "active" if asset.get("is_active", True) else "inactive"
     return {"data": asset}
 
 
@@ -1119,21 +1290,67 @@ async def get_asset(
 async def update_asset(
     asset_id: str,
     request: UpdateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES))
 ):
+    """Edit an equipment record. `is_active` is the administrative status (retire / restore); condition, downtime and
+    predicted risk are derived elsewhere and are not editable here (`failure_risk_score` is accepted for older clients
+    and ignored)."""
+    try:
+        UUID(asset_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Asset not found")
     update_data = request.model_dump(exclude_none=True)
+    update_data.pop("failure_risk_score", None)
     for field in ("category_id", "room_id"):
         if field in update_data:
             update_data[field] = str(update_data[field])
     for field in ("purchase_date", "installation_date", "warranty_expires"):
         if field in update_data:
             update_data[field] = str(update_data[field])
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
 
-    result = supabase.table("assets") \
-        .update(update_data) \
-        .eq("id", asset_id) \
-        .eq("tenant_id", current_user.hotel_id) \
-        .execute()
+    existing = supabase.table("assets").select("*").eq("id", asset_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not existing or not existing.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    before = dict(existing.data)
+
+    _require_same_property("asset_categories", update_data.get("category_id"), current_user, "Category")
+    _require_same_property("rooms", update_data.get("room_id"), current_user, "Room")
+    # A date edit is checked against the dates already on record, not only against the others in this request.
+    merged = {**before, **update_data}
+    for later, earlier in (("warranty_expires", "installation_date"), ("warranty_expires", "purchase_date"), ("installation_date", "purchase_date")):
+        if merged.get(later) and merged.get(earlier) and str(merged[later]) < str(merged[earlier]):
+            raise HTTPException(status_code=422, detail=f"{later} cannot be before {earlier}")
+    if "asset_tag" in update_data:
+        update_data["asset_tag"] = _normalize_tag(update_data["asset_tag"])
+    will_be_active = update_data.get("is_active", before.get("is_active", True))
+    new_tag = update_data.get("asset_tag", before.get("asset_tag"))
+    if will_be_active and ("asset_tag" in update_data or update_data.get("is_active") is True):
+        _require_tag_free(new_tag, current_user, except_asset_id=asset_id)
+
+    try:
+        result = supabase.table("assets") \
+            .update(update_data) \
+            .eq("id", asset_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .execute()
+    except Exception as exc:  # noqa: BLE001 - only the tag race is translated
+        if _is_unique_violation(exc):
+            raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."}) from exc
+        raise
+    changed = {k: v for k, v in update_data.items() if before.get(k) != v}
+    if changed:
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.updated",
+               old_state={k: before.get(k) for k in changed}, new_state=changed)
+    if before.get("is_active", True) and update_data.get("is_active") is False:
+        # Retiring equipment ends its recurring work: its schedules stop generating work and drop out of the PM list.
+        # Completions, work orders and downtime history stay readable. Restoring does not re-activate schedules.
+        retired = supabase.table("pm_schedules").update({"is_active": False}).eq("asset_id", asset_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).eq("is_active", True).execute().data or []
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.retired",
+               old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]})
     return {"data": result.data[0] if result.data else None}
 
 

@@ -146,3 +146,29 @@ describe("listPmCompletions", () => {
     expect(await listPmCompletions()).toEqual({ rows: [], hasMore: false });
   });
 });
+
+describe("submitPmCompletion with a submission id", () => {
+  const withId: PmCompletionPayload = { ...payload, submission_id: "7a1d9d52-6d0e-4a52-8a3c-0c9f2b7d5e11" };
+
+  it("re-posts the same submission after an unknown outcome instead of re-reading (the server replays the original)", async () => {
+    mocked.post.mockResolvedValue({ data: { id: "c1", pm_schedule_id: "s1", completed_at: "x", replayed: true, corrective_work_orders: [{ id: "wo1", title: "t" }] } });
+    const result = await submitPmCompletion("s1", withId, { ...ctx, unknownSince: ctx.attemptStartedAt - 60_000 });
+    expect(mocked.get).not.toHaveBeenCalled();
+    expect(mocked.post).toHaveBeenCalledWith("/assets/pm-schedules/s1/complete", withId);
+    expect(result).toMatchObject({ id: "c1", replayed: true });
+    expect(result.corrective_work_orders).toHaveLength(1);
+  });
+
+  it("reports an unconfirmed failure as is, leaving the next press to retry the same submission", async () => {
+    mocked.post.mockRejectedValue(new Error("Network request failed"));
+    await expect(submitPmCompletion("s1", withId, ctx)).rejects.toThrow("Network request failed");
+    expect(mocked.get).not.toHaveBeenCalled();
+    expect(mocked.post).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a reused-id conflict as a definitive refusal", async () => {
+    mocked.post.mockRejectedValue(new ApiError("conflict", 409, "submission_conflict"));
+    await expect(submitPmCompletion("s1", withId, ctx)).rejects.toMatchObject({ status: 409 });
+    expect(mocked.get).not.toHaveBeenCalled();
+  });
+});

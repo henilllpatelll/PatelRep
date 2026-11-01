@@ -11,6 +11,7 @@
      - a draft is only ever submitted against the exact checklist it was started on. */
 
 import { PmCompletionBlockedError, validatePmCompletion, type PmCompletionPayload, type PmItemResult } from "./pmCompletion";
+import type { PmSubmission } from "./pmSubmission";
 import { parseReading, type PmMeter } from "./pmReadings";
 
 /* ── templates ── */
@@ -116,6 +117,8 @@ export interface PmDraft {
   parts: PmDraftPart[];
   defects: PmDraftDefect[];
   notes: string;
+  /** The submission id of the last completion attempt made from this draft, so a retry (even after a restart) reuses it. */
+  submission?: PmSubmission;
 }
 
 const itemIdentity = (item: PmTemplateItem): string => (item.key ? `k:${item.key}` : `l:${item.label}`);

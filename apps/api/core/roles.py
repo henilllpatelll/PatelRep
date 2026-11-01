@@ -46,6 +46,19 @@ ENGINEERING_ROOM_BOARD_ROLES = ("gm", "engineer", "chief_engineer", "housekeepin
 # Line engineers: scoped to their own and unclaimed repairs (the chief engineer and GM see every repair).
 SCOPED_REPAIR_ROLES = ("engineer",)
 
+# Engineering PM + Assets (routers/assets.py, routers/programs.py). Mirrored by apps/mobile/lib/engineering/roles.ts.
+# Run an inspection / record a reading: line engineers do the work; leadership may too.
+PM_EXECUTION_ROLES = ("engineer", "chief_engineer", "gm")
+# Own the schedules themselves (create, edit, reschedule, retire, bind a checklist). A line engineer executes a PM
+# but cannot move its due date or retire it: that would bypass the independent deferral approval.
+PM_SCHEDULE_MANAGER_ROLES = ("chief_engineer", "gm")
+# Request a deferral / decide one. A decider is never the requester (enforced in the database).
+PM_DEFERRAL_REQUEST_ROLES = ("chief_engineer", "gm")
+PM_DEFERRAL_REVIEWER_ROLES = ("chief_engineer", "gm")
+# Create and edit equipment records. Engineers keep the access they always had; the chief engineer, who owns the
+# equipment register, gains it.
+ASSET_MANAGER_ROLES = ("engineer", "chief_engineer", "gm")
+
 
 # ---------------------------------------------------------------------------
 # Web module access

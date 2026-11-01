@@ -11,6 +11,7 @@ import { formatDayYear } from "@/lib/engineering/assetFormat";
 import type { LoadFailure } from "@/lib/engineering/loadState";
 import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
 import { Fact, Panel, PanelTitle } from "./assetUi";
+import { PM_LIST_ROUTE, pmRecordRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 
 interface Props {
   schedules: readonly PmScheduleView[];
@@ -47,7 +48,7 @@ function ScheduleRow({ schedule, language, timezone }: { schedule: PmScheduleVie
         label={t("assets.maintenance.openSchedule")}
         variant="secondary"
         size="sm"
-        onPress={() => router.push(`/(app)/pm-schedules/${schedule.id}` as never)}
+        onPress={() => router.push((pmScheduleRoute(schedule.id) ?? PM_LIST_ROUTE) as never)}
         testID={`asset-pm-open-${schedule.id}`}
       />
     </View>
@@ -87,7 +88,7 @@ export function AssetMaintenanceSection({ schedules, history, historyFailure, ha
           history.map((row) => (
             <Pressable
               key={row.id}
-              onPress={() => router.push(`/(app)/pm-schedules/record/${row.id}?scheduleId=${row.pm_schedule_id}` as never)}
+              onPress={() => router.push((pmRecordRoute(row.id, row.pm_schedule_id) ?? PM_LIST_ROUTE) as never)}
               accessibilityRole="button"
               accessibilityLabel={t("assets.maintenance.openRecord", { name: row.schedule_name ?? "" })}
               style={[styles.item, styles.historyRow, { borderTopColor: theme.borderSubtle }]}

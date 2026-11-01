@@ -1,6 +1,7 @@
 import { assertPmCompletionAllowed, type PmCompletionPayload, type PmCompletionResult } from "@/lib/engineering/pmCompletion";
 import { ASSET_PAGE_SIZE, assetBrowseParams, type AssetFilters, type AssetPage, type AssetRow, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import type { AssetMeter, MeterReading } from "@/lib/engineering/assetReadings";
+import type { PmChecklistBindingWire } from "@/lib/engineering/engineeringContracts";
 import { api } from "./client";
 
 export interface Asset {
@@ -42,6 +43,8 @@ export interface PmScheduleRow {
   last_completed_at?: string | null;
   next_due_at?: string | null;
   is_active?: boolean | null;
+  /** The procedure this schedule is bound to. Absent from an older server: read as "unassigned". */
+  checklist?: PmChecklistBindingWire | null;
   assets?: {
     name?: string | null;
     room_id?: string | null;
@@ -156,6 +159,8 @@ export interface AssetDetail {
   failure_risk_score?: number | null;
   failure_risk_updated_at?: string | null;
   is_active?: boolean;
+  /** "active" | "inactive": the record's administrative state, separate from `service_status` and predicted risk. */
+  administrative_status?: "active" | "inactive";
   updated_at?: string | null;
   asset_categories?: { name?: string | null; code?: string | null } | null;
   rooms?: { room_number?: string | null } | null;

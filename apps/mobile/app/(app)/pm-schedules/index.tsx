@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { PM_LIST_ROUTE, pmInspectRoute, pmRecordRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { PmMetricCards } from "@/components/engineering/pm/PmMetricCards";
 import { PmTodayView } from "@/components/engineering/pm/PmTodayView";
@@ -70,8 +71,8 @@ export default function PreventiveMaintenanceScreen() {
   const showMetrics = data.hasData;
   const listState = view === "history" ? "ready" : load.status === "ready" && visible.length === 0 ? "empty" : load.status;
 
-  const open = (id: string) => router.push(`/(app)/pm-schedules/${id}` as never);
-  const inspect = (id: string) => router.push(`/(app)/pm-schedules/inspect/${id}` as never);
+  const open = (id: string) => router.push((pmScheduleRoute(id) ?? PM_LIST_ROUTE) as never);
+  const inspect = (id: string) => router.push((pmInspectRoute(id) ?? PM_LIST_ROUTE) as never);
   const language = i18n.language;
   const listProps = { schedules: visible, language, draftIds, canInspect, onOpen: open, onInspect: inspect };
 
@@ -190,7 +191,7 @@ export default function PreventiveMaintenanceScreen() {
               hotelTimezone={hotelTimezone}
               language={language}
               refreshToken={historyToken}
-              onOpen={(row) => router.push(`/(app)/pm-schedules/record/${row.id}?scheduleId=${row.pm_schedule_id}` as never)}
+              onOpen={(row) => router.push((pmRecordRoute(row.id, row.pm_schedule_id) ?? PM_LIST_ROUTE) as never)}
             />
           ) : load.status === "ready" && visible.length > 0 ? (
             view === "today" ? (

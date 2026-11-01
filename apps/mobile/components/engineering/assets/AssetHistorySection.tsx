@@ -10,6 +10,7 @@ import { getAssetDocumentUrl, type AssetDocument, type AssetDowntime, type Asset
 import { formatDayTime, formatDayYear, formatSpan } from "@/lib/engineering/assetFormat";
 import type { AssetEvent } from "@/lib/engineering/assetModel";
 import { useToast } from "@/lib/theme/useToast";
+import { pmRecordRoute, workOrderRoute } from "@/lib/engineering/routes";
 import { DetailRow, Fact, Panel, PanelTitle } from "./assetUi";
 
 interface Resource<T> {
@@ -56,9 +57,11 @@ function Timeline({ events, language, timezone }: { events: readonly AssetEvent[
         const text = t(`assets.history.events.${variant}`, { label: event.label ?? "" });
         const open = () => {
           if (event.workOrderId && (event.type === "work_order_created" || event.type === "repair_completed")) {
-            router.push({ pathname: "/(app)/work-orders/[woId]", params: { woId: event.workOrderId } });
+            const href = workOrderRoute(event.workOrderId);
+            if (href) router.push(href as never);
           } else if (event.type === "pm_completed" && event.recordId && event.scheduleId) {
-            router.push(`/(app)/pm-schedules/record/${event.recordId}?scheduleId=${event.scheduleId}` as never);
+            const href = pmRecordRoute(event.recordId, event.scheduleId);
+            if (href) router.push(href as never);
           }
         };
         const tappable = event.type === "work_order_created" || event.type === "repair_completed" || event.type === "pm_completed";

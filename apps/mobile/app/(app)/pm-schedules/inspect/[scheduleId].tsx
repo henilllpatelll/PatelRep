@@ -17,6 +17,7 @@ import type { PmCompletionResult } from "@/lib/api/pm";
 import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
 import { usePmInspection, type SubmitOutcome } from "@/lib/engineering/usePmInspection";
 import { canCompletePm } from "@/lib/engineering/roles";
+import { isSafeRouteId, pmRecordRoute } from "@/lib/engineering/routes";
 import { parseReading } from "@/lib/engineering/pmReadings";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -129,8 +130,10 @@ export default function PmInspectionScreen() {
           <PmCompletionSummary
             summary={recorded.summary}
             result={recorded.result}
-            onViewRecord={() => router.replace(`/(app)/pm-schedules/record/${recorded.result.id}?scheduleId=${schedule.id}` as never)}
-            onOpenWorkOrder={(id) => router.push(`/(app)/work-orders/${id}` as never)}
+            onViewRecord={() => router.replace((pmRecordRoute(recorded.result.id, schedule.id) ?? "/(app)/pm-schedules") as never)}
+            onOpenWorkOrder={(id) => {
+              if (isSafeRouteId(id)) router.push(`/(app)/work-orders/${id}` as never);
+            }}
             onDone={() => router.replace("/(app)/pm-schedules" as never)}
           />
         </ScrollView>
@@ -164,6 +167,19 @@ export default function PmInspectionScreen() {
     body = <EngineeringState status="loading" emptyTitle="" />;
   } else if (inspection.failure) {
     body = <EngineeringState status={inspection.failure === "forbidden" ? "forbidden" : inspection.failure === "offline" ? "offline" : "error"} onRetry={inspection.reload} emptyTitle="" />;
+  } else if (inspection.checklistIssue) {
+    const issue = inspection.checklistIssue.state;
+    body = (
+      <Card style={styles.configCard} testID="pm-checklist-unavailable">
+        <Ionicons name="alert-circle-outline" size={22} color={theme.status.pickup} />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]} accessibilityRole="header">
+          {t(`pm.binding.${issue}.title`)}
+        </Text>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+          {t(`pm.binding.${issue}.body`)}
+        </Text>
+      </Card>
+    );
   } else if (inspection.templates.length === 0) {
     body = (
       <Card style={styles.configCard} testID="pm-no-templates">

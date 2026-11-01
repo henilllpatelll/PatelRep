@@ -26,6 +26,8 @@ export interface PmConditionReading {
 
 /** Mirrors CompletePMProgramRequest. Parts and defects are recorded as written; the API does not deduct stock. */
 export interface PmCompletionPayload {
+  /** One logical completion attempt; the server records a completion once per id (see pmSubmission.ts). */
+  submission_id?: string;
   checklist_template_id?: string;
   checklist_version?: number;
   verifier_id?: string;
@@ -47,6 +49,8 @@ export interface PmCompletionResult {
   corrective_work_orders?: Array<{ id: string; title: string }>;
   /** True when the first request's outcome was unknown and a re-read found the completion already recorded. */
   reconciled?: boolean;
+  /** True when the server had already recorded this submission and handed back the original. */
+  replayed?: boolean;
 }
 
 export type PmCompletionIssue =

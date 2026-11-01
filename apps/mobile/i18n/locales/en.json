@@ -10952,6 +10952,7 @@
       "previous": "Previous maintenance",
       "noPrevious": "No inspections have been recorded for this equipment yet.",
       "openAssets": "Open Assets",
+      "openAsset": "Open this equipment",
       "notFound": "Schedule not found",
       "notFoundBody": "It may have been removed or you may be offline. Pull to refresh on the PM screen."
     },
@@ -10962,6 +10963,20 @@
     "config": {
       "noTemplatesTitle": "No inspection checklist is set up",
       "noTemplatesBody": "This property has no engineering checklist templates yet, so an inspection can't be recorded. Ask a manager to set up PM checklists on the web console."
+    },
+    "binding": {
+      "missing": {
+        "title": "This schedule's checklist is gone",
+        "body": "The checklist assigned to this PM no longer exists, so an inspection can't be recorded. Ask a chief engineer to assign a current checklist."
+      },
+      "inactive": {
+        "title": "This schedule's checklist was retired",
+        "body": "The checklist assigned to this PM has been retired. Ask a chief engineer to assign its replacement before inspecting."
+      },
+      "incompatible": {
+        "title": "This schedule's checklist can't be used",
+        "body": "The checklist assigned to this PM isn't an engineering checklist. Ask a chief engineer to assign the right one."
+      }
     },
     "progress": "{{done}} of {{total}} steps completed",
     "step": "Step {{number}}",

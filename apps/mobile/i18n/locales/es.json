@@ -10952,6 +10952,7 @@
       "previous": "Mantenimiento anterior",
       "noPrevious": "Aún no se han registrado inspecciones de este equipo.",
       "openAssets": "Abrir Activos",
+      "openAsset": "Abrir este equipo",
       "notFound": "Programa no encontrado",
       "notFoundBody": "Puede que se haya eliminado o que no tengas conexión. Desliza para actualizar en la pantalla de PM."
     },
@@ -10962,6 +10963,20 @@
     "config": {
       "noTemplatesTitle": "No hay lista de inspección configurada",
       "noTemplatesBody": "Esta propiedad aún no tiene listas de ingeniería, así que no se puede registrar una inspección. Pide a un gerente que configure las listas de PM en la consola web."
+    },
+    "binding": {
+      "missing": {
+        "title": "La lista de este programa ya no existe",
+        "body": "La lista asignada a este PM ya no existe, así que no se puede registrar la inspección. Pide a un jefe de ingeniería que asigne una lista vigente."
+      },
+      "inactive": {
+        "title": "La lista de este programa fue retirada",
+        "body": "La lista asignada a este PM fue retirada. Pide a un jefe de ingeniería que asigne su reemplazo antes de inspeccionar."
+      },
+      "incompatible": {
+        "title": "No se puede usar la lista de este programa",
+        "body": "La lista asignada a este PM no es una lista de ingeniería. Pide a un jefe de ingeniería que asigne la correcta."
+      }
     },
     "progress": "{{done}} de {{total}} pasos completados",
     "step": "Paso {{number}}",

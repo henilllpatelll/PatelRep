@@ -35064,6 +35064,58 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-01T17:30:00.000Z"
+    },
+    {
+      "id": "bug-2132",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "PM deferral approval could be forged: POST /programs/pm-schedules/{id}/deferrals took `approved_by` from the request body and applied the new due date immediately.",
+      "file": "apps/api/routers/programs.py",
+      "root_cause": "Approval was modelled as 'supply another active user's id', which proves nothing about that person; the schedule moved on request. Engineers could also PATCH next_due_at directly.",
+      "fix": "Request/decision split: pending request (no schedule change) + append-only pm_deferral_decisions written by decide_pm_deferral() from the authenticated reviewer; self-review refused; UNIQUE(deferral_id) makes a decision apply once; PM schedule edits restricted to chief_engineer/gm.",
+      "tags": [
+        "security",
+        "rbac",
+        "pm",
+        "deferral",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
+    },
+    {
+      "id": "bug-2133",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "PM completion was several separate Supabase calls (completion, items, work orders, audit, schedule advance) with no idempotency key; a retry could duplicate the record and corrective work orders, and cross-tenant asset/room/category ids were accepted on create/update.",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "Multiple PostgREST requests are not a transaction, and the only duplicate protection was a client-side re-read.",
+      "fix": "record_pm_completion() Postgres function (one transaction, schedule row lock, unique submission key) + same-property validation for asset/room/category/template ids; mobile sends a content-bound submission_id.",
+      "tags": [
+        "pm",
+        "idempotency",
+        "atomicity",
+        "tenant-isolation",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
+    },
+    {
+      "id": "bug-2134",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "git diff --stat showed 3,000+ changed lines for ~600 real ones after scripted edits.",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "Python open(path, 'w') on Windows converted LF files to CRLF; the Write tool also creates new files with CRLF.",
+      "fix": "Restored LF with sed; new files normalised before commit. Use newline='' for scripted rewrites.",
+      "tags": [
+        "windows",
+        "line-endings",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
     }
   ]
 }

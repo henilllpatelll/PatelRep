@@ -168,10 +168,12 @@ export async function findLandedCompletion(scheduleId: string, userId: string, s
 /**
  * Completes a PM. Refuses (throws PmCompletionBlockedError) rather than send a body the API would reject.
  *
- * The API has no idempotency key, and a completion also opens corrective work orders and moves the due date, so a blind
- * retry after a timeout could record the inspection twice. When the outcome is unknown (network failure, timeout, 5xx)
- * the schedule's completions are re-read: if one by this person appeared since the attempt began, that is the answer.
- * `since` carries an earlier unknown attempt across presses, so a retry checks before it posts again.
+ * A completion also opens corrective work orders and moves the due date, so it must never be recorded twice. The payload
+ * carries a `submission_id` (see pmSubmission.ts): the server records it once and answers a repeat with the original, so
+ * retrying the same submission is the safe way to resolve an unknown outcome. Older payloads without an id keep the
+ * previous protection as well: when the outcome is unknown (network failure, timeout, 5xx) the schedule's completions are
+ * re-read, and if one by this person appeared since the attempt began, that is the answer. `since` carries an earlier
+ * unknown attempt across presses, so a retry checks before it posts again.
  */
 export async function submitPmCompletion(
   scheduleId: string,
@@ -179,7 +181,9 @@ export async function submitPmCompletion(
   context: { userId: string; attemptStartedAt: number; unknownSince?: number | null },
 ): Promise<PmCompletionResult> {
   assertPmCompletionAllowed(payload);
-  if (context.unknownSince != null) {
+  // With a submission id the POST itself is the safe retry (it replays the original, with its work orders). The re-read is
+  // only needed for a payload that has none.
+  if (context.unknownSince != null && !payload.submission_id) {
     const earlier = await findLandedCompletion(scheduleId, context.userId, context.unknownSince);
     if (earlier) return earlier;
   }
@@ -188,6 +192,9 @@ export async function submitPmCompletion(
   } catch (err) {
     if (isDefinitiveRefusal(err)) throw err;
     try {
+      // Still the same submission: the next press re-posts it and the server answers with the original. Only an id-less
+      // payload needs the re-read to learn whether the first attempt landed.
+      if (payload.submission_id) throw err;
       const landed = await findLandedCompletion(scheduleId, context.userId, context.unknownSince ?? context.attemptStartedAt);
       if (landed) return landed;
     } catch {

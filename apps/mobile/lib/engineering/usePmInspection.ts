@@ -18,6 +18,8 @@ import {
   type PmTemplate,
 } from "./pmChecklist";
 import { adaptPmMeters, type PmMeter } from "./pmReadings";
+import { UNASSIGNED_CHECKLIST, checklistNeedsAttention, type PmChecklistBinding } from "./engineeringContracts";
+import { resolveSubmission } from "./pmSubmission";
 import { clearPmDraft, loadPmDraft, savePmDraft } from "./pmDraftStore";
 import { classifyLoadFailure, type LoadFailure } from "./loadState";
 import type { PmItemResult } from "./pmCompletion";
@@ -42,6 +44,11 @@ export interface PmInspection {
   compatibility: DraftCompatibility;
   progress: PmProgress | null;
   issues: PmInspectionIssue[];
+  /**
+   * Set when the schedule is bound to a checklist that cannot be used (missing, retired, wrong kind) and no draft is
+   * under way. The inspection cannot start; a manager has to fix the binding. Never replaced by a guessed checklist.
+   */
+  checklistIssue: PmChecklistBinding | null;
   submitting: boolean;
   /** Evidence slots currently uploading (`itemId` or `"general"`). */
   uploading: ReadonlySet<string>;
@@ -65,6 +72,9 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   const userId = useAppStore((s) => s.user?.id ?? null);
   const scheduleId = schedule?.id ?? null;
   const assetId = schedule?.assetId ?? null;
+  const binding = schedule?.checklist ?? UNASSIGNED_CHECKLIST;
+  const bindingState = binding.state;
+  const boundTemplateId = binding.templateId;
 
   const [loading, setLoading] = useState(true);
   const [failure, setFailure] = useState<LoadFailure | null>(null);
@@ -113,15 +123,18 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
       setTemplates(adapted);
       setMeters(met.status === "fulfilled" ? adaptPmMeters(met.value) : []);
       const restored = saved.status === "fulfilled" ? saved.value : null;
+      // A bound schedule opens its own procedure; only an unconfigured (legacy) one asks the technician to choose.
+      const bound = bindingState === "ready" ? adapted.find((t) => t.id === boundTemplateId) : undefined;
       if (restored) setDraft(restored);
-      else if (adapted.length === 1) setDraft(newDraft(scheduleId, adapted[0]));
+      else if (bound) setDraft(newDraft(scheduleId, bound));
+      else if (bindingState === "unassigned" && adapted.length === 1) setDraft(newDraft(scheduleId, adapted[0]));
       else setDraft(null);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [scheduleId, assetId, reloadTick]);
+  }, [scheduleId, assetId, reloadTick, bindingState, boundTemplateId]);
 
   // Autosave: an untouched draft is not stored; an emptied one is removed.
   useEffect(() => {
@@ -163,11 +176,20 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
 
   const chooseTemplate = useCallback(
     (templateId: string) => {
+      if (bindingState !== "unassigned") return; // a bound schedule's procedure is not the technician's choice
       const picked = templates.find((t) => t.id === templateId);
       if (picked && scheduleId) setDraft(newDraft(scheduleId, picked));
     },
-    [templates, scheduleId],
+    [templates, scheduleId, bindingState],
   );
+
+  const checklistIssue = useMemo((): PmChecklistBinding | null => {
+    if (draft || loading || failure) return null;
+    if (checklistNeedsAttention(binding)) return binding;
+    // Bound and "ready", yet not among the active templates: it was retired since the list loaded.
+    if (binding.state === "ready" && !templates.some((t) => t.id === binding.templateId)) return { ...binding, state: "missing" };
+    return null;
+  }, [draft, loading, failure, binding, templates]);
 
   const useCurrentChecklist = useCallback(() => {
     setDraft((current) => {
@@ -181,13 +203,14 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     const abandoned = draftRef.current;
     await clearPmDraft(scheduleId);
-    setDraft(templates.length === 1 ? newDraft(scheduleId, templates[0]) : null);
+    const bound = bindingState === "ready" ? templates.find((t) => t.id === boundTemplateId) : undefined;
+    setDraft(bound ? newDraft(scheduleId, bound) : bindingState === "unassigned" && templates.length === 1 ? newDraft(scheduleId, templates[0]) : null);
     // Evidence the technician is walking away from should not linger unreferenced.
     if (abandoned) {
       const ids = [...abandoned.photos.map((p) => p.id), ...Object.values(abandoned.items).flatMap((i) => i.evidence.map((e) => e.id))];
       await Promise.all(ids.map((id) => deletePmEvidence(id)));
     }
-  }, [scheduleId, templates]);
+  }, [scheduleId, templates, bindingState, boundTemplateId]);
 
   const attachPhoto = useCallback(
     async (slot: string, uri: string, label: string, signal?: AbortSignal) => {
@@ -229,7 +252,16 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     setSubmitting(true);
     const attemptStartedAt = Date.now();
     try {
-      const payload = buildCompletionPayload(template, current, meters);
+      const built = buildCompletionPayload(template, current, meters);
+      // The same content keeps the same submission id (even after a restart), so a retry can never record it twice.
+      const submission = resolveSubmission(current.submission, built);
+      if (current.submission?.id !== submission.id) {
+        const stamped = { ...current, submission };
+        draftRef.current = stamped;
+        await savePmDraft(stamped);
+        if (!removed.current) setDraft(stamped);
+      }
+      const payload = { ...built, submission_id: submission.id };
       const result = await submitPmCompletion(scheduleId, payload, { userId, attemptStartedAt, unknownSince: unknownSince.current });
       unknownSince.current = null;
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -259,6 +291,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     compatibility,
     progress,
     issues,
+    checklistIssue,
     submitting,
     uploading,
     reload: () => setReloadTick((n) => n + 1),
