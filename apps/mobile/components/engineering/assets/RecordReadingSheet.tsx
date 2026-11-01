@@ -108,9 +108,9 @@ export function RecordReadingSheet({ visible, meters, initialMeterId, isOnline, 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("common.close")}>
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <Pressable style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 14 }]} onPress={() => undefined} testID="record-reading-sheet">
+          <Pressable style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 14 }]} onPress={() => undefined} accessible={false} testID="record-reading-sheet">
             <Text style={[styles.title, { color: theme.textPrimary }]} accessibilityRole="header">
               {t("assets.readings.record")}
             </Text>

@@ -105,10 +105,10 @@ export function WorkFilterSheet({ visible, view, role, filters, onApply, onClose
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("common.close")}>
+      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
         <Pressable
           style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 12 }]}
-          onPress={() => undefined}
+          onPress={() => undefined} accessible={false} onAccessibilityEscape={onClose}
           testID="work-filter-sheet"
         >
           <Text style={[styles.title, { color: theme.textPrimary }]} accessibilityRole="header">
