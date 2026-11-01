@@ -140,7 +140,7 @@ describe("My Work", () => {
     server(() => rows);
     renderScreen();
     await waitFor(() => expect(screen.getByText("AC not cooling")).toBeTruthy());
-    expect(screen.getByText("WO-1042 · workQueue.roomLabel")).toBeTruthy();
+    expect(screen.getByText("workQueue.roomLabel · WO-1042")).toBeTruthy();
     expect(screen.getByTestId("wo-priority-a").props.children).toBe("workQueue.priority.urgent");
     expect(screen.getByText("workQueue.groups.in_progress")).toBeTruthy();
     expect(screen.getByText("workQueue.groups.ready")).toBeTruthy();
@@ -210,6 +210,34 @@ describe("views", () => {
     fireEvent.press(screen.getByTestId("wo-view-available"));
     await waitFor(() => screen.getByText("Free job"));
     expect(screen.queryByText("workQueue.action.claim")).toBeNull();
+  });
+
+  it("gives a chief engineer Assign, not Claim, on unowned work and still opens the order", async () => {
+    mockStore.user = { ...mockStore.user, role: "chief_engineer" };
+    server(() => [wo({ id: "free", title: "Free job" })]);
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("wo-view-available"));
+    await waitFor(() => screen.getByText("Free job"));
+    expect(screen.queryByTestId("wo-claim-free")).toBeNull();
+    expect(screen.getByTestId("wo-assign-free")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("wo-free"));
+    expect(mockPush).toHaveBeenCalledWith("/(app)/work-orders/free");
+  });
+
+  it("shows verified room context from the server and nothing for an unknown room", async () => {
+    server(() => [
+      wo({ id: "k", title: "Known room", status: "in_progress", assigned_to: ME, room_context: { occupancy: "occupied", availability: "out_of_order" } }),
+      wo({ id: "u", title: "Unknown room", status: "in_progress", assigned_to: ME, room_context: { occupancy: "unknown", availability: null } }),
+      wo({ id: "n", title: "No context", status: "in_progress", assigned_to: ME }),
+    ]);
+    renderScreen();
+    await waitFor(() => screen.getByText("Known room"));
+    expect(screen.getByTestId("wo-badge-occupied-k")).toBeTruthy();
+    expect(screen.getByTestId("wo-badge-out_of_order-k")).toBeTruthy();
+    for (const id of ["u", "n"]) {
+      expect(screen.queryByTestId(`wo-badge-occupied-${id}`)).toBeNull();
+      expect(screen.queryByTestId(`wo-badge-vacant-${id}`)).toBeNull();
+    }
   });
 
   it("Waiting shows the held reason, how long, and who has it", async () => {

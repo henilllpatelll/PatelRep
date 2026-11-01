@@ -10608,14 +10608,23 @@
       "low": "Low"
     },
     "action": {
-      "continue": "Continue Repair",
-      "open": "Open Job",
-      "claim": "Claim Work Order",
-      "view": "View",
-      "viewHold": "View Hold",
-      "viewReport": "View"
+      "continue": "Continue",
+      "open": "Open",
+      "claim": "Claim",
+      "review": "Review",
+      "reviewHold": "Review hold",
+      "viewRecord": "View record"
+    },
+    "openHint": "Opens the work order",
+    "card": {
+      "dueToday": "Due today, {{time}}",
+      "dueTomorrow": "Due tomorrow, {{time}}",
+      "dueOn": "Due {{date}}",
+      "overdueBy": "Overdue by {{time}}",
+      "equipment": "Equipment: {{name}}"
     },
     "overdue": "Overdue",
+    "assignedToYou": "Assigned to you",
     "assignedTo": "With {{name}}",
     "assignedUnknown": "Assigned",
     "unassigned": "Unassigned",

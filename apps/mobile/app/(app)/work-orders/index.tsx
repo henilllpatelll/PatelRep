@@ -211,6 +211,31 @@ export default function WorkOrdersScreen() {
     [claimer, queue, toast, t, refreshQuietly]
   );
 
+  // Cards are memoised, so the handlers they receive must keep their identity between renders.
+  const claimRef = useRef(onClaim);
+  claimRef.current = onClaim;
+  const claimOrder = useCallback((order: WorkOrder) => void claimRef.current(order), []);
+  const openOrder = useCallback((order: WorkOrder) => router.push(`/(app)/work-orders/${order.id}`), []);
+  const assignOrder = useCallback(
+    (order: WorkOrder) =>
+      setAssignTarget({
+        id: order.id,
+        code: workOrderLabel(order),
+        title: order.title,
+        priority: order.priority,
+        assignedTo: order.assigned_to ?? null,
+        assignedToName: order.assigned_to_name,
+      }),
+    []
+  );
+
+  // Due and overdue labels read the clock; one tick a minute keeps them true without refetching.
+  const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  useEffect(() => {
+    const id = setInterval(() => setMinute(Math.floor(Date.now() / 60_000) * 60_000), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const setFilters = useCallback((next: QueueFilters) => setFiltersByView((prev) => ({ ...prev, [view]: next })), [view]);
 
   // A tile applies the filter it counted (or opens On hold); a second press on an applied tile clears it.
@@ -361,24 +386,17 @@ export default function WorkOrdersScreen() {
             <WorkOrderCard
               wo={item.wo}
               locale={locale}
+              timeZone={hotelTimezone}
               view={view}
-              onPress={() => router.push(`/(app)/work-orders/${item.wo.id}`)}
-              onClaim={claimable && !queued ? () => void onClaim(item.wo) : undefined}
+              viewerId={userId}
+              now={minute}
+              onOpen={openOrder}
+              claimable={claimable && !queued}
+              onClaim={claimOrder}
               claiming={claimer.claimingIds.has(item.wo.id)}
               claimQueued={claimable && queued}
-              onAssign={
-                manager && view !== "done" && isAssignable(item.wo)
-                  ? () =>
-                      setAssignTarget({
-                        id: item.wo.id,
-                        code: workOrderLabel(item.wo),
-                        title: item.wo.title,
-                        priority: item.wo.priority,
-                        assignedTo: item.wo.assigned_to ?? null,
-                        assignedToName: item.wo.assigned_to_name,
-                      })
-                  : undefined
-              }
+              assignable={manager && view !== "done" && isAssignable(item.wo)}
+              onAssign={assignOrder}
             />
           </View>
         );
@@ -422,6 +440,7 @@ export default function WorkOrdersScreen() {
         data={rows}
         keyExtractor={(item) => item.key}
         renderItem={renderRow}
+        extraData={minute}
         ListHeaderComponent={
           <>
           <WorkQueueHeader

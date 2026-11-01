@@ -27,6 +27,7 @@ export default function TechnicianWorkScreen() {
   const toast = useToast();
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
+  const hotelTimezone = useAppStore((s) => s.hotelTimezone);
   const role = user?.effective_role ?? user?.role;
   const locale = user?.language_pref === "es" ? "es" : "en";
   const scope = teamScope(user);
@@ -84,7 +85,7 @@ export default function TechnicianWorkScreen() {
           {state.stale ? <StaleBanner onRetry={() => void orders.reload()} /> : null}
           {list.map((wo) => (
             <View key={wo.id} style={styles.item}>
-              <WorkOrderCard wo={wo} locale={locale} view="team" onPress={() => router.push(`/(app)/work-orders/${wo.id}` as never)} />
+              <WorkOrderCard wo={wo} locale={locale} timeZone={hotelTimezone} view="team" viewerId={user?.id} onOpen={() => router.push(`/(app)/work-orders/${wo.id}` as never)} />
               <Button label={t("engineeringTeam.assign.reassignShort")} variant="secondary" size="sm" icon="swap-horizontal-outline" onPress={() => openAssign(wo)} testID={`tech-reassign-${wo.id}`} />
             </View>
           ))}

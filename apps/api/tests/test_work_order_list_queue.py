@@ -439,3 +439,85 @@ def test_summary_is_zero_for_a_manager_who_holds_no_assignments(monkeypatch):
     db = _Db(work_orders=[_wo(1, assigned_to=OTHER, status="in_progress", priority="urgent"), _wo(2, priority="emergency")])
     client = _client(monkeypatch, db, role="chief_engineer", user_id="chief-1")
     assert client.get("/work-orders/summary").json()["data"] == {"urgent": 0, "in_progress": 0, "waiting": 0, "total": 0}
+
+
+# ── room context on queue rows ──────────────────────────────────────────────
+
+
+def _room_db(**extra):
+    return _Db(
+        work_orders=[
+            _wo(1, room_id="r-occ", assigned_to=ME, status="in_progress"),
+            _wo(2, room_id="r-vac"),
+            _wo(3, room_id="r-none"),
+            _wo(4, room_id="r-ooo"),
+            _wo(5, room_id="r-oos"),
+            _wo(6, room_id="r-occ", status="completed", assigned_to=ME),
+            _wo(7),
+        ],
+        room_status=[
+            {"tenant_id": TENANT, "room_id": "r-occ", "status": "OCCUPIED", "fo_status": "OCC"},
+            {"tenant_id": TENANT, "room_id": "r-vac", "status": "CLEAN", "fo_status": "VAC"},
+            {"tenant_id": TENANT, "room_id": "r-ooo", "status": "OOO", "fo_status": "VAC"},
+            {"tenant_id": "hotel-2", "room_id": "r-none", "status": "OCCUPIED", "fo_status": "OCC"},
+        ],
+        room_unavailability_periods=[
+            {"tenant_id": TENANT, "room_id": "r-oos", "type": "OUT_OF_SERVICE", "status": "ACTIVE"},
+            {"tenant_id": TENANT, "room_id": "r-vac", "type": "OUT_OF_ORDER", "status": "RELEASED"},
+            {"tenant_id": "hotel-2", "room_id": "r-none", "type": "OUT_OF_ORDER", "status": "ACTIVE"},
+        ],
+        **extra,
+    )
+
+
+def _by_id(response):
+    assert response.status_code == 200, response.text
+    return {row["id"]: row for row in response.json()["data"]}
+
+
+def test_active_room_orders_carry_verified_occupancy_and_availability(monkeypatch):
+    client = _client(monkeypatch, _room_db(), role="gm")
+    rows = _by_id(client.get("/work-orders", params={"per_page": 50}))
+    assert rows["wo-0001"]["room_context"] == {"occupancy": "occupied", "availability": None}
+    # A released period is history, not a current fact.
+    assert rows["wo-0002"]["room_context"] == {"occupancy": "vacant", "availability": None}
+    assert rows["wo-0004"]["room_context"]["availability"] == "unrecorded_down"
+    assert rows["wo-0005"]["room_context"]["availability"] == "out_of_service"
+    # Another hotel's room_status / period for the same room id never leaks in; no signal stays unknown.
+    assert rows["wo-0003"]["room_context"] == {"occupancy": "unknown", "availability": None}
+
+
+def test_room_context_is_omitted_when_it_cannot_be_trusted(monkeypatch):
+    client = _client(monkeypatch, _room_db(), role="gm")
+    rows = _by_id(client.get("/work-orders", params={"per_page": 50, "statuses": "open,in_progress,completed"}))
+    assert "room_context" not in rows["wo-0006"]  # finished: today's room state says nothing about then
+    assert "room_context" not in rows["wo-0007"]  # no room on the order
+
+
+def test_room_context_needs_a_room_board_role(monkeypatch):
+    client = _client(monkeypatch, _room_db(), role="front_desk")
+    rows = _by_id(client.get("/work-orders", params={"per_page": 50}))
+    assert rows and all("room_context" not in row for row in rows.values())
+
+
+def test_room_context_is_batched_not_one_query_per_order(monkeypatch):
+    db = _room_db()
+    client = _client(monkeypatch, db, role="engineer")
+    _by_id(client.get("/work-orders", params={"per_page": 50}))
+    assert sum(1 for call in db.calls if call.table == "room_status") == 1
+    assert sum(1 for call in db.calls if call.table == "room_unavailability_periods") == 1
+
+
+def test_room_context_lookup_failure_does_not_fail_the_queue(monkeypatch):
+    db = _room_db()
+    original = db.table
+
+    def table(name):
+        if name == "room_status":
+            raise RuntimeError("boom")
+        return original(name)
+
+    monkeypatch.setattr(db, "table", table)
+    client = _client(monkeypatch, db, role="gm")
+    rows = _by_id(client.get("/work-orders", params={"per_page": 50}))
+    assert rows and all("room_context" not in row for row in rows.values())

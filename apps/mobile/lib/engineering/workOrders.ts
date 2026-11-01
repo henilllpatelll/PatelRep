@@ -118,6 +118,15 @@ export interface WorkOrder {
   hold_reason_note?: string | null;
   held_since?: string | null;
   guest_reported?: boolean;
+  /**
+   * Current guest occupancy and recorded out-of-order/out-of-service for an active, room-linked order, from the
+   * list endpoint's one batched lookup. Absent when the order has no room, is finished, the caller's role may not
+   * read it, or the lookup failed — absent means unknown, never "vacant" or "available".
+   */
+  room_context?: {
+    occupancy: "occupied" | "vacant" | "unknown";
+    availability: "out_of_order" | "out_of_service" | "unrecorded_down" | null;
+  } | null;
   notes?: string | null;
   parts_used?: string | null;
   work_order_photos?: WorkOrderPhoto[];

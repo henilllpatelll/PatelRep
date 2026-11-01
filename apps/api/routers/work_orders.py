@@ -22,8 +22,9 @@ from models.requests import (
 )
 from core.database import supabase
 from core.config import settings
-from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
+from core.roles import ENGINEERING_ROOM_BOARD_ROLES, FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
+from routers.rooms import _board_occupancy
 from services.notify import send_push
 from services.engineering_notify import notify_managers
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
@@ -531,12 +532,69 @@ def _search_filter(term: str, tenant_id: str) -> Optional[str]:
     return ",".join(parts)
 
 
-def _enrich_list_rows(rows: list[dict], tenant_id: str) -> None:
-    """Attach assignee names and, for held orders, the recorded hold reason and time.
+def _attach_room_context(rows: list[dict], tenant_id: str) -> None:
+    """Attach `room_context` (guest occupancy and recorded out-of-order/out-of-service) to active, room-linked orders.
 
-    Both are best-effort: a failed lookup leaves the fields absent (the client then says
-    "not recorded") rather than failing the whole queue.
+    Two tenant-scoped queries for the whole page, never one per row. Occupancy uses the room board's rule, so
+    missing or conflicting signals are `unknown`. Finished orders get nothing: today's room state says nothing
+    about the day the repair was done. Best-effort: a failed lookup leaves the field absent.
     """
+    room_ids = sorted({str(row["room_id"]) for row in rows if row.get("room_id") and row.get("status") in _LIST_ACTIVE_STATUSES})
+    if not room_ids:
+        return
+    try:
+        statuses = {
+            str(item["room_id"]): item
+            for item in (
+                supabase.table("room_status")
+                .select("room_id, status, fo_status")
+                .eq("tenant_id", tenant_id)
+                .in_("room_id", room_ids)
+                .execute()
+            ).data or []
+        }
+        periods = {
+            str(item["room_id"]): item
+            for item in (
+                supabase.table("room_unavailability_periods")
+                .select("room_id, type")
+                .eq("tenant_id", tenant_id)
+                .eq("status", "ACTIVE")
+                .in_("room_id", room_ids)
+                .execute()
+            ).data or []
+        }
+    except Exception:
+        logger.warning("work order list: room context lookup failed", exc_info=True)
+        return
+    for row in rows:
+        key = str(row.get("room_id"))
+        if key not in room_ids or row.get("status") not in _LIST_ACTIVE_STATUSES:
+            continue
+        status_row = statuses.get(key) or {}
+        period = periods.get(key)
+        if period:
+            availability = "out_of_service" if period.get("type") == "OUT_OF_SERVICE" else "out_of_order"
+        elif status_row.get("status") == "OOO":
+            availability = "unrecorded_down"
+        else:
+            availability = None
+        row["room_context"] = {
+            "occupancy": _board_occupancy(status_row.get("fo_status"), status_row.get("status")),
+            "availability": availability,
+        }
+
+
+def _enrich_list_rows(rows: list[dict], tenant_id: str, role: Optional[str] = None) -> None:
+    """Attach assignee names, room context and, for held orders, the recorded hold reason and time.
+
+    Each is best-effort: a failed lookup leaves the fields absent (the client then says
+    "not recorded", or shows no badge) rather than failing the whole queue. Room context is
+    limited to the roles that may read the engineering room board.
+    """
+    if role in ENGINEERING_ROOM_BOARD_ROLES:
+        _attach_room_context(rows, tenant_id)
+
     assignee_ids = sorted({row["assigned_to"] for row in rows if row.get("assigned_to")})
     if assignee_ids:
         try:
@@ -746,7 +804,7 @@ async def list_work_orders(
             rows = build(sources[0], bucket, start, start + per_page).execute().data or []
             has_more = len(rows) > per_page
             data = rows[:per_page]
-            _enrich_list_rows(data, tenant_id)
+            _enrich_list_rows(data, tenant_id, current_user.role)
             return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
         merged: dict[str, dict] = {}
         for source in sources:
@@ -758,7 +816,7 @@ async def list_work_orders(
 
     data = collected[start : start + per_page]
     has_more = len(collected) > start + per_page
-    _enrich_list_rows(data, tenant_id)
+    _enrich_list_rows(data, tenant_id, current_user.role)
     return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
 
 

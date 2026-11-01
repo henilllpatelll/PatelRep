@@ -10608,13 +10608,22 @@
       "low": "Baja"
     },
     "action": {
-      "continue": "Continuar reparación",
-      "open": "Abrir trabajo",
-      "claim": "Tomar orden de trabajo",
-      "view": "Ver",
-      "viewHold": "Ver pausa",
-      "viewReport": "Ver"
+      "continue": "Continuar",
+      "open": "Abrir",
+      "claim": "Tomar",
+      "review": "Revisar",
+      "reviewHold": "Revisar pausa",
+      "viewRecord": "Ver registro"
     },
+    "openHint": "Abre la orden de trabajo",
+    "card": {
+      "dueToday": "Vence hoy, {{time}}",
+      "dueTomorrow": "Vence mañana, {{time}}",
+      "dueOn": "Vence el {{date}}",
+      "overdueBy": "Vencida hace {{time}}",
+      "equipment": "Equipo: {{name}}"
+    },
+    "assignedToYou": "Asignada a ti",
     "overdue": "Vencida",
     "assignedTo": "Con {{name}}",
     "assignedUnknown": "Asignada",
