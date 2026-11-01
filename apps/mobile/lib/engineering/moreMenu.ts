@@ -43,6 +43,7 @@ export function getEngineeringMoreSections(role: string | null | undefined): Mor
           href: "/(app)/notifications",
           badge: "unread",
         },
+        { key: "notificationSettings", labelKey: "engineeringMore.notificationSettings", icon: "options-outline", href: "/(app)/profile/notifications" },
         { key: "sync", labelKey: "engineeringMore.sync", icon: "sync-outline", href: "/(app)/engineering-sync" },
       ],
     },

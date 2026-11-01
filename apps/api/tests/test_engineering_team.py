@@ -158,3 +158,39 @@ def test_another_hotels_manager_sees_only_their_own_hotel(monkeypatch):
     data = _client(monkeypatch, db, hotel=H2).get("/engineering/team/overview").json()["data"]
     assert data["counts"]["open"] == 1
     assert [t["user_id"] for t in data["technicians"]] == ["other-hotel-eng"]  # never hotel 1's engineers
+
+
+def test_pm_oversight_lists_overdue_inspections_and_repeat_defects(monkeypatch):
+    pm = [
+        {"id": "pm-old", "tenant_id": H1, "name": "Boiler check", "is_active": True, "next_due_at": _t(-96), "assets": {"name": "Boiler"}},
+        {"id": "pm-new", "tenant_id": H1, "name": "Filter swap", "is_active": True, "next_due_at": _t(-48), "assets": {"name": "AHU"}},
+        {"id": "pm-future", "tenant_id": H1, "name": "Roof", "is_active": True, "next_due_at": _t(72), "assets": {"name": "Roof"}},
+        {"id": "pm-h2", "tenant_id": H2, "name": "Other hotel", "is_active": True, "next_due_at": _t(-96), "assets": {"name": "X"}},
+    ]
+    done = [
+        {"tenant_id": H1, "asset_id": "a-ahu", "defects": 2, "completed_at": _t(-24 * 10), "assets": {"name": "AHU"}},
+        {"tenant_id": H1, "asset_id": "a-ahu", "defects": 1, "completed_at": _t(-24 * 30), "assets": {"name": "AHU"}},
+        {"tenant_id": H1, "asset_id": "a-ahu", "defects": 0, "completed_at": _t(-24 * 5), "assets": {"name": "AHU"}},
+        {"tenant_id": H1, "asset_id": "a-once", "defects": 3, "completed_at": _t(-24), "assets": {"name": "Pump"}},
+        {"tenant_id": H1, "asset_id": "a-old", "defects": 1, "completed_at": _t(-24 * 200), "assets": {"name": "Old"}},
+        {"tenant_id": H1, "asset_id": "a-old", "defects": 1, "completed_at": _t(-24 * 201), "assets": {"name": "Old"}},
+    ]
+    db = _db([], pm_schedules=pm, pm_completion_records=done)
+    data = _client(monkeypatch, db).get("/engineering/team/overview").json()["data"]
+    oversight = data["pm_oversight"]
+    assert [i["id"] for i in oversight["overdue"]] == ["pm-old", "pm-new"] and oversight["overdue_total"] == 2
+    assert oversight["overdue"][0]["asset_name"] == "Boiler"
+    assert oversight["repeat_defects"] == [{"asset_id": "a-ahu", "asset_name": "AHU", "count": 2}]  # one defect, or an old window, is not "repeated"
+
+
+def test_unreadable_pm_tables_are_unknown_not_clear(monkeypatch):
+    db = _db([_wo(1)])
+    real_table = db.table
+
+    def table(name):
+        if name == "pm_completion_records":
+            raise RuntimeError("down")
+        return real_table(name)
+
+    monkeypatch.setattr(db, "table", table)
+    assert _client(monkeypatch, db).get("/engineering/team/overview").json()["data"]["pm_oversight"] is None

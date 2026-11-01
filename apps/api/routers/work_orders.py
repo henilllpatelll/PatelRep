@@ -25,6 +25,7 @@ from core.config import settings
 from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
 from services.notify import send_push
+from services.engineering_notify import notify_managers
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
 from services.asset_reliability import restore_active_work_order_downtime, start_asset_downtime
 
@@ -1341,6 +1342,11 @@ async def complete_work_order(
             action="work_order.repair_verification_failed",
             old_state={key: wo_check.data.get(key) for key in repair_updates},
             new_state=repair_updates,
+        )
+        notify_managers(
+            tenant_id=current_user.hotel_id, event="wo_verification_required", title="Repair needs follow-up",
+            body=wo_check.data.get("title") or "Work order", subject_key="wo_id", subject_id=wo_id,
+            data={"url": f"/(app)/work-orders/{wo_id}"}, exclude=current_user.user_id,
         )
         raise HTTPException(status_code=409, detail="Repair verification failed. The work order remains in progress.")
 

@@ -143,6 +143,29 @@ export default function TeamOverviewScreen() {
               onPress={() => router.push("/(app)/pm-schedules" as never)}
               testID="team-pm"
             />
+            {data.pm_oversight == null ? (
+              <SettingsRow icon="alert-circle-outline" label={t("engineeringTeam.pmDetailUnavailable")} testID="team-pm-unavailable" />
+            ) : null}
+            {data.pm_oversight?.overdue.map((item) => (
+              <SettingsRow
+                key={item.id}
+                icon="time-outline"
+                label={item.name ?? t("engineeringTeam.pmOversight")}
+                subtitle={[item.asset_name, t("engineeringTeam.pmOverdueLabel")].filter(Boolean).join(" · ")}
+                onPress={() => router.push(`/(app)/pm-schedules/${item.id}` as never)}
+                testID={`team-pm-overdue-${item.id}`}
+              />
+            ))}
+            {data.pm_oversight?.repeat_defects.map((item) => (
+              <SettingsRow
+                key={item.asset_id}
+                icon="warning-outline"
+                label={item.asset_name ?? t("engineeringTeam.equipment")}
+                subtitle={t("engineeringTeam.repeatDefects", { count: item.count, days: data.pm_oversight?.repeat_window_days ?? 90 })}
+                onPress={() => router.push(`/(app)/assets/${item.asset_id}` as never)}
+                testID={`team-pm-repeat-${item.asset_id}`}
+              />
+            ))}
             <SettingsRow
               icon="bed-outline"
               label={t("engineeringTeam.roomOversight")}

@@ -43,11 +43,22 @@ export interface AttentionItem {
   held_since?: string | null;
 }
 
+export interface PmOversight {
+  /** The oldest overdue inspections (a few), and how many are overdue in all. */
+  overdue: { id: string; name: string | null; asset_name: string | null; next_due_at: string | null }[];
+  overdue_total: number;
+  /** Equipment whose recent inspections recorded defects at least twice. */
+  repeat_defects: { asset_id: string; asset_name: string | null; count: number }[];
+  repeat_window_days: number;
+}
+
 export interface TeamOverview {
   generated_at: string;
   counts: TeamCounts;
   /** null = unknown. */
   rooms_down: { total: number; past_expected_return: number } | null;
+  /** null = the server could not read the PM tables (unknown, never "all clear"). */
+  pm_oversight: PmOversight | null;
   technicians: Technician[];
   attention_counts: Record<AttentionKind, number>;
   needs_attention: AttentionItem[];

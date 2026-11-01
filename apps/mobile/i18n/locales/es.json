@@ -462,6 +462,8 @@
       "from": "De {{sender}}",
       "sent": "Enviado {{time}}",
       "viewRoom": "Ver habitación {{room}}",
+      "viewWorkOrder": "Abrir orden de trabajo",
+      "viewRoomRecord": "Abrir habitación",
       "viewTask": "Ver tarea",
       "fallbackTitle": "Mensaje",
       "noneTitle": "Ningún mensaje sin leer",
@@ -10522,6 +10524,7 @@
     }
   },
   "engineeringMore": {
+    "notificationSettings": "Ajustes de notificaciones",
     "sync": "Estado de sincronización",
     "team": "Resumen del equipo",
     "operations": "Operaciones",
@@ -11290,6 +11293,10 @@
     "workloadNote": "Solo cuenta las órdenes asignadas. Aquí no se registran turnos ni disponibilidad.",
     "truncated": "Hay más órdenes activas de las que se pudieron contar; las cifras son un mínimo.",
     "oversight": "MP y habitaciones",
+    "pmDetailUnavailable": "El detalle de MP no está disponible ahora.",
+    "pmOverdueLabel": "Vencido",
+    "equipment": "Equipo",
+    "repeatDefects": "Defectos registrados en {{count}} inspecciones en los últimos {{days}} días",
     "pmOversight": "Mantenimiento preventivo",
     "pmOverdueCount_one": "{{count}} inspección vencida",
     "pmOverdueCount_other": "{{count}} inspecciones vencidas",

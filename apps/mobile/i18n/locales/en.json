@@ -462,6 +462,8 @@
       "from": "From {{sender}}",
       "sent": "Sent {{time}}",
       "viewRoom": "View Room {{room}}",
+      "viewWorkOrder": "Open work order",
+      "viewRoomRecord": "Open room",
       "viewTask": "View task",
       "fallbackTitle": "Message",
       "noneTitle": "No unread message",
@@ -10522,6 +10524,7 @@
     }
   },
   "engineeringMore": {
+    "notificationSettings": "Notification settings",
     "sync": "Sync status",
     "team": "Team Overview",
     "operations": "Operations",
@@ -11290,6 +11293,10 @@
     "workloadNote": "Counts of assigned work orders only. Shift and availability are not tracked here.",
     "truncated": "More active work orders exist than could be counted; figures are a minimum.",
     "oversight": "PM and rooms",
+    "pmDetailUnavailable": "PM detail is unavailable right now.",
+    "pmOverdueLabel": "Overdue",
+    "equipment": "Equipment",
+    "repeatDefects": "Defects recorded in {{count}} inspections in the last {{days}} days",
     "pmOversight": "Preventive maintenance",
     "pmOverdueCount_one": "{{count}} inspection overdue",
     "pmOverdueCount_other": "{{count}} inspections overdue",

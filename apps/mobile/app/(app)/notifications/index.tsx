@@ -173,6 +173,8 @@ export default function NotificationsScreen() {
   const openLink = useCallback((link: Exclude<NotificationLink, { kind: "none" }>) => {
     setSheetOpen(false);
     if (link.kind === "room") router.push(`/(app)/my-rooms/${link.roomId}` as never);
+    else if (link.kind === "workOrder") router.push(`/(app)/work-orders/${link.workOrderId}` as never);
+    else if (link.kind === "engRoom") router.push(`/(app)/room-status/${link.roomId}` as never);
     else if (link.kind === "schedule") router.push({ pathname: link.target.pathname, params: link.target.params } as never);
     else router.push({ pathname: "/(app)/tasks", params: { taskId: link.taskId } } as never);
   }, []);
@@ -184,7 +186,7 @@ export default function NotificationsScreen() {
     if (link.kind === "none") return undefined;
     return () => {
       setSheetOpen(false);
-      if (link.kind === "schedule") return;
+      if (link.kind === "schedule" || link.kind === "workOrder" || link.kind === "engRoom") return;
       if (link.kind === "room") assistant.openAssistant({ contextType: "room", entityId: link.roomId, label: link.roomNumber });
       else assistant.openAssistant({ contextType: "task", entityId: link.taskId, label: details.title });
     };

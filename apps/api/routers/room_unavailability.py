@@ -17,6 +17,7 @@ from models.requests import (
     ReleaseRoomUnavailabilityRequest,
     UpdateRoomUnavailabilityEtaRequest,
 )
+from services.engineering_notify import notify_managers, notify_users
 from services.room_unavailability import is_past_eta, validate_eta_change
 
 router = APIRouter(prefix="/room-unavailability", tags=["room-unavailability"])
@@ -46,6 +47,28 @@ def _validate_references(request: CreateRoomUnavailabilityRequest, user: Current
         result = supabase.table("user_roles").select("id").eq("user_id", str(request.owner_id)).eq("tenant_id", user.hotel_id).eq("is_active", True).limit(1).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Responsible staff member not found")
+
+
+def _notify_availability(user: CurrentUser, room_id: str, down: bool, work_order_id: str | None = None) -> None:
+    """Tell the chief engineers (and the engineer on the linked repair) that a room went down or came back.
+    Best effort: the availability change has already been committed."""
+    try:
+        room = supabase.table("rooms").select("room_number").eq("id", room_id).eq("tenant_id", user.hotel_id).maybe_single().execute()
+        number = (room.data or {}).get("room_number") if room else None
+        label = f"Room {number}" if number else "A room"
+        title = "Room taken out of availability" if down else "Room back in availability"
+        body = f"{label} is now out of order or service." if down else f"{label} was released."
+        data = {"url": f"/(app)/room-status/{room_id}"}
+        kwargs = dict(tenant_id=user.hotel_id, event="room_availability_changed", title=title, body=body, data=data,
+                      subject_key="room_id", subject_id=room_id)
+        notify_managers(exclude=user.user_id, **kwargs)
+        if work_order_id:
+            wo = supabase.table("work_orders").select("assigned_to").eq("id", work_order_id).eq("tenant_id", user.hotel_id).maybe_single().execute()
+            assignee = (wo.data or {}).get("assigned_to") if wo else None
+            if assignee:
+                notify_users(user_ids=[assignee], exclude=user.user_id, **kwargs)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 @router.get("/reasons")
@@ -120,6 +143,7 @@ async def create_period(
         "p_work_order_id": str(request.primary_work_order_id) if request.primary_work_order_id else None,
         "p_created_by": current_user.user_id, "p_source": request.source,
     }).execute()
+    _notify_availability(current_user, str(request.room_id), True, str(request.primary_work_order_id) if request.primary_work_order_id else None)
     return {"data": result.data}
 
 
@@ -149,9 +173,12 @@ async def release_period(
     period_id: str, request: ReleaseRoomUnavailabilityRequest,
     current_user: CurrentUser = Depends(require_role(*MANAGE_ROLES)),
 ):
+    period = supabase.table("room_unavailability_periods").select("room_id, primary_work_order_id").eq("id", period_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     result = supabase.rpc("release_room_unavailability", {
         "p_period_id": period_id, "p_tenant_id": current_user.hotel_id,
         "p_released_by": current_user.user_id, "p_release_notes": request.release_notes,
         "p_source": request.source,
     }).execute()
+    if period and period.data:
+        _notify_availability(current_user, str(period.data["room_id"]), False, period.data.get("primary_work_order_id"))
     return {"data": result.data}
