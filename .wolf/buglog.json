@@ -34997,6 +34997,21 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2128",
+      "timestamp": "2026-11-01T00:30:00.000Z",
+      "error_message": "git diff showed whole-file rewrites (1124 lines) for small edits",
+      "file": "apps/mobile (6 files)",
+      "root_cause": "Python text-mode writes on Windows converted LF files to CRLF",
+      "fix": "Normalised to LF with a byte replace; RBAC-MATRIX.md regenerated since it is committed CRLF",
+      "tags": [
+        "line-endings",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T00:30:00.000Z"
     }
   ]
 }

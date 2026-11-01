@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -12,22 +12,26 @@ import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
 import { WorkFilterSheet } from "@/components/engineering/WorkFilterSheet";
 import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineering/team/AssignTechnicianSheet";
 import { WorkQueueHeader, type FilterChip } from "@/components/engineering/WorkQueueHeader";
+import { WorkSummaryTiles } from "@/components/engineering/work/WorkSummaryTiles";
 import { PendingReportsBanner } from "@/components/engineering/report/PendingReportsBanner";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { useWorkQueue } from "@/lib/engineering/useWorkQueue";
+import { useWorkSummary } from "@/lib/engineering/useWorkSummary";
 import { canManageTeam, isAssignable } from "@/lib/engineering/teamModel";
 import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
 import { dismissClaimConflict, useClaimConflicts } from "@/lib/engineering/claimConflicts";
+import { defaultView, isReachableView, primaryViews, resolveView, secondaryViews, showsSummary } from "@/lib/engineering/workNavigation";
+import { isSummaryActive, summarySelection, type SummaryKey } from "@/lib/engineering/workSummary";
+import { buildWorkRows } from "@/lib/engineering/workRows";
 import {
   EMPTY_FILTERS,
+  QUEUE_VIEWS,
   activeFilterCount,
   allowedStatuses,
   availableViews,
   buildListParams,
-  compareWorkOrders,
   dateFiltersFor,
   effectiveSort,
-  groupMineWork,
   hasAssignmentFilter,
   hasStatusFilter,
   isClaimable,
@@ -39,9 +43,9 @@ import {
 import type { WorkOrder } from "@/lib/engineering/workOrders";
 
 /* ─── Work tab — five views over one queue ──────────────────────────────────
-   My Work · Available · Team (chief engineer / GM only) · Waiting · Done. Each
-   view loads its own pages from the API with the search and filters applied
-   server-side, so what is shown is what the hotel actually has — not a filter
+   Primary tabs: My Work · Available · Team (chief engineer / GM only), per role (see workNavigation). On hold
+   and History are secondary shortcuts and deep links. Each view loads its own pages from the API with the
+   search and filters applied server-side, so what is shown is what the hotel actually has — not a filter
    over whatever happened to fit in the first page. */
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -50,10 +54,11 @@ const REALTIME_DEBOUNCE_MS = 700;
 type Row =
   | { type: "conflict"; key: string; woId: string; label: string | null; reason: string }
   | { type: "notice"; key: string; kind: "stale" | "offline" }
-  | { type: "section"; key: string; title: string; count: number }
+  | { type: "section"; key: string; title: string; count: string }
   | { type: "wo"; key: string; wo: WorkOrder };
 
-const isView = (value: unknown, views: QueueView[]): value is QueueView => typeof value === "string" && (views as string[]).includes(value);
+const emptyFiltersByView = (): Record<QueueView, QueueFilters> =>
+  Object.fromEntries(QUEUE_VIEWS.map((view) => [view, EMPTY_FILTERS])) as Record<QueueView, QueueFilters>;
 
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
@@ -66,16 +71,14 @@ export default function WorkOrdersScreen() {
   const tenantId = user?.tenant_id ?? null;
   const scope = `${tenantId ?? "none"}:${userId ?? "none"}`;
   const views = useMemo(() => availableViews(role), [role]);
+  const primary = useMemo(() => primaryViews(role), [role]);
+  const secondary = useMemo(() => secondaryViews(role), [role]);
+  const home = defaultView(role);
+  const hasSummary = showsSummary("mine", role);
 
   const params = useLocalSearchParams<{ new?: string; view?: string }>();
-  const [view, setView] = useState<QueueView>(() => (isView(params.view, views) ? params.view : "mine"));
-  const [filtersByView, setFiltersByView] = useState<Record<QueueView, QueueFilters>>({
-    mine: EMPTY_FILTERS,
-    available: EMPTY_FILTERS,
-    team: EMPTY_FILTERS,
-    waiting: EMPTY_FILTERS,
-    done: EMPTY_FILTERS,
-  });
+  const [view, setView] = useState<QueueView>(() => resolveView(params.view, role));
+  const [filtersByView, setFiltersByView] = useState<Record<QueueView, QueueFilters>>(emptyFiltersByView);
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -83,8 +86,8 @@ export default function WorkOrdersScreen() {
 
   // Home sends `view` to land on the right queue, and a fresh `new` to open the report form once per value.
   useEffect(() => {
-    if (isView(params.view, views)) setView(params.view);
-  }, [params.view, views]);
+    if (isReachableView(params.view, role)) setView(params.view);
+  }, [params.view, role]);
   const handledNew = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!params.new || handledNew.current === params.new) return;
@@ -92,10 +95,23 @@ export default function WorkOrdersScreen() {
     router.push("/(app)/work-orders/new" as never);
   }, [params.new]);
 
-  // A view this role cannot see (e.g. a role change) falls back to My Work.
+  // A view this role cannot reach (e.g. a role change) falls back to the role's default Work screen.
   useEffect(() => {
-    if (!views.includes(view)) setView("mine");
-  }, [views, view]);
+    if (!views.includes(view)) setView(defaultView(role));
+  }, [views, view, role]);
+
+  // A different hotel or person starts clean: no filters, search, scroll position or view carried over.
+  const lastScope = useRef(scope);
+  const offsets = useRef<Partial<Record<QueueView, number>>>({});
+  useEffect(() => {
+    if (lastScope.current === scope) return;
+    lastScope.current = scope;
+    offsets.current = {};
+    setFiltersByView(emptyFiltersByView());
+    setSearchText("");
+    setSearch("");
+    setView(defaultView(role));
+  }, [scope, role]);
 
   useEffect(() => {
     const id = setTimeout(() => setSearch(searchText.trim()), searchText.trim() === "" ? 0 : SEARCH_DEBOUNCE_MS);
@@ -110,6 +126,7 @@ export default function WorkOrdersScreen() {
   const viewer = useMemo(() => ({ userId, role }), [userId, role]);
   const queue = useWorkQueue({ scope, view, params: request, viewer, enabled: userId != null });
   const { bucket } = queue;
+  const summary = useWorkSummary({ scope, enabled: userId != null && hasSummary });
 
   const claimer = useClaimWorkOrder({ isOnline, role, syncMarker: lastSyncedAt });
   const conflicts = useClaimConflicts(scope);
@@ -120,9 +137,12 @@ export default function WorkOrdersScreen() {
   refreshRef.current = queue.refresh;
   const invalidateRef = useRef(queue.invalidateOthers);
   invalidateRef.current = queue.invalidateOthers;
+  const summaryRef = useRef({ refresh: summary.refresh, applies: hasSummary });
+  summaryRef.current = { refresh: summary.refresh, applies: hasSummary };
   const refreshQuietly = useCallback(() => {
     invalidateRef.current();
     void refreshRef.current();
+    if (summaryRef.current.applies) void summaryRef.current.refresh();
   }, []);
 
   // Back from a detail screen: re-read in place (rows and filters stay) so a finished job leaves the list.
@@ -161,9 +181,9 @@ export default function WorkOrdersScreen() {
   const onPullRefresh = useCallback(async () => {
     setPulling(true);
     queue.invalidateOthers();
-    await queue.refresh();
+    await Promise.all([queue.refresh(), hasSummary ? summary.refresh() : undefined]);
     setPulling(false);
-  }, [queue]);
+  }, [queue, summary, hasSummary]);
 
   const onClaim = useCallback(
     async (wo: WorkOrder) => {
@@ -193,6 +213,37 @@ export default function WorkOrdersScreen() {
 
   const setFilters = useCallback((next: QueueFilters) => setFiltersByView((prev) => ({ ...prev, [view]: next })), [view]);
 
+  // A tile applies the filter it counted (or opens On hold); a second press on an applied tile clears it.
+  const onSummary = useCallback(
+    (key: SummaryKey) => {
+      const next = summarySelection(key, filtersByView.mine);
+      setFiltersByView((prev) => ({ ...prev, [next.view]: next.filters }));
+      setView(next.view);
+    },
+    [filtersByView.mine]
+  );
+  const summaryActive = useMemo(
+    () => ({ urgent: isSummaryActive("urgent", filtersByView.mine), inProgress: isSummaryActive("inProgress", filtersByView.mine), waiting: false }),
+    [filtersByView.mine]
+  );
+
+  // Each view keeps its own scroll position: leave and return, and the list is where it was.
+  const listRef = useRef<FlatList<Row>>(null);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      offsets.current[view] = event.nativeEvent.contentOffset.y;
+    },
+    [view]
+  );
+  const shownView = useRef(view);
+  useEffect(() => {
+    if (shownView.current === view) return;
+    shownView.current = view;
+    const offset = offsets.current[view] ?? 0;
+    const id = setTimeout(() => listRef.current?.scrollToOffset({ offset, animated: false }), 0);
+    return () => clearTimeout(id);
+  }, [view]);
+
   const chips = useMemo<FilterChip[]>(() => {
     const out: FilterChip[] = [];
     const clear = (patch: Partial<QueueFilters>) => () => setFilters({ ...filters, ...patch });
@@ -200,7 +251,8 @@ export default function WorkOrdersScreen() {
     if (hasStatusFilter(view) && statuses.length > 0 && !(view === "done" && statuses[0] === "completed")) {
       out.push({ key: "status", label: statuses.map((s) => t(`workOrders.status.${s}`)).join(", "), onRemove: clear({ statuses: [] }) });
     }
-    if (filters.priority) out.push({ key: "priority", label: t(`workQueue.priority.${filters.priority}`), onRemove: clear({ priority: null }) });
+    if (filters.urgentOnly) out.push({ key: "urgent", label: t("workQueue.urgentChip"), onRemove: clear({ urgentOnly: false }) });
+    else if (filters.priority) out.push({ key: "priority", label: t(`workQueue.priority.${filters.priority}`), onRemove: clear({ priority: null }) });
     if (filters.category) out.push({ key: "category", label: t(`workOrders.category.${filters.category}`), onRemove: clear({ category: null }) });
     if (filters.floor != null || filters.building) {
       const label = [filters.building ? t("workQueue.filter.buildingValue", { building: filters.building }) : null, filters.floor != null ? t("workOrders.floor", { floor: filters.floor }) : null]
@@ -237,28 +289,12 @@ export default function WorkOrdersScreen() {
     else if (!isOnline && bucket.loaded) list.push({ type: "notice", key: "offline", kind: "offline" });
     if (loadState.status !== "ready") return list;
 
-    const ordered = [...bucket.items].sort(compareWorkOrders(sort));
-    if (view === "mine") {
-      for (const group of groupMineWork(bucket.items, sort)) {
-        list.push({ type: "section", key: `s-${group.key}`, title: t(`workQueue.groups.${group.key}`), count: group.orders.length });
-        group.orders.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
-      }
-    } else if (view === "available") {
-      const claimable = ordered.filter((wo) => isClaimable(wo, role));
-      const needsOwner = ordered.filter((wo) => !isClaimable(wo, role));
-      if (needsOwner.length > 0) {
-        list.push({ type: "section", key: "s-claim", title: t("workQueue.groups.claimable"), count: claimable.length });
-        claimable.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
-        list.push({ type: "section", key: "s-owner", title: t("workQueue.groups.needsOwner"), count: needsOwner.length });
-        needsOwner.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
-      } else {
-        claimable.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
-      }
-    } else {
-      ordered.forEach((wo) => list.push({ type: "wo", key: wo.id, wo }));
+    for (const row of buildWorkRows(bucket.items, { view, role, sort, hasMore: bucket.hasMore })) {
+      if (row.type === "wo") list.push(row);
+      else list.push({ type: "section", key: row.key, title: t(`workQueue.groups.${row.section}`), count: `${row.count}${row.partial ? "+" : ""}` });
     }
     return list;
-  }, [bucket.items, bucket.loaded, conflicts, isOnline, loadState, role, sort, t, view]);
+  }, [bucket.items, bucket.hasMore, bucket.loaded, conflicts, isOnline, loadState, role, sort, t, view]);
 
   const emptyCopy = (): { title: string; body: string; action?: { label: string; onPress: () => void } } => {
     if (hasNarrowing) return { title: t("workQueue.empty.noMatches"), body: t("workQueue.empty.noMatchesHint") };
@@ -382,15 +418,24 @@ export default function WorkOrdersScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
+        ref={listRef}
         data={rows}
         keyExtractor={(item) => item.key}
         renderItem={renderRow}
         ListHeaderComponent={
           <>
           <WorkQueueHeader
-            views={views}
             view={view}
+            primary={primary}
+            secondary={secondary}
+            home={home}
             onView={setView}
+            manager={manager}
+            summary={
+              showsSummary(view, role) ? (
+                <WorkSummaryTiles summary={summary.summary} failed={summary.failed} active={summaryActive} onPress={onSummary} />
+              ) : undefined
+            }
             searchText={searchText}
             onSearchText={setSearchText}
             filterCount={filterCount}
@@ -407,6 +452,8 @@ export default function WorkOrdersScreen() {
         onEndReached={queue.loadMore}
         onEndReachedThreshold={0.4}
         keyboardShouldPersistTaps="handled"
+        onScroll={onScroll}
+        scrollEventThrottle={64}
         refreshControl={<RefreshControl refreshing={pulling} onRefresh={onPullRefresh} tintColor={theme.primaryAction} />}
         testID="wo-list"
       />

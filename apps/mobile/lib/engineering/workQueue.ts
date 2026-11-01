@@ -31,8 +31,16 @@ export function canViewTeamWork(role: string | null | undefined): boolean {
   return role != null && TEAM_VISIBLE_ROLES.includes(role);
 }
 
+/**
+ * Every view this role can reach. My Work needs a role that can hold an assignment (the API assigns only to
+ * `engineer`, and claims are engineer + gm), so a chief engineer, who manages but cannot claim, has none.
+ */
 export function availableViews(role: string | null | undefined): QueueView[] {
-  return QUEUE_VIEWS.filter((view) => view !== "team" || canViewTeamWork(role));
+  return QUEUE_VIEWS.filter((view) => {
+    if (view === "mine") return canActOnWorkOrders(role);
+    if (view === "team") return canViewTeamWork(role);
+    return true;
+  });
 }
 
 export type QueueSort = "priority" | "due" | "newest" | "oldest" | "updated";
@@ -45,6 +53,8 @@ export interface QueueFilters {
   /** Subset of the view's statuses; empty means "the view's default set". */
   statuses: WorkOrderStatus[];
   priority: WorkOrderPriority | null;
+  /** Emergency and urgent together (the My Work "Urgent" tile). Wins over `priority` when both are set. */
+  urgentOnly: boolean;
   category: WorkOrderCategory | null;
   floor: number | null;
   building: string | null;
@@ -58,6 +68,7 @@ export interface QueueFilters {
 export const EMPTY_FILTERS: QueueFilters = {
   statuses: [],
   priority: null,
+  urgentOnly: false,
   category: null,
   floor: null,
   building: null,
@@ -117,7 +128,7 @@ export function activeFilterCount(view: QueueView, filters: QueueFilters): numbe
   let count = 0;
   const statuses = filters.statuses.filter((status) => allowedStatuses(view).includes(status));
   if (hasStatusFilter(view) && statuses.length > 0 && !(view === "done" && statuses[0] === "completed")) count += 1;
-  if (filters.priority) count += 1;
+  if (filters.urgentOnly || filters.priority) count += 1;
   if (filters.category) count += 1;
   if (filters.floor != null || filters.building) count += 1;
   if (filters.date && dateFiltersFor(view).includes(filters.date)) count += 1;
@@ -129,6 +140,8 @@ export function activeFilterCount(view: QueueView, filters: QueueFilters): numbe
 export interface WorkOrderListParams {
   statuses?: WorkOrderStatus[];
   priority?: WorkOrderPriority;
+  /** Several priorities at once; the API ignores it when `priority` is sent. */
+  priorities?: WorkOrderPriority[];
   category?: WorkOrderCategory;
   mine?: boolean;
   /** A specific technician (managers only; the API scopes an engineer to their own and unclaimed orders anyway). */
@@ -224,7 +237,8 @@ export function buildListParams(
       break;
   }
 
-  if (filters.priority) params.priority = filters.priority;
+  if (filters.urgentOnly) params.priorities = ["emergency", "urgent"];
+  else if (filters.priority) params.priority = filters.priority;
   if (filters.category) params.category = filters.category;
   if (filters.floor != null) params.floor = filters.floor;
   if (filters.building) params.building = filters.building;
@@ -357,13 +371,14 @@ export interface MineGroup {
 
 /**
  * My Work, grouped by what the engineer can do next. These are presentation groups over the canonical status:
- * `ready` is simply open work assigned to me. Each order lands in exactly one group.
+ * `escalated` ("needs attention") also takes urgent work that has not been started, and `ready` is the rest of
+ * the open work assigned to me. Each order lands in exactly one group; its own status and priority never change.
  */
 export function groupMineWork(orders: readonly WorkOrder[], sort: QueueSort = "priority"): MineGroup[] {
   const compare = compareWorkOrders(sort);
   const buckets: Record<MineGroupKey, WorkOrder[]> = { escalated: [], in_progress: [], ready: [], on_hold: [] };
   for (const wo of dedupeById(orders)) {
-    if (wo.status === "escalated") buckets.escalated.push(wo);
+    if (wo.status === "escalated" || (wo.status === "open" && isHighPriority(wo.priority))) buckets.escalated.push(wo);
     else if (wo.status === "in_progress") buckets.in_progress.push(wo);
     else if (wo.status === "on_hold") buckets.on_hold.push(wo);
     else if (wo.status === "open") buckets.ready.push(wo);

@@ -41,6 +41,7 @@ jest.mock("@/lib/supabase", () => ({
 jest.mock("@/lib/api/workOrders", () => ({
   listWorkOrderPage: jest.fn(),
   claimWorkOrder: jest.fn(),
+  getWorkOrderSummary: jest.fn(),
 }));
 const mockStore: { isOnline: boolean; user: Record<string, unknown>; hotelTimezone: string; lastSyncedAt: string | null } = {
   isOnline: true,
@@ -56,7 +57,7 @@ jest.mock("@/lib/offline/db", () => ({
 const mockToast = { success: jest.fn(), info: jest.fn(), error: jest.fn() };
 jest.mock("@/lib/theme/useToast", () => ({ useToast: () => mockToast }));
 
-import { claimWorkOrder, listWorkOrderPage } from "@/lib/api/workOrders";
+import { claimWorkOrder, getWorkOrderSummary, listWorkOrderPage } from "@/lib/api/workOrders";
 import { enqueueAction, getSyncQueueSummary } from "@/lib/offline/db";
 import { setQueueOwner } from "@/lib/offline/queueOwner";
 import { resetClaimConflictsForTests } from "@/lib/engineering/claimConflicts";
@@ -68,6 +69,7 @@ import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
 
 const mockList = listWorkOrderPage as jest.Mock;
 const mockClaim = claimWorkOrder as jest.Mock;
+const mockSummary = getWorkOrderSummary as jest.Mock;
 
 const ME = "u1";
 let seq = 0;
@@ -94,6 +96,7 @@ function server(rows: () => WorkOrder[], pageSize = 25) {
     if (params.unassigned) list = list.filter((r) => !r.assigned_to);
     if (params.assigned_to_others) list = list.filter((r) => r.assigned_to && r.assigned_to !== ME);
     if (params.priority) list = list.filter((r) => r.priority === params.priority);
+    if (params.priorities) list = list.filter((r) => params.priorities!.includes(r.priority));
     if (params.q) list = list.filter((r) => `${r.title} ${r.rooms?.room_number ?? ""} ${r.work_order_number ?? ""}`.toLowerCase().includes(params.q!.toLowerCase()));
     const start = (page - 1) * pageSize;
     return { orders: list.slice(start, start + pageSize), hasMore: start + pageSize < list.length };
@@ -112,6 +115,7 @@ const reqs = () => mockList.mock.calls.map(([params]) => params as WorkOrderList
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  mockSummary.mockResolvedValue({ urgent: 0, inProgress: 0, waiting: 0 });
   seq = 0;
   mockParams = {};
   mockRealtime = null;
@@ -184,7 +188,7 @@ describe("views", () => {
     fireEvent.press(screen.getByTestId("wo-view-done"));
     await waitFor(() => screen.getByText("Finished"));
     const before = mockList.mock.calls.length;
-    fireEvent.press(screen.getByTestId("wo-view-mine"));
+    fireEvent.press(screen.getByTestId("wo-back"));
     await waitFor(() => screen.getByText("Mine"));
     expect(mockList.mock.calls.length).toBe(before);
   });
@@ -394,7 +398,7 @@ describe("search and filters", () => {
     expect(screen.getByTestId("wo-chip-priority")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("wo-view-waiting"));
-    fireEvent.press(screen.getByTestId("wo-view-mine"));
+    fireEvent.press(screen.getByTestId("wo-back"));
     await waitFor(() => screen.getByTestId("wo-chip-priority"));
     expect(screen.queryByText("Normal job")).toBeNull();
 

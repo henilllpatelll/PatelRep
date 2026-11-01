@@ -10549,6 +10549,7 @@
     "filterA11yActive": "Filtrar y ordenar, {{count}} activos",
     "removeFilter": "Quitar filtro: {{filter}}",
     "roomLabel": "Habitación {{room}}",
+    "eyebrow": "PatelRep Ingeniería",
     "views": {
       "mine": "Mi trabajo",
       "available": "Disponibles",
@@ -10556,8 +10557,44 @@
       "waiting": "En espera",
       "done": "Hechas"
     },
+    "viewTitles": {
+      "mine": "Mi trabajo",
+      "available": "Trabajo disponible",
+      "team": "Trabajo del equipo",
+      "waiting": "En pausa",
+      "done": "Historial"
+    },
+    "viewSubtitles": {
+      "mine": "Tus reparaciones asignadas y en progreso",
+      "available": "Reparaciones sin asignar que puedes tomar",
+      "availableManager": "Reparaciones sin asignar que necesitan responsable",
+      "team": "Reparaciones asignadas a otros ingenieros",
+      "waiting": "Detenidas por piezas, acceso o aprobación",
+      "done": "Órdenes completadas y canceladas, para consulta"
+    },
+    "shortcuts": {
+      "waiting": "En pausa",
+      "done": "Historial",
+      "backTo": "Volver a {{view}}",
+      "viewsA11y": "Vistas de trabajo",
+      "otherViewsA11y": "Otras vistas de trabajo"
+    },
+    "summary": {
+      "urgent": "Urgentes",
+      "inProgress": "En progreso",
+      "waiting": "En espera",
+      "unknown": "–",
+      "groupA11y": "Resumen de Mi trabajo",
+      "a11y": "{{label}}: {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yActive": "{{label}}: {{count}}. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "a11yUnknown": "{{label}}: cantidad no disponible. Mostrar estas órdenes de trabajo.",
+      "a11yUnknownActive": "{{label}}: cantidad no disponible. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "unavailable": "Las cantidades no están disponibles ahora."
+    },
+    "urgentChip": "Urgentes y emergencias",
+    "historyNote": "Estas órdenes de trabajo están cerradas. Abre una para ver qué se hizo.",
     "groups": {
-      "escalated": "Escaladas",
+      "escalated": "Requieren atención",
       "in_progress": "En progreso",
       "ready": "Asignadas / listas",
       "on_hold": "En pausa",

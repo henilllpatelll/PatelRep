@@ -476,6 +476,15 @@ def _parse_status_list(raw: Optional[str]) -> list[str]:
     return list(dict.fromkeys(values))
 
 
+def _parse_priority_list(raw: Optional[str]) -> list[str]:
+    """Comma-separated priorities in urgency order (emergency first), so a bucketed priority sort stays ordered."""
+    values = {part.strip() for part in (raw or "").split(",") if part.strip()}
+    unknown = sorted(values - set(_LIST_PRIORITIES))
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown priority: {', '.join(unknown)}")
+    return [value for value in _LIST_PRIORITIES if value in values]
+
+
 def _merge_sorted(rows: list[dict], specs: list[tuple[str, bool]]) -> list[dict]:
     """Stable multi-key sort, missing values last (a null due date is never 'due soonest')."""
     for column, descending in reversed(specs):
@@ -594,6 +603,7 @@ async def list_work_orders(
         ]
     ] = Query(None),
     priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
+    priorities: Optional[str] = Query(None, description="Comma-separated priorities; ignored when `priority` is sent"),
     assigned_to: Optional[str] = Query(None),
     mine: bool = Query(False, description="Only orders assigned to the caller"),
     assigned_to_others: bool = Query(False, description="Only orders assigned to someone other than the caller (not visible to engineers)"),
@@ -621,6 +631,7 @@ async def list_work_orders(
     status_filter = _parse_status_list(statuses)
     if status and status not in status_filter:
         status_filter.append(status)
+    priority_set = [priority] if priority else _parse_priority_list(priorities)
     now_iso = datetime.now(timezone.utc).isoformat()
     tenant_id = current_user.hotel_id
     is_engineer = current_user.role == "engineer"
@@ -642,12 +653,13 @@ async def list_work_orders(
     by_priority = sort_by == "priority"
     if by_priority:
         order_specs: list[tuple[str, bool]] = [("due_at", False), ("created_at", True)]
-        buckets: list[Optional[str]] = [priority] if priority else list(_LIST_PRIORITIES)
+        buckets: list[Optional[str]] = list(priority_set or _LIST_PRIORITIES)
         if sort_dir == "asc":
             buckets.reverse()
     else:
         order_specs = [(sort_by, sort_dir == "desc")]
-        buckets = [priority]
+        # Any other sort must order across priorities, so several values filter in one query instead of per bucket.
+        buckets = [priority_set[0] if len(priority_set) == 1 else None]
 
     # Engineers are scoped to their own and unclaimed work. Two indexed queries + a Python merge
     # beat an OR filter (seq-scan) under concurrent load; everyone else is a single query.
@@ -682,6 +694,8 @@ async def list_work_orders(
             query = query.eq("category", category)
         if bucket:
             query = query.eq("priority", bucket)
+        elif len(priority_set) > 1:
+            query = query.in_("priority", priority_set)
         if room_id:
             query = query.eq("room_id", room_id)
         if floor_room_ids is not None:
@@ -864,6 +878,33 @@ async def work_order_stats(current_user: CurrentUser = Depends(get_current_user)
         )
 
     return {"data": stats}
+
+
+@router.get("/summary")
+async def my_work_summary(current_user: CurrentUser = Depends(get_current_user)):
+    """Exact counts of the caller's own active work, for the Work tab's My Work tiles.
+
+    Counted here rather than from a page of the list, so a long queue never produces a misleading number.
+    Always the caller's own assignments (`assigned_to = caller`), never the hotel's, in the caller's tenant;
+    archived orders are excluded. `urgent` is emergency + urgent priority across the active statuses; `waiting`
+    is on_hold; the three overlap on purpose (an urgent order in progress is in both)."""
+    rows = (
+        supabase.table("work_orders")
+        .select("id, status, priority")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assigned_to", current_user.user_id)
+        .is_("archived_at", "null")
+        .in_("status", list(_LIST_ACTIVE_STATUSES))
+        .execute()
+    ).data or []
+    return {
+        "data": {
+            "urgent": sum(1 for row in rows if row.get("priority") in ("emergency", "urgent")),
+            "in_progress": sum(1 for row in rows if row.get("status") == "in_progress"),
+            "waiting": sum(1 for row in rows if row.get("status") == "on_hold"),
+            "total": len(rows),
+        }
+    }
 
 
 @router.get("/repair-codes")

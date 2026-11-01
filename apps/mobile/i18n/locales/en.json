@@ -10549,6 +10549,7 @@
     "filterA11yActive": "Filter and sort, {{count}} active",
     "removeFilter": "Remove filter: {{filter}}",
     "roomLabel": "Room {{room}}",
+    "eyebrow": "PatelRep Engineering",
     "views": {
       "mine": "My Work",
       "available": "Available",
@@ -10556,8 +10557,44 @@
       "waiting": "Waiting",
       "done": "Done"
     },
+    "viewTitles": {
+      "mine": "My Work",
+      "available": "Available Work",
+      "team": "Team Work",
+      "waiting": "On Hold",
+      "done": "History"
+    },
+    "viewSubtitles": {
+      "mine": "Your assigned and in-progress repairs",
+      "available": "Unassigned repairs you can take",
+      "availableManager": "Unassigned repairs that need an owner",
+      "team": "Repairs assigned to other engineers",
+      "waiting": "Paused for parts, access or approval",
+      "done": "Completed and cancelled work orders, for reference"
+    },
+    "shortcuts": {
+      "waiting": "On hold",
+      "done": "History",
+      "backTo": "Back to {{view}}",
+      "viewsA11y": "Work views",
+      "otherViewsA11y": "Other work views"
+    },
+    "summary": {
+      "urgent": "Urgent",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "unknown": "–",
+      "groupA11y": "My Work summary",
+      "a11y": "{{label}}: {{count}}. Show these work orders.",
+      "a11yActive": "{{label}}: {{count}}. Showing these work orders. Tap to clear.",
+      "a11yUnknown": "{{label}}: count unavailable. Show these work orders.",
+      "a11yUnknownActive": "{{label}}: count unavailable. Showing these work orders. Tap to clear.",
+      "unavailable": "Counts are unavailable right now."
+    },
+    "urgentChip": "Urgent & emergency",
+    "historyNote": "These work orders are closed. Open one to see what was done.",
     "groups": {
-      "escalated": "Escalated",
+      "escalated": "Needs attention",
       "in_progress": "In progress",
       "ready": "Assigned / ready",
       "on_hold": "On hold",

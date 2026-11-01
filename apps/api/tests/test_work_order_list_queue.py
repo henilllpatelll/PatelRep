@@ -369,3 +369,73 @@ def test_archived_orders_stay_out_of_the_default_list(monkeypatch):
     db = _Db(work_orders=[_wo(1), _wo(2, archived_at=_iso(1))])
     client = _client(monkeypatch, db, role="gm")
     assert _ids(client.get("/work-orders")) == ["wo-0001"]
+
+
+def test_priorities_filter_takes_several_values_and_keeps_priority_order(monkeypatch):
+    db = _Db(
+        work_orders=[
+            _wo(1, priority="low"),
+            _wo(2, priority="normal"),
+            _wo(3, priority="urgent"),
+            _wo(4, priority="emergency"),
+            _wo(5, priority="urgent", due_at=_iso(-30)),
+        ]
+    )
+    client = _client(monkeypatch, db, role="gm")
+    by_priority = _ids(client.get("/work-orders", params={"priorities": "urgent,emergency", "sort_by": "priority"}))
+    assert by_priority == ["wo-0004", "wo-0005", "wo-0003"]
+    # Another sort still orders across the priorities it keeps, not bucket by bucket.
+    newest = _ids(client.get("/work-orders", params={"priorities": "emergency,urgent", "sort_by": "created_at"}))
+    assert newest == ["wo-0005", "wo-0004", "wo-0003"]
+    paged = []
+    for page in (1, 2):
+        paged += _ids(client.get("/work-orders", params={"priorities": "urgent,emergency", "sort_by": "priority", "per_page": 2, "page": page}))
+    assert paged == by_priority
+
+
+def test_priorities_filter_rejects_unknown_values_and_yields_to_a_single_priority(monkeypatch):
+    db = _Db(work_orders=[_wo(1, priority="urgent"), _wo(2, priority="emergency"), _wo(3, priority="low")])
+    client = _client(monkeypatch, db, role="gm")
+    assert client.get("/work-orders", params={"priorities": "urgent,bogus"}).status_code == 422
+    assert _ids(client.get("/work-orders", params={"priorities": "urgent,emergency", "priority": "low"})) == ["wo-0003"]
+    assert _ids(client.get("/work-orders", params={"priorities": "low", "sort_by": "created_at"})) == ["wo-0003"]
+
+
+def test_priorities_filter_does_not_widen_an_engineers_scope(monkeypatch):
+    db = _Db(
+        work_orders=[
+            _wo(1, priority="urgent", assigned_to=ME, status="in_progress"),
+            _wo(2, priority="urgent", assigned_to=OTHER, status="in_progress"),
+            _wo(3, priority="emergency"),
+        ]
+    )
+    client = _client(monkeypatch, db)
+    assert sorted(_ids(client.get("/work-orders", params={"priorities": "urgent,emergency"}))) == ["wo-0001", "wo-0003"]
+
+
+def test_summary_counts_only_the_callers_own_active_work(monkeypatch):
+    db = _Db(
+        work_orders=[
+            _wo(1, assigned_to=ME, status="in_progress", priority="urgent"),
+            _wo(2, assigned_to=ME, status="open", priority="emergency"),
+            _wo(3, assigned_to=ME, status="on_hold", priority="urgent"),
+            _wo(4, assigned_to=ME, status="escalated", priority="normal"),
+            _wo(5, assigned_to=ME, status="in_progress", priority="low"),
+            _wo(6, assigned_to=ME, status="completed", priority="urgent"),
+            _wo(7, assigned_to=ME, status="cancelled", priority="urgent"),
+            _wo(8, assigned_to=ME, status="open", priority="urgent", archived_at=_iso(1)),
+            _wo(9, assigned_to=OTHER, status="in_progress", priority="urgent"),
+            _wo(10, status="open", priority="emergency"),
+            _wo(11, assigned_to=ME, status="open", priority="urgent", tenant_id="hotel-2"),
+        ]
+    )
+    client = _client(monkeypatch, db)
+    response = client.get("/work-orders/summary")
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {"urgent": 3, "in_progress": 2, "waiting": 1, "total": 5}
+
+
+def test_summary_is_zero_for_a_manager_who_holds_no_assignments(monkeypatch):
+    db = _Db(work_orders=[_wo(1, assigned_to=OTHER, status="in_progress", priority="urgent"), _wo(2, priority="emergency")])
+    client = _client(monkeypatch, db, role="chief_engineer", user_id="chief-1")
+    assert client.get("/work-orders/summary").json()["data"] == {"urgent": 0, "in_progress": 0, "waiting": 0, "total": 0}

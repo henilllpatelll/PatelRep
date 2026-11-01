@@ -130,13 +130,14 @@ export function WorkFilterSheet({ visible, view, role, filters, onApply, onClose
             ) : null}
 
             <Section title={t("workQueue.filter.priority")}>
-              <Chip label={t("workQueue.filter.any")} selected={draft.priority == null} onPress={() => set({ priority: null })} testID="filter-priority-any" />
+              <Chip label={t("workQueue.filter.any")} selected={draft.priority == null && !draft.urgentOnly} onPress={() => set({ priority: null, urgentOnly: false })} testID="filter-priority-any" />
+              <Chip label={t("workQueue.urgentChip")} selected={draft.urgentOnly} onPress={() => set({ priority: null, urgentOnly: true })} testID="filter-priority-urgentOnly" />
               {WORK_ORDER_PRIORITIES.map((priority) => (
                 <Chip
                   key={priority}
                   label={t(`workQueue.priority.${priority}`)}
-                  selected={draft.priority === priority}
-                  onPress={() => set({ priority })}
+                  selected={!draft.urgentOnly && draft.priority === priority}
+                  onPress={() => set({ priority, urgentOnly: false })}
                   testID={`filter-priority-${priority}`}
                 />
               ))}

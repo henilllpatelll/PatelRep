@@ -8,6 +8,7 @@ import type {
   WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
 import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
+import { parseWorkSummary, type WorkSummary } from "@/lib/engineering/workSummary";
 import type {
   AuditEvent,
   CompleteWorkOrderBody,
@@ -108,12 +109,24 @@ export async function listWorkOrderPage(
   page = 1,
   perPage = WORK_QUEUE_PAGE_SIZE
 ): Promise<WorkOrderPage> {
-  const { statuses, ...rest } = params;
+  const { statuses, priorities, ...rest } = params;
   const res = await api.get<{ data: WorkOrder[]; meta?: { has_more?: boolean } }>(
-    `/work-orders?${queryString({ ...rest, statuses: statuses?.join(","), page: page > 1 ? page : undefined, per_page: perPage })}`
+    `/work-orders?${queryString({
+      ...rest,
+      statuses: statuses?.join(","),
+      priorities: priorities?.join(","),
+      page: page > 1 ? page : undefined,
+      per_page: perPage,
+    })}`
   );
   const orders = res.data ?? [];
   return { orders, hasMore: res.meta?.has_more ?? orders.length >= perPage };
+}
+
+/** Exact counts of the caller's own active work (the My Work tiles); null when the server's answer is malformed. */
+export async function getWorkOrderSummary(signal?: AbortSignal): Promise<WorkSummary | null> {
+  const res = await api.get<{ data: unknown }>("/work-orders/summary", { signal });
+  return parseWorkSummary(res.data);
 }
 
 export const ASSET_WORK_ORDER_PAGE_SIZE = 10;
