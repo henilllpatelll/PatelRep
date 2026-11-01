@@ -189,6 +189,7 @@ describe("Asset detail: create work order", () => {
   it("opens the room this equipment is registered to", async () => {
     serve();
     const screen = renderScreen();
+    fireEvent.press(await screen.findByTestId("asset-action-more"));
     fireEvent.press(await screen.findByTestId("asset-action-room"));
     expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/room-status/[roomId]", params: { roomId: "r312" } });
   });
@@ -199,5 +200,45 @@ describe("Asset detail: create work order", () => {
     const screen = renderScreen();
     await screen.findByTestId("asset-create-offline");
     expect(screen.getByTestId("asset-create-wo").props.accessibilityState).toMatchObject({ disabled: true });
+  });
+});
+
+describe("Asset detail: Phase 2 sections", () => {
+  it("has exactly Overview, Maintenance, Readings and History; Work Orders now lives inside Maintenance", async () => {
+    serve();
+    const screen = renderScreen();
+    await screen.findByTestId("asset-detail-title");
+    for (const key of ["overview", "maintenance", "readings", "history"]) expect(screen.getByTestId(`asset-section-${key}`)).toBeTruthy();
+    expect(screen.queryByTestId("asset-section-workOrders")).toBeNull();
+  });
+
+  it("Maintenance shows active repairs, scheduled maintenance and completed repairs, and opens the real work order", async () => {
+    serve({ active: [wo("w1", { title: "Compressor noise", status: "in_progress" })], completed: [wo("w2", { title: "Replaced thermostat", status: "completed", completed_at: iso(-10) })] });
+    const screen = renderScreen();
+    fireEvent.press(await screen.findByTestId("asset-section-maintenance"));
+    expect(await screen.findByTestId("asset-work-orders")).toHaveTextContent(has("Compressor noise"));
+    expect(await screen.findByTestId("asset-wo-w2")).toBeTruthy();
+    expect(screen.getByTestId("asset-no-pm")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("asset-wo-w1"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/work-orders/[woId]", params: { woId: "w1" } });
+  });
+
+  it("Overview keeps Report Issue primary and moves secondary actions into More", async () => {
+    serve();
+    const screen = renderScreen();
+    expect(await screen.findByTestId("asset-create-wo")).toBeTruthy();
+    expect(screen.queryByTestId("asset-action-room")).toBeNull();
+    fireEvent.press(screen.getByTestId("asset-action-more"));
+    expect(await screen.findByTestId("asset-action-room")).toBeTruthy();
+    expect(screen.getByTestId("asset-more-repairs")).toBeTruthy();
+  });
+
+  it("Overview links to the full History instead of repeating Maintenance figures", async () => {
+    serve();
+    const screen = renderScreen();
+    await screen.findByTestId("asset-maintenance-summary");
+    fireEvent.press(screen.getByTestId("asset-action-history"));
+    expect(await screen.findByTestId("asset-section-history")).toBeTruthy();
+    expect(screen.queryByTestId("asset-maintenance-summary")).toBeNull();
   });
 });

@@ -2541,7 +2541,6 @@
     },
     "sections": {
       "overview": "Overview",
-      "workOrders": "Work orders",
       "maintenance": "Maintenance",
       "readings": "Readings",
       "history": "History"
@@ -2597,7 +2596,7 @@
       "reliability": "Reliability",
       "sort": "Sort by",
       "reset": "Reset",
-      "show": "Show results",
+      "show": "Show equipment",
       "maintenanceOptions": {
         "active_work_order": "Active work order",
         "pm_overdue": "PM overdue",
@@ -2697,7 +2696,12 @@
       "unavailableBody": "It may have been removed, or it isn't part of this hotel.",
       "backToAssets": "Back to assets",
       "offlineUncached": "No connection, and this equipment hasn't been opened on this device yet.",
-      "viewRoom": "View room {{room}}"
+      "viewRoom": "View room {{room}}",
+      "more": "More",
+      "roomImpact": "Room impact",
+      "roomAffected": "Room {{room}} is affected",
+      "recentTitle": "Recent activity",
+      "viewHistory": "View full history"
     },
     "workOrders": {
       "active": "Active",
@@ -2722,7 +2726,7 @@
       }
     },
     "maintenance": {
-      "schedules": "PM schedules",
+      "schedules": "Scheduled maintenance",
       "noSchedule": "No preventive maintenance is scheduled for this equipment.",
       "lastDone": "Last done {{date}}",
       "neverDone": "Not completed yet",
@@ -2736,7 +2740,10 @@
       "passed": "{{count}} passed",
       "passed_plural": "{{count}} passed",
       "failed": "{{count}} failed",
-      "failed_plural": "{{count}} failed"
+      "failed_plural": "{{count}} failed",
+      "activeRepairs": "Active repairs",
+      "records": "Recent maintenance records",
+      "completedRepairs": "Completed repairs"
     },
     "readings": {
       "title": "Equipment readings",
@@ -10873,7 +10880,8 @@
       "today": "Today",
       "week": "Week",
       "calendar": "Calendar",
-      "history": "History"
+      "history": "History",
+      "plan": "Plan"
     },
     "weekday": {
       "mo": "Mo",
@@ -10927,7 +10935,11 @@
       "any": "Any",
       "reset": "Reset",
       "apply": "Show results",
-      "showing": "Showing {{shown}} of {{total}}"
+      "showing": "Showing {{shown}} of {{total}}",
+      "titleActive": "Filter & Sort · {{count}} active",
+      "allStatuses": "All",
+      "showResults": "Show {{count}} result",
+      "showResults_plural": "Show {{count}} results"
     },
     "sort": {
       "due_soonest": "Due soonest",
@@ -10954,7 +10966,14 @@
       "openAssets": "Open Assets",
       "openAsset": "Open this equipment",
       "notFound": "Schedule not found",
-      "notFoundBody": "It may have been removed or you may be offline. Pull to refresh on the PM screen."
+      "notFoundBody": "It may have been removed or you may be offline. Pull to refresh on the PM screen.",
+      "checklist": "Checklist",
+      "version": "Version",
+      "steps": "Steps",
+      "photosRequired": "Photos required",
+      "stepsWithPhoto": "{{count}} step",
+      "stepsWithPhoto_plural": "{{count}} steps",
+      "mostRecent": "Most recent"
     },
     "chooseChecklist": "Choose a checklist",
     "chooseChecklistBody": "Pick the checklist that matches this inspection. The result is recorded against it.",
@@ -11094,6 +11113,23 @@
       "completedOn": "Completed {{date}}",
       "version": "Checklist version {{version}}",
       "labor": "Labor: {{count}} min"
+    },
+    "plan": {
+      "week": "Week",
+      "calendar": "Calendar"
+    },
+    "today": {
+      "continue": "Continue inspection",
+      "needsAttention": "Needs attention",
+      "nothingElseToday": "No other inspections are due today.",
+      "progress": "{{done}} of {{total}} steps done",
+      "viewPlan": "View full plan",
+      "viewPlanMore": "View full plan (+{{count}} more)"
+    },
+    "history": {
+      "followUp": "{{count}} follow-up defect",
+      "followUp_plural": "{{count}} follow-up defects",
+      "openEquipment": "Open equipment: {{name}}"
     }
   },
   "engRooms": {

@@ -15,7 +15,6 @@ import { AssetMaintenanceSection } from "@/components/engineering/assets/AssetMa
 import { AssetOverview, type AssetSection } from "@/components/engineering/assets/AssetOverview";
 import { AssetReadingsSection } from "@/components/engineering/assets/AssetReadingsSection";
 import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReliabilityPanel";
-import { AssetWorkOrdersSection } from "@/components/engineering/assets/AssetWorkOrdersSection";
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
@@ -39,7 +38,7 @@ import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { useAppStore } from "@/stores/appStore";
 import type { PmScheduleRow } from "@/lib/api/assets";
 
-const SECTIONS: readonly AssetSection[] = ["overview", "workOrders", "maintenance", "readings", "history"];
+const SECTIONS: readonly AssetSection[] = ["overview", "maintenance", "readings", "history"];
 
 /** Falls back to downtime alone only for an older API that does not send the derived status. */
 function statusOf(asset: AssetDetail): AssetServiceStatus {
@@ -254,7 +253,7 @@ export default function AssetDetailScreen() {
             label={t(`assets.sections.${key}`)}
             selected={section === key}
             onPress={() => go(key)}
-            count={key === "workOrders" ? data.active_work_order_count : undefined}
+            count={key === "maintenance" ? data.active_work_order_count : undefined}
             testID={`asset-section-${key}`}
           />
         ))}
@@ -304,19 +303,12 @@ export default function AssetDetailScreen() {
           </>
         ) : null}
 
-        {section === "workOrders" ? (
-          <AssetWorkOrdersSection
+        {section === "maintenance" ? (
+          <AssetMaintenanceSection
             active={active}
             completed={completed}
             scoped={role === "engineer"}
             repeats90d={data.repeat_repairs_90d ?? null}
-            language={language}
-            timezone={timezone}
-          />
-        ) : null}
-
-        {section === "maintenance" ? (
-          <AssetMaintenanceSection
             schedules={pmViews}
             history={pmHistory?.rows ?? null}
             historyFailure={pmFailure}

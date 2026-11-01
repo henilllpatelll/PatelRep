@@ -10,10 +10,19 @@ import type { PmCompletionSummary } from "@/lib/api/pm";
 import { formatDayYear } from "@/lib/engineering/assetFormat";
 import type { LoadFailure } from "@/lib/engineering/loadState";
 import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
+import type { AssetWorkOrders } from "@/lib/engineering/useAssetWorkOrders";
 import { Fact, Panel, PanelTitle } from "./assetUi";
+import { WorkOrderList } from "./AssetWorkOrdersSection";
 import { PM_LIST_ROUTE, pmRecordRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 
 interface Props {
+  /** Open repairs and completed repairs for this asset (the Work Orders list lives here now). */
+  active: AssetWorkOrders;
+  completed: AssetWorkOrders;
+  /** Engineers only see their own and unclaimed orders; the section says so rather than implying a full history. */
+  scoped: boolean;
+  /** The 90-day count when the API reports it for the inventory list; null when unknown. */
+  repeats90d: number | null;
   schedules: readonly PmScheduleView[];
   history: readonly PmCompletionSummary[] | null;
   historyFailure: LoadFailure | null;
@@ -56,11 +65,21 @@ function ScheduleRow({ schedule, language, timezone }: { schedule: PmScheduleVie
 }
 
 /** PM schedules and inspection history for this asset, from the same Phase 5 data and rules the PM tab uses. */
-export function AssetMaintenanceSection({ schedules, history, historyFailure, hasMoreHistory, onLoadHistory, language, timezone }: Props) {
+export function AssetMaintenanceSection({ active, completed, scoped, repeats90d, schedules, history, historyFailure, hasMoreHistory, onLoadHistory, language, timezone }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
     <View style={styles.stack} testID="asset-maintenance">
+      <Panel testID="asset-work-orders">
+        <PanelTitle>{t("assets.maintenance.activeRepairs")}</PanelTitle>
+        {repeats90d != null && repeats90d >= 2 ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textSecondary }]} testID="asset-repeat-note">
+            {t("assets.workOrders.repeat90d", { count: repeats90d })}
+          </Text>
+        ) : null}
+        <WorkOrderList source={active} language={language} timezone={timezone} emptyBody={t("assets.workOrders.noActive")} />
+      </Panel>
+
       <Panel>
         <PanelTitle>{t("assets.maintenance.schedules")}</PanelTitle>
         {schedules.length === 0 ? (
@@ -73,7 +92,7 @@ export function AssetMaintenanceSection({ schedules, history, historyFailure, ha
       </Panel>
 
       <Panel>
-        <PanelTitle>{t("assets.maintenance.history")}</PanelTitle>
+        <PanelTitle>{t("assets.maintenance.records")}</PanelTitle>
         {history == null ? (
           historyFailure ? (
             <Button label={t("common.retry")} variant="secondary" size="sm" onPress={onLoadHistory} testID="asset-pm-history-retry" />
@@ -117,6 +136,15 @@ export function AssetMaintenanceSection({ schedules, history, historyFailure, ha
             {t("assets.maintenance.historyFailed")}
           </Text>
         ) : null}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subhead, { color: theme.textMuted }]} accessibilityRole="header">
+          {t("assets.maintenance.completedRepairs")}
+        </Text>
+        <WorkOrderList source={completed} language={language} timezone={timezone} emptyBody={t("assets.workOrders.noCompleted")} />
+        {scoped ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textMuted }]} testID="asset-wo-scope">
+            {t("assets.workOrders.scoped")}
+          </Text>
+        ) : null}
       </Panel>
     </View>
   );
@@ -132,4 +160,5 @@ const styles = StyleSheet.create({
   duePill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   dueText: { fontSize: 12, fontWeight: "700" },
   empty: { fontSize: 13.5, lineHeight: 19 },
+  subhead: { fontSize: 12, fontWeight: "800", letterSpacing: 0.6, textTransform: "uppercase", marginTop: 8 },
 });

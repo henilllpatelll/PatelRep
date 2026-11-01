@@ -28,6 +28,8 @@ export interface PmAssetDetail {
   serial_number?: string | null;
   asset_categories?: { name?: string | null } | null;
   rooms?: { room_number?: string | null } | null;
+  /** Derived by the API (downtime impact, else a repair in progress, else operational). Absent from an older API. */
+  service_status?: "operational" | "degraded" | "out_of_service" | "under_repair" | null;
 }
 
 export async function getPmAsset(assetId: string): Promise<PmAssetDetail | null> {

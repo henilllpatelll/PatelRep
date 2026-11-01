@@ -61,3 +61,37 @@ from candidate migrations* runs `scripts/remote-migration-apply.mjs`, which exec
 <staging> --yes` ("Wiping remote database to the blank Supabase baseline") and then reseeds the fixture tenant. The
 `staging-target-guard.mjs` step refuses a non-staging host, so production is protected, but every pushed commit of any
 PR wipes the shared staging database. This is by design in the workflow, not an accident of this change.
+
+## Phase 2: mobile UI/UX, navigation, cards, search, filters and sheets
+
+Mobile only (`apps/mobile`); no API or migration change. PM and Assets stay two separate tabs sharing primitives
+(`EngineeringSegmented`, `BottomSheet`, `EngineeringState`, `assetUi`, `pmUi`).
+
+### PM
+- Top level is **Today | Plan | History**; Plan holds **Week | Calendar** (`lib/engineering/pmViews.ts`). Old
+  `?view=week|calendar` links land on Plan > Week/Calendar.
+- Today (`lib/engineering/pmFilters.ts` `todayPlan`): Continue Inspection (real saved drafts only, with `x of y steps`
+  from `listPmDraftSummaries`), Needs Attention (overdue, most overdue first), Due Today, Coming Up (+ link to Plan).
+  A schedule is in at most one section; a drafted schedule appears only under Continue.
+- Summary cards open the worklist they count: Overdue / Due today filter Today, This week opens Plan > Week.
+- History hides the schedule search and filters (they do not apply to server history), flags follow-up defects and
+  opens the exact equipment.
+- Schedule detail: summary, linked equipment (whole card opens that asset, shows confirmed service condition),
+  inspection procedure (bound checklist name/version/steps/photo steps; a broken binding shows the Phase 1 error and
+  disables Start), previous maintenance.
+- Filter & Sort: All chip, active count in the title, live result count on the apply button, nothing applied until
+  Show results.
+
+### Assets
+- Detail sections are **Overview | Maintenance | Readings | History**; the old Work Orders tab is now inside
+  Maintenance (Active repairs, Scheduled maintenance, Recent records incl. completed repairs).
+- Overview: Report Issue primary, Record Reading where permitted, secondary actions in a More sheet; the duplicated
+  maintenance summary became Recent activity with a link to History; room impact is shown when status is not operational.
+- Asset Filter & Sort now uses the shared `BottomSheet` (backdrop/Android back/safe area/keyboard consistent with PM).
+
+### Not done / dependencies for later phases
+- Criticality is not shown: the API has no criticality field. Needs a Phase 3 backend field.
+- History does not link to corrective work orders: the completion summary carries no work-order ids. Needs the
+  completion list to return them (the record detail screen is unchanged).
+- Schedule detail has no technician assignment: the API only has `assigned_to_role`.
+- The Record Reading sheet still uses its own Modal (not moved onto the shared BottomSheet, to avoid disturbing its retry protections); checklist selection and inspection confirmations are unchanged. Move them in Phase 4 with the workflow changes.

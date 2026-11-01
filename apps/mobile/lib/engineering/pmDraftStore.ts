@@ -45,6 +45,34 @@ export async function clearPmDraft(scheduleId: string): Promise<void> {
   }
 }
 
+export interface PmDraftSummary {
+  scheduleId: string;
+  /** Checklist items with a recorded result. */
+  answered: number;
+  total: number;
+  updatedAt: string;
+}
+
+/** Real saved drafts for the signed-in person, with how far each got. A malformed record is skipped, never half-read. */
+export async function listPmDraftSummaries(): Promise<PmDraftSummary[]> {
+  const owner = getQueueOwner();
+  if (!owner) return [];
+  try {
+    const prefix = `engineering.pmDraft.v1:${owner}:`;
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(prefix));
+    const summaries: PmDraftSummary[] = [];
+    for (const k of keys) {
+      const draft = await loadPmDraft(k.slice(prefix.length));
+      if (!draft) continue;
+      const answered = Object.values(draft.items).filter((item) => item?.result != null).length;
+      summaries.push({ scheduleId: draft.scheduleId, answered, total: draft.identities.length, updatedAt: draft.updatedAt });
+    }
+    return summaries;
+  } catch {
+    return [];
+  }
+}
+
 /** Schedule ids that have a saved draft for the signed-in person, so lists can say "Continue". */
 export async function listPmDraftIds(): Promise<string[]> {
   const owner = getQueueOwner();

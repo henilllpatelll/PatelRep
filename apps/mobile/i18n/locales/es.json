@@ -2541,7 +2541,6 @@
     },
     "sections": {
       "overview": "Resumen",
-      "workOrders": "Órdenes",
       "maintenance": "Mantenimiento",
       "readings": "Lecturas",
       "history": "Historial"
@@ -2597,7 +2596,7 @@
       "reliability": "Fiabilidad",
       "sort": "Ordenar por",
       "reset": "Restablecer",
-      "show": "Ver resultados",
+      "show": "Ver equipos",
       "maintenanceOptions": {
         "active_work_order": "Orden de trabajo activa",
         "pm_overdue": "MP vencido",
@@ -2697,7 +2696,12 @@
       "unavailableBody": "Puede haberse eliminado o no pertenecer a este hotel.",
       "backToAssets": "Volver a equipos",
       "offlineUncached": "Sin conexión, y este equipo aún no se ha abierto en este dispositivo.",
-      "viewRoom": "Ver habitación {{room}}"
+      "viewRoom": "Ver habitación {{room}}",
+      "more": "Más",
+      "roomImpact": "Impacto en habitación",
+      "roomAffected": "La habitación {{room}} está afectada",
+      "recentTitle": "Actividad reciente",
+      "viewHistory": "Ver historial completo"
     },
     "workOrders": {
       "active": "Activas",
@@ -2722,7 +2726,7 @@
       }
     },
     "maintenance": {
-      "schedules": "Planes de MP",
+      "schedules": "Mantenimiento programado",
       "noSchedule": "No hay mantenimiento preventivo programado para este equipo.",
       "lastDone": "Último: {{date}}",
       "neverDone": "Aún sin completar",
@@ -2736,7 +2740,10 @@
       "passed": "{{count}} aprobado",
       "passed_plural": "{{count}} aprobados",
       "failed": "{{count}} fallido",
-      "failed_plural": "{{count}} fallidos"
+      "failed_plural": "{{count}} fallidos",
+      "activeRepairs": "Reparaciones activas",
+      "records": "Registros de mantenimiento recientes",
+      "completedRepairs": "Reparaciones completadas"
     },
     "readings": {
       "title": "Lecturas del equipo",
@@ -10873,7 +10880,8 @@
       "today": "Hoy",
       "week": "Semana",
       "calendar": "Calendario",
-      "history": "Historial"
+      "history": "Historial",
+      "plan": "Plan"
     },
     "weekday": {
       "mo": "Lu",
@@ -10927,7 +10935,11 @@
       "any": "Cualquiera",
       "reset": "Restablecer",
       "apply": "Mostrar resultados",
-      "showing": "Mostrando {{shown}} de {{total}}"
+      "showing": "Mostrando {{shown}} de {{total}}",
+      "titleActive": "Filtrar y ordenar · {{count}} activos",
+      "allStatuses": "Todos",
+      "showResults": "Mostrar {{count}} resultado",
+      "showResults_plural": "Mostrar {{count}} resultados"
     },
     "sort": {
       "due_soonest": "Vence primero",
@@ -10954,7 +10966,14 @@
       "openAssets": "Abrir Activos",
       "openAsset": "Abrir este equipo",
       "notFound": "Programa no encontrado",
-      "notFoundBody": "Puede que se haya eliminado o que no tengas conexión. Desliza para actualizar en la pantalla de PM."
+      "notFoundBody": "Puede que se haya eliminado o que no tengas conexión. Desliza para actualizar en la pantalla de PM.",
+      "checklist": "Lista de verificación",
+      "version": "Versión",
+      "steps": "Pasos",
+      "photosRequired": "Fotos requeridas",
+      "stepsWithPhoto": "{{count}} paso",
+      "stepsWithPhoto_plural": "{{count}} pasos",
+      "mostRecent": "Más reciente"
     },
     "chooseChecklist": "Elige una lista",
     "chooseChecklistBody": "Elige la lista que corresponde a esta inspección. El resultado se registra con ella.",
@@ -11094,6 +11113,23 @@
       "completedOn": "Completado {{date}}",
       "version": "Versión de la lista {{version}}",
       "labor": "Mano de obra: {{count}} min"
+    },
+    "plan": {
+      "week": "Semana",
+      "calendar": "Calendario"
+    },
+    "today": {
+      "continue": "Continuar inspección",
+      "needsAttention": "Requiere atención",
+      "nothingElseToday": "No hay más inspecciones para hoy.",
+      "progress": "{{done}} de {{total}} pasos completados",
+      "viewPlan": "Ver plan completo",
+      "viewPlanMore": "Ver plan completo (+{{count}} más)"
+    },
+    "history": {
+      "followUp": "{{count}} defecto de seguimiento",
+      "followUp_plural": "{{count}} defectos de seguimiento",
+      "openEquipment": "Abrir equipo: {{name}}"
     }
   },
   "engRooms": {

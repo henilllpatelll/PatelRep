@@ -6,28 +6,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
-import { PM_LIST_ROUTE, pmInspectRoute, pmRecordRoute, pmScheduleRoute } from "@/lib/engineering/routes";
+import { PM_LIST_ROUTE, assetRoute, pmInspectRoute, pmRecordRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
+import { EngineeringSegmented } from "@/components/engineering/EngineeringSegmented";
 import { PmMetricCards } from "@/components/engineering/pm/PmMetricCards";
 import { PmTodayView } from "@/components/engineering/pm/PmTodayView";
-import { PmWeekView } from "@/components/engineering/pm/PmWeekView";
-import { PmCalendarView } from "@/components/engineering/pm/PmCalendarView";
+import { PmPlanView } from "@/components/engineering/pm/PmPlanView";
 import { PmHistoryView } from "@/components/engineering/pm/PmHistoryView";
 import { PmFilterSheet } from "@/components/engineering/pm/PmFilterSheet";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
 import { activeFilterCount, applyPmFilters, categoriesOf, DEFAULT_PM_FILTERS, type PmFilterState } from "@/lib/engineering/pmFilters";
-import { listPmDraftIds } from "@/lib/engineering/pmDraftStore";
+import { listPmDraftSummaries, type PmDraftSummary } from "@/lib/engineering/pmDraftStore";
 import { canCompletePm } from "@/lib/engineering/roles";
-
-type PmView = "today" | "week" | "calendar" | "history";
-const VIEWS: readonly PmView[] = ["today", "week", "calendar", "history"];
-
-function parseView(value: string | string[] | undefined): PmView {
-  const v = Array.isArray(value) ? value[0] : value;
-  return VIEWS.includes(v as PmView) ? (v as PmView) : "today";
-}
+import { parsePmNavigation, PM_VIEWS, type PmPlanMode, type PmView } from "@/lib/engineering/pmViews";
 
 export default function PreventiveMaintenanceScreen() {
   const { t, i18n } = useTranslation();
@@ -42,19 +35,22 @@ export default function PreventiveMaintenanceScreen() {
   const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
 
   const data = usePmSchedules();
-  const [view, setView] = useState<PmView>(() => parseView(params.view));
+  const [initialNav] = useState(() => parsePmNavigation(params.view));
+  const [view, setView] = useState<PmView>(initialNav.view);
+  const [planMode, setPlanMode] = useState<PmPlanMode>(initialNav.plan);
   const [filters, setFilters] = useState<PmFilterState>(DEFAULT_PM_FILTERS);
   const [searching, setSearching] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [draftIds, setDraftIds] = useState<ReadonlySet<string>>(new Set());
+  const [drafts, setDrafts] = useState<ReadonlyMap<string, PmDraftSummary>>(new Map());
   const [historyToken, setHistoryToken] = useState(0);
+  const draftIds = useMemo<ReadonlySet<string>>(() => new Set(drafts.keys()), [drafts]);
 
   // Tabs stay mounted: coming back from an inspection re-reads schedules (due dates moved), history and local drafts.
   const focusedOnce = useRef(false);
   const { reload } = data;
   useFocusEffect(
     useCallback(() => {
-      void listPmDraftIds().then((ids) => setDraftIds(new Set(ids)));
+      void listPmDraftSummaries().then((list) => setDrafts(new Map(list.map((d) => [d.scheduleId, d]))));
       if (focusedOnce.current) {
         void reload();
         setHistoryToken((n) => n + 1);
@@ -66,15 +62,28 @@ export default function PreventiveMaintenanceScreen() {
   const visible = useMemo(() => applyPmFilters(data.schedules, filters), [data.schedules, filters]);
   const categories = useMemo(() => categoriesOf(data.schedules), [data.schedules]);
   const filtersActive = activeFilterCount(filters) > 0;
+  const onHistory = view === "history";
 
   const load = resolveLoadState({ loading: data.loading && !data.hasData, failure: data.failure, count: data.schedules.length, offline: !isOnline && !data.hasData });
   const showMetrics = data.hasData;
-  const listState = view === "history" ? "ready" : load.status === "ready" && visible.length === 0 ? "empty" : load.status;
+  const listState = onHistory ? "ready" : load.status === "ready" && visible.length === 0 ? "empty" : load.status;
 
   const open = (id: string) => router.push((pmScheduleRoute(id) ?? PM_LIST_ROUTE) as never);
   const inspect = (id: string) => router.push((pmInspectRoute(id) ?? PM_LIST_ROUTE) as never);
   const language = i18n.language;
   const listProps = { schedules: visible, language, draftIds, canInspect, onOpen: open, onInspect: inspect };
+
+  /** Metric cards open the worklist they count: Overdue / Due today filter Today, This week opens the Week plan. */
+  const selectMetric = (card: "overdue" | "today" | "week") => {
+    if (card === "week") {
+      setFilters((f) => ({ ...f, states: [] }));
+      setPlanMode("week");
+      setView("plan");
+      return;
+    }
+    setFilters((f) => ({ ...f, states: [card === "overdue" ? "overdue" : "due_today"] }));
+    setView("today");
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -95,28 +104,33 @@ export default function PreventiveMaintenanceScreen() {
                 {t("pm.subtitle")}
               </Text>
             </View>
-            <Pressable
-              onPress={() => setSearching((s) => !s)}
-              style={styles.iconButton}
-              accessibilityRole="button"
-              accessibilityLabel={t("pm.search")}
-              accessibilityState={{ expanded: searching }}
-              testID="pm-search-toggle"
-            >
-              <Ionicons name="search-outline" size={22} color={theme.shell.ink} />
-            </Pressable>
-            <Pressable
-              onPress={() => setSheetOpen(true)}
-              style={styles.iconButton}
-              accessibilityRole="button"
-              accessibilityLabel={t("pm.filter.title")}
-              testID="pm-filter-open"
-            >
-              <Ionicons name="options-outline" size={22} color={theme.shell.ink} />
-              {filtersActive ? <View style={[styles.badge, { backgroundColor: theme.status.pickup }]} /> : null}
-            </Pressable>
+            {/* History reads the recorded inspections from the server; the schedule search and filters do not apply to it, so they are not offered there. */}
+            {!onHistory ? (
+              <>
+                <Pressable
+                  onPress={() => setSearching((s) => !s)}
+                  style={styles.iconButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("pm.search")}
+                  accessibilityState={{ expanded: searching }}
+                  testID="pm-search-toggle"
+                >
+                  <Ionicons name="search-outline" size={22} color={theme.shell.ink} />
+                </Pressable>
+                <Pressable
+                  onPress={() => setSheetOpen(true)}
+                  style={styles.iconButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={filtersActive ? t("pm.filter.titleActive", { count: activeFilterCount(filters) }) : t("pm.filter.title")}
+                  testID="pm-filter-open"
+                >
+                  <Ionicons name="options-outline" size={22} color={theme.shell.ink} />
+                  {filtersActive ? <View style={[styles.badge, { backgroundColor: theme.status.pickup }]} /> : null}
+                </Pressable>
+              </>
+            ) : null}
           </View>
-          {searching ? (
+          {searching && !onHistory ? (
             <TextInput
               value={filters.query}
               onChangeText={(query) => setFilters((f) => ({ ...f, query }))}
@@ -136,31 +150,20 @@ export default function PreventiveMaintenanceScreen() {
             overdue={showMetrics ? data.summary.overdue : null}
             dueToday={showMetrics ? data.summary.dueToday : null}
             thisWeek={showMetrics ? data.summary.thisWeek : null}
-            onSelect={(card) => setView(card === "week" ? "week" : "today")}
+            onSelect={selectMetric}
           />
         </View>
 
-        <View style={[styles.segmented, { backgroundColor: theme.surfaceSubtle }]} accessibilityRole="tablist">
-          {VIEWS.map((v) => {
-            const active = view === v;
-            return (
-              <Pressable
-                key={v}
-                onPress={() => setView(v)}
-                style={[styles.segment, active && { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                testID={`pm-view-${v}`}
-              >
-                <Text maxFontSizeMultiplier={1.3} style={[styles.segmentLabel, { color: active ? theme.textPrimary : theme.textMuted }]}>
-                  {t(`pm.views.${v}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.segmented}>
+          <EngineeringSegmented
+            options={PM_VIEWS.map((key) => ({ key, label: t(`pm.views.${key}`), testID: `pm-view-${key}` }))}
+            value={view}
+            onChange={setView}
+            accessibilityLabel={t("pm.title")}
+          />
         </View>
 
-        {filtersActive && view !== "history" ? (
+        {filtersActive && !onHistory ? (
           <View style={styles.activeRow} testID="pm-active-filters">
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.activeText, { color: theme.textSecondary }]}>
               {t("pm.filter.showing", { shown: visible.length, total: data.schedules.length })}
@@ -185,21 +188,23 @@ export default function PreventiveMaintenanceScreen() {
         ) : null}
 
         <View style={styles.body}>
-          {view === "history" ? (
+          {onHistory ? (
             <PmHistoryView
               scope={scope}
               hotelTimezone={hotelTimezone}
               language={language}
               refreshToken={historyToken}
               onOpen={(row) => router.push((pmRecordRoute(row.id, row.pm_schedule_id) ?? PM_LIST_ROUTE) as never)}
+              onOpenAsset={(id) => {
+                const route = assetRoute(id);
+                if (route) router.push(route as never);
+              }}
             />
           ) : load.status === "ready" && visible.length > 0 ? (
             view === "today" ? (
-              <PmTodayView {...listProps} />
-            ) : view === "week" ? (
-              <PmWeekView {...listProps} today={data.today} />
+              <PmTodayView {...listProps} drafts={drafts} onOpenPlan={() => { setPlanMode("week"); setView("plan"); }} />
             ) : (
-              <PmCalendarView {...listProps} today={data.today} />
+              <PmPlanView {...listProps} today={data.today} mode={planMode} onModeChange={setPlanMode} />
             )
           ) : null}
 
@@ -218,6 +223,7 @@ export default function PreventiveMaintenanceScreen() {
         visible={sheetOpen}
         filters={filters}
         categories={categories}
+        countResults={(next) => applyPmFilters(data.schedules, next).length}
         onApply={(next) => {
           setFilters(next);
           setSheetOpen(false);
@@ -242,9 +248,7 @@ const styles = StyleSheet.create({
   badge: { position: "absolute", top: 9, right: 9, width: 9, height: 9, borderRadius: 5 },
   search: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, fontSize: 15 },
   metrics: { marginTop: -14 },
-  segmented: { flexDirection: "row", marginHorizontal: 16, marginTop: 14, borderRadius: 12, padding: 3, gap: 3 },
-  segment: { flex: 1, minHeight: 40, borderRadius: 9, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
-  segmentLabel: { fontSize: 13, fontWeight: "700" },
+  segmented: { marginHorizontal: 16, marginTop: 14 },
   activeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, marginTop: 10 },
   activeText: { fontSize: 13, flex: 1 },
   resetButton: { minHeight: 44, justifyContent: "center", paddingLeft: 12 },

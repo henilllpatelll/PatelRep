@@ -1,7 +1,9 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
-import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import type { AssetDetail } from "@/lib/api/assets";
 import { formatDay, formatDayYear } from "@/lib/engineering/assetFormat";
@@ -11,7 +13,7 @@ import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
 import type { WorkOrder } from "@/lib/engineering/workOrders";
 import { DetailRow, Panel, PanelTitle, StatusBadge } from "./assetUi";
 
-export type AssetSection = "overview" | "workOrders" | "maintenance" | "readings" | "history";
+export type AssetSection = "overview" | "maintenance" | "readings" | "history";
 
 export interface OverviewSummary {
   /** Property-wide count from the API (counts only). */
@@ -55,6 +57,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const [moreOpen, setMoreOpen] = useState(false);
   const location = asset.rooms?.room_number ? t("assets.roomLabel", { room: asset.rooms.room_number }) : asset.location_text?.trim() || null;
   const nextPm = pm.find((p) => p.nextDueAt != null) ?? null;
   const overduePm = pm.filter((p) => p.state === "overdue").length;
@@ -86,14 +89,10 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
           </Text>
         ) : null}
         <View style={styles.actions}>
-          <Button label={t("assets.detail.viewPm")} variant="secondary" size="sm" onPress={() => onGoto("maintenance")} style={styles.action} testID="asset-action-pm" disabled={pm.length === 0} />
-          <Button label={t("assets.detail.repairHistory")} variant="secondary" size="sm" onPress={() => onGoto("workOrders")} style={styles.action} testID="asset-action-history" />
-          {onOpenRoom && asset.rooms?.room_number ? (
-            <Button label={t("assets.detail.viewRoom", { room: asset.rooms.room_number })} variant="secondary" size="sm" onPress={onOpenRoom} style={styles.action} testID="asset-action-room" />
-          ) : null}
           {canRecordReading ? (
             <Button label={t("assets.detail.recordReading")} variant="secondary" size="sm" onPress={() => onGoto("readings")} style={styles.action} testID="asset-action-reading" />
           ) : null}
+          <Button label={t("assets.detail.more")} icon="ellipsis-horizontal" variant="secondary" size="sm" onPress={() => setMoreOpen(true)} style={styles.action} testID="asset-action-more" />
         </View>
       </Panel>
 
@@ -122,12 +121,14 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
           label={t("assets.detail.downtime")}
           value={downtime ? t("assets.detail.downtimeSince", { date: formatDay(downtime.started_at, timezone, language) ?? "" }) : t("assets.detail.noDowntime")}
         />
+        {asset.rooms?.room_number && status !== "operational" ? (
+          <DetailRow label={t("assets.detail.roomImpact")} value={t("assets.detail.roomAffected", { room: asset.rooms.room_number })} />
+        ) : null}
         <DetailRow label={t("assets.detail.reliability")} value={openSignals > 0 ? t("assets.detail.signalsOpen", { count: openSignals }) : t("assets.detail.noSignal")} />
       </Panel>
 
       <Panel testID="asset-maintenance-summary">
-        <PanelTitle>{t("assets.detail.summaryTitle")}</PanelTitle>
-        <DetailRow label={t("assets.detail.activeRepairs")} value={String(summary.activeCount)} />
+        <PanelTitle>{t("assets.detail.recentTitle")}</PanelTitle>
         <DetailRow
           label={t("assets.detail.lastRepair")}
           value={
@@ -139,7 +140,7 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
           }
         />
         <DetailRow label={t("assets.detail.lastPm")} value={lastPm ? formatDayYear(lastPm, timezone, language) ?? "" : t("assets.detail.noneRecorded")} />
-        <DetailRow label={t("assets.detail.nextPm")} value={nextPm ? formatDayYear(nextPm.nextDueAt, timezone, language) ?? "" : t("assets.detail.noPm")} />
+        <Button label={t("assets.detail.viewHistory")} variant="ghost" size="sm" onPress={() => onGoto("history")} testID="asset-action-history" />
       </Panel>
 
       <Panel testID="asset-specs">
@@ -153,7 +154,58 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
           </Text>
         ) : null}
       </Panel>
+      <BottomSheet visible={moreOpen} title={t("assets.detail.more")} onClose={() => setMoreOpen(false)} testID="asset-more-sheet">
+        <MoreRow
+          icon="construct-outline"
+          label={t("assets.detail.repairHistory")}
+          onPress={() => {
+            setMoreOpen(false);
+            onGoto("maintenance");
+          }}
+          testID="asset-more-repairs"
+        />
+        <MoreRow
+          icon="calendar-outline"
+          label={t("assets.detail.viewPm")}
+          disabled={pm.length === 0}
+          onPress={() => {
+            setMoreOpen(false);
+            onGoto("maintenance");
+          }}
+          testID="asset-action-pm"
+        />
+        {onOpenRoom && asset.rooms?.room_number ? (
+          <MoreRow
+            icon="bed-outline"
+            label={t("assets.detail.viewRoom", { room: asset.rooms.room_number })}
+            onPress={() => {
+              setMoreOpen(false);
+              onOpenRoom();
+            }}
+            testID="asset-action-room"
+          />
+        ) : null}
+      </BottomSheet>
     </View>
+  );
+}
+
+function MoreRow({ icon, label, onPress, disabled, testID }: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; onPress: () => void; disabled?: boolean; testID: string }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      style={[styles.moreRow, { borderColor: theme.borderSubtle, opacity: disabled ? 0.45 : 1 }]}
+      testID={testID}
+    >
+      <Ionicons name={icon} size={20} color={theme.textSecondary} />
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.moreLabel, { color: theme.textPrimary }]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -161,6 +213,8 @@ const styles = StyleSheet.create({
   stack: { gap: 12 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   action: { flexGrow: 1, flexBasis: "46%" },
+  moreRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52, borderBottomWidth: 1 },
+  moreLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
   chunk: { gap: 6 },
   chunkLabel: { fontSize: 13 },
   notes: { fontSize: 13.5, lineHeight: 19, marginTop: 2 },
