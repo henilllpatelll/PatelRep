@@ -13,11 +13,21 @@ import { WorkFilterSheet } from "@/components/engineering/WorkFilterSheet";
 import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineering/team/AssignTechnicianSheet";
 import { WorkQueueHeader, type FilterChip } from "@/components/engineering/WorkQueueHeader";
 import { WorkSummaryTiles } from "@/components/engineering/work/WorkSummaryTiles";
+import { ManagerSummaryTiles } from "@/components/engineering/work/ManagerSummaryTiles";
 import { PendingReportsBanner } from "@/components/engineering/report/PendingReportsBanner";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { useWorkQueue } from "@/lib/engineering/useWorkQueue";
 import { useWorkSummary } from "@/lib/engineering/useWorkSummary";
-import { canManageTeam, isAssignable } from "@/lib/engineering/teamModel";
+import { canManageTeam, isAssignable, teamScope } from "@/lib/engineering/teamModel";
+import { useTeamOverview } from "@/lib/engineering/useTeamOverview";
+import {
+  MANAGER_SUMMARY_KEYS,
+  isManagerSummaryActive,
+  managerSummaryCount,
+  managerSummarySelection,
+  showsManagerSummary,
+  type ManagerSummaryKey,
+} from "@/lib/engineering/managerSummary";
 import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
 import { dismissClaimConflict, useClaimConflicts } from "@/lib/engineering/claimConflicts";
 import { defaultView, isReachableView, primaryViews, resolveView, secondaryViews, showsSummary } from "@/lib/engineering/workNavigation";
@@ -132,6 +142,10 @@ export default function WorkOrdersScreen() {
   const conflicts = useClaimConflicts(scope);
   const [assignTarget, setAssignTarget] = useState<AssignTarget | null>(null);
   const manager = canManageTeam(role);
+  // Exact hotel-wide counts for the manager's tiles; shares the Team Overview's endpoint, cache and assignment refresh.
+  const overview = useTeamOverview(teamScope(user), manager && userId != null);
+  const overviewReloadRef = useRef(overview.reload);
+  overviewReloadRef.current = overview.reload;
 
   const refreshRef = useRef(queue.refresh);
   refreshRef.current = queue.refresh;
@@ -143,6 +157,7 @@ export default function WorkOrdersScreen() {
     invalidateRef.current();
     void refreshRef.current();
     if (summaryRef.current.applies) void summaryRef.current.refresh();
+    void overviewReloadRef.current();
   }, []);
 
   // Back from a detail screen: re-read in place (rows and filters stay) so a finished job leaves the list.
@@ -181,9 +196,9 @@ export default function WorkOrdersScreen() {
   const onPullRefresh = useCallback(async () => {
     setPulling(true);
     queue.invalidateOthers();
-    await Promise.all([queue.refresh(), hasSummary ? summary.refresh() : undefined]);
+    await Promise.all([queue.refresh(), hasSummary ? summary.refresh() : undefined, manager ? overview.reload() : undefined]);
     setPulling(false);
-  }, [queue, summary, hasSummary]);
+  }, [queue, summary, hasSummary, manager, overview]);
 
   const onClaim = useCallback(
     async (wo: WorkOrder) => {
@@ -246,6 +261,22 @@ export default function WorkOrdersScreen() {
       setView(next.view);
     },
     [filtersByView.mine]
+  );
+  const onManagerSummary = useCallback(
+    (key: ManagerSummaryKey) => {
+      const next = managerSummarySelection(key, filtersByView.team);
+      if (next.filters) setFiltersByView((prev) => ({ ...prev, [next.view]: next.filters as QueueFilters }));
+      setView(next.view);
+    },
+    [filtersByView.team]
+  );
+  const managerCounts = useMemo(
+    () => Object.fromEntries(MANAGER_SUMMARY_KEYS.map((key) => [key, managerSummaryCount(overview.data?.counts, key)])) as Record<ManagerSummaryKey, number | null>,
+    [overview.data]
+  );
+  const managerActive = useMemo(
+    () => Object.fromEntries(MANAGER_SUMMARY_KEYS.map((key) => [key, isManagerSummaryActive(key, view, filters)])) as Record<ManagerSummaryKey, boolean>,
+    [view, filters]
   );
   const summaryActive = useMemo(
     () => ({ urgent: isSummaryActive("urgent", filtersByView.mine), inProgress: isSummaryActive("inProgress", filtersByView.mine), waiting: false }),
@@ -458,6 +489,15 @@ export default function WorkOrdersScreen() {
             summary={
               showsSummary(view, role) ? (
                 <WorkSummaryTiles summary={summary.summary} failed={summary.failed} active={summaryActive} onPress={onSummary} />
+              ) : showsManagerSummary(view, role) ? (
+                <ManagerSummaryTiles
+                  counts={managerCounts}
+                  truncated={overview.data?.truncated ?? false}
+                  unavailable={overview.data == null && overview.failure != null}
+                  stale={overview.data != null && (!isOnline || overview.failure != null)}
+                  active={managerActive}
+                  onPress={onManagerSummary}
+                />
               ) : undefined
             }
             searchText={searchText}

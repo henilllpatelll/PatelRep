@@ -19,7 +19,6 @@ import {
   uploadWorkOrderPhoto,
   type DiagnosisPayload,
 } from "@/lib/api/workOrders";
-import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useSecondTicker, useWorkOrderDetail } from "@/lib/engineering/useWorkOrderDetail";
 import { useCompletionDraft } from "@/lib/engineering/useWorkOrderDrafts";
@@ -37,8 +36,6 @@ import {
   type StagedPart,
 } from "@/lib/engineering/repairWorkspace";
 import { formatDuration, type HoldReasonCode, type WorkOrder } from "@/lib/engineering/workOrders";
-import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
-import { localDate } from "@/lib/utils/date";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -105,7 +102,6 @@ export default function WorkOrderDetailScreen() {
   const { draft, editDraft, restored } = draftState;
   const [result, setResult] = useState<CompletionSummary | null>(null);
   const [tab, setTab] = useState<DetailTab>("overview");
-  const [occupancy, setOccupancy] = useState<"occupied" | "vacant" | null>(null);
 
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
@@ -118,22 +114,10 @@ export default function WorkOrderDetailScreen() {
     lastStatus.current = status;
   }, [status, refreshChecklist]);
 
-  // Room occupancy is context, not a prerequisite: resolve it after the order is on screen and ignore failures.
-  const roomKey = wo ? `${wo.room_id ?? ""}|${wo.rooms?.room_number ?? ""}` : "";
-  useEffect(() => {
-    if (!wo || (!wo.room_id && !wo.rooms?.room_number)) return;
-    let live = true;
-    fetchBoard(localDate())
-      .then((board) => {
-        if (!live) return;
-        const match = normalizeBoardRooms(board).find((r) => (wo.room_id != null && r.roomId === wo.room_id) || (wo.rooms?.room_number != null && r.roomNumber === wo.rooms.room_number));
-        setOccupancy(match?.foStatus ? (match.foStatus === "OCC" ? "occupied" : "vacant") : null);
-      })
-      .catch(() => live && setOccupancy(null));
-    return () => {
-      live = false;
-    };
-  }, [roomKey]);
+  // Room context is the server's own lookup (the room board's rule, room-board roles only): absent or "unknown" shows nothing.
+  const roomContext = wo?.room_context ?? null;
+  const occupancy = roomContext?.occupancy === "occupied" || roomContext?.occupancy === "vacant" ? roomContext.occupancy : null;
+  const availability = roomContext?.availability ?? null;
 
   const actions = useMemo(
     () => (wo ? deriveRepairActions({ wo, role, userId, sessions: secondary.labor }) : null),
@@ -478,7 +462,7 @@ export default function WorkOrderDetailScreen() {
                     />
                   </View>
                 ) : null}
-                <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} technicianName={technicianName} />
+                <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} availability={availability} technicianName={technicianName} />
                 <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="summary" />
                 {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
               </>

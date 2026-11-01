@@ -259,6 +259,9 @@ async def team_overview(current_user: CurrentUser = Depends(require_role(*TEAM_R
         "on_hold": sum(1 for r in orders if r["status"] == "on_hold"),
         "emergency": sum(1 for r in orders if r.get("priority") == "emergency"),
         "unassigned": sum(1 for r in orders if not r.get("assigned_to")),
+        # Match the Work tab views exactly: Available = unassigned open/escalated; In progress = assigned and underway.
+        "needs_owner": sum(1 for r in orders if not r.get("assigned_to") and r["status"] in ("open", "escalated")),
+        "in_progress": sum(1 for r in orders if r.get("assigned_to") and r["status"] == "in_progress"),
         "pm_overdue": _pm_overdue_count(tenant_id, zone, now),
     }
     return {

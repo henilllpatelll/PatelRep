@@ -6,6 +6,7 @@ import {
   parseChecklistResponse,
   parseChecklistUpdate,
   progressRatio,
+  type ChecklistGate,
   type ChecklistItem,
   type ChecklistLoad,
   type ChecklistSnapshot,
@@ -199,7 +200,7 @@ describe("offline completion and the checklist", () => {
 
 describe("completionBlockers", () => {
   const draft = (over: Partial<CompletionDraft> = {}): CompletionDraft => ({ ...emptyCompletionDraft(), resolutionCodeId: "res-1", verification: "passed", ...over });
-  const open = { kind: "blocked", remaining: [{ id: "a", label: "A" }, { id: "b", label: "B" }] } as const;
+  const open: ChecklistGate = { kind: "blocked", remaining: [{ id: "a", label: "A" }, { id: "b", label: "B" }] };
 
   it("has none when everything is in place", () => {
     expect(completionBlockers(draft(), { kind: "ready" }, true)).toEqual([]);

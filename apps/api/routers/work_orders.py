@@ -1032,8 +1032,9 @@ async def get_work_order(
     if not result.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     row = result.data[0]
-    # Same best-effort enrichment the queue uses: assignee name and, when held, the recorded reason.
-    _enrich_list_rows([row], current_user.hotel_id)
+    # Same best-effort enrichment the queue uses: assignee name, room context (room-board roles only) and, when
+    # held, the recorded reason.
+    _enrich_list_rows([row], current_user.hotel_id, current_user.role)
     return {"data": row}
 
 

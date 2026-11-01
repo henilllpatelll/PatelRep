@@ -1998,6 +1998,7 @@
       "occupied": "Ocupado",
       "vacant": "Vacante"
     },
+    "roomAvailability": "Disponibilidad de la habitación",
     "factCreated": "Creada",
     "factDue": "Vence",
     "factCompleted": "Lista",
@@ -10728,6 +10729,20 @@
       "a11yUnknown": "{{label}}: cantidad no disponible. Mostrar estas órdenes de trabajo.",
       "a11yUnknownActive": "{{label}}: cantidad no disponible. Mostrando estas órdenes de trabajo. Toca para quitar.",
       "unavailable": "Las cantidades no están disponibles ahora."
+    },
+    "managerSummary": {
+      "needsOwner": "Sin responsable",
+      "inProgress": "En progreso",
+      "waiting": "En espera",
+      "unknown": "–",
+      "groupA11y": "Resumen del trabajo del equipo",
+      "a11y": "{{label}}: {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yMore": "{{label}}: al menos {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yActive": "{{label}}: {{count}}. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "a11yUnknown": "{{label}}: cantidad no disponible. Mostrar estas órdenes de trabajo.",
+      "a11yUnknownActive": "{{label}}: cantidad no disponible. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "unavailable": "Las cantidades del equipo no están disponibles ahora.",
+      "stale": "Las cantidades son de la última vez que estuviste en línea."
     },
     "urgentChip": "Urgentes y emergencias",
     "historyNote": "Estas órdenes de trabajo están cerradas. Abre una para ver qué se hizo.",

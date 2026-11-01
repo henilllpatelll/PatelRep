@@ -53,7 +53,6 @@ jest.mock("@/lib/api/workOrders", () => ({
   saveDiagnosis: jest.fn(),
   workOrderPhotoUrl: jest.fn().mockReturnValue(null),
 }));
-jest.mock("@/lib/api/housekeepingSupervisor", () => ({ fetchBoard: jest.fn() }));
 let mockUser: Record<string, unknown> = { id: "u1", role: "engineer", language_pref: "en", full_name: "Eli Park" };
 let mockOnline = true;
 jest.mock("@/stores/appStore", () => ({
@@ -70,7 +69,6 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import * as api from "@/lib/api/workOrders";
 import { enqueueAction, getPendingSyncQueue } from "@/lib/offline/db";
-import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import WorkOrderDetailScreen from "@/app/(app)/work-orders/[woId]";
 
 const m = (fn: unknown) => fn as jest.Mock;
@@ -85,6 +83,7 @@ const baseOrder = (over: Record<string, unknown> = {}) => ({
   category: "hvac",
   room_id: "room-101",
   rooms: { room_number: "101", floor: 1 },
+  room_context: { occupancy: "occupied", availability: null },
   assigned_to: "u1",
   created_at: "2026-10-31T09:00:00Z",
   acknowledged_at: null,
@@ -154,9 +153,6 @@ beforeEach(() => {
   m(api.arriveAtWorkOrder).mockResolvedValue(undefined);
   m(api.claimWorkOrder).mockResolvedValue(null);
   m(getPendingSyncQueue).mockResolvedValue([]);
-  m(fetchBoard).mockResolvedValue([
-    { room_id: "room-101", status: "DIRTY", fo_status: "OCC", rooms: { room_number: "101", floor: 1, room_types: { name: "King" } } },
-  ]);
 });
 
 const runningSession = (over: Record<string, unknown> = {}) => ({
@@ -746,11 +742,25 @@ describe("Phase 3: tabbed detail workspace", () => {
     expect(queryByTestId("wo-tool-diagnosis")?.props.accessibilityState.disabled).toBe(true);
   });
 
-  it("does not guess occupancy when the room board cannot be read", async () => {
-    m(fetchBoard).mockRejectedValue(new Error("offline board"));
-    const { getByTestId, queryByText } = renderScreen();
-    await waitFor(() => expect(getByTestId("wo-open-room")).toBeTruthy());
-    expect(queryByText(/Occupied|Vacant/)).toBeNull();
+  it("does not guess occupancy when the server could not verify it", async () => {
+    for (const room_context of [{ occupancy: "unknown", availability: null }, undefined]) {
+      m(api.getWorkOrder).mockResolvedValue(baseOrder({ room_context }));
+      const { getByTestId, queryByText, unmount } = renderScreen();
+      await waitFor(() => expect(getByTestId("wo-open-room")).toBeTruthy());
+      expect(queryByText(/Occupied|Vacant/)).toBeNull();
+      unmount();
+    }
+  });
+
+  it("shows a recorded room availability from the server, and none when nothing is recorded", async () => {
+    m(api.getWorkOrder).mockResolvedValue(baseOrder({ room_context: { occupancy: "vacant", availability: "out_of_service" } }));
+    const down = renderScreen();
+    await waitFor(() => expect(down.getByText("engRooms.availability.out_of_service")).toBeTruthy());
+    down.unmount();
+    m(api.getWorkOrder).mockResolvedValue(baseOrder({ room_context: { occupancy: "vacant", availability: null } }));
+    const up = renderScreen();
+    await waitFor(() => expect(up.getByText(/Vacant/)).toBeTruthy());
+    expect(up.queryByText(/engRooms\.availability/)).toBeNull();
   });
 
   it("renders without any room at all", async () => {

@@ -13,6 +13,8 @@ interface Props {
   wo: WorkOrder;
   locale: string;
   occupancy: "occupied" | "vacant" | null;
+  /** The room's recorded availability from the server; null = none recorded or unknown. Never inferred from the order. */
+  availability?: "out_of_order" | "out_of_service" | "unrecorded_down" | null;
   technicianName: string | null;
 }
 
@@ -24,7 +26,7 @@ function when(iso: string | null | undefined, locale: string): string | null {
 }
 
 /** The original request, in full, plus where it is and who reported and holds it. Only what the API returned. */
-export function WorkOrderReportedIssue({ wo, locale, occupancy, technicianName }: Props) {
+export function WorkOrderReportedIssue({ wo, locale, occupancy, availability = null, technicianName }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { room, text: locationText } = workOrderLocation(wo);
@@ -33,6 +35,7 @@ export function WorkOrderReportedIssue({ wo, locale, occupancy, technicianName }
   const rows: { label: string; value: string; roomId?: string }[] = [];
   if (room) rows.push({ roomId: wo.room_id ?? undefined, label: t("workOrders.location"), value: `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}${occupancy ? `  ·  ${t(`workOrders.roomOccupancy.${occupancy}`)}` : ""}` });
   else if (locationText) rows.push({ label: t("workOrders.location"), value: locationText });
+  if (room && availability) rows.push({ label: t("workOrders.roomAvailability"), value: t(`engRooms.availability.${availability}`) });
   if (wo.source) rows.push({ label: t("workOrders.repair.issue.source"), value: t(`workOrders.repair.issue.sources.${wo.source}`, { defaultValue: wo.source }) });
   if (wo.guest_reported) rows.push({ label: t("workOrders.repair.issue.source"), value: t("workOrders.chipGuest") });
   const created = when(wo.created_at, locale);

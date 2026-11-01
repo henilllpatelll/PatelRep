@@ -72,8 +72,25 @@ def test_summary_counts_are_exact(monkeypatch):
         _wo(7, tenant=H2, status="open"),                                          # other hotel: not counted
     ]
     data = _client(monkeypatch, _db(orders)).get("/engineering/team/overview").json()["data"]
-    assert data["counts"] == {"open": 4, "overdue": 1, "on_hold": 1, "emergency": 1, "unassigned": 1, "pm_overdue": 0}
+    assert data["counts"] == {"open": 4, "overdue": 1, "on_hold": 1, "emergency": 1, "unassigned": 1, "needs_owner": 1, "in_progress": 1, "pm_overdue": 0}
     assert data["truncated"] is False
+
+
+def test_queue_counts_match_the_work_tab_views(monkeypatch):
+    orders = [
+        _wo(1, status="open"),                                   # Available
+        _wo(2, status="escalated"),                              # Available
+        _wo(3, status="on_hold"),                                # unassigned but held: Waiting, not Available
+        _wo(4, status="in_progress", assigned_to=ALEX),          # In progress
+        _wo(5, status="open", assigned_to=BEA),                  # assigned, not started
+        _wo(6, status="open", tenant=H2),                        # other hotel
+    ]
+    counts = _client(monkeypatch, _db(orders)).get("/engineering/team/overview").json()["data"]["counts"]
+    assert (counts["needs_owner"], counts["in_progress"], counts["unassigned"], counts["on_hold"]) == (2, 1, 3, 1)
+
+
+def test_engineer_cannot_read_team_counts(monkeypatch):
+    assert _client(monkeypatch, _db([_wo(1)]), role="engineer").get("/engineering/team/overview").status_code == 403
 
 
 def test_technician_workload_is_plain_counts_and_includes_people_with_no_work(monkeypatch):

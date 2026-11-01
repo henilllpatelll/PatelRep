@@ -521,3 +521,20 @@ def test_room_context_lookup_failure_does_not_fail_the_queue(monkeypatch):
     client = _client(monkeypatch, db, role="gm")
     rows = _by_id(client.get("/work-orders", params={"per_page": 50}))
     assert rows and all("room_context" not in row for row in rows.values())
+
+
+def test_detail_carries_the_same_room_context_as_the_queue(monkeypatch):
+    client = _client(monkeypatch, _room_db(), role="chief_engineer", user_id="chief-1")
+    occupied = client.get("/work-orders/wo-0001").json()["data"]
+    assert occupied["room_context"] == {"occupancy": "occupied", "availability": None}
+    assert client.get("/work-orders/wo-0005").json()["data"]["room_context"]["availability"] == "out_of_service"
+    # Another hotel's room state never leaks in, and a finished order has no "today" to report.
+    assert client.get("/work-orders/wo-0003").json()["data"]["room_context"] == {"occupancy": "unknown", "availability": None}
+    assert "room_context" not in client.get("/work-orders/wo-0006").json()["data"]
+
+
+def test_detail_room_context_needs_a_room_board_role(monkeypatch):
+    client = _client(monkeypatch, _room_db(), role="front_desk")
+    response = client.get("/work-orders/wo-0001")
+    assert response.status_code == 200
+    assert "room_context" not in response.json()["data"]

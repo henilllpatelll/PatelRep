@@ -1998,6 +1998,7 @@
       "occupied": "Occupied",
       "vacant": "Vacant"
     },
+    "roomAvailability": "Room availability",
     "factCreated": "Created",
     "factDue": "Due",
     "factCompleted": "Done",
@@ -10728,6 +10729,20 @@
       "a11yUnknown": "{{label}}: count unavailable. Show these work orders.",
       "a11yUnknownActive": "{{label}}: count unavailable. Showing these work orders. Tap to clear.",
       "unavailable": "Counts are unavailable right now."
+    },
+    "managerSummary": {
+      "needsOwner": "Needs owner",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "unknown": "–",
+      "groupA11y": "Team Work summary",
+      "a11y": "{{label}}: {{count}}. Show these work orders.",
+      "a11yMore": "{{label}}: at least {{count}}. Show these work orders.",
+      "a11yActive": "{{label}}: {{count}}. Showing these work orders. Tap to clear.",
+      "a11yUnknown": "{{label}}: count unavailable. Show these work orders.",
+      "a11yUnknownActive": "{{label}}: count unavailable. Showing these work orders. Tap to clear.",
+      "unavailable": "Team counts are unavailable right now.",
+      "stale": "Counts are from the last time you were online."
     },
     "urgentChip": "Urgent & emergency",
     "historyNote": "These work orders are closed. Open one to see what was done.",
