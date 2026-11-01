@@ -46,10 +46,10 @@ const listApi = listPmSchedules as jest.Mock;
 const historyApi = listPmCompletions as jest.Mock;
 
 function iso(daysFromToday: number): string {
-  // Midday Chicago time, so the hotel calendar day is unambiguous whatever the machine's zone.
-  const d = new Date();
+  // Midday Chicago time on the hotel's own calendar day (not the UTC day, which is already tomorrow in the evening).
+  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  const d = new Date(`${todayKey}T18:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + daysFromToday);
-  d.setUTCHours(18, 0, 0, 0);
   return d.toISOString();
 }
 const row = (id: string, days: number | null, extra: object = {}) => ({
