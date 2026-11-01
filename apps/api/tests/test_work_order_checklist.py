@@ -11,6 +11,7 @@ from middleware.auth import CurrentUser
 from models.requests import (
     CompleteWorkOrderRequest,
     CreateChecklistItemRequest,
+    TransitionWorkOrderRequest,
     UpdateChecklistItemRequest,
 )
 from routers import work_orders as wo_router
@@ -335,3 +336,70 @@ async def test_reopening_a_required_step_blocks_a_later_completion(install):
         await wo_router.complete_work_order("wo-1", CompleteWorkOrderRequest(), ENGINEER)
     assert err.value.status_code == 422
     assert db.rows["work_orders"][0]["status"] == "in_progress"
+
+
+# ── Every route to `completed` runs the same preflight ───────────────────────
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("user", [ENGINEER, GM])
+async def test_the_generic_transition_endpoint_cannot_complete_past_a_required_step(install, user):
+    """Phase 7 audit (P0): POST /transition {status: completed} used to skip the checklist rule that /complete enforces."""
+    db = install(_db([_item("a", 1, required=True)]))
+    with pytest.raises(HTTPException) as err:
+        await wo_router.transition_work_order("wo-1", TransitionWorkOrderRequest(status="completed"), user)
+    assert err.value.status_code == 422
+    assert err.value.detail["code"] == "checklist_incomplete"
+    assert err.value.detail["applied"] is False
+    assert db.rows["work_orders"][0]["status"] == "in_progress"
+
+
+@pytest.mark.asyncio
+async def test_the_generic_transition_endpoint_completes_once_required_steps_are_done_or_absent(install):
+    db = install(_db([_item("a", 1, required=True, done=True), _item("b", 2)]))
+    await wo_router.transition_work_order("wo-1", TransitionWorkOrderRequest(status="completed"), ENGINEER)
+    assert db.rows["work_orders"][0]["status"] == "completed"
+
+    db = install(_db([]))
+    await wo_router.transition_work_order("wo-1", TransitionWorkOrderRequest(status="completed"), ENGINEER)
+    assert db.rows["work_orders"][0]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_non_completing_transitions_ignore_open_required_steps(install):
+    db = install(_db([_item("a", 1, required=True)]))
+    await wo_router.transition_work_order(
+        "wo-1", TransitionWorkOrderRequest(status="on_hold", reason_code="awaiting_parts"), ENGINEER
+    )
+    assert db.rows["work_orders"][0]["status"] == "on_hold"
+
+
+# ── Adding a step follows the same ownership and closed-record rules as updating one ──
+
+@pytest.mark.asyncio
+async def test_an_engineer_cannot_add_a_required_step_to_someone_elses_order(install):
+    db = install(_db([], assigned_to="eng-2"))
+    with pytest.raises(HTTPException) as err:
+        await wo_router.add_checklist_item("wo-1", CreateChecklistItemRequest(label="Pressure test", is_required=True), ENGINEER)
+    assert err.value.status_code == 403
+    assert db.rows["work_order_checklist_items"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["completed", "cancelled"])
+async def test_a_step_cannot_be_added_to_a_closed_order(install, status):
+    db = install(_db([], status=status))
+    with pytest.raises(HTTPException) as err:
+        await wo_router.add_checklist_item("wo-1", CreateChecklistItemRequest(label="Late step"), GM)
+    assert err.value.status_code == 409 and err.value.detail["code"] == "work_order_closed"
+    assert db.rows["work_order_checklist_items"] == []
+
+
+@pytest.mark.asyncio
+async def test_an_engineer_can_add_a_step_to_their_own_order_and_other_tenants_are_not_found(install):
+    db = install(_db([]))
+    res = await wo_router.add_checklist_item("wo-1", CreateChecklistItemRequest(label="Pressure test", is_required=True), ENGINEER)
+    assert res["data"]["is_required"] is True
+    with pytest.raises(HTTPException) as err:
+        await wo_router.add_checklist_item("wo-1", CreateChecklistItemRequest(label="x"), OTHER_HOTEL_ENGINEER)
+    assert err.value.status_code == 404
+    assert len(db.rows["work_order_checklist_items"]) == 1

@@ -244,6 +244,9 @@ def _execute_work_order_transition(
     source: str,
     assigned_to: str | None = None,
 ):
+    if decision.status == "completed":
+        # /transition, /merge-style callers and vendors reach `completed` here too, not only POST /complete.
+        _ensure_checklist_ready(work_order_id, current_user.hotel_id)
     payload = {
         "p_work_order_id": work_order_id,
         "p_tenant_id": current_user.hotel_id,
@@ -1467,18 +1470,7 @@ async def complete_work_order(
 
     # Required checklist steps are part of the preflight: it must run before labor sessions are closed below, and a
     # rejection leaves the work order exactly as it was. Optional steps never block.
-    checklist = _checklist_summary(_checklist_items(wo_id, current_user.hotel_id))
-    if not checklist["ready"]:
-        remaining = checklist["required_remaining"]
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "checklist_incomplete",
-                "message": f"{len(remaining)} required checklist item{'s' if len(remaining) != 1 else ''} must be done before this work order can be completed.",
-                "remaining": remaining,
-                "applied": False,
-            },
-        )
+    _ensure_checklist_ready(wo_id, current_user.hotel_id)
 
     # Close any running sessions only after every preflight has accepted the
     # completion. Server timestamps are authoritative; manual hours remain
@@ -1998,6 +1990,22 @@ def _checklist_summary(items: list[dict]) -> dict:
     }
 
 
+def _ensure_checklist_ready(wo_id: str, hotel_id: str) -> None:
+    """Reject (422, nothing changed) while a required checklist step is open. Every route to `completed` runs this."""
+    checklist = _checklist_summary(_checklist_items(wo_id, hotel_id))
+    if not checklist["ready"]:
+        remaining = checklist["required_remaining"]
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "checklist_incomplete",
+                "message": f"{len(remaining)} required checklist item{'s' if len(remaining) != 1 else ''} must be done before this work order can be completed.",
+                "remaining": remaining,
+                "applied": False,
+            },
+        )
+
+
 def _checklist_work_order(wo_id: str, hotel_id: str) -> dict:
     result = (
         supabase.table("work_orders")
@@ -2034,7 +2042,15 @@ async def add_checklist_item(
         require_role("engineer", "chief_engineer", "gm")
     ),
 ):
-    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
+    # Same rules as updating a step: an engineer's own (or unclaimed) order, and never a closed record. A required
+    # step on someone else's order would block that person's completion.
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    _ensure_engineer_can_update_work_order(current_user, work_order)
+    if work_order.get("status") in _CLOSED_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "work_order_closed", "message": "This work order is closed; its checklist can no longer be changed."},
+        )
     existing = (
         supabase.table("work_order_checklist_items")
         .select("sort_order")

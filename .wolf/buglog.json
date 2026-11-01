@@ -35012,6 +35012,41 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-01T00:30:00.000Z"
+    },
+    {
+      "id": "bug-2129",
+      "timestamp": "2026-11-01T15:30:00.000Z",
+      "error_message": "Phase 7 audit (P0): POST /work-orders/{id}/transition {status:'completed'} completed an order with open required checklist steps",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "The required-step preflight lived only inside POST /complete; /transition (and vendors/merge callers) reach 'completed' through _execute_work_order_transition without it",
+      "fix": "Extracted _ensure_checklist_ready and call it from _execute_work_order_transition whenever the target status is completed; regression tests in test_work_order_checklist.py (fail without the guard)",
+      "tags": [
+        "checklist",
+        "authorization",
+        "completion",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T15:30:00.000Z"
+    },
+    {
+      "id": "bug-2130",
+      "timestamp": "2026-11-01T15:30:00.000Z",
+      "error_message": "Phase 7 audit (P1): POST /work-orders/{id}/checklist let any engineer add a (required) step to another engineer's or a closed work order",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Phase 4 guarded only PATCH of an item; the add route still checked tenant existence only, and is_required made it able to block someone else's completion",
+      "fix": "add_checklist_item now applies _ensure_engineer_can_update_work_order and the closed-record 409, same as update",
+      "tags": [
+        "checklist",
+        "authorization",
+        "api"
+      ],
+      "related_bugs": [
+        "bug-2129"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T15:30:00.000Z"
     }
   ]
 }
