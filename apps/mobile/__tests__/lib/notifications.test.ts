@@ -29,6 +29,7 @@ jest.mock("expo-notifications", () => ({
   setBadgeCountAsync: (...a: unknown[]) => mockSetBadge(...a),
   AndroidImportance: { HIGH: 4, DEFAULT: 3 },
 }));
+jest.mock("expo", () => ({ isRunningInExpoGo: () => false }));
 jest.mock("expo-constants", () => ({
   __esModule: true,
   default: { expoConfig: { version: "1.4.0", extra: { eas: { projectId: "proj-1" } } } },

@@ -12,6 +12,10 @@ export interface TeamCounts {
   on_hold: number;
   emergency: number;
   unassigned: number;
+  /** Unassigned and open/escalated: exactly what the Available view lists. Absent from an older server (= unknown). */
+  needs_owner?: number;
+  /** Assigned and in progress. Absent from an older server (= unknown). */
+  in_progress?: number;
   /** null = the server could not read PM schedules (unknown, never "zero"). */
   pm_overdue: number | null;
 }

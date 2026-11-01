@@ -25,6 +25,8 @@ export interface QueueBucket {
   stale: boolean;
   fetchedAt: number | null;
   touchedAt: number;
+  /** The rows are a saved copy from an earlier session/visit (read while there was no connection), not a live answer. */
+  cached: boolean;
 }
 
 export interface QueueState {
@@ -40,6 +42,7 @@ export type QueueAction =
   | { type: "start"; key: string; mode: LoadMode; now: number }
   | { type: "success"; key: string; mode: LoadMode; orders: WorkOrder[]; pages: number; hasMore: boolean; now: number }
   | { type: "failure"; key: string; failure: LoadFailure }
+  | { type: "hydrate"; key: string; orders: WorkOrder[]; fetchedAt: number; now: number }
   | { type: "remove"; key: string; id: string }
   | { type: "invalidate"; exceptKey?: string };
 
@@ -58,6 +61,7 @@ export function emptyBucket(now = 0): QueueBucket {
     stale: false,
     fetchedAt: null,
     touchedAt: now,
+    cached: false,
   };
 }
 
@@ -113,6 +117,7 @@ export function queueReducer(state: QueueState, action: QueueAction): QueueState
             refreshing: false,
             failure: null,
             stale: false,
+            cached: false,
             fetchedAt: action.now,
             touchedAt: action.now,
           },
@@ -128,6 +133,34 @@ export function queueReducer(state: QueueState, action: QueueAction): QueueState
         buckets: {
           ...state.buckets,
           [action.key]: { ...bucket, loading: false, loadingMore: false, refreshing: false, failure: action.failure },
+        },
+      };
+    }
+
+    case "hydrate": {
+      const bucket = state.buckets[action.key] ?? emptyBucket(action.now);
+      // A live answer always wins: a saved copy never replaces rows that are already loaded.
+      if (bucket.loaded) return state;
+      return {
+        ...state,
+        buckets: {
+          ...state.buckets,
+          [action.key]: {
+            ...bucket,
+            items: dedupeById(action.orders),
+            // The copy is a partial first page: the bucket cannot page further until a live read lands.
+            page: 0,
+            hasMore: false,
+            loaded: true,
+            loading: false,
+            loadingMore: false,
+            refreshing: false,
+            failure: null,
+            stale: false,
+            cached: true,
+            fetchedAt: action.fetchedAt,
+            touchedAt: action.now,
+          },
         },
       };
     }

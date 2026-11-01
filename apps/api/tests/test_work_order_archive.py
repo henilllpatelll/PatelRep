@@ -41,7 +41,7 @@ def _iso(dt: datetime) -> str:
 
 # list_work_orders is called as a plain function here, so FastAPI's Query defaults do not apply.
 _LIST_DEFAULTS = dict(
-    statuses=None, mine=False, assigned_to_others=False, floor=None, building=None,
+    statuses=None, priorities=None, mine=False, assigned_to_others=False, floor=None, building=None,
     due_from=None, due_to=None, created_after=None, updated_after=None,
 )
 

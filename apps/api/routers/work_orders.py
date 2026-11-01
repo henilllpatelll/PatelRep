@@ -22,8 +22,9 @@ from models.requests import (
 )
 from core.database import supabase
 from core.config import settings
-from core.roles import FLOOR_STAFF_ROLES, GM_ONLY_ROLES
+from core.roles import ENGINEERING_ROOM_BOARD_ROLES, FLOOR_STAFF_ROLES, GM_ONLY_ROLES
 from datetime import datetime, timedelta, timezone
+from routers.rooms import _board_occupancy
 from services.notify import send_push
 from services.engineering_notify import notify_managers
 from services.work_orders.transitions import TransitionRequest, validate_work_order_transition
@@ -243,6 +244,9 @@ def _execute_work_order_transition(
     source: str,
     assigned_to: str | None = None,
 ):
+    if decision.status == "completed":
+        # /transition, /merge-style callers and vendors reach `completed` here too, not only POST /complete.
+        _ensure_checklist_ready(work_order_id, current_user.hotel_id)
     payload = {
         "p_work_order_id": work_order_id,
         "p_tenant_id": current_user.hotel_id,
@@ -435,7 +439,7 @@ def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> N
         return
     items = (
         supabase.table("work_order_checklist_template_items")
-        .select("label, estimated_minutes, sort_order")
+        .select("*")
         .eq("template_id", template_id)
         .order("sort_order")
         .execute()
@@ -450,6 +454,8 @@ def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> N
                 "label": item["label"],
                 "estimated_minutes": item.get("estimated_minutes"),
                 "sort_order": item.get("sort_order", 0),
+                # Only sent when set: an optional item needs no column (migration 231).
+                **({"is_required": True} if item.get("is_required") else {}),
             }
             for item in items
         ]
@@ -474,6 +480,15 @@ def _parse_status_list(raw: Optional[str]) -> list[str]:
     if unknown:
         raise HTTPException(status_code=422, detail=f"Unknown status: {', '.join(unknown)}")
     return list(dict.fromkeys(values))
+
+
+def _parse_priority_list(raw: Optional[str]) -> list[str]:
+    """Comma-separated priorities in urgency order (emergency first), so a bucketed priority sort stays ordered."""
+    values = {part.strip() for part in (raw or "").split(",") if part.strip()}
+    unknown = sorted(values - set(_LIST_PRIORITIES))
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown priority: {', '.join(unknown)}")
+    return [value for value in _LIST_PRIORITIES if value in values]
 
 
 def _merge_sorted(rows: list[dict], specs: list[tuple[str, bool]]) -> list[dict]:
@@ -522,12 +537,69 @@ def _search_filter(term: str, tenant_id: str) -> Optional[str]:
     return ",".join(parts)
 
 
-def _enrich_list_rows(rows: list[dict], tenant_id: str) -> None:
-    """Attach assignee names and, for held orders, the recorded hold reason and time.
+def _attach_room_context(rows: list[dict], tenant_id: str) -> None:
+    """Attach `room_context` (guest occupancy and recorded out-of-order/out-of-service) to active, room-linked orders.
 
-    Both are best-effort: a failed lookup leaves the fields absent (the client then says
-    "not recorded") rather than failing the whole queue.
+    Two tenant-scoped queries for the whole page, never one per row. Occupancy uses the room board's rule, so
+    missing or conflicting signals are `unknown`. Finished orders get nothing: today's room state says nothing
+    about the day the repair was done. Best-effort: a failed lookup leaves the field absent.
     """
+    room_ids = sorted({str(row["room_id"]) for row in rows if row.get("room_id") and row.get("status") in _LIST_ACTIVE_STATUSES})
+    if not room_ids:
+        return
+    try:
+        statuses = {
+            str(item["room_id"]): item
+            for item in (
+                supabase.table("room_status")
+                .select("room_id, status, fo_status")
+                .eq("tenant_id", tenant_id)
+                .in_("room_id", room_ids)
+                .execute()
+            ).data or []
+        }
+        periods = {
+            str(item["room_id"]): item
+            for item in (
+                supabase.table("room_unavailability_periods")
+                .select("room_id, type")
+                .eq("tenant_id", tenant_id)
+                .eq("status", "ACTIVE")
+                .in_("room_id", room_ids)
+                .execute()
+            ).data or []
+        }
+    except Exception:
+        logger.warning("work order list: room context lookup failed", exc_info=True)
+        return
+    for row in rows:
+        key = str(row.get("room_id"))
+        if key not in room_ids or row.get("status") not in _LIST_ACTIVE_STATUSES:
+            continue
+        status_row = statuses.get(key) or {}
+        period = periods.get(key)
+        if period:
+            availability = "out_of_service" if period.get("type") == "OUT_OF_SERVICE" else "out_of_order"
+        elif status_row.get("status") == "OOO":
+            availability = "unrecorded_down"
+        else:
+            availability = None
+        row["room_context"] = {
+            "occupancy": _board_occupancy(status_row.get("fo_status"), status_row.get("status")),
+            "availability": availability,
+        }
+
+
+def _enrich_list_rows(rows: list[dict], tenant_id: str, role: Optional[str] = None) -> None:
+    """Attach assignee names, room context and, for held orders, the recorded hold reason and time.
+
+    Each is best-effort: a failed lookup leaves the fields absent (the client then says
+    "not recorded", or shows no badge) rather than failing the whole queue. Room context is
+    limited to the roles that may read the engineering room board.
+    """
+    if role in ENGINEERING_ROOM_BOARD_ROLES:
+        _attach_room_context(rows, tenant_id)
+
     assignee_ids = sorted({row["assigned_to"] for row in rows if row.get("assigned_to")})
     if assignee_ids:
         try:
@@ -594,6 +666,7 @@ async def list_work_orders(
         ]
     ] = Query(None),
     priority: Optional[Literal["emergency", "urgent", "normal", "low"]] = Query(None),
+    priorities: Optional[str] = Query(None, description="Comma-separated priorities; ignored when `priority` is sent"),
     assigned_to: Optional[str] = Query(None),
     mine: bool = Query(False, description="Only orders assigned to the caller"),
     assigned_to_others: bool = Query(False, description="Only orders assigned to someone other than the caller (not visible to engineers)"),
@@ -621,6 +694,7 @@ async def list_work_orders(
     status_filter = _parse_status_list(statuses)
     if status and status not in status_filter:
         status_filter.append(status)
+    priority_set = [priority] if priority else _parse_priority_list(priorities)
     now_iso = datetime.now(timezone.utc).isoformat()
     tenant_id = current_user.hotel_id
     is_engineer = current_user.role == "engineer"
@@ -642,12 +716,13 @@ async def list_work_orders(
     by_priority = sort_by == "priority"
     if by_priority:
         order_specs: list[tuple[str, bool]] = [("due_at", False), ("created_at", True)]
-        buckets: list[Optional[str]] = [priority] if priority else list(_LIST_PRIORITIES)
+        buckets: list[Optional[str]] = list(priority_set or _LIST_PRIORITIES)
         if sort_dir == "asc":
             buckets.reverse()
     else:
         order_specs = [(sort_by, sort_dir == "desc")]
-        buckets = [priority]
+        # Any other sort must order across priorities, so several values filter in one query instead of per bucket.
+        buckets = [priority_set[0] if len(priority_set) == 1 else None]
 
     # Engineers are scoped to their own and unclaimed work. Two indexed queries + a Python merge
     # beat an OR filter (seq-scan) under concurrent load; everyone else is a single query.
@@ -682,6 +757,8 @@ async def list_work_orders(
             query = query.eq("category", category)
         if bucket:
             query = query.eq("priority", bucket)
+        elif len(priority_set) > 1:
+            query = query.in_("priority", priority_set)
         if room_id:
             query = query.eq("room_id", room_id)
         if floor_room_ids is not None:
@@ -732,7 +809,7 @@ async def list_work_orders(
             rows = build(sources[0], bucket, start, start + per_page).execute().data or []
             has_more = len(rows) > per_page
             data = rows[:per_page]
-            _enrich_list_rows(data, tenant_id)
+            _enrich_list_rows(data, tenant_id, current_user.role)
             return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
         merged: dict[str, dict] = {}
         for source in sources:
@@ -744,7 +821,7 @@ async def list_work_orders(
 
     data = collected[start : start + per_page]
     has_more = len(collected) > start + per_page
-    _enrich_list_rows(data, tenant_id)
+    _enrich_list_rows(data, tenant_id, current_user.role)
     return {"data": data, "meta": {"page": page, "per_page": per_page, "has_more": has_more}}
 
 
@@ -866,6 +943,33 @@ async def work_order_stats(current_user: CurrentUser = Depends(get_current_user)
     return {"data": stats}
 
 
+@router.get("/summary")
+async def my_work_summary(current_user: CurrentUser = Depends(get_current_user)):
+    """Exact counts of the caller's own active work, for the Work tab's My Work tiles.
+
+    Counted here rather than from a page of the list, so a long queue never produces a misleading number.
+    Always the caller's own assignments (`assigned_to = caller`), never the hotel's, in the caller's tenant;
+    archived orders are excluded. `urgent` is emergency + urgent priority across the active statuses; `waiting`
+    is on_hold; the three overlap on purpose (an urgent order in progress is in both)."""
+    rows = (
+        supabase.table("work_orders")
+        .select("id, status, priority")
+        .eq("tenant_id", current_user.hotel_id)
+        .eq("assigned_to", current_user.user_id)
+        .is_("archived_at", "null")
+        .in_("status", list(_LIST_ACTIVE_STATUSES))
+        .execute()
+    ).data or []
+    return {
+        "data": {
+            "urgent": sum(1 for row in rows if row.get("priority") in ("emergency", "urgent")),
+            "in_progress": sum(1 for row in rows if row.get("status") == "in_progress"),
+            "waiting": sum(1 for row in rows if row.get("status") == "on_hold"),
+            "total": len(rows),
+        }
+    }
+
+
 @router.get("/repair-codes")
 async def list_repair_codes(
     code_type: Optional[Literal["problem", "cause", "resolution"]] = Query(None, alias="type"),
@@ -931,8 +1035,9 @@ async def get_work_order(
     if not result.data:
         raise HTTPException(status_code=404, detail="Work order not found")
     row = result.data[0]
-    # Same best-effort enrichment the queue uses: assignee name and, when held, the recorded reason.
-    _enrich_list_rows([row], current_user.hotel_id)
+    # Same best-effort enrichment the queue uses: assignee name, room context (room-board roles only) and, when
+    # held, the recorded reason.
+    _enrich_list_rows([row], current_user.hotel_id, current_user.role)
     return {"data": row}
 
 
@@ -1362,6 +1467,10 @@ async def complete_work_order(
             [(item.part_id, item.location_id, item.quantity) for item in request.parts_consumed],
             current_user.hotel_id,
         )
+
+    # Required checklist steps are part of the preflight: it must run before labor sessions are closed below, and a
+    # rejection leaves the work order exactly as it was. Optional steps never block.
+    _ensure_checklist_ready(wo_id, current_user.hotel_id)
 
     # Close any running sessions only after every preflight has accepted the
     # completion. Server timestamps are authoritative; manual hours remain
@@ -1851,21 +1960,78 @@ async def add_comment(
 # editable per work order thereafter.
 # ---------------------------------------------------------------------------
 
+_CLOSED_STATUSES = ("completed", "cancelled")
+
+
+def _checklist_items(wo_id: str, hotel_id: str) -> list[dict]:
+    rows = (
+        supabase.table("work_order_checklist_items")
+        .select("*")
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", hotel_id)
+        .execute()
+    ).data or []
+    rows = sorted(rows, key=lambda row: (row.get("sort_order") or 0, row.get("created_at") or ""))
+    # Rows from before migration 231 have no column: they are optional, never required.
+    return [{**row, "is_required": bool(row.get("is_required"))} for row in rows]
+
+
+def _checklist_summary(items: list[dict]) -> dict:
+    """The one definition of checklist readiness: GET returns it and POST /complete enforces it."""
+    required = [item for item in items if item.get("is_required")]
+    remaining = [{"id": item["id"], "label": item.get("label")} for item in required if not item.get("is_done")]
+    return {
+        "total": len(items),
+        "completed": sum(1 for item in items if item.get("is_done")),
+        "required_total": len(required),
+        "required_completed": len(required) - len(remaining),
+        "required_remaining": remaining,
+        "ready": not remaining,
+    }
+
+
+def _ensure_checklist_ready(wo_id: str, hotel_id: str) -> None:
+    """Reject (422, nothing changed) while a required checklist step is open. Every route to `completed` runs this."""
+    checklist = _checklist_summary(_checklist_items(wo_id, hotel_id))
+    if not checklist["ready"]:
+        remaining = checklist["required_remaining"]
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "checklist_incomplete",
+                "message": f"{len(remaining)} required checklist item{'s' if len(remaining) != 1 else ''} must be done before this work order can be completed.",
+                "remaining": remaining,
+                "applied": False,
+            },
+        )
+
+
+def _checklist_work_order(wo_id: str, hotel_id: str) -> dict:
+    result = (
+        supabase.table("work_orders")
+        .select("id, status, assigned_to")
+        .eq("id", wo_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    return result.data
+
+
 @router.get("/{wo_id}/checklist")
 async def list_checklist_items(
     wo_id: str,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
-    result = (
-        supabase.table("work_order_checklist_items")
-        .select("*")
-        .eq("work_order_id", wo_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .order("sort_order")
-        .execute()
-    )
-    return {"data": result.data or []}
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    items = _checklist_items(wo_id, current_user.hotel_id)
+    return {
+        "data": items,
+        "summary": _checklist_summary(items),
+        "meta": {"work_order_status": work_order.get("status"), "editable": work_order.get("status") not in _CLOSED_STATUSES},
+    }
 
 
 @router.post("/{wo_id}/checklist")
@@ -1876,7 +2042,15 @@ async def add_checklist_item(
         require_role("engineer", "chief_engineer", "gm")
     ),
 ):
-    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
+    # Same rules as updating a step: an engineer's own (or unclaimed) order, and never a closed record. A required
+    # step on someone else's order would block that person's completion.
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    _ensure_engineer_can_update_work_order(current_user, work_order)
+    if work_order.get("status") in _CLOSED_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "work_order_closed", "message": "This work order is closed; its checklist can no longer be changed."},
+        )
     existing = (
         supabase.table("work_order_checklist_items")
         .select("sort_order")
@@ -1896,6 +2070,7 @@ async def add_checklist_item(
                 "label": request.label,
                 "estimated_minutes": request.estimated_minutes,
                 "sort_order": next_sort,
+                **({"is_required": True} if request.is_required else {}),
             }
         )
         .execute()
@@ -1912,22 +2087,71 @@ async def update_checklist_item(
         require_role("engineer", "chief_engineer", "gm")
     ),
 ):
-    update_data = {
-        "is_done": request.is_done,
-        "done_by": current_user.user_id if request.is_done else None,
-        "done_at": datetime.now(timezone.utc).isoformat() if request.is_done else None,
-    }
-    result = (
-        supabase.table("work_order_checklist_items")
-        .update(update_data)
-        .eq("id", item_id)
-        .eq("work_order_id", wo_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .execute()
-    )
-    if not result.data:
+    """Mark a step done or reopen it. A checklist step is work on the order, so it follows the same rules as the other
+    repair writes: an engineer needs the order assigned to them (or open and unclaimed), and a completed or cancelled
+    order is a closed record. Repeating the current state is a no-op that keeps the original done_by / done_at."""
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    _ensure_engineer_can_update_work_order(current_user, work_order)
+    if work_order.get("status") in _CLOSED_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "work_order_closed", "message": "This work order is closed; its checklist can no longer be changed."},
+        )
+
+    def read_item() -> dict | None:
+        found = (
+            supabase.table("work_order_checklist_items")
+            .select("*")
+            .eq("id", item_id)
+            .eq("work_order_id", wo_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .limit(1)
+            .execute()
+        ).data
+        return {**found[0], "is_required": bool(found[0].get("is_required"))} if found else None
+
+    item = read_item()
+    if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    return {"data": result.data[0]}
+
+    # Conditional on the state we read, so two people tapping at once cannot overwrite each other's done_by/done_at.
+    for _ in range(2):
+        if bool(item.get("is_done")) == request.is_done:
+            break
+        updated = (
+            supabase.table("work_order_checklist_items")
+            .update(
+                {
+                    "is_done": request.is_done,
+                    "done_by": current_user.user_id if request.is_done else None,
+                    "done_at": datetime.now(timezone.utc).isoformat() if request.is_done else None,
+                }
+            )
+            .eq("id", item_id)
+            .eq("work_order_id", wo_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_done", bool(item.get("is_done")))
+            .execute()
+        )
+        if updated.data:
+            previous = item
+            item = {**updated.data[0], "is_required": bool(updated.data[0].get("is_required"))}
+            try:
+                _record_repair_audit(
+                    work_order_id=wo_id,
+                    current_user=current_user,
+                    action="work_order.checklist_item_updated",
+                    old_state={"item_id": item_id, "label": previous.get("label"), "is_done": bool(previous.get("is_done"))},
+                    new_state={"item_id": item_id, "label": item.get("label"), "is_done": request.is_done, "is_required": item["is_required"]},
+                )
+            except Exception:  # the step is saved; a missing audit row must not make the client retry it
+                logger.exception("Checklist audit event failed for work order %s item %s", wo_id, item_id)
+            break
+        item = read_item()
+        if not item:
+            raise HTTPException(status_code=404, detail="Checklist item not found")
+
+    return {"data": item, "summary": _checklist_summary(_checklist_items(wo_id, current_user.hotel_id))}
 
 
 # ---------------------------------------------------------------------------

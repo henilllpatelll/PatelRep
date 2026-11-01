@@ -1998,6 +1998,7 @@
       "occupied": "Occupied",
       "vacant": "Vacant"
     },
+    "roomAvailability": "Room availability",
     "factCreated": "Created",
     "factDue": "Due",
     "factCompleted": "Done",
@@ -2088,7 +2089,17 @@
         "noLabor": "None recorded",
         "noDeadline": "No deadline set"
       },
+      "draftSaved": "Draft saved on this phone. It isn't sent until you submit.",
       "banner": {
+        "cached": "Saved copy from {{time}}. It may be out of date; actions that need a connection are unavailable.",
+        "draftRestored": "Saved draft restored from {{time}}. Nothing has been sent.",
+        "draftReview": {
+          "statusChanged": "The work order changed since then. Review it before you submit.",
+          "closed": "This work order is already finished, so the draft can't be submitted."
+        },
+        "draftDiscard": "Discard draft",
+        "draftDiscardConfirm": "Discard for good",
+        "viewSync": "Sync status",
         "offline": "You're offline. You can read this order; most actions need a connection.",
         "claimQueued": "Your claim is saved on this phone and not confirmed yet. It will be sent when you're online.",
         "completeQueued": "Completion is saved on this phone and not confirmed yet. The order stays open until it syncs.",
@@ -2116,7 +2127,10 @@
         "previous": "Earlier completed repairs: {{count}}",
         "noPrevious": "No earlier repairs on this equipment.",
         "relatedFailed": "Earlier repairs couldn't be loaded.",
-        "open": "Open earlier repair {{title}}"
+        "open": "Open earlier repair {{title}}",
+        "historyTitle": "Earlier repairs",
+        "historyNote": "Completed repairs on {{name}}. These are not part of this work order's activity.",
+        "seeHistory": "Earlier completed repairs on this equipment: {{count}}. See History."
       },
       "tools": {
         "title": "Repair tools",
@@ -2135,7 +2149,12 @@
         "parts": "Parts",
         "partsCount": "Parts: {{count}}",
         "note": "Note",
-        "addNote": "Add a note"
+        "addNote": "Add a note",
+        "notesCount": "Notes: {{count}}",
+        "resumeHint": "Return the order to in progress",
+        "holdHint": "Pause with a reason",
+        "escalateHint": "Flag it for a manager's attention",
+        "assistHint": "Suggestions to review, not a diagnosis"
       },
       "more": {
         "title": "More actions",
@@ -2285,10 +2304,13 @@
         "confirm": "Confirm Completion",
         "confirmQueue": "Save Completion for Later",
         "queued": "Completion saved on this phone. It isn't confirmed until it syncs.",
+        "alreadyQueued": "A completion for this work order is already waiting to sync.",
         "offlineQueue": "You're offline. The completion will be saved on this phone and sent later. The order stays open until the server confirms it.",
         "offlineBlock": {
           "parts": "Parts come out of inventory, so this needs a connection. Go online to complete with parts.",
-          "failedVerification": "A failed test is recorded on the server, so this needs a connection."
+          "failedVerification": "A failed test is recorded on the server, so this needs a connection.",
+          "checklistOpen": "Required checklist steps are still open. Finish them with a connection, then complete the order.",
+          "checklistUnverified": "This phone hasn't confirmed the checklist, so a completion can't be saved for later. Go online to complete."
         },
         "failedNote": "A failed test keeps the order in progress. It will not be closed.",
         "followUpNote": "The order will be completed and marked follow-up required. No new work order is created.",
@@ -2297,11 +2319,27 @@
           "verification": "Choose a verification result.",
           "verificationNotes": "Add a note explaining the result.",
           "parts": "Fix the parts that are marked.",
-          "stock": "There isn't enough stock for one of the parts. Review them."
+          "stock": "There isn't enough stock for one of the parts. Review them.",
+          "checklist": "Required checklist steps are still open. The work order was not completed."
         },
         "outcome": {
           "verificationFailed": "Failed test recorded. The order stays in progress. Nothing was closed.",
           "conflict": "The order changed while you were working. It was reloaded. {{message}}"
+        },
+        "readiness": {
+          "ready": "Ready to complete",
+          "blocked": "Before you can complete",
+          "checklist": "Checklist: {{done}} of {{total}} done",
+          "viewChecklist": "View checklist",
+          "unverifiedOnline": "This phone couldn't read the checklist. The server will check it when you submit.",
+          "blocker": {
+            "checklist": "{{count}} required checklist step is still open",
+            "checklist_plural": "{{count}} required checklist steps are still open",
+            "checklistUnverified": "The checklist hasn't been confirmed on this phone, so a completion can't be saved for later",
+            "resolution": "Choose how it was resolved",
+            "verification": "Choose a verification result",
+            "verificationNotes": "Add a note explaining the result"
+          }
         }
       },
       "result": {
@@ -2351,12 +2389,113 @@
       "toast": {
         "claimed": "Claimed",
         "claimQueued": "Claim saved on this phone. Not confirmed until it syncs.",
+        "claimAlreadyQueued": "Your claim is already waiting to sync.",
         "startFailed": "Couldn't start the repair.",
         "laborFailed": "Couldn't update labor.",
         "ackFailed": "Couldn't acknowledge.",
         "diagnosisSaved": "Diagnosis saved",
         "photoAttached": "Photo attached",
         "busy": "Another action is still running."
+      },
+      "tabs": {
+        "overview": "Overview",
+        "checklist": "Checklist",
+        "work": "Work",
+        "history": "History"
+      },
+      "progress": {
+        "title": "Repair progress",
+        "cancelled": "This work order was cancelled.",
+        "stage": {
+          "claim": "Claim",
+          "diagnose": "Diagnose",
+          "repair": "Repair",
+          "verify": "Verify",
+          "complete": "Complete"
+        },
+        "state": {
+          "done": "done",
+          "current": "in progress",
+          "pending": "not yet",
+          "paused": "paused",
+          "unknown": "not recorded"
+        }
+      },
+      "next": {
+        "title": "Next step",
+        "useBar": "Use the button below.",
+        "claim": {
+          "label": "Claim Work",
+          "hint": "Nobody owns this order yet. Claim it to start."
+        },
+        "start": {
+          "label": "Start Repair",
+          "hint": "This order is assigned to you and ready to begin."
+        },
+        "continue": {
+          "label": "Continue Repair",
+          "hint": "Record labor, diagnosis, photos and parts, then review completion."
+        },
+        "reviewHold": {
+          "label": "Review Hold",
+          "hint": "This order is on hold. Resume work when the hold reason is resolved."
+        },
+        "resume": {
+          "label": "Resume Work",
+          "hint": "This order was escalated. Resume work when you can continue."
+        },
+        "viewRecord": {
+          "label": "View Completed Record",
+          "hint": "This repair is complete. The record is below and in History."
+        },
+        "cancelled": {
+          "label": "Cancelled",
+          "hint": "This order was cancelled. No repair actions are available."
+        },
+        "viewOnly": {
+          "label": "View only",
+          "hint": "Your role can review this order but not change the repair."
+        },
+        "elsewhere": {
+          "label": "Assigned to another technician",
+          "hint": "You can read this order. Only its owner can work on it."
+        }
+      },
+      "checklist": {
+        "title": "Checklist",
+        "progress": "{{done}} of {{total}} completed",
+        "progressA11y": "{{done}} of {{total}} checklist steps completed",
+        "required": "Required",
+        "optional": "Optional",
+        "requiredRemaining": "{{count}} required step remaining",
+        "requiredRemaining_plural": "{{count}} required steps remaining",
+        "requiredDone": "All required steps are done",
+        "stateDone": "done",
+        "stateOpen": "not done",
+        "saving": "saving",
+        "doneAt": "Done {{time}}",
+        "emptyTitle": "No checklist assigned",
+        "emptyBody": "This work order has no checklist steps. You can still work on it and complete it.",
+        "errorLoad": "Couldn't load the checklist.",
+        "errorForbidden": "You don't have access to this checklist.",
+        "stale": "Couldn't refresh. Showing the last checklist this phone loaded.",
+        "readOnly": {
+          "closed": "This work order is closed. The checklist is a read-only record.",
+          "notAssigned": "Only the assigned technician updates this checklist. Claim the order to work on it.",
+          "offline": "You're offline. Checklist steps are saved on the server, so reconnect to change them.",
+          "viewOnly": "Your role can read this checklist but not change it."
+        },
+        "itemError": {
+          "closed": "This work order was closed, so the step wasn't changed.",
+          "forbidden": "You can't change this step.",
+          "failed": "Couldn't save that step. Check your connection and try again."
+        },
+        "reviewCompletion": "Review completion"
+      },
+      "work": {
+        "site": "On site",
+        "repair": "Repair work",
+        "more": "Additional actions"
       }
     }
   },
@@ -10549,6 +10688,7 @@
     "filterA11yActive": "Filter and sort, {{count}} active",
     "removeFilter": "Remove filter: {{filter}}",
     "roomLabel": "Room {{room}}",
+    "eyebrow": "PatelRep Engineering",
     "views": {
       "mine": "My Work",
       "available": "Available",
@@ -10556,8 +10696,58 @@
       "waiting": "Waiting",
       "done": "Done"
     },
+    "viewTitles": {
+      "mine": "My Work",
+      "available": "Available Work",
+      "team": "Team Work",
+      "waiting": "On Hold",
+      "done": "History"
+    },
+    "viewSubtitles": {
+      "mine": "Your assigned and in-progress repairs",
+      "available": "Unassigned repairs you can take",
+      "availableManager": "Unassigned repairs that need an owner",
+      "team": "Repairs assigned to other engineers",
+      "waiting": "Paused for parts, access or approval",
+      "done": "Completed and cancelled work orders, for reference"
+    },
+    "shortcuts": {
+      "waiting": "On hold",
+      "done": "History",
+      "backTo": "Back to {{view}}",
+      "viewsA11y": "Work views",
+      "otherViewsA11y": "Other work views"
+    },
+    "summary": {
+      "urgent": "Urgent",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "unknown": "–",
+      "groupA11y": "My Work summary",
+      "a11y": "{{label}}: {{count}}. Show these work orders.",
+      "a11yActive": "{{label}}: {{count}}. Showing these work orders. Tap to clear.",
+      "a11yUnknown": "{{label}}: count unavailable. Show these work orders.",
+      "a11yUnknownActive": "{{label}}: count unavailable. Showing these work orders. Tap to clear.",
+      "unavailable": "Counts are unavailable right now."
+    },
+    "managerSummary": {
+      "needsOwner": "Needs owner",
+      "inProgress": "In progress",
+      "waiting": "Waiting",
+      "unknown": "–",
+      "groupA11y": "Team Work summary",
+      "a11y": "{{label}}: {{count}}. Show these work orders.",
+      "a11yMore": "{{label}}: at least {{count}}. Show these work orders.",
+      "a11yActive": "{{label}}: {{count}}. Showing these work orders. Tap to clear.",
+      "a11yUnknown": "{{label}}: count unavailable. Show these work orders.",
+      "a11yUnknownActive": "{{label}}: count unavailable. Showing these work orders. Tap to clear.",
+      "unavailable": "Team counts are unavailable right now.",
+      "stale": "Counts are from the last time you were online."
+    },
+    "urgentChip": "Urgent & emergency",
+    "historyNote": "These work orders are closed. Open one to see what was done.",
     "groups": {
-      "escalated": "Escalated",
+      "escalated": "Needs attention",
       "in_progress": "In progress",
       "ready": "Assigned / ready",
       "on_hold": "On hold",
@@ -10571,14 +10761,23 @@
       "low": "Low"
     },
     "action": {
-      "continue": "Continue Repair",
-      "open": "Open Job",
-      "claim": "Claim Work Order",
-      "view": "View",
-      "viewHold": "View Hold",
-      "viewReport": "View"
+      "continue": "Continue",
+      "open": "Open",
+      "claim": "Claim",
+      "review": "Review",
+      "reviewHold": "Review hold",
+      "viewRecord": "View record"
+    },
+    "openHint": "Opens the work order",
+    "card": {
+      "dueToday": "Due today, {{time}}",
+      "dueTomorrow": "Due tomorrow, {{time}}",
+      "dueOn": "Due {{date}}",
+      "overdueBy": "Overdue by {{time}}",
+      "equipment": "Equipment: {{name}}"
     },
     "overdue": "Overdue",
+    "assignedToYou": "Assigned to you",
     "assignedTo": "With {{name}}",
     "assignedUnknown": "Assigned",
     "unassigned": "Unassigned",
@@ -11298,11 +11497,11 @@
     "equipment": "Equipment",
     "repeatDefects": "Defects recorded in {{count}} inspections in the last {{days}} days",
     "pmOversight": "Preventive maintenance",
-    "pmOverdueCount_one": "{{count}} inspection overdue",
-    "pmOverdueCount_other": "{{count}} inspections overdue",
+    "pmOverdueCount": "{{count}} inspection overdue",
+    "pmOverdueCount_plural": "{{count}} inspections overdue",
     "roomOversight": "Rooms out of order or service",
-    "roomsDown_one": "{{count}} room down · {{late}} past expected return",
-    "roomsDown_other": "{{count}} rooms down · {{late}} past expected return",
+    "roomsDown": "{{count}} room down · {{late}} past expected return",
+    "roomsDown_plural": "{{count}} rooms down · {{late}} past expected return",
     "viewWork": "View work",
     "viewWorkFor": "View work for {{name}}",
     "techEmpty": "No open work",
@@ -11324,14 +11523,14 @@
       "on_hold": "On hold"
     },
     "load": {
-      "active_one": "{{count}} active job",
-      "active_other": "{{count}} active jobs",
-      "urgent_one": "{{count}} urgent",
-      "urgent_other": "{{count}} urgent",
-      "onHold_one": "{{count}} on hold",
-      "onHold_other": "{{count}} on hold",
-      "overdue_one": "{{count}} overdue",
-      "overdue_other": "{{count}} overdue"
+      "active": "{{count}} active job",
+      "active_plural": "{{count}} active jobs",
+      "urgent": "{{count}} urgent",
+      "urgent_plural": "{{count}} urgent",
+      "onHold": "{{count}} on hold",
+      "onHold_plural": "{{count}} on hold",
+      "overdue": "{{count}} overdue",
+      "overdue_plural": "{{count}} overdue"
     },
     "assign": {
       "title": "Assign technician",
@@ -11368,10 +11567,10 @@
     "offline": "Offline",
     "lastConfirmed": "Last fully synced at {{time}}",
     "lastUnknown": "No confirmed sync yet",
-    "waiting_one": "{{count}} action waiting",
-    "waiting_other": "{{count}} actions waiting",
-    "attention_one": "{{count}} needs attention",
-    "attention_other": "{{count}} need attention",
+    "waiting": "{{count}} action waiting",
+    "waiting_plural": "{{count}} actions waiting",
+    "attention": "{{count}} needs attention",
+    "attention_plural": "{{count}} need attention",
     "unreadable": "Couldn't read the saved changes on this phone.",
     "pendingTitle": "Pending actions",
     "none": "Nothing waiting to sync.",
@@ -11380,6 +11579,16 @@
     "discard": "Discard",
     "confirmDiscard": "Discard for good",
     "discardWarning": "This change was never sent. Discarding removes it from this phone and can't be undone. Anything already confirmed by the server stays.",
+    "stateSyncing": "Syncing now",
+    "recentTitle": "Recently synced",
+    "recentNone": "Nothing confirmed by the server yet.",
+    "recentClaim": "Claim confirmed by the server",
+    "recentComplete": "Completion confirmed by the server",
+    "draftsTitle": "Saved drafts",
+    "draftsNone": "No unsent drafts on this phone.",
+    "draftItem": "Repair completion draft",
+    "draftHint": "Saved on this phone. Not sent until you submit it.",
+    "openDraft": "Open",
     "dismiss": "Dismiss",
     "dismissClaims": "Dismiss all refused claims",
     "fullDetails": "All saved changes",

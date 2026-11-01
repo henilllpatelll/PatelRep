@@ -34997,6 +34997,73 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2128",
+      "timestamp": "2026-11-01T00:30:00.000Z",
+      "error_message": "git diff showed whole-file rewrites (1124 lines) for small edits",
+      "file": "apps/mobile (6 files)",
+      "root_cause": "Python text-mode writes on Windows converted LF files to CRLF",
+      "fix": "Normalised to LF with a byte replace; RBAC-MATRIX.md regenerated since it is committed CRLF",
+      "tags": [
+        "line-endings",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T00:30:00.000Z"
+    },
+    {
+      "id": "bug-2129",
+      "timestamp": "2026-11-01T15:30:00.000Z",
+      "error_message": "Phase 7 audit (P0): POST /work-orders/{id}/transition {status:'completed'} completed an order with open required checklist steps",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "The required-step preflight lived only inside POST /complete; /transition (and vendors/merge callers) reach 'completed' through _execute_work_order_transition without it",
+      "fix": "Extracted _ensure_checklist_ready and call it from _execute_work_order_transition whenever the target status is completed; regression tests in test_work_order_checklist.py (fail without the guard)",
+      "tags": [
+        "checklist",
+        "authorization",
+        "completion",
+        "api"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T15:30:00.000Z"
+    },
+    {
+      "id": "bug-2130",
+      "timestamp": "2026-11-01T15:30:00.000Z",
+      "error_message": "Phase 7 audit (P1): POST /work-orders/{id}/checklist let any engineer add a (required) step to another engineer's or a closed work order",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "Phase 4 guarded only PATCH of an item; the add route still checked tenant existence only, and is_required made it able to block someone else's completion",
+      "fix": "add_checklist_item now applies _ensure_engineer_can_update_work_order and the closed-record 409, same as update",
+      "tags": [
+        "checklist",
+        "authorization",
+        "api"
+      ],
+      "related_bugs": [
+        "bug-2129"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T15:30:00.000Z"
+    },
+    {
+      "id": "bug-2131",
+      "timestamp": "2026-11-01T17:30:00.000Z",
+      "error_message": "Chief engineer Team Overview printed 'engineeringTeam.pmOverdueCount' / 'engineeringTeam.roomsDown', and the Assign technician sheet printed 'engineeringTeam.load.active · …' (raw i18n keys)",
+      "file": "apps/mobile/i18n/locales/en.json, es.json",
+      "root_cause": "i18n runs with compatibilityJSON v3 (plural = key + key_plural) but engineeringTeam.* and engineeringSync.* were written as key_one/key_other, which is never looked up. Mocked-t screen tests cannot see it; found by driving the screens in Expo web.",
+      "fix": "Renamed the 8 engineering pairs to key / key_plural in en and es; added __tests__/lib/engineering/pluralKeys.test.ts which resolves them through the real i18next instance (fails on the old keys). Other modules still carry _one/_other (lostFound, alertsScreen, sop, supervisorCopilot) - not touched.",
+      "tags": [
+        "i18n",
+        "plural",
+        "mobile",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T17:30:00.000Z"
     }
   ]
 }

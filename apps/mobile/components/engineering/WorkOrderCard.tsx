@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { memo, type ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -6,21 +6,31 @@ import { lightTheme, monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { formatDuration, minutesSince, workOrderLocation, type WorkOrder } from "@/lib/engineering/workOrders";
 import {
-  dueState,
-  formatClock,
-  formatDuration,
-  minutesSince,
-  workOrderLocation,
-  type WorkOrder,
-} from "@/lib/engineering/workOrders";
-import { isOverdue, workOrderLabel, type QueueView } from "@/lib/engineering/workQueue";
+  contextBadges,
+  dueLabel,
+  isEmphasised,
+  isFinished,
+  ownerLine,
+  primaryAction,
+  showsSecondaryAssign,
+  statusTone,
+  type BadgeKind,
+  type CardActionKind,
+  type ContextBadge,
+  type DueLabel,
+  type OwnerLine,
+  type StatusTone,
+} from "@/lib/engineering/workCard";
+import { workOrderLabel, type QueueView } from "@/lib/engineering/workQueue";
 
 /* ─── Work-order card — the one card for every engineering queue ────────────
-   Reading order: (1) priority and title, (2) room/location and status, (3) due
-   time, owner or wait context, (4) one primary action. Priority is always a
-   word, never only a colour; emergency is the strongest treatment, urgent the
-   next, normal stays neutral and low is quiet. */
+   Reading order: (1) where and which order, with its priority word, (2) the issue, (3) its status and the
+   verified hotel context, (4) when it is due, who has it or why it waits, (5) one primary action — plus a small
+   Assign / Reassign for managers. Priority, overdue and status are always words, never only a colour. What the
+   card leads with comes from `workCard.ts`; the screen decides who may claim or assign. */
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -84,16 +94,25 @@ export const CATEGORY_META: Record<string, { icon: IconName; fg: string; bg: str
 export interface WorkOrderCardProps {
   wo: WorkOrder;
   locale: string;
+  /** The hotel's IANA zone: due times and "today / tomorrow" are read in it, not the phone's. */
+  timeZone?: string | null;
   /** Which queue is drawing the card; picks the context line and the primary action. */
   view: QueueView;
-  onPress: () => void;
-  /** Present only when the viewer may claim this order (open, unclaimed, role allows it). */
-  onClaim?: () => void;
+  /** The signed-in person, to tell their own work from a colleague's. */
+  viewerId?: string | null;
+  /** Floored to the minute by the screen so due and overdue labels move on without a data refresh. */
+  now?: number;
+  /** Opens the order. Stable per screen, so a card re-renders only when its own order changes. */
+  onOpen: (wo: WorkOrder) => void;
+  /** The viewer may claim this order (open, unclaimed, role allows it). */
+  claimable?: boolean;
+  onClaim?: (wo: WorkOrder) => void;
   claiming?: boolean;
   /** A claim is saved on this phone and waiting to sync — not confirmed by the server. */
   claimQueued?: boolean;
-  /** Present only for a chief engineer / GM on an order that can still be assigned. */
-  onAssign?: () => void;
+  /** A chief engineer / GM on an order that can still be assigned. */
+  assignable?: boolean;
+  onAssign?: (wo: WorkOrder) => void;
 }
 
 function holdReasonKey(code: string | null | undefined): string {
@@ -103,138 +122,148 @@ function holdReasonKey(code: string | null | undefined): string {
     : "workQueue.holdReasonOther";
 }
 
-export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, claimQueued, onAssign }: WorkOrderCardProps) {
+const ACTION_LABEL: Record<CardActionKind, string> = {
+  claim: "workQueue.action.claim",
+  continue: "workQueue.action.continue",
+  open: "workQueue.action.open",
+  reviewHold: "workQueue.action.reviewHold",
+  viewRecord: "workQueue.action.viewRecord",
+  review: "workQueue.action.review",
+  assign: "engineeringTeam.assign.assignShort",
+};
+
+const ACTION_ICON: Record<CardActionKind, IconName> = {
+  claim: "hand-right-outline",
+  continue: "play-outline",
+  open: "chevron-forward",
+  reviewHold: "pause-outline",
+  viewRecord: "document-text-outline",
+  review: "eye-outline",
+  assign: "person-add-outline",
+};
+
+const BADGE_ICON: Record<BadgeKind, IconName> = {
+  occupied: "person-outline",
+  vacant: "bed-outline",
+  out_of_order: "close-circle-outline",
+  out_of_service: "remove-circle-outline",
+  unrecorded_down: "alert-circle-outline",
+  guest: "megaphone-outline",
+  equipment: "hardware-chip-outline",
+};
+
+function WorkOrderCardView({
+  wo,
+  locale,
+  timeZone,
+  view,
+  viewerId,
+  now,
+  onOpen,
+  claimable = false,
+  onClaim,
+  claiming,
+  claimQueued,
+  assignable = false,
+  onAssign,
+}: WorkOrderCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
-  const category = CATEGORY_META[categoryKey];
   const { room, text } = workOrderLocation(wo);
   const number = workOrderLabel(wo);
-  const overdue = isOverdue(wo);
-  const due = dueState(wo, locale);
+  const finished = isFinished(wo.status);
+  const emphasised = isEmphasised(wo.priority);
   const emergency = wo.priority === "emergency";
-  const urgent = wo.priority === "urgent";
-  const finished = wo.status === "completed" || wo.status === "cancelled";
+  const clock = now != null ? new Date(now) : new Date();
+  const due: DueLabel | null = dueLabel(wo, { now: clock, timeZone, language: locale });
+  const overdue = due?.kind === "overdue";
+  const badges = contextBadges(wo);
 
-  const railColor =
-    emergency || urgent || overdue ? theme.status.dirty : wo.status === "on_hold" ? theme.status.pickup : theme.border;
-  const priorityColor =
-    emergency || urgent ? theme.status.dirty : wo.priority === "low" ? theme.textDisabled : theme.textSecondary;
+  const canClaim = claimable && onClaim != null;
+  const canAssign = assignable && onAssign != null;
+  const action = primaryAction(wo, { view, viewerId, claimable: canClaim, assignable: canAssign });
+  const secondaryAssign = showsSecondaryAssign(action, { assignable: canAssign });
+
+  const location = room ? t("workQueue.roomLabel", { room }) : text;
+  const codeLine = [location, number].filter(Boolean).join(" · ");
   const priorityLabel = t(`workQueue.priority.${wo.priority}`);
   const statusLabel = t(`workOrders.status.${wo.status}`);
 
-  const codeLine = [number, room ? t("workQueue.roomLabel", { room }) : text].filter(Boolean).join(" · ");
+  const tone = TONES[statusTone(wo.status)](theme);
+  const railColor = emphasised || overdue ? theme.status.dirty : wo.status === "on_hold" ? theme.status.pickup : theme.border;
+  const priorityColor = emphasised ? theme.status.dirty : wo.priority === "low" ? theme.textDisabled : theme.textSecondary;
 
-  const heldMinutes = wo.status === "on_hold" ? minutesSince(wo.held_since) : null;
-  const updatedMinutes = minutesSince(wo.updated_at);
-  const onClock = wo.status === "in_progress" ? minutesSince(wo.started_at) : null;
-  const doneClock = finished ? formatClock(wo.completed_at ?? wo.updated_at, locale) : null;
+  const dueText = due ? dueLine(due, t) : null;
+  const owner = ownerLine(wo, view, viewerId);
+  const heldMinutes = wo.status === "on_hold" ? minutesSince(wo.held_since, clock) : null;
+  const onClock = wo.status === "in_progress" && view !== "done" ? minutesSince(wo.started_at, clock) : null;
+  const finishedAt = finished ? formatHotelTime(wo.completed_at ?? wo.updated_at, timeZone, locale) : null;
+  const reportedMinutes = view === "available" ? minutesSince(wo.created_at, clock) : null;
+  const updatedMinutes = view === "waiting" && wo.status === "on_hold" ? minutesSince(wo.updated_at, clock) : null;
 
-  /** The third line: whichever of due / owner / wait matters for the queue being read. */
-  const context: string[] = [];
-  if (view === "team" || view === "waiting") {
-    context.push(
-      wo.assigned_to_name
-        ? t("workQueue.assignedTo", { name: wo.assigned_to_name })
-        : wo.assigned_to
-          ? t("workQueue.assignedUnknown")
-          : t("workQueue.unassigned"),
-    );
-  }
-  if (view === "done") {
-    if (doneClock)
-      context.push(t(wo.status === "cancelled" ? "workQueue.cancelledAt" : "workQueue.doneAt", { time: doneClock }));
-    if (wo.assigned_to_name) context.push(wo.assigned_to_name);
-  }
+  /** The supporting line: whoever has it, why it waits, and how long it has been going. */
+  const details: string[] = [];
+  if (owner) details.push(ownerText(owner, t));
+  if (finishedAt) details.push(t(wo.status === "cancelled" ? "workQueue.cancelledAt" : "workQueue.doneAt", { time: finishedAt }));
   if (wo.status === "on_hold") {
-    context.push(t(holdReasonKey(wo.hold_reason_code)));
-    if (heldMinutes != null) context.push(t("workQueue.waitingFor", { time: formatDuration(heldMinutes) }));
-    if (view === "waiting" && updatedMinutes != null)
-      context.push(t("workQueue.updatedAgo", { time: formatDuration(updatedMinutes) }));
+    details.push(t(holdReasonKey(wo.hold_reason_code)));
+    if (heldMinutes != null) details.push(t("workQueue.waitingFor", { time: formatDuration(heldMinutes) }));
+    if (updatedMinutes != null) details.push(t("workQueue.updatedAgo", { time: formatDuration(updatedMinutes) }));
   }
-  if (view === "available" && minutesSince(wo.created_at) != null) {
-    context.push(
-      t("workQueue.reportedAgo", {
-        time: formatDuration(minutesSince(wo.created_at) as number),
-      }),
-    );
-  }
-  if (onClock != null && view !== "done") context.push(t("workOrders.onClock", { time: formatDuration(onClock) }));
-  if (!finished && !overdue && due?.kind === "due") context.push(t("workOrders.dueAt", { time: due.clock }));
-  if (wo.guest_reported) context.push(t("workQueue.guestReported"));
+  if (reportedMinutes != null) details.push(t("workQueue.reportedAgo", { time: formatDuration(reportedMinutes) }));
+  if (onClock != null) details.push(t("workOrders.onClock", { time: formatDuration(onClock) }));
 
-  const actionLabel =
-    onClaim || claimQueued
-      ? t("workQueue.action.claim")
-      : view === "done"
-        ? t("workQueue.action.viewReport")
-        : view === "team" || (view === "waiting" && wo.status === "on_hold" && wo.assigned_to_name)
-          ? t("workQueue.action.view")
-          : wo.status === "in_progress"
-            ? t("workQueue.action.continue")
-            : wo.status === "on_hold"
-              ? t("workQueue.action.viewHold")
-              : t("workQueue.action.open");
-
+  const badgeText = badges.map((badge) => badgeLabel(badge, t));
   const a11y = [
-    number,
-    room ? t("workQueue.roomLabel", { room }) : text,
+    codeLine,
     wo.title,
     priorityLabel,
     statusLabel,
-    overdue ? t("workQueue.overdue") : null,
+    ...badgeText,
+    dueText,
+    ...details,
   ]
     .filter(Boolean)
     .join(", ");
 
+  const actionLabel = t(ACTION_LABEL[action]);
+  const run = () => {
+    if (action === "claim") onClaim?.(wo);
+    else if (action === "assign") onAssign?.(wo);
+    else onOpen(wo);
+  };
+  const assignLabel = wo.assigned_to ? t("engineeringTeam.assign.reassignShort") : t("engineeringTeam.assign.assignShort");
+
   return (
-    <Card
-      style={[
-        styles.card,
-        (emergency || urgent || overdue) && {
-          borderColor: theme.status.dirtyLine,
-        },
-      ]}
-    >
+    <Card style={[styles.card, emphasised || overdue ? { borderColor: theme.status.dirtyLine } : null]}>
       <View style={[styles.rail, { backgroundColor: railColor, width: emergency ? 7 : 4 }]} />
 
-      {/* The info area opens the order; the primary action is its sibling so buttons never nest. */}
+      {/* The info area opens the order; the actions are its siblings so buttons never nest. */}
       <Pressable
-        onPress={onPress}
+        onPress={() => onOpen(wo)}
         accessibilityRole="button"
         accessibilityLabel={a11y}
+        accessibilityHint={t("workQueue.openHint")}
         testID={`wo-${wo.id}`}
         style={styles.info}
       >
         <View style={styles.topRow}>
           <Text style={[styles.code, { color: theme.textMuted }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
-            {codeLine || categoryKey}
+            {codeLine || t(`workOrders.category.${wo.category && CATEGORY_META[wo.category] ? wo.category : "general"}`)}
           </Text>
-          {overdue ? (
-            <Text style={[styles.overdue, { color: theme.status.dirty }]} testID={`wo-overdue-${wo.id}`}>
-              {t("workQueue.overdue")}
-            </Text>
-          ) : null}
-        </View>
-
-        <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={3} maxFontSizeMultiplier={1.4}>
-          {wo.title}
-        </Text>
-
-        <View style={styles.statusRow}>
           <View
             style={[
               styles.priorityChip,
               emergency && { backgroundColor: theme.status.dirty },
-              urgent && {
+              wo.priority === "urgent" && {
                 backgroundColor: theme.status.dirtySoft,
                 borderColor: theme.status.dirtyLine,
                 borderWidth: 1,
               },
             ]}
           >
-            {emergency || urgent ? (
+            {emphasised ? (
               <Ionicons
                 name={emergency ? "alert-circle" : "alert-circle-outline"}
                 size={13}
@@ -249,32 +278,54 @@ export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, cl
               {priorityLabel}
             </Text>
           </View>
-          <Text style={[styles.status, { color: theme.textSecondary }]} maxFontSizeMultiplier={1.4}>
-            {statusLabel}
-          </Text>
-          <View style={styles.categoryRow} accessible accessibilityLabel={t(`workOrders.category.${categoryKey}`)}>
-            <View style={[styles.categoryDot, { backgroundColor: category.bg }]}>
-              <Ionicons name={category.icon} size={12} color={category.fg} />
-            </View>
-            <Text style={[styles.category, { color: theme.textMuted }]} maxFontSizeMultiplier={1.4}>
-              {t(`workOrders.category.${categoryKey}`)}
-            </Text>
-          </View>
         </View>
 
-        {context.length > 0 ? (
-          <Text
-            style={[styles.context, { color: overdue ? theme.status.dirty : theme.textSecondary }]}
-            maxFontSizeMultiplier={1.4}
-          >
-            {overdue && due?.kind === "overdue"
-              ? `${t("workOrders.overdueBy", { time: formatDuration(due.minutes) })} · `
-              : ""}
-            {context.join(" · ")}
-          </Text>
-        ) : overdue && due?.kind === "overdue" ? (
-          <Text style={[styles.context, { color: theme.status.dirty }]}>
-            {t("workOrders.overdueBy", { time: formatDuration(due.minutes) })}
+        <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={2} maxFontSizeMultiplier={1.4}>
+          {wo.title}
+        </Text>
+
+        <View style={styles.badgeRow}>
+          <View style={[styles.pill, { backgroundColor: tone.bg, borderColor: tone.line }]} testID={`wo-status-${wo.id}`}>
+            <Text style={[styles.pillText, { color: tone.fg }]} maxFontSizeMultiplier={1.4}>
+              {statusLabel}
+            </Text>
+          </View>
+          {badges.map((badge, index) => (
+            <View
+              key={badge.kind}
+              style={[styles.pill, styles.contextPill, { borderColor: badgeColor(badge.kind, theme) }]}
+              accessible
+              accessibilityLabel={badgeText[index]}
+              testID={`wo-badge-${badge.kind}-${wo.id}`}
+            >
+              <Ionicons name={BADGE_ICON[badge.kind]} size={12} color={badgeColor(badge.kind, theme)} />
+              <Text style={[styles.pillText, { color: theme.textSecondary }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                {badge.kind === "equipment" ? badge.label : badgeText[index]}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {dueText ? (
+          <View style={styles.dueRow}>
+            <Ionicons
+              name={overdue ? "alert-circle" : "time-outline"}
+              size={15}
+              color={overdue ? theme.status.dirty : theme.textMuted}
+            />
+            <Text
+              style={[styles.due, { color: overdue ? theme.status.dirty : theme.textSecondary }, overdue && styles.dueOverdue]}
+              maxFontSizeMultiplier={1.4}
+              testID={overdue ? `wo-overdue-${wo.id}` : `wo-due-${wo.id}`}
+            >
+              {dueText}
+            </Text>
+          </View>
+        ) : null}
+
+        {details.length > 0 ? (
+          <Text style={[styles.details, { color: theme.textSecondary }]} numberOfLines={2} maxFontSizeMultiplier={1.4}>
+            {details.join(" · ")}
           </Text>
         ) : null}
       </Pressable>
@@ -297,34 +348,113 @@ export function WorkOrderCard({ wo, locale, view, onPress, onClaim, claiming, cl
           </Text>
         </View>
       ) : (
-        <Button
-          label={actionLabel}
-          onPress={onClaim ?? onPress}
-          loading={claiming}
-          variant={onClaim ? "primary" : "secondary"}
-          size="sm"
-          icon={onClaim ? "hand-right-outline" : "chevron-forward"}
-          style={styles.action}
-          testID={onClaim ? `wo-claim-${wo.id}` : `wo-action-${wo.id}`}
-          accessibilityLabel={onClaim ? t("workOrders.claimA11y", { title: wo.title }) : `${actionLabel}: ${wo.title}`}
-        />
+        <View style={styles.actions}>
+          <Button
+            label={actionLabel}
+            onPress={run}
+            loading={action === "claim" ? claiming : false}
+            variant={action === "claim" || action === "assign" ? "primary" : "secondary"}
+            size="sm"
+            icon={ACTION_ICON[action]}
+            style={styles.primary}
+            testID={action === "claim" ? `wo-claim-${wo.id}` : action === "assign" ? `wo-assign-${wo.id}` : `wo-action-${wo.id}`}
+            accessibilityLabel={
+              action === "claim"
+                ? t("workOrders.claimA11y", { title: wo.title })
+                : action === "assign"
+                  ? `${wo.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}: ${wo.title}`
+                  : `${actionLabel}: ${wo.title}`
+            }
+          />
+          {secondaryAssign ? (
+            <Button
+              label={assignLabel}
+              onPress={() => onAssign?.(wo)}
+              variant="ghost"
+              size="sm"
+              icon="person-add-outline"
+              style={styles.secondary}
+              testID={`wo-assign-${wo.id}`}
+              accessibilityLabel={`${wo.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}: ${wo.title}`}
+            />
+          ) : null}
+        </View>
       )}
-
-      {onAssign ? (
-        <Button
-          label={wo.assigned_to ? t("engineeringTeam.assign.reassignShort") : t("engineeringTeam.assign.assignShort")}
-          onPress={onAssign}
-          variant="ghost"
-          size="sm"
-          icon="person-add-outline"
-          style={styles.action}
-          testID={`wo-assign-${wo.id}`}
-          accessibilityLabel={`${wo.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}: ${wo.title}`}
-        />
-      ) : null}
     </Card>
   );
 }
+
+/** One order's card; re-renders only when its own order, queue, claim state or the minute changes. */
+export const WorkOrderCard = memo(WorkOrderCardView);
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+type Theme = ReturnType<typeof useTheme>;
+
+function dueLine(due: DueLabel, t: Translate): string {
+  switch (due.kind) {
+    case "overdue":
+      return due.minutes >= 1 ? t("workQueue.card.overdueBy", { time: formatDuration(due.minutes) }) : t("workQueue.overdue");
+    case "today":
+      return t("workQueue.card.dueToday", { time: due.clock });
+    case "tomorrow":
+      return t("workQueue.card.dueTomorrow", { time: due.clock });
+    case "later":
+      return t("workQueue.card.dueOn", { date: due.date });
+  }
+}
+
+function ownerText(owner: OwnerLine, t: Translate): string {
+  switch (owner.kind) {
+    case "you":
+      return t("workQueue.assignedToYou");
+    case "name":
+      return t("workQueue.assignedTo", { name: owner.name });
+    case "assigned":
+      return t("workQueue.assignedUnknown");
+    case "unassigned":
+      return t("workQueue.unassigned");
+  }
+}
+
+function badgeLabel(badge: ContextBadge, t: Translate): string {
+  switch (badge.kind) {
+    case "occupied":
+      return t("engRooms.occupancy.occupied");
+    case "vacant":
+      return t("engRooms.occupancy.vacant");
+    case "out_of_order":
+    case "out_of_service":
+    case "unrecorded_down":
+      return t(`engRooms.availability.${badge.kind}`);
+    case "guest":
+      return t("workQueue.guestReported");
+    case "equipment":
+      return t("workQueue.card.equipment", { name: badge.label });
+  }
+}
+
+function badgeColor(kind: BadgeKind, theme: Theme): string {
+  switch (kind) {
+    case "out_of_order":
+    case "unrecorded_down":
+      return theme.status.dirty;
+    case "out_of_service":
+      return theme.status.pickup;
+    case "guest":
+      return theme.status.clean;
+    default:
+      return theme.textMuted;
+  }
+}
+
+const TONES: Record<StatusTone, (theme: Theme) => { fg: string; bg: string; line: string }> = {
+  neutral: (theme) => ({ fg: theme.textSecondary, bg: theme.surfaceMuted, line: theme.border }),
+  attention: (theme) => ({ fg: theme.status.dirty, bg: theme.status.dirtySoft, line: theme.status.dirtyLine }),
+  active: (theme) => ({ fg: theme.status.inProgress, bg: theme.status.inProgressSoft, line: theme.status.inProgressLine }),
+  waiting: (theme) => ({ fg: theme.status.pickup, bg: theme.status.pickupSoft, line: theme.status.pickupLine }),
+  done: (theme) => ({ fg: theme.status.ready, bg: theme.status.readySoft, line: theme.status.readyLine }),
+  cancelled: (theme) => ({ fg: theme.status.outOfOrder, bg: theme.status.outOfOrderSoft, line: theme.status.outOfOrderLine }),
+};
 
 const styles = StyleSheet.create({
   card: {
@@ -332,10 +462,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingLeft: 18,
     paddingRight: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     gap: 10,
   },
-  info: { gap: 8 },
+  info: { gap: 7 },
   rail: { position: "absolute", left: 0, top: 0, bottom: 0 },
   topRow: {
     flexDirection: "row",
@@ -351,19 +481,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     fontFamily: monoFont,
   },
-  overdue: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  title: { fontSize: 17, lineHeight: 23, fontWeight: "700" },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-  },
   priorityChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -372,19 +489,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  priorityText: { fontSize: 12, fontWeight: "800" },
-  status: { fontSize: 13, fontWeight: "600" },
-  categoryRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  categoryDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  priorityText: { fontSize: 12, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
+  title: { fontSize: 17, lineHeight: 23, fontWeight: "700" },
+  badgeRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
+  pill: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 4,
+    maxWidth: "100%",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  category: { fontSize: 12.5 },
-  context: { fontSize: 13, lineHeight: 18 },
-  action: { marginTop: 2, alignSelf: "stretch" },
+  contextPill: { backgroundColor: "transparent" },
+  pillText: { flexShrink: 1, fontSize: 12.5, fontWeight: "600" },
+  dueRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  due: { flexShrink: 1, fontSize: 13.5, lineHeight: 18, fontWeight: "600" },
+  dueOverdue: { fontWeight: "800" },
+  details: { fontSize: 13, lineHeight: 18 },
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  primary: { flexGrow: 1, flexBasis: 140 },
+  secondary: { flexShrink: 0 },
   queued: {
     flexDirection: "row",
     alignItems: "center",
@@ -393,7 +519,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 2,
   },
   queuedText: { flex: 1, fontSize: 13, fontWeight: "700" },
 });

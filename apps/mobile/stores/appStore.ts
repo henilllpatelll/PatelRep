@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { api } from "@/lib/api/client";
 import { resetAssistantSession } from "@/lib/ai/session";
 import { clearRoomsCache } from "@/lib/offline/db";
+import { clearEngineeringCache } from "@/lib/engineering/workOrderCache";
 import { writeRoomsCache } from "@/lib/housekeeping/roomsCache";
 import { acceptRoomsResult, fetchMyRooms } from "@/lib/housekeeping/roomsRequest";
 import { useRoomsStatus } from "@/stores/roomsStatusStore";
@@ -180,6 +181,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       void clearRoomsCache().catch(() => undefined);
       // ...nor the last user's cached tasks, history or counts (their unsent completions stay isolated in the task outbox).
       void clearAllTaskCaches().catch(() => undefined);
+      // ...nor the last user's saved work orders. Their unsent drafts and queued changes stay on disk under their own
+      // scope (never shown or replayed here); only the re-fetchable copy of server data is removed.
+      const previousOwner = taskScope(previous);
+      if (previousOwner) void clearEngineeringCache(previousOwner).catch(() => undefined);
       // ...nor their open assistant conversation or shared briefing (saved history is scoped to its owner).
       resetAssistantSession();
       // ...and their unsent changes stay on disk for them, out of this person's view and out of any replay.

@@ -56,11 +56,13 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { recommendation, wireDay, wireForecast } from "../helpers/forecastFixtures";
 import { wirePage, wirePerson, ZONE } from "../helpers/teamScheduleFixtures";
 import { allStrings } from "../helpers/workspaceHarness";
+import { pinMidweekClock } from "../helpers/pinMidweekClock";
 
 const get = api.get as jest.Mock;
 const tr = (key: string, values?: Record<string, unknown>) => makeTranslator(mockLanguage)(key, values);
+pinMidweekClock();
 const TODAY = hotelDateKey(new Date(), ZONE) as string;
-const D = (n: number) => addDaysToYmd(TODAY, n);
+const D =(n: number) => addDaysToYmd(TODAY, n);
 
 configure({ asyncUtilTimeout: 5000 });
 jest.setTimeout(30000);

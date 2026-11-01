@@ -274,7 +274,8 @@ describe("EngineerHome Needs Attention", () => {
   });
 
   it("shows only the most severe five and links to the rest", async () => {
-    serve({ open: Array.from({ length: 7 }, (_, i) => wo({ id: `e${i}`, priority: "emergency", title: `Emergency ${i}` })) });
+    // Same-priority orders sort newest first, so give them strictly older timestamps: e0 is newest, e6 is the one cut.
+    serve({ open: Array.from({ length: 7 }, (_, i) => wo({ id: `e${i}`, priority: "emergency", title: `Emergency ${i}`, created_at: new Date(Date.now() - i * 60_000).toISOString() })) });
     const { getByTestId, getByText, queryByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("attention-more")).toBeTruthy());
     expect(getByText("home.engineer.attentionMore:count=2")).toBeTruthy();

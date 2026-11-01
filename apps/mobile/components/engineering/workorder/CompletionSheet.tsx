@@ -7,6 +7,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { formatDuration, type WorkOrder } from "@/lib/engineering/workOrders";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import {
+  completionBlockers,
   offlineCompletionBlock,
   validateCompletion,
   type CompletionDraft,
@@ -15,7 +16,9 @@ import {
   type LaborSummary,
   type VerificationResult,
 } from "@/lib/engineering/repairWorkspace";
+import { checklistGate, type ChecklistLoad } from "@/lib/engineering/workOrderChecklist";
 import { CodePicker, useRepairCodes } from "./CodePicker";
+import { CompletionReadiness } from "./CompletionReadiness";
 import { ChoiceChips, FieldLabel, InlineError, Note, TextArea, sheetStyles } from "./sheetKit";
 import { useSheetSubmit } from "./useSheetSubmit";
 
@@ -28,6 +31,10 @@ interface Props {
   labor: LaborSummary;
   laborFailed: boolean;
   photoCount: number;
+  /** The last confirmed read of the order's checklist; its server summary decides what is still required. */
+  checklist: ChecklistLoad;
+  /** Closes this sheet and opens the Checklist tab. */
+  onViewChecklist: () => void;
   draft: CompletionDraft;
   onDraft: (next: CompletionDraft) => void;
   onEditParts: () => void;
@@ -38,7 +45,7 @@ interface Props {
 const VERIFICATION: readonly VerificationResult[] = ["passed", "failed", "follow_up_required"];
 
 /** Review Completion: the repair story, the verification, then an explicit final review before anything is sent. */
-export function CompletionSheet({ visible, onClose, online, wo, technicianName, labor, laborFailed, photoCount, draft, onDraft, onEditParts, onSubmit }: Props) {
+export function CompletionSheet({ visible, onClose, online, wo, technicianName, labor, laborFailed, photoCount, checklist, onViewChecklist, draft, onDraft, onEditParts, onSubmit }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const state = useRepairCodes(wo.category ?? undefined, visible);
@@ -47,15 +54,27 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
   const [outcome, setOutcome] = useState<CompletionOutcome | null>(null);
   const { busy, run } = useSheetSubmit();
 
-  const set = (patch: Partial<CompletionDraft>) => onDraft({ ...draft, ...patch });
   const byId = (id: string | null) => state.codes.find((c) => c.id === id);
-  const offlineBlock = online ? null : offlineCompletionBlock(draft);
+  const gate = checklistGate(checklist);
+  const blockers = completionBlockers(draft, gate, online);
+  const validate = (next: CompletionDraft): CompletionErrors => {
+    const found = validateCompletion(next, { problem: byId(next.problemCodeId) ?? undefined, cause: byId(next.causeCodeId) ?? undefined, resolution: byId(next.resolutionCodeId) ?? undefined });
+    if (blockers.some((b) => b.id === "checklist")) found.checklist = "required";
+    return found;
+  };
+  const set = (patch: Partial<CompletionDraft>) => {
+    const next = { ...draft, ...patch };
+    onDraft(next);
+    // Once errors are showing, keep them honest: a field the user just fixed must stop reading as wrong.
+    if (Object.keys(clientErrors).length > 0) setClientErrors(validate(next));
+  };
+  const offlineBlock = online ? null : offlineCompletionBlock(draft, gate);
   const errors: CompletionErrors = { ...clientErrors, ...(outcome?.kind === "rejected" ? outcome.errors : {}) };
   const hasAsset = Boolean(wo.asset_id || wo.assets?.id);
   const label = workOrderLabel(wo);
 
   function review() {
-    const found = validateCompletion(draft, { problem: byId(draft.problemCodeId) ?? undefined, cause: byId(draft.causeCodeId) ?? undefined, resolution: byId(draft.resolutionCodeId) ?? undefined });
+    const found = validate(draft);
     setClientErrors(found);
     setOutcome(null);
     if (Object.keys(found).length === 0) setStage("review");
@@ -78,6 +97,8 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
 
   const close = () => {
     setStage("form");
+    setClientErrors({});
+    setOutcome(null);
     onClose();
   };
 
@@ -110,6 +131,13 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
             {[wo.rooms?.room_number ? t("workOrders.repair.complete.room", { room: wo.rooms.room_number }) : wo.location_text, technicianName, t(`workOrders.status.${wo.status}`)].filter(Boolean).join("  ·  ")}
           </Text>
         </View>
+
+        <CompletionReadiness blockers={blockers} checklist={checklist} online={online} onViewChecklist={() => (setStage("form"), onViewChecklist())} />
+        {errors.checklist && gate.kind !== "ready" ? (
+          <InlineError testID="wo-err-checklist">
+            {t("workOrders.repair.complete.errors.checklist")}
+          </InlineError>
+        ) : null}
 
         {stage === "form" ? (
           <>
@@ -188,6 +216,10 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
             <ReviewRow k={t("workOrders.repair.complete.labor")} v={labor.totalMinutes > 0 ? formatDuration(Math.round(labor.totalMinutes)) : t("workOrders.repair.complete.laborNone")} />
             <ReviewRow k={t("workOrders.repair.complete.parts")} v={draft.parts.length > 0 ? draft.parts.map((p) => `${p.name} × ${p.quantity}`).join(", ") : draft.freeTextParts.trim() || t("workOrders.repair.parts.none")} />
             <ReviewRow k={t("workOrders.repair.complete.evidence")} v={t("workOrders.repair.complete.photos", { count: photoCount })} />
+            {checklist.phase === "ready" && checklist.snapshot.items.length > 0 ? (
+              <ReviewRow k={t("workOrders.repair.checklist.title")} v={t("workOrders.repair.checklist.progress", { done: checklist.snapshot.summary.completed, total: checklist.snapshot.summary.total })} />
+            ) : null}
+            {draft.notes.trim() ? <ReviewRow k={t("workOrders.notesLabel")} v={draft.notes.trim()} /> : null}
             {draft.verification === "failed" ? <Note tone="warn">{t("workOrders.repair.complete.failedNote")}</Note> : null}
             {draft.verification === "follow_up_required" ? <Note tone="warn">{t("workOrders.repair.complete.followUpNote")}</Note> : null}
             {draft.parts.length > 0 ? <Note tone="warn">{t("workOrders.repair.parts.deductNote")}</Note> : null}
@@ -221,6 +253,9 @@ function Outcome({ outcome }: { outcome: CompletionOutcome | null }) {
     case "conflict":
       return <InlineError testID="wo-outcome-conflict">{t("workOrders.repair.complete.outcome.conflict", { message: outcome.message })}</InlineError>;
     case "rejected":
+      // A checklist refusal has its own line (with the count and a way to the checklist) above the form.
+      if (outcome.errors.checklist) return null;
+      return <InlineError testID="wo-outcome-error">{outcome.message || t("workOrders.alerts.completeFailed")}</InlineError>;
     case "failed":
       return <InlineError testID="wo-outcome-error">{outcome.message || t("workOrders.alerts.completeFailed")}</InlineError>;
     default:

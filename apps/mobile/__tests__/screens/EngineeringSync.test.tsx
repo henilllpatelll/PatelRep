@@ -20,6 +20,8 @@ jest.mock("@/stores/appStore", () => {
   return { useAppStore: makeAppStoreMock(() => ({ isOnline: true, user: { id: "u1", tenant_id: "h1", role: mockRole } })) };
 });
 
+const mockSyncOnConnect = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/offline/sync", () => ({ syncOnConnect: () => mockSyncOnConnect() }));
 const mockRunSync = jest.fn();
 let mockOverview: { online: boolean; lastSyncedAt: string | null };
 jest.mock("@/lib/offline/useSyncOverview", () => ({

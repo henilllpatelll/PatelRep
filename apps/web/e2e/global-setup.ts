@@ -68,6 +68,8 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
       const page = await context.newPage()
       const diagnostics = createLoginDiagnostics(role.key, baseURL)
       page.on('response', (response) => diagnostics.recordAuthResponse(response))
+      page.on('request', (request) => diagnostics.recordAuthRequest(request))
+      page.on('requestfailed', (request) => diagnostics.recordAuthRequestFailure(request))
       page.on('pageerror', (error) => diagnostics.recordPageError(error))
       try {
         const emailField = page.locator('#email-pw').or(page.locator('input[type="email"]')).first()

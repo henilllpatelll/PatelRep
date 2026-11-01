@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -19,26 +19,23 @@ import {
   uploadWorkOrderPhoto,
   type DiagnosisPayload,
 } from "@/lib/api/workOrders";
-import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useSecondTicker, useWorkOrderDetail } from "@/lib/engineering/useWorkOrderDetail";
+import { useCompletionDraft } from "@/lib/engineering/useWorkOrderDrafts";
+import { isActionAlreadyQueued } from "@/lib/engineering/queuedActions";
 import {
   buildCompletionBody,
   buildTimeline,
   deriveRepairActions,
-  emptyCompletionDraft,
   formatStopwatch,
   interpretCompletionError,
   offlineCompletionBlock,
   summarizeLabor,
-  type CompletionDraft,
   type CompletionOutcome,
   type PhotoType,
   type StagedPart,
 } from "@/lib/engineering/repairWorkspace";
 import { formatDuration, type HoldReasonCode, type WorkOrder } from "@/lib/engineering/workOrders";
-import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
-import { localDate } from "@/lib/utils/date";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -53,6 +50,13 @@ import { WorkOrderActionBar, type BarAction } from "@/components/engineering/wor
 import { WorkOrderReportedIssue } from "@/components/engineering/workorder/WorkOrderReportedIssue";
 import { WorkOrderAssetContext } from "@/components/engineering/workorder/WorkOrderAssetContext";
 import { WorkOrderRepairTools, type ToolId } from "@/components/engineering/workorder/WorkOrderRepairTools";
+import { WorkOrderTabs, type DetailTab } from "@/components/engineering/workorder/WorkOrderTabs";
+import { WorkOrderProgress } from "@/components/engineering/workorder/WorkOrderProgress";
+import { WorkOrderNextAction } from "@/components/engineering/workorder/WorkOrderNextAction";
+import { WorkOrderChecklist } from "@/components/engineering/workorder/WorkOrderChecklist";
+import { useWorkOrderChecklist } from "@/lib/engineering/useWorkOrderChecklist";
+import { checklistEditing, checklistGate } from "@/lib/engineering/workOrderChecklist";
+import { deriveNextStep, deriveRepairProgress } from "@/lib/engineering/repairProgress";
 import { WorkOrderActivityTimeline } from "@/components/engineering/workorder/WorkOrderActivityTimeline";
 import { WorkOrderRecordCard } from "@/components/engineering/workorder/WorkOrderRecordCard";
 import { WorkOrderCompletionResult, type CompletionSummary } from "@/components/engineering/workorder/WorkOrderCompletionResult";
@@ -87,41 +91,33 @@ export default function WorkOrderDetailScreen() {
   const userId = user?.id ?? null;
 
   const detail = useWorkOrderDetail(String(woId), userId);
+  const checklist = useWorkOrderChecklist(String(woId));
   const assistSwitchedOn = useAiCapability("repairAssist");
   const { wo, secondary, sectionFailed, queued, skewMs } = detail;
 
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const busyRef = useRef<string | null>(null);
-  const [draft, setDraft] = useState<CompletionDraft>(() => emptyCompletionDraft());
+  const draftState = useCompletionDraft(String(woId), wo, wo ? workOrderLabel(wo) : null);
+  const { draft, editDraft, restored } = draftState;
   const [result, setResult] = useState<CompletionSummary | null>(null);
-  const [occupancy, setOccupancy] = useState<"occupied" | "vacant" | null>(null);
+  const [tab, setTab] = useState<DetailTab>("overview");
 
-  // The draft starts from the saved coding once, then belongs to the person.
-  const seeded = useRef(false);
-  useEffect(() => {
-    if (wo && !seeded.current) {
-      seeded.current = true;
-      setDraft(emptyCompletionDraft(wo));
-    }
-  }, [wo]);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
-  // Room occupancy is context, not a prerequisite: resolve it after the order is on screen and ignore failures.
-  const roomKey = wo ? `${wo.room_id ?? ""}|${wo.rooms?.room_number ?? ""}` : "";
+  // A status change (completed, put on hold, reopened) changes whether the checklist is editable: re-read it.
+  const lastStatus = useRef<string | null>(null);
+  const status = wo?.status ?? null;
+  const refreshChecklist = checklist.refresh;
   useEffect(() => {
-    if (!wo || (!wo.room_id && !wo.rooms?.room_number)) return;
-    let live = true;
-    fetchBoard(localDate())
-      .then((board) => {
-        if (!live) return;
-        const match = normalizeBoardRooms(board).find((r) => (wo.room_id != null && r.roomId === wo.room_id) || (wo.rooms?.room_number != null && r.roomNumber === wo.rooms.room_number));
-        setOccupancy(match?.foStatus ? (match.foStatus === "OCC" ? "occupied" : "vacant") : null);
-      })
-      .catch(() => live && setOccupancy(null));
-    return () => {
-      live = false;
-    };
-  }, [roomKey]);
+    if (status && lastStatus.current && lastStatus.current !== status) void refreshChecklist();
+    lastStatus.current = status;
+  }, [status, refreshChecklist]);
+
+  // Room context is the server's own lookup (the room board's rule, room-board roles only): absent or "unknown" shows nothing.
+  const roomContext = wo?.room_context ?? null;
+  const occupancy = roomContext?.occupancy === "occupied" || roomContext?.occupancy === "vacant" ? roomContext.occupancy : null;
+  const availability = roomContext?.availability ?? null;
 
   const actions = useMemo(
     () => (wo ? deriveRepairActions({ wo, role, userId, sessions: secondary.labor }) : null),
@@ -181,6 +177,7 @@ export default function WorkOrderDetailScreen() {
   const closed = actions.block === "closed";
   const myRunning = labor.activeIsMine;
 
+  const openSync = () => router.push("/(app)/engineering-sync" as never);
   const refreshAfter = (sections: Parameters<typeof detail.refresh>[0], opts?: Parameters<typeof detail.refresh>[1]) => detail.refresh(sections, opts);
 
   /* ── Actions ─────────────────────────────────────────────────────────── */
@@ -196,6 +193,11 @@ export default function WorkOrderDetailScreen() {
     }
     // Offline: the existing queue keeps the claim; the order is NOT shown as claimed until the server confirms.
     await mutate("claim", async () => {
+      // One intentional claim = one queued row, even across a restart or a second tap.
+      if (queued.claim || (await isActionAlreadyQueued(order.id, "claim"))) {
+        toast.info(t("workOrders.repair.toast.claimAlreadyQueued"));
+        return;
+      }
       await enqueueAction("work_order", "claim", { label }, order.id, label);
       toast.info(t("workOrders.repair.toast.claimQueued"));
       await refreshAfter([]);
@@ -299,8 +301,21 @@ export default function WorkOrderDetailScreen() {
   async function submitCompletion(): Promise<CompletionOutcome> {
     const body = buildCompletionBody(draft, { hasAsset: Boolean(order.asset_id || order.assets?.id) });
     if (!isOnline) {
-      if (offlineCompletionBlock(draft) != null) return { kind: "failed", message: t("workOrders.repair.complete.offlineBlock.parts") };
-      await enqueueAction("work_order", "complete", body, order.id, label);
+      // Queued completions skip the server's checklist check until replay, so only a confirmed-clear checklist may queue.
+      const block = offlineCompletionBlock(draft, checklistGate(checklist.load));
+      if (block != null) return { kind: "failed", message: t(`workOrders.repair.complete.offlineBlock.${block}`) };
+      if (busyRef.current) return { kind: "failed", message: t("workOrders.repair.toast.busy") };
+      busyRef.current = "complete";
+      try {
+        // A second tap, or a completion already waiting from before a restart, must not queue a second copy.
+        if (queued.complete || (await isActionAlreadyQueued(order.id, "complete"))) {
+          return { kind: "failed", message: t("workOrders.repair.complete.alreadyQueued") };
+        }
+        await enqueueAction("work_order", "complete", body, order.id, label);
+      } finally {
+        busyRef.current = null;
+      }
+      // The draft stays: this is only saved on the phone, and it is removed once the server confirms the completion.
       toast.info(t("workOrders.repair.complete.queued"));
       await refreshAfter([]);
       return { kind: "queued" };
@@ -320,11 +335,12 @@ export default function WorkOrderDetailScreen() {
         assetRestored: draft.assetRestoration === "restore",
       };
       setResult(summary);
-      setDraft(emptyCompletionDraft());
+      draftState.confirmed();
       await refreshAfter(["labor", "history", "parts"]);
       return { kind: "completed", followUpRequired: draft.verification === "follow_up_required" };
     } catch (err) {
       const outcome = interpretCompletionError(err, draft);
+      if (outcome.kind === "rejected" && outcome.errors.checklist) void checklist.refresh();
       // The server may have recorded a failed test or changed the order under us: re-read so the screen tells the truth.
       await refreshAfter(["history"]);
       return outcome;
@@ -334,19 +350,27 @@ export default function WorkOrderDetailScreen() {
     }
   }
 
+  /** Review Completion reads the checklist again first, so it never judges readiness from an old read. */
+  const openCompletion = () => {
+    void checklist.refresh();
+    setSheet("complete");
+  };
+
   const onBar = (action: BarAction) => {
     if (action === "claim") void claim();
     else if (action === "start") void startRepair();
     else if (action === "resumeWork") void resumeWork();
     else if (action === "pauseLabor") void pauseLabor();
     else if (action === "startLabor") void startLabor();
-    else if (action === "complete") setSheet("complete");
+    else if (action === "complete") openCompletion();
     else if (action === "hold") setSheet("hold");
   };
 
   const onTool = (tool: ToolId) => {
     if (tool === "arrive") void arrive();
     else if (tool === "acknowledge") void acknowledge();
+    else if (tool === "resumeWork") void resumeWork();
+    else if (tool === "assist") setSheet("assist");
     else setSheet(tool);
   };
 
@@ -362,10 +386,24 @@ export default function WorkOrderDetailScreen() {
   const manageable = canManageTeam(role) && isAssignable(order) && !result;
   const assistable = canOfferAssist({ capability: assistSwitchedOn, status: order.status, role }) && !result;
   const heldBanner = order.status === "on_hold";
+  const editing = checklistEditing({
+    actions,
+    role,
+    online: isOnline,
+    snapshotEditable: checklist.load.phase !== "ready" || checklist.load.snapshot.editable,
+  });
+  const progress = deriveRepairProgress(order);
+  const nextStep = deriveNextStep(order, actions);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <WorkOrderHeader wo={order} onBack={() => router.back()} onMore={closed || actions.block === "viewOnly" ? null : () => setSheet("more")} />
+
+      {!result ? (
+        <View style={styles.tabs}>
+          <WorkOrderTabs value={tab} onChange={setTab} />
+        </View>
+      ) : null}
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, showBar && styles.withBar]} keyboardShouldPersistTaps="handled">
         {result ? (
@@ -376,30 +414,23 @@ export default function WorkOrderDetailScreen() {
           />
         ) : (
           <>
-            <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => setSheet("labor")} />
-
-            {manageable || assistable ? (
-              <View style={styles.extras}>
-                {manageable ? (
-                  <Button
-                    label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
-                    variant="secondary"
-                    size="sm"
-                    icon="person-add-outline"
-                    onPress={() => setSheet("assign")}
-                    disabled={!isOnline}
-                    testID="wo-assign-open"
-                  />
-                ) : null}
-                {assistable ? (
-                  <Button label={t("repairAssist.open")} variant="secondary" size="sm" icon="sparkles-outline" onPress={() => setSheet("assist")} testID="wo-assist-open" />
-                ) : null}
-              </View>
-            ) : null}
-
-            {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" /> : null}
-            {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" /> : null}
+            {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" action={{ label: t("workOrders.repair.banner.viewSync"), onPress: openSync }} /> : null}
+            {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" action={{ label: t("workOrders.repair.banner.viewSync"), onPress: openSync }} /> : null}
             {!isOnline ? <Banner icon="cloud-offline-outline" text={t("workOrders.repair.banner.offline")} testID="wo-banner-offline" /> : null}
+            {detail.cachedAt ? <Banner icon="albums-outline" tone="warn" text={t("workOrders.repair.banner.cached", { time: new Date(detail.cachedAt).toLocaleString(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }) })} testID="wo-banner-cached" /> : null}
+            {restored && !result ? (
+              <Banner
+                icon="document-text-outline"
+                tone="warn"
+                text={`${t("workOrders.repair.banner.draftRestored", { time: new Date(restored.savedAt).toLocaleString(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }) })}${restored.review !== "none" ? ` ${t(`workOrders.repair.banner.draftReview.${restored.review}`)}` : ""}`}
+                testID="wo-banner-draft"
+                action={
+                  confirmingDiscard
+                    ? { label: t("workOrders.repair.banner.draftDiscardConfirm"), onPress: () => (setConfirmingDiscard(false), draftState.discard()), testID: "wo-draft-discard-confirm" }
+                    : { label: t("workOrders.repair.banner.draftDiscard"), onPress: () => setConfirmingDiscard(true), testID: "wo-draft-discard" }
+                }
+              />
+            ) : null}
             {actions.block === "viewOnly" ? <Banner icon="eye-outline" text={t("workOrders.viewOnly")} testID="wo-view-only" /> : null}
             {actions.block === "claimedElsewhere" ? <Banner icon="information-circle-outline" text={t("workOrders.claimedElsewhere")} /> : null}
             {heldBanner ? (
@@ -413,21 +444,67 @@ export default function WorkOrderDetailScreen() {
             {order.status === "escalated" ? <Banner icon="alert-circle-outline" tone="warn" text={t("workOrders.repair.banner.escalated")} testID="wo-banner-escalated" /> : null}
             {order.status === "cancelled" ? <Banner icon="close-circle-outline" text={t("workOrders.repair.banner.cancelled")} testID="wo-banner-cancelled" /> : null}
 
-            <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} technicianName={technicianName} />
-            <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} />
-            <WorkOrderRepairTools
-              wo={order}
-              actions={actions}
-              locale={locale}
-              online={isOnline}
-              busy={busy}
-              laborLabel={laborLabel}
-              photoCount={photos.length}
-              partsCount={secondary.parts.length + draft.parts.length}
-              onTool={onTool}
-            />
-            {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
-            <WorkOrderActivityTimeline items={timeline} locale={locale} failed={!!sectionFailed.history} />
+            {tab === "overview" ? (
+              <>
+                <WorkOrderProgress progress={progress} />
+                <WorkOrderNextAction step={nextStep} barVisible={showBar} />
+                <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => (setTab("work"), setSheet("labor"))} />
+                {manageable ? (
+                  <View style={styles.extras}>
+                    <Button
+                      label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
+                      variant="secondary"
+                      size="sm"
+                      icon="person-add-outline"
+                      onPress={() => setSheet("assign")}
+                      disabled={!isOnline}
+                      testID="wo-assign-open"
+                    />
+                  </View>
+                ) : null}
+                <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} availability={availability} technicianName={technicianName} />
+                <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="summary" />
+                {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
+              </>
+            ) : null}
+
+            {tab === "checklist" ? (
+              <WorkOrderChecklist
+                load={checklist.load}
+                pending={checklist.pending}
+                itemErrors={checklist.itemErrors}
+                stale={checklist.stale}
+                canEdit={editing.canEdit}
+                readOnlyReason={editing.reason}
+                locale={locale}
+                onToggle={(itemId, next) => void checklist.setDone(itemId, next)}
+                onRetry={() => void checklist.refresh()}
+                onReviewCompletion={actions.can.complete ? openCompletion : null}
+              />
+            ) : null}
+
+            {tab === "work" ? (
+              <WorkOrderRepairTools
+                wo={order}
+                actions={actions}
+                locale={locale}
+                online={isOnline}
+                busy={busy}
+                laborLabel={laborLabel}
+                photoCount={photos.length}
+                partsCount={secondary.parts.length + draft.parts.length}
+                noteCount={(order.work_order_comments ?? []).length}
+                assistable={assistable}
+                onTool={onTool}
+              />
+            ) : null}
+
+            {tab === "history" ? (
+              <>
+                <WorkOrderActivityTimeline items={timeline} locale={locale} failed={!!sectionFailed.history} />
+                <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="history" />
+              </>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -470,9 +547,9 @@ export default function WorkOrderDetailScreen() {
         freeText={draft.freeTextParts}
         recorded={secondary.parts}
         canEdit={actions.can.parts}
-        onChange={(next: { parts: StagedPart[]; freeText: string }) => setDraft((d) => ({ ...d, parts: next.parts, freeTextParts: next.freeText }))}
+        onChange={(next: { parts: StagedPart[]; freeText: string }) => editDraft((d) => ({ ...d, parts: next.parts, freeTextParts: next.freeText }))}
       />
-      <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} laborRunning={myRunning} onConfirm={holdWork} />
+      <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} workOrderId={order.id} laborRunning={myRunning} onConfirm={holdWork} />
       <EscalationSheet visible={sheet === "escalate"} onClose={() => setSheet(null)} online={isOnline} wo={order} onConfirm={escalate} />
       <AssignTechnicianSheet
         visible={sheet === "assign"}
@@ -494,12 +571,12 @@ export default function WorkOrderDetailScreen() {
         language={locale}
         technicianNotes={draft.notes}
         onUseInCompletion={(text) => {
-          setDraft((d) => ({ ...d, notes: text }));
+          editDraft((d) => ({ ...d, notes: text }));
           toast.info(t("repairAssist.addedToCompletion"));
         }}
         onSaveAsNote={addNote}
       />
-      <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} onSave={addNote} />
+      <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} workOrderId={order.id} onSave={addNote} />
       <CompletionSheet
         visible={sheet === "complete"}
         onClose={() => setSheet(null)}
@@ -509,8 +586,10 @@ export default function WorkOrderDetailScreen() {
         labor={labor}
         laborFailed={!!sectionFailed.labor}
         photoCount={photos.length}
+        checklist={checklist.load}
+        onViewChecklist={() => (setSheet(null), setTab("checklist"))}
         draft={draft}
-        onDraft={setDraft}
+        onDraft={editDraft}
         onEditParts={() => setSheet("parts")}
         onSubmit={submitCompletion}
       />
@@ -518,13 +597,18 @@ export default function WorkOrderDetailScreen() {
   );
 }
 
-function Banner({ icon, text, tone = "muted", testID }: { icon: ComponentProps<typeof Ionicons>["name"]; text: string; tone?: "muted" | "warn"; testID?: string }) {
+function Banner({ icon, text, tone = "muted", testID, action }: { icon: ComponentProps<typeof Ionicons>["name"]; text: string; tone?: "muted" | "warn"; testID?: string; action?: { label: string; onPress: () => void; testID?: string } }) {
   const theme = useTheme();
   const color = tone === "warn" ? theme.status.pickup : theme.textMuted;
   return (
     <View style={styles.banner} testID={testID} accessibilityLiveRegion="polite">
       <Ionicons name={icon} size={16} color={color} />
       <Text style={{ flex: 1, color, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+      {action ? (
+        <Pressable onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label} hitSlop={8} style={styles.bannerAction} testID={action.testID}>
+          <Text style={{ color: theme.primaryAction, fontSize: 13, fontWeight: "700" }}>{action.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -536,5 +620,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
   withBar: { paddingBottom: 150 },
   banner: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  bannerAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
+  tabs: { paddingHorizontal: 18, paddingTop: 12 },
   extras: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });

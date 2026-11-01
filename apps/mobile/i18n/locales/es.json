@@ -1998,6 +1998,7 @@
       "occupied": "Ocupado",
       "vacant": "Vacante"
     },
+    "roomAvailability": "Disponibilidad de la habitación",
     "factCreated": "Creada",
     "factDue": "Vence",
     "factCompleted": "Lista",
@@ -2088,7 +2089,17 @@
         "noLabor": "Sin registro",
         "noDeadline": "Sin fecha límite"
       },
+      "draftSaved": "Borrador guardado en este teléfono. No se envía hasta que lo envíes.",
       "banner": {
+        "cached": "Copia guardada de {{time}}. Puede estar desactualizada; las acciones que requieren conexión no están disponibles.",
+        "draftRestored": "Borrador guardado restaurado de {{time}}. No se ha enviado nada.",
+        "draftReview": {
+          "statusChanged": "La orden de trabajo cambió desde entonces. Revísala antes de enviar.",
+          "closed": "Esta orden de trabajo ya terminó, así que el borrador no se puede enviar."
+        },
+        "draftDiscard": "Descartar borrador",
+        "draftDiscardConfirm": "Descartar definitivamente",
+        "viewSync": "Estado de sincronización",
         "offline": "Estás sin conexión. Puedes leer esta orden; la mayoría de las acciones requieren conexión.",
         "claimQueued": "Tu solicitud está guardada en este teléfono y aún no está confirmada. Se enviará cuando estés en línea.",
         "completeQueued": "La finalización está guardada en este teléfono y aún no está confirmada. La orden sigue abierta hasta que se sincronice.",
@@ -2116,7 +2127,10 @@
         "previous": "Reparaciones anteriores completadas: {{count}}",
         "noPrevious": "No hay reparaciones anteriores en este equipo.",
         "relatedFailed": "No se pudieron cargar las reparaciones anteriores.",
-        "open": "Abrir reparación anterior {{title}}"
+        "open": "Abrir reparación anterior {{title}}",
+        "historyTitle": "Reparaciones anteriores",
+        "historyNote": "Reparaciones completadas en {{name}}. No forman parte de la actividad de esta orden.",
+        "seeHistory": "Reparaciones anteriores completadas en este equipo: {{count}}. Ver Historial."
       },
       "tools": {
         "title": "Herramientas de reparación",
@@ -2135,7 +2149,12 @@
         "parts": "Piezas",
         "partsCount": "Piezas: {{count}}",
         "note": "Nota",
-        "addNote": "Agregar una nota"
+        "addNote": "Agregar una nota",
+        "notesCount": "Notas: {{count}}",
+        "resumeHint": "Devolver la orden a en curso",
+        "holdHint": "Pausar con un motivo",
+        "escalateHint": "Avisar a un gerente",
+        "assistHint": "Sugerencias para revisar, no un diagnóstico"
       },
       "more": {
         "title": "Más acciones",
@@ -2285,10 +2304,13 @@
         "confirm": "Confirmar finalización",
         "confirmQueue": "Guardar finalización para después",
         "queued": "Finalización guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "alreadyQueued": "Ya hay una finalización de esta orden de trabajo esperando sincronizarse.",
         "offlineQueue": "Estás sin conexión. La finalización se guardará en este teléfono y se enviará después. La orden sigue abierta hasta que el servidor la confirme.",
         "offlineBlock": {
           "parts": "Las piezas salen del inventario, por lo que esto requiere conexión. Conéctate para completar con piezas.",
-          "failedVerification": "Una prueba fallida se registra en el servidor, por lo que esto requiere conexión."
+          "failedVerification": "Una prueba fallida se registra en el servidor, por lo que esto requiere conexión.",
+          "checklistOpen": "Siguen abiertos pasos obligatorios de la lista. Termínelos con conexión y luego complete la orden.",
+          "checklistUnverified": "Este teléfono no ha confirmado la lista de verificación, así que la finalización no se puede guardar para después. Conéctese para completar."
         },
         "failedNote": "Una prueba fallida mantiene la orden en curso. No se cerrará.",
         "followUpNote": "La orden se completará y se marcará como que requiere seguimiento. No se crea una nueva orden de trabajo.",
@@ -2297,11 +2319,27 @@
           "verification": "Elige un resultado de verificación.",
           "verificationNotes": "Agrega una nota que explique el resultado.",
           "parts": "Corrige las piezas marcadas.",
-          "stock": "No hay suficiente inventario para una de las piezas. Revísalas."
+          "stock": "No hay suficiente inventario para una de las piezas. Revísalas.",
+          "checklist": "Siguen abiertos pasos obligatorios de la lista. La orden de trabajo no se completó."
         },
         "outcome": {
           "verificationFailed": "Prueba fallida registrada. La orden sigue en curso. No se cerró nada.",
           "conflict": "La orden cambió mientras trabajabas. Se volvió a cargar. {{message}}"
+        },
+        "readiness": {
+          "ready": "Lista para completar",
+          "blocked": "Antes de poder completar",
+          "checklist": "Lista de verificación: {{done}} de {{total}} hechos",
+          "viewChecklist": "Ver lista de verificación",
+          "unverifiedOnline": "Este teléfono no pudo leer la lista de verificación. El servidor la revisará al enviar.",
+          "blocker": {
+            "checklist": "Sigue abierto {{count}} paso obligatorio de la lista",
+            "checklist_plural": "Siguen abiertos {{count}} pasos obligatorios de la lista",
+            "checklistUnverified": "La lista de verificación no se ha confirmado en este teléfono, así que la finalización no se puede guardar para después",
+            "resolution": "Elija cómo se resolvió",
+            "verification": "Elija un resultado de verificación",
+            "verificationNotes": "Agregue una nota que explique el resultado"
+          }
         }
       },
       "result": {
@@ -2351,12 +2389,113 @@
       "toast": {
         "claimed": "Tomada",
         "claimQueued": "Solicitud guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "claimAlreadyQueued": "Tu reclamo ya está esperando sincronizarse.",
         "startFailed": "No se pudo iniciar la reparación.",
         "laborFailed": "No se pudo actualizar la mano de obra.",
         "ackFailed": "No se pudo confirmar la recepción.",
         "diagnosisSaved": "Diagnóstico guardado",
         "photoAttached": "Foto adjuntada",
         "busy": "Otra acción sigue en curso."
+      },
+      "tabs": {
+        "overview": "Resumen",
+        "checklist": "Lista",
+        "work": "Trabajo",
+        "history": "Historial"
+      },
+      "progress": {
+        "title": "Avance de la reparación",
+        "cancelled": "Esta orden de trabajo fue cancelada.",
+        "stage": {
+          "claim": "Tomar",
+          "diagnose": "Diagnosticar",
+          "repair": "Reparar",
+          "verify": "Verificar",
+          "complete": "Completar"
+        },
+        "state": {
+          "done": "listo",
+          "current": "en curso",
+          "pending": "pendiente",
+          "paused": "en pausa",
+          "unknown": "sin registro"
+        }
+      },
+      "next": {
+        "title": "Siguiente paso",
+        "useBar": "Usa el botón de abajo.",
+        "claim": {
+          "label": "Tomar el trabajo",
+          "hint": "Nadie tiene esta orden todavía. Tómala para empezar."
+        },
+        "start": {
+          "label": "Iniciar reparación",
+          "hint": "Esta orden está asignada a ti y lista para comenzar."
+        },
+        "continue": {
+          "label": "Continuar reparación",
+          "hint": "Registra mano de obra, diagnóstico, fotos y piezas; luego revisa el cierre."
+        },
+        "reviewHold": {
+          "label": "Revisar la pausa",
+          "hint": "Esta orden está en espera. Reanuda cuando se resuelva el motivo."
+        },
+        "resume": {
+          "label": "Reanudar trabajo",
+          "hint": "Esta orden fue escalada. Reanuda cuando puedas continuar."
+        },
+        "viewRecord": {
+          "label": "Ver registro completado",
+          "hint": "Esta reparación está completa. El registro está abajo y en Historial."
+        },
+        "cancelled": {
+          "label": "Cancelada",
+          "hint": "Esta orden fue cancelada. No hay acciones de reparación disponibles."
+        },
+        "viewOnly": {
+          "label": "Solo lectura",
+          "hint": "Tu rol puede revisar esta orden, pero no cambiar la reparación."
+        },
+        "elsewhere": {
+          "label": "Asignada a otro técnico",
+          "hint": "Puedes leer esta orden. Solo su responsable puede trabajarla."
+        }
+      },
+      "checklist": {
+        "title": "Lista de verificación",
+        "progress": "{{done}} de {{total}} completados",
+        "progressA11y": "{{done}} de {{total}} pasos de la lista completados",
+        "required": "Obligatorio",
+        "optional": "Opcional",
+        "requiredRemaining": "Falta {{count}} paso obligatorio",
+        "requiredRemaining_plural": "Faltan {{count}} pasos obligatorios",
+        "requiredDone": "Todos los pasos obligatorios están hechos",
+        "stateDone": "hecho",
+        "stateOpen": "sin hacer",
+        "saving": "guardando",
+        "doneAt": "Hecho {{time}}",
+        "emptyTitle": "Sin lista de verificación",
+        "emptyBody": "Esta orden de trabajo no tiene pasos de lista. Aun así puede trabajar en ella y completarla.",
+        "errorLoad": "No se pudo cargar la lista de verificación.",
+        "errorForbidden": "No tiene acceso a esta lista de verificación.",
+        "stale": "No se pudo actualizar. Se muestra la última lista que cargó este teléfono.",
+        "readOnly": {
+          "closed": "Esta orden de trabajo está cerrada. La lista es un registro de solo lectura.",
+          "notAssigned": "Solo el técnico asignado actualiza esta lista. Tome la orden para trabajar en ella.",
+          "offline": "No hay conexión. Los pasos se guardan en el servidor; reconéctese para cambiarlos.",
+          "viewOnly": "Su rol puede leer esta lista, pero no cambiarla."
+        },
+        "itemError": {
+          "closed": "Esta orden de trabajo se cerró, así que el paso no cambió.",
+          "forbidden": "No puede cambiar este paso.",
+          "failed": "No se pudo guardar ese paso. Revise su conexión e inténtelo de nuevo."
+        },
+        "reviewCompletion": "Revisar finalización"
+      },
+      "work": {
+        "site": "En sitio",
+        "repair": "Trabajo de reparación",
+        "more": "Más acciones"
       }
     }
   },
@@ -10549,6 +10688,7 @@
     "filterA11yActive": "Filtrar y ordenar, {{count}} activos",
     "removeFilter": "Quitar filtro: {{filter}}",
     "roomLabel": "Habitación {{room}}",
+    "eyebrow": "PatelRep Ingeniería",
     "views": {
       "mine": "Mi trabajo",
       "available": "Disponibles",
@@ -10556,8 +10696,58 @@
       "waiting": "En espera",
       "done": "Hechas"
     },
+    "viewTitles": {
+      "mine": "Mi trabajo",
+      "available": "Trabajo disponible",
+      "team": "Trabajo del equipo",
+      "waiting": "En pausa",
+      "done": "Historial"
+    },
+    "viewSubtitles": {
+      "mine": "Tus reparaciones asignadas y en progreso",
+      "available": "Reparaciones sin asignar que puedes tomar",
+      "availableManager": "Reparaciones sin asignar que necesitan responsable",
+      "team": "Reparaciones asignadas a otros ingenieros",
+      "waiting": "Detenidas por piezas, acceso o aprobación",
+      "done": "Órdenes completadas y canceladas, para consulta"
+    },
+    "shortcuts": {
+      "waiting": "En pausa",
+      "done": "Historial",
+      "backTo": "Volver a {{view}}",
+      "viewsA11y": "Vistas de trabajo",
+      "otherViewsA11y": "Otras vistas de trabajo"
+    },
+    "summary": {
+      "urgent": "Urgentes",
+      "inProgress": "En progreso",
+      "waiting": "En espera",
+      "unknown": "–",
+      "groupA11y": "Resumen de Mi trabajo",
+      "a11y": "{{label}}: {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yActive": "{{label}}: {{count}}. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "a11yUnknown": "{{label}}: cantidad no disponible. Mostrar estas órdenes de trabajo.",
+      "a11yUnknownActive": "{{label}}: cantidad no disponible. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "unavailable": "Las cantidades no están disponibles ahora."
+    },
+    "managerSummary": {
+      "needsOwner": "Sin responsable",
+      "inProgress": "En progreso",
+      "waiting": "En espera",
+      "unknown": "–",
+      "groupA11y": "Resumen del trabajo del equipo",
+      "a11y": "{{label}}: {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yMore": "{{label}}: al menos {{count}}. Mostrar estas órdenes de trabajo.",
+      "a11yActive": "{{label}}: {{count}}. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "a11yUnknown": "{{label}}: cantidad no disponible. Mostrar estas órdenes de trabajo.",
+      "a11yUnknownActive": "{{label}}: cantidad no disponible. Mostrando estas órdenes de trabajo. Toca para quitar.",
+      "unavailable": "Las cantidades del equipo no están disponibles ahora.",
+      "stale": "Las cantidades son de la última vez que estuviste en línea."
+    },
+    "urgentChip": "Urgentes y emergencias",
+    "historyNote": "Estas órdenes de trabajo están cerradas. Abre una para ver qué se hizo.",
     "groups": {
-      "escalated": "Escaladas",
+      "escalated": "Requieren atención",
       "in_progress": "En progreso",
       "ready": "Asignadas / listas",
       "on_hold": "En pausa",
@@ -10571,13 +10761,22 @@
       "low": "Baja"
     },
     "action": {
-      "continue": "Continuar reparación",
-      "open": "Abrir trabajo",
-      "claim": "Tomar orden de trabajo",
-      "view": "Ver",
-      "viewHold": "Ver pausa",
-      "viewReport": "Ver"
+      "continue": "Continuar",
+      "open": "Abrir",
+      "claim": "Tomar",
+      "review": "Revisar",
+      "reviewHold": "Revisar pausa",
+      "viewRecord": "Ver registro"
     },
+    "openHint": "Abre la orden de trabajo",
+    "card": {
+      "dueToday": "Vence hoy, {{time}}",
+      "dueTomorrow": "Vence mañana, {{time}}",
+      "dueOn": "Vence el {{date}}",
+      "overdueBy": "Vencida hace {{time}}",
+      "equipment": "Equipo: {{name}}"
+    },
+    "assignedToYou": "Asignada a ti",
     "overdue": "Vencida",
     "assignedTo": "Con {{name}}",
     "assignedUnknown": "Asignada",
@@ -11298,11 +11497,11 @@
     "equipment": "Equipo",
     "repeatDefects": "Defectos registrados en {{count}} inspecciones en los últimos {{days}} días",
     "pmOversight": "Mantenimiento preventivo",
-    "pmOverdueCount_one": "{{count}} inspección vencida",
-    "pmOverdueCount_other": "{{count}} inspecciones vencidas",
+    "pmOverdueCount": "{{count}} inspección vencida",
+    "pmOverdueCount_plural": "{{count}} inspecciones vencidas",
     "roomOversight": "Habitaciones fuera de orden o servicio",
-    "roomsDown_one": "{{count}} habitación fuera · {{late}} pasada de la fecha de regreso",
-    "roomsDown_other": "{{count}} habitaciones fuera · {{late}} pasadas de la fecha de regreso",
+    "roomsDown": "{{count}} habitación fuera · {{late}} pasada de la fecha de regreso",
+    "roomsDown_plural": "{{count}} habitaciones fuera · {{late}} pasadas de la fecha de regreso",
     "viewWork": "Ver trabajo",
     "viewWorkFor": "Ver el trabajo de {{name}}",
     "techEmpty": "Sin trabajo abierto",
@@ -11324,14 +11523,14 @@
       "on_hold": "En espera"
     },
     "load": {
-      "active_one": "{{count}} trabajo activo",
-      "active_other": "{{count}} trabajos activos",
-      "urgent_one": "{{count}} urgente",
-      "urgent_other": "{{count}} urgentes",
-      "onHold_one": "{{count}} en espera",
-      "onHold_other": "{{count}} en espera",
-      "overdue_one": "{{count}} vencido",
-      "overdue_other": "{{count}} vencidos"
+      "active": "{{count}} trabajo activo",
+      "active_plural": "{{count}} trabajos activos",
+      "urgent": "{{count}} urgente",
+      "urgent_plural": "{{count}} urgentes",
+      "onHold": "{{count}} en espera",
+      "onHold_plural": "{{count}} en espera",
+      "overdue": "{{count}} vencido",
+      "overdue_plural": "{{count}} vencidos"
     },
     "assign": {
       "title": "Asignar técnico",
@@ -11368,10 +11567,10 @@
     "offline": "Sin conexión",
     "lastConfirmed": "Última sincronización completa a las {{time}}",
     "lastUnknown": "Aún no hay sincronización confirmada",
-    "waiting_one": "{{count}} acción en espera",
-    "waiting_other": "{{count}} acciones en espera",
-    "attention_one": "{{count}} requiere atención",
-    "attention_other": "{{count}} requieren atención",
+    "waiting": "{{count}} acción en espera",
+    "waiting_plural": "{{count}} acciones en espera",
+    "attention": "{{count}} requiere atención",
+    "attention_plural": "{{count}} requieren atención",
     "unreadable": "No se pudieron leer los cambios guardados en este teléfono.",
     "pendingTitle": "Acciones pendientes",
     "none": "Nada en espera de sincronizar.",
@@ -11380,6 +11579,16 @@
     "discard": "Descartar",
     "confirmDiscard": "Descartar definitivamente",
     "discardWarning": "Este cambio nunca se envió. Descartarlo lo quita de este teléfono y no se puede deshacer. Lo que el servidor ya confirmó se mantiene.",
+    "stateSyncing": "Sincronizando ahora",
+    "recentTitle": "Sincronizado recientemente",
+    "recentNone": "El servidor aún no ha confirmado nada.",
+    "recentClaim": "Reclamo confirmado por el servidor",
+    "recentComplete": "Finalización confirmada por el servidor",
+    "draftsTitle": "Borradores guardados",
+    "draftsNone": "No hay borradores sin enviar en este teléfono.",
+    "draftItem": "Borrador de finalización de reparación",
+    "draftHint": "Guardado en este teléfono. No se envía hasta que lo envíes.",
+    "openDraft": "Abrir",
     "dismiss": "Quitar",
     "dismissClaims": "Quitar todos los reclamos rechazados",
     "fullDetails": "Todos los cambios guardados",

@@ -1,9 +1,11 @@
-﻿import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+﻿import type { ReactNode } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { WorkViewTabs } from "@/components/engineering/work/WorkViewTabs";
 import type { QueueView } from "@/lib/engineering/workQueue";
 
 export interface FilterChip {
@@ -13,33 +15,57 @@ export interface FilterChip {
 }
 
 interface Props {
-  views: QueueView[];
   view: QueueView;
+  /** Tabs, the shortcuts beneath them, and where Back returns to (see lib/engineering/workNavigation). */
+  primary: QueueView[];
+  secondary: QueueView[];
+  home: QueueView;
   onView: (view: QueueView) => void;
+  /** Can assign work (chief engineer / GM): Available then reads as "needs an owner", not "you can take". */
+  manager: boolean;
   searchText: string;
   onSearchText: (text: string) => void;
   filterCount: number;
   onOpenFilters: () => void;
   chips: FilterChip[];
   onNew: () => void;
+  /** The My Work tiles, when this view has them. */
+  summary?: ReactNode;
 }
 
-/** Title, search, the five queue views and the active-filter chips. Stays put while the list below scrolls. */
-export function WorkQueueHeader({ views, view, onView, searchText, onSearchText, filterCount, onOpenFilters, chips, onNew }: Props) {
+/** Which queue this is, search and filters, the view tabs, the optional summary tiles and the active-filter chips. */
+export function WorkQueueHeader({
+  view,
+  primary,
+  secondary,
+  home,
+  onView,
+  manager,
+  searchText,
+  onSearchText,
+  filterCount,
+  onOpenFilters,
+  chips,
+  onNew,
+  summary,
+}: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ backgroundColor: theme.background, paddingBottom: 4 }}>
-      <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
+    <View style={{ backgroundColor: theme.background, paddingBottom: 14 }}>
+      <View style={[styles.hero, { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg }]}>
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
-            <Text style={[styles.title, { color: theme.shell.ink }]} accessibilityRole="header" maxFontSizeMultiplier={1.3}>
-              {t("workQueue.title")}
+            <Text style={[styles.eyebrow, { color: theme.shell.ink2 }]} maxFontSizeMultiplier={1.3}>
+              {t("workQueue.eyebrow")}
             </Text>
-            <Text style={[styles.subtitle, { color: theme.shell.ink2 }]} maxFontSizeMultiplier={1.3}>
-              {t("workQueue.subtitle")}
+            <Text style={[styles.title, { color: theme.shell.ink }]} accessibilityRole="header" maxFontSizeMultiplier={1.3} testID="wo-title">
+              {t(`workQueue.viewTitles.${view}`)}
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.shell.ink2 }]} maxFontSizeMultiplier={1.3} testID="wo-subtitle">
+              {t(view === "available" && manager ? "workQueue.viewSubtitles.availableManager" : `workQueue.viewSubtitles.${view}`)}
             </Text>
           </View>
           <Pressable
@@ -99,31 +125,9 @@ export function WorkQueueHeader({ views, view, onView, searchText, onSearchText,
         </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabs}
-        accessibilityRole="tablist"
-        testID="wo-views"
-      >
-        {views.map((item) => {
-          const selected = item === view;
-          return (
-            <Pressable
-              key={item}
-              onPress={() => onView(item)}
-              style={[styles.tab, { backgroundColor: selected ? theme.primaryAction : theme.surface, borderColor: selected ? theme.primaryAction : theme.border }]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              testID={`wo-view-${item}`}
-            >
-              <Text style={[styles.tabText, { color: selected ? theme.shell.ink : theme.textSecondary }]} maxFontSizeMultiplier={1.3}>
-                {t(`workQueue.views.${item}`)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <WorkViewTabs view={view} primary={primary} secondary={secondary} home={home} onView={onView} />
+
+      {summary}
 
       {chips.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} testID="wo-filter-chips">
@@ -144,28 +148,33 @@ export function WorkQueueHeader({ views, view, onView, searchText, onSearchText,
           ))}
         </ScrollView>
       ) : null}
+
+      {view === "done" ? (
+        <Text style={[styles.note, { color: theme.textMuted }]} maxFontSizeMultiplier={1.3} testID="wo-history-note">
+          {t("workQueue.historyNote")}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 18, paddingBottom: 18, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
+  hero: { paddingHorizontal: 18, paddingBottom: 14, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
   titleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   titleBlock: { flex: 1 },
-  title: { fontSize: 27, lineHeight: 32, fontWeight: "700" },
-  subtitle: { fontSize: 14, marginTop: 4 },
+  eyebrow: { fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" },
+  title: { fontSize: 24, lineHeight: 29, fontWeight: "700", marginTop: 2 },
+  subtitle: { fontSize: 13.5, marginTop: 2 },
   newButton: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 14, minHeight: 44, marginTop: 2 },
   newText: { fontSize: 14, fontWeight: "700" },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, marginTop: 14 },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, marginTop: 12 },
   searchBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 12, borderWidth: 1, borderRadius: R.md },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   filterButton: { width: 48, height: 48, borderRadius: R.md, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   filterBadge: { position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
   filterBadgeText: { fontSize: 11, fontWeight: "800" },
-  tabs: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 8 },
-  tab: { minHeight: 44, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  tabText: { fontSize: 14, fontWeight: "700" },
   chips: { paddingHorizontal: 16, paddingTop: 10, gap: 8 },
   chip: { flexDirection: "row", alignItems: "center", gap: 5, minHeight: 36, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: "600" },
+  note: { fontSize: 13, lineHeight: 18, paddingHorizontal: 20, paddingTop: 10 },
 });

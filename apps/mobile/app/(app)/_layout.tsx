@@ -54,7 +54,8 @@ export default function AppLayout() {
   // "grows out of the bubble" transition (design spec 1a/2a) from one value.
   const cardProgress = useSharedValue(0);
   // The full-screen room screens own the whole display: no floating assistant over a housekeeper's room or a supervisor's checklist.
-  const hideFab = /^\/(my-rooms|inspect)\/.+/.test(pathname);
+  // A work order's sticky action bar (Start Repair / Complete) also owns the bottom edge, so the bubble steps aside there.
+  const hideFab = /^\/(my-rooms|inspect)\/.+/.test(pathname) || /^\/work-orders\/.+/.test(pathname);
   const effectiveRole = user?.effective_role ?? user?.role;
   // Housekeepers get the unified assistant (floating button + compact sheet); every other role keeps the corner card.
   const assistantSwitchedOn = useAiCapability("unifiedAssistant");

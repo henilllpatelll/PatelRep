@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme/useTheme";
 import { R, monoFont } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
-import { dueState, formatDuration, type WorkOrder } from "@/lib/engineering/workOrders";
+import { dueState, formatDuration, workOrderLocation, type WorkOrder } from "@/lib/engineering/workOrders";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { formatStopwatch, type LaborSummary } from "@/lib/engineering/repairWorkspace";
 
@@ -24,6 +24,9 @@ export function WorkOrderHeader({ wo, onBack, onMore }: HeaderProps) {
   const priority = wo.priority === "emergency" || wo.priority === "urgent" ? t(`workOrders.repair.priority.${wo.priority}`) : null;
   const status = t(`workOrders.status.${wo.status}`);
   const statusLine = [priority, status].filter(Boolean).join(" · ").toUpperCase();
+  const { room, text: locationText } = workOrderLocation(wo);
+  const where = room ? `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}` : locationText;
+  const chips = [wo.guest_reported ? t("workOrders.chipGuest") : null].filter(Boolean) as string[];
 
   return (
     <View style={[styles.hero, { paddingTop: insets.top + 8, backgroundColor: theme.shell.bg }]}>
@@ -52,9 +55,23 @@ export function WorkOrderHeader({ wo, onBack, onMore }: HeaderProps) {
           <View style={styles.icon} />
         )}
       </View>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.shell.ink }]} testID="wo-title">
+      {where ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.where, { color: theme.shell.ink3 }]} testID="wo-where">
+          {where}
+        </Text>
+      ) : null}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={3} style={[styles.title, { color: theme.shell.ink }]} testID="wo-title">
         {wo.title}
       </Text>
+      {chips.length > 0 ? (
+        <View style={styles.chips}>
+          {chips.map((chip) => (
+            <Text key={chip} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.chip, { color: theme.shell.ink, borderColor: theme.shell.ink3 }]} testID="wo-chip-guest">
+              {chip}
+            </Text>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -111,13 +128,16 @@ export function WorkOrderSummary({ wo, locale, labor, laborFailed, nowMs, onOpen
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 14, paddingBottom: 18, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
+  hero: { paddingHorizontal: 14, paddingBottom: 14, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
   nav: { flexDirection: "row", alignItems: "center", gap: 8 },
   icon: { minWidth: 44, minHeight: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   body: { flex: 1 },
   number: { fontSize: 17, fontWeight: "800" },
   statusLine: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, marginTop: 1 },
-  title: { fontSize: 23, fontWeight: "600", lineHeight: 29, marginTop: 8, paddingHorizontal: 4 },
+  where: { fontSize: 13, fontWeight: "700", marginTop: 6, paddingHorizontal: 4 },
+  title: { fontSize: 21, fontWeight: "600", lineHeight: 27, marginTop: 4, paddingHorizontal: 4 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8, paddingHorizontal: 4 },
+  chip: { fontSize: 11, fontWeight: "700", borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: "hidden" },
   summary: { flexDirection: "row", gap: 10 },
   card: { flex: 1, borderWidth: 1, borderRadius: R.lg, paddingVertical: 12, paddingHorizontal: 14, gap: 3, minHeight: 64, justifyContent: "center" },
   cardLabel: { fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },

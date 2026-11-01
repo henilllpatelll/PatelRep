@@ -18,6 +18,8 @@ import { recordClaimConflict, type ClaimConflictReason } from "@/lib/engineering
 import { classifyReplayFailure, reconcileCompletion } from "@/lib/engineering/offlineActions";
 import { getWorkOrder } from "@/lib/api/workOrders";
 import { REPORT_QUEUE_MARK, isTerminalReportFailure, recordReport } from "@/lib/engineering/pendingReports";
+import { clearCompletionDraft } from "@/lib/engineering/workOrderDrafts";
+import { recordSynced } from "@/lib/engineering/syncedHistory";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
@@ -73,6 +75,7 @@ export async function flushSyncQueue(): Promise<void> {
       action: string;
       payload: string;
       entity_id?: string;
+      label?: string | null;
     }>;
 
     for (const item of items) {
@@ -117,6 +120,7 @@ export async function flushSyncQueue(): Promise<void> {
         } else if (item.entity_type === "work_order" && item.action === "claim") {
           try {
             await api.post(`/work-orders/${item.entity_id}/claim`, {});
+            if (item.entity_id) await recordSynced({ woId: item.entity_id, kind: "claim", label: typeof payload?.label === "string" ? payload.label : null });
           } catch (err) {
             // Someone else claimed it, it is gone, or the role was refused: retrying can never work, so drop it
             // and tell the person instead of leaving a claim that looks pending forever.
@@ -132,6 +136,11 @@ export async function flushSyncQueue(): Promise<void> {
         } else if (item.entity_type === "work_order" && item.action === "complete") {
           try {
             await api.post(`/work-orders/${item.entity_id}/complete`, payload);
+            // The server accepted it: only now does the saved draft (kept while this was merely queued) go away.
+            if (item.entity_id) {
+              await clearCompletionDraft(item.entity_id);
+              await recordSynced({ woId: item.entity_id, kind: "complete", label: item.label ?? null });
+            }
           } catch (err) {
             const failure = classifyReplayFailure(err);
             if (failure === "retry") throw err; // network / server trouble: bounded retries, never a silent success
@@ -140,6 +149,8 @@ export async function flushSyncQueue(): Promise<void> {
               try {
                 const order = await getWorkOrder(String(item.entity_id));
                 if (reconcileCompletion(order, useAppStore.getState().user?.id ?? null) === "confirmed") {
+                  await clearCompletionDraft(String(item.entity_id));
+                  await recordSynced({ woId: String(item.entity_id), kind: "complete", label: item.label ?? null });
                   await deleteSyncQueueItem(item.id);
                   continue;
                 }

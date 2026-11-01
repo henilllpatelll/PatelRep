@@ -4,6 +4,8 @@ import {
   arriveAtWorkOrder,
   completeWorkOrder,
   getPartStock,
+  getWorkOrderChecklist,
+  setWorkOrderChecklistItem,
   getWorkOrderAudit,
   getWorkOrderLabor,
   listAssetRepairs,
@@ -185,5 +187,39 @@ describe("evidence upload", () => {
     global.fetch = fetchMock as unknown as typeof fetch;
     await expect(uploadWorkOrderPhoto("wo-1", "file:///a.jpg", { signal: ctl.signal })).rejects.toMatchObject({ name: "AbortError" });
     expect(fetchMock.mock.calls[0][1].signal).toBe(ctl.signal);
+  });
+});
+
+describe("work-order checklist endpoints", () => {
+  const summary = { total: 1, completed: 0, required_total: 1, required_completed: 0, required_remaining: [{ id: "i1", label: "Lock out" }], ready: false };
+  const row = { id: "i1", label: "Lock out", is_required: true, is_done: false, done_by: null, done_at: null, sort_order: 1, estimated_minutes: null };
+
+  it("reads the steps and the server's readiness summary from GET /checklist", async () => {
+    get.mockResolvedValue({ data: [row], summary, meta: { editable: true } });
+    const signal = new AbortController().signal;
+    const snapshot = await getWorkOrderChecklist("wo-1", signal);
+    expect(get).toHaveBeenCalledWith("/work-orders/wo-1/checklist", { signal });
+    expect(snapshot.items[0]).toMatchObject({ id: "i1", is_required: true });
+    expect(snapshot.summary.required_remaining).toEqual([{ id: "i1", label: "Lock out" }]);
+  });
+
+  it("throws on a malformed answer instead of returning an empty checklist", async () => {
+    get.mockResolvedValue({ data: "oops" });
+    await expect(getWorkOrderChecklist("wo-1")).rejects.toThrow();
+    get.mockResolvedValue(undefined);
+    await expect(getWorkOrderChecklist("wo-1")).rejects.toThrow();
+  });
+
+  it("ticks a step with PATCH and returns only what the server confirmed", async () => {
+    patch.mockResolvedValue({ data: { ...row, is_done: true, done_by: "u1", done_at: "2026-10-31T10:00:00Z" }, summary: { ...summary, completed: 1, required_remaining: [], ready: true } });
+    const out = await setWorkOrderChecklistItem("wo-1", "i1", true);
+    expect(patch).toHaveBeenCalledWith("/work-orders/wo-1/checklist/i1", { is_done: true });
+    expect(out.item.is_done).toBe(true);
+    expect(out.summary.ready).toBe(true);
+  });
+
+  it("propagates a refusal so the caller never shows the change", async () => {
+    patch.mockRejectedValue(Object.assign(new Error("closed"), { status: 409 }));
+    await expect(setWorkOrderChecklistItem("wo-1", "i1", true)).rejects.toMatchObject({ status: 409 });
   });
 });

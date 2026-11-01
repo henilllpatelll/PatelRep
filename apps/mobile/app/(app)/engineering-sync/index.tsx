@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Redirect, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +15,9 @@ import { dismissReportRecord, useReportRecords } from "@/lib/engineering/pending
 import { summarizePending, type PendingAction } from "@/lib/engineering/offlineActions";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { usePendingActions } from "@/lib/engineering/usePendingActions";
+import { loadRecentlySynced, type SyncedEntry } from "@/lib/engineering/syncedHistory";
+import { listCompletionDrafts, type SavedCompletionDraftRow } from "@/lib/engineering/workOrderDrafts";
+import { syncOnConnect } from "@/lib/offline/sync";
 import { useSyncOverview } from "@/lib/offline/useSyncOverview";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 import { useAppStore } from "@/stores/appStore";
@@ -36,6 +39,31 @@ export default function EngineeringSyncScreen() {
   const claimConflicts = useClaimConflicts(user?.id ?? null);
   const reports = useReportRecords().filter((r) => r.kind === "refused");
   const [confirming, setConfirming] = useState<number | null>(null);
+  const [synced, setSynced] = useState<SyncedEntry[]>([]);
+  const [drafts, setDrafts] = useState<SavedCompletionDraftRow[]>([]);
+  const userId = user?.id ?? null;
+
+  // Re-read the two local lists whenever a sync run ends or the queue changes; nothing polls.
+  useEffect(() => {
+    let live = true;
+    void Promise.all([loadRecentlySynced(), listCompletionDrafts()]).then(([recent, saved]) => {
+      if (!live) return;
+      setSynced(recent);
+      setDrafts(saved);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId, syncing, overview.lastSyncedAt, pending.actions]);
+
+  // Opening the Sync Center is one of the moments to try: once, and only when something is actually waiting.
+  const triedOnOpen = useRef(false);
+  const waitingNow = pending.loaded ? summarizePending(pending.actions).waiting : 0;
+  useEffect(() => {
+    if (triedOnOpen.current || !pending.loaded) return;
+    triedOnOpen.current = true;
+    if (waitingNow > 0 && overview.online && !syncing) void syncOnConnect();
+  }, [pending.loaded, waitingNow, overview.online, syncing]);
 
   if (!isEngineeringRole(role)) return <Redirect href="/(app)/more" />;
 
@@ -45,7 +73,9 @@ export default function EngineeringSyncScreen() {
 
   const kindText = (a: PendingAction) => t(`engineeringSync.kind.${a.kind}`);
   const stateText = (a: PendingAction) =>
-    a.state === "refused" ? t(`engineeringSync.refused.${a.reason ?? "unknown"}`, { defaultValue: t("engineeringSync.refused.unknown") }) : t(`engineeringSync.state.${a.state}`);
+    syncing && (a.state === "waiting" || a.state === "retrying")
+      ? t("engineeringSync.stateSyncing")
+      : a.state === "refused" ? t(`engineeringSync.refused.${a.reason ?? "unknown"}`, { defaultValue: t("engineeringSync.refused.unknown") }) : t(`engineeringSync.state.${a.state}`);
 
   return (
     <SettingsScreen title={t("engineeringSync.title")} back>
@@ -120,6 +150,47 @@ export default function EngineeringSyncScreen() {
               </View>
             ))}
           </View>
+        )}
+      </SettingsSection>
+
+      <SettingsSection title={t("engineeringSync.draftsTitle")} testID="esync-drafts">
+        {drafts.length === 0 ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textMuted }]} testID="esync-drafts-empty">
+            {t("engineeringSync.draftsNone")}
+          </Text>
+        ) : (
+          drafts.map((d, index) => (
+            <SettingsRow
+              key={`draft-${d.woId}`}
+              first={index === 0}
+              icon="document-text-outline"
+              label={`${t("engineeringSync.draftItem")}${d.label ? ` · ${d.label}` : ""}`}
+              subtitle={t("engineeringSync.draftHint")}
+              onPress={() => router.push(`/(app)/work-orders/${d.woId}` as never)}
+              trailing={t("engineeringSync.openDraft")}
+              testID={`esync-draft-${d.woId}`}
+            />
+          ))
+        )}
+      </SettingsSection>
+
+      <SettingsSection title={t("engineeringSync.recentTitle")} testID="esync-recent">
+        {synced.length === 0 ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textMuted }]} testID="esync-recent-empty">
+            {t("engineeringSync.recentNone")}
+          </Text>
+        ) : (
+          synced.map((e, index) => (
+            <SettingsRow
+              key={`synced-${e.kind}-${e.woId}`}
+              first={index === 0}
+              icon="checkmark-circle-outline"
+              label={`${t(e.kind === "claim" ? "engineeringSync.recentClaim" : "engineeringSync.recentComplete")}${e.label ? ` · ${e.label}` : ""}`}
+              subtitle={formatClock(e.at, ctx) ?? undefined}
+              onPress={() => router.push(`/(app)/work-orders/${e.woId}` as never)}
+              testID={`esync-synced-${e.kind}-${e.woId}`}
+            />
+          ))
         )}
       </SettingsSection>
 

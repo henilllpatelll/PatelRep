@@ -962,3 +962,12 @@
 - components/engineering/report/ - LocationSheet, OptionSheet, PriorityPicker, EvidenceInput, MoreOptions, ReportSuccess, PendingReportsBanner
 - app/(app)/room-status/index.tsx - engineers/chief get EngineeringRoomBoard, every other role keeps the read-only property board (old engineer OOO/DIRTY PATCH + modal REMOVED); app/(app)/room-status/[roomId].tsx - Room Detail; app/(app)/work-orders/new.tsx - Report an Issue (replaces CreateWorkOrderModal, deleted)
 - apps/mobile/__tests__/{screens/EngineeringRoomBoard,screens/EngineeringRoomDetail,screens/ReportIssueScreen,components/PendingReportsBanner,lib/engineering/{roomModel,roomAvailability,reportIssue,useReportIssue,useRoomBoard,roomI18n,roomSafety},lib/offline/engineeringReports.sync}.test.* - Phase 7 tests
+- lib/engineering/{workNavigation,workSummary,workRows,useWorkSummary}.ts - Work redesign Ph1: primary tabs vs On hold/History shortcuts per role (chief = Team,Available; no My Work), resolveView for deep links; My Work tile model (server counts, unknown != 0, tile -> filter); section rows with partial-count flag; summary hook with scope/stale tokens
+- components/engineering/work/{WorkViewTabs,WorkSummaryTiles}.tsx - segmented tabs + shortcuts + Back row; Urgent/In progress/Waiting tiles. API: GET /work-orders/summary (own active counts) + `priorities` list param
+- lib/engineering/{workOrderChecklist,useWorkOrderChecklist}.ts - Eng Work Ph4: checklist parse/gate/editing rules (server summary is the only readiness) + confirmed-not-optimistic hook (per-step in-flight guard, stale reads dropped); components/engineering/workorder/{WorkOrderChecklist,CompletionReadiness}.tsx - Checklist tab and Review Completion readiness panel; WorkOrderChecklistShell removed
+- apps/mobile/lib/engineering/offlineStore.ts - scoped, versioned AsyncStorage envelope (read/write/prune per tenant:user) (~1.3k tok)
+- apps/mobile/lib/engineering/workOrderDrafts.ts - completion + note/hold/escalate draft persistence, sanitize, review-on-restore (~1.8k tok)
+- apps/mobile/lib/engineering/useWorkOrderDrafts.ts - useCompletionDraft / useTextDraft hooks (debounce, restore race, confirm/discard) (~1.7k tok)
+- apps/mobile/lib/engineering/workOrderCache.ts - saved WO copies + queue snapshots (72h, bounded, no comments/photos) (~1.4k tok)
+- apps/mobile/lib/engineering/syncedHistory.ts - server-confirmed recently-synced list (~0.7k tok)
+- apps/mobile/lib/engineering/queuedActions.ts - duplicate-queue guard for claim/complete (~0.3k tok)

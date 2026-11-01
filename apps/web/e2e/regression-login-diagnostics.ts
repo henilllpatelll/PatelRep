@@ -4,6 +4,12 @@ interface AuthResponseLike {
   request(): { method(): string }
 }
 
+interface AuthRequestLike {
+  url(): string
+  method(): string
+  failure?(): { errorText: string } | null
+}
+
 const MAX_DIAGNOSTIC_ENTRIES = 10
 const MAX_TEXT_LENGTH = 500
 
@@ -28,8 +34,27 @@ export function redactDiagnosticText(value: string): string {
 export function createLoginDiagnostics(role: string, baseURL: string) {
   const authResponses: Array<{ method: string; status: number; url: string }> = []
   const pageErrors: string[] = []
+  const authRequestsSent: string[] = []
+  const failedAuthRequests: Array<{ method: string; url: string; error: string }> = []
 
   return {
+    // An auth request that was sent but never answered (hung, cancelled, or
+    // failed at the network level) leaves authResponses empty and no visible
+    // alert, which is otherwise indistinguishable from "the click never fired".
+    recordAuthRequest(request: AuthRequestLike) {
+      const url = safeDiagnosticUrl(request.url())
+      if (!url.includes('/auth/') || authRequestsSent.length >= MAX_DIAGNOSTIC_ENTRIES) return
+      authRequestsSent.push(`${request.method()} ${url}`)
+    },
+    recordAuthRequestFailure(request: AuthRequestLike) {
+      const url = safeDiagnosticUrl(request.url())
+      if (!url.includes('/auth/') || failedAuthRequests.length >= MAX_DIAGNOSTIC_ENTRIES) return
+      failedAuthRequests.push({
+        method: request.method(),
+        url,
+        error: redactDiagnosticText(request.failure?.()?.errorText ?? 'unknown'),
+      })
+    },
     recordAuthResponse(response: AuthResponseLike) {
       if (authResponses.length >= MAX_DIAGNOSTIC_ENTRIES) return
 
@@ -53,6 +78,8 @@ export function createLoginDiagnostics(role: string, baseURL: string) {
         target: safeDiagnosticUrl(baseURL),
         currentPage: safeDiagnosticUrl(currentPage),
         authResponses,
+        authRequestsSent,
+        failedAuthRequests,
         pageErrors,
         visibleLoginErrors: visibleLoginErrors.map(redactDiagnosticText).filter(Boolean),
       }

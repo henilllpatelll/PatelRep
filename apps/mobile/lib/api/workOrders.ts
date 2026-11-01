@@ -8,6 +8,8 @@ import type {
   WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
 import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
+import { parseWorkSummary, type WorkSummary } from "@/lib/engineering/workSummary";
+import { parseChecklistResponse, parseChecklistUpdate, type ChecklistItem, type ChecklistSnapshot, type ChecklistSummary } from "@/lib/engineering/workOrderChecklist";
 import type {
   AuditEvent,
   CompleteWorkOrderBody,
@@ -108,12 +110,24 @@ export async function listWorkOrderPage(
   page = 1,
   perPage = WORK_QUEUE_PAGE_SIZE
 ): Promise<WorkOrderPage> {
-  const { statuses, ...rest } = params;
+  const { statuses, priorities, ...rest } = params;
   const res = await api.get<{ data: WorkOrder[]; meta?: { has_more?: boolean } }>(
-    `/work-orders?${queryString({ ...rest, statuses: statuses?.join(","), page: page > 1 ? page : undefined, per_page: perPage })}`
+    `/work-orders?${queryString({
+      ...rest,
+      statuses: statuses?.join(","),
+      priorities: priorities?.join(","),
+      page: page > 1 ? page : undefined,
+      per_page: perPage,
+    })}`
   );
   const orders = res.data ?? [];
   return { orders, hasMore: res.meta?.has_more ?? orders.length >= perPage };
+}
+
+/** Exact counts of the caller's own active work (the My Work tiles); null when the server's answer is malformed. */
+export async function getWorkOrderSummary(signal?: AbortSignal): Promise<WorkSummary | null> {
+  const res = await api.get<{ data: unknown }>("/work-orders/summary", { signal });
+  return parseWorkSummary(res.data);
 }
 
 export const ASSET_WORK_ORDER_PAGE_SIZE = 10;
@@ -298,6 +312,26 @@ export async function getWorkOrderAudit(woId: string, signal?: AbortSignal): Pro
 export async function getWorkOrderParts(woId: string, signal?: AbortSignal): Promise<ConsumedPartRow[]> {
   const res = await api.get<{ data: ConsumedPartRow[] }>(`/work-orders/${woId}/parts`, { signal });
   return res.data ?? [];
+}
+
+/** The order's checklist steps and the server's readiness summary. A malformed answer throws: it is never "no checklist". */
+export async function getWorkOrderChecklist(woId: string, signal?: AbortSignal): Promise<ChecklistSnapshot> {
+  const res = await api.get<unknown>(`/work-orders/${woId}/checklist`, { signal });
+  const parsed = parseChecklistResponse(res);
+  if (!parsed) throw new Error("Unexpected checklist response");
+  return parsed;
+}
+
+/** Tick or reopen one step. Resolves only with what the server confirmed (the step and the new summary). */
+export async function setWorkOrderChecklistItem(
+  woId: string,
+  itemId: string,
+  isDone: boolean
+): Promise<{ item: ChecklistItem; summary: ChecklistSummary }> {
+  const res = await api.patch<unknown>(`/work-orders/${woId}/checklist/${itemId}`, { is_done: isDone });
+  const parsed = parseChecklistUpdate(res);
+  if (!parsed) throw new Error("Unexpected checklist response");
+  return parsed;
 }
 
 /** Active problem / cause / resolution codes for a trade — the API is the only source of codes. */

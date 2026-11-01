@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { WorkOrder } from "@/lib/engineering/workOrders";
+import { useTextDraft } from "@/lib/engineering/useWorkOrderDrafts";
 import { FieldLabel, InlineError, Note, TextArea, sheetStyles } from "./sheetKit";
 import { useSheetSubmit } from "./useSheetSubmit";
 
@@ -12,7 +12,7 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   online: boolean;
-  wo: Pick<WorkOrder, "status" | "priority">;
+  wo: Pick<WorkOrder, "id" | "status" | "priority">;
   /** Moves the order to `escalated` through the transition endpoint; the note is stored on the audit event. */
   onConfirm: (note: string) => Promise<void>;
 }
@@ -24,7 +24,7 @@ interface Props {
 export function EscalationSheet({ visible, onClose, online, wo, onConfirm }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [note, setNote] = useState("");
+  const { text: note, setText: setNote, clear, saved } = useTextDraft(wo.id, "escalate");
   const { busy, error, run } = useSheetSubmit();
   const trimmed = note.trim();
 
@@ -32,7 +32,7 @@ export function EscalationSheet({ visible, onClose, online, wo, onConfirm }: Pro
     if (!trimmed) return;
     const ok = await run(() => onConfirm(trimmed));
     if (ok) {
-      setNote("");
+      clear();
       onClose();
     }
   }
@@ -52,6 +52,7 @@ export function EscalationSheet({ visible, onClose, online, wo, onConfirm }: Pro
         <FieldLabel required>{t("workOrders.repair.escalate.reason")}</FieldLabel>
         <TextArea value={note} onChangeText={setNote} placeholder={t("workOrders.repair.escalate.placeholder")} editable={!busy} testID="wo-escalate-note" accessibilityLabel={t("workOrders.repair.escalate.reason")} />
         {!online ? <Note>{t("workOrders.repair.needsConnection")}</Note> : null}
+        {saved && note.trim() ? <Note>{t("workOrders.repair.draftSaved")}</Note> : null}
         {error ? <InlineError>{error}</InlineError> : null}
       </View>
     </BottomSheet>

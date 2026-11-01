@@ -38,8 +38,9 @@ const wo = (over: Partial<WorkOrder> = {}): WorkOrder => ({
 describe("views per role", () => {
   it("shows Team only to roles the API lets read everyone's work", () => {
     expect(availableViews("engineer")).toEqual(["mine", "available", "waiting", "done"]);
-    expect(availableViews("chief_engineer")).toEqual(["mine", "available", "team", "waiting", "done"]);
-    expect(availableViews("gm")).toContain("team");
+    // A chief engineer manages but cannot claim and is never an assignee, so My Work would always be empty.
+    expect(availableViews("chief_engineer")).toEqual(["available", "team", "waiting", "done"]);
+    expect(availableViews("gm")).toEqual(["mine", "available", "team", "waiting", "done"]);
     expect(canViewTeamWork("housekeeper")).toBe(false);
     expect(canViewTeamWork(undefined)).toBe(false);
   });
@@ -299,5 +300,52 @@ describe("helpers", () => {
     expect(urgentLandingView([open, mine], ME)).toBe("mine");
     expect(urgentLandingView([open], ME)).toBe("available");
     expect(urgentLandingView([], ME)).toBe("mine");
+  });
+});
+
+describe("Urgent focus", () => {
+  const ctx = { role: "engineer", now: NOW, timeZone: "America/Chicago" };
+
+  it("asks the server for emergency and urgent together, and counts as one active filter", () => {
+    const filters = { ...EMPTY_FILTERS, urgentOnly: true };
+    expect(buildListParams("mine", filters, "", ctx)).toMatchObject({ mine: true, priorities: ["emergency", "urgent"] });
+    expect(buildListParams("mine", filters, "", ctx).priority).toBeUndefined();
+    expect(activeFilterCount("mine", filters)).toBe(1);
+  });
+
+  it("lets urgent win over a single priority and never counts them twice", () => {
+    const filters = { ...EMPTY_FILTERS, urgentOnly: true, priority: "low" as const };
+    const params = buildListParams("mine", filters, "", ctx);
+    expect(params.priorities).toEqual(["emergency", "urgent"]);
+    expect(params.priority).toBeUndefined();
+    expect(activeFilterCount("mine", filters)).toBe(1);
+  });
+
+  it("keys the cache apart from the plain view so cached rows are never mixed up", () => {
+    const plain = queueKey("mine", buildListParams("mine", EMPTY_FILTERS, "", ctx));
+    const urgent = queueKey("mine", buildListParams("mine", { ...EMPTY_FILTERS, urgentOnly: true }, "", ctx));
+    expect(urgent).not.toBe(plain);
+    expect(urgent).toContain("priorities=emergency,urgent");
+  });
+});
+
+describe("My Work needs-attention group", () => {
+  it("also takes urgent work nobody has started, without moving started or held work", () => {
+    const groups = groupMineWork([
+      wo({ id: "urgent-open", status: "open", priority: "urgent", assigned_to: ME }),
+      wo({ id: "emerg-open", status: "open", priority: "emergency", assigned_to: ME }),
+      wo({ id: "urgent-prog", status: "in_progress", priority: "urgent", assigned_to: ME }),
+      wo({ id: "urgent-hold", status: "on_hold", priority: "urgent", assigned_to: ME }),
+      wo({ id: "normal-open", status: "open", assigned_to: ME }),
+      wo({ id: "esc", status: "escalated", assigned_to: ME }),
+    ]);
+    expect(groups.map((g) => g.key)).toEqual(["escalated", "in_progress", "ready", "on_hold"]);
+    const ids = (key: string) => groups.find((g) => g.key === key)!.orders.map((o) => o.id);
+    expect(ids("escalated")).toEqual(["emerg-open", "urgent-open", "esc"]);
+    expect(ids("in_progress")).toEqual(["urgent-prog"]);
+    expect(ids("ready")).toEqual(["normal-open"]);
+    expect(ids("on_hold")).toEqual(["urgent-hold"]);
+    // Nothing is shown twice and nothing is dropped.
+    expect(groups.flatMap((g) => g.orders)).toHaveLength(6);
   });
 });

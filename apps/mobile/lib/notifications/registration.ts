@@ -5,6 +5,7 @@ import { getAppInfo } from "@/lib/app/appInfo";
 import { Platform } from "react-native";
 import { api } from "@/lib/api/client";
 import { ensureNotificationChannels } from "./channels";
+import { isRemotePushSupported } from "./environment";
 import { canReceivePush, getPushPermissionState, hasBeenPrompted, requestPushPermission, type PushPermissionState } from "./permissions";
 
 const PUSH_TOKEN_KEY = "@patelrep/push_token";
@@ -38,6 +39,7 @@ export async function getInstallationId(): Promise<string> {
 }
 
 export async function getExpoPushToken(): Promise<string | null> {
+  if (!isRemotePushSupported()) return null;
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ??
     (Constants.easConfig as { projectId?: string } | undefined)?.projectId ??
@@ -105,6 +107,7 @@ async function registerNow(userId: string, force: boolean): Promise<boolean> {
  * true when the server now holds this phone's token for `userId`.
  */
 export function syncPushRegistration(userId: string, options: { force?: boolean } = {}): Promise<boolean> {
+  if (!isRemotePushSupported()) return Promise.resolve(false);
   if (inFlight && inFlight.userId === userId) return inFlight.promise;
   const previous = inFlight?.promise ?? Promise.resolve(true);
   const promise = previous.then(() => registerNow(userId, options.force ?? false));
@@ -122,6 +125,8 @@ export function syncPushRegistration(userId: string, options: { force?: boolean 
  * only the Settings screen can ask again, and a refusal is never re-asked.
  */
 export async function setupPushNotifications(userId?: string): Promise<PushPermissionState> {
+  // Android Expo Go has no remote push: skip the prompt and token too, so nothing asks for what cannot work.
+  if (!isRemotePushSupported()) return "unavailable";
   await ensureNotificationChannels().catch((error) => console.warn("[push] channel setup failed", error));
   let state = await getPushPermissionState();
   if (state === "undetermined" && !(await hasBeenPrompted())) state = await requestPushPermission();

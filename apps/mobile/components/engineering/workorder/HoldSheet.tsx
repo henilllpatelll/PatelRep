@@ -6,6 +6,7 @@ import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { HOLD_REASON_CODES, type HoldReasonCode } from "@/lib/engineering/workOrders";
+import { useTextDraft } from "@/lib/engineering/useWorkOrderDrafts";
 import { ChoiceChips, FieldLabel, InlineError, Note, TextArea, sheetStyles } from "./sheetKit";
 import { useSheetSubmit } from "./useSheetSubmit";
 
@@ -14,17 +15,19 @@ interface Props {
   onClose: () => void;
   online: boolean;
   label: string | null;
+  /** The work order being held; the unsent note is kept on this phone under it. */
+  workOrderId?: string;
   /** The viewer has a running labor timer on this order. Holding does not stop it on the server, so we offer to. */
   laborRunning: boolean;
   onConfirm: (input: { reason: HoldReasonCode; note: string; pauseLabor: boolean }) => Promise<void>;
 }
 
 /** The API requires one of four structured reasons to hold an order; it is chosen, never guessed. */
-export function HoldSheet({ visible, onClose, online, label, laborRunning, onConfirm }: Props) {
+export function HoldSheet({ visible, onClose, online, label, workOrderId, laborRunning, onConfirm }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [reason, setReason] = useState<HoldReasonCode | null>(null);
-  const [note, setNote] = useState("");
+  const { text: note, setText: setNote, clear: clearNote, saved } = useTextDraft(workOrderId, "hold");
   const [pauseLabor, setPauseLabor] = useState(true);
   const { busy, error, run } = useSheetSubmit();
 
@@ -33,7 +36,7 @@ export function HoldSheet({ visible, onClose, online, label, laborRunning, onCon
     const ok = await run(() => onConfirm({ reason, note: note.trim(), pauseLabor: laborRunning && pauseLabor }));
     if (ok) {
       setReason(null);
-      setNote("");
+      clearNote();
       onClose();
     }
   }
@@ -72,6 +75,7 @@ export function HoldSheet({ visible, onClose, online, label, laborRunning, onCon
           </Pressable>
         ) : null}
         {!online ? <Note>{t("workOrders.repair.needsConnection")}</Note> : null}
+        {saved && note.trim() ? <Note>{t("workOrders.repair.draftSaved")}</Note> : null}
         {error ? <InlineError>{error}</InlineError> : null}
       </View>
     </BottomSheet>
