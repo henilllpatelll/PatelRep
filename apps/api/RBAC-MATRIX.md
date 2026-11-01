@@ -578,32 +578,32 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/repair-codes | GET | none |  |
 | work_orders.py | /v1/work-orders/repeat-suggestion | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id} | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L1099] |
-| work_orders.py | /v1/work-orders/{wo_id}/assign | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1167] |
-| work_orders.py | /v1/work-orders/{wo_id}/acknowledge | POST | engineer, gm | require_role('engineer', 'gm') [L1253] |
-| work_orders.py | /v1/work-orders/{wo_id}/arrive | POST | engineer, gm | require_role('engineer', 'gm') [L1260] |
-| work_orders.py | /v1/work-orders/{wo_id}/labor/start | POST | engineer, gm | require_role('engineer', 'gm') [L1267] |
-| work_orders.py | /v1/work-orders/{wo_id}/labor/pause | POST | engineer, gm | require_role('engineer', 'gm') [L1282] |
+| work_orders.py | /v1/work-orders/{wo_id}/claim | POST | engineer, gm | require_role('engineer', 'gm') [L1100] |
+| work_orders.py | /v1/work-orders/{wo_id}/assign | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1168] |
+| work_orders.py | /v1/work-orders/{wo_id}/acknowledge | POST | engineer, gm | require_role('engineer', 'gm') [L1254] |
+| work_orders.py | /v1/work-orders/{wo_id}/arrive | POST | engineer, gm | require_role('engineer', 'gm') [L1261] |
+| work_orders.py | /v1/work-orders/{wo_id}/labor/start | POST | engineer, gm | require_role('engineer', 'gm') [L1268] |
+| work_orders.py | /v1/work-orders/{wo_id}/labor/pause | POST | engineer, gm | require_role('engineer', 'gm') [L1283] |
 | work_orders.py | /v1/work-orders/{wo_id}/events | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/audit | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/labor | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/diagnosis | PATCH | engineer, gm | require_role('engineer', 'gm') [L1342]; inline: current_user.role not in GM_ONLY_ROLES [L1354] |
-| work_orders.py | /v1/work-orders/{wo_id}/relationships | POST | engineer, gm | require_role('engineer', 'gm') [L1381] |
-| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L1399] |
-| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L1616] |
-| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L1658] |
-| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L1706] |
-| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L1733] |
-| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L1745] |
-| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L1819] |
-| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm, housekeeper | require_role('engineer', 'gm', 'housekeeper') [L1867]; inline: current_user.role in FLOOR_STAFF_ROLES [L1890] |
+| work_orders.py | /v1/work-orders/{wo_id}/diagnosis | PATCH | engineer, gm | require_role('engineer', 'gm') [L1343]; inline: current_user.role not in GM_ONLY_ROLES [L1355] |
+| work_orders.py | /v1/work-orders/{wo_id}/relationships | POST | engineer, gm | require_role('engineer', 'gm') [L1382] |
+| work_orders.py | /v1/work-orders/{wo_id}/complete | POST | engineer, gm | require_role('engineer', 'gm') [L1400] |
+| work_orders.py | /v1/work-orders/{wo_id}/transition | POST | engineer, gm | require_role('engineer', 'gm') [L1617] |
+| work_orders.py | /v1/work-orders/{wo_id} | PATCH | engineer, gm | require_role('engineer', 'gm') [L1659] |
+| work_orders.py | /v1/work-orders/{wo_id} | DELETE | gm | require_role('gm') [L1707] |
+| work_orders.py | /v1/work-orders/bulk-archive | POST | engineer, gm | require_role('engineer', 'gm') [L1734] |
+| work_orders.py | /v1/work-orders/bulk-archive-by-age | POST | engineer, gm | require_role('engineer', 'gm') [L1746] |
+| work_orders.py | /v1/work-orders/bulk-unarchive | POST | engineer, gm | require_role('engineer', 'gm') [L1820] |
+| work_orders.py | /v1/work-orders/{wo_id}/photos | POST | engineer, gm, housekeeper | require_role('engineer', 'gm', 'housekeeper') [L1868]; inline: current_user.role in FLOOR_STAFF_ROLES [L1891] |
 | work_orders.py | /v1/work-orders/{wo_id}/comments | POST | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/checklist | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2033] |
-| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2070] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2034] |
+| work_orders.py | /v1/work-orders/{wo_id}/checklist/{item_id} | PATCH | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2071] |
 | work_orders.py | /v1/work-orders/{wo_id}/parts | GET | none |  |
 | work_orders.py | /v1/work-orders/{wo_id}/duplicate-signal | GET | none |  |
-| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2290] |
-| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2364] |
+| work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2291] |
+| work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2365] |
 
 **54 routers, 595 routes.**
