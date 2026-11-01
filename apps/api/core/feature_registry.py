@@ -67,6 +67,14 @@ _DEFS = [
         owner="mobile-housekeeper-ai",
         created="2026-10-16",
     ),
+    FeatureFlagDef(
+        key="eng_ai_repair_assist",
+        description="AI repair assistance on one work order (POST /ai/engineer/work-orders/{id}/assist: troubleshooting suggestions, follow-up questions, a repair-note draft), billed per call. Off: the endpoint answers 403 and the mobile AI Assist control is hidden; repairs work exactly the same.",
+        type="release",
+        backend_enforced=True,
+        owner="mobile-engineering",
+        created="2026-10-31",
+    ),
 ]
 
 FEATURE_REGISTRY: dict[str, FeatureFlagDef] = {f.key: f for f in _DEFS}

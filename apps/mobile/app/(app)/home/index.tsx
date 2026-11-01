@@ -10,6 +10,7 @@ import { Avatar, IconButton } from "@/components/shared/mobileHandoff";
 import { HousekeeperHome } from "@/components/home/HousekeeperHomeScreen";
 import { SupervisorHome } from "@/components/home/SupervisorHome";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -22,7 +23,7 @@ export default function HousekeeperHomeScreen() {
   const user = useAppStore((state) => state.user);
   const effectiveRole = user?.effective_role ?? user?.role;
 
-  if (String(effectiveRole) === "engineer") {
+  if (isEngineeringRole(effectiveRole)) {
     return <EngineerHome name={displayNameFor(user) || "Engineer"} />;
   }
   if (effectiveRole === "housekeeping_supervisor") {

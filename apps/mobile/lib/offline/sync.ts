@@ -6,12 +6,18 @@ import {
   deleteSyncQueueItem,
   getPendingSyncQueue,
   incrementSyncQueueAttempts,
+  markSyncQueueItemRefused,
 } from "@/lib/offline/db";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSessions } from "@/lib/housekeeping/sessionGuard";
 import { flushTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { countPendingChanges } from "@/lib/housekeeping/syncDetails";
 import { recordConfirmedSync } from "@/lib/offline/lastSync";
+import { classifyClaimError, isTerminalClaimFailure } from "@/lib/engineering/workQueue";
+import { recordClaimConflict, type ClaimConflictReason } from "@/lib/engineering/claimConflicts";
+import { classifyReplayFailure, reconcileCompletion } from "@/lib/engineering/offlineActions";
+import { getWorkOrder } from "@/lib/api/workOrders";
+import { REPORT_QUEUE_MARK, isTerminalReportFailure, recordReport } from "@/lib/engineering/pendingReports";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
@@ -79,14 +85,72 @@ export async function flushSyncQueue(): Promise<void> {
           await api.patch(`/rooms/${item.entity_id}/status`, payload);
         } else if (item.entity_type === "task" && item.action === "create") {
           await api.post("/tasks", payload);
+        } else if (item.entity_type === "work_order" && item.action === "create" && item.entity_id?.startsWith(REPORT_QUEUE_MARK)) {
+          // An engineering report: the payload carries its client_request_id, so a replay can never make a second order.
+          const requestId = item.entity_id.slice(REPORT_QUEUE_MARK.length);
+          try {
+            const res = await api.post<{ data?: { id?: string; work_order_number?: string | number | null } | null }>("/work-orders", payload);
+            await recordReport({
+              requestId,
+              kind: "synced",
+              title: typeof payload?.title === "string" ? payload.title : "",
+              workOrderId: res?.data?.id ?? null,
+              workOrderNumber: res?.data?.work_order_number != null ? String(res.data.work_order_number) : null,
+            });
+          } catch (err) {
+            // The server refused it for good (validation, a room that no longer exists): retrying cannot help, so
+            // drop it and tell the person instead of leaving a report that looks pending forever.
+            if (!isTerminalReportFailure(err)) throw err;
+            await recordReport({
+              requestId,
+              kind: "refused",
+              title: typeof payload?.title === "string" ? payload.title : "",
+              message: err instanceof Error ? err.message : null,
+            });
+            await deleteSyncQueueItem(item.id);
+            continue;
+          }
         } else if (item.entity_type === "work_order" && item.action === "create") {
           await api.post("/work-orders", payload);
         } else if (item.entity_type === "work_order" && item.action === "update") {
           await api.patch(`/work-orders/${item.entity_id}`, payload);
         } else if (item.entity_type === "work_order" && item.action === "claim") {
-          await api.post(`/work-orders/${item.entity_id}/claim`, {});
+          try {
+            await api.post(`/work-orders/${item.entity_id}/claim`, {});
+          } catch (err) {
+            // Someone else claimed it, it is gone, or the role was refused: retrying can never work, so drop it
+            // and tell the person instead of leaving a claim that looks pending forever.
+            if (!item.entity_id || !isTerminalClaimFailure(err)) throw err;
+            await recordClaimConflict({
+              woId: item.entity_id,
+              label: typeof payload?.label === "string" ? payload.label : null,
+              reason: classifyClaimError(err) as ClaimConflictReason,
+            });
+            await deleteSyncQueueItem(item.id);
+            continue;
+          }
         } else if (item.entity_type === "work_order" && item.action === "complete") {
-          await api.post(`/work-orders/${item.entity_id}/complete`, payload);
+          try {
+            await api.post(`/work-orders/${item.entity_id}/complete`, payload);
+          } catch (err) {
+            const failure = classifyReplayFailure(err);
+            if (failure === "retry") throw err; // network / server trouble: bounded retries, never a silent success
+            if (failure === "conflict") {
+              // The reply to an earlier attempt may have been lost: confirm against the server before calling it a conflict.
+              try {
+                const order = await getWorkOrder(String(item.entity_id));
+                if (reconcileCompletion(order, useAppStore.getState().user?.id ?? null) === "confirmed") {
+                  await deleteSyncQueueItem(item.id);
+                  continue;
+                }
+              } catch {
+                throw err; // could not verify: leave it queued rather than guess
+              }
+            }
+            // Refused for good: keep what was saved (notes), stop replaying, let the person decide.
+            await markSyncQueueItemRefused(item.id, failure);
+            continue;
+          }
         }
 
         await deleteSyncQueueItem(item.id);

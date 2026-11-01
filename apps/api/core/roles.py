@@ -41,6 +41,11 @@ DISCREPANCY_RESOLVER_ROLES = ("front_desk", "housekeeping_supervisor", "gm")
 # from roles that only need guest-facing room availability.
 LIMITED_ROOM_UNAVAILABILITY_VISIBILITY_ROLES = ("front_desk", "housekeeper")
 
+# Who may open the engineering room board (rooms with their maintenance and availability picture).
+ENGINEERING_ROOM_BOARD_ROLES = ("gm", "engineer", "chief_engineer", "housekeeping_supervisor")
+# Line engineers: scoped to their own and unclaimed repairs (the chief engineer and GM see every repair).
+SCOPED_REPAIR_ROLES = ("engineer",)
+
 
 # ---------------------------------------------------------------------------
 # Web module access

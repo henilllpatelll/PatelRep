@@ -1,111 +1,79 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import { enqueueAction } from "@/lib/offline/db";
 import { useAppStore } from "@/stores/appStore";
-import { api } from "@/lib/api/client";
 import {
+  acknowledgeWorkOrder,
   addWorkOrderComment,
+  arriveAtWorkOrder,
   claimWorkOrder,
   completeWorkOrder,
-  getWorkOrder,
-  setWorkOrderStatus,
+  pauseWorkOrderLabor,
+  saveDiagnosis,
+  startWorkOrderLabor,
+  transitionWorkOrder,
   uploadWorkOrderPhoto,
-  workOrderPhotoUrl,
+  type DiagnosisPayload,
 } from "@/lib/api/workOrders";
 import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
+import { workOrderLabel } from "@/lib/engineering/workQueue";
+import { useSecondTicker, useWorkOrderDetail } from "@/lib/engineering/useWorkOrderDetail";
 import {
-  dueState,
-  formatClock,
-  formatDuration,
-  minutesSince,
-  workOrderLocation,
-  type WorkOrder,
-  type WorkOrderComment,
-  type WorkOrderPhoto,
-} from "@/lib/engineering/workOrders";
+  buildCompletionBody,
+  buildTimeline,
+  deriveRepairActions,
+  emptyCompletionDraft,
+  formatStopwatch,
+  interpretCompletionError,
+  offlineCompletionBlock,
+  summarizeLabor,
+  type CompletionDraft,
+  type CompletionOutcome,
+  type PhotoType,
+  type StagedPart,
+} from "@/lib/engineering/repairWorkspace";
+import { formatDuration, type HoldReasonCode, type WorkOrder } from "@/lib/engineering/workOrders";
 import { normalizeBoardRooms } from "@/lib/housekeeping/supervisor";
 import { localDate } from "@/lib/utils/date";
-import { R, monoFont } from "@/components/shared/tokens";
-import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
-import { SectionHeader } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
-import { Button } from "@/components/ui/Button";
-import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { Button } from "@/components/ui/Button";
+import { useAiCapability } from "@/lib/ai/capabilities";
+import { canOfferAssist } from "@/lib/engineering/repairAssist";
+import { canManageTeam, isAssignable, teamScope } from "@/lib/engineering/teamModel";
+import { RepairAssistSheet } from "@/components/engineering/workorder/RepairAssistSheet";
+import { AssignTechnicianSheet } from "@/components/engineering/team/AssignTechnicianSheet";
+import { WorkOrderHeader, WorkOrderSummary } from "@/components/engineering/workorder/WorkOrderHeader";
+import { WorkOrderActionBar, type BarAction } from "@/components/engineering/workorder/WorkOrderActionBar";
+import { WorkOrderReportedIssue } from "@/components/engineering/workorder/WorkOrderReportedIssue";
+import { WorkOrderAssetContext } from "@/components/engineering/workorder/WorkOrderAssetContext";
+import { WorkOrderRepairTools, type ToolId } from "@/components/engineering/workorder/WorkOrderRepairTools";
+import { WorkOrderActivityTimeline } from "@/components/engineering/workorder/WorkOrderActivityTimeline";
+import { WorkOrderRecordCard } from "@/components/engineering/workorder/WorkOrderRecordCard";
+import { WorkOrderCompletionResult, type CompletionSummary } from "@/components/engineering/workorder/WorkOrderCompletionResult";
+import { MoreActionsSheet, type MoreAction } from "@/components/engineering/workorder/MoreActionsSheet";
+import { LaborSheet } from "@/components/engineering/workorder/LaborSheet";
+import { DiagnosisSheet } from "@/components/engineering/workorder/DiagnosisSheet";
+import { EvidenceSheet } from "@/components/engineering/workorder/EvidenceSheet";
+import { PartsSheet } from "@/components/engineering/workorder/PartsSheet";
+import { HoldSheet } from "@/components/engineering/workorder/HoldSheet";
+import { EscalationSheet } from "@/components/engineering/workorder/EscalationSheet";
+import { NoteSheet } from "@/components/engineering/workorder/NoteSheet";
+import { CompletionSheet } from "@/components/engineering/workorder/CompletionSheet";
 
-/* ─── Work-order detail — the workbench ─────────────────────────────────────
-   Everything on this screen is real: SLA timing from due_at, elapsed time
-   from started_at, photos from work_order_photos, the activity trail from
-   work_order_comments. Actions follow the API state machine:
-   open → claim & start → (hold ⇄ resume) → complete. */
+/* ─── Work-order detail — the repair workspace ──────────────────────────────
+   One screen, many sheets. Everything shown is a server record: arrival, labor sessions, diagnosis, evidence,
+   parts and history. Actions follow the API's state machine (see deriveRepairActions).
 
-// Statuses that map cleanly onto a StatusBadge StatusKey render via the primitive;
-// the rest (open/in_progress/cancelled) keep the local themed StatusPill fallback —
-// no force-fit onto an ill-matching StatusKey (mirrors 08-02's ChecklistSection rule).
-const WO_STATUS_BADGE_KEY: Partial<Record<string, StatusKey>> = {
-  on_hold: "onHold",
-  completed: "completed",
-};
+   Offline: claim and a plain completion queue (the existing sync); every other action needs a connection, because
+   a labor session, arrival or inventory movement made offline would be a record the server never confirmed. */
 
-type RoomOccupancy = "occupied" | "vacant";
-
-async function resolveRoomOccupancy(wo: WorkOrder): Promise<RoomOccupancy | null> {
-  if (!wo.room_id && !wo.rooms?.room_number) return null;
-
-  try {
-    const board = await fetchBoard(localDate());
-    const rooms = normalizeBoardRooms(board);
-    const match = rooms.find(
-      (room) =>
-        (wo.room_id != null && room.roomId === wo.room_id) ||
-        (wo.rooms?.room_number != null && room.roomNumber === wo.rooms.room_number),
-    );
-
-    if (!match?.foStatus) return null;
-    return match.foStatus === "OCC" ? "occupied" : "vacant";
-  } catch {
-    return null;
-  }
-}
-
-function StatusPill({ status, label }: { status: string; label: string }) {
-  const theme = useTheme();
-  const tone: Record<string, { fg: string; bg: string; line: string }> = {
-    open: { fg: theme.status.clean, bg: theme.status.cleanSoft, line: theme.status.cleanLine },
-    in_progress: { fg: theme.status.pickup, bg: theme.status.pickupSoft, line: theme.status.pickupLine },
-    cancelled: { fg: theme.status.outOfOrder, bg: theme.status.outOfOrderSoft, line: theme.status.outOfOrderLine },
-  };
-  const resolved = tone[status] ?? tone.open;
-  return (
-    <View style={[pillStyles.pill, { backgroundColor: resolved.bg, borderColor: resolved.line }]}>
-      <Text style={[pillStyles.text, { color: resolved.fg }]}>{label}</Text>
-    </View>
-  );
-}
-
-const pillStyles = StyleSheet.create({
-  pill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
-  text: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.4 },
-});
+type Sheet = "more" | "labor" | "diagnosis" | "evidence" | "parts" | "hold" | "escalate" | "note" | "complete" | "assist" | "assign" | null;
 
 export default function WorkOrderDetailScreen() {
   const { woId } = useLocalSearchParams<{ woId: string }>();
@@ -116,799 +84,457 @@ export default function WorkOrderDetailScreen() {
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
   const role = user?.effective_role ?? user?.role;
+  const userId = user?.id ?? null;
 
-  const [wo, setWo] = useState<WorkOrder | null>(null);
-  const [roomOccupancy, setRoomOccupancy] = useState<RoomOccupancy | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState("");
-  const [parts, setParts] = useState("");
-  const [comment, setComment] = useState("");
-  const [busy, setBusy] = useState<"claim" | "complete" | "hold" | "resume" | "comment" | "photo" | "arrive" | "escalate" | null>(null);
-  const [now, setNow] = useState(() => new Date());
+  const detail = useWorkOrderDetail(String(woId), userId);
+  const assistSwitchedOn = useAiCapability("repairAssist");
+  const { wo, secondary, sectionFailed, queued, skewMs } = detail;
 
-  const load = useCallback(async () => {
-    try {
-      const nextWo = await getWorkOrder(String(woId));
-      setWo(nextWo);
-      setRoomOccupancy(await resolveRoomOccupancy(nextWo));
-    } catch {
-      setWo(null);
-      setRoomOccupancy(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [woId]);
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const busyRef = useRef<string | null>(null);
+  const [draft, setDraft] = useState<CompletionDraft>(() => emptyCompletionDraft());
+  const [result, setResult] = useState<CompletionSummary | null>(null);
+  const [occupancy, setOccupancy] = useState<"occupied" | "vacant" | null>(null);
 
+  // The draft starts from the saved coding once, then belongs to the person.
+  const seeded = useRef(false);
   useEffect(() => {
-    load();
-  }, [load]);
-
-  // Minute tick keeps the elapsed/SLA lines honest while the screen is open.
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const isMine = wo?.assigned_to != null && wo.assigned_to === user?.id;
-  const isManager = role === "gm";
-  const canClaim = wo?.status === "open" && !wo.assigned_to;
-  const canComplete = wo?.status === "in_progress" && (isManager || isMine);
-  const canResume = wo?.status === "on_hold" && (isManager || isMine);
-  const claimedElsewhere =
-    wo != null && (wo.status === "in_progress" || wo.status === "on_hold") && !isMine && !isManager;
-
-  const due = wo ? dueState(wo, locale, now) : null;
-  const elapsed = wo?.status === "in_progress" ? minutesSince(wo.started_at, now) : null;
-  const { room, text: locationText } = wo ? workOrderLocation(wo) : { room: null, text: null };
-  const categoryKey = wo?.category && CATEGORY_META[wo.category] ? wo.category : "general";
-
-  const comments = useMemo(() => {
-    const list = [...(wo?.work_order_comments ?? [])];
-    list.sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
-    return list;
-  }, [wo?.work_order_comments]);
-
-  const photos = wo?.work_order_photos ?? [];
-
-  async function handleClaim() {
-    if (!wo) return;
-    setBusy("claim");
-    try {
-      if (isOnline) {
-        await claimWorkOrder(wo.id);
-        await load();
-      } else {
-        await enqueueAction("work_order", "claim", {}, wo.id);
-        setWo({ ...wo, status: "in_progress", assigned_to: user?.id ?? null, started_at: new Date().toISOString() });
-      }
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.claimFailed"));
-    } finally {
-      setBusy(null);
+    if (wo && !seeded.current) {
+      seeded.current = true;
+      setDraft(emptyCompletionDraft(wo));
     }
-  }
+  }, [wo]);
 
-  async function handleComplete() {
-    if (!wo) return;
-    setBusy("complete");
-    const payload = {
-      notes: notes.trim() || undefined,
-      parts_used: parts.trim() || undefined,
+  // Room occupancy is context, not a prerequisite: resolve it after the order is on screen and ignore failures.
+  const roomKey = wo ? `${wo.room_id ?? ""}|${wo.rooms?.room_number ?? ""}` : "";
+  useEffect(() => {
+    if (!wo || (!wo.room_id && !wo.rooms?.room_number)) return;
+    let live = true;
+    fetchBoard(localDate())
+      .then((board) => {
+        if (!live) return;
+        const match = normalizeBoardRooms(board).find((r) => (wo.room_id != null && r.roomId === wo.room_id) || (wo.rooms?.room_number != null && r.roomNumber === wo.rooms.room_number));
+        setOccupancy(match?.foStatus ? (match.foStatus === "OCC" ? "occupied" : "vacant") : null);
+      })
+      .catch(() => live && setOccupancy(null));
+    return () => {
+      live = false;
     };
-    try {
-      if (isOnline) {
-        await completeWorkOrder(wo.id, payload);
-        toast.success(t("workOrders.completedMessage"));
-        router.back();
-      } else {
-        await enqueueAction("work_order", "complete", payload, wo.id);
-        setWo({ ...wo, status: "completed", completed_at: new Date().toISOString() });
-        toast.info(t("workOrders.offlineQueued"));
+  }, [roomKey]);
+
+  const actions = useMemo(
+    () => (wo ? deriveRepairActions({ wo, role, userId, sessions: secondary.labor }) : null),
+    [wo, role, userId, secondary.labor]
+  );
+  const running = secondary.labor.some((s) => s.ended_at == null);
+  const nowMs = useSecondTicker(running);
+  const labor = useMemo(() => summarizeLabor(secondary.labor, userId, nowMs, skewMs), [secondary.labor, userId, nowMs, skewMs]);
+  const timeline = useMemo(
+    () =>
+      wo
+        ? buildTimeline({ timing: secondary.timing, audit: secondary.audit, comments: wo.work_order_comments ?? [], photos: wo.work_order_photos ?? [], createdAt: wo.created_at, viewerId: userId })
+        : [],
+    [wo, secondary.timing, secondary.audit, userId]
+  );
+
+  /** One mutation at a time. The ref is the guard (a second tap in the same tick sees it); state only drives the UI. */
+  const mutate = useCallback(
+    async (key: string, task: () => Promise<void>, fallback: string): Promise<boolean> => {
+      if (busyRef.current) return false;
+      busyRef.current = key;
+      setBusy(key);
+      try {
+        await task();
+        return true;
+      } catch (err) {
+        toast.error(err instanceof Error && err.message ? err.message : fallback);
+        return false;
+      } finally {
+        busyRef.current = null;
+        setBusy(null);
       }
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.completeFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
+    },
+    [toast]
+  );
 
-  async function handleSetStatus(status: "on_hold" | "in_progress") {
-    if (!wo) return;
-    setBusy(status === "on_hold" ? "hold" : "resume");
-    try {
-      await setWorkOrderStatus(wo.id, status);
-      await load();
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.setStatusFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleAddComment() {
-    if (!wo || !comment.trim()) return;
-    setBusy("comment");
-    try {
-      const created = await addWorkOrderComment(wo.id, comment.trim());
-      setComment("");
-      if (created) {
-        setWo({ ...wo, work_order_comments: [...(wo.work_order_comments ?? []), created] });
-      } else {
-        await load();
-      }
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.addCommentFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleArrive() {
-    if (!wo || busy) return;
-    setBusy("arrive");
-    try {
-      const timeStr = new Date().toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
-      await addWorkOrderComment(wo.id, `Engineer arrived on site — ${timeStr}`);
-      await load();
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.arriveFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function handleEscalate() {
-    if (!wo || busy) return;
-    // This is a genuine Yes/Cancel choice gating a state-changing escalation —
-    // stays a blocking confirm dialog per D-04 (T-08-06-02). Do NOT convert to Toast.
-    Alert.alert(
-      t("workOrders.escalateTitle"),
-      t("workOrders.escalateConfirm"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("workOrders.escalateConfirmBtn"),
-          style: "destructive",
-          onPress: async () => {
-            setBusy("escalate");
-            try {
-              await api.patch(`/work-orders/${wo.id}`, { priority: "urgent" });
-              await addWorkOrderComment(wo.id, "Escalated to chief engineer");
-              await load();
-            } catch (err) {
-              toast.error((err as Error).message ?? t("workOrders.alerts.escalateFailed"));
-            } finally {
-              setBusy(null);
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  async function handleAddPhoto() {
-    if (!wo) return;
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      toast.error(t("workOrders.cameraDenied"));
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-
-    setBusy("photo");
-    try {
-      const compact = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 1280 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-      const photo = await uploadWorkOrderPhoto(wo.id, compact.uri);
-      if (photo) {
-        setWo({ ...wo, work_order_photos: [...(wo.work_order_photos ?? []), photo] });
-      }
-    } catch (err) {
-      toast.error((err as Error).message ?? t("workOrders.alerts.addPhotoFailed"));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  if (loading) {
+  if (detail.loading && !wo) {
     return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
   }
-
-  if (!wo) {
+  if (!wo || !actions) {
     return (
       <StateBlock
         status="error"
-        errorIcon="cloud-offline-outline"
-        errorMessage={t("workOrders.errorLoad")}
-        onRetry={() => router.back()}
-        retryLabel={t("common.back")}
+        errorIcon={detail.failure === "offline" ? "cloud-offline-outline" : "alert-circle-outline"}
+        errorMessage={t(detail.failure === "forbidden" ? "workOrders.repair.errorForbidden" : "workOrders.errorLoad")}
+        onRetry={detail.failure === "forbidden" ? () => router.back() : () => void detail.refresh()}
+        retryLabel={detail.failure === "forbidden" ? t("common.back") : t("common.retry")}
         style={[styles.center, { backgroundColor: theme.background }]}
       />
     );
   }
 
-  const category = CATEGORY_META[categoryKey];
-  const showWrapUp = canComplete;
-  const hasFooter = canClaim || canComplete || canResume;
-  const occupancyLabel = roomOccupancy ? t(`workOrders.roomOccupancy.${roomOccupancy}`) : null;
+  const order: WorkOrder = wo;
+  const technicianName = order.assigned_to_name ?? (order.assigned_to && order.assigned_to === userId ? user?.full_name ?? null : null);
+  const photos = order.work_order_photos ?? [];
+  const label = workOrderLabel(order);
+  const closed = actions.block === "closed";
+  const myRunning = labor.activeIsMine;
+
+  const refreshAfter = (sections: Parameters<typeof detail.refresh>[0], opts?: Parameters<typeof detail.refresh>[1]) => detail.refresh(sections, opts);
+
+  /* ── Actions ─────────────────────────────────────────────────────────── */
+
+  async function claim() {
+    if (isOnline) {
+      await mutate("claim", async () => {
+        await claimWorkOrder(order.id);
+        await refreshAfter(["labor", "history"]);
+        toast.success(t("workOrders.repair.toast.claimed"));
+      }, t("workOrders.alerts.claimFailed"));
+      return;
+    }
+    // Offline: the existing queue keeps the claim; the order is NOT shown as claimed until the server confirms.
+    await mutate("claim", async () => {
+      await enqueueAction("work_order", "claim", { label }, order.id, label);
+      toast.info(t("workOrders.repair.toast.claimQueued"));
+      await refreshAfter([]);
+    }, t("workOrders.alerts.claimFailed"));
+  }
+
+  async function startRepair() {
+    await mutate("start", async () => {
+      await startWorkOrderLabor(order.id);
+      await refreshAfter(["labor", "history"], { startedLabor: true });
+    }, t("workOrders.repair.toast.startFailed"));
+  }
+
+  async function startLabor() {
+    await mutate("startLabor", async () => {
+      await startWorkOrderLabor(order.id);
+      await refreshAfter(["labor", "history"], { startedLabor: true });
+    }, t("workOrders.repair.toast.laborFailed"));
+  }
+
+  async function pauseLabor() {
+    await mutate("pauseLabor", async () => {
+      await pauseWorkOrderLabor(order.id);
+      await refreshAfter(["labor", "history"]);
+    }, t("workOrders.repair.toast.laborFailed"));
+  }
+
+  async function resumeWork() {
+    await mutate("resumeWork", async () => {
+      await transitionWorkOrder(order.id, { status: "in_progress" });
+      await refreshAfter(["labor", "history"]);
+    }, t("workOrders.alerts.setStatusFailed"));
+  }
+
+  async function arrive() {
+    await mutate("arrive", async () => {
+      await arriveAtWorkOrder(order.id);
+      await refreshAfter(["history"]);
+    }, t("workOrders.alerts.arriveFailed"));
+  }
+
+  async function acknowledge() {
+    await mutate("acknowledge", async () => {
+      await acknowledgeWorkOrder(order.id);
+      await refreshAfter(["history"]);
+    }, t("workOrders.repair.toast.ackFailed"));
+  }
+
+  /** Sheets throw so they can show the error beside the field; they run inside `mutate`'s guard via this wrapper. */
+  async function guarded(key: string, task: () => Promise<void>) {
+    if (busyRef.current) throw new Error(t("workOrders.repair.toast.busy"));
+    busyRef.current = key;
+    setBusy(key);
+    try {
+      await task();
+    } finally {
+      busyRef.current = null;
+      setBusy(null);
+    }
+  }
+
+  const holdWork = (input: { reason: HoldReasonCode; note: string; pauseLabor: boolean }) =>
+    guarded("hold", async () => {
+      // Holding does not stop labor on the server, so a pause is its own request, sent first.
+      if (input.pauseLabor) await pauseWorkOrderLabor(order.id);
+      try {
+        await transitionWorkOrder(order.id, { status: "on_hold", reason_code: input.reason, reason_note: input.note || undefined });
+      } finally {
+        await refreshAfter(["labor", "history"]);
+      }
+    });
+
+  const escalate = (note: string) =>
+    guarded("escalate", async () => {
+      await transitionWorkOrder(order.id, { status: "escalated", reason_note: note });
+      await refreshAfter(["history"]);
+    });
+
+  const addNote = (text: string) =>
+    guarded("note", async () => {
+      const created = await addWorkOrderComment(order.id, text);
+      if (created) detail.setOrder({ ...order, work_order_comments: [...(order.work_order_comments ?? []), created] });
+      else await refreshAfter([]);
+    });
+
+  const saveCoding = (payload: DiagnosisPayload) =>
+    guarded("diagnosis", async () => {
+      await saveDiagnosis(order.id, payload);
+      await refreshAfter(["history"]);
+      toast.success(t("workOrders.repair.toast.diagnosisSaved"));
+    });
+
+  const attachPhoto = (input: { uri: string; photoType: PhotoType; caption: string; signal: AbortSignal }) =>
+    guarded("evidence", async () => {
+      const photo = await uploadWorkOrderPhoto(order.id, input.uri, { photoType: input.photoType, caption: input.caption, signal: input.signal });
+      if (photo) detail.setOrder({ ...order, work_order_photos: [...(order.work_order_photos ?? []), photo] });
+      toast.success(t("workOrders.repair.toast.photoAttached"));
+    });
+
+  /** Confirm Completion. Returns what happened; only a server-confirmed `completed` shows the success view. */
+  async function submitCompletion(): Promise<CompletionOutcome> {
+    const body = buildCompletionBody(draft, { hasAsset: Boolean(order.asset_id || order.assets?.id) });
+    if (!isOnline) {
+      if (offlineCompletionBlock(draft) != null) return { kind: "failed", message: t("workOrders.repair.complete.offlineBlock.parts") };
+      await enqueueAction("work_order", "complete", body, order.id, label);
+      toast.info(t("workOrders.repair.complete.queued"));
+      await refreshAfter([]);
+      return { kind: "queued" };
+    }
+    if (busyRef.current) return { kind: "failed", message: t("workOrders.repair.toast.busy") };
+    busyRef.current = "complete";
+    setBusy("complete");
+    try {
+      await completeWorkOrder(order.id, body);
+      const summary: CompletionSummary = {
+        title: order.title,
+        room: order.rooms?.room_number ?? null,
+        verification: draft.verification,
+        laborMinutes: labor.totalMinutes,
+        partsCount: draft.parts.length,
+        photoCount: photos.length,
+        assetRestored: draft.assetRestoration === "restore",
+      };
+      setResult(summary);
+      setDraft(emptyCompletionDraft());
+      await refreshAfter(["labor", "history", "parts"]);
+      return { kind: "completed", followUpRequired: draft.verification === "follow_up_required" };
+    } catch (err) {
+      const outcome = interpretCompletionError(err, draft);
+      // The server may have recorded a failed test or changed the order under us: re-read so the screen tells the truth.
+      await refreshAfter(["history"]);
+      return outcome;
+    } finally {
+      busyRef.current = null;
+      setBusy(null);
+    }
+  }
+
+  const onBar = (action: BarAction) => {
+    if (action === "claim") void claim();
+    else if (action === "start") void startRepair();
+    else if (action === "resumeWork") void resumeWork();
+    else if (action === "pauseLabor") void pauseLabor();
+    else if (action === "startLabor") void startLabor();
+    else if (action === "complete") setSheet("complete");
+    else if (action === "hold") setSheet("hold");
+  };
+
+  const onTool = (tool: ToolId) => {
+    if (tool === "arrive") void arrive();
+    else if (tool === "acknowledge") void acknowledge();
+    else setSheet(tool);
+  };
+
+  const onMore = (action: MoreAction) => {
+    if (action === "resumeWork") {
+      setSheet(null);
+      void resumeWork();
+    } else setSheet(action);
+  };
+
+  const laborLabel = labor.active ? formatStopwatch(labor.activeSeconds) : labor.recordedMinutes > 0 ? formatDuration(Math.round(labor.recordedMinutes)) : t("workOrders.repair.summary.noLabor");
+  const showBar = actions.primary != null && !result;
+  const manageable = canManageTeam(role) && isAssignable(order) && !result;
+  const assistable = canOfferAssist({ capability: assistSwitchedOn, status: order.status, role }) && !result;
+  const heldBanner = order.status === "on_hold";
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <View style={[styles.hero, { paddingTop: insets.top + 8, backgroundColor: theme.shell.bg }]}>
-        <View style={styles.heroNav}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-          >
-            <Ionicons name="arrow-back" size={22} color={theme.shell.ink} />
-          </TouchableOpacity>
-          <View style={styles.headerBody}>
-            <Text style={[styles.headerKicker, { color: theme.shell.ink3 }]}>{t("workOrders.detailKicker")}</Text>
-          </View>
-          {wo.priority === "urgent" ? (
-            <StatusBadge statusKey="urgent" label={t("workOrders.chipUrgent")} />
-          ) : null}
-          {WO_STATUS_BADGE_KEY[wo.status] ? (
-            <StatusBadge statusKey={WO_STATUS_BADGE_KEY[wo.status]!} label={t(`workOrders.status.${wo.status}`)} />
-          ) : (
-            <StatusPill status={wo.status} label={t(`workOrders.status.${wo.status}`)} />
-          )}
-        </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <WorkOrderHeader wo={order} onBack={() => router.back()} onMore={closed || actions.block === "viewOnly" ? null : () => setSheet("more")} />
 
-        {/* Identity — what and where */}
-        <Text style={[styles.title, { color: theme.shell.ink }]}>{wo.title}</Text>
-        <View style={styles.metaLine}>
-          <View style={[styles.categoryTile, { backgroundColor: category.bg }]}>
-            <Ionicons name={category.icon} size={13} color={category.fg} />
-          </View>
-          <Text style={[styles.categoryText, { color: theme.shell.ink2 }]}>{t(`workOrders.category.${categoryKey}`)}</Text>
-          {room ? (
-            <>
-              <View style={[styles.dot, { backgroundColor: theme.shell.ink3 }]} />
-              <Ionicons name="location-outline" size={13} color={theme.shell.ink3} />
-              <Text style={[styles.roomText, { color: theme.shell.ink2 }]}>
-                {room}
-                {wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}
-              </Text>
-              {occupancyLabel ? (
-                <View
-                  style={[
-                    styles.occupancyChip,
-                    roomOccupancy === "occupied"
-                      ? { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }
-                      : { backgroundColor: theme.status.readySoft, borderColor: theme.status.readyLine },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.occupancyChipText,
-                      { color: roomOccupancy === "occupied" ? theme.status.dirty : theme.status.ready },
-                    ]}
-                  >
-                    {occupancyLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </>
-          ) : locationText ? (
-            <>
-              <View style={[styles.dot, { backgroundColor: theme.shell.ink3 }]} />
-              <Ionicons name="location-outline" size={13} color={theme.shell.ink3} />
-              <Text style={[styles.locationPlain, { color: theme.shell.ink2 }]} numberOfLines={1}>
-                {locationText}
-              </Text>
-            </>
-          ) : null}
-          {wo.guest_reported ? (
-            <View style={[styles.guestChip, { backgroundColor: theme.status.cleanSoft, borderColor: theme.status.cleanLine }]}>
-              <Ionicons name="person-outline" size={10} color={theme.status.clean} />
-              <Text style={[styles.guestChipText, { color: theme.status.clean }]}>{t("workOrders.chipGuest")}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Timing — created / SLA / clock */}
-        <View style={[styles.timingCard, { backgroundColor: theme.shell.raised, borderColor: theme.shell.line }]}>
-          <View style={styles.timingItem}>
-            <Text style={[styles.timingLabel, { color: theme.shell.ink3 }]}>{t("workOrders.factCreated")}</Text>
-            <Text style={[styles.timingValue, { color: theme.shell.ink }]}>
-              {minutesSince(wo.created_at, now) != null
-                ? t("workOrders.ago", { time: formatDuration(minutesSince(wo.created_at, now)!) })
-                : "—"}
-            </Text>
-          </View>
-          {wo.status === "completed" ? (
-            <View style={styles.timingItem}>
-              <Text style={[styles.timingLabel, { color: theme.shell.ink3 }]}>{t("workOrders.factCompleted")}</Text>
-              <Text style={[styles.timingValue, { color: theme.status.readyLine }]}>
-                {formatClock(wo.completed_at, locale) ?? "—"}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.timingItem}>
-              <Text style={[styles.timingLabel, { color: theme.shell.ink3 }]}>{t("workOrders.factDue")}</Text>
-              {due?.kind === "overdue" ? (
-                <Text style={[styles.timingValue, { color: theme.status.dirtyLine }]}>
-                  {t("workOrders.overdueBy", { time: formatDuration(due.minutes) })}
-                </Text>
-              ) : due?.kind === "due" ? (
-                <Text style={[styles.timingValue, { color: theme.shell.ink }]}>{due.clock}</Text>
-              ) : (
-                <Text style={[styles.timingValue, { color: theme.shell.ink }]}>—</Text>
-              )}
-            </View>
-          )}
-          {elapsed != null ? (
-            <View style={styles.timingItem}>
-              <Text style={[styles.timingLabel, { color: theme.shell.ink3 }]}>{t("workOrders.factOnClock")}</Text>
-              <Text style={[styles.timingValue, { color: theme.status.pickupLine }]}>{formatDuration(elapsed)}</Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, hasFooter && styles.contentWithFooter]}>
-        {claimedElsewhere ? (
-          <View style={styles.noticeRow}>
-            <Ionicons name="information-circle-outline" size={14} color={theme.textMuted} />
-            <Text style={[styles.noticeText, { color: theme.textMuted }]}>{t("workOrders.claimedElsewhere")}</Text>
-          </View>
-        ) : null}
-
-        {wo.status === "in_progress" && isMine ? (
-          <Button
-            label={t("workOrders.arrivedOnSite")}
-            onPress={handleArrive}
-            loading={busy === "arrive"}
-            disabled={busy === "arrive"}
-            variant="secondary"
-            size="sm"
-            icon="location-outline"
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, showBar && styles.withBar]} keyboardShouldPersistTaps="handled">
+        {result ? (
+          <WorkOrderCompletionResult
+            summary={result}
+            onViewRecord={() => setResult(null)}
+            onBack={() => (router.canGoBack() ? router.back() : router.replace("/(app)/work-orders"))}
           />
-        ) : null}
+        ) : (
+          <>
+            <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => setSheet("labor")} />
 
-        {/* Details */}
-        {wo.description ? (
-          <View>
-            <SectionHeader title={t("workOrders.details")} />
-            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.descriptionText, { color: theme.textPrimary }]}>{wo.description}</Text>
-            </View>
-          </View>
-        ) : null}
-
-        {/* Linked asset */}
-        {wo.assets?.name ? (
-          <View>
-            <SectionHeader title={t("workOrders.asset")} />
-            <View style={[styles.card, styles.assetCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={[styles.assetTile, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="cube-outline" size={17} color={theme.primary} />
-              </View>
-              <View style={styles.assetBody}>
-                <Text style={[styles.assetName, { color: theme.textPrimary }]}>{wo.assets.name}</Text>
-                {wo.assets.location_text ? (
-                  <Text style={[styles.assetSub, { color: theme.textMuted }]}>{wo.assets.location_text}</Text>
+            {manageable || assistable ? (
+              <View style={styles.extras}>
+                {manageable ? (
+                  <Button
+                    label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
+                    variant="secondary"
+                    size="sm"
+                    icon="person-add-outline"
+                    onPress={() => setSheet("assign")}
+                    disabled={!isOnline}
+                    testID="wo-assign-open"
+                  />
+                ) : null}
+                {assistable ? (
+                  <Button label={t("repairAssist.open")} variant="secondary" size="sm" icon="sparkles-outline" onPress={() => setSheet("assist")} testID="wo-assist-open" />
                 ) : null}
               </View>
-            </View>
-          </View>
-        ) : null}
-
-        {/* Photos */}
-        <View>
-          <SectionHeader
-            title={t("workOrders.photos")}
-            hint={photos.length > 0 ? String(photos.length) : undefined}
-          />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoStrip}>
-            {photos.map((photo: WorkOrderPhoto) => {
-              const url = workOrderPhotoUrl(photo);
-              return url ? (
-                <Image key={photo.id} source={{ uri: url }} style={[styles.photoThumb, { backgroundColor: theme.surfaceMuted }]} />
-              ) : null;
-            })}
-            {wo.status !== "completed" && wo.status !== "cancelled" ? (
-              <TouchableOpacity
-                style={[
-                  styles.photoAdd,
-                  { borderColor: theme.primaryLine, backgroundColor: theme.primarySoft },
-                  (!isOnline || busy === "photo") && styles.disabled,
-                ]}
-                onPress={handleAddPhoto}
-                disabled={!isOnline || busy === "photo"}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={t("workOrders.addPhoto")}
-                accessibilityState={{
-                  disabled: !isOnline || busy === "photo",
-                  busy: busy === "photo",
-                }}
-              >
-                {busy === "photo" ? (
-                  <ActivityIndicator size="small" color={theme.primaryAction} />
-                ) : (
-                  <>
-                    <Ionicons name="camera-outline" size={19} color={theme.primaryAction} />
-                    <Text style={[styles.photoAddText, { color: theme.primaryAction }]}>{t("workOrders.addPhoto")}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ) : photos.length === 0 ? (
-              <Text style={[styles.photoEmpty, { color: theme.textDisabled }]}>{t("workOrders.noPhotos")}</Text>
             ) : null}
-          </ScrollView>
-        </View>
 
-        {/* Activity trail */}
-        <View>
-          <SectionHeader title={t("workOrders.activity")} />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {comments.length === 0 ? (
-              <Text style={[styles.activityEmpty, { color: theme.textDisabled }]}>{t("workOrders.noActivity")}</Text>
-            ) : (
-              comments.map((entry: WorkOrderComment, index: number) => {
-                const age = minutesSince(entry.created_at, now);
-                return (
-                  <View
-                    key={entry.id}
-                    style={[
-                      styles.activityRow,
-                      index > 0 && [styles.activityBorder, { borderTopColor: theme.borderSubtle }],
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.activityDot,
-                        { backgroundColor: entry.is_system ? theme.textDisabled : theme.primaryAction },
-                      ]}
-                    />
-                    <View style={styles.activityBody}>
-                      <Text
-                        style={[
-                          styles.activityText,
-                          { color: theme.textPrimary },
-                          entry.is_system && [styles.activityTextSystem, { color: theme.textMuted }],
-                        ]}
-                      >
-                        {entry.comment}
-                      </Text>
-                      {age != null ? (
-                        <Text style={[styles.activityTime, { color: theme.textDisabled }]}>
-                          {t("workOrders.ago", { time: formatDuration(age) })}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-                );
-              })
-            )}
-            <View style={styles.composer}>
-              <TextInput
-                style={[styles.composerInput, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }]}
-                placeholder={t("workOrders.commentPlaceholder")}
-                placeholderTextColor={theme.textDisabled}
-                value={comment}
-                onChangeText={setComment}
-                editable={isOnline}
-                testID="wo-comment-input"
+            {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" /> : null}
+            {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" /> : null}
+            {!isOnline ? <Banner icon="cloud-offline-outline" text={t("workOrders.repair.banner.offline")} testID="wo-banner-offline" /> : null}
+            {actions.block === "viewOnly" ? <Banner icon="eye-outline" text={t("workOrders.viewOnly")} testID="wo-view-only" /> : null}
+            {actions.block === "claimedElsewhere" ? <Banner icon="information-circle-outline" text={t("workOrders.claimedElsewhere")} /> : null}
+            {heldBanner ? (
+              <Banner
+                icon="pause-circle-outline"
+                tone="warn"
+                text={`${t("workOrders.repair.banner.onHold")}${order.hold_reason_code ? ` · ${t(`workOrders.holdReason.${order.hold_reason_code}`, { defaultValue: "" })}` : ""}${order.hold_reason_note ? ` — ${order.hold_reason_note}` : ""}`}
+                testID="wo-banner-hold"
               />
-              <TouchableOpacity
-                style={[
-                  styles.composerSend,
-                  { backgroundColor: theme.primaryAction },
-                  (!isOnline || !comment.trim() || busy === "comment") && styles.disabled,
-                ]}
-                onPress={handleAddComment}
-                disabled={!isOnline || !comment.trim() || busy === "comment"}
-                accessibilityRole="button"
-                accessibilityLabel={t("workOrders.sendComment")}
-                accessibilityState={{
-                  disabled: !isOnline || !comment.trim() || busy === "comment",
-                  busy: busy === "comment",
-                }}
-              >
-                {busy === "comment" ? (
-                  <ActivityIndicator size="small" color={theme.onPrimary} />
-                ) : (
-                  <Ionicons name="arrow-up" size={16} color={theme.onPrimary} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+            ) : null}
+            {order.status === "escalated" ? <Banner icon="alert-circle-outline" tone="warn" text={t("workOrders.repair.banner.escalated")} testID="wo-banner-escalated" /> : null}
+            {order.status === "cancelled" ? <Banner icon="close-circle-outline" text={t("workOrders.repair.banner.cancelled")} testID="wo-banner-cancelled" /> : null}
 
-        {(canComplete || (wo.status === "in_progress" && isMine)) && wo.priority !== "urgent" ? (
-          <Button
-            label={t("workOrders.escalate")}
-            onPress={handleEscalate}
-            loading={busy === "escalate"}
-            disabled={busy === "escalate"}
-            variant="destructive"
-            size="sm"
-            icon="alert-circle-outline"
-          />
-        ) : null}
-
-        {/* Wrap-up — completion notes & parts */}
-        {showWrapUp ? (
-          <View>
-            <SectionHeader title={t("workOrders.wrapUp")} />
-            <View style={[styles.card, styles.wrapUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.notesLabel")}</Text>
-              <TextInput
-                testID="completion-notes"
-                style={[styles.notesInput, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
-                multiline
-                numberOfLines={3}
-                placeholder={t("workOrders.completionPlaceholder")}
-                placeholderTextColor={theme.textDisabled}
-                value={notes}
-                onChangeText={setNotes}
-              />
-              <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.partsLabel")}</Text>
-              <TextInput
-                testID="parts-used"
-                style={[styles.partsInput, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border, color: theme.textPrimary }]}
-                placeholder={t("workOrders.partsPlaceholder")}
-                placeholderTextColor={theme.textDisabled}
-                value={parts}
-                onChangeText={setParts}
-              />
-            </View>
-          </View>
-        ) : null}
-
-        {/* Closed-order record */}
-        {wo.status === "completed" && (wo.notes || wo.parts_used) ? (
-          <View>
-            <SectionHeader title={t("workOrders.wrapUp")} />
-            <View style={[styles.card, styles.wrapUpCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              {wo.notes ? (
-                <>
-                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.notesLabel")}</Text>
-                  <Text style={[styles.recordText, { color: theme.textPrimary }]}>{wo.notes}</Text>
-                </>
-              ) : null}
-              {wo.parts_used ? (
-                <>
-                  <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("workOrders.partsLabel")}</Text>
-                  <Text style={[styles.recordText, { color: theme.textPrimary }]}>{wo.parts_used}</Text>
-                </>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
+            <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} technicianName={technicianName} />
+            <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} />
+            <WorkOrderRepairTools
+              wo={order}
+              actions={actions}
+              locale={locale}
+              online={isOnline}
+              busy={busy}
+              laborLabel={laborLabel}
+              photoCount={photos.length}
+              partsCount={secondary.parts.length + draft.parts.length}
+              onTool={onTool}
+            />
+            {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
+            <WorkOrderActivityTimeline items={timeline} locale={locale} failed={!!sectionFailed.history} />
+          </>
+        )}
       </ScrollView>
 
-      {hasFooter ? (
-        <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-          {canClaim ? (
-            <Button
-              label={t("workOrders.claimStart")}
-              onPress={handleClaim}
-              loading={busy === "claim"}
-              disabled={busy === "claim"}
-              variant="primary"
-              size="lg"
-              icon="hand-right-outline"
-            />
-          ) : null}
+      {showBar ? <WorkOrderActionBar actions={actions} online={isOnline} busy={busy} laborRunning={myRunning} onAction={onBar} bottomInset={insets.bottom} /> : null}
 
-          {canComplete ? (
-            <View style={styles.footerRow}>
-              <TouchableOpacity
-                style={[
-                  styles.holdBtn,
-                  { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
-                  (!isOnline || busy != null) && styles.disabled,
-                ]}
-                onPress={() => handleSetStatus("on_hold")}
-                disabled={!isOnline || busy != null}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel={t("workOrders.hold")}
-                accessibilityState={{
-                  disabled: !isOnline || busy != null,
-                  busy: busy === "hold",
-                }}
-              >
-                {busy === "hold" ? (
-                  <ActivityIndicator size="small" color={theme.textSecondary} />
-                ) : (
-                  <Ionicons name="pause-outline" size={18} color={theme.textSecondary} />
-                )}
-              </TouchableOpacity>
-              <Button
-                label={t("workOrders.complete")}
-                onPress={handleComplete}
-                loading={busy === "complete"}
-                disabled={busy != null}
-                variant="primary"
-                size="lg"
-                icon="checkmark"
-                style={styles.footerGrow}
-              />
-            </View>
-          ) : null}
+      <MoreActionsSheet visible={sheet === "more"} onClose={() => setSheet(null)} actions={actions} online={isOnline} onPick={onMore} />
+      <LaborSheet
+        visible={sheet === "labor"}
+        onClose={() => setSheet(null)}
+        online={isOnline}
+        locale={locale}
+        userId={userId}
+        sessions={secondary.labor}
+        summary={labor}
+        canStart={actions.can.startLabor && !myRunning}
+        canPause={actions.can.pauseLabor}
+        startVerb={actions.laborVerb}
+        failedToLoad={!!sectionFailed.labor}
+        onStart={async () => {
+          await guarded("startLabor", async () => {
+            await startWorkOrderLabor(order.id);
+            await refreshAfter(["labor", "history"], { startedLabor: true });
+          });
+        }}
+        onPause={async () => {
+          await guarded("pauseLabor", async () => {
+            await pauseWorkOrderLabor(order.id);
+            await refreshAfter(["labor", "history"]);
+          });
+        }}
+      />
+      <DiagnosisSheet visible={sheet === "diagnosis"} onClose={() => setSheet(null)} online={isOnline} wo={order} onSave={saveCoding} />
+      <EvidenceSheet visible={sheet === "evidence"} onClose={() => setSheet(null)} online={isOnline} canAdd={actions.can.evidence} photos={photos} onAttach={attachPhoto} />
+      <PartsSheet
+        visible={sheet === "parts"}
+        onClose={() => setSheet(null)}
+        online={isOnline}
+        parts={draft.parts}
+        freeText={draft.freeTextParts}
+        recorded={secondary.parts}
+        canEdit={actions.can.parts}
+        onChange={(next: { parts: StagedPart[]; freeText: string }) => setDraft((d) => ({ ...d, parts: next.parts, freeTextParts: next.freeText }))}
+      />
+      <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} laborRunning={myRunning} onConfirm={holdWork} />
+      <EscalationSheet visible={sheet === "escalate"} onClose={() => setSheet(null)} online={isOnline} wo={order} onConfirm={escalate} />
+      <AssignTechnicianSheet
+        visible={sheet === "assign"}
+        onClose={() => setSheet(null)}
+        scope={teamScope(user)}
+        online={isOnline}
+        target={{ id: order.id, code: label, title: order.title, priority: order.priority, assignedTo: order.assigned_to ?? null, assignedToName: order.assigned_to_name }}
+        onNeedsRefresh={() => void refreshAfter(["history"])}
+        onAssigned={(tech, changed) => {
+          toast.success(changed ? t("engineeringTeam.assign.done", { name: tech.name ?? t("engineeringTeam.technician") }) : t("engineeringTeam.assign.alreadyDone"));
+          void refreshAfter(["history"]);
+        }}
+      />
+      <RepairAssistSheet
+        visible={sheet === "assist"}
+        onClose={() => setSheet(null)}
+        workOrderId={order.id}
+        online={isOnline}
+        language={locale}
+        technicianNotes={draft.notes}
+        onUseInCompletion={(text) => {
+          setDraft((d) => ({ ...d, notes: text }));
+          toast.info(t("repairAssist.addedToCompletion"));
+        }}
+        onSaveAsNote={addNote}
+      />
+      <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} onSave={addNote} />
+      <CompletionSheet
+        visible={sheet === "complete"}
+        onClose={() => setSheet(null)}
+        online={isOnline}
+        wo={order}
+        technicianName={technicianName}
+        labor={labor}
+        laborFailed={!!sectionFailed.labor}
+        photoCount={photos.length}
+        draft={draft}
+        onDraft={setDraft}
+        onEditParts={() => setSheet("parts")}
+        onSubmit={submitCompletion}
+      />
+    </View>
+  );
+}
 
-          {canResume ? (
-            <Button
-              label={t("workOrders.resume")}
-              onPress={() => handleSetStatus("in_progress")}
-              loading={busy === "resume"}
-              disabled={!isOnline || busy != null}
-              variant="primary"
-              size="lg"
-              icon="play-outline"
-            />
-          ) : null}
-        </View>
-      ) : null}
-    </KeyboardAvoidingView>
+function Banner({ icon, text, tone = "muted", testID }: { icon: ComponentProps<typeof Ionicons>["name"]; text: string; tone?: "muted" | "warn"; testID?: string }) {
+  const theme = useTheme();
+  const color = tone === "warn" ? theme.status.pickup : theme.textMuted;
+  return (
+    <View style={styles.banner} testID={testID} accessibilityLiveRegion="polite">
+      <Ionicons name={icon} size={16} color={color} />
+      <Text style={{ flex: 1, color, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 24 },
-
-  hero: {
-    paddingHorizontal: 14,
-    paddingBottom: 18,
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-  },
-  heroNav: { flexDirection: "row", alignItems: "center", gap: 8 },
-  backButton: { minWidth: 44, minHeight: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  headerBody: { flex: 1 },
-  headerKicker: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
-  contentWithFooter: { paddingBottom: 130 },
-
-  title: { fontSize: 24, fontWeight: "600", lineHeight: 29, marginTop: 8, paddingHorizontal: 4 },
-  metaLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 9, paddingHorizontal: 4 },
-  categoryTile: { width: 24, height: 24, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  categoryText: { fontSize: 12.5, fontWeight: "700" },
-  dot: { width: 3, height: 3, borderRadius: 1.5, marginHorizontal: 3 },
-  roomText: { fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
-  locationPlain: { fontSize: 12.5, fontWeight: "600", maxWidth: 170 },
-  occupancyChip: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  occupancyChipText: { fontSize: 10, fontWeight: "800" },
-  guestChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  guestChipText: { fontSize: 10, fontWeight: "800" },
-
-  timingCard: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderRadius: R.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 14,
-    marginHorizontal: 4,
-  },
-  timingItem: { flex: 1, gap: 3 },
-  timingLabel: { fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
-  timingValue: { fontSize: 13.5, fontWeight: "700", fontFamily: monoFont },
-
-  noticeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  noticeText: { fontSize: 12.5 },
-
-  card: {
-    borderWidth: 1,
-    borderRadius: R.lg,
-    padding: 14,
-  },
-  descriptionText: { fontSize: 14, lineHeight: 21 },
-
-  assetCard: { flexDirection: "row", alignItems: "center", gap: 12 },
-  assetTile: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  assetBody: { flex: 1 },
-  assetName: { fontSize: 14, fontWeight: "700" },
-  assetSub: { fontSize: 12, marginTop: 2 },
-
-  photoStrip: { gap: 9, alignItems: "center", paddingRight: 8 },
-  photoThumb: { width: 86, height: 86, borderRadius: 12 },
-  photoAdd: {
-    width: 86,
-    height: 86,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  photoAddText: { fontSize: 10.5, fontWeight: "700" },
-  photoEmpty: { fontSize: 12.5 },
-
-  activityEmpty: { fontSize: 13 },
-  activityRow: { flexDirection: "row", gap: 10, paddingVertical: 9 },
-  activityBorder: { borderTopWidth: 1 },
-  activityDot: { width: 7, height: 7, borderRadius: 3.5, marginTop: 5 },
-  activityBody: { flex: 1, gap: 2 },
-  activityText: { fontSize: 13.5, lineHeight: 19 },
-  activityTextSystem: { fontStyle: "italic" },
-  activityTime: { fontSize: 11, fontFamily: monoFont },
-  composer: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
-  composerInput: {
-    flex: 1,
-    minHeight: 44,
-    borderWidth: 1,
-    borderRadius: 11,
-    paddingHorizontal: 12,
-    fontSize: 13.5,
-  },
-  composerSend: {
-    minWidth: 44,
-    minHeight: 44,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  wrapUpCard: { gap: 8 },
-  fieldLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
-  notesInput: {
-    minHeight: 84,
-    textAlignVertical: "top",
-    borderWidth: 1,
-    borderRadius: 11,
-    padding: 12,
-    fontSize: 14,
-  },
-  partsInput: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderRadius: 11,
-    paddingHorizontal: 12,
-    fontSize: 14,
-  },
-  recordText: { fontSize: 13.5, lineHeight: 19 },
-
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 18,
-    paddingTop: 13,
-    paddingBottom: 26,
-    borderTopWidth: 1,
-  },
-  footerRow: { flexDirection: "row", gap: 10 },
-  footerGrow: { flex: 1 },
-  holdBtn: {
-    width: 52,
-    minHeight: 52,
-    borderRadius: 13,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabled: { opacity: 0.45 },
+  withBar: { paddingBottom: 150 },
+  banner: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  extras: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });

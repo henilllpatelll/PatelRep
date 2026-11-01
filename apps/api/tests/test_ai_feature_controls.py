@@ -89,7 +89,7 @@ def test_every_capability_is_off_until_an_operator_enables_it(monkeypatch):
     _install(monkeypatch, _db([]))
     res = TestClient(app).get("/v1/ai/capabilities", headers=_auth())
     assert res.status_code == 200
-    assert res.json()["data"] == {"unified_assistant": False, "photo_analysis": False, "task_translation": False}
+    assert res.json()["data"] == {"unified_assistant": False, "photo_analysis": False, "task_translation": False, "repair_assist": False}
 
 
 def test_capabilities_reflect_this_hotel_only(monkeypatch):
@@ -97,8 +97,8 @@ def test_capabilities_reflect_this_hotel_only(monkeypatch):
     client = TestClient(app)
     a = client.get("/v1/ai/capabilities", headers=_auth(hotel_id="hotel-a")).json()["data"]
     b = client.get("/v1/ai/capabilities", headers=_auth(hotel_id="hotel-b")).json()["data"]
-    assert a == {"unified_assistant": True, "photo_analysis": False, "task_translation": False}
-    assert b == {"unified_assistant": True, "photo_analysis": True, "task_translation": True}
+    assert a == {"unified_assistant": True, "photo_analysis": False, "task_translation": False, "repair_assist": False}
+    assert b == {"unified_assistant": True, "photo_analysis": True, "task_translation": True, "repair_assist": False}
 
 
 def test_a_disabled_row_and_a_lookup_failure_both_read_as_off(monkeypatch):

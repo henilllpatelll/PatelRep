@@ -45,6 +45,8 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 export interface RequestOptions {
   /** Abort the request from the caller's side (e.g. the person cancelled). Rejects with an `AbortError`. */
   signal?: AbortSignal;
+  /** Longer than the 12 s default, for the few requests that wait on a model (the server caps those itself). */
+  timeoutMs?: number;
 }
 
 function abortError(): Error {
@@ -93,7 +95,7 @@ async function request<T>(
       didTimeout = true;
       controller?.abort();
       reject(new Error(API_TIMEOUT_MESSAGE));
-    }, API_TIMEOUT_MS);
+    }, options.timeoutMs ?? API_TIMEOUT_MS);
   });
 
   let response: Response;
@@ -177,10 +179,10 @@ async function postForm<T>(path: string, form: FormData, options: RequestOptions
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
+  get: <T>(path: string, options?: RequestOptions) => request<T>("GET", path, undefined, false, options),
   post: <T>(path: string, body: unknown, options?: RequestOptions) => request<T>("POST", path, body, false, options),
   postForm: <T>(path: string, form: FormData, options?: RequestOptions) => postForm<T>(path, form, options),
-  patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
+  patch: <T>(path: string, body: unknown, options?: RequestOptions) => request<T>("PATCH", path, body, false, options),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),
 };

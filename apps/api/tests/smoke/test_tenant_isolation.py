@@ -535,6 +535,8 @@ async def test_work_orders_list_returns_empty_for_hotel_a(monkeypatch):
     monkeypatch.setattr(wo_router, "supabase", db)
 
     result = await wo_router.list_work_orders(
+        statuses=None, mine=False, assigned_to_others=False, floor=None, building=None,
+        due_from=None, due_to=None, created_after=None, updated_after=None,
         status=None, category=None, priority=None, assigned_to=None,
         room_id=None, q=None, sort_by="created_at", sort_dir="desc", overdue=False,
         unassigned=False, page=1, per_page=20, archived=False, current_user=USER_A,

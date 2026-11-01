@@ -67,6 +67,7 @@ from routers import (
     room_unavailability,
     vendors,
     engineering_insights,
+    engineering_team,
     feature_flag_demo,
 )
 
@@ -391,6 +392,7 @@ app.include_router(inventory.router, prefix=PREFIX)
 app.include_router(room_unavailability.router, prefix=PREFIX)
 app.include_router(vendors.router, prefix=PREFIX)
 app.include_router(engineering_insights.router, prefix=PREFIX)
+app.include_router(engineering_team.router, prefix=PREFIX)
 app.include_router(feature_flag_demo.router, prefix=PREFIX)
 
 

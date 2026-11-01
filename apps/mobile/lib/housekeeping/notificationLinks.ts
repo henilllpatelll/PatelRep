@@ -1,6 +1,8 @@
 import type { Room } from "@/stores/appStore";
 import { resolveScheduleTarget, type ScheduleTarget } from "@/lib/scheduling/scheduleLink";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
+import { resolveNotificationTarget } from "@/lib/notifications/deepLink";
+import type { UserRole } from "@/lib/supabase";
 
 /**
  * What a notification can link to. A link is only offered when the record is
@@ -13,6 +15,8 @@ export type NotificationLink =
   | { kind: "task"; taskId: string }
   | { kind: "room"; roomId: string; roomNumber: string }
   | { kind: "schedule"; target: ScheduleTarget }
+  | { kind: "workOrder"; workOrderId: string }
+  | { kind: "engRoom"; roomId: string }
   | { kind: "none" };
 
 interface LinkableNotification {
@@ -35,6 +39,10 @@ export function resolveNotificationLink(notification: LinkableNotification, room
   }
   const taskId = taskIdFromNotification({ ...(data ?? {}), type: notification.type });
   if (taskId) return { kind: "task", taskId };
+  // Engineering alerts carry a validated in-app url (work order / room); the destination re-reads the record as the signed-in person.
+  const target = resolveNotificationTarget(data, (role ?? null) as UserRole | null);
+  if (target.kind === "workOrder") return { kind: "workOrder", workOrderId: target.workOrderId };
+  if (target.kind === "engRoom") return { kind: "engRoom", roomId: target.roomId };
   const roomId = roomIdFromNotificationData(data);
   if (roomId) {
     const room = rooms.find((candidate) => candidate.id === roomId);

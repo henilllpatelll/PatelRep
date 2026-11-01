@@ -4,7 +4,15 @@ import { resolve } from "node:path";
 const OPERATIONS_SOURCES = {
   myRooms: "../../app/(app)/my-rooms/index.tsx",
   roomDetail: "../../components/housekeeping/roomDetail/NeedsAttentionView.tsx",
-  workOrderDetail: "../../app/(app)/work-orders/[woId].tsx",
+  // The detail route orchestrates; the action surfaces live in the repair-workspace components.
+  workOrderDetail: [
+    "../../app/(app)/work-orders/[woId].tsx",
+    "../../components/engineering/workorder/WorkOrderActionBar.tsx",
+    "../../components/engineering/workorder/WorkOrderCompletionResult.tsx",
+    "../../components/engineering/workorder/CompletionSheet.tsx",
+  ],
+  // The primary Button owns the audited on-color for every labelled action.
+  buttonPrimitive: "../../components/ui/Button.tsx",
   scheduling: "../../app/(app)/scheduling/index.tsx",
   // The Tasks route is a thin role switch; the audited surfaces are the screens and cards behind it.
   tasks: [
@@ -24,7 +32,7 @@ const OPERATIONS_SOURCES = {
 const sources = Object.fromEntries(
   Object.entries(OPERATIONS_SOURCES).map(([name, path]) => [
     name,
-    (Array.isArray(path) ? path : [path]).map((file) => readFileSync(resolve(__dirname, file), "utf8")).join("\n"),
+    ((Array.isArray(path) ? path : [path]) as readonly string[]).map((file) => readFileSync(resolve(__dirname, file), "utf8")).join("\n"),
   ]),
 ) as Record<keyof typeof OPERATIONS_SOURCES, string>;
 
@@ -73,7 +81,9 @@ describe("operations semantic on-colors", () => {
   });
 
   it("uses the tested primary on-color for work-order actions", () => {
-    expect(sources.workOrderDetail).toContain("theme.onPrimary");
+    // Work-order actions are labelled primary Buttons, so their text color is the Button's tested on-color.
+    expect(sources.workOrderDetail).toContain('from "@/components/ui/Button"');
+    expect(sources.buttonPrimitive).toContain("theme.onPrimary");
   });
 
   it("uses the tested primary on-color for the active schedule card", () => {

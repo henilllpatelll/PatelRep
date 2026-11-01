@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/supabase";
+import { ENGINEERING_ROLES } from "@/lib/engineering/roles";
 import { resolveScheduleTarget, type ScheduleTarget } from "@/lib/scheduling/scheduleLink";
 import { taskIdFromNotification } from "@/lib/tasks/taskLink";
 
@@ -16,15 +17,17 @@ export type NotificationTarget =
   | { kind: "room"; roomId: string }
   | { kind: "myRooms" }
   | { kind: "workOrder"; workOrderId: string }
+  | { kind: "engRoom"; roomId: string }
   | { kind: "schedule"; target: ScheduleTarget }
   | { kind: "none" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const ROOM_URL = new RegExp(`^/\\(app\\)/my-rooms/(${UUID})$`, "i");
 const WORK_ORDER_URL = new RegExp(`^/\\(app\\)/work-orders/(${UUID})$`, "i");
+const ENG_ROOM_URL = new RegExp(`^/\\(app\\)/room-status/(${UUID})$`, "i");
 
 const ROOM_ROLES: ReadonlySet<UserRole> = new Set(["housekeeper", "housekeeping_supervisor"]);
-const WORK_ORDER_ROLES: ReadonlySet<UserRole> = new Set(["engineer"]);
+const WORK_ORDER_ROLES: ReadonlySet<UserRole> = new Set(ENGINEERING_ROLES);
 
 export function resolveNotificationTarget(data: unknown, role: UserRole | null | undefined): NotificationTarget {
   if (!data || typeof data !== "object" || !role) return { kind: "none" };
@@ -47,6 +50,8 @@ export function resolveNotificationTarget(data: unknown, role: UserRole | null |
   if (WORK_ORDER_ROLES.has(role)) {
     const workOrder = WORK_ORDER_URL.exec(url);
     if (workOrder) return { kind: "workOrder", workOrderId: workOrder[1].toLowerCase() };
+    const engRoom = ENG_ROOM_URL.exec(url);
+    if (engRoom) return { kind: "engRoom", roomId: engRoom[1].toLowerCase() };
   }
   return { kind: "none" };
 }
@@ -62,6 +67,8 @@ export function routeForTarget(target: NotificationTarget): { pathname: string; 
       return { pathname: "/(app)/my-rooms" };
     case "workOrder":
       return { pathname: `/(app)/work-orders/${target.workOrderId}` };
+    case "engRoom":
+      return { pathname: `/(app)/room-status/${target.roomId}` };
     case "schedule":
       return Object.keys(target.target.params).length > 0 ? { pathname: target.target.pathname, params: target.target.params } : { pathname: target.target.pathname };
     default:

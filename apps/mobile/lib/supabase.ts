@@ -31,8 +31,8 @@ export type UserRole =
   | "housekeeper"
   | "inspector"
   | "engineer"
+  | "chief_engineer"
   | "housekeeping_supervisor"
-  | "engineer"
   | "front_desk"
   | "gm";
 
@@ -40,8 +40,8 @@ const APP_ROLES: ReadonlySet<string> = new Set([
   "housekeeper",
   "inspector",
   "engineer",
+  "chief_engineer",
   "housekeeping_supervisor",
-  "engineer",
   "front_desk",
   "gm",
 ]);

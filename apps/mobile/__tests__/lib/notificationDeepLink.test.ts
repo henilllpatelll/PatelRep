@@ -24,10 +24,11 @@ describe("resolveNotificationTarget", () => {
     expect(resolveNotificationTarget({ url: "/(app)/my-rooms" }, "housekeeper")).toEqual({ kind: "myRooms" });
   });
 
-  it("opens a work order only for engineers", () => {
+  it("opens a work order only for the engineering roles", () => {
     const data = { type: "wo_assignment", url: `/(app)/work-orders/${WO}`, wo_id: WO };
     expect(resolveNotificationTarget(data, "engineer")).toEqual({ kind: "workOrder", workOrderId: WO });
     expect(resolveNotificationTarget(data, "housekeeper")).toEqual({ kind: "none" });
+    expect(resolveNotificationTarget(data, "chief_engineer")).toEqual({ kind: "workOrder", workOrderId: WO });
   });
 
   it.each([

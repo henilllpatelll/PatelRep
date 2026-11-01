@@ -7,7 +7,7 @@ from models.requests import (
     CopilotChatRequest, HousekeepingBriefingRequest, HousekeeperShiftRecapRequest,
     SupervisorBriefingRequest, SupervisorSummaryRequest, EngineerBriefingRequest, FrontDeskBriefingRequest,
     TaskPreview, WorkOrderPreview, GuestRequestPreview, AssignmentPreview,
-    AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest,
+    AuthorizeAIRecommendationRequest, RecordAIRecommendationOutcomeRequest, RepairAssistRequest,
     UpdateAIModelRouteRequest, TaskTranslationRequest,
 )
 from core.database import supabase
@@ -29,6 +29,7 @@ from services.ai.housekeeper_shift_recap import generate_shift_recap, load_shift
 from services.ai.supervisor_briefing import generate_supervisor_briefing
 from services.ai.supervisor_summary import generate_supervisor_summary
 from services.ai.engineer_briefing import generate_engineer_briefing
+from services.ai.repair_assist import facts_for_client, generate_repair_assist, load_repair_context
 from services.ai.front_desk_briefing import generate_front_desk_briefing
 from services.ai.gm_briefing import generate_gm_briefing
 from services.housekeeping_assignments import room_status_for_clean_type
@@ -56,6 +57,7 @@ from routers.work_orders import (
     _find_replayed_work_order,
     _is_unique_violation,
     _seed_checklist_from_template,
+    _ensure_engineer_can_update_work_order,
 )
 from routers.assets import get_recurring_issues
 import asyncio
@@ -859,6 +861,87 @@ async def engineer_shift_briefing(
         raise HTTPException(status_code=503, detail="AI briefing temporarily unavailable.")
 
 
+@router.post("/engineer/work-orders/{wo_id}/assist")
+async def engineer_repair_assist(
+    wo_id: str,
+    request: RepairAssistRequest,
+    current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm")),
+    _feature_on: CurrentUser = Depends(require_feature("eng_ai_repair_assist")),
+):
+    """Troubleshooting suggestions, a follow-up answer or a repair-note draft for ONE work order.
+
+    A suggestion only: it creates, assigns, completes, consumes and escalates nothing, and nothing it says is
+    stored. The server loads the facts itself (hotel-scoped); an engineer reaches only their own or unassigned
+    orders, as everywhere else. Paid: the hotel's feature flag must be on, the credit cap is checked BEFORE the
+    model runs, and the real token usage is billed and logged. With no provider configured it answers 503 and
+    repairs carry on manually."""
+    if request.mode == "followup" and not (request.question or "").strip():
+        raise HTTPException(status_code=422, detail="Ask a question to get an answer.")
+    visible = (
+        supabase.table("work_orders").select("id, assigned_to, status")
+        .eq("id", wo_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    )
+    if not visible or not visible.data:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    try:
+        _ensure_engineer_can_update_work_order(current_user, visible.data)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="Record not found.")  # same answer as "does not exist"
+
+    start = time.time()
+    credits = 0
+    tokens = (0, 0)
+    try:
+        await assert_ai_allowance(current_user.hotel_id, current_user.user_id, "repair_assist")
+        context = load_repair_context(current_user.hotel_id, wo_id)
+        if context is None:
+            raise HTTPException(status_code=404, detail="Record not found.")
+        result = await asyncio.to_thread(
+            generate_repair_assist,
+            hotel_id=current_user.hotel_id, context=context, mode=request.mode, question=request.question,
+            technician_notes=request.technician_notes, history=[t.model_dump() for t in request.history],
+            language=request.language,
+        )
+        tokens = (result["prompt_tokens"], result["completion_tokens"])
+        credits = await check_and_deduct_credits(current_user.hotel_id, "repair_assist", *tokens)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - provider outage, bad output or missing credentials: never a half answer
+        await _log_repair_assist(current_user, credits, 0, 0, start, False, type(exc).__name__)
+        logger.warning("AI repair assist unavailable hotel=%s: %s", current_user.hotel_id, type(exc).__name__, exc_info=True)
+        detail = (
+            "AI assistance is not set up for this hotel yet. Continue the repair manually."
+            if isinstance(exc, AIProviderConfigurationError)
+            else "AI assistance is temporarily unavailable. Continue the repair manually."
+        )
+        raise HTTPException(status_code=503, detail=detail)
+
+    await _log_repair_assist(current_user, credits, tokens[0], tokens[1], start, True, None, result["model"])
+    return {
+        "data": {
+            "mode": request.mode,
+            "facts": facts_for_client(context),
+            "suggestion": result["output"],
+            "is_suggestion": True,
+            "retained": False,
+            "credits_used": credits,
+            "model_used": result["model"],
+        }
+    }
+
+
+async def _log_repair_assist(user, credits, prompt_tokens, completion_tokens, start, success, error, model="none"):
+    """The usage row is best effort: a failed insert (e.g. migration 230 not applied yet) never changes the answer."""
+    try:
+        await log_ai_interaction(
+            hotel_id=user.hotel_id, user_id=user.user_id, interaction_type="repair_assist", model_used=model,
+            credits_charged=credits, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            latency_ms=int((time.time() - start) * 1000), success=success, error_message=error,
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("repair_assist usage row not written", exc_info=True)
+
+
 @router.post("/front-desk/briefing")
 async def front_desk_shift_briefing(
     request: FrontDeskBriefingRequest,
@@ -1560,6 +1643,7 @@ CAPABILITY_FLAGS = {
     "unified_assistant": "hk_ai_assistant",
     "photo_analysis": "hk_ai_photo_analysis",
     "task_translation": "hk_ai_task_translation",
+    "repair_assist": "eng_ai_repair_assist",
 }
 
 

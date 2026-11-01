@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
@@ -9,6 +10,7 @@ from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
 from services.programs.execution import persist_pm_completion
 from services.asset_reliability import calculate_asset_reliability, restore_asset_downtime as restore_asset_downtime_service, start_asset_downtime as start_asset_downtime_service, with_elapsed_minutes
+from services.reporting.periods import hotel_timezone
 from services.condition_monitoring import meter_freshness_status, persist_condition_reading
 
 router = APIRouter(prefix="/assets", tags=["assets"])
@@ -96,15 +98,19 @@ async def create_asset(
 # ---------------------------------------------------------------------------
 
 @router.get("/failure-predictions")
-async def get_failure_predictions(current_user: CurrentUser = Depends(get_current_user)):
-    result = supabase.table("failure_predictions")\
+async def get_failure_predictions(
+    asset_id: Optional[str] = Query(None, description="Only this asset's open predictions"),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    query = supabase.table("failure_predictions")\
         .select("*, assets(name, category_id, asset_categories(name))")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_acknowledged", False)\
         .order("risk_score", desc=True)\
-        .limit(10)\
-        .execute()
-    return {"data": result.data}
+        .limit(10)
+    if asset_id:
+        query = query.eq("asset_id", asset_id)
+    return {"data": query.execute().data}
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +386,7 @@ async def get_recurring_issues(
 @router.get("/pm-schedules")
 async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user)):
     result = supabase.table("pm_schedules")\
-        .select("*, assets(name, room_id)")\
+        .select("*, assets(name, room_id, asset_tag, location_text, manufacturer, asset_categories(name, code), rooms(room_number))")\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("next_due_at")\
@@ -464,6 +470,59 @@ async def list_pm_schedule_completions(
 
 
 # ---------------------------------------------------------------------------
+# 10b. GET /pm-completions — property-wide PM inspection history (paged, newest first)
+# ---------------------------------------------------------------------------
+
+@router.get("/pm-completions")
+async def list_pm_completions(
+    limit: int = Query(20, ge=1, le=50),
+    offset: int = Query(0, ge=0, le=10000),
+    asset_id: Optional[str] = Query(None),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Slim, read-only summaries for the mobile History view. Full records (items, signed evidence)
+    stay on GET /pm-schedules/{id}/completions/{completion_id}."""
+    query = supabase.table("pm_completion_records").select(
+        "id, pm_schedule_id, asset_id, technician_id, completed_at, checklist_template_id, "
+        "checklist_version, labor_minutes, defects, pm_completion_items(result)"
+    ).eq("tenant_id", current_user.hotel_id)
+    if asset_id:
+        query = query.eq("asset_id", asset_id)
+    rows = (query.order("completed_at", desc=True).range(offset, offset + limit).execute().data) or []
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+
+    def _names(table: str, column: str, ids: set, field: str = "name") -> dict:
+        if not ids:
+            return {}
+        found = supabase.table(table).select(f"id, {field}").eq("tenant_id", current_user.hotel_id).in_(
+            "id", sorted(ids)
+        ).execute().data or []
+        return {row["id"]: row.get(field) for row in found}
+
+    schedule_names = _names("pm_schedules", "id", {r["pm_schedule_id"] for r in rows if r.get("pm_schedule_id")})
+    asset_names = _names("assets", "id", {r["asset_id"] for r in rows if r.get("asset_id")})
+    profiles = supabase.table("user_profiles").select("id, full_name, preferred_name").eq(
+        "tenant_id", current_user.hotel_id
+    ).in_("id", sorted({r["technician_id"] for r in rows if r.get("technician_id")})).execute().data or [] if rows else []
+    technicians = {p["id"]: (p.get("preferred_name") or p.get("full_name")) for p in profiles}
+
+    data = []
+    for row in rows:
+        results = [item.get("result") for item in (row.pop("pm_completion_items", None) or [])]
+        data.append({
+            **row,
+            "schedule_name": schedule_names.get(row.get("pm_schedule_id")),
+            "asset_name": asset_names.get(row.get("asset_id")),
+            "technician_name": technicians.get(row.get("technician_id")),
+            "passed_count": results.count("passed"),
+            "failed_count": results.count("failed"),
+            "not_applicable_count": results.count("not_applicable"),
+        })
+    return {"data": data, "meta": {"offset": offset, "limit": limit, "has_more": has_more}}
+
+
+# ---------------------------------------------------------------------------
 # 10. PATCH /pm-schedules/{schedule_id}  — update PM schedule (NEW)
 # ---------------------------------------------------------------------------
 
@@ -542,6 +601,264 @@ async def create_asset_category(
         "default_pm_interval_days": request.default_pm_interval_days,
     }).execute()
     return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# 13b. GET /browse and GET /lookup  — mobile inventory (read-only, NEW)
+# Registered before /{asset_id} so the static names are not captured as ids.
+# ---------------------------------------------------------------------------
+
+_BROWSE_ACTIVE_WO_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+_BROWSE_SORTS = ("name", "location", "last_serviced", "next_pm", "risk", "updated")
+_BROWSE_CHUNK = 1000
+_BROWSE_MAX_ROWS = 20000
+_PM_DUE_SOON_DAYS = 7
+
+
+def _fetch_all(build) -> list[dict]:
+    """Walk a tenant-scoped query in fixed chunks: PostgREST caps one response, an inventory can exceed it."""
+    rows: list[dict] = []
+    while len(rows) < _BROWSE_MAX_ROWS:
+        chunk = build().range(len(rows), len(rows) + _BROWSE_CHUNK - 1).execute().data or []
+        rows.extend(chunk)
+        if len(chunk) < _BROWSE_CHUNK:
+            break
+    return rows
+
+
+def _parse_iso(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _service_status(downtime: Optional[dict], in_progress: int) -> str:
+    """Display status derived from recorded facts (not a stored column): downtime impact, then a repair underway."""
+    if downtime and downtime.get("impact_level") == "out_of_service":
+        return "out_of_service"
+    if downtime and downtime.get("impact_level") == "degraded":
+        return "degraded"
+    if in_progress > 0:
+        return "under_repair"
+    return "operational"
+
+
+def _asset_search_text(asset: dict) -> str:
+    room = (asset.get("rooms") or {}).get("room_number")
+    category = (asset.get("asset_categories") or {}).get("name")
+    fields = (
+        asset.get("name"), asset.get("asset_tag"), asset.get("serial_number"), asset.get("manufacturer"),
+        asset.get("model"), asset.get("location_text"), room, category,
+    )
+    return " ".join(str(value) for value in fields if value).casefold()
+
+
+def _sort_key(sort_by: str):
+    far = datetime.max.replace(tzinfo=timezone.utc)
+
+    def name(a: dict) -> str:
+        return (a.get("name") or "").casefold()
+
+    if sort_by == "location":
+        return lambda a: ((((a.get("rooms") or {}).get("room_number")) or a.get("location_text") or "~").casefold(), name(a))
+    if sort_by == "last_serviced":
+        return lambda a: (-(_parse_iso(a.get("last_serviced_at")) or datetime.min.replace(tzinfo=timezone.utc)).timestamp(), name(a))
+    if sort_by == "next_pm":
+        return lambda a: ((_parse_iso(a.get("next_pm_due_at")) or far).timestamp(), name(a))
+    if sort_by == "risk":
+        return lambda a: (-(a.get("failure_risk_score") or 0), name(a))
+    if sort_by == "updated":
+        return lambda a: (-(_parse_iso(a.get("updated_at")) or datetime.min.replace(tzinfo=timezone.utc)).timestamp(), name(a))
+    return name
+
+
+@router.get("/browse")
+async def browse_assets(
+    q: Optional[str] = Query(None, max_length=100),
+    category_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None, pattern="^(operational|degraded|out_of_service|under_repair)$"),
+    maintenance: Optional[str] = Query(None, pattern="^(active_work_order|pm_overdue|pm_due_soon|none)$"),
+    reliability: Optional[str] = Query(None, pattern="^(active_prediction|repeat_repairs|confirmed_downtime)$"),
+    attention: bool = Query(False, description="Derived group: degraded/out of service, PM overdue, or an open prediction"),
+    room_id: Optional[str] = Query(None),
+    floor: Optional[int] = Query(None),
+    building: Optional[str] = Query(None),
+    sort_by: str = Query("name"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(25, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Server-side search, filter, sort and paging over the whole property inventory.
+
+    Every filter runs over all of the hotel's active assets, never just the page on screen. `service_status`
+    is derived (active downtime impact, else a repair in progress, else operational); it is not a stored status.
+    """
+    if sort_by not in _BROWSE_SORTS:
+        raise HTTPException(status_code=422, detail="Unknown sort")
+    tenant_id = current_user.hotel_id
+    now = datetime.now(timezone.utc)
+    tz = hotel_timezone(supabase, tenant_id)
+    today = now.astimezone(tz).date()
+
+    def base():
+        query = supabase.table("assets").select(
+            "id, name, asset_tag, serial_number, category_id, room_id, location_text, manufacturer, model, "
+            "failure_risk_score, updated_at, asset_categories(name, code), rooms(room_number, floor, building)"
+        ).eq("tenant_id", tenant_id).eq("is_active", True).order("id")
+        if category_id:
+            query = query.eq("category_id", category_id)
+        if room_id:
+            query = query.eq("room_id", room_id)
+        return query
+
+    assets = _fetch_all(base)
+    terms = [term for term in (q or "").casefold().split() if term]
+    if terms:
+        assets = [a for a in assets if all(term in _asset_search_text(a) for term in terms)]
+    if floor is not None:
+        assets = [a for a in assets if (a.get("rooms") or {}).get("floor") == floor]
+    if building:
+        assets = [a for a in assets if (a.get("rooms") or {}).get("building") == building]
+
+    downtime_rows = _fetch_all(lambda: supabase.table("asset_downtime_periods").select(
+        "asset_id, started_at, restored_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", tenant_id).gte("started_at", (now - timedelta(days=365)).isoformat()).order("started_at"))
+    active_downtime: dict[str, dict] = {}
+    downtime_assets: set[str] = set()
+    for row in downtime_rows:
+        downtime_assets.add(str(row["asset_id"]))
+        if not row.get("restored_at"):
+            active_downtime[str(row["asset_id"])] = with_elapsed_minutes(row)
+
+    wo_rows = _fetch_all(lambda: supabase.table("work_orders").select(
+        "asset_id, status, completed_at"
+    ).eq("tenant_id", tenant_id).gte("created_at", (now - timedelta(days=365)).isoformat()).order("created_at"))
+    active_wo: dict[str, int] = {}
+    in_progress: dict[str, int] = {}
+    last_repair: dict[str, str] = {}
+    repeat: dict[str, int] = {}
+    for row in wo_rows:
+        asset_key = str(row.get("asset_id") or "")
+        if not asset_key:
+            continue
+        if row.get("status") in _BROWSE_ACTIVE_WO_STATUSES:
+            active_wo[asset_key] = active_wo.get(asset_key, 0) + 1
+            if row.get("status") == "in_progress":
+                in_progress[asset_key] = in_progress.get(asset_key, 0) + 1
+        elif row.get("status") == "completed" and row.get("completed_at"):
+            completed = str(row["completed_at"])
+            if completed > last_repair.get(asset_key, ""):
+                last_repair[asset_key] = completed
+            if (_parse_iso(completed) or now) >= now - timedelta(days=90):
+                repeat[asset_key] = repeat.get(asset_key, 0) + 1
+
+    pm_rows = _fetch_all(lambda: supabase.table("pm_schedules").select(
+        "asset_id, next_due_at, last_completed_at"
+    ).eq("tenant_id", tenant_id).eq("is_active", True).order("id"))
+    next_pm: dict[str, str] = {}
+    pm_overdue: set[str] = set()
+    pm_due_soon: set[str] = set()
+    last_pm: dict[str, str] = {}
+    for row in pm_rows:
+        asset_key = str(row["asset_id"])
+        due = _parse_iso(row.get("next_due_at"))
+        if due:
+            if asset_key not in next_pm or str(row["next_due_at"]) < next_pm[asset_key]:
+                next_pm[asset_key] = str(row["next_due_at"])
+            # Hotel calendar days, the same rule the PM screens use: due earlier today is "due today", not overdue.
+            days_until = (due.astimezone(tz).date() - today).days
+            if days_until < 0:
+                pm_overdue.add(asset_key)
+            elif days_until <= _PM_DUE_SOON_DAYS:
+                pm_due_soon.add(asset_key)
+        if row.get("last_completed_at") and str(row["last_completed_at"]) > last_pm.get(asset_key, ""):
+            last_pm[asset_key] = str(row["last_completed_at"])
+
+    prediction_rows = _fetch_all(lambda: supabase.table("failure_predictions").select(
+        "asset_id"
+    ).eq("tenant_id", tenant_id).eq("is_acknowledged", False).order("id"))
+    predicted = {str(row["asset_id"]) for row in prediction_rows if row.get("asset_id")}
+
+    rows: list[dict] = []
+    for asset in assets:
+        key = str(asset["id"])
+        downtime = active_downtime.get(key)
+        serviced = max(filter(None, [last_repair.get(key), last_pm.get(key)]), default=None)
+        asset.pop("serial_number", None)  # searchable, not listed
+        asset.update({
+            "active_downtime": downtime,
+            "service_status": _service_status(downtime, in_progress.get(key, 0)),
+            "active_work_order_count": active_wo.get(key, 0),
+            "next_pm_due_at": next_pm.get(key),
+            "pm_overdue": key in pm_overdue,
+            "pm_due_soon": key in pm_due_soon,
+            "last_serviced_at": serviced,
+            "repeat_repairs_90d": repeat.get(key, 0),
+            "has_active_prediction": key in predicted,
+            "had_downtime_365d": key in downtime_assets,
+        })
+        rows.append(asset)
+
+    if status:
+        rows = [a for a in rows if a["service_status"] == status]
+    if attention:
+        rows = [
+            a for a in rows
+            if a["service_status"] in ("degraded", "out_of_service") or a["pm_overdue"] or a["has_active_prediction"]
+        ]
+    if maintenance == "active_work_order":
+        rows = [a for a in rows if a["active_work_order_count"] > 0]
+    elif maintenance == "pm_overdue":
+        rows = [a for a in rows if a["pm_overdue"]]
+    elif maintenance == "pm_due_soon":
+        rows = [a for a in rows if a["pm_due_soon"]]
+    elif maintenance == "none":
+        rows = [a for a in rows if not (a["active_work_order_count"] or a["pm_overdue"] or a["pm_due_soon"])]
+    if reliability == "active_prediction":
+        rows = [a for a in rows if a["has_active_prediction"]]
+    elif reliability == "repeat_repairs":
+        rows = [a for a in rows if a["repeat_repairs_90d"] >= 2]
+    elif reliability == "confirmed_downtime":
+        rows = [a for a in rows if a["had_downtime_365d"]]
+
+    rows.sort(key=_sort_key(sort_by))
+    total = len(rows)
+    start = (page - 1) * per_page
+    return {"data": rows[start:start + per_page], "meta": {
+        "page": page, "per_page": per_page, "total": total, "has_more": start + per_page < total,
+    }}
+
+
+@router.get("/lookup")
+async def lookup_asset(
+    asset_id: Optional[str] = Query(None, max_length=64),
+    tag: Optional[str] = Query(None, max_length=64),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Resolve a scanned or typed identifier to one asset in the caller's own property.
+
+    The code is only a lookup key: the same tenant scope and 404 apply whether the id belongs to another
+    property or to nothing, so a code never confirms that equipment exists elsewhere.
+    """
+    if bool(asset_id) == bool(tag):
+        raise HTTPException(status_code=422, detail="Provide exactly one of asset_id or tag")
+    if asset_id:
+        try:
+            UUID(asset_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Asset not found")
+    query = supabase.table("assets").select("id, name, asset_tag").eq("tenant_id", current_user.hotel_id).eq("is_active", True)
+    query = query.eq("id", asset_id) if asset_id else query.eq("asset_tag", (tag or "").strip())
+    matches = query.limit(2).execute().data or []
+    if not matches:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if len(matches) > 1:
+        raise HTTPException(status_code=409, detail="More than one asset has this tag; search by name or location instead")
+    return {"data": matches[0]}
 
 
 # ---------------------------------------------------------------------------
@@ -777,6 +1094,20 @@ async def get_asset(
         "restored_at", "null"
     ).maybe_single().execute()
     asset["active_downtime"] = with_elapsed_minutes(active.data) if active and active.data else None
+    # Same derived status the inventory list shows, from property-wide counts (no work order content), so a card and
+    # its detail screen can never disagree.
+    open_orders = supabase.table("work_orders").select("status").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).in_("status", list(_BROWSE_ACTIVE_WO_STATUSES)).execute().data or []
+    in_progress = sum(1 for row in open_orders if row.get("status") == "in_progress")
+    asset["active_work_order_count"] = len(open_orders)
+    recent = supabase.table("work_orders").select("id").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).eq("status", "completed").gte(
+        "completed_at", (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+    ).execute().data or []
+    asset["repeat_repairs_90d"] = len(recent)
+    asset["service_status"] = _service_status(asset["active_downtime"], in_progress)
     return {"data": asset}
 
 

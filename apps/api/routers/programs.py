@@ -115,6 +115,16 @@ async def get_program_overview(current_user: CurrentUser = Depends(require_role(
     }}
 
 
+@router.get("/pm-templates")
+async def list_pm_templates(current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))):
+    """Active engineering checklist templates only - the light read the mobile inspection needs (the full
+    /overview also carries housekeeping rules, pars and sampling)."""
+    templates = supabase.table("pm_checklist_templates").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("is_active", True).eq("program_area", "engineering").order("name").execute().data or []
+    return {"data": templates}
+
+
 @router.post("/templates/initialize")
 async def initialize_property_templates(current_user: CurrentUser = Depends(require_role("gm"))):
     """D-05/G5: seeds the 7 engineering + 2 housekeeping named templates with their real

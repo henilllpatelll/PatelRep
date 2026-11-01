@@ -34604,6 +34604,399 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-10-29T16:00:00Z"
+    },
+    {
+      "id": "bug-2104",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "A chief_engineer login got housekeeper navigation and Home",
+      "file": "apps/mobile/lib/supabase.ts",
+      "root_cause": "Commit 402a2fa6 merged chief_engineer away on mobile (the second engineer entries in UserRole/APP_ROLES/getTabsForRole are that rename). Migration 092 restored chief_engineer on the API, so toAppRole returned null and app/_layout.tsx fell back to role housekeeper.",
+      "fix": "Restored chief_engineer in UserRole + APP_ROLES, mapped it to the engineering tabs, and centralised the engineering role rules in lib/engineering/roles.ts. Drift tests read apps/api/core/roles.py and the work-order/PM role guards.",
+      "tags": [
+        "mobile",
+        "roles",
+        "navigation",
+        "chief_engineer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2105",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Mobile PM schedules screen showed blank/zero data and counts",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "The screen and EngineerHome read fields GET /assets/pm-schedules never returns (asset_name, task_name, frequency, next_due, status). The API sends raw pm_schedules rows (name, next_due_at, last_completed_at, interval_type, assets.name), so the Home PM strip was always 0.",
+      "fix": "lib/engineering/pmSchedules.ts adapts the real rows into a view model and derives overdue/due_today/due_soon/upcoming/unscheduled by hotel-calendar day (hotelDateKey). Screen and Home now share it.",
+      "tags": [
+        "mobile",
+        "pm",
+        "contract",
+        "adapter"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2106",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Mobile PM Log Complete sent an empty body and could never succeed",
+      "file": "apps/mobile/app/(app)/pm-schedules/index.tsx",
+      "root_cause": "POST /assets/pm-schedules/{id}/complete {} fails CompletePMProgramRequest (items min_length=1, per-item result, evidence for controlled items); the screen showed a generic error.",
+      "fix": "Removed the one-tap action; the screen shows an inspection-required notice. completePmSchedule() runs assertPmCompletionAllowed() before any request, and a source-scan test pins lib/api/assets.ts as the only caller.",
+      "tags": [
+        "mobile",
+        "pm",
+        "completion",
+        "guard"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2107",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Work order Hold and Resume always failed with 422",
+      "file": "apps/mobile/lib/api/workOrders.ts",
+      "root_cause": "setWorkOrderStatus sent PATCH /work-orders/{id} {status}, which the API rejects (use /transition), and on_hold also needs a structured reason_code.",
+      "fix": "transitionWorkOrder() posts /work-orders/{id}/transition with source=mobile; Hold opens HoldReasonSheet so the engineer chooses awaiting_parts/awaiting_vendor/schedule_deferral/safety_review. Transition graph and reasons are drift-tested against services/work_orders/transitions.py.",
+      "tags": [
+        "mobile",
+        "work-orders",
+        "transition",
+        "422"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2108",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "A failed engineering request rendered as an empty healthy queue",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "Promise.allSettled results were applied per request and rejected ones were dropped; Home showed Bench is clear, the Orders list showed the empty queue, PM/Assets/Rooms swallowed errors into [].",
+      "fix": "lib/engineering/loadState.ts (classifyLoadFailure, combineFailures, resolveLoadState) + EngineeringState/StaleBanner: a failed queue load keeps the last data with a stale banner, or shows error/forbidden/offline with Retry. Assets and Room Status keep their existing handling (follow-up).",
+      "tags": [
+        "mobile",
+        "error-state",
+        "offline",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2109",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "Emergency work orders were missing from urgent counts and badges",
+      "file": "apps/mobile/lib/engineering/workOrders.ts",
+      "root_cause": "countQueueSignals, Home highlighting and the detail badge only checked priority === urgent, so emergency (the most severe value) was not counted or shown.",
+      "fix": "isHighPriority/priorityRank helpers; QueueSignals now has emergency, urgent and highPriority; the detail screen has an emergency badge. sortQueue already ranked emergency first.",
+      "tags": [
+        "mobile",
+        "priority",
+        "emergency"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2110",
+      "timestamp": "2026-10-31T12:00:00Z",
+      "error_message": "chief_engineer was offered work-order actions the API rejects",
+      "file": "apps/mobile/app/(app)/work-orders/[woId].tsx",
+      "root_cause": "Claim/transition/complete are require_role(engineer, gm); chief_engineer can only read work orders.",
+      "fix": "canActOnWorkOrders() gates claim, hold, resume, complete, photo, escalate and Home/Orders claim buttons; chief_engineer gets a view-only notice. PM completion stays open to chief_engineer.",
+      "tags": [
+        "mobile",
+        "rbac",
+        "chief_engineer"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T12:00:00Z"
+    },
+    {
+      "id": "bug-2111",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "List API 422 for category=doors_locks / painting",
+      "file": "apps/api/routers/work_orders.py",
+      "root_cause": "list_work_orders' category Literal omitted two categories the DB check constraint and create endpoint allow",
+      "fix": "Added doors_locks and painting to the list Literal; test covers both",
+      "tags": [
+        "api",
+        "work-orders",
+        "category",
+        "422"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2112",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Mobile queue silently truncated at one page of 100 per status; search only filtered the loaded batch",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "listWorkOrders fetched one 100-row page with no has_more; search/filter were client-side over that batch; API q matched title only",
+      "fix": "Server-paged queue (has_more), server-side filters and multi-field q search, per-view buckets with load-more",
+      "tags": [
+        "mobile",
+        "pagination",
+        "search",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2113",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Mobile 'Team' group showed unclaimed work as the team's; engineers cannot see colleagues' orders",
+      "file": "apps/mobile/lib/engineering/workOrders.ts",
+      "root_cause": "splitWorkbench treated every active order not assigned to the viewer as 'team', but the engineer API scope is own+unassigned",
+      "fix": "Team view only for chief_engineer/gm via assigned_to_others; escalated unassigned shown as 'needs an owner' with Open, not Claim",
+      "tags": [
+        "mobile",
+        "rbac",
+        "work-orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2114",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Offline claim refused on replay (409/403/404) was retried forever and never shown to the person",
+      "file": "apps/mobile/lib/offline/sync.ts",
+      "root_cause": "sync replayed claim items and only incremented attempts on any error, so a lost race became a stuck 'failed' row",
+      "fix": "Terminal claim failures are deleted from the queue and recorded in claimConflicts, surfaced as a banner on the Work tab",
+      "tags": [
+        "mobile",
+        "offline",
+        "claim",
+        "conflict"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2115",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Optimistic claim moved the card into 'in progress' before the server or queue confirmed",
+      "file": "apps/mobile/app/(app)/work-orders/index.tsx",
+      "root_cause": "claim() mutated local state first for both online and offline paths",
+      "fix": "Confirmed only on server success; offline shows a 'saved on this phone' marker and leaves the card in Available",
+      "tags": [
+        "mobile",
+        "offline",
+        "claim"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2116",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "onEndReached triggered duplicate next-page requests",
+      "file": "apps/mobile/lib/engineering/useWorkQueue.ts",
+      "root_cause": "'already loading more' was read from reducer state, which has not re-rendered between quick successive calls",
+      "fix": "Synchronous ref guard (moreInFlight); covered by hook test",
+      "tags": [
+        "mobile",
+        "pagination",
+        "race"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2117",
+      "timestamp": "2026-10-31T00:00:00.000Z",
+      "error_message": "Restored labor timer showed 00:00:00 (screen test expected 00:2x:xx)",
+      "file": "apps/mobile/lib/engineering/useWorkOrderDetail.ts",
+      "root_cause": "The clock-skew estimate treated any running session older than 90s as phone-clock skew, so an old restored session cancelled its own elapsed time",
+      "fix": "Skew is estimated only on the refresh that follows the app's own labor start (opts.startedLabor); restored sessions trust the device clock. Tests cover restored, just-started and slow-phone cases",
+      "tags": [
+        "mobile",
+        "labor",
+        "clock-skew"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-2118",
+      "timestamp": "2026-10-31T15:00:00.000Z",
+      "error_message": "git diff showed 1825/890 changed lines in routers/assets.py and programs.py after a small edit",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "Rewriting the files from Python on Windows in text mode converted LF to CRLF",
+      "fix": "Converted both files and the new test back to LF with sed; diffs are now +55/+10. RBAC-MATRIX.md stays CRLF because it is committed that way",
+      "tags": [
+        "windows",
+        "line-endings",
+        "python"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-10-31T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2119",
+      "timestamp": "2026-10-31T15:00:00.000Z",
+      "error_message": "TypeError: Cannot read properties of undefined (reading 'then') at AccessibilityInfo.isReduceMotionEnabled in screen tests after the first test",
+      "file": "apps/mobile/__tests__/screens/PmDashboard.test.tsx",
+      "root_cause": "jest.resetAllMocks() in beforeEach also reset React Native's built-in jest mocks",
+      "fix": "Use clearAllMocks plus mockReset() only on the suite's own api mocks (which also drops leaked mockRejectedValueOnce queues)",
+      "tags": [
+        "jest",
+        "mobile",
+        "test-hygiene"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T15:00:00.000Z"
+    },
+    {
+      "id": "bug-2120",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "git diff showed 1,191 inserted / 939 deleted lines for a ~250-line change in apps/api/routers/assets.py",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "The Edit/Write tools write CRLF into an LF repo on Windows (same trap as bug-2118), so the whole file looked rewritten",
+      "fix": "Normalised every new or edited file to LF with a bytes-level replace before committing; RBAC-MATRIX.md stays CRLF because it is committed that way",
+      "tags": [
+        "windows",
+        "line-endings",
+        "edit-tool"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2121",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "expect(el).toHaveTextContent('AC-312') failed although the element contained AC-312",
+      "file": "apps/mobile/__tests__/screens/AssetDetail.test.tsx",
+      "root_cause": "RNTL toHaveTextContent treats a string argument as a FULL match of the element text, not 'contains'",
+      "fix": "Assert with a RegExp (small escaped has() helper); loops over variable strings need it too",
+      "tags": [
+        "jest",
+        "rntl",
+        "test-hygiene"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2122",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "AssetsList tests failed after the first one: filters and search text from an earlier test were still applied",
+      "file": "apps/mobile/app/(app)/assets/index.tsx",
+      "root_cause": "The screen kept the last view in a module-level Map inside the route file, which no test could reset",
+      "fix": "Moved it to lib/engineering/useAssetBrowse.ts (recallAssetView/rememberAssetView) and cleared it in resetAssetBrowseCache()",
+      "tags": [
+        "jest",
+        "module-state",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2123",
+      "timestamp": "2026-10-31T19:00:00.000Z",
+      "error_message": "apps/api tests/smoke/test_rbac_matrix_contract.py failed after adding GET /assets/browse and /assets/lookup",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "The matrix embeds source line numbers; I regenerated it before the last router edits",
+      "fix": "Regenerate with scripts/generate_rbac_matrix.py as the LAST step after every router edit, then re-run the smoke test",
+      "tags": [
+        "api",
+        "rbac",
+        "contract-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T19:00:00.000Z"
+    },
+    {
+      "id": "bug-2124",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "Old mobile Rooms screen set a room out of order with a bare status PATCH (no reason, no return time, 'Unknown / legacy') and returned it by PATCHing DIRTY with no repair or verification check",
+      "file": "apps/mobile/app/(app)/room-status/index.tsx",
+      "root_cause": "The screen predated the room-unavailability model; the API quietly routed the PATCH into the same RPCs with placeholder data",
+      "fix": "Engineers now use Engineering Rooms: structured Manage Room Availability (type, hotel reason list, return time, linked repair, review) and a gated Review Room Restoration sheet, both through /room-unavailability with source MOBILE; the PATCH code, Alert flow and modal were removed and roomSafety.test.ts guards against a status write returning",
+      "tags": [
+        "mobile",
+        "rooms",
+        "ooo",
+        "safety"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2125",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "useReportIssue.addPhoto let 6 photos through a 4-photo limit when called several times in one tick",
+      "file": "apps/mobile/lib/engineering/useReportIssue.ts",
+      "root_cause": "The limit read photosRef.current, which was only refreshed on render, so calls in the same tick all saw the old length",
+      "fix": "Write the ref synchronously (writePhotos) in add/remove/caption; covered by the 'holds at most four photos' test",
+      "tags": [
+        "mobile",
+        "react",
+        "refs",
+        "found-by-test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2126",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "WorkOrderDetail.test router mock was undefined for components that import `router` from expo-router",
+      "file": "apps/mobile/__tests__/screens/WorkOrderDetail.test.tsx",
+      "root_cause": "The jest.mock factory captured `mockRouter` before its const initialised (babel hoists imports above it)",
+      "fix": "Delegate router.push/back/replace/canGoBack through arrow functions that read mockRouter at call time",
+      "tags": [
+        "jest",
+        "mock",
+        "hoisting"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
+    },
+    {
+      "id": "bug-2127",
+      "timestamp": "2026-10-31T22:00:00.000Z",
+      "error_message": "eslint --max-warnings=0 failed: Definition for rule 'react-hooks/exhaustive-deps' was not found",
+      "file": "apps/mobile/app/(app)/work-orders/new.tsx",
+      "root_cause": "I copied an eslint-disable comment for a rule this config does not load",
+      "fix": "Removed the comments; the prefill is memoised once with an empty dependency list",
+      "tags": [
+        "eslint",
+        "mobile"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-10-31T22:00:00.000Z"
     }
   ]
 }

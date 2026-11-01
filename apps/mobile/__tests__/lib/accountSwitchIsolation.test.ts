@@ -67,7 +67,7 @@ it("drops every AI-related thing A had on the phone the moment B signs in", asyn
 
 it("also clears on a plain sign-out", async () => {
   useAppStore.getState().setUser(person("hk-1", "hotel-a"));
-  useAiCapabilities.setState({ scope: A, capabilities: { unifiedAssistant: true, photoAnalysis: true, taskTranslation: true }, fetchedAt: Date.now() });
+  useAiCapabilities.setState({ scope: A, capabilities: { unifiedAssistant: true, photoAnalysis: true, taskTranslation: true, repairAssist: false }, fetchedAt: Date.now() });
   useAppStore.getState().setUser(null);
   expect(useAiCapabilities.getState().capabilities).toEqual(NO_CAPABILITIES);
 });

@@ -80,9 +80,9 @@ describe("existing navigation is unchanged", () => {
     expect(getTabsForRole("engineer").map((tab) => tab.name)).toEqual([
       "home/index",
       "work-orders/index",
-      "room-status/index",
+      "pm-schedules/index",
       "assets/index",
-      "profile/index",
+      "more/index",
     ]);
     expect(getTabsForRole("front_desk").map((tab) => tab.name)).toEqual([
       "home/index",

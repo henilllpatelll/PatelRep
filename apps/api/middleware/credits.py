@@ -19,6 +19,7 @@ CREDIT_COSTS = {
     "onboarding_assistant": 1.0,
     "photo_analysis": 1.0,
     "translation": 0.5,
+    "repair_assist": 0.5,
 }
 
 # USD per 1,000,000 tokens. Current as of 2026-07 — re-confirm against provider
@@ -48,6 +49,7 @@ INTERACTION_MODEL = {
     "engineer_briefing": "claude-sonnet",
     "front_desk_briefing": "claude-sonnet",
     "gm_briefing": "claude-sonnet",
+    "repair_assist": "claude-sonnet",
 }
 
 # error_message on an ai_interactions row that records a refusal because the hotel was at its cap.

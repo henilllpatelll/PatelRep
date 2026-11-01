@@ -220,7 +220,7 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
             )
             skipped_count += 1
             continue
-        supabase.table("work_orders").insert({
+        created_wo = supabase.table("work_orders").insert({
             "tenant_id": tenant_id,
             "title": f"PM: {pm['name']}",
             "description": pm.get("description"),
@@ -235,6 +235,13 @@ async def check_due_pm(x_cron_secret: str = Header(None)):
         }).execute()
         advance_pm_schedule_on_generate(pm)
         created_count += 1
+        new_wo = (created_wo.data or [{}])[0].get("id")
+        if new_wo:
+            from services.engineering_notify import notify_managers
+            notify_managers(
+                tenant_id=tenant_id, event="pm_due", title="Preventive maintenance due", body=f"PM: {pm['name']}",
+                subject_key="wo_id", subject_id=str(new_wo), data={"url": f"/(app)/work-orders/{new_wo}", "pm_schedule_id": str(pm["id"])},
+            )
 
     _record_cron_run("pm.check-due")
     return {

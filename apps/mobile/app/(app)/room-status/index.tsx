@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import CreateWorkOrderModal from "@/components/engineering/CreateWorkOrderModal";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,11 +20,11 @@ import { useAppStore } from "@/stores/appStore";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
-import { useToast } from "@/lib/theme/useToast";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
+import { EngineeringRoomBoard } from "@/components/engineering/rooms/EngineeringRoomBoard";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
-import { Button } from "@/components/ui/Button";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
    Every room in the hotel, grouped by floor. The room number IS the card's
@@ -114,19 +113,12 @@ function roomNumberValue(room: RoomRow): number {
 
 const FILTER_OPTIONS = ["all", "VACANT", "OCCUPIED", "OOO"];
 
-export default function RoomStatusScreen() {
+function PropertyRoomStatusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const toast = useToast();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
-  const { isOnline, user } = useAppStore();
-  const isEngineer = String(user?.effective_role ?? user?.role) === "engineer";
-  const canManageOoo = user?.role === "engineer" || user?.role === "gm" || user?.role === "housekeeping_supervisor";
-  const [woModal, setWoModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
-  const [oooLoading, setOooLoading] = useState<string | null>(null);
-  const [oooReasonModal, setOooReasonModal] = useState<{ roomId: string; roomNumber: string } | null>(null);
-  const [oooReasonText, setOooReasonText] = useState("");
+  const { isOnline } = useAppStore();
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -332,81 +324,7 @@ export default function RoomStatusScreen() {
                   const occupied = isOccupiedRoom(room);
                   const hasMetaRow = Boolean(room.guest_name || room.checkout_time || room.vip_flag || room.dnd_flag);
                   return (
-                    <Pressable
-                      key={room.id}
-                      testID={`room-status-card-${room.id}`}
-                      style={({ pressed }) => (pressed && isEngineer ? styles.roomCardPressed : undefined)}
-                      onPress={isEngineer ? () => {
-                        const isOoo = isOutOfOrderRoom(room);
-
-                        async function applyOoo(notes?: string) {
-                          setOooLoading(room.id);
-                          try {
-                            await api.patch(`/rooms/${room.id}/status`, { status: "OOO", notes });
-                            await loadRooms();
-                          } catch {
-                            toast.error(t("roomStatus.oooError"));
-                          } finally {
-                            setOooLoading(null);
-                          }
-                        }
-
-                        async function returnToService() {
-                          setOooLoading(room.id);
-                          try {
-                            await api.patch(`/rooms/${room.id}/status`, { status: "DIRTY" });
-                            await loadRooms();
-                          } catch {
-                            toast.error(t("roomStatus.removeOooError"));
-                          } finally {
-                            setOooLoading(null);
-                          }
-                        }
-
-                        const oooButtons = canManageOoo
-                          ? isOoo
-                            ? [{ text: t("roomStatus.removeOoo"), onPress: () => void returnToService() }]
-                            : [
-                                {
-                                  text: t("roomStatus.placeOOO"),
-                                  onPress: () =>
-                                    Alert.alert(
-                                      t("roomStatus.oooReasonTitle"),
-                                      t("roomStatus.oooReasonHint"),
-                                      [
-                                        { text: t("common.cancel"), style: "cancel" as const },
-                                        { text: t("roomStatus.oooNoReason"), onPress: () => void applyOoo() },
-                                        {
-                                          text: t("roomStatus.oooAddReason"),
-                                          onPress: () => {
-                                            setOooReasonText("");
-                                            setOooReasonModal({ roomId: room.id, roomNumber: room.room_number });
-                                          },
-                                        },
-                                      ]
-                                    ),
-                                },
-                              ]
-                          : [];
-
-                        Alert.alert(
-                          t("roomStatus.roomActionTitle", { room: room.room_number }),
-                          isOoo && room.notes ? room.notes : undefined,
-                          [
-                            { text: t("roomStatus.createWo"), onPress: () => setWoModal({ roomId: room.id, roomNumber: room.room_number }) },
-                            ...oooButtons,
-                            { text: t("common.cancel"), style: "cancel" },
-                          ]
-                        );
-                      } : undefined}
-                      disabled={!isEngineer}
-                      accessibilityRole={isEngineer ? "button" : undefined}
-                      accessibilityLabel={
-                        isEngineer
-                          ? t("roomStatus.roomActionTitle", { room: room.room_number })
-                          : undefined
-                      }
-                    >
+                    <View key={room.id} testID={`room-status-card-${room.id}`}>
                       <Card style={styles.cardLayoutOverrides}>
                         <StatusRail status={room.status} />
                         <View style={styles.cardBody}>
@@ -484,7 +402,7 @@ export default function RoomStatusScreen() {
                           ) : null}
                         </View>
                       </Card>
-                    </Pressable>
+                    </View>
                   );
                 })}
               </View>
@@ -502,66 +420,6 @@ export default function RoomStatusScreen() {
           ) : null}
         </View>
       </ScrollView>
-
-      {woModal ? (
-        <CreateWorkOrderModal
-          visible={Boolean(woModal)}
-          roomId={woModal.roomId}
-          roomNumber={woModal.roomNumber}
-          onClose={() => setWoModal(null)}
-          onCreated={() => setWoModal(null)}
-        />
-      ) : null}
-
-      <Modal visible={Boolean(oooReasonModal)} transparent animationType="fade" onRequestClose={() => setOooReasonModal(null)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setOooReasonModal(null)} />
-        <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
-          <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
-            {t("roomStatus.oooReasonModalTitle")}
-          </Text>
-          <TextInput
-            style={[
-              styles.modalInput,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                color: theme.textPrimary,
-              },
-            ]}
-            value={oooReasonText}
-            onChangeText={setOooReasonText}
-            placeholder={t("roomStatus.oooReasonPlaceholder")}
-            placeholderTextColor={theme.textDisabled}
-            multiline
-            autoFocus
-          />
-          <View style={styles.modalActions}>
-            <Button
-              label={t("common.cancel")}
-              variant="secondary"
-              size="md"
-              style={styles.modalCancel}
-              onPress={() => setOooReasonModal(null)}
-            />
-            <Button
-              label={t("roomStatus.oooReasonModalConfirm")}
-              size="md"
-              style={styles.modalConfirm}
-              onPress={() => {
-                const modal = oooReasonModal;
-                setOooReasonModal(null);
-                if (modal) {
-                  setOooLoading(modal.roomId);
-                  api.patch(`/rooms/${modal.roomId}/status`, { status: "OOO", notes: oooReasonText.trim() || undefined })
-                    .then(() => loadRooms())
-                    .catch(() => toast.error(t("roomStatus.oooError")))
-                    .finally(() => setOooLoading(null));
-                }
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -650,25 +508,14 @@ const styles = StyleSheet.create({
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
 
-  modalBackdrop: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  modalSheet: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, gap: 14,
-  },
-  modalTitle: { fontSize: 16, fontWeight: "700" },
-  modalInput: {
-    borderWidth: 1, borderRadius: R.md, padding: 12, fontSize: 14,
-    minHeight: 80, textAlignVertical: "top",
-  },
-  modalActions: { flexDirection: "row", gap: 10 },
-  modalCancel: { flex: 1 },
-  modalConfirm: { flex: 2 },
 });
+
+/**
+ * Engineers (and the chief engineer) get Engineering Rooms: search and filters over the whole hotel, room detail with
+ * repairs, equipment and history, and the structured out-of-order flow. Every other role keeps this read-only
+ * property board exactly as it was.
+ */
+export default function RoomStatusScreen() {
+  const role = useAppStore((state) => state.user?.effective_role ?? state.user?.role);
+  return isEngineeringRole(role) ? <EngineeringRoomBoard /> : <PropertyRoomStatusScreen />;
+}

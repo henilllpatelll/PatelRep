@@ -59,4 +59,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
     owner: 'mobile-housekeeper-ai',
     created: '2026-10-16',
   },
+  eng_ai_repair_assist: {
+    key: 'eng_ai_repair_assist',
+    description:
+      'AI repair assistance on one work order (troubleshooting suggestions, follow-up questions, a repair-note draft), billed per call. Off: the endpoint answers 403 and the mobile AI Assist control is hidden; repairs work exactly the same.',
+    type: 'release',
+    backendEnforced: true,
+    owner: 'mobile-engineering',
+    created: '2026-10-31',
+  },
 }

@@ -104,8 +104,9 @@ function queueRows(rows: SyncQueueSummaryRow[]): SyncRow[] {
     key: `queue-${row.id}`,
     roomId: row.room_id,
     kind: row.entity_type === "work_order" ? (row.action === "create" ? "work_order" : "work_order_update") : row.entity_type === "task" ? "task" : "other",
-    state: row.attempts >= MAX_SYNC_ATTEMPTS ? "failed" : row.attempts > 0 ? "retrying" : "pending",
+    state: row.last_error ? "conflict" : row.attempts >= MAX_SYNC_ATTEMPTS ? "failed" : row.attempts > 0 ? "retrying" : "pending",
     savedAt: row.created_at ?? null,
+    ...(row.last_error ? { reason: row.last_error } : {}),
   }));
 }
 

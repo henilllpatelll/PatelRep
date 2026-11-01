@@ -39,6 +39,12 @@ def _iso(dt: datetime) -> str:
     return dt.isoformat()
 
 
+# list_work_orders is called as a plain function here, so FastAPI's Query defaults do not apply.
+_LIST_DEFAULTS = dict(
+    statuses=None, mine=False, assigned_to_others=False, floor=None, building=None,
+    due_from=None, due_to=None, created_after=None, updated_after=None,
+)
+
 ENGINEER = CurrentUser(user_id="engineer-1", hotel_id="hotel-1", role="engineer", email="engineer@example.com")
 GM = CurrentUser(user_id="gm-1", hotel_id="hotel-1", role="gm", email="gm@example.com")
 
@@ -346,7 +352,7 @@ async def test_list_work_orders_excludes_archived_by_default(monkeypatch, role: 
 
     user = CurrentUser(user_id="u1", hotel_id="hotel-1", role=role, email=f"{role}@example.com")
     result = await work_orders_router.list_work_orders(
-        status=None,
+        **_LIST_DEFAULTS, status=None,
         category=None,
         priority=None,
         assigned_to=None,
@@ -449,12 +455,12 @@ async def test_full_archive_unarchive_round_trip_is_reconstructable_from_audit_e
     )
 
     active = await work_orders_router.list_work_orders(
-        status=None, category=None, priority=None, assigned_to=None, room_id=None,
+        **_LIST_DEFAULTS, status=None, category=None, priority=None, assigned_to=None, room_id=None,
         q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
         page=1, per_page=20, archived=False, current_user=GM,
     )
     archived = await work_orders_router.list_work_orders(
-        status=None, category=None, priority=None, assigned_to=None, room_id=None,
+        **_LIST_DEFAULTS, status=None, category=None, priority=None, assigned_to=None, room_id=None,
         q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
         page=1, per_page=20, archived=True, current_user=GM,
     )
@@ -467,12 +473,12 @@ async def test_full_archive_unarchive_round_trip_is_reconstructable_from_audit_e
     )
 
     active_after = await work_orders_router.list_work_orders(
-        status=None, category=None, priority=None, assigned_to=None, room_id=None,
+        **_LIST_DEFAULTS, status=None, category=None, priority=None, assigned_to=None, room_id=None,
         q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
         page=1, per_page=20, archived=False, current_user=GM,
     )
     archived_after = await work_orders_router.list_work_orders(
-        status=None, category=None, priority=None, assigned_to=None, room_id=None,
+        **_LIST_DEFAULTS, status=None, category=None, priority=None, assigned_to=None, room_id=None,
         q=None, sort_by="created_at", sort_dir="desc", overdue=False, unassigned=False,
         page=1, per_page=20, archived=True, current_user=GM,
     )

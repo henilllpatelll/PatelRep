@@ -921,3 +921,44 @@
 - scripts/dependency-orchestrator-{policy,engine,run,workflow}.test.mjs, ci-gate-room-board.test.mjs - 85 tests incl. negative security scenarios; the gate test executes the real CI Gate shell step (~12k tok)
 - apps/web/e2e/hermetic/{mock-backend.mjs,run.mjs,mock-backend.test.mjs}, apps/web/playwright.hermetic.config.ts - credential-free Room-Board gate (mock Supabase auth + API origin) (~4k tok)
 - docs/DEPENDENCY_ORCHESTRATOR.md - operating contract, security model, controls, costs (~3k tok)
+
+## Engineering Phase 4 - repair workspace (apps/mobile)
+- lib/engineering/repairWorkspace.ts - pure rules: deriveRepairActions state machine, summarizeLabor/skew, buildTimeline, completion draft/validate/body/outcome, parts staging, offline completion block (~5k tok)
+- lib/engineering/useWorkOrderDetail.ts - order + lazy labor/history/parts/related loaders with stale-response tokens; useSecondTicker (~2k tok)
+- components/engineering/workorder/ - WorkOrderHeader(+Summary), ActionBar, ReportedIssue, AssetContext, RepairTools, ActivityTimeline, RecordCard, CompletionResult, MoreActionsSheet; sheets: Labor, Diagnosis, Evidence, Parts, Hold, Escalation, Note, Completion; CodePicker, sheetKit, useSheetSubmit (~14k tok)
+- app/(app)/work-orders/[woId].tsx - rewritten detail screen orchestrating the above (~5k tok)
+- apps/api/tests/test_work_order_repair_workspace.py - detail enrichment + GET /work-orders/{id}/audit
+- lib/engineering/pmCalendar.ts - Monday-first week/month maths over hotel-day keys: planWeek (each schedule once, carried overdue), countThisWeek, monthGrid, dayMarkers (~1k tok)
+- lib/engineering/pmFilters.ts - search/filter/sort over the complete schedule list (name, asset, tag, location, category, frequency, state) + todaySections (~1k tok)
+- lib/engineering/pmReadings.ts - meter adapter, parseReading, evaluateReading (mirrors server), reference range (~1k tok)
+- lib/engineering/pmChecklist.ts - template adapter, local draft model, progress, validateInspection, buildCompletionPayload (never empty/defaulted), draft-vs-template drift + rebase (~3k tok)
+- lib/engineering/pmDraftStore.ts - AsyncStorage drafts scoped tenant:user:schedule (~0.6k tok)
+- lib/engineering/usePmSchedules.ts - single schedule source for PM screens (cache, stale-response guard, summary incl. thisWeek); usePmInspection.ts - inspection session: load, autosave, evidence upload locks, guarded submit with unknown-outcome check (~3k tok)
+- lib/api/pm.ts - templates/meters/asset/history/record, uploadPmEvidence (+cleanup), submitPmCompletion + findLandedCompletion (~2k tok)
+- components/engineering/pm/ - PmScheduleCard, PmMetricCards, PmTodayView, PmWeekView, PmCalendarView, PmHistoryView, PmFilterSheet, PmChecklistItem, PmPhotoField, PmReadingInput, PmExtrasSection, PmReviewSection, PmCompletionSummary, pmUi
+- app/(app)/pm-schedules/{index,[scheduleId],inspect/[scheduleId],record/[completionId]}.tsx - dashboard (Today/Week/Calendar/History), detail, guided inspection (fill -> review -> recorded), read-only record
+- apps/api/tests/test_pm_mobile_reads.py - GET /assets/pm-completions + GET /programs/pm-templates
+- lib/engineering/assetModel.ts - AssetRow/filters/quick chips, assetBrowseParams/Key, mergeAssetPages, assetCardModel, buildAssetTimeline (only stated events), riskBand (~2.5k tok)
+- lib/engineering/assetQr.ts - parseAssetCode: versioned patelrep:asset:v1:<uuid>, bare uuid, asset tag; refuses URLs/unknown; buildAssetQrPayload (~0.8k tok)
+- lib/engineering/assetReadings.ts - meter/reading types, parseReadingValue, limitState (meter's own limits only), trendPoints/trendGeometry/trendDirection (~2k tok)
+- lib/engineering/assetLookup.ts - resolveAssetCode: parse, property-scoped lookup, outcomes; offline = cached-in-scope only (~0.8k tok)
+- lib/engineering/assetFormat.ts - hotel-zone date wording, formatSpan (~0.7k tok)
+- lib/engineering/{useAssetBrowse,useAssetWorkOrders,useAsyncResource}.ts - paged browse (tickets, scope, cache, findCachedAsset, view memory, list-stale flag), paged asset WOs, generic guarded server read (~3k tok)
+- lib/engineering/requestId.ts - newClientRequestId (uuid v4)
+- components/engineering/assets/ - AssetCard, AssetFilterSheet, assetUi, AssetOverview, AssetWorkOrdersSection, AssetMaintenanceSection, AssetReadingsSection, ReadingTrend (no chart dependency), RecordReadingSheet, AssetHistorySection, AssetReliabilityPanel
+- app/(app)/assets/{index,[assetId],scan}.tsx - searchable inventory, asset detail (Overview/Work orders/Maintenance/Readings/History), scanner + manual lookup
+- apps/api/tests/test_asset_browse.py - GET /assets/browse, /assets/lookup, detail derived status
+- apps/mobile/__tests__/{screens/AssetsList,screens/AssetDetail,screens/AssetScan,components/AssetSheets,lib/engineering/asset*,lib/engineering/useAssetBrowse}.test.* - Phase 6 tests
+- apps/api/routers/rooms.py `GET /rooms/engineering-board` - whole-hotel rooms with occupancy / housekeeping / OOO-OOS period / active repairs as SEPARATE fields; server search+filters+sorts+paging, engineer sees own+unclaimed repairs and only a COUNT of colleagues' (others_active_count); room_id= returns one row; counts+facets in meta
+- apps/api/{core/roles,models/requests,routers/room_unavailability,routers/work_orders}.py - ENGINEERING_ROOM_BOARD_ROLES; optional `source` (WEB|MOBILE) on create/release/nested room_unavailability so the audit trail says MOBILE
+- apps/api/tests/test_engineering_room_board.py - board contract + audit source + role gates (19 tests)
+- lib/engineering/roomModel.ts - RoomBoardRow, filters, quick chips as shortcuts onto sheet fields, params/key, mergeRoomPages, groupRoomsByFloor, canManageAvailability (chief_engineer reads only)
+- lib/engineering/roomAvailability.ts - availability draft/validation/payload, interpretCreate (200 != recorded: create RPC returns the EXISTING period), ETA rules, return presets (no native date picker), release gate (primary repair open = blocked; verify + ack), interpretRelease
+- lib/engineering/{useRoomBoard,useRoomDetail}.ts - paged board with ticketed requests/scope/cache/view memory/stale flag; detail = independent reads (row, repairs, equipment, active period, periods, paged repair history)
+- lib/engineering/reportIssue.ts + useReportIssue.ts - the ONE report form's rules (validate, payload, withAsset, recents) and controller (durable draft, ref-guarded submit, stable client_request_id, offline queue under eng-report:<id>, photos after create, room-down proven by re-reading the room)
+- lib/engineering/pendingReports.ts - queued/synced/refused report records per person (Work tab banner); sync.ts routes eng-report creates through it
+- lib/api/engineeringRooms.ts - board, row, repairs, history, periods, reasons, create/eta/release availability; lib/api/workOrders.ts createWorkOrderDetailed + extra create fields
+- components/engineering/rooms/ - EngineeringRoomBoard, RoomCard, RoomFilterSheet, RoomDetailSections, RoomAvailabilitySheet (create+eta, review step), RoomReleaseSheet, RoomDownFields (+ReturnTimePicker), roomUi
+- components/engineering/report/ - LocationSheet, OptionSheet, PriorityPicker, EvidenceInput, MoreOptions, ReportSuccess, PendingReportsBanner
+- app/(app)/room-status/index.tsx - engineers/chief get EngineeringRoomBoard, every other role keeps the read-only property board (old engineer OOO/DIRTY PATCH + modal REMOVED); app/(app)/room-status/[roomId].tsx - Room Detail; app/(app)/work-orders/new.tsx - Report an Issue (replaces CreateWorkOrderModal, deleted)
+- apps/mobile/__tests__/{screens/EngineeringRoomBoard,screens/EngineeringRoomDetail,screens/ReportIssueScreen,components/PendingReportsBanner,lib/engineering/{roomModel,roomAvailability,reportIssue,useReportIssue,useRoomBoard,roomI18n,roomSafety},lib/offline/engineeringReports.sync}.test.* - Phase 7 tests
