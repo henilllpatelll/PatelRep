@@ -54,19 +54,27 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
   const [outcome, setOutcome] = useState<CompletionOutcome | null>(null);
   const { busy, run } = useSheetSubmit();
 
-  const set = (patch: Partial<CompletionDraft>) => onDraft({ ...draft, ...patch });
   const byId = (id: string | null) => state.codes.find((c) => c.id === id);
   const gate = checklistGate(checklist);
   const blockers = completionBlockers(draft, gate, online);
+  const validate = (next: CompletionDraft): CompletionErrors => {
+    const found = validateCompletion(next, { problem: byId(next.problemCodeId) ?? undefined, cause: byId(next.causeCodeId) ?? undefined, resolution: byId(next.resolutionCodeId) ?? undefined });
+    if (blockers.some((b) => b.id === "checklist")) found.checklist = "required";
+    return found;
+  };
+  const set = (patch: Partial<CompletionDraft>) => {
+    const next = { ...draft, ...patch };
+    onDraft(next);
+    // Once errors are showing, keep them honest: a field the user just fixed must stop reading as wrong.
+    if (Object.keys(clientErrors).length > 0) setClientErrors(validate(next));
+  };
   const offlineBlock = online ? null : offlineCompletionBlock(draft, gate);
   const errors: CompletionErrors = { ...clientErrors, ...(outcome?.kind === "rejected" ? outcome.errors : {}) };
   const hasAsset = Boolean(wo.asset_id || wo.assets?.id);
   const label = workOrderLabel(wo);
 
   function review() {
-    const found = validateCompletion(draft, { problem: byId(draft.problemCodeId) ?? undefined, cause: byId(draft.causeCodeId) ?? undefined, resolution: byId(draft.resolutionCodeId) ?? undefined });
-    const checklistBlocker = blockers.find((b) => b.id === "checklist");
-    if (checklistBlocker) found.checklist = "required";
+    const found = validate(draft);
     setClientErrors(found);
     setOutcome(null);
     if (Object.keys(found).length === 0) setStage("review");
@@ -89,6 +97,8 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
 
   const close = () => {
     setStage("form");
+    setClientErrors({});
+    setOutcome(null);
     onClose();
   };
 

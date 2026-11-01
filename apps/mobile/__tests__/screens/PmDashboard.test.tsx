@@ -52,6 +52,12 @@ function iso(daysFromToday: number): string {
   d.setUTCDate(d.getUTCDate() + daysFromToday);
   return d.toISOString();
 }
+/** Days from today to next week's Tuesday (weeks start on Monday), so "next week" holds on every weekday, Sundays included. */
+function daysToNextWeekTuesday(): number {
+  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+  const mondayBased = (new Date(`${todayKey}T12:00:00.000Z`).getUTCDay() + 6) % 7;
+  return 8 - mondayBased;
+}
 const row = (id: string, days: number | null, extra: object = {}) => ({
   id,
   asset_id: `a-${id}`,
@@ -167,7 +173,7 @@ describe("PM views", () => {
   });
 
   it("Week navigation moves to the next week without duplicating or losing work", async () => {
-    listApi.mockResolvedValue([row("next", 8)]);
+    listApi.mockResolvedValue([row("next", daysToNextWeekTuesday())]);
     const { findByTestId, getByTestId, queryByTestId } = renderScreen();
     await findByTestId("pm-metric-week");
     fireEvent.press(getByTestId("pm-view-week"));

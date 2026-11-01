@@ -48,10 +48,12 @@ import { addDaysToYmd, weekDays } from "@/lib/scheduling/teamScheduleDates";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import TeamScheduleRoute from "@/app/(app)/team-schedule/index";
 import { allStrings } from "../helpers/workspaceHarness";
+import { pinMidweekClock } from "../helpers/pinMidweekClock";
 import { wirePage, wirePerson, wireShift, ZONE } from "../helpers/teamScheduleFixtures";
 
 const get = api.get as jest.Mock;
 const tr = (key: string, values?: Record<string, unknown>) => makeTranslator(mockLanguage)(key, values);
+pinMidweekClock();
 const TODAY = hotelDateKey(new Date(), ZONE) as string;
 const TOMORROW = addDaysToYmd(TODAY, 1);
 

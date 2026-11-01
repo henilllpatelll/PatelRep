@@ -456,6 +456,25 @@ describe("completion", () => {
     expect(api.completeWorkOrder).not.toHaveBeenCalled();
   });
 
+  it("clears a field's error as soon as the technician fixes it, instead of leaving it red until the next Review", async () => {
+    const utils = renderScreen();
+    await waitFor(() => expect(utils.getByTestId("wo-review-completion")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-review-completion"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-review")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    expect(utils.getByTestId("wo-err-resolution")).toBeTruthy();
+    expect(utils.getByTestId("wo-err-verification")).toBeTruthy();
+
+    fireEvent.press(utils.getByTestId("wo-verify-passed"));
+    expect(utils.queryByTestId("wo-err-verification")).toBeNull();
+    expect(utils.getByTestId("wo-err-resolution")).toBeTruthy();
+
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-toggle"));
+    await waitFor(() => expect(utils.getByTestId("wo-cx-resolution-replaced_part")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-replaced_part"));
+    expect(utils.queryByTestId("wo-err-resolution")).toBeNull();
+  });
+
   it("requires notes when the result is not 'passed'", async () => {
     const utils = renderScreen();
     await openCompletion(utils);
