@@ -28,7 +28,15 @@ const checklist = normalizeTemplate(standardTemplate())!;
 const KEY = draftKey("hotel-1", "sup-1", "room-205");
 const PHOTO = (item: string, n: number) => `file:///docs/inspection-evidence/hotel-1/sup-1/room-205/${item}-t${n}.jpg`;
 
-const storedDraft = async (): Promise<InspectionDraft> => JSON.parse((await AsyncStorage.getItem(KEY)) as string) as InspectionDraft;
+// The draft is written asynchronously after each change, so on a slow runner the first read can land before it exists.
+const storedDraft = async (): Promise<InspectionDraft> => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const raw = await AsyncStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw) as InspectionDraft;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("No stored inspection draft appeared");
+};
 
 function seed(answers: InspectionDraft["answers"], photos: Record<string, string> = {}): InspectionDraft {
   let draft = createDraft({
