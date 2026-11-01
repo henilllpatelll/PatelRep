@@ -2296,7 +2296,9 @@
         "offlineQueue": "You're offline. The completion will be saved on this phone and sent later. The order stays open until the server confirms it.",
         "offlineBlock": {
           "parts": "Parts come out of inventory, so this needs a connection. Go online to complete with parts.",
-          "failedVerification": "A failed test is recorded on the server, so this needs a connection."
+          "failedVerification": "A failed test is recorded on the server, so this needs a connection.",
+          "checklistOpen": "Required checklist steps are still open. Finish them with a connection, then complete the order.",
+          "checklistUnverified": "This phone hasn't confirmed the checklist, so a completion can't be saved for later. Go online to complete."
         },
         "failedNote": "A failed test keeps the order in progress. It will not be closed.",
         "followUpNote": "The order will be completed and marked follow-up required. No new work order is created.",
@@ -2305,11 +2307,27 @@
           "verification": "Choose a verification result.",
           "verificationNotes": "Add a note explaining the result.",
           "parts": "Fix the parts that are marked.",
-          "stock": "There isn't enough stock for one of the parts. Review them."
+          "stock": "There isn't enough stock for one of the parts. Review them.",
+          "checklist": "Required checklist steps are still open. The work order was not completed."
         },
         "outcome": {
           "verificationFailed": "Failed test recorded. The order stays in progress. Nothing was closed.",
           "conflict": "The order changed while you were working. It was reloaded. {{message}}"
+        },
+        "readiness": {
+          "ready": "Ready to complete",
+          "blocked": "Before you can complete",
+          "checklist": "Checklist: {{done}} of {{total}} done",
+          "viewChecklist": "View checklist",
+          "unverifiedOnline": "This phone couldn't read the checklist. The server will check it when you submit.",
+          "blocker": {
+            "checklist": "{{count}} required checklist step is still open",
+            "checklist_plural": "{{count}} required checklist steps are still open",
+            "checklistUnverified": "The checklist hasn't been confirmed on this phone, so a completion can't be saved for later",
+            "resolution": "Choose how it was resolved",
+            "verification": "Choose a verification result",
+            "verificationNotes": "Add a note explaining the result"
+          }
         }
       },
       "result": {
@@ -2432,7 +2450,34 @@
       },
       "checklist": {
         "title": "Checklist",
-        "unavailable": "A checklist isn't available for this work order yet."
+        "progress": "{{done}} of {{total}} completed",
+        "progressA11y": "{{done}} of {{total}} checklist steps completed",
+        "required": "Required",
+        "optional": "Optional",
+        "requiredRemaining": "{{count}} required step remaining",
+        "requiredRemaining_plural": "{{count}} required steps remaining",
+        "requiredDone": "All required steps are done",
+        "stateDone": "done",
+        "stateOpen": "not done",
+        "saving": "saving",
+        "doneAt": "Done {{time}}",
+        "emptyTitle": "No checklist assigned",
+        "emptyBody": "This work order has no checklist steps. You can still work on it and complete it.",
+        "errorLoad": "Couldn't load the checklist.",
+        "errorForbidden": "You don't have access to this checklist.",
+        "stale": "Couldn't refresh. Showing the last checklist this phone loaded.",
+        "readOnly": {
+          "closed": "This work order is closed. The checklist is a read-only record.",
+          "notAssigned": "Only the assigned technician updates this checklist. Claim the order to work on it.",
+          "offline": "You're offline. Checklist steps are saved on the server, so reconnect to change them.",
+          "viewOnly": "Your role can read this checklist but not change it."
+        },
+        "itemError": {
+          "closed": "This work order was closed, so the step wasn't changed.",
+          "forbidden": "You can't change this step.",
+          "failed": "Couldn't save that step. Check your connection and try again."
+        },
+        "reviewCompletion": "Review completion"
       },
       "work": {
         "site": "On site",

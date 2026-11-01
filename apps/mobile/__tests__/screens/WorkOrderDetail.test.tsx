@@ -35,6 +35,8 @@ jest.mock("@/lib/api/workOrders", () => ({
   getWorkOrderEvents: jest.fn(),
   getWorkOrderAudit: jest.fn(),
   getWorkOrderParts: jest.fn(),
+  getWorkOrderChecklist: jest.fn(),
+  setWorkOrderChecklistItem: jest.fn(),
   listAssetRepairs: jest.fn(),
   listRepairCodes: jest.fn(),
   listInventoryParts: jest.fn(),
@@ -94,6 +96,23 @@ const baseOrder = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const clItem = (id: string, over: Record<string, unknown> = {}) => ({
+  id,
+  label: `Step ${id}`,
+  is_required: false,
+  is_done: false,
+  done_by: null,
+  done_at: null,
+  sort_order: Number(id.replace(/\D/g, "")),
+  estimated_minutes: null,
+  ...over,
+});
+const clSummary = (items: ReturnType<typeof clItem>[]) => {
+  const remaining = items.filter((i) => i.is_required && !i.is_done).map((i) => ({ id: i.id, label: i.label }));
+  return { total: items.length, completed: items.filter((i) => i.is_done).length, required_total: items.filter((i) => i.is_required).length, required_completed: 0, required_remaining: remaining, ready: remaining.length === 0 };
+};
+const clSnapshot = (items: ReturnType<typeof clItem>[], editable = true) => ({ items, summary: clSummary(items), editable });
+
 const codes = [
   { id: "res-1", code_type: "resolution", code: "replaced_part", label: "Replaced part", engineering_category: "hvac" },
   { id: "res-9", code_type: "resolution", code: "other_resolution", label: "Other", engineering_category: null },
@@ -127,6 +146,7 @@ beforeEach(() => {
   m(api.getWorkOrderParts).mockResolvedValue([]);
   m(api.listAssetRepairs).mockResolvedValue([]);
   m(api.listRepairCodes).mockResolvedValue(codes);
+  m(api.getWorkOrderChecklist).mockResolvedValue(clSnapshot([]));
   m(api.completeWorkOrder).mockResolvedValue({});
   m(api.transitionWorkOrder).mockResolvedValue(undefined);
   m(api.startWorkOrderLabor).mockResolvedValue(undefined);
@@ -740,11 +760,11 @@ describe("Phase 3: tabbed detail workspace", () => {
     expect(getByTestId("wo-issue")).toBeTruthy();
   });
 
-  it("makes the checklist an explicit placeholder with no items and no completion", async () => {
+  it("says there is no checklist, with no items and no progress, when the order has none", async () => {
     const { getByTestId, queryByTestId } = renderScreen();
     await openTab(getByTestId, "checklist");
-    expect(getByTestId("wo-checklist-shell")).toBeTruthy();
-    expect(queryByTestId("wo-checklist-item")).toBeNull();
+    await waitFor(() => expect(getByTestId("wo-checklist-empty")).toBeTruthy());
+    expect(queryByTestId("wo-checklist-bar")).toBeNull();
   });
 
   it("scopes earlier repairs to the linked asset and keeps them out of this order's activity", async () => {
@@ -811,5 +831,212 @@ describe("Phase 3: tabbed detail workspace", () => {
     await openTab(getByTestId, "history");
     fireEvent.press(getByTestId("wo-review-completion"));
     await waitFor(() => expect(getByTestId("wo-complete-sheet")).toBeTruthy());
+  });
+});
+
+describe("Phase 4: checklist and completion verification", () => {
+  const withChecklist = (items: ReturnType<typeof clItem>[], editable = true) => m(api.getWorkOrderChecklist).mockResolvedValue(clSnapshot(items, editable));
+
+  async function openChecklist(utils: ReturnType<typeof renderScreen>) {
+    await openTab(utils.getByTestId, "checklist");
+    await waitFor(() => expect(utils.queryByTestId("wo-checklist-summary")).toBeTruthy());
+  }
+
+  async function reachCompletion(utils: ReturnType<typeof renderScreen>) {
+    await waitFor(() => expect(utils.getByTestId("wo-review-completion")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-review-completion"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-sheet")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-toggle"));
+    await waitFor(() => expect(utils.getByTestId("wo-cx-resolution-replaced_part")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-replaced_part"));
+    fireEvent.press(utils.getByTestId("wo-verify-passed"));
+  }
+
+  it("shows the order's real checklist from the server, with its count", async () => {
+    withChecklist([clItem("a1", { is_done: true }), clItem("a2"), clItem("a3")]);
+    const utils = renderScreen();
+    await openChecklist(utils);
+    expect(api.getWorkOrderChecklist).toHaveBeenCalledWith("wo-1", expect.anything());
+    expect(utils.getByText("Step a2")).toBeTruthy();
+    expect(utils.getByTestId("wo-checklist-bar").props.accessibilityValue).toEqual({ min: 0, max: 3, now: 1 });
+  });
+
+  it("ticks a step through the API and shows it done only after the server confirms", async () => {
+    withChecklist([clItem("a1"), clItem("a2")]);
+    let confirm: (v: unknown) => void = () => undefined;
+    m(api.setWorkOrderChecklistItem).mockImplementation(() => new Promise((resolve) => (confirm = resolve)));
+    const utils = renderScreen();
+    await openChecklist(utils);
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    expect(api.setWorkOrderChecklistItem).toHaveBeenCalledTimes(1);
+    expect(api.setWorkOrderChecklistItem).toHaveBeenCalledWith("wo-1", "a1", true);
+    expect(utils.getByTestId("wo-checklist-saving-a1")).toBeTruthy();
+    expect(utils.getByTestId("wo-checklist-item-a1").props.accessibilityState.checked).toBe(false);
+
+    const done = clItem("a1", { is_done: true, done_by: "u1", done_at: "2026-10-31T15:00:00Z" });
+    await act(async () => confirm({ item: done, summary: clSummary([done, clItem("a2")]) }));
+    await waitFor(() => expect(utils.getByTestId("wo-checklist-item-a1").props.accessibilityState.checked).toBe(true));
+    expect(utils.queryByTestId("wo-checklist-saving-a1")).toBeNull();
+  });
+
+  it("keeps a step open and says so when the server refuses the change", async () => {
+    withChecklist([clItem("a1")]);
+    m(api.setWorkOrderChecklistItem).mockRejectedValue(Object.assign(new Error("closed"), { status: 409, code: "work_order_closed" }));
+    const utils = renderScreen();
+    await openChecklist(utils);
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    await waitFor(() => expect(utils.getByTestId("wo-checklist-error-a1")).toBeTruthy());
+    expect(utils.getByTestId("wo-checklist-item-a1").props.accessibilityState.checked).toBe(false);
+  });
+
+  it("shows a failed checklist read as a failure with retry, not as 'no checklist'", async () => {
+    m(api.getWorkOrderChecklist).mockRejectedValueOnce(Object.assign(new Error("boom"), { status: 500 }));
+    const utils = renderScreen();
+    await openTab(utils.getByTestId, "checklist");
+    await waitFor(() => expect(utils.getByText("workOrders.repair.checklist.errorLoad")).toBeTruthy());
+    expect(utils.queryByTestId("wo-checklist-empty")).toBeNull();
+    withChecklist([clItem("a1")]);
+    fireEvent.press(utils.getByText("common.retry"));
+    await waitFor(() => expect(utils.getByText("Step a1")).toBeTruthy());
+  });
+
+  it("makes a chief engineer's checklist read-only", async () => {
+    mockUser = { id: "chief", role: "chief_engineer", language_pref: "en" };
+    m(api.getWorkOrder).mockResolvedValue(baseOrder({ assigned_to: "u1" }));
+    withChecklist([clItem("a1")]);
+    const utils = renderScreen();
+    await openChecklist(utils);
+    expect(utils.getByTestId("wo-checklist-readonly")).toBeTruthy();
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    expect(api.setWorkOrderChecklistItem).not.toHaveBeenCalled();
+  });
+
+  it("shows a completed order's checklist as a read-only record", async () => {
+    m(api.getWorkOrder).mockResolvedValue(baseOrder({ status: "completed" }));
+    withChecklist([clItem("a1", { is_done: true, is_required: true })], false);
+    const utils = renderScreen();
+    await openChecklist(utils);
+    expect(utils.getByText("Step a1")).toBeTruthy();
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    expect(api.setWorkOrderChecklistItem).not.toHaveBeenCalled();
+  });
+
+  it("cannot change a step offline, because a step is never queued", async () => {
+    mockOnline = false;
+    withChecklist([clItem("a1")]);
+    const utils = renderScreen();
+    await openChecklist(utils);
+    fireEvent.press(utils.getByTestId("wo-checklist-item-a1"));
+    expect(api.setWorkOrderChecklistItem).not.toHaveBeenCalled();
+    expect(enqueueAction).not.toHaveBeenCalled();
+  });
+
+  it("lists the open required steps in completion readiness and leads back to the checklist", async () => {
+    withChecklist([clItem("a1", { is_required: true }), clItem("a2", { is_required: true }), clItem("a3")]);
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    await waitFor(() => expect(utils.getByTestId("wo-blocker-checklist")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    expect(utils.getByTestId("wo-err-checklist")).toBeTruthy();
+    expect(utils.queryByTestId("wo-complete-confirm")).toBeNull();
+    expect(api.completeWorkOrder).not.toHaveBeenCalled();
+    fireEvent.press(utils.getByTestId("wo-readiness-view-checklist"));
+    await waitFor(() => expect(utils.getByTestId("wo-tab-checklist").props.accessibilityState.selected).toBe(true));
+  });
+
+  it("is ready to complete when every required step is done, and optional ones never block", async () => {
+    withChecklist([clItem("a1", { is_required: true, is_done: true }), clItem("a2")]);
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    await waitFor(() => expect(utils.getByTestId("wo-readiness-checklist")).toBeTruthy());
+    expect(utils.queryByTestId("wo-blocker-checklist")).toBeNull();
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
+  });
+
+  it("completes an order with no checklist as before", async () => {
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
+    expect(utils.queryByTestId("wo-readiness-checklist")).toBeNull();
+    fireEvent.press(utils.getByTestId("wo-complete-confirm"));
+    await waitFor(() => expect(api.completeWorkOrder).toHaveBeenCalledWith("wo-1", { resolution_code_id: "res-1", verification_result: "passed" }));
+  });
+
+  it("shows the server's refusal when required steps are open and never shows success", async () => {
+    // The phone's read said ready; someone reopened a step before the server saw the completion.
+    withChecklist([clItem("a1", { is_required: true, is_done: true })]);
+    m(api.completeWorkOrder).mockRejectedValue(
+      Object.assign(new Error("1 required checklist item must be done"), { status: 422, code: "checklist_incomplete", detail: { code: "checklist_incomplete", remaining: [{ id: "a1", label: "Step a1" }] } }),
+    );
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
+    withChecklist([clItem("a1", { is_required: true })]);
+    fireEvent.press(utils.getByTestId("wo-complete-confirm"));
+    await waitFor(() => expect(utils.getByTestId("wo-err-checklist")).toBeTruthy());
+    expect(utils.queryByTestId("wo-completion-result")).toBeNull();
+    expect(utils.getByTestId("wo-status-line").props.children).toContain("IN_PROGRESS");
+    // The checklist was re-read, so the readiness now names the step.
+    await waitFor(() => expect(utils.getByTestId("wo-blocker-checklist")).toBeTruthy());
+  });
+
+  it("offline, will not queue a completion while a required step is open", async () => {
+    mockOnline = false;
+    withChecklist([clItem("a1", { is_required: true })]);
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    await waitFor(() => expect(utils.getByTestId("wo-blocker-checklist")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    expect(utils.queryByTestId("wo-complete-confirm")).toBeNull();
+    expect(enqueueAction).not.toHaveBeenCalled();
+  });
+
+  it("offline, will not queue a completion when the checklist was never confirmed on this phone", async () => {
+    mockOnline = false;
+    m(api.getWorkOrderChecklist).mockRejectedValue(new Error("Network request failed"));
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    await waitFor(() => expect(utils.getByTestId("wo-blocker-checklistUnverified")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-offline-block")).toBeTruthy());
+    expect(utils.getByTestId("wo-complete-confirm").props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(utils.getByTestId("wo-complete-confirm"));
+    expect(enqueueAction).not.toHaveBeenCalled();
+  });
+
+  it("offline, still queues a completion once the checklist is confirmed clear", async () => {
+    mockOnline = false;
+    withChecklist([clItem("a1", { is_required: true, is_done: true })]);
+    const utils = renderScreen();
+    await reachCompletion(utils);
+    await waitFor(() => expect(utils.getByTestId("wo-readiness-checklist")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-confirm"));
+    await waitFor(() => expect(enqueueAction).toHaveBeenCalledWith("work_order", "complete", { resolution_code_id: "res-1", verification_result: "passed" }, "wo-1", expect.anything()));
+    expect(utils.queryByTestId("wo-completion-result")).toBeNull();
+  });
+
+  it("does not let open required steps stop a failed test from being recorded", async () => {
+    withChecklist([clItem("a1", { is_required: true })]);
+    m(api.completeWorkOrder).mockRejectedValue(Object.assign(new Error("Repair verification failed. The work order remains in progress."), { status: 409 }));
+    const utils = renderScreen();
+    await waitFor(() => expect(utils.getByTestId("wo-review-completion")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-review-completion"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-sheet")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-toggle"));
+    await waitFor(() => expect(utils.getByTestId("wo-cx-resolution-replaced_part")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-cx-resolution-replaced_part"));
+    fireEvent.press(utils.getByTestId("wo-verify-failed"));
+    fireEvent.changeText(utils.getByTestId("wo-verification-notes"), "Still warm");
+    await waitFor(() => expect(utils.queryByTestId("wo-blocker-checklist")).toBeNull());
+    fireEvent.press(utils.getByTestId("wo-complete-review"));
+    await waitFor(() => expect(utils.getByTestId("wo-complete-confirm")).toBeTruthy());
+    fireEvent.press(utils.getByTestId("wo-complete-confirm"));
+    await waitFor(() => expect(utils.getByTestId("wo-outcome-failed")).toBeTruthy());
   });
 });

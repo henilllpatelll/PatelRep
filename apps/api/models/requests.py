@@ -555,6 +555,8 @@ class UpdateVendorEngagementRequest(SanitizedBaseModel):
 class CreateChecklistItemRequest(SanitizedBaseModel):
     label: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     estimated_minutes: Optional[int] = Field(default=None, gt=0, le=1440)
+    # Migration 231: a required step blocks POST /work-orders/{id}/complete until it is done.
+    is_required: bool = False
 
 
 class UpdateChecklistItemRequest(SanitizedBaseModel):

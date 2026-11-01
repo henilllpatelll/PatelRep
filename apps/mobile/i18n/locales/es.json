@@ -2296,7 +2296,9 @@
         "offlineQueue": "Estás sin conexión. La finalización se guardará en este teléfono y se enviará después. La orden sigue abierta hasta que el servidor la confirme.",
         "offlineBlock": {
           "parts": "Las piezas salen del inventario, por lo que esto requiere conexión. Conéctate para completar con piezas.",
-          "failedVerification": "Una prueba fallida se registra en el servidor, por lo que esto requiere conexión."
+          "failedVerification": "Una prueba fallida se registra en el servidor, por lo que esto requiere conexión.",
+          "checklistOpen": "Siguen abiertos pasos obligatorios de la lista. Termínelos con conexión y luego complete la orden.",
+          "checklistUnverified": "Este teléfono no ha confirmado la lista de verificación, así que la finalización no se puede guardar para después. Conéctese para completar."
         },
         "failedNote": "Una prueba fallida mantiene la orden en curso. No se cerrará.",
         "followUpNote": "La orden se completará y se marcará como que requiere seguimiento. No se crea una nueva orden de trabajo.",
@@ -2305,11 +2307,27 @@
           "verification": "Elige un resultado de verificación.",
           "verificationNotes": "Agrega una nota que explique el resultado.",
           "parts": "Corrige las piezas marcadas.",
-          "stock": "No hay suficiente inventario para una de las piezas. Revísalas."
+          "stock": "No hay suficiente inventario para una de las piezas. Revísalas.",
+          "checklist": "Siguen abiertos pasos obligatorios de la lista. La orden de trabajo no se completó."
         },
         "outcome": {
           "verificationFailed": "Prueba fallida registrada. La orden sigue en curso. No se cerró nada.",
           "conflict": "La orden cambió mientras trabajabas. Se volvió a cargar. {{message}}"
+        },
+        "readiness": {
+          "ready": "Lista para completar",
+          "blocked": "Antes de poder completar",
+          "checklist": "Lista de verificación: {{done}} de {{total}} hechos",
+          "viewChecklist": "Ver lista de verificación",
+          "unverifiedOnline": "Este teléfono no pudo leer la lista de verificación. El servidor la revisará al enviar.",
+          "blocker": {
+            "checklist": "Sigue abierto {{count}} paso obligatorio de la lista",
+            "checklist_plural": "Siguen abiertos {{count}} pasos obligatorios de la lista",
+            "checklistUnverified": "La lista de verificación no se ha confirmado en este teléfono, así que la finalización no se puede guardar para después",
+            "resolution": "Elija cómo se resolvió",
+            "verification": "Elija un resultado de verificación",
+            "verificationNotes": "Agregue una nota que explique el resultado"
+          }
         }
       },
       "result": {
@@ -2432,7 +2450,34 @@
       },
       "checklist": {
         "title": "Lista de verificación",
-        "unavailable": "Todavía no hay una lista de verificación para esta orden de trabajo."
+        "progress": "{{done}} de {{total}} completados",
+        "progressA11y": "{{done}} de {{total}} pasos de la lista completados",
+        "required": "Obligatorio",
+        "optional": "Opcional",
+        "requiredRemaining": "Falta {{count}} paso obligatorio",
+        "requiredRemaining_plural": "Faltan {{count}} pasos obligatorios",
+        "requiredDone": "Todos los pasos obligatorios están hechos",
+        "stateDone": "hecho",
+        "stateOpen": "sin hacer",
+        "saving": "guardando",
+        "doneAt": "Hecho {{time}}",
+        "emptyTitle": "Sin lista de verificación",
+        "emptyBody": "Esta orden de trabajo no tiene pasos de lista. Aun así puede trabajar en ella y completarla.",
+        "errorLoad": "No se pudo cargar la lista de verificación.",
+        "errorForbidden": "No tiene acceso a esta lista de verificación.",
+        "stale": "No se pudo actualizar. Se muestra la última lista que cargó este teléfono.",
+        "readOnly": {
+          "closed": "Esta orden de trabajo está cerrada. La lista es un registro de solo lectura.",
+          "notAssigned": "Solo el técnico asignado actualiza esta lista. Tome la orden para trabajar en ella.",
+          "offline": "No hay conexión. Los pasos se guardan en el servidor; reconéctese para cambiarlos.",
+          "viewOnly": "Su rol puede leer esta lista, pero no cambiarla."
+        },
+        "itemError": {
+          "closed": "Esta orden de trabajo se cerró, así que el paso no cambió.",
+          "forbidden": "No puede cambiar este paso.",
+          "failed": "No se pudo guardar ese paso. Revise su conexión e inténtelo de nuevo."
+        },
+        "reviewCompletion": "Revisar finalización"
       },
       "work": {
         "site": "En sitio",

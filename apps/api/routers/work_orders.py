@@ -436,7 +436,7 @@ def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> N
         return
     items = (
         supabase.table("work_order_checklist_template_items")
-        .select("label, estimated_minutes, sort_order")
+        .select("*")
         .eq("template_id", template_id)
         .order("sort_order")
         .execute()
@@ -451,6 +451,8 @@ def _seed_checklist_from_template(wo_id: str, category: str, hotel_id: str) -> N
                 "label": item["label"],
                 "estimated_minutes": item.get("estimated_minutes"),
                 "sort_order": item.get("sort_order", 0),
+                # Only sent when set: an optional item needs no column (migration 231).
+                **({"is_required": True} if item.get("is_required") else {}),
             }
             for item in items
         ]
@@ -1462,6 +1464,21 @@ async def complete_work_order(
             current_user.hotel_id,
         )
 
+    # Required checklist steps are part of the preflight: it must run before labor sessions are closed below, and a
+    # rejection leaves the work order exactly as it was. Optional steps never block.
+    checklist = _checklist_summary(_checklist_items(wo_id, current_user.hotel_id))
+    if not checklist["ready"]:
+        remaining = checklist["required_remaining"]
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "checklist_incomplete",
+                "message": f"{len(remaining)} required checklist item{'s' if len(remaining) != 1 else ''} must be done before this work order can be completed.",
+                "remaining": remaining,
+                "applied": False,
+            },
+        )
+
     # Close any running sessions only after every preflight has accepted the
     # completion. Server timestamps are authoritative; manual hours remain
     # only for work orders with no tracked sessions.
@@ -1950,21 +1967,62 @@ async def add_comment(
 # editable per work order thereafter.
 # ---------------------------------------------------------------------------
 
+_CLOSED_STATUSES = ("completed", "cancelled")
+
+
+def _checklist_items(wo_id: str, hotel_id: str) -> list[dict]:
+    rows = (
+        supabase.table("work_order_checklist_items")
+        .select("*")
+        .eq("work_order_id", wo_id)
+        .eq("tenant_id", hotel_id)
+        .execute()
+    ).data or []
+    rows = sorted(rows, key=lambda row: (row.get("sort_order") or 0, row.get("created_at") or ""))
+    # Rows from before migration 231 have no column: they are optional, never required.
+    return [{**row, "is_required": bool(row.get("is_required"))} for row in rows]
+
+
+def _checklist_summary(items: list[dict]) -> dict:
+    """The one definition of checklist readiness: GET returns it and POST /complete enforces it."""
+    required = [item for item in items if item.get("is_required")]
+    remaining = [{"id": item["id"], "label": item.get("label")} for item in required if not item.get("is_done")]
+    return {
+        "total": len(items),
+        "completed": sum(1 for item in items if item.get("is_done")),
+        "required_total": len(required),
+        "required_completed": len(required) - len(remaining),
+        "required_remaining": remaining,
+        "ready": not remaining,
+    }
+
+
+def _checklist_work_order(wo_id: str, hotel_id: str) -> dict:
+    result = (
+        supabase.table("work_orders")
+        .select("id, status, assigned_to")
+        .eq("id", wo_id)
+        .eq("tenant_id", hotel_id)
+        .maybe_single()
+        .execute()
+    )
+    if not result or not result.data:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    return result.data
+
+
 @router.get("/{wo_id}/checklist")
 async def list_checklist_items(
     wo_id: str,
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    _ensure_tenant_row("work_orders", wo_id, current_user.hotel_id, "Work order")
-    result = (
-        supabase.table("work_order_checklist_items")
-        .select("*")
-        .eq("work_order_id", wo_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .order("sort_order")
-        .execute()
-    )
-    return {"data": result.data or []}
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    items = _checklist_items(wo_id, current_user.hotel_id)
+    return {
+        "data": items,
+        "summary": _checklist_summary(items),
+        "meta": {"work_order_status": work_order.get("status"), "editable": work_order.get("status") not in _CLOSED_STATUSES},
+    }
 
 
 @router.post("/{wo_id}/checklist")
@@ -1995,6 +2053,7 @@ async def add_checklist_item(
                 "label": request.label,
                 "estimated_minutes": request.estimated_minutes,
                 "sort_order": next_sort,
+                **({"is_required": True} if request.is_required else {}),
             }
         )
         .execute()
@@ -2011,22 +2070,71 @@ async def update_checklist_item(
         require_role("engineer", "chief_engineer", "gm")
     ),
 ):
-    update_data = {
-        "is_done": request.is_done,
-        "done_by": current_user.user_id if request.is_done else None,
-        "done_at": datetime.now(timezone.utc).isoformat() if request.is_done else None,
-    }
-    result = (
-        supabase.table("work_order_checklist_items")
-        .update(update_data)
-        .eq("id", item_id)
-        .eq("work_order_id", wo_id)
-        .eq("tenant_id", current_user.hotel_id)
-        .execute()
-    )
-    if not result.data:
+    """Mark a step done or reopen it. A checklist step is work on the order, so it follows the same rules as the other
+    repair writes: an engineer needs the order assigned to them (or open and unclaimed), and a completed or cancelled
+    order is a closed record. Repeating the current state is a no-op that keeps the original done_by / done_at."""
+    work_order = _checklist_work_order(wo_id, current_user.hotel_id)
+    _ensure_engineer_can_update_work_order(current_user, work_order)
+    if work_order.get("status") in _CLOSED_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "work_order_closed", "message": "This work order is closed; its checklist can no longer be changed."},
+        )
+
+    def read_item() -> dict | None:
+        found = (
+            supabase.table("work_order_checklist_items")
+            .select("*")
+            .eq("id", item_id)
+            .eq("work_order_id", wo_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .limit(1)
+            .execute()
+        ).data
+        return {**found[0], "is_required": bool(found[0].get("is_required"))} if found else None
+
+    item = read_item()
+    if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    return {"data": result.data[0]}
+
+    # Conditional on the state we read, so two people tapping at once cannot overwrite each other's done_by/done_at.
+    for _ in range(2):
+        if bool(item.get("is_done")) == request.is_done:
+            break
+        updated = (
+            supabase.table("work_order_checklist_items")
+            .update(
+                {
+                    "is_done": request.is_done,
+                    "done_by": current_user.user_id if request.is_done else None,
+                    "done_at": datetime.now(timezone.utc).isoformat() if request.is_done else None,
+                }
+            )
+            .eq("id", item_id)
+            .eq("work_order_id", wo_id)
+            .eq("tenant_id", current_user.hotel_id)
+            .eq("is_done", bool(item.get("is_done")))
+            .execute()
+        )
+        if updated.data:
+            previous = item
+            item = {**updated.data[0], "is_required": bool(updated.data[0].get("is_required"))}
+            try:
+                _record_repair_audit(
+                    work_order_id=wo_id,
+                    current_user=current_user,
+                    action="work_order.checklist_item_updated",
+                    old_state={"item_id": item_id, "label": previous.get("label"), "is_done": bool(previous.get("is_done"))},
+                    new_state={"item_id": item_id, "label": item.get("label"), "is_done": request.is_done, "is_required": item["is_required"]},
+                )
+            except Exception:  # the step is saved; a missing audit row must not make the client retry it
+                logger.exception("Checklist audit event failed for work order %s item %s", wo_id, item_id)
+            break
+        item = read_item()
+        if not item:
+            raise HTTPException(status_code=404, detail="Checklist item not found")
+
+    return {"data": item, "summary": _checklist_summary(_checklist_items(wo_id, current_user.hotel_id))}
 
 
 # ---------------------------------------------------------------------------

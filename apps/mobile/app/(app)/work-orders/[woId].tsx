@@ -56,7 +56,9 @@ import { WorkOrderRepairTools, type ToolId } from "@/components/engineering/work
 import { WorkOrderTabs, type DetailTab } from "@/components/engineering/workorder/WorkOrderTabs";
 import { WorkOrderProgress } from "@/components/engineering/workorder/WorkOrderProgress";
 import { WorkOrderNextAction } from "@/components/engineering/workorder/WorkOrderNextAction";
-import { WorkOrderChecklistShell } from "@/components/engineering/workorder/WorkOrderChecklistShell";
+import { WorkOrderChecklist } from "@/components/engineering/workorder/WorkOrderChecklist";
+import { useWorkOrderChecklist } from "@/lib/engineering/useWorkOrderChecklist";
+import { checklistEditing, checklistGate } from "@/lib/engineering/workOrderChecklist";
 import { deriveNextStep, deriveRepairProgress } from "@/lib/engineering/repairProgress";
 import { WorkOrderActivityTimeline } from "@/components/engineering/workorder/WorkOrderActivityTimeline";
 import { WorkOrderRecordCard } from "@/components/engineering/workorder/WorkOrderRecordCard";
@@ -92,6 +94,7 @@ export default function WorkOrderDetailScreen() {
   const userId = user?.id ?? null;
 
   const detail = useWorkOrderDetail(String(woId), userId);
+  const checklist = useWorkOrderChecklist(String(woId));
   const assistSwitchedOn = useAiCapability("repairAssist");
   const { wo, secondary, sectionFailed, queued, skewMs } = detail;
 
@@ -111,6 +114,15 @@ export default function WorkOrderDetailScreen() {
       setDraft(emptyCompletionDraft(wo));
     }
   }, [wo]);
+
+  // A status change (completed, put on hold, reopened) changes whether the checklist is editable: re-read it.
+  const lastStatus = useRef<string | null>(null);
+  const status = wo?.status ?? null;
+  const refreshChecklist = checklist.refresh;
+  useEffect(() => {
+    if (status && lastStatus.current && lastStatus.current !== status) void refreshChecklist();
+    lastStatus.current = status;
+  }, [status, refreshChecklist]);
 
   // Room occupancy is context, not a prerequisite: resolve it after the order is on screen and ignore failures.
   const roomKey = wo ? `${wo.room_id ?? ""}|${wo.rooms?.room_number ?? ""}` : "";
@@ -305,7 +317,9 @@ export default function WorkOrderDetailScreen() {
   async function submitCompletion(): Promise<CompletionOutcome> {
     const body = buildCompletionBody(draft, { hasAsset: Boolean(order.asset_id || order.assets?.id) });
     if (!isOnline) {
-      if (offlineCompletionBlock(draft) != null) return { kind: "failed", message: t("workOrders.repair.complete.offlineBlock.parts") };
+      // Queued completions skip the server's checklist check until replay, so only a confirmed-clear checklist may queue.
+      const block = offlineCompletionBlock(draft, checklistGate(checklist.load));
+      if (block != null) return { kind: "failed", message: t(`workOrders.repair.complete.offlineBlock.${block}`) };
       await enqueueAction("work_order", "complete", body, order.id, label);
       toast.info(t("workOrders.repair.complete.queued"));
       await refreshAfter([]);
@@ -331,6 +345,7 @@ export default function WorkOrderDetailScreen() {
       return { kind: "completed", followUpRequired: draft.verification === "follow_up_required" };
     } catch (err) {
       const outcome = interpretCompletionError(err, draft);
+      if (outcome.kind === "rejected" && outcome.errors.checklist) void checklist.refresh();
       // The server may have recorded a failed test or changed the order under us: re-read so the screen tells the truth.
       await refreshAfter(["history"]);
       return outcome;
@@ -340,13 +355,19 @@ export default function WorkOrderDetailScreen() {
     }
   }
 
+  /** Review Completion reads the checklist again first, so it never judges readiness from an old read. */
+  const openCompletion = () => {
+    void checklist.refresh();
+    setSheet("complete");
+  };
+
   const onBar = (action: BarAction) => {
     if (action === "claim") void claim();
     else if (action === "start") void startRepair();
     else if (action === "resumeWork") void resumeWork();
     else if (action === "pauseLabor") void pauseLabor();
     else if (action === "startLabor") void startLabor();
-    else if (action === "complete") setSheet("complete");
+    else if (action === "complete") openCompletion();
     else if (action === "hold") setSheet("hold");
   };
 
@@ -370,6 +391,12 @@ export default function WorkOrderDetailScreen() {
   const manageable = canManageTeam(role) && isAssignable(order) && !result;
   const assistable = canOfferAssist({ capability: assistSwitchedOn, status: order.status, role }) && !result;
   const heldBanner = order.status === "on_hold";
+  const editing = checklistEditing({
+    actions,
+    role,
+    online: isOnline,
+    snapshotEditable: checklist.load.phase !== "ready" || checklist.load.snapshot.editable,
+  });
   const progress = deriveRepairProgress(order);
   const nextStep = deriveNextStep(order, actions);
 
@@ -432,7 +459,20 @@ export default function WorkOrderDetailScreen() {
               </>
             ) : null}
 
-            {tab === "checklist" ? <WorkOrderChecklistShell /> : null}
+            {tab === "checklist" ? (
+              <WorkOrderChecklist
+                load={checklist.load}
+                pending={checklist.pending}
+                itemErrors={checklist.itemErrors}
+                stale={checklist.stale}
+                canEdit={editing.canEdit}
+                readOnlyReason={editing.reason}
+                locale={locale}
+                onToggle={(itemId, next) => void checklist.setDone(itemId, next)}
+                onRetry={() => void checklist.refresh()}
+                onReviewCompletion={actions.can.complete ? openCompletion : null}
+              />
+            ) : null}
 
             {tab === "work" ? (
               <WorkOrderRepairTools
@@ -537,6 +577,8 @@ export default function WorkOrderDetailScreen() {
         labor={labor}
         laborFailed={!!sectionFailed.labor}
         photoCount={photos.length}
+        checklist={checklist.load}
+        onViewChecklist={() => (setSheet(null), setTab("checklist"))}
         draft={draft}
         onDraft={setDraft}
         onEditParts={() => setSheet("parts")}

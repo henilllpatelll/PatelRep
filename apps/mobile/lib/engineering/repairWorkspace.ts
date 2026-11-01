@@ -5,6 +5,7 @@
    decides what the screen offers and says. No i18n here — callers translate the keys. */
 
 import { canActOnWorkOrders } from "@/lib/engineering/roles";
+import { offlineChecklistBlock, type ChecklistGate } from "@/lib/engineering/workOrderChecklist";
 import {
   canTransitionWorkOrder,
   type WorkOrder,
@@ -448,7 +449,7 @@ export function emptyCompletionDraft(wo?: Partial<WorkOrder>): CompletionDraft {
   };
 }
 
-export type CompletionField = "resolution" | "problemOther" | "causeOther" | "resolutionOther" | "verification" | "verificationNotes" | "parts";
+export type CompletionField = "resolution" | "problemOther" | "causeOther" | "resolutionOther" | "verification" | "verificationNotes" | "parts" | "checklist";
 
 export type CompletionErrors = Partial<Record<CompletionField, string>>;
 
@@ -470,6 +471,32 @@ export function validateCompletion(
   else if (draft.verification !== "passed" && !draft.verificationNotes.trim()) errors.verificationNotes = "notes";
   if (draft.parts.some((p) => stagedPartIssue(p) != null)) errors.parts = "parts";
   return errors;
+}
+
+export type CompletionBlockerId = "checklist" | "checklistUnverified" | "resolution" | "verification" | "verificationNotes";
+
+export interface CompletionBlocker {
+  id: CompletionBlockerId;
+  /** For `checklist`: how many required steps are open. */
+  count?: number;
+}
+
+/**
+ * What still stands between this draft and a completion, in the order the sheet shows it. Every entry mirrors a rule that
+ * is also enforced: resolution and verification by the form and the API, open required checklist steps by POST /complete.
+ * A failed test is recorded rather than completed, so the checklist does not block it. When the checklist could not be
+ * read, only an offline completion is blocked (online, the server decides when the person submits).
+ */
+export function completionBlockers(draft: CompletionDraft, gate: ChecklistGate, online: boolean): CompletionBlocker[] {
+  const blockers: CompletionBlocker[] = [];
+  if (!draft.resolutionCodeId && !draft.resolutionOtherText.trim()) blockers.push({ id: "resolution" });
+  if (!draft.verification) blockers.push({ id: "verification" });
+  else if (draft.verification !== "passed" && !draft.verificationNotes.trim()) blockers.push({ id: "verificationNotes" });
+  if (draft.verification !== "failed") {
+    if (gate.kind === "blocked") blockers.push({ id: "checklist", count: gate.remaining.length });
+    else if (gate.kind === "unverified" && !online) blockers.push({ id: "checklistUnverified" });
+  }
+  return blockers;
 }
 
 export interface CompleteWorkOrderBody {
@@ -516,7 +543,8 @@ export type CompletionOutcome =
   /** Saved on this phone, not sent. */
   | { kind: "queued" }
   | { kind: "conflict"; message: string }
-  | { kind: "rejected"; message: string; errors: CompletionErrors }
+  /** `checklistRemaining` is set when the server refused because required checklist steps are still open. */
+  | { kind: "rejected"; message: string; errors: CompletionErrors; checklistRemaining?: number }
   | { kind: "failed"; message: string };
 
 /** What a failed POST /complete means. Only a 409 for a failed verification is the "recorded, still in progress" outcome. */
@@ -529,6 +557,10 @@ export function interpretCompletionError(error: unknown, draft: Pick<CompletionD
   if (status === 409) return { kind: "conflict", message };
   if (status === 422) {
     const errors: CompletionErrors = {};
+    if ((error as { code?: string } | null)?.code === "checklist_incomplete") {
+      const remaining = (error as { detail?: { remaining?: unknown } }).detail?.remaining;
+      return { kind: "rejected", message, errors: { checklist: "required" }, checklistRemaining: Array.isArray(remaining) ? remaining.length : undefined };
+    }
     if (/describe the selected other problem/i.test(message)) errors.problemOther = "other";
     if (/describe the selected other cause/i.test(message)) errors.causeOther = "other";
     if (/describe the selected other resolution/i.test(message)) errors.resolutionOther = "other";
@@ -542,10 +574,12 @@ export function interpretCompletionError(error: unknown, draft: Pick<CompletionD
  * Offline completion rules. A completion made offline is only queued and replayed later, with no stock check and no
  * retry protection for inventory, so anything that moves inventory or records a failed test needs a connection.
  */
-export type OfflineCompletionBlock = "parts" | "failedVerification" | null;
+export type OfflineCompletionBlock = "parts" | "failedVerification" | "checklistOpen" | "checklistUnverified" | null;
 
-export function offlineCompletionBlock(draft: Pick<CompletionDraft, "parts" | "verification">): OfflineCompletionBlock {
+export function offlineCompletionBlock(draft: Pick<CompletionDraft, "parts" | "verification">, checklist?: ChecklistGate): OfflineCompletionBlock {
   if (draft.verification === "failed") return "failedVerification";
   if (draft.parts.length > 0) return "parts";
+  // A queued completion skips the server's checklist check until it is replayed, so the phone must already know it passes.
+  if (checklist) return offlineChecklistBlock(checklist);
   return null;
 }

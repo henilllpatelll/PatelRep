@@ -75,6 +75,8 @@ async def test_create_work_order_with_untemplated_category_has_empty_checklist(m
 @pytest.mark.asyncio
 async def test_toggle_checklist_item_sets_done_by_and_done_at(monkeypatch):
     db = FakeDB({
+        "work_orders": [{"id": "wo-1", "tenant_id": "hotel-1", "status": "in_progress", "assigned_to": "eng-1"}],
+        "operational_audit_events": [],
         "work_order_checklist_items": [
             {"id": "item-1", "tenant_id": "hotel-1", "work_order_id": "wo-1", "label": "Step", "is_done": False, "done_by": None, "done_at": None},
         ],
@@ -93,6 +95,7 @@ async def test_toggle_checklist_item_sets_done_by_and_done_at(monkeypatch):
 @pytest.mark.asyncio
 async def test_toggle_checklist_item_cross_tenant_is_404(monkeypatch):
     db = FakeDB({
+        "work_orders": [{"id": "wo-1", "tenant_id": "hotel-1", "status": "in_progress", "assigned_to": "eng-1"}],
         "work_order_checklist_items": [
             {"id": "item-1", "tenant_id": "hotel-2", "work_order_id": "wo-1", "label": "Step", "is_done": False},
         ],
