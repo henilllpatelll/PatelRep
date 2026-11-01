@@ -53,6 +53,11 @@ import { WorkOrderActionBar, type BarAction } from "@/components/engineering/wor
 import { WorkOrderReportedIssue } from "@/components/engineering/workorder/WorkOrderReportedIssue";
 import { WorkOrderAssetContext } from "@/components/engineering/workorder/WorkOrderAssetContext";
 import { WorkOrderRepairTools, type ToolId } from "@/components/engineering/workorder/WorkOrderRepairTools";
+import { WorkOrderTabs, type DetailTab } from "@/components/engineering/workorder/WorkOrderTabs";
+import { WorkOrderProgress } from "@/components/engineering/workorder/WorkOrderProgress";
+import { WorkOrderNextAction } from "@/components/engineering/workorder/WorkOrderNextAction";
+import { WorkOrderChecklistShell } from "@/components/engineering/workorder/WorkOrderChecklistShell";
+import { deriveNextStep, deriveRepairProgress } from "@/lib/engineering/repairProgress";
 import { WorkOrderActivityTimeline } from "@/components/engineering/workorder/WorkOrderActivityTimeline";
 import { WorkOrderRecordCard } from "@/components/engineering/workorder/WorkOrderRecordCard";
 import { WorkOrderCompletionResult, type CompletionSummary } from "@/components/engineering/workorder/WorkOrderCompletionResult";
@@ -95,6 +100,7 @@ export default function WorkOrderDetailScreen() {
   const busyRef = useRef<string | null>(null);
   const [draft, setDraft] = useState<CompletionDraft>(() => emptyCompletionDraft());
   const [result, setResult] = useState<CompletionSummary | null>(null);
+  const [tab, setTab] = useState<DetailTab>("overview");
   const [occupancy, setOccupancy] = useState<"occupied" | "vacant" | null>(null);
 
   // The draft starts from the saved coding once, then belongs to the person.
@@ -347,6 +353,8 @@ export default function WorkOrderDetailScreen() {
   const onTool = (tool: ToolId) => {
     if (tool === "arrive") void arrive();
     else if (tool === "acknowledge") void acknowledge();
+    else if (tool === "resumeWork") void resumeWork();
+    else if (tool === "assist") setSheet("assist");
     else setSheet(tool);
   };
 
@@ -362,10 +370,18 @@ export default function WorkOrderDetailScreen() {
   const manageable = canManageTeam(role) && isAssignable(order) && !result;
   const assistable = canOfferAssist({ capability: assistSwitchedOn, status: order.status, role }) && !result;
   const heldBanner = order.status === "on_hold";
+  const progress = deriveRepairProgress(order);
+  const nextStep = deriveNextStep(order, actions);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <WorkOrderHeader wo={order} onBack={() => router.back()} onMore={closed || actions.block === "viewOnly" ? null : () => setSheet("more")} />
+
+      {!result ? (
+        <View style={styles.tabs}>
+          <WorkOrderTabs value={tab} onChange={setTab} />
+        </View>
+      ) : null}
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, showBar && styles.withBar]} keyboardShouldPersistTaps="handled">
         {result ? (
@@ -376,27 +392,6 @@ export default function WorkOrderDetailScreen() {
           />
         ) : (
           <>
-            <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => setSheet("labor")} />
-
-            {manageable || assistable ? (
-              <View style={styles.extras}>
-                {manageable ? (
-                  <Button
-                    label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
-                    variant="secondary"
-                    size="sm"
-                    icon="person-add-outline"
-                    onPress={() => setSheet("assign")}
-                    disabled={!isOnline}
-                    testID="wo-assign-open"
-                  />
-                ) : null}
-                {assistable ? (
-                  <Button label={t("repairAssist.open")} variant="secondary" size="sm" icon="sparkles-outline" onPress={() => setSheet("assist")} testID="wo-assist-open" />
-                ) : null}
-              </View>
-            ) : null}
-
             {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" /> : null}
             {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" /> : null}
             {!isOnline ? <Banner icon="cloud-offline-outline" text={t("workOrders.repair.banner.offline")} testID="wo-banner-offline" /> : null}
@@ -413,21 +408,54 @@ export default function WorkOrderDetailScreen() {
             {order.status === "escalated" ? <Banner icon="alert-circle-outline" tone="warn" text={t("workOrders.repair.banner.escalated")} testID="wo-banner-escalated" /> : null}
             {order.status === "cancelled" ? <Banner icon="close-circle-outline" text={t("workOrders.repair.banner.cancelled")} testID="wo-banner-cancelled" /> : null}
 
-            <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} technicianName={technicianName} />
-            <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} />
-            <WorkOrderRepairTools
-              wo={order}
-              actions={actions}
-              locale={locale}
-              online={isOnline}
-              busy={busy}
-              laborLabel={laborLabel}
-              photoCount={photos.length}
-              partsCount={secondary.parts.length + draft.parts.length}
-              onTool={onTool}
-            />
-            {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
-            <WorkOrderActivityTimeline items={timeline} locale={locale} failed={!!sectionFailed.history} />
+            {tab === "overview" ? (
+              <>
+                <WorkOrderProgress progress={progress} />
+                <WorkOrderNextAction step={nextStep} barVisible={showBar} />
+                <WorkOrderSummary wo={order} locale={locale} labor={labor} laborFailed={!!sectionFailed.labor} nowMs={nowMs} onOpenLabor={() => (setTab("work"), setSheet("labor"))} />
+                {manageable ? (
+                  <View style={styles.extras}>
+                    <Button
+                      label={order.assigned_to ? t("engineeringTeam.assign.reassignTitle") : t("engineeringTeam.assign.title")}
+                      variant="secondary"
+                      size="sm"
+                      icon="person-add-outline"
+                      onPress={() => setSheet("assign")}
+                      disabled={!isOnline}
+                      testID="wo-assign-open"
+                    />
+                  </View>
+                ) : null}
+                <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} technicianName={technicianName} />
+                <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="summary" />
+                {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
+              </>
+            ) : null}
+
+            {tab === "checklist" ? <WorkOrderChecklistShell /> : null}
+
+            {tab === "work" ? (
+              <WorkOrderRepairTools
+                wo={order}
+                actions={actions}
+                locale={locale}
+                online={isOnline}
+                busy={busy}
+                laborLabel={laborLabel}
+                photoCount={photos.length}
+                partsCount={secondary.parts.length + draft.parts.length}
+                noteCount={(order.work_order_comments ?? []).length}
+                assistable={assistable}
+                onTool={onTool}
+              />
+            ) : null}
+
+            {tab === "history" ? (
+              <>
+                <WorkOrderActivityTimeline items={timeline} locale={locale} failed={!!sectionFailed.history} />
+                <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="history" />
+              </>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -536,5 +564,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
   withBar: { paddingBottom: 150 },
   banner: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  tabs: { paddingHorizontal: 18, paddingTop: 12 },
   extras: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });

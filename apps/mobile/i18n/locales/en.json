@@ -2116,7 +2116,10 @@
         "previous": "Earlier completed repairs: {{count}}",
         "noPrevious": "No earlier repairs on this equipment.",
         "relatedFailed": "Earlier repairs couldn't be loaded.",
-        "open": "Open earlier repair {{title}}"
+        "open": "Open earlier repair {{title}}",
+        "historyTitle": "Earlier repairs",
+        "historyNote": "Completed repairs on {{name}}. These are not part of this work order's activity.",
+        "seeHistory": "Earlier completed repairs on this equipment: {{count}}. See History."
       },
       "tools": {
         "title": "Repair tools",
@@ -2135,7 +2138,12 @@
         "parts": "Parts",
         "partsCount": "Parts: {{count}}",
         "note": "Note",
-        "addNote": "Add a note"
+        "addNote": "Add a note",
+        "notesCount": "Notes: {{count}}",
+        "resumeHint": "Return the order to in progress",
+        "holdHint": "Pause with a reason",
+        "escalateHint": "Flag it for a manager's attention",
+        "assistHint": "Suggestions to review, not a diagnosis"
       },
       "more": {
         "title": "More actions",
@@ -2357,6 +2365,79 @@
         "diagnosisSaved": "Diagnosis saved",
         "photoAttached": "Photo attached",
         "busy": "Another action is still running."
+      },
+      "tabs": {
+        "overview": "Overview",
+        "checklist": "Checklist",
+        "work": "Work",
+        "history": "History"
+      },
+      "progress": {
+        "title": "Repair progress",
+        "cancelled": "This work order was cancelled.",
+        "stage": {
+          "claim": "Claim",
+          "diagnose": "Diagnose",
+          "repair": "Repair",
+          "verify": "Verify",
+          "complete": "Complete"
+        },
+        "state": {
+          "done": "done",
+          "current": "in progress",
+          "pending": "not yet",
+          "paused": "paused",
+          "unknown": "not recorded"
+        }
+      },
+      "next": {
+        "title": "Next step",
+        "useBar": "Use the button below.",
+        "claim": {
+          "label": "Claim Work",
+          "hint": "Nobody owns this order yet. Claim it to start."
+        },
+        "start": {
+          "label": "Start Repair",
+          "hint": "This order is assigned to you and ready to begin."
+        },
+        "continue": {
+          "label": "Continue Repair",
+          "hint": "Record labor, diagnosis, photos and parts, then review completion."
+        },
+        "reviewHold": {
+          "label": "Review Hold",
+          "hint": "This order is on hold. Resume work when the hold reason is resolved."
+        },
+        "resume": {
+          "label": "Resume Work",
+          "hint": "This order was escalated. Resume work when you can continue."
+        },
+        "viewRecord": {
+          "label": "View Completed Record",
+          "hint": "This repair is complete. The record is below and in History."
+        },
+        "cancelled": {
+          "label": "Cancelled",
+          "hint": "This order was cancelled. No repair actions are available."
+        },
+        "viewOnly": {
+          "label": "View only",
+          "hint": "Your role can review this order but not change the repair."
+        },
+        "elsewhere": {
+          "label": "Assigned to another technician",
+          "hint": "You can read this order. Only its owner can work on it."
+        }
+      },
+      "checklist": {
+        "title": "Checklist",
+        "unavailable": "A checklist isn't available for this work order yet."
+      },
+      "work": {
+        "site": "On site",
+        "repair": "Repair work",
+        "more": "Additional actions"
       }
     }
   },

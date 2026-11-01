@@ -2116,7 +2116,10 @@
         "previous": "Reparaciones anteriores completadas: {{count}}",
         "noPrevious": "No hay reparaciones anteriores en este equipo.",
         "relatedFailed": "No se pudieron cargar las reparaciones anteriores.",
-        "open": "Abrir reparación anterior {{title}}"
+        "open": "Abrir reparación anterior {{title}}",
+        "historyTitle": "Reparaciones anteriores",
+        "historyNote": "Reparaciones completadas en {{name}}. No forman parte de la actividad de esta orden.",
+        "seeHistory": "Reparaciones anteriores completadas en este equipo: {{count}}. Ver Historial."
       },
       "tools": {
         "title": "Herramientas de reparación",
@@ -2135,7 +2138,12 @@
         "parts": "Piezas",
         "partsCount": "Piezas: {{count}}",
         "note": "Nota",
-        "addNote": "Agregar una nota"
+        "addNote": "Agregar una nota",
+        "notesCount": "Notas: {{count}}",
+        "resumeHint": "Devolver la orden a en curso",
+        "holdHint": "Pausar con un motivo",
+        "escalateHint": "Avisar a un gerente",
+        "assistHint": "Sugerencias para revisar, no un diagnóstico"
       },
       "more": {
         "title": "Más acciones",
@@ -2357,6 +2365,79 @@
         "diagnosisSaved": "Diagnóstico guardado",
         "photoAttached": "Foto adjuntada",
         "busy": "Otra acción sigue en curso."
+      },
+      "tabs": {
+        "overview": "Resumen",
+        "checklist": "Lista",
+        "work": "Trabajo",
+        "history": "Historial"
+      },
+      "progress": {
+        "title": "Avance de la reparación",
+        "cancelled": "Esta orden de trabajo fue cancelada.",
+        "stage": {
+          "claim": "Tomar",
+          "diagnose": "Diagnosticar",
+          "repair": "Reparar",
+          "verify": "Verificar",
+          "complete": "Completar"
+        },
+        "state": {
+          "done": "listo",
+          "current": "en curso",
+          "pending": "pendiente",
+          "paused": "en pausa",
+          "unknown": "sin registro"
+        }
+      },
+      "next": {
+        "title": "Siguiente paso",
+        "useBar": "Usa el botón de abajo.",
+        "claim": {
+          "label": "Tomar el trabajo",
+          "hint": "Nadie tiene esta orden todavía. Tómala para empezar."
+        },
+        "start": {
+          "label": "Iniciar reparación",
+          "hint": "Esta orden está asignada a ti y lista para comenzar."
+        },
+        "continue": {
+          "label": "Continuar reparación",
+          "hint": "Registra mano de obra, diagnóstico, fotos y piezas; luego revisa el cierre."
+        },
+        "reviewHold": {
+          "label": "Revisar la pausa",
+          "hint": "Esta orden está en espera. Reanuda cuando se resuelva el motivo."
+        },
+        "resume": {
+          "label": "Reanudar trabajo",
+          "hint": "Esta orden fue escalada. Reanuda cuando puedas continuar."
+        },
+        "viewRecord": {
+          "label": "Ver registro completado",
+          "hint": "Esta reparación está completa. El registro está abajo y en Historial."
+        },
+        "cancelled": {
+          "label": "Cancelada",
+          "hint": "Esta orden fue cancelada. No hay acciones de reparación disponibles."
+        },
+        "viewOnly": {
+          "label": "Solo lectura",
+          "hint": "Tu rol puede revisar esta orden, pero no cambiar la reparación."
+        },
+        "elsewhere": {
+          "label": "Asignada a otro técnico",
+          "hint": "Puedes leer esta orden. Solo su responsable puede trabajarla."
+        }
+      },
+      "checklist": {
+        "title": "Lista de verificación",
+        "unavailable": "Todavía no hay una lista de verificación para esta orden de trabajo."
+      },
+      "work": {
+        "site": "En sitio",
+        "repair": "Trabajo de reparación",
+        "more": "Más acciones"
       }
     }
   },
