@@ -15,6 +15,10 @@ import { deleteSyncQueueItem, getPendingSyncQueue, incrementSyncQueueAttempts, m
 import { setQueueOwner } from "@/lib/offline/queueOwner";
 import { flushSyncQueue } from "@/lib/offline/sync";
 import { useAppStore } from "@/stores/appStore";
+import AS from "@react-native-async-storage/async-storage";
+import { saveCompletionDraft, loadCompletionDraft } from "@/lib/engineering/workOrderDrafts";
+import { loadRecentlySynced } from "@/lib/engineering/syncedHistory";
+import { emptyCompletionDraft } from "@/lib/engineering/repairWorkspace";
 
 const post = (api as unknown as { post: jest.Mock }).post;
 const apiError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { status });
@@ -77,5 +81,47 @@ describe("offline completion replay", () => {
     setQueueOwner(null);
     await flushSyncQueue();
     expect(post).not.toHaveBeenCalled();
+  });
+});
+
+describe("saved draft and recently synced follow the server, not the queue", () => {
+
+  beforeEach(async () => {
+    await AS.clear();
+    await saveCompletionDraft("wo-1", { ...emptyCompletionDraft(), notes: "Replaced capacitor" }, "in_progress", "WO-1");
+  });
+
+  it("clears the draft and lists the completion as synced only after the server accepts it", async () => {
+    post.mockResolvedValueOnce({});
+    await flushSyncQueue();
+    expect(await loadCompletionDraft("wo-1")).toBeNull();
+    expect((await loadRecentlySynced()).map((e) => `${e.kind}:${e.woId}`)).toEqual(["complete:wo-1"]);
+  });
+
+  it("keeps the draft and records nothing when the replay fails or is refused", async () => {
+    post.mockRejectedValueOnce(new Error("Network request failed"));
+    await flushSyncQueue();
+    post.mockRejectedValueOnce(apiError(422));
+    await flushSyncQueue();
+    expect(await loadCompletionDraft("wo-1")).not.toBeNull();
+    expect(await loadRecentlySynced()).toEqual([]);
+  });
+
+  it("counts a proven earlier landing (409, then re-read) as synced", async () => {
+    post.mockRejectedValueOnce(apiError(409));
+    (getWorkOrder as jest.Mock).mockResolvedValueOnce({ status: "completed", assigned_to: "me" });
+    await flushSyncQueue();
+    expect(await loadCompletionDraft("wo-1")).toBeNull();
+    expect((await loadRecentlySynced())[0]).toMatchObject({ kind: "complete", woId: "wo-1" });
+  });
+
+  it("records a confirmed claim but not a refused one", async () => {
+    (getPendingSyncQueue as jest.Mock).mockResolvedValue([{ id: 8, entity_type: "work_order", action: "claim", payload: JSON.stringify({ label: "WO-1" }), entity_id: "wo-1" }]);
+    post.mockRejectedValueOnce(apiError(409));
+    await flushSyncQueue();
+    expect(await loadRecentlySynced()).toEqual([]);
+    post.mockResolvedValueOnce({});
+    await flushSyncQueue();
+    expect((await loadRecentlySynced())[0]).toMatchObject({ kind: "claim", woId: "wo-1", label: "WO-1" });
   });
 });

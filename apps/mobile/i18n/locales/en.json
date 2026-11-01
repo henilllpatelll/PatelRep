@@ -2088,7 +2088,17 @@
         "noLabor": "None recorded",
         "noDeadline": "No deadline set"
       },
+      "draftSaved": "Draft saved on this phone. It isn't sent until you submit.",
       "banner": {
+        "cached": "Saved copy from {{time}}. It may be out of date; actions that need a connection are unavailable.",
+        "draftRestored": "Saved draft restored from {{time}}. Nothing has been sent.",
+        "draftReview": {
+          "statusChanged": "The work order changed since then. Review it before you submit.",
+          "closed": "This work order is already finished, so the draft can't be submitted."
+        },
+        "draftDiscard": "Discard draft",
+        "draftDiscardConfirm": "Discard for good",
+        "viewSync": "Sync status",
         "offline": "You're offline. You can read this order; most actions need a connection.",
         "claimQueued": "Your claim is saved on this phone and not confirmed yet. It will be sent when you're online.",
         "completeQueued": "Completion is saved on this phone and not confirmed yet. The order stays open until it syncs.",
@@ -2293,6 +2303,7 @@
         "confirm": "Confirm Completion",
         "confirmQueue": "Save Completion for Later",
         "queued": "Completion saved on this phone. It isn't confirmed until it syncs.",
+        "alreadyQueued": "A completion for this work order is already waiting to sync.",
         "offlineQueue": "You're offline. The completion will be saved on this phone and sent later. The order stays open until the server confirms it.",
         "offlineBlock": {
           "parts": "Parts come out of inventory, so this needs a connection. Go online to complete with parts.",
@@ -2377,6 +2388,7 @@
       "toast": {
         "claimed": "Claimed",
         "claimQueued": "Claim saved on this phone. Not confirmed until it syncs.",
+        "claimAlreadyQueued": "Your claim is already waiting to sync.",
         "startFailed": "Couldn't start the repair.",
         "laborFailed": "Couldn't update labor.",
         "ackFailed": "Couldn't acknowledge.",
@@ -11552,6 +11564,16 @@
     "discard": "Discard",
     "confirmDiscard": "Discard for good",
     "discardWarning": "This change was never sent. Discarding removes it from this phone and can't be undone. Anything already confirmed by the server stays.",
+    "stateSyncing": "Syncing now",
+    "recentTitle": "Recently synced",
+    "recentNone": "Nothing confirmed by the server yet.",
+    "recentClaim": "Claim confirmed by the server",
+    "recentComplete": "Completion confirmed by the server",
+    "draftsTitle": "Saved drafts",
+    "draftsNone": "No unsent drafts on this phone.",
+    "draftItem": "Repair completion draft",
+    "draftHint": "Saved on this phone. Not sent until you submit it.",
+    "openDraft": "Open",
     "dismiss": "Dismiss",
     "dismissClaims": "Dismiss all refused claims",
     "fullDetails": "All saved changes",

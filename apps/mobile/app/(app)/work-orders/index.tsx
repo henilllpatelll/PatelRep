@@ -311,15 +311,15 @@ export default function WorkOrdersScreen() {
   const rows = useMemo<Row[]>(() => {
     const list: Row[] = conflicts.map((c) => ({ type: "conflict", key: `conflict-${c.woId}`, woId: c.woId, label: c.label, reason: c.reason }));
     if (loadState.stale) list.push({ type: "notice", key: "stale", kind: "stale" });
-    else if (!isOnline && bucket.loaded) list.push({ type: "notice", key: "offline", kind: "offline" });
+    else if (bucket.cached || (!isOnline && bucket.loaded)) list.push({ type: "notice", key: "offline", kind: "offline" });
     if (loadState.status !== "ready") return list;
 
-    for (const row of buildWorkRows(bucket.items, { view, role, sort, hasMore: bucket.hasMore })) {
+    for (const row of buildWorkRows(bucket.items, { view, role, sort, hasMore: bucket.hasMore || bucket.cached })) {
       if (row.type === "wo") list.push(row);
       else list.push({ type: "section", key: row.key, title: t(`workQueue.groups.${row.section}`), count: `${row.count}${row.partial ? "+" : ""}` });
     }
     return list;
-  }, [bucket.items, bucket.hasMore, bucket.loaded, conflicts, isOnline, loadState, role, sort, t, view]);
+  }, [bucket.items, bucket.hasMore, bucket.cached, bucket.loaded, conflicts, isOnline, loadState, role, sort, t, view]);
 
   const emptyCopy = (): { title: string; body: string; action?: { label: string; onPress: () => void } } => {
     if (hasNarrowing) return { title: t("workQueue.empty.noMatches"), body: t("workQueue.empty.noMatchesHint") };
@@ -367,6 +367,11 @@ export default function WorkOrdersScreen() {
                 ? t("workQueue.offlineCached", { time: new Date(bucket.fetchedAt).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }) })
                 : t("workQueue.offlineCachedNoTime")}
             </Text>
+            <Pressable onPress={() => router.push("/(app)/engineering-sync" as never)} accessibilityRole="button" accessibilityLabel={t("workOrders.repair.banner.viewSync")} hitSlop={8} style={styles.noticeAction} testID="wo-offline-sync">
+              <Text style={[styles.bannerText, { color: theme.status.pickup, fontWeight: "700", flex: 0 }]} maxFontSizeMultiplier={1.4}>
+                {t("workOrders.repair.banner.viewSync")}
+              </Text>
+            </Pressable>
           </View>
         );
       case "section":
@@ -496,6 +501,7 @@ export default function WorkOrdersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   listContent: { paddingBottom: 32 },
+  noticeAction: { minHeight: 44, justifyContent: "center" },
   cardWrap: { paddingHorizontal: 16, paddingBottom: 12 },
   sectionRow: { flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 10 },
   sectionTitle: { fontSize: 12, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },

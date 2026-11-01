@@ -9,6 +9,7 @@ import {
   listAssetRepairs,
 } from "@/lib/api/workOrders";
 import { getPendingSyncQueue } from "@/lib/offline/db";
+import { loadWorkOrderCopy, saveWorkOrderCopy } from "@/lib/engineering/workOrderCache";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import {
   estimateClockSkewMs,
@@ -43,6 +44,11 @@ export interface WorkOrderDetailHandle {
   /** Sections whose last read failed — shown as "couldn't load", never as an empty list. */
   sectionFailed: Partial<Record<DetailSection, boolean>>;
   queued: QueuedWorkOrderActions;
+  /**
+   * The order on screen is a saved copy from an earlier live read (ISO time), shown because this read failed with no
+   * connection. Null whenever the order came from the server just now.
+   */
+  cachedAt: string | null;
   /** Device clock minus server clock, so a running timer is not off by a wrong phone clock. */
   skewMs: number;
   /** Replace the order with a copy the server just returned (e.g. after a diagnosis save). */
@@ -70,6 +76,7 @@ export function useWorkOrderDetail(woId: string, userId: string | null | undefin
   const [sectionFailed, setSectionFailed] = useState<Partial<Record<DetailSection, boolean>>>({});
   const [queued, setQueued] = useState<QueuedWorkOrderActions>({ claim: false, complete: false });
   const [skewMs, setSkewMs] = useState(0);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
 
   const token = useRef(0);
   const controller = useRef<AbortController | null>(null);
@@ -102,11 +109,23 @@ export function useWorkOrderDetail(woId: string, userId: string | null | undefin
           if (!live()) return;
           order = fresh;
           setWo(fresh);
+          setCachedAt(null);
           setFailure(null);
+          void saveWorkOrderCopy(fresh);
         } catch (err) {
           if (!live()) return;
           // Keep what is on screen on a failed refresh; only a first load with nothing to show becomes an error.
-          if (woRef.current == null) setFailure(classifyLoadFailure(err));
+          if (woRef.current == null) {
+            const kind = classifyLoadFailure(err);
+            // No connection: open the saved copy (labelled as such). A refusal or a server error is never hidden behind it.
+            const saved = kind === "offline" ? await loadWorkOrderCopy(woId) : null;
+            if (!live()) return;
+            if (saved) {
+              setWo(saved.order);
+              setCachedAt(saved.savedAt);
+              setFailure(null);
+            } else setFailure(kind);
+          }
           setLoading(false);
           return;
         }
@@ -164,6 +183,7 @@ export function useWorkOrderDetail(woId: string, userId: string | null | undefin
   useEffect(() => {
     token.current += 1;
     setWo(null);
+    setCachedAt(null);
     setSecondary(EMPTY);
     setFailure(null);
     setLoading(true);
@@ -184,7 +204,7 @@ export function useWorkOrderDetail(woId: string, userId: string | null | undefin
 
   const setOrder = useCallback((next: WorkOrder) => setWo(next), []);
 
-  return { wo, loading, failure, secondary, sectionFailed, queued, skewMs, setOrder, refresh };
+  return { wo, loading, failure, secondary, sectionFailed, queued, cachedAt, skewMs, setOrder, refresh };
 }
 
 /** One-second tick for a running timer; stopped when nothing is running or the app is in the background. */

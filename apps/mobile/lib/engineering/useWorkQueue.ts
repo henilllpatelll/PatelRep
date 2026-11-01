@@ -9,6 +9,7 @@ import {
   type LoadMode,
   type QueueBucket,
 } from "@/lib/engineering/workQueueState";
+import { loadQueueSnapshot, saveQueueSnapshot } from "@/lib/engineering/workOrderCache";
 import {
   belongsToView,
   queueKey,
@@ -99,19 +100,29 @@ export function useWorkQueue({ scope, view, params, viewer, enabled, fetchPage =
           }
         }
         if (!current()) return;
-        dispatch({
-          type: "success",
-          key: runKey,
-          mode,
-          // The server filters; this keeps a stray row (an older API ignoring a filter) out of the wrong queue.
-          orders: orders.filter((wo) => belongsToView(wo, runView, viewerRef.current)),
-          pages,
-          hasMore,
-          now: Date.now(),
-        });
+        // The server filters; this keeps a stray row (an older API ignoring a filter) out of the wrong queue.
+        const visible = orders.filter((wo) => belongsToView(wo, runView, viewerRef.current));
+        dispatch({ type: "success", key: runKey, mode, orders: visible, pages, hasMore, now: Date.now() });
+        // Keep the first page(s) so Work still opens with no connection. Typed searches are not worth saving.
+        if (mode !== "more" && !runParams.q) void saveQueueSnapshot(runKey, visible);
       } catch (error) {
         if (!current()) return;
-        dispatch({ type: "failure", key: runKey, failure: classifyLoadFailure(error) });
+        const failure = classifyLoadFailure(error);
+        dispatch({ type: "failure", key: runKey, failure });
+        // No connection and nothing on screen yet: show the saved copy (labelled as such), never an empty queue.
+        // A server error or a refused role is NOT papered over with old rows.
+        if (failure === "offline" && mode !== "more" && !before.loaded && !runParams.q) {
+          const saved = await loadQueueSnapshot(runKey);
+          if (saved && current() && !(stateRef.current.buckets[runKey]?.loaded ?? false)) {
+            dispatch({
+              type: "hydrate",
+              key: runKey,
+              orders: saved.orders.filter((wo) => belongsToView(wo, runView, viewerRef.current)),
+              fetchedAt: new Date(saved.savedAt).getTime(),
+              now: Date.now(),
+            });
+          }
+        }
       } finally {
         if (mode === "more") moreInFlight.current.delete(runKey);
       }

@@ -2088,7 +2088,17 @@
         "noLabor": "Sin registro",
         "noDeadline": "Sin fecha límite"
       },
+      "draftSaved": "Borrador guardado en este teléfono. No se envía hasta que lo envíes.",
       "banner": {
+        "cached": "Copia guardada de {{time}}. Puede estar desactualizada; las acciones que requieren conexión no están disponibles.",
+        "draftRestored": "Borrador guardado restaurado de {{time}}. No se ha enviado nada.",
+        "draftReview": {
+          "statusChanged": "La orden de trabajo cambió desde entonces. Revísala antes de enviar.",
+          "closed": "Esta orden de trabajo ya terminó, así que el borrador no se puede enviar."
+        },
+        "draftDiscard": "Descartar borrador",
+        "draftDiscardConfirm": "Descartar definitivamente",
+        "viewSync": "Estado de sincronización",
         "offline": "Estás sin conexión. Puedes leer esta orden; la mayoría de las acciones requieren conexión.",
         "claimQueued": "Tu solicitud está guardada en este teléfono y aún no está confirmada. Se enviará cuando estés en línea.",
         "completeQueued": "La finalización está guardada en este teléfono y aún no está confirmada. La orden sigue abierta hasta que se sincronice.",
@@ -2293,6 +2303,7 @@
         "confirm": "Confirmar finalización",
         "confirmQueue": "Guardar finalización para después",
         "queued": "Finalización guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "alreadyQueued": "Ya hay una finalización de esta orden de trabajo esperando sincronizarse.",
         "offlineQueue": "Estás sin conexión. La finalización se guardará en este teléfono y se enviará después. La orden sigue abierta hasta que el servidor la confirme.",
         "offlineBlock": {
           "parts": "Las piezas salen del inventario, por lo que esto requiere conexión. Conéctate para completar con piezas.",
@@ -2377,6 +2388,7 @@
       "toast": {
         "claimed": "Tomada",
         "claimQueued": "Solicitud guardada en este teléfono. No está confirmada hasta que se sincronice.",
+        "claimAlreadyQueued": "Tu reclamo ya está esperando sincronizarse.",
         "startFailed": "No se pudo iniciar la reparación.",
         "laborFailed": "No se pudo actualizar la mano de obra.",
         "ackFailed": "No se pudo confirmar la recepción.",
@@ -11552,6 +11564,16 @@
     "discard": "Descartar",
     "confirmDiscard": "Descartar definitivamente",
     "discardWarning": "Este cambio nunca se envió. Descartarlo lo quita de este teléfono y no se puede deshacer. Lo que el servidor ya confirmó se mantiene.",
+    "stateSyncing": "Sincronizando ahora",
+    "recentTitle": "Sincronizado recientemente",
+    "recentNone": "El servidor aún no ha confirmado nada.",
+    "recentClaim": "Reclamo confirmado por el servidor",
+    "recentComplete": "Finalización confirmada por el servidor",
+    "draftsTitle": "Borradores guardados",
+    "draftsNone": "No hay borradores sin enviar en este teléfono.",
+    "draftItem": "Borrador de finalización de reparación",
+    "draftHint": "Guardado en este teléfono. No se envía hasta que lo envíes.",
+    "openDraft": "Abrir",
     "dismiss": "Quitar",
     "dismissClaims": "Quitar todos los reclamos rechazados",
     "fullDetails": "Todos los cambios guardados",

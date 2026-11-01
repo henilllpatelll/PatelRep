@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -22,16 +22,16 @@ import {
 import { fetchBoard } from "@/lib/api/housekeepingSupervisor";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useSecondTicker, useWorkOrderDetail } from "@/lib/engineering/useWorkOrderDetail";
+import { useCompletionDraft } from "@/lib/engineering/useWorkOrderDrafts";
+import { isActionAlreadyQueued } from "@/lib/engineering/queuedActions";
 import {
   buildCompletionBody,
   buildTimeline,
   deriveRepairActions,
-  emptyCompletionDraft,
   formatStopwatch,
   interpretCompletionError,
   offlineCompletionBlock,
   summarizeLabor,
-  type CompletionDraft,
   type CompletionOutcome,
   type PhotoType,
   type StagedPart,
@@ -101,19 +101,13 @@ export default function WorkOrderDetailScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const busyRef = useRef<string | null>(null);
-  const [draft, setDraft] = useState<CompletionDraft>(() => emptyCompletionDraft());
+  const draftState = useCompletionDraft(String(woId), wo, wo ? workOrderLabel(wo) : null);
+  const { draft, editDraft, restored } = draftState;
   const [result, setResult] = useState<CompletionSummary | null>(null);
   const [tab, setTab] = useState<DetailTab>("overview");
   const [occupancy, setOccupancy] = useState<"occupied" | "vacant" | null>(null);
 
-  // The draft starts from the saved coding once, then belongs to the person.
-  const seeded = useRef(false);
-  useEffect(() => {
-    if (wo && !seeded.current) {
-      seeded.current = true;
-      setDraft(emptyCompletionDraft(wo));
-    }
-  }, [wo]);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
   // A status change (completed, put on hold, reopened) changes whether the checklist is editable: re-read it.
   const lastStatus = useRef<string | null>(null);
@@ -199,6 +193,7 @@ export default function WorkOrderDetailScreen() {
   const closed = actions.block === "closed";
   const myRunning = labor.activeIsMine;
 
+  const openSync = () => router.push("/(app)/engineering-sync" as never);
   const refreshAfter = (sections: Parameters<typeof detail.refresh>[0], opts?: Parameters<typeof detail.refresh>[1]) => detail.refresh(sections, opts);
 
   /* ── Actions ─────────────────────────────────────────────────────────── */
@@ -214,6 +209,11 @@ export default function WorkOrderDetailScreen() {
     }
     // Offline: the existing queue keeps the claim; the order is NOT shown as claimed until the server confirms.
     await mutate("claim", async () => {
+      // One intentional claim = one queued row, even across a restart or a second tap.
+      if (queued.claim || (await isActionAlreadyQueued(order.id, "claim"))) {
+        toast.info(t("workOrders.repair.toast.claimAlreadyQueued"));
+        return;
+      }
       await enqueueAction("work_order", "claim", { label }, order.id, label);
       toast.info(t("workOrders.repair.toast.claimQueued"));
       await refreshAfter([]);
@@ -320,7 +320,18 @@ export default function WorkOrderDetailScreen() {
       // Queued completions skip the server's checklist check until replay, so only a confirmed-clear checklist may queue.
       const block = offlineCompletionBlock(draft, checklistGate(checklist.load));
       if (block != null) return { kind: "failed", message: t(`workOrders.repair.complete.offlineBlock.${block}`) };
-      await enqueueAction("work_order", "complete", body, order.id, label);
+      if (busyRef.current) return { kind: "failed", message: t("workOrders.repair.toast.busy") };
+      busyRef.current = "complete";
+      try {
+        // A second tap, or a completion already waiting from before a restart, must not queue a second copy.
+        if (queued.complete || (await isActionAlreadyQueued(order.id, "complete"))) {
+          return { kind: "failed", message: t("workOrders.repair.complete.alreadyQueued") };
+        }
+        await enqueueAction("work_order", "complete", body, order.id, label);
+      } finally {
+        busyRef.current = null;
+      }
+      // The draft stays: this is only saved on the phone, and it is removed once the server confirms the completion.
       toast.info(t("workOrders.repair.complete.queued"));
       await refreshAfter([]);
       return { kind: "queued" };
@@ -340,7 +351,7 @@ export default function WorkOrderDetailScreen() {
         assetRestored: draft.assetRestoration === "restore",
       };
       setResult(summary);
-      setDraft(emptyCompletionDraft());
+      draftState.confirmed();
       await refreshAfter(["labor", "history", "parts"]);
       return { kind: "completed", followUpRequired: draft.verification === "follow_up_required" };
     } catch (err) {
@@ -419,9 +430,23 @@ export default function WorkOrderDetailScreen() {
           />
         ) : (
           <>
-            {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" /> : null}
-            {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" /> : null}
+            {queued.complete ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.completeQueued")} testID="wo-banner-complete-queued" action={{ label: t("workOrders.repair.banner.viewSync"), onPress: openSync }} /> : null}
+            {queued.claim ? <Banner icon="time-outline" tone="warn" text={t("workOrders.repair.banner.claimQueued")} testID="wo-banner-claim-queued" action={{ label: t("workOrders.repair.banner.viewSync"), onPress: openSync }} /> : null}
             {!isOnline ? <Banner icon="cloud-offline-outline" text={t("workOrders.repair.banner.offline")} testID="wo-banner-offline" /> : null}
+            {detail.cachedAt ? <Banner icon="albums-outline" tone="warn" text={t("workOrders.repair.banner.cached", { time: new Date(detail.cachedAt).toLocaleString(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }) })} testID="wo-banner-cached" /> : null}
+            {restored && !result ? (
+              <Banner
+                icon="document-text-outline"
+                tone="warn"
+                text={`${t("workOrders.repair.banner.draftRestored", { time: new Date(restored.savedAt).toLocaleString(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }) })}${restored.review !== "none" ? ` ${t(`workOrders.repair.banner.draftReview.${restored.review}`)}` : ""}`}
+                testID="wo-banner-draft"
+                action={
+                  confirmingDiscard
+                    ? { label: t("workOrders.repair.banner.draftDiscardConfirm"), onPress: () => (setConfirmingDiscard(false), draftState.discard()), testID: "wo-draft-discard-confirm" }
+                    : { label: t("workOrders.repair.banner.draftDiscard"), onPress: () => setConfirmingDiscard(true), testID: "wo-draft-discard" }
+                }
+              />
+            ) : null}
             {actions.block === "viewOnly" ? <Banner icon="eye-outline" text={t("workOrders.viewOnly")} testID="wo-view-only" /> : null}
             {actions.block === "claimedElsewhere" ? <Banner icon="information-circle-outline" text={t("workOrders.claimedElsewhere")} /> : null}
             {heldBanner ? (
@@ -538,9 +563,9 @@ export default function WorkOrderDetailScreen() {
         freeText={draft.freeTextParts}
         recorded={secondary.parts}
         canEdit={actions.can.parts}
-        onChange={(next: { parts: StagedPart[]; freeText: string }) => setDraft((d) => ({ ...d, parts: next.parts, freeTextParts: next.freeText }))}
+        onChange={(next: { parts: StagedPart[]; freeText: string }) => editDraft((d) => ({ ...d, parts: next.parts, freeTextParts: next.freeText }))}
       />
-      <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} laborRunning={myRunning} onConfirm={holdWork} />
+      <HoldSheet visible={sheet === "hold"} onClose={() => setSheet(null)} online={isOnline} label={label} workOrderId={order.id} laborRunning={myRunning} onConfirm={holdWork} />
       <EscalationSheet visible={sheet === "escalate"} onClose={() => setSheet(null)} online={isOnline} wo={order} onConfirm={escalate} />
       <AssignTechnicianSheet
         visible={sheet === "assign"}
@@ -562,12 +587,12 @@ export default function WorkOrderDetailScreen() {
         language={locale}
         technicianNotes={draft.notes}
         onUseInCompletion={(text) => {
-          setDraft((d) => ({ ...d, notes: text }));
+          editDraft((d) => ({ ...d, notes: text }));
           toast.info(t("repairAssist.addedToCompletion"));
         }}
         onSaveAsNote={addNote}
       />
-      <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} onSave={addNote} />
+      <NoteSheet visible={sheet === "note"} onClose={() => setSheet(null)} online={isOnline} workOrderId={order.id} onSave={addNote} />
       <CompletionSheet
         visible={sheet === "complete"}
         onClose={() => setSheet(null)}
@@ -580,7 +605,7 @@ export default function WorkOrderDetailScreen() {
         checklist={checklist.load}
         onViewChecklist={() => (setSheet(null), setTab("checklist"))}
         draft={draft}
-        onDraft={setDraft}
+        onDraft={editDraft}
         onEditParts={() => setSheet("parts")}
         onSubmit={submitCompletion}
       />
@@ -588,13 +613,18 @@ export default function WorkOrderDetailScreen() {
   );
 }
 
-function Banner({ icon, text, tone = "muted", testID }: { icon: ComponentProps<typeof Ionicons>["name"]; text: string; tone?: "muted" | "warn"; testID?: string }) {
+function Banner({ icon, text, tone = "muted", testID, action }: { icon: ComponentProps<typeof Ionicons>["name"]; text: string; tone?: "muted" | "warn"; testID?: string; action?: { label: string; onPress: () => void; testID?: string } }) {
   const theme = useTheme();
   const color = tone === "warn" ? theme.status.pickup : theme.textMuted;
   return (
     <View style={styles.banner} testID={testID} accessibilityLiveRegion="polite">
       <Ionicons name={icon} size={16} color={color} />
       <Text style={{ flex: 1, color, fontSize: 13, lineHeight: 18 }}>{text}</Text>
+      {action ? (
+        <Pressable onPress={action.onPress} accessibilityRole="button" accessibilityLabel={action.label} hitSlop={8} style={styles.bannerAction} testID={action.testID}>
+          <Text style={{ color: theme.primaryAction, fontSize: 13, fontWeight: "700" }}>{action.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -606,6 +636,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 32, gap: 16 },
   withBar: { paddingBottom: 150 },
   banner: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  bannerAction: { minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
   tabs: { paddingHorizontal: 18, paddingTop: 12 },
   extras: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 });
