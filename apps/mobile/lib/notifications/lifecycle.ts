@@ -6,6 +6,7 @@ import type { UserRole } from "@/lib/supabase";
 import { getUnreadCount } from "@/lib/api/notifications";
 import { useAppStore } from "@/stores/appStore";
 import { resolveNotificationTarget, routeForTarget } from "./deepLink";
+import { isRemotePushSupported } from "./environment";
 import { canReceivePush, getPushPermissionState } from "./permissions";
 import { setupPushNotifications, syncPushRegistration } from "./registration";
 
@@ -65,7 +66,7 @@ export function useNotificationResponses(enabled: boolean, role: UserRole | unde
  */
 export function usePushRegistration(userId: string | undefined): void {
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !isRemotePushSupported()) return;
     void setupPushNotifications(userId).catch(console.warn);
 
     const tokenSubscription = Notifications.addPushTokenListener?.(() => {
