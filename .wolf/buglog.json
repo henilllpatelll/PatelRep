@@ -35047,6 +35047,23 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-11-01T15:30:00.000Z"
+    },
+    {
+      "id": "bug-2131",
+      "timestamp": "2026-11-01T17:30:00.000Z",
+      "error_message": "Chief engineer Team Overview printed 'engineeringTeam.pmOverdueCount' / 'engineeringTeam.roomsDown', and the Assign technician sheet printed 'engineeringTeam.load.active · …' (raw i18n keys)",
+      "file": "apps/mobile/i18n/locales/en.json, es.json",
+      "root_cause": "i18n runs with compatibilityJSON v3 (plural = key + key_plural) but engineeringTeam.* and engineeringSync.* were written as key_one/key_other, which is never looked up. Mocked-t screen tests cannot see it; found by driving the screens in Expo web.",
+      "fix": "Renamed the 8 engineering pairs to key / key_plural in en and es; added __tests__/lib/engineering/pluralKeys.test.ts which resolves them through the real i18next instance (fails on the old keys). Other modules still carry _one/_other (lostFound, alertsScreen, sop, supervisorCopilot) - not touched.",
+      "tags": [
+        "i18n",
+        "plural",
+        "mobile",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T17:30:00.000Z"
     }
   ]
 }
