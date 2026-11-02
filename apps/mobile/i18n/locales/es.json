@@ -2856,7 +2856,20 @@
       "low": "Baja",
       "medium": "Media",
       "high": "Alta",
-      "life_safety": "Seguridad de vida"
+      "life_safety": "Seguridad de vida",
+      "action": "Definir criticidad",
+      "title": "Criticidad del equipo",
+      "body": "¿Cuánto dependen las operaciones de {{name}}? Es la evaluación de su propiedad, no una predicción.",
+      "save": "Guardar criticidad",
+      "reason": "Motivo (opcional)",
+      "reasonPlaceholder": "p. ej. Calienta todo el edificio",
+      "done": "Criticidad actualizada",
+      "help": {
+        "low": "Se toleran cortes breves; huéspedes y personal casi no lo notan.",
+        "medium": "Se nota cuando falla; existen alternativas.",
+        "high": "Las operaciones se resienten rápido cuando falla.",
+        "life_safety": "De esto depende la seguridad de huéspedes o personal (por ejemplo, sistemas contra incendios)."
+      }
     },
     "form": {
       "title": {
@@ -11962,6 +11975,192 @@
       "not_found": "Esta orden no está disponible para el asistente.",
       "offline": "Sin conexión.",
       "failed": "No se obtuvo respuesta. Inténtalo de nuevo."
+    }
+  },
+  "pmMgmt": {
+    "open": "Gestión de MP",
+    "title": "Gestión de MP",
+    "subtitle": "Administre inspecciones, programas y cobertura de mantenimiento.",
+    "empty": "Aún no hay cobertura de mantenimiento que mostrar.",
+    "loading": "Cargando…",
+    "needsConnection": "Necesita conexión para hacer esto.",
+    "seeAll": "Ver todo",
+    "allClear": "Nada requiere atención por ahora.",
+    "noPending": "No hay solicitudes de aplazamiento esperando revisión.",
+    "pendingLine": "{{name}} pidió moverla al {{date}}",
+    "assignedToYou": "Asignada a usted",
+    "cards": {
+      "overdue": "Vencidas",
+      "unassigned": "Sin asignar",
+      "approvals": "Aprobaciones pendientes",
+      "dueThisWeek": "Vencen esta semana"
+    },
+    "sections": {
+      "attention": "Requiere atención",
+      "workload": "Carga del equipo",
+      "programs": "Programas y desempeño"
+    },
+    "period": {
+      "today": "Hoy",
+      "week": "Esta semana",
+      "month": "Este mes"
+    },
+    "workload": {
+      "none": "No hay ingenieros que mostrar.",
+      "a11y": "{{name}}: {{assigned}} asignadas, {{overdue}} vencidas, {{completed}} completadas",
+      "ineligible": "Ya no es ingeniero activo aquí, pero aún tiene inspecciones asignadas",
+      "line": "{{assigned}} asignadas · {{today}} vencen hoy · {{overdue}} vencidas · {{completed}} completadas",
+      "next": "Próxima: {{date}}",
+      "unassigned": "{{count}} inspección necesita un técnico",
+      "unassigned_plural": "{{count}} inspecciones necesitan un técnico",
+      "disclaimer": "Asignada significa planificada, no iniciada. Los minutos estimados nunca se cuentan como mano de obra."
+    },
+    "programs": {
+      "title": "Programas de MP",
+      "subtitle": "Cada programa activo, su procedimiento y quién lo tiene.",
+      "forTechnician": "Asignadas a {{name}}",
+      "count": "{{count}} programa activo",
+      "count_plural": "{{count}} programas activos",
+      "search": "Buscar programas o equipos",
+      "filter": {
+        "all": "Todos",
+        "overdue": "Vencidos",
+        "unassigned": "Sin asignar",
+        "checklist": "Falta procedimiento"
+      },
+      "empty": "Ningún programa coincide",
+      "emptyBody": "Pruebe otro filtro o búsqueda.",
+      "shown": "Mostrando {{shown}} de {{total}}",
+      "more": "Mostrar más",
+      "overdue": "Vencida",
+      "due": "Vence {{date}}",
+      "assignedTo": "Asignada a {{name}}",
+      "lapsed": "Sin asignar (la asignación anterior terminó con la última inspección)",
+      "unassigned": "Sin asignar",
+      "assign": "Asignar",
+      "reassign": "Reasignar",
+      "checklist": {
+        "unassigned": "Aún sin procedimiento: el técnico elige uno",
+        "missing": "Su procedimiento ya no existe. Elija uno vigente.",
+        "inactive": "Su procedimiento fue retirado. Elija uno vigente.",
+        "incompatible": "Su procedimiento no es una lista de verificación de ingeniería."
+      }
+    },
+    "assign": {
+      "title": "Asignar inspección",
+      "due": "Vence {{date}}",
+      "estimate": "unos {{minutes}} min",
+      "currentlyWith": "Asignada actualmente a {{name}}",
+      "unassigned": "Aún sin asignar",
+      "scopeNote": "Esto asigna solo esta inspección. Al completarla, la siguiente empieza sin asignar.",
+      "search": "Buscar un ingeniero",
+      "searchPlaceholder": "Buscar por nombre",
+      "loadFailed": "No se pudieron cargar los ingenieros. Cierre esto e inténtelo de nuevo.",
+      "noMatch": "Ningún ingeniero coincide con ese nombre.",
+      "alreadyAssigned": "Ya asignada",
+      "roleChief": "Jefe de ingeniería",
+      "roleEngineer": "Ingeniero",
+      "unassign": "Quitar asignación",
+      "confirm": "Confirmar asignación",
+      "confirmReassign": "Confirmar reasignación",
+      "unknownPerson": "Persona desconocida",
+      "done": {
+        "assigned": "Inspección asignada",
+        "reassigned": "Inspección reasignada",
+        "unassigned": "Asignación quitada"
+      }
+    },
+    "detail": {
+      "section": "Administrar",
+      "assignee": "Asignada a"
+    },
+    "deferral": {
+      "title": "Solicitar aplazamiento de MP",
+      "open": "Solicitar aplazamiento",
+      "submit": "Enviar solicitud",
+      "currentDue": "Vence actualmente el {{date}}",
+      "requestNote": "Esto envía una solicitud. La fecha no cambia hasta que otro gerente la apruebe.",
+      "newDate": "Nueva fecha solicitada",
+      "reason": "Motivo",
+      "reasonPlaceholder": "¿Por qué debe moverse?",
+      "requestedToast": "Solicitud enviada: en espera de revisión",
+      "problem": {
+        "reason_short": "Indique un motivo (al menos 5 caracteres).",
+        "reason_long": "Ese motivo es demasiado largo.",
+        "date_missing": "Elija una fecha.",
+        "date_not_later": "Elija una fecha posterior al vencimiento actual.",
+        "date_past": "Elija una fecha futura, a partir del {{date}}."
+      }
+    },
+    "review": {
+      "title": "Revisar aplazamiento de MP",
+      "equipment": "Equipo",
+      "requestedBy": "Solicitado por",
+      "requestedOn": "Solicitado",
+      "currentDue": "Fecha actual",
+      "newDue": "Fecha solicitada",
+      "reason": "Motivo",
+      "ownRequest": "Usted hizo esta solicitud, así que otro gerente debe decidirla.",
+      "stale": "El programa ya se movió a esta fecha o después, por lo que no se puede aprobar.",
+      "inactive": "Este programa ya no está activo.",
+      "confirmApprove": "¿Aprobar y mover el vencimiento al {{date}}?",
+      "confirmReject": "¿Rechazar esta solicitud? La fecha queda como está.",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "note": "Nota (opcional)",
+      "notePlaceholder": "Agregue contexto para el registro",
+      "approvedToast": "Aplazamiento aprobado",
+      "rejectedToast": "Aplazamiento rechazado"
+    },
+    "approvals": {
+      "title": "Aprobaciones pendientes",
+      "subtitle": "Solicitudes de aplazamiento que necesitan una decisión.",
+      "pending": "Pendientes",
+      "decided": "Decididas",
+      "emptyPending": "Nada espera revisión",
+      "emptyDecided": "Aún no hay decisiones",
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobada",
+        "rejected": "Rechazada"
+      },
+      "move": "Vence {{from}} → solicitada {{to}}",
+      "by": "Solicitada por {{name}} el {{date}}"
+    },
+    "performance": {
+      "title": "Desempeño de MP",
+      "subtitle": "Cómo se llevó a cabo el mantenimiento.",
+      "rateA11y": "Tasa a tiempo {{rate}}: {{onTime}} de {{total}} finalizaciones con fecha límite registrada",
+      "rateNone": "Aún no hay finalizaciones con fecha límite registrada en este período",
+      "rateBasis": "A tiempo: {{onTime}} de {{total}} completadas",
+      "metric": {
+        "onTime": "Completadas a tiempo",
+        "late": "Completadas tarde",
+        "overdue": "Aún vencidas",
+        "upcoming": "Vencen en 7 días",
+        "deferred": "Aplazamientos aprobados",
+        "findings": "Inspecciones con hallazgos"
+      },
+      "unclassified": "{{count}} inspección completada no tiene fecha límite registrada, por lo que no cuenta como a tiempo ni tarde.",
+      "unclassified_plural": "{{count}} inspecciones completadas no tienen fecha límite registrada, por lo que no cuentan como a tiempo ni tarde.",
+      "aboutTitle": "Sobre estas cifras",
+      "about": "Describen cómo se realizó el trabajo. No son un resultado de cumplimiento normativo ni de seguridad. Aún vencidas y Vencen en 7 días muestran los programas tal como están ahora."
+    },
+    "failure": {
+      "version_conflict": "Alguien más lo cambió primero. Cierre esto para ver lo último e inténtelo de nuevo.",
+      "schedule_inactive": "Este programa ya no está activo.",
+      "assignee_ineligible": "Esa persona no es un ingeniero activo en esta propiedad.",
+      "self_review": "No puede decidir una solicitud que usted hizo. Debe hacerlo otro gerente.",
+      "already_decided": "Esta solicitud ya fue decidida.",
+      "stale": "El programa ya se movió a esa fecha o después.",
+      "expired": "La fecha solicitada ya pasó. Pida una nueva.",
+      "pending_exists": "Este programa ya tiene una solicitud en espera de revisión.",
+      "unavailable": "Esto no está disponible temporalmente. No se cambió nada.",
+      "forbidden": "Su rol no puede hacer esto.",
+      "not_found": "Ese registro ya no existe.",
+      "validation": "Revise los datos e inténtelo de nuevo.",
+      "unconfirmed": "Sin respuesta del servidor, así que no sabemos si se procesó. Verifique antes de intentarlo de nuevo.",
+      "failed": "No funcionó. No se confirmó nada: inténtelo de nuevo."
     }
   }
 }

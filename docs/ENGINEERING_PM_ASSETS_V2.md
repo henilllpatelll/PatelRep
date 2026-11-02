@@ -234,3 +234,36 @@ unconfirmed-attempt re-read.
 - No device or emulator run (no safe backend: the local .env is production and shared staging is wiped by the candidate workflow).
   The screens were exercised in a desktop browser through Expo web with a stubbed API (390x844), which does not cover native
   camera, keyboard, safe-area or VoiceOver/TalkBack behaviour.
+
+## Phase 5: Chief Engineer PM management, assignments, deferrals, performance and asset criticality
+
+**Migration 234** (additive; apply BEFORE deploying the API):
+- `pm_schedules.row_version` (optimistic concurrency) and `assigned_to / assigned_for_due_at / assigned_at / assigned_by`.
+  A schedule is ONE recurring row whose `next_due_at` advances on completion; there is no occurrence table. An assignment is
+  therefore stored with the due date it was made for and **lapses** when the schedule advances: it never carries into the next
+  cycle and never grants completion rights. Reads expose `effective_assigned_to` / `assignment_lapsed`.
+- `pm_schedule_assignment_events`: append-only history of assigned / reassigned / unassigned.
+- `assign_pm_schedule()`: one transaction - row lock, version check, assignee must be an active engineer/chief engineer **of
+  this property**, write + event + audit row. Statuses: ok, no_change, not_found, conflict, schedule_inactive, assignee_ineligible.
+- `pm_completion_records.due_at`, captured by a BEFORE INSERT trigger from the (locked) schedule, so it is the EFFECTIVE deadline
+  (an approved deferral has already moved it). Rows before this migration keep `NULL` = "no recorded deadline". Phase 1's
+  `record_pm_completion()` is untouched.
+
+**API** (`routers/pm_management.py`, prefix `/v1/pm-management`, managers = chief engineer + GM unless noted):
+`GET /summary`, `/programs` (server filters + paging), `/technicians` (any PM executor), `/workload`, `/deferrals`,
+`/performance`, `/technicians/{id}/assignments`, `PUT /schedules/{id}/assignment`, `GET /schedules/{id}/assignment-history`.
+Also `PUT /assets/{id}/criticality` (chief engineer/GM, versioned, audited) and `PATCH /assets/pm-schedules/{id}` now honours
+`expected_version` and bumps `row_version`. Deferral request/decision endpoints are Phase 1's, unchanged.
+
+**Definitions.** overdue = active schedule on active equipment whose `next_due_at` has passed. unassigned = overdue or due this
+hotel-local Monday-Sunday week with no current assignee. due_this_week = not yet overdue and inside that week. Performance:
+on time = `completed_at <= due_at`; late = after; `no_recorded_deadline` is reported, never guessed; rate = on_time /
+(on_time + late), `null` when there is nothing to rate. "Still overdue" and "Due in 7 days" describe schedules now, not the period.
+
+**Mobile.** PM -> Management (chief engineer/GM): coverage cards, requires-attention, team workload (Today/This week),
+Programs (search + filters + paging + assign), Pending Approvals (+ Decided), PM Performance. Schedule detail: assignee +
+Assign/Reassign + Request deferral. Asset detail -> More -> Set criticality. Technician cards show "Assigned to you".
+
+**Not in Phase 5 (stated, not hidden):** create/edit/reschedule/deactivate-schedule forms (the API for them already exists from
+Phase 1/3; no mobile UI), the Assets management dashboard, warranty-state chips, a downtime sheet (the API exists), asset
+reinstatement (unsupported by the backend, so no action is shown), a per-technician performance filter UI, and any device run.

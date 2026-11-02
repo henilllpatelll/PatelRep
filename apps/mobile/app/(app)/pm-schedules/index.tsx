@@ -19,7 +19,7 @@ import { resolveLoadState } from "@/lib/engineering/loadState";
 import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
 import { activeFilterCount, applyPmFilters, categoriesOf, DEFAULT_PM_FILTERS, type PmFilterState } from "@/lib/engineering/pmFilters";
 import { listPmDraftSummaries, type PmDraftSummary } from "@/lib/engineering/pmDraftStore";
-import { canCompletePm } from "@/lib/engineering/roles";
+import { canCompletePm, canManagePmSchedules } from "@/lib/engineering/roles";
 import { parsePmNavigation, PM_VIEWS, type PmPlanMode, type PmView } from "@/lib/engineering/pmViews";
 
 export default function PreventiveMaintenanceScreen() {
@@ -32,6 +32,7 @@ export default function PreventiveMaintenanceScreen() {
   const hotelTimezone = useAppStore((s) => s.hotelTimezone);
   const role = user?.effective_role ?? user?.role;
   const canInspect = canCompletePm(role);
+  const canManage = canManagePmSchedules(role);
   const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
 
   const data = usePmSchedules();
@@ -104,6 +105,17 @@ export default function PreventiveMaintenanceScreen() {
                 {t("pm.subtitle")}
               </Text>
             </View>
+            {canManage ? (
+              <Pressable
+                onPress={() => router.push("/(app)/pm-schedules/management" as never)}
+                style={styles.iconButton}
+                accessibilityRole="button"
+                accessibilityLabel={t("pmMgmt.open")}
+                testID="pm-management-open"
+              >
+                <Ionicons name="briefcase-outline" size={22} color={theme.shell.ink} />
+              </Pressable>
+            ) : null}
             {/* History reads the recorded inspections from the server; the schedule search and filters do not apply to it, so they are not offered there. */}
             {!onHistory ? (
               <>

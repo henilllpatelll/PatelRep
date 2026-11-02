@@ -17,7 +17,11 @@ import { adaptPmTemplates, type PmTemplate } from "@/lib/engineering/pmChecklist
 import { checklistNeedsAttention } from "@/lib/engineering/engineeringContracts";
 import { loadPmDraft } from "@/lib/engineering/pmDraftStore";
 import { resolveLoadState } from "@/lib/engineering/loadState";
-import { canCompletePm } from "@/lib/engineering/roles";
+import { canCompletePm, canManagePmSchedules, canRequestPmDeferral } from "@/lib/engineering/roles";
+import { AssignInspectionSheet } from "@/components/engineering/pm/management/AssignInspectionSheet";
+import { DeferralRequestSheet } from "@/components/engineering/pm/management/DeferralRequestSheet";
+import { listPmTechnicians, type PmTechnician } from "@/lib/api/pmManagement";
+import { useToast } from "@/lib/theme/useToast";
 import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE as PM_LIST, assetRoute, pmInspectRoute, pmRecordRoute } from "@/lib/engineering/routes";
 import { formatDueDate } from "@/lib/engineering/pmSchedules";
 import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
@@ -59,7 +63,14 @@ export default function PmScheduleDetailScreen() {
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
   const hotelTimezone = useAppStore((s) => s.hotelTimezone);
-  const canInspect = canCompletePm(user?.effective_role ?? user?.role);
+  const role = user?.effective_role ?? user?.role;
+  const canInspect = canCompletePm(role);
+  const canManage = canManagePmSchedules(role);
+  const canDefer = canRequestPmDeferral(role);
+  const toast = useToast();
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [deferOpen, setDeferOpen] = useState(false);
+  const [people, setPeople] = useState<PmTechnician[]>([]);
   const data = usePmSchedules();
   const schedule = useMemo(() => data.schedules.find((s) => s.id === scheduleId) ?? null, [data.schedules, scheduleId]);
   /** The exact equipment this schedule is for; the general list is only the fallback when it is unknown or malformed. */
@@ -72,6 +83,17 @@ export default function PmScheduleDetailScreen() {
   const [templates, setTemplates] = useState<PmTemplate[] | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const assetId = schedule?.assetId ?? null;
+  const assigneeName = people.find((p) => p.id === schedule?.assigneeId)?.name ?? null;
+
+  // Names for the assignment row. A manager-only nicety: a failed read just leaves the name blank.
+  useEffect(() => {
+    if (!canManage || !isOnline) return;
+    let cancelled = false;
+    void listPmTechnicians().then((rows) => !cancelled && setPeople(rows)).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, isOnline]);
   const boundTemplateId = schedule?.checklist.state === "ready" ? schedule.checklist.templateId : null;
 
   useEffect(() => {
@@ -260,6 +282,22 @@ export default function PmScheduleDetailScreen() {
                 ))
               )}
             </Section>
+
+            {canManage ? (
+              <Section title={t("pmMgmt.detail.section")}>
+                <Row label={t("pmMgmt.detail.assignee")} value={schedule.assigneeId ? assigneeName ?? t("pmMgmt.assign.unknownPerson") : t("pmMgmt.assign.unassigned")} />
+                <Button
+                  label={schedule.assigneeId ? t("pmMgmt.programs.reassign") : t("pmMgmt.programs.assign")}
+                  variant="secondary"
+                  onPress={() => setAssignOpen(true)}
+                  disabled={!isOnline}
+                  testID="pm-detail-assign"
+                />
+                {canDefer ? (
+                  <Button label={t("pmMgmt.deferral.open")} variant="secondary" onPress={() => setDeferOpen(true)} disabled={!isOnline} testID="pm-detail-defer" />
+                ) : null}
+              </Section>
+            ) : null}
           </>
         ) : (
           <View style={styles.state}>
@@ -273,6 +311,43 @@ export default function PmScheduleDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {schedule && canManage ? (
+        <>
+          <AssignInspectionSheet
+            visible={assignOpen}
+            target={{
+              id: schedule.id,
+              name: schedule.name,
+              assetName: schedule.assetName,
+              location: schedule.location,
+              dueAt: schedule.nextDueAt,
+              estimatedMinutes: schedule.estimatedMinutes,
+              assigneeId: schedule.assigneeId,
+              assigneeName,
+              rowVersion: schedule.rowVersion ?? 1,
+            }}
+            timezone={hotelTimezone}
+            language={language}
+            isOnline={isOnline}
+            onClose={() => setAssignOpen(false)}
+            onAssigned={(_program, action) => {
+              toast.success(t(`pmMgmt.assign.done.${action}`));
+              void data.reload();
+            }}
+            onNeedsRefresh={() => void data.reload()}
+          />
+          <DeferralRequestSheet
+            visible={deferOpen}
+            target={{ scheduleId: schedule.id, name: schedule.name, assetName: schedule.assetName, dueAt: schedule.nextDueAt }}
+            timezone={hotelTimezone}
+            language={language}
+            isOnline={isOnline}
+            onClose={() => setDeferOpen(false)}
+            onRequested={() => toast.success(t("pmMgmt.deferral.requestedToast"))}
+          />
+        </>
+      ) : null}
 
       {schedule && canInspect ? (
         <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }]}>

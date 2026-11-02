@@ -35,6 +35,10 @@ export interface PmScheduleView {
   recurrenceBasis: "scheduled_date" | "completion_date" | null;
   /** The checklist this schedule is bound to, or "unassigned" for a legacy schedule nobody has configured. */
   checklist: PmChecklistBinding;
+  /** The technician assigned to the CURRENT inspection (null = unassigned, or the assignment lapsed with the last cycle). */
+  assigneeId: string | null;
+  /** Version a management write must quote. */
+  rowVersion: number | null;
   nextDueAt: string | null;
   lastCompletedAt: string | null;
   /** Hotel-local calendar day (YYYY-MM-DD) of `nextDueAt`; null when it is missing or unparseable. */
@@ -91,6 +95,8 @@ export function adaptPmSchedule(
     assignedToRole: row.assigned_to_role ?? null,
     recurrenceBasis: row.recurrence_basis ?? null,
     checklist: adaptChecklistBinding(row.checklist),
+    assigneeId: row.effective_assigned_to ?? null,
+    rowVersion: row.row_version ?? null,
     nextDueAt: row.next_due_at ?? null,
     lastCompletedAt: row.last_completed_at ?? null,
     dueDate,

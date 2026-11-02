@@ -1090,3 +1090,12 @@
 - Never pipe non-ASCII source through a bash heredoc into `python -` on Windows: stdin is read as cp1252 and a middle dot or an em dash is written as a lone 0xB7/0x97 byte (invalid UTF-8, `file` says ISO-8859). Put the script in a file (Write tool) or use Edit. Verify with a UTF-8 decode of every changed file.
 - Do not `spyOn` AsyncStorage.setItem and then call a `.bind`-ed original: the jest AsyncStorage mock is already a jest.fn, so the spy replaces what you captured (infinite recursion). Swap the property with a wrapper that calls the saved function instead.
 - `Card` (components/ui/Card) takes no onLayout; wrap it in a View.
+
+## Phase 5 learnings (2026-11-02, Eng PM+Assets V2)
+- A PM schedule is ONE recurring row (`next_due_at` advances on completion), not occurrences. Assignments therefore carry `assigned_for_due_at` and lapse when the schedule advances (`services/programs/assignment.effective_assignee`). Never read `assigned_to` raw; read `effective_assigned_to`.
+- `pm_completion_records` had no deadline column before migration 234; `due_at` is filled by a BEFORE INSERT trigger. Old rows stay NULL and are reported as "no recorded deadline" - never classified on time/late.
+- Criticality scale is the schema's own: low | medium | high | life_safety (not "critical"). `PATCH /assets/{id}` (Phase 3) still lets an engineer change criticality; only `PUT /assets/{id}/criticality` is chief/GM. Open decision, not changed silently.
+- Mobile deferral UI did not exist before Phase 5; `GET /programs/pm-deferrals` returns raw ids, so the approvals list uses `GET /pm-management/deferrals` (names resolved).
+- `Card` takes no `accessible`/a11y props: wrap it in a View. `ChoiceChips` takes `{value,label}` options + `testIDPrefix`. Theme status tokens: ready/clean/inProgress/dirty/pickup/outOfOrder (+Soft); there is no "inspected".
+- `InlineError` renders icon + text: assert with getByText, not `.props.children`.
+- Do-Not-Repeat (repeat of the Phase 4 entry): scripted Python edits on Windows MUST pass encoding="utf-8" (or work in bytes). A bare open() wrote an em dash as 0x97 and the Edit tool then refused the file as non-UTF-8.

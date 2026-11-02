@@ -45,6 +45,10 @@ export interface PmScheduleRow {
   is_active?: boolean | null;
   /** The procedure this schedule is bound to. Absent from an older server: read as "unassigned". */
   checklist?: PmChecklistBindingWire | null;
+  /** Optimistic-concurrency version for management writes. Absent from an older server. */
+  row_version?: number | null;
+  /** The technician assigned to the CURRENT inspection; null when unassigned or when the assignment lapsed with the last cycle. */
+  effective_assigned_to?: string | null;
   assets?: {
     name?: string | null;
     room_id?: string | null;

@@ -35185,6 +35185,23 @@
         "encoding",
         "tooling"
       ]
+    },
+    {
+      "id": "bug-2131",
+      "timestamp": "2026-11-01T20:35:08-06:00",
+      "error_message": "Edit tool: File is not valid UTF-8 (apps/api/routers/assets.py) after a scripted insert",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "A python one-off used open(path, newline='') with no encoding, so Windows read/wrote cp1252; an em-dash in the inserted text was written as byte 0x97.",
+      "fix": "Replaced the byte with ASCII, and used encoding='utf-8' (or binary decode/encode) for every scripted edit afterwards.",
+      "tags": [
+        "windows",
+        "encoding",
+        "python",
+        "edit-tool"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T20:35:08-06:00"
     }
   ]
 }

@@ -38,6 +38,8 @@ interface Props {
   /** Administrative actions (server-enforced; these only decide what is offered). */
   canManage?: boolean;
   canRetire?: boolean;
+  /** Set the equipment's criticality - the same managers who may retire it. */
+  onCriticality?: () => void;
   onEdit?: () => void;
   onLabel?: () => void;
   onScan?: () => void;
@@ -61,7 +63,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Equipment identity, what is happening to it right now, and the actions an engineer takes from here. */
-export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
+export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onCriticality, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -236,6 +238,17 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
               onOpenRoom();
             }}
             testID="asset-action-room"
+          />
+        ) : null}
+        {canRetire && onCriticality && !retired ? (
+          <MoreRow
+            icon="shield-checkmark-outline"
+            label={t("assets.criticality.action")}
+            onPress={() => {
+              setMoreOpen(false);
+              onCriticality();
+            }}
+            testID="asset-action-criticality"
           />
         ) : null}
         {canRetire && onRetire && !retired ? (

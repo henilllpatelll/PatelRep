@@ -17,6 +17,7 @@ import { AssetReadingsSection } from "@/components/engineering/assets/AssetReadi
 import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReliabilityPanel";
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
 import { RetireSheet } from "@/components/engineering/assets/RetireSheet";
+import { CriticalitySheet } from "@/components/engineering/assets/CriticalitySheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
   getAsset,
@@ -75,6 +76,7 @@ export default function AssetDetailScreen() {
   const [readingFor, setReadingFor] = useState<string | null>(null);
   const [readingToken, setReadingToken] = useState(0);
   const [retireOpen, setRetireOpen] = useState(false);
+  const [criticalityOpen, setCriticalityOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
   // The tab screen is reused for another asset: start that one at the top, on Overview.
@@ -310,6 +312,7 @@ export default function AssetDetailScreen() {
               onLabel={openLabel}
               onScan={openScan}
               onRetire={() => setRetireOpen(true)}
+              onCriticality={() => setCriticalityOpen(true)}
               onCreateWorkOrder={openReport}
               onOpenRoom={data.room_id ? openRoom : undefined}
               onGoto={go}
@@ -369,6 +372,18 @@ export default function AssetDetailScreen() {
         ) : null}
       </ScrollView>
 
+      <CriticalitySheet
+        visible={criticalityOpen}
+        asset={{ id: data.id, name: data.name, criticality: data.criticality, row_version: data.row_version }}
+        isOnline={isOnline}
+        onClose={() => setCriticalityOpen(false)}
+        onChanged={() => {
+          markAssetListStale();
+          toast.success(t("assets.criticality.done"));
+          void asset.reload();
+        }}
+        onNeedsRefresh={() => void asset.reload()}
+      />
       <RetireSheet visible={retireOpen} asset={data} isOnline={isOnline} onClose={() => setRetireOpen(false)} onRetired={onRetired} />
       <RecordReadingSheet
         visible={readingFor != null}

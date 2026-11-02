@@ -440,3 +440,30 @@ def test_schedule_patch_refuses_a_stale_version_and_bumps_the_version(monkeypatc
     ok = client.patch(url, json={"name": "Renamed", "expected_version": 4})
     assert ok.status_code == 200 and db.tables["pm_schedules"][0]["row_version"] == 5
     assert client.patch(url, json={"name": "x", "expected_version": 0}).status_code == 422
+
+
+# --- deferral approvals list ---------------------------------------------------
+
+def test_deferral_list_resolves_context_scopes_to_the_property_and_flags_stale_requests(monkeypatch):
+    sched = schedule(1, due=48)
+    db = _Db(**base_tables(
+        pm_schedules=[sched, schedule(2, due=24 * 30)],
+        pm_deferrals=[
+            {"id": "d1", "tenant_id": TENANT, "pm_schedule_id": sched["id"], "requested_by": TECH_B, "approved_by": None,
+             "deferred_until": iso(24 * 7), "reason": "Part on order", "created_at": iso(-1)},
+            {"id": "d2", "tenant_id": TENANT, "pm_schedule_id": schedule(2)["id"], "requested_by": TECH_B, "approved_by": None,
+             "deferred_until": iso(24 * 3), "reason": "Already moved", "created_at": iso(-2)},          # schedule is already past that date
+            {"id": "d3", "tenant_id": OTHER_TENANT, "pm_schedule_id": sched["id"], "requested_by": TECH_B, "approved_by": None,
+             "deferred_until": iso(24 * 7), "reason": "x", "created_at": iso(-1)},
+        ],
+    ))
+    rows = {r["id"]: r for r in make_client(monkeypatch, db).get("/pm-management/deferrals").json()["data"]}
+    assert set(rows) == {"d1", "d2"}
+    assert rows["d1"]["schedule_name"] == "PM 1" and rows["d1"]["asset_name"] == "Unit 1"
+    assert rows["d1"]["requested_by_name"] == "Bo Technician" and rows["d1"]["status"] == "pending"
+    assert rows["d1"]["stale"] is False and rows["d2"]["stale"] is True
+
+
+def test_deferral_list_is_manager_only(monkeypatch):
+    client = make_client(monkeypatch, _Db(**base_tables(pm_schedules=[])), role="engineer", user_id=TECH_A)
+    assert client.get("/pm-management/deferrals").status_code == 403

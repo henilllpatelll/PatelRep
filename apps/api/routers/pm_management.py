@@ -126,6 +126,58 @@ async def get_summary(current_user: CurrentUser = Depends(require_role(*PM_SCHED
 
 
 # ---------------------------------------------------------------------------
+# GET /pm-management/deferrals
+# ---------------------------------------------------------------------------
+
+@router.get("/deferrals")
+async def list_deferrals(
+    status: str = Query("pending", pattern="^(pending|decided)$"),
+    limit: int = Query(50, ge=1, le=100),
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES)),
+):
+    """Deferral requests with the inspection, equipment and people resolved, for the approvals list. Deciding goes through
+    POST /programs/pm-deferrals/{id}/approve|reject, where the database refuses self-review and double decisions."""
+    if status == "pending":
+        rows = _pending_deferrals(current_user)[:limit]
+        decisions: dict[str, dict] = {}
+    else:
+        decided = supabase.table("pm_deferral_decisions").select("*").eq("tenant_id", current_user.hotel_id).order(
+            "decided_at", desc=True
+        ).limit(limit).execute().data or []
+        decisions = {str(d["deferral_id"]): d for d in decided}
+        rows = supabase.table("pm_deferrals").select("id, pm_schedule_id, requested_by, deferred_until, reason, created_at").eq(
+            "tenant_id", current_user.hotel_id
+        ).in_("id", list(decisions)).execute().data or [] if decisions else []
+    schedule_ids = sorted({str(r["pm_schedule_id"]) for r in rows})
+    schedules = {
+        str(s["id"]): s
+        for s in (supabase.table("pm_schedules").select("id, name, next_due_at, is_active, assets(name, asset_tag, location_text)").eq(
+            "tenant_id", current_user.hotel_id
+        ).in_("id", schedule_ids).execute().data or [] if schedule_ids else [])
+    }
+    people = {str(r["requested_by"]) for r in rows} | {str(d["decided_by"]) for d in decisions.values()}
+    names = _names(people, current_user)
+    out = []
+    for r in rows:
+        sched = schedules.get(str(r["pm_schedule_id"])) or {}
+        decision = decisions.get(str(r["id"]))
+        out.append({
+            "id": r["id"], "pm_schedule_id": r["pm_schedule_id"], "schedule_name": sched.get("name"),
+            "asset_name": _asset(sched).get("name"), "asset_tag": _asset(sched).get("asset_tag"),
+            "location_text": _asset(sched).get("location_text"),
+            "current_due_at": sched.get("next_due_at"), "schedule_active": sched.get("is_active"),
+            "requested_by": r["requested_by"], "requested_by_name": names.get(str(r["requested_by"])),
+            "requested_at": r["created_at"], "requested_due_at": r["deferred_until"], "reason": r["reason"],
+            "status": decision["decision"] if decision else "pending",
+            "decided_by_name": names.get(str(decision["decided_by"])) if decision else None,
+            "decided_at": decision["decided_at"] if decision else None, "decision_note": decision.get("note") if decision else None,
+            # A pending request is stale when the schedule already reached or passed the requested date.
+            "stale": bool(not decision and (_moment(sched.get("next_due_at")) or datetime.min.replace(tzinfo=timezone.utc)) >= (_moment(r["deferred_until"]) or datetime.max.replace(tzinfo=timezone.utc))),
+        })
+    return {"data": out, "meta": {"limit": limit}}
+
+
+# ---------------------------------------------------------------------------
 # GET /pm-management/technicians
 # ---------------------------------------------------------------------------
 

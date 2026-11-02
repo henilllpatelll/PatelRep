@@ -2856,7 +2856,20 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High",
-      "life_safety": "Life safety"
+      "life_safety": "Life safety",
+      "action": "Set criticality",
+      "title": "Equipment criticality",
+      "body": "How much do operations depend on {{name}}? This is your property's own assessment, not a prediction.",
+      "save": "Save criticality",
+      "reason": "Reason (optional)",
+      "reasonPlaceholder": "e.g. Heats the whole building",
+      "done": "Criticality updated",
+      "help": {
+        "low": "Short outages are tolerable; guests and staff barely notice.",
+        "medium": "Noticeable when down; work-arounds exist.",
+        "high": "Operations suffer quickly when it's down.",
+        "life_safety": "Guest or staff safety depends on it (for example fire or life-safety systems)."
+      }
     },
     "form": {
       "title": {
@@ -11962,6 +11975,192 @@
       "not_found": "This work order isn't available to the assistant.",
       "offline": "No connection.",
       "failed": "Couldn't get an answer. Try again."
+    }
+  },
+  "pmMgmt": {
+    "open": "PM Management",
+    "title": "PM Management",
+    "subtitle": "Manage inspections, schedules, and maintenance coverage.",
+    "empty": "No maintenance coverage to show yet.",
+    "loading": "Loading…",
+    "needsConnection": "You need a connection to do this.",
+    "seeAll": "See all",
+    "allClear": "Nothing needs attention right now.",
+    "noPending": "No deferral requests are waiting for review.",
+    "pendingLine": "{{name}} asked to move it to {{date}}",
+    "assignedToYou": "Assigned to you",
+    "cards": {
+      "overdue": "Overdue",
+      "unassigned": "Unassigned",
+      "approvals": "Pending approvals",
+      "dueThisWeek": "Due this week"
+    },
+    "sections": {
+      "attention": "Requires attention",
+      "workload": "Team workload",
+      "programs": "Programs and performance"
+    },
+    "period": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month"
+    },
+    "workload": {
+      "none": "No engineers to show.",
+      "a11y": "{{name}}: {{assigned}} assigned, {{overdue}} overdue, {{completed}} completed",
+      "ineligible": "No longer an active engineer here, but still holds assigned inspections",
+      "line": "{{assigned}} assigned · {{today}} due today · {{overdue}} overdue · {{completed}} completed",
+      "next": "Next due {{date}}",
+      "unassigned": "{{count}} inspection needs a technician",
+      "unassigned_plural": "{{count}} inspections need a technician",
+      "disclaimer": "Assigned means planned, not started. Estimated minutes are never counted as labor."
+    },
+    "programs": {
+      "title": "PM Programs",
+      "subtitle": "Every active schedule, its procedure and who has it.",
+      "forTechnician": "Assigned to {{name}}",
+      "count": "{{count}} active schedule",
+      "count_plural": "{{count}} active schedules",
+      "search": "Search schedules or equipment",
+      "filter": {
+        "all": "All",
+        "overdue": "Overdue",
+        "unassigned": "Unassigned",
+        "checklist": "Needs a procedure"
+      },
+      "empty": "No schedules match",
+      "emptyBody": "Try a different filter or search.",
+      "shown": "Showing {{shown}} of {{total}}",
+      "more": "Show more",
+      "overdue": "Overdue",
+      "due": "Due {{date}}",
+      "assignedTo": "Assigned to {{name}}",
+      "lapsed": "Not assigned (the earlier assignment ended with the last inspection)",
+      "unassigned": "Not assigned",
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "checklist": {
+        "unassigned": "No procedure chosen yet - the technician picks one",
+        "missing": "Its procedure no longer exists. Choose a current one.",
+        "inactive": "Its procedure was retired. Choose a current one.",
+        "incompatible": "Its procedure is not an engineering checklist."
+      }
+    },
+    "assign": {
+      "title": "Assign Inspection",
+      "due": "Due {{date}}",
+      "estimate": "about {{minutes}} min",
+      "currentlyWith": "Currently assigned to {{name}}",
+      "unassigned": "Not assigned yet",
+      "scopeNote": "This assigns this inspection only. After it is completed, the next one starts unassigned.",
+      "search": "Find an engineer",
+      "searchPlaceholder": "Search by name",
+      "loadFailed": "Couldn't load the engineers. Close this and try again.",
+      "noMatch": "No engineer matches that name.",
+      "alreadyAssigned": "Already assigned",
+      "roleChief": "Chief engineer",
+      "roleEngineer": "Engineer",
+      "unassign": "Remove assignment",
+      "confirm": "Confirm Assignment",
+      "confirmReassign": "Confirm Reassignment",
+      "unknownPerson": "Unknown person",
+      "done": {
+        "assigned": "Inspection assigned",
+        "reassigned": "Inspection reassigned",
+        "unassigned": "Assignment removed"
+      }
+    },
+    "detail": {
+      "section": "Manage",
+      "assignee": "Assigned to"
+    },
+    "deferral": {
+      "title": "Request PM Deferral",
+      "open": "Request deferral",
+      "submit": "Submit Request",
+      "currentDue": "Currently due {{date}}",
+      "requestNote": "This sends a request. The due date does not change until a different manager approves it.",
+      "newDate": "Requested new due date",
+      "reason": "Reason",
+      "reasonPlaceholder": "Why does this need to move?",
+      "requestedToast": "Request sent - waiting for review",
+      "problem": {
+        "reason_short": "Give a reason (at least 5 characters).",
+        "reason_long": "That reason is too long.",
+        "date_missing": "Choose a date.",
+        "date_not_later": "Choose a date after the current due date.",
+        "date_past": "Choose a future date, {{date}} or later."
+      }
+    },
+    "review": {
+      "title": "Review PM Deferral",
+      "equipment": "Equipment",
+      "requestedBy": "Requested by",
+      "requestedOn": "Requested",
+      "currentDue": "Current due date",
+      "newDue": "Requested due date",
+      "reason": "Reason",
+      "ownRequest": "You made this request, so another manager has to decide it.",
+      "stale": "The schedule has already moved to or past this date, so it can't be approved.",
+      "inactive": "This schedule is no longer active.",
+      "confirmApprove": "Approve and move the due date to {{date}}?",
+      "confirmReject": "Reject this request? The due date stays as it is.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "note": "Note (optional)",
+      "notePlaceholder": "Add context for the record",
+      "approvedToast": "Deferral approved",
+      "rejectedToast": "Deferral rejected"
+    },
+    "approvals": {
+      "title": "Pending Approvals",
+      "subtitle": "Deferral requests that need a decision.",
+      "pending": "Pending",
+      "decided": "Decided",
+      "emptyPending": "Nothing is waiting for review",
+      "emptyDecided": "No decisions yet",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "move": "Due {{from}} → requested {{to}}",
+      "by": "Requested by {{name}} on {{date}}"
+    },
+    "performance": {
+      "title": "PM Performance",
+      "subtitle": "How maintenance was carried out.",
+      "rateA11y": "On-time rate {{rate}}: {{onTime}} of {{total}} completions with a recorded deadline",
+      "rateNone": "No completions with a recorded deadline in this period yet",
+      "rateBasis": "On time: {{onTime}} of {{total}} completed",
+      "metric": {
+        "onTime": "Completed on time",
+        "late": "Completed late",
+        "overdue": "Still overdue",
+        "upcoming": "Due in 7 days",
+        "deferred": "Deferrals approved",
+        "findings": "Inspections with findings"
+      },
+      "unclassified": "{{count}} completed inspection has no recorded deadline, so it isn't counted as on time or late.",
+      "unclassified_plural": "{{count}} completed inspections have no recorded deadline, so they aren't counted as on time or late.",
+      "aboutTitle": "About these numbers",
+      "about": "These describe how work was carried out. They are not a safety or regulatory compliance result. Still overdue and Due in 7 days show schedules as they stand now."
+    },
+    "failure": {
+      "version_conflict": "Someone else changed this first. Close this to see the latest, then try again.",
+      "schedule_inactive": "This schedule is no longer active.",
+      "assignee_ineligible": "That person isn't an active engineer at this property.",
+      "self_review": "You can't decide a request you made. Another manager has to.",
+      "already_decided": "This request has already been decided.",
+      "stale": "The schedule has already moved to or past that date.",
+      "expired": "The requested date has already passed. Ask for a new one.",
+      "pending_exists": "This schedule already has a request waiting for review.",
+      "unavailable": "This is temporarily unavailable. Nothing was changed.",
+      "forbidden": "Your role can't do this.",
+      "not_found": "That record no longer exists.",
+      "validation": "Check the details and try again.",
+      "unconfirmed": "No answer from the server, so we can't tell whether it went through. Check before trying again.",
+      "failed": "That didn't work. Nothing was confirmed - try again."
     }
   }
 }
