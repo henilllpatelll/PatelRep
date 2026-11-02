@@ -1,3 +1,5 @@
+-- migration-safety: destructive-reviewed
+-- rollback-plan: Both DROP statements only re-create objects this migration itself creates (the pm_schedule_assignment_events_select policy and the pm_completion_capture_due_at trigger), so re-running is idempotent and no pre-existing object is removed. To roll back, drop the trigger, the policy, pm_schedule_assignment_events and the added pm_schedules/pm_completion_records columns; nothing historical is rewritten and the new columns are nullable.
 -- =============================================================================
 -- Migration 234: Engineering PM + Assets V2 - management assignments (Phase 5)
 -- =============================================================================

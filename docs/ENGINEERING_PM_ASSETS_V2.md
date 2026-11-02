@@ -429,3 +429,64 @@ short code only - no tokens, notes, file paths or signed URLs. Dev builds only.
 - Phase 6 leftovers (notifications, item-level link, history chips) remain as documented above.
 - PM Today/Plan/Calendar/History large-list performance (500 schedules, virtualization audit) was **not** done in this phase.
 - Realtime duplicate-subscription audit not done.
+
+## Phase 8: final QA, release readiness and rollout (2026-11-02)
+
+Release decision: **NOT READY - blockers remain** (see "Blockers"). Nothing here was merged, released or applied to any shared database.
+
+### Blockers
+1. **Shared staging is destructive on `main`.** `.github/workflows/staging-candidate.yml` runs `scripts/remote-migration-apply.mjs`, which executes
+   `supabase db reset --db-url <staging>` and then re-seeds the fixture, for any same-repo PR to `main` once CI completes. The hostname guard
+   (`staging-target-guard.mjs`) only stops a wrong target; it does not stop the wipe of the right one. Re-verified on 2026-11-02: no merged or open
+   fix exists. Until the staging workflow replays migrations only into an independently provisioned disposable database (or applies them
+   non-destructively), **do not open the PR**. The branch is pushed as a branch only; CI triggers on PRs and `main`, so the push runs nothing.
+2. **No device or emulator verification** of any phase (camera, QR scan, photo picker, file copy, share sheet, keyboard, safe areas, VoiceOver/TalkBack).
+   There is no safe backend: local `apps/api/.env` points at production, and staging is item 1.
+
+### Found and fixed in Phase 8
+- Migration `234_pm_management_assignments.sql` failed `node scripts/check-migrations.mjs` ("Destructive migration requires -- migration-safety:
+  destructive-reviewed and -- rollback-plan"). Both `DROP`s only re-create objects migration 234 itself creates. The two header lines were added
+  (no SQL changed). CI never ran on this branch, so this would have failed the first CI run.
+
+### Verification evidence (commit `c356c9ea` + the migration header edit)
+| Check | Command | Environment | Result |
+|---|---|---|---|
+| TypeScript | `npm run type-check` (apps/mobile) | local, Windows | pass |
+| ESLint | `npm run lint` (apps/mobile) | local | pass |
+| Jest | `npx jest --ci` (apps/mobile) | local, all suites | 445 suites / 10,117 tests pass |
+| Python lint | `ruff check .` (apps/api) | local | pass |
+| Migration integrity | `node scripts/check-migrations.mjs` | local | pass after the header fix (failed before) |
+| Migration script tests | `node --test scripts/check-migrations.test.mjs scripts/remote-migration-apply.test.mjs scripts/staging-target-guard.test.mjs` | local | 12/12 pass |
+| SQL behaviour | `pytest tests/sql` | disposable `postgres:16-alpine` container | 34 pass |
+| API unit/route suite | `pytest tests --ignore=tests/sql --ignore=tests/integration` (apps/api, dummy env, never the production `.env`) | local venv | all pass except 6 known environment failures (old stripe/dateutil/httpx in the shared venv; `test_snooze_sets_snoozed_until_one_hour_out` flakes in the full run, passes alone) |
+| RBAC matrix drift | `pytest tests/smoke/test_rbac_matrix_contract.py` | local | failed (stale line refs after Phase 7); regenerated with `generate_rbac_matrix.py` (line numbers only), now 3/3 pass |
+| EN/ES | key-set comparison of `i18n/locales/{en,es}.json` | local script | 9,699 / 9,699 keys, none missing either way |
+Not run: `tests/integration` (needs a migrated database; collection fails without one), real device/emulator, Mobile CI and CI Gate on GitHub (no PR), Staging Gate, clean-room replay of all migrations through the Supabase CLI,
+large-hotel load test, accessibility tooling, live cross-tenant negative tests against a real database.
+
+### Static security review (read of the diff; not a penetration test)
+- Every `pm_management` route is behind `require_role(PM_SCHEDULE_MANAGER_ROLES | PM_EXECUTION_ROLES)`; new asset routes use `ASSET_MANAGER_ROLES`,
+  `ASSET_RETIRE_ROLES` or `PM_*` role sets. Deferral self-review is refused by the database function (`self_review` -> 403).
+- Every new query on `pm_management.py` carries a tenant filter. Two lookups in `assets.py` (the flagged-asset and room maps in the repeat-issues report,
+  `.in_("id", ...)` without `tenant_id`) predate this branch and take ids from a tenant-scoped work-order query: no cross-tenant exposure, P3 hardening.
+- Offline storage is keyed `${tenant}:${user}` and each record repeats its owner; a mismatched record is rejected on read. Files remain on the
+  device after sign-out under that owner (no encryption claimed).
+- No token, signed URL or note content is logged by the new code; `[pm-sync]` events carry an 8-character operation id and a short code.
+
+### Role summary (source of truth: `apps/api/core/roles.py`, `apps/api/RBAC-MATRIX.md`)
+Engineer: executes PM, scans/searches assets, reports issues, records readings. Chief Engineer and General Manager: PM management, schedule
+create/edit, assignment, deferral decisions (never one's own request), performance, asset create/edit, criticality, downtime, retirement.
+The UI hides what the API refuses, but the API is the authority.
+
+### Rollout path and recovery
+- Forward only: `232 -> 233 -> 234`, all additive (new nullable columns, new tables, idempotent functions/triggers). Apply to production only through the
+  existing authorized Production Release process after a human merge; apply to staging only once blocker 1 is fixed.
+- Recovery: 234's header documents the rollback (drop its trigger, policy, `pm_schedule_assignment_events` and the added columns). 232/233 add columns,
+  an active-tag unique index and functions; none rewrites history. Roll back app behaviour by redeploying the previous API; the mobile client treats an
+  unknown server response as "needs review", not as success.
+
+### Known limitations and open items
+- P2: PM Today/Plan/Calendar load every schedule into a ScrollView (no virtualization); behaviour at ~500 schedules is unmeasured. PM History and the Asset directory are paged/virtualized.
+- P2: `assets` table is still read in full per browse request (Phase 7 residual); needs an indexed RPC with keyset paging and a migration.
+- P2: Phase 6 leftovers (notifications, item-level link, history chips) and the Phase 7 list in "Not done / not verified" above remain open.
+- P3: the two unscoped `.in_("id", ...)` lookups noted above.
