@@ -77,7 +77,7 @@ Candidates are globally serialized with `staging-release-candidate` and are neve
 
 Failed candidates update the same PR comment and fail `Staging Gate`; artifacts are retained for 10 days. Push a new commit to rerun CI → staging. Manual dispatch accepts only an existing PR number—not arbitrary service IDs, URLs, database references, or commits.
 
-Concurrency behavior is intentional: PRs #100 and #101 cannot reset/deploy shared staging concurrently; a queued SHA superseded by a newer PR push is skipped during fresh PR/SHA validation; an API-success/web-failure leaves `Staging Gate` failed and production untouched; mismatched web/API release metadata fails before functional smoke; an accidental production database URL is blocked before reset; fork PRs receive unprivileged CI only; and a rejected migration candidate is removed by the next candidate’s full disposable database rebuild.
+Concurrency behavior is intentional: PRs #100 and #101 cannot migrate/deploy shared staging concurrently; a queued SHA superseded by a newer PR push is skipped during fresh PR/SHA validation; an API-success/web-failure leaves `Staging Gate` failed and production untouched; mismatched web/API release metadata fails before functional smoke; an accidental production database URL is blocked before reset; fork PRs receive unprivileged CI only; and a rejected migration candidate is removed by the next candidate’s full disposable database rebuild.
 
 ## Emergency changes
 

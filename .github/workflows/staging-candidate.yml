@@ -22,8 +22,8 @@ on:
         type: string
 
 concurrency:
-  # Staging is disposable and rebuilt per candidate, so mixed deployments are
-  # unsafe. Never cancel a run after it has started mutating the shared stack.
+  # Staging is persistent and shared; mixed deployments are unsafe. Never cancel a
+  # run after it has started mutating the shared stack.
   group: staging-release-candidate
   cancel-in-progress: false
 
@@ -98,7 +98,7 @@ jobs:
               details_url: `https://github.com/${sameRepository}/actions/runs/${context.runId}`,
               output: {
                 title: 'Staging candidate queued',
-                summary: `PR #${current.number} commit ${candidateSha.slice(0, 7)} passed CI Gate and is queued for isolated staging verification.`,
+                summary: `PR #${current.number} commit ${candidateSha.slice(0, 7)} passed CI Gate and is queued for staging verification.`,
               },
             }
             const check = stagingCheck
@@ -144,7 +144,7 @@ jobs:
           if-no-files-found: error
 
   prepare-staging-database:
-    name: Prepare disposable staging database
+    name: Prepare persistent staging database (forward-only)
     needs: resolve-candidate
     if: needs.resolve-candidate.outputs.eligible == 'true'
     runs-on: ubuntu-latest
@@ -167,7 +167,7 @@ jobs:
           version: 2.112.0
       - name: Check candidate migration integrity
         run: node scripts/check-migrations.mjs
-      - name: Refuse any non-staging reset target
+      - name: Refuse any non-staging database target
         run: node scripts/staging-target-guard.mjs
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
@@ -176,10 +176,18 @@ jobs:
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
-      - name: Rebuild isolated staging database from candidate migrations
-        run: |
-          sudo apt-get update && sudo apt-get install --yes postgresql-client
-          node scripts/remote-migration-apply.mjs --db-url "$STAGING_SUPABASE_DB_URL"
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      # Staging is persistent and shared: it is NEVER reset, wiped or rebuilt here. Destructive replay of the
+      # candidate's migrations already ran against an isolated throwaway stack in CI Gate (Database Migration Gate).
+      - name: Plan forward-only staging migrations (read-only)
+        id: plan
+        run: node scripts/staging-migration-plan.mjs
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Apply pending migrations forward to staging (never a reset)
+        if: steps.plan.outputs.has_pending == 'true'
+        run: supabase db push --db-url "$STAGING_SUPABASE_DB_URL"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify candidate schema contracts
