@@ -57,7 +57,8 @@ test('manual Staging Database Migrate is main-only, guarded, forward-only and ne
   const workflow = readFileSync('.github/workflows/staging-db-migrate.yml', 'utf8')
   assert.match(workflow, /if: github\.ref == 'refs\/heads\/main'/)
   assert.match(workflow, /node scripts\/staging-target-guard\.mjs/)
-  assert.match(workflow, /supabase db push --db-url "\$STAGING_SUPABASE_DB_URL"/)
+  assert.match(workflow, /node scripts\/staging-migration-apply-workspace\.mjs apply/)
+  assert.doesNotMatch(workflow, /supabase db push|--include-all/)
   assert.doesNotMatch(workflow, /\bdb\s+reset\b/)
 })
 

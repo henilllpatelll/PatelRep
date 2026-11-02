@@ -180,24 +180,41 @@ jobs:
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       # Staging is persistent and shared: it is NEVER reset, wiped or rebuilt here. Destructive replay of the
       # candidate's migrations already ran against an isolated throwaway stack in CI Gate (Database Migration Gate).
-      - name: Plan forward-only staging migrations (read-only)
+      - name: Plan forward-only staging migrations (read-only, verified by a dry run of the pinned CLI)
         id: plan
-        run: node scripts/staging-migration-plan.mjs
+        run: node scripts/staging-migration-apply-workspace.mjs plan
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      - name: Apply pending migrations forward to staging (never a reset)
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Apply pending migrations forward to staging (verified ephemeral workspace, never a reset)
         if: steps.plan.outputs.has_pending == 'true'
-        run: supabase db push --db-url "$STAGING_SUPABASE_DB_URL"
+        run: node scripts/staging-migration-apply-workspace.mjs apply
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Verify candidate schema contracts
         run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify staging migration state equals this candidate
-        run: node scripts/check-db-drift.mjs --environment staging
+        run: |
+          node scripts/check-db-drift.mjs --environment staging
+          node scripts/staging-migration-apply-workspace.mjs verify-applied
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Grant staging fixture service access
         run: |
           psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; notify pgrst, 'reload schema';"

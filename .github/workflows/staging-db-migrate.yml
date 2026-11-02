@@ -37,14 +37,26 @@ jobs:
         run: node scripts/check-db-drift.mjs --environment staging --allow-pending
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      - name: Apply pending migrations to staging only
-        run: supabase db push --db-url "$STAGING_SUPABASE_DB_URL"
+      - name: Apply pending migrations to staging only (verified ephemeral workspace)
+        run: node scripts/staging-migration-apply-workspace.mjs apply
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: https://${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Verify staging migration identifiers are clean
-        run: node scripts/check-db-drift.mjs --environment staging
+        run: |
+          node scripts/check-db-drift.mjs --environment staging
+          node scripts/staging-migration-apply-workspace.mjs verify-applied
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: https://${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Verify staging schema contracts
         run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
