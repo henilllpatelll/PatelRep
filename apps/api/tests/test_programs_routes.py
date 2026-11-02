@@ -26,6 +26,7 @@ from routers import assets as assets_router
 from routers import evidence as evidence_router
 from routers import programs as programs_router
 from tests.smoke.fake_supabase import FakeDB
+from tests.smoke.pm_fakes import PmFakeDB
 
 
 def _auth_header(role: str, hotel_id: str = "hotel-a", user_id: str = "user-a-1") -> dict[str, str]:
@@ -137,21 +138,44 @@ def test_maybe_single_none_returns_404_not_500(monkeypatch):
 
 
 # --- PM completion evidence linkage (D-06, G1) ---
+#
+# Engineering PM + Assets V2 moved completion into one database function and made a deferral a request that an
+# independent reviewer decides. These tests keep the original HTTP-level guarantees (signed URLs only, tenant-isolated
+# evidence, evidence-required items, separation of duty, containment audit) on that contract: real UUID ids and a
+# PmFakeDB that models record_pm_completion() / decide_pm_deferral().
+
+SCHED = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+PM_ASSET = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+
+
+def _pm_db(**extra) -> PmFakeDB:
+    rows = {
+        "assets": [{"id": PM_ASSET, "tenant_id": "hotel-a", "name": "Chiller", "is_active": True}],
+        "pm_schedules": [{
+            "id": SCHED, "tenant_id": "hotel-a", "asset_id": PM_ASSET, "interval_type": "monthly", "interval_days": 30,
+            "is_active": True, "recurrence_basis": "scheduled_date", "next_due_at": "2026-10-01T12:00:00+00:00",
+            "checklist_template_id": None, "checklist_template_code": None,
+        }],
+    }
+    rows.update(extra)
+    return PmFakeDB(rows)
+
+
+def _use(monkeypatch, db) -> TestClient:
+    for module in (assets_router, programs_router, evidence_router):
+        monkeypatch.setattr(module, "supabase", db)
+    return TestClient(app)
+
 
 def test_pm_completion_returns_signed_urls(monkeypatch):
     """A completion's attachments read back as short-lived signed URLs, never a raw storage_path."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-        "evidence_records": [
-            {"id": "evidence-1", "tenant_id": "hotel-a", "storage_path": "hotel-a/evidence-1/proof.jpg", "file_name": "proof.jpg"},
-        ],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    monkeypatch.setattr(evidence_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db(evidence_records=[
+        {"id": "evidence-1", "tenant_id": "hotel-a", "storage_path": "hotel-a/evidence-1/proof.jpg", "file_name": "proof.jpg"},
+    ])
+    client = _use(monkeypatch, db)
 
     complete_response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm"),
         json={
             "photos": ["evidence-1"],
@@ -162,7 +186,7 @@ def test_pm_completion_returns_signed_urls(monkeypatch):
     completion_id = complete_response.json()["data"]["id"]
 
     read_response = client.get(
-        f"/v1/assets/pm-schedules/sched-1/completions/{completion_id}",
+        f"/v1/assets/pm-schedules/{SCHED}/completions/{completion_id}",
         headers=_auth_header("gm"),
     )
     assert read_response.status_code == 200
@@ -193,15 +217,11 @@ def test_selected_pm_history_is_tenant_scoped(monkeypatch):
 
 def test_cross_tenant_evidence_rejected(monkeypatch):
     """An evidence_record owned by tenant B cannot be attached to a tenant-A completion."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-        "evidence_records": [{"id": "evidence-b", "tenant_id": "hotel-b"}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db(evidence_records=[{"id": "evidence-b", "tenant_id": "hotel-b"}])
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm"),
         json={
             "photos": ["evidence-b"],
@@ -215,14 +235,11 @@ def test_cross_tenant_evidence_rejected(monkeypatch):
 
 def test_evidence_required_item_422_route(monkeypatch):
     """A controlled checklist item with requires_evidence and no evidence is rejected at the route."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db()
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm"),
         json={
             "items": [{"key": "gauge", "label": "Pressure gauge", "result": "passed", "requires_evidence": True}],
@@ -236,14 +253,11 @@ def test_evidence_required_item_422_route(monkeypatch):
 def test_pm_completion_self_verification_rejected(monkeypatch):
     """CR-01: a completion whose verifier_id equals the technician is rejected server-side,
     not just blocked by the client. Mirrors the deferral self-approval check (D-07)."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db()
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm", user_id="user-a-1"),
         json={
             "verifier_id": "user-a-1",
@@ -257,14 +271,11 @@ def test_pm_completion_self_verification_rejected(monkeypatch):
 
 def test_pm_completion_inactive_verifier_rejected(monkeypatch):
     """A verifier_id not active at this tenant is rejected, zero completion rows written."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db()
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm", user_id="user-a-1"),
         json={
             "verifier_id": "user-a-2",
@@ -278,117 +289,112 @@ def test_pm_completion_inactive_verifier_rejected(monkeypatch):
 
 def test_pm_completion_distinct_active_verifier_accepted(monkeypatch):
     """A distinct, active verifier is accepted and persisted on the completion record."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": True}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    verifier = "aaaaaaaa-0000-4000-8000-000000000002"
+    db = _pm_db(user_roles=[{"tenant_id": "hotel-a", "user_id": verifier, "is_active": True}])
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("gm", user_id="user-a-1"),
         json={
-            "verifier_id": "user-a-2",
+            "verifier_id": verifier,
             "items": [{"key": "check", "label": "Visual check", "result": "passed"}],
         },
     )
 
     assert response.status_code == 200
-    assert response.json()["data"]["verifier_id"] == "user-a-2"
+    assert response.json()["data"]["verifier_id"] == verifier
 
 
 # --- PM deferral separation of duty + containment audit (G2, G4, G8) ---
+#
+# A deferral is now a REQUEST (pending, due date unchanged); a different, authenticated reviewer approves or rejects it.
+# The requester can no longer nominate an approver, so "self approval" and "inactive approver" are enforced by the
+# reviewer being the caller rather than a field in the body.
 
-def _deferral_payload(approved_by: str) -> dict:
-    return {
-        "reason": "Vendor unavailable until next week",
-        "deferred_until": "2026-08-01T00:00:00Z",
-        "approved_by": approved_by,
-    }
+DEFER_UNTIL = "2099-01-01T00:00:00+00:00"
+
+
+def _request_deferral(client, db, **extra) -> dict:
+    response = client.post(
+        f"/v1/programs/pm-schedules/{SCHED}/deferrals",
+        headers=_auth_header("chief_engineer", user_id="user-a-1"),
+        json={"reason": "Vendor unavailable until next week", "deferred_until": DEFER_UNTIL, **extra},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()["data"]
 
 
 def test_deferral_self_approval_rejected(monkeypatch):
-    """D-07: approved_by == requester is rejected with 422 and writes zero pm_deferrals rows."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-    })
-    monkeypatch.setattr(programs_router, "supabase", db)
-    client = TestClient(app)
+    """D-07: the requester cannot decide their own deferral (403 self_review); no decision row, due date unchanged."""
+    db = _pm_db()
+    client = _use(monkeypatch, db)
+    before = db.rows["pm_schedules"][0]["next_due_at"]
+    deferral = _request_deferral(client, db)
 
     response = client.post(
-        "/v1/programs/pm-schedules/sched-1/deferrals",
-        headers=_auth_header("gm", user_id="user-a-1"),
-        json=_deferral_payload("user-a-1"),
+        f"/v1/programs/pm-deferrals/{deferral['id']}/approve",
+        headers=_auth_header("chief_engineer", user_id="user-a-1"),
+        json={},
     )
 
-    assert response.status_code == 422
-    assert db.rows.get("pm_deferrals", []) == []
+    assert response.status_code == 403
+    assert db.rows.get("pm_deferral_decisions", []) == []
+    assert db.rows["pm_schedules"][0]["next_due_at"] == before
 
 
 def test_deferral_approval_writes_audit(monkeypatch):
-    """A distinct, active approver succeeds and writes one pm_deferral.approved audit event."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": True}],
-    })
-    monkeypatch.setattr(programs_router, "supabase", db)
-    client = TestClient(app)
+    """A distinct reviewer approves, the schedule moves, and exactly one pm_deferral.approved audit event is written."""
+    db = _pm_db()
+    client = _use(monkeypatch, db)
+    deferral = _request_deferral(client, db)
 
     response = client.post(
-        "/v1/programs/pm-schedules/sched-1/deferrals",
-        headers=_auth_header("gm", user_id="user-a-1"),
-        json=_deferral_payload("user-a-2"),
+        f"/v1/programs/pm-deferrals/{deferral['id']}/approve",
+        headers=_auth_header("gm", user_id="user-a-2"),
+        json={"note": "ok"},
     )
 
-    assert response.status_code == 200
-    deferral_id = response.json()["data"]["id"]
+    assert response.status_code == 200, response.text
+    assert db.rows["pm_schedules"][0]["next_due_at"] == DEFER_UNTIL
     audit_events = [
         row for row in db.rows.get("operational_audit_events", [])
         if row["action"] == "pm_deferral.approved"
     ]
     assert len(audit_events) == 1
-    assert audit_events[0]["resource_id"] == deferral_id
+    assert audit_events[0]["resource_id"] == deferral["id"]
+    assert audit_events[0]["actor_id"] == "user-a-2"
     assert audit_events[0]["reason_code"] == "pm_deferral"
 
 
 def test_deferral_inactive_approver_rejected(monkeypatch):
-    """An approver not active at this tenant is rejected with 404, zero pm_deferrals rows."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-        "user_roles": [{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": False}],
-    })
-    monkeypatch.setattr(programs_router, "supabase", db)
-    client = TestClient(app)
+    """A requester-nominated approver (active or not) is ignored: nothing is approved and no decision row is written."""
+    db = _pm_db(user_roles=[{"tenant_id": "hotel-a", "user_id": "user-a-2", "is_active": False}])
+    client = _use(monkeypatch, db)
+    before = db.rows["pm_schedules"][0]["next_due_at"]
 
-    response = client.post(
-        "/v1/programs/pm-schedules/sched-1/deferrals",
-        headers=_auth_header("gm", user_id="user-a-1"),
-        json=_deferral_payload("user-a-2"),
-    )
+    deferral = _request_deferral(client, db, approved_by="user-a-2")
 
-    assert response.status_code == 404
-    assert db.rows.get("pm_deferrals", []) == []
+    assert deferral["status"] == "pending" and deferral.get("approved_by") is None
+    assert db.rows.get("pm_deferral_decisions", []) == []
+    assert db.rows["pm_schedules"][0]["next_due_at"] == before
 
 
 def test_failed_check_writes_containment_audit(monkeypatch):
     """A failed PM checklist item creates a corrective WO AND an append-only containment
     audit event (G2/T-04-11), not just the follow-up work order."""
-    db = FakeDB({
-        "pm_schedules": [{"id": "sched-1", "tenant_id": "hotel-a", "asset_id": "asset-1", "interval_days": 30}],
-    })
-    monkeypatch.setattr(assets_router, "supabase", db)
-    client = TestClient(app)
+    db = _pm_db()
+    client = _use(monkeypatch, db)
 
     response = client.post(
-        "/v1/assets/pm-schedules/sched-1/complete",
+        f"/v1/assets/pm-schedules/{SCHED}/complete",
         headers=_auth_header("engineer"),
         json={
             "items": [{"key": "check", "label": "Fire extinguisher pressure", "result": "failed", "note": "Low pressure"}],
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     completion_id = response.json()["data"]["id"]
     assert db.rows["work_orders"][0]["pm_completion_id"] == completion_id
     assert db.rows["work_orders"][0]["due_at"]

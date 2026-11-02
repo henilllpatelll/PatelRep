@@ -971,3 +971,14 @@
 - apps/mobile/lib/engineering/workOrderCache.ts - saved WO copies + queue snapshots (72h, bounded, no comments/photos) (~1.4k tok)
 - apps/mobile/lib/engineering/syncedHistory.ts - server-confirmed recently-synced list (~0.7k tok)
 - apps/mobile/lib/engineering/queuedActions.ts - duplicate-queue guard for claim/complete (~0.3k tok)
+
+## Eng PM+Assets V2 Phase 3 (equipment identity) - files added 2026-11-01
+- supabase/migrations/233_asset_identity_photo_and_version.sql - assets.row_version + assets.photo_evidence_id (~0.4k tok)
+- apps/mobile/lib/engineering/assetForm.ts - register/edit form model: validation, create/update bodies (clear_fields, expected_row_version), failure classification, mergeSavedAsset (~2.5k tok)
+- apps/mobile/lib/engineering/useAssetEditor.ts - register/edit lifecycle hook: idempotent id, partial photo failure, conflict resolution (~2k tok)
+- apps/mobile/lib/engineering/useLeaveGuard.ts - discard-changes guard incl. Android hardware back (~0.4k tok)
+- apps/mobile/lib/engineering/assetLabel.ts, assetLabelActions.ts - QR matrix + printable label HTML (escaped); print/share hand-off (~1.5k tok)
+- apps/mobile/lib/api/assetPhoto.ts - evidence upload + attach as identity photo with cleanup (~0.5k tok)
+- apps/mobile/components/engineering/assets/form/{AssetEditor,DateField,PhotoField}.tsx, QrCode.tsx, RetireSheet.tsx - the register/edit form and retire sheet
+- apps/mobile/app/(app)/assets/{new.tsx, edit/[assetId].tsx, label/[assetId].tsx} - Register, Edit, QR Label screens (hidden tab routes registered in lib/navigation/roleTabs.ts)
+- apps/api/routers/assets.py - POST /assets idempotent, PATCH versioned, POST /{id}/retire, PUT|DELETE /{id}/photo, lookup (case-insensitive, retired flag), PM completion returns asset + corrective_work_orders

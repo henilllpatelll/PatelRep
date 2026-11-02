@@ -40,6 +40,35 @@ function repository(meta) {
   return raw.replace(/^git\+/, "").replace(/\.git$/, "").replace(/^git:\/\//, "https://").replace(/^ssh:\/\/git@/, "https://");
 }
 
+const MIT_TEXT = (holder) =>
+  `MIT License
+
+Copyright (c) ${holder}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.`;
+
+// Packages that declare a license but ship no license file. The text is the license they declare (checked against the
+// package.json "license" field below) with the copyright holder named in the package's own source header.
+const SHIPS_NO_LICENSE_FILE = {
+  "qrcode-generator": { license: "MIT", text: MIT_TEXT("2009 Kazuhiko Arase") },
+};
+
 const entries = Object.keys(pkg.dependencies)
   .sort((a, b) => a.localeCompare(b, "en"))
   .map((name) => {
@@ -49,7 +78,13 @@ const entries = Object.keys(pkg.dependencies)
     // Every license file the package ships (a font package has LICENSE for its code and LICENSE_FONT for the typeface).
     const files = fs.readdirSync(dir).filter((f) => LICENSE_FILE.test(f) && fs.statSync(path.join(dir, f)).isFile()).sort();
     const texts = files.map((f) => fs.readFileSync(path.join(dir, f), "utf8").replace(/\r\n/g, "\n").trim());
-    const text = texts.length ? texts.join("\n\n----------------------------------------\n\n") : null;
+    let text = texts.length ? texts.join("\n\n----------------------------------------\n\n") : null;
+    const fallback = SHIPS_NO_LICENSE_FILE[name];
+    if (!text && fallback) {
+      // Never attach the wrong license text: it must be the one the package itself declares.
+      if (spdx(meta) !== fallback.license) throw new Error(`${name} now declares ${spdx(meta)}, not ${fallback.license}; review its license.`);
+      text = fallback.text;
+    }
     return { name, version: meta.version, license: spdx(meta), repository: repository(meta), text };
   });
 

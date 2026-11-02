@@ -47,7 +47,7 @@ def due(days: int) -> str:
 
 def make_db(**overrides) -> PmFakeDB:
     rows = {
-        "assets": [{"id": ASSET, "tenant_id": TENANT, "name": "Chiller", "asset_tag": "CH-1", "is_active": True, "criticality": "medium"}],
+        "assets": [{"id": ASSET, "tenant_id": TENANT, "name": "Chiller", "asset_tag": "CH-1", "is_active": True, "criticality": "medium", "row_version": 1}],
         "pm_schedules": [{
             "id": SCHEDULE, "tenant_id": TENANT, "asset_id": ASSET, "name": "Monthly", "interval_type": "monthly", "interval_days": None,
             "next_due_at": due(-2), "is_active": True, "recurrence_basis": "scheduled_date",
@@ -576,4 +576,5 @@ async def test_lookup_resolves_only_the_callers_own_active_equipment(db):
     assert (await refused(assets_router.lookup_asset(asset_id=None, tag="CH-1", current_user=user("gm", tenant=OTHER)))).status_code == 404
     assert (await refused(assets_router.lookup_asset(asset_id="not-a-uuid", tag=None, current_user=ENGINEER))).status_code == 404
     db.rows["assets"][0]["is_active"] = False
-    assert (await refused(assets_router.lookup_asset(asset_id=ASSET, tag=None, current_user=ENGINEER))).status_code == 404
+    retired = (await assets_router.lookup_asset(asset_id=ASSET, tag=None, current_user=ENGINEER))["data"]
+    assert retired["id"] == ASSET and retired["is_active"] is False  # a retired label still resolves, flagged as retired

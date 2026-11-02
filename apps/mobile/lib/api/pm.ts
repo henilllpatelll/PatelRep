@@ -101,6 +101,10 @@ export interface PmCompletionDetail {
   notes: string | null;
   photos: PmCompletionEvidence[];
   items: PmCompletionItemRecord[];
+  /** The exact equipment this was done on (id-resolved inside the property). Absent from an older server. */
+  asset?: { id: string; name: string; asset_tag?: string | null; is_active?: boolean } | null;
+  /** The corrective work orders this completion opened. Reading the record never creates one. */
+  corrective_work_orders?: Array<{ id: string; title: string; status: string; work_order_number?: string | number | null }> | null;
 }
 
 export async function getPmCompletion(scheduleId: string, completionId: string): Promise<PmCompletionDetail> {

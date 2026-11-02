@@ -21,6 +21,8 @@ import {
   type AssetRow,
 } from "@/lib/engineering/assetModel";
 import { resolveLoadState } from "@/lib/engineering/loadState";
+import { canManageAssets } from "@/lib/engineering/roles";
+import { ASSET_NEW_ROUTE } from "@/lib/engineering/routes";
 import { recallAssetView, rememberAssetView, takeAssetListStale, useAssetBrowse } from "@/lib/engineering/useAssetBrowse";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
 import { useAppStore } from "@/stores/appStore";
@@ -43,6 +45,7 @@ export default function AssetsScreen() {
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
   const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
+  const canAdd = canManageAssets(user?.effective_role ?? user?.role);
 
   const [filters, setFilters] = useState<AssetFilters>(() => recallAssetView(scope)?.filters ?? EMPTY_ASSET_FILTERS);
   const [text, setText] = useState(() => recallAssetView(scope)?.text ?? "");
@@ -66,6 +69,7 @@ export default function AssetsScreen() {
 
   const openAsset = useCallback((assetId: string) => router.push({ pathname: "/(app)/assets/[assetId]", params: { assetId } } as never), []);
   const scan = useCallback(() => router.push("/(app)/assets/scan" as never), []);
+  const add = useCallback(() => router.push(ASSET_NEW_ROUTE as never), []);
   const clearAll = useCallback(() => {
     setFilters(EMPTY_ASSET_FILTERS);
     setText("");
@@ -133,6 +137,17 @@ export default function AssetsScreen() {
               {t("assets.subtitle")}
             </Text>
           </View>
+          {canAdd ? (
+            <Pressable
+              onPress={add}
+              accessibilityRole="button"
+              accessibilityLabel={t("assets.add")}
+              style={[styles.scanButton, { backgroundColor: theme.primaryAction, borderColor: theme.primaryAction }]}
+              testID="asset-add-button"
+            >
+              <Ionicons name="add" size={26} color={theme.onPrimary} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={scan}
             accessibilityRole="button"

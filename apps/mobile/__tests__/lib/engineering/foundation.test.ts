@@ -12,6 +12,8 @@ import { adaptPmSchedule } from "@/lib/engineering/pmSchedules";
 import {
   ASSETS_LIST_ROUTE,
   PM_LIST_ROUTE,
+  assetEditRoute,
+  assetLabelRoute,
   assetRoute,
   isSafeRouteId,
   pmInspectRoute,
@@ -20,7 +22,7 @@ import {
   roomRoute,
   workOrderRoute,
 } from "@/lib/engineering/routes";
-import { canManageAssets, canManagePmSchedules, canRequestPmDeferral, canReviewPmDeferral } from "@/lib/engineering/roles";
+import { canManageAssets, canManagePmSchedules, canRequestPmDeferral, canRetireAssets, canReviewPmDeferral } from "@/lib/engineering/roles";
 
 const UUID = "3f1f4c1e-0a3c-4c63-9f43-9a5e3a0a7c11";
 
@@ -38,11 +40,18 @@ describe("route builders", () => {
     "refuses an id that could change where the link goes: %p",
     (hostile) => {
       expect(isSafeRouteId(hostile)).toBe(false);
-      for (const build of [assetRoute, workOrderRoute, roomRoute, pmScheduleRoute, pmInspectRoute]) expect(build(hostile)).toBeNull();
+      for (const build of [assetRoute, assetEditRoute, assetLabelRoute, workOrderRoute, roomRoute, pmScheduleRoute, pmInspectRoute]) expect(build(hostile)).toBeNull();
       expect(pmRecordRoute(hostile, UUID)).toBeNull();
       expect(pmRecordRoute(UUID, hostile)).toBeNull();
     },
   );
+
+  it("builds the edit and label destinations for one exact asset", () => {
+    expect(assetEditRoute(UUID)).toEqual({ pathname: "/(app)/assets/edit/[assetId]", params: { assetId: UUID } });
+    expect(assetLabelRoute(UUID)).toEqual({ pathname: "/(app)/assets/label/[assetId]", params: { assetId: UUID } });
+    expect(assetEditRoute(null)).toBeNull();
+    expect(assetLabelRoute(undefined)).toBeNull();
+  });
 
   it("yields nothing for a missing id so the caller can fall back to the list", () => {
     expect(assetRoute(null)).toBeNull();
@@ -71,6 +80,11 @@ describe("permission helpers", () => {
     expect(canReviewPmDeferral("gm", "chief-1", null)).toBe(false);
   });
 
+  it("only the chief engineer and GM can retire equipment; a line engineer cannot", () => {
+    for (const role of ["chief_engineer", "gm"]) expect(canRetireAssets(role)).toBe(true);
+    for (const role of ["engineer", "housekeeper", "front_desk", "housekeeping_supervisor", undefined, null]) expect(canRetireAssets(role)).toBe(false);
+  });
+
   it("equipment records can be managed by engineers, the chief engineer and GM", () => {
     for (const role of ["engineer", "chief_engineer", "gm"]) expect(canManageAssets(role)).toBe(true);
     for (const role of ["housekeeper", "front_desk", "housekeeping_supervisor", undefined]) expect(canManageAssets(role)).toBe(false);
@@ -91,6 +105,7 @@ describe("mobile permission helpers match the API constants", () => {
     expect(accepted(canRequestPmDeferral)).toEqual(constant("PM_DEFERRAL_REQUEST_ROLES"));
     expect(accepted((r) => canReviewPmDeferral(r, "someone-else", "me"))).toEqual(constant("PM_DEFERRAL_REVIEWER_ROLES"));
     expect(accepted(canManageAssets)).toEqual(constant("ASSET_MANAGER_ROLES"));
+    expect(accepted(canRetireAssets)).toEqual(constant("ASSET_RETIRE_ROLES"));
   });
 });
 

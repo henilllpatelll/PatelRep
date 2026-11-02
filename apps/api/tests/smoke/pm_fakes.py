@@ -39,7 +39,7 @@ def _parse(value: Any) -> datetime:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
-_COLUMN_DEFAULTS = {"assets": {"is_active": True}, "pm_schedules": {"is_active": True, "recurrence_basis": "scheduled_date"}}
+_COLUMN_DEFAULTS = {"assets": {"is_active": True, "row_version": 1}, "pm_schedules": {"is_active": True, "recurrence_basis": "scheduled_date"}}
 
 
 class _DefaultingQuery(FakeQuery):
@@ -117,6 +117,7 @@ class PmFakeDB(FakeDB):
                 "checklist_version": p_completion.get("checklist_version"),
                 "technician_id": p_user_id, "verifier_id": p_completion.get("verifier_id"),
                 "labor_minutes": p_completion.get("labor_minutes") or 0, "notes": p_completion.get("notes"),
+                "photos": p_completion.get("photos") or [], "certificate_attachments": p_completion.get("certificate_attachments") or [],
                 "completed_at": p_completed_at, "submission_id": p_submission_id, "submission_hash": p_submission_hash,
             }
             self._table("pm_completion_records").append(completion)
@@ -143,7 +144,7 @@ class PmFakeDB(FakeDB):
                 self._insert("operational_audit_events", {
                     "tenant_id": p_tenant_id, "resource_type": "pm_completion", "resource_id": p_completion_id,
                     "action": "pm_check.failed_containment", "actor_id": p_user_id, "actor_role": p_actor_role,
-                    "new_state": {"item": item["label"], "work_order_id": work_order_id},
+                    "new_state": {"item": item["label"], "work_order_id": work_order_id}, "reason_code": "failed_check",
                 })
             completed_at = _parse(p_completed_at)
             base = completed_at if schedule.get("recurrence_basis") == "completion_date" else _parse(schedule["next_due_at"])
@@ -186,6 +187,6 @@ class PmFakeDB(FakeDB):
                 "tenant_id": p_tenant_id, "resource_type": "pm_deferral", "resource_id": p_deferral_id,
                 "action": f"pm_deferral.{p_decision}", "actor_id": p_reviewer_id, "actor_role": p_reviewer_role,
                 "old_state": {"next_due_at": previous, "requested_by": deferral["requested_by"]},
-                "new_state": {"decision": p_decision, "next_due_at": applied or previous},
+                "new_state": {"decision": p_decision, "next_due_at": applied or previous}, "reason_code": "pm_deferral", "reason_note": p_note,
             })
             return {"status": "ok", "decision": dict(decision)}

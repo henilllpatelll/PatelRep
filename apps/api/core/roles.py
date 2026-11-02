@@ -58,6 +58,9 @@ PM_DEFERRAL_REVIEWER_ROLES = ("chief_engineer", "gm")
 # Create and edit equipment records. Engineers keep the access they always had; the chief engineer, who owns the
 # equipment register, gains it.
 ASSET_MANAGER_ROLES = ("engineer", "chief_engineer", "gm")
+# Retire (deactivate) equipment. Narrower than editing: a line engineer registers and corrects equipment but does not
+# take it out of service records; the register's owner does.
+ASSET_RETIRE_ROLES = ("chief_engineer", "gm")
 
 
 # ---------------------------------------------------------------------------

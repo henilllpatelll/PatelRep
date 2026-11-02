@@ -10,6 +10,8 @@ import { parseAssetCode, type AssetCodeRejection } from "@/lib/engineering/asset
 
 export type LookupOutcome =
   | { kind: "found"; asset: AssetLookupResult; fromCache: boolean }
+  /** The label belongs to equipment that has been retired: it exists, but is no longer in service. */
+  | { kind: "retired"; asset: AssetLookupResult }
   | { kind: "invalid"; reason: AssetCodeRejection }
   | { kind: "not_found" }
   | { kind: "ambiguous" }
@@ -36,7 +38,8 @@ export async function resolveAssetCode(raw: string, { isOnline, findCached, look
   if (!isOnline) return fromCache();
 
   try {
-    return { kind: "found", asset: await lookup(code), fromCache: false };
+    const asset = await lookup(code);
+    return asset.is_active === false ? { kind: "retired", asset } : { kind: "found", asset, fromCache: false };
   } catch (err) {
     const status = (err as { status?: unknown } | null)?.status;
     if (status === 404) return { kind: "not_found" };

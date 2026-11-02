@@ -16,6 +16,7 @@ import { AssetOverview, type AssetSection } from "@/components/engineering/asset
 import { AssetReadingsSection } from "@/components/engineering/assets/AssetReadingsSection";
 import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReliabilityPanel";
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
+import { RetireSheet } from "@/components/engineering/assets/RetireSheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
   getAsset,
@@ -30,7 +31,8 @@ import { listPmCompletions, type PmCompletionSummary } from "@/lib/api/pm";
 import { buildAssetTimeline, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
-import { canActOnSignals, canRecordReadings } from "@/lib/engineering/roles";
+import { canActOnSignals, canManageAssets, canRecordReadings, canRetireAssets } from "@/lib/engineering/roles";
+import { assetEditRoute, assetLabelRoute } from "@/lib/engineering/routes";
 import { markAssetListStale } from "@/lib/engineering/useAssetBrowse";
 import { useAssetWorkOrders } from "@/lib/engineering/useAssetWorkOrders";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
@@ -72,6 +74,7 @@ export default function AssetDetailScreen() {
   const [visited, setVisited] = useState<ReadonlySet<AssetSection>>(new Set(["overview"]));
   const [readingFor, setReadingFor] = useState<string | null>(null);
   const [readingToken, setReadingToken] = useState(0);
+  const [retireOpen, setRetireOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
   // The tab screen is reused for another asset: start that one at the top, on Overview.
@@ -99,6 +102,21 @@ export default function AssetDetailScreen() {
       },
     } as never);
   }, [asset.data]);
+  const openEdit = useCallback(() => {
+    const target = assetEditRoute(asset.data?.id);
+    if (target) router.push(target as never);
+  }, [asset.data]);
+  const openLabel = useCallback(() => {
+    const target = assetLabelRoute(asset.data?.id);
+    if (target) router.push(target as never);
+  }, [asset.data]);
+  const openScan = useCallback(() => router.push("/(app)/assets/scan" as never), []);
+  const onRetired = useCallback(() => {
+    setRetireOpen(false);
+    markAssetListStale();
+    toast.success(t("assets.retire.done"));
+    void asset.reload();
+  }, [asset, t, toast]);
   const openRoom = useCallback(() => {
     const roomId = asset.data?.room_id;
     if (roomId) router.push({ pathname: "/(app)/room-status/[roomId]", params: { roomId } } as never);
@@ -286,6 +304,12 @@ export default function AssetDetailScreen() {
               timezone={timezone}
               offline={!isOnline}
               canRecordReading={canRecord && recordMeters.length > 0}
+              canManage={canManageAssets(role)}
+              canRetire={canRetireAssets(role)}
+              onEdit={openEdit}
+              onLabel={openLabel}
+              onScan={openScan}
+              onRetire={() => setRetireOpen(true)}
               onCreateWorkOrder={openReport}
               onOpenRoom={data.room_id ? openRoom : undefined}
               onGoto={go}
@@ -345,6 +369,7 @@ export default function AssetDetailScreen() {
         ) : null}
       </ScrollView>
 
+      <RetireSheet visible={retireOpen} asset={data} isOnline={isOnline} onClose={() => setRetireOpen(false)} onRetired={onRetired} />
       <RecordReadingSheet
         visible={readingFor != null}
         meters={recordMeters}

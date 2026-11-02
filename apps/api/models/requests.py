@@ -1066,9 +1066,20 @@ def _check_asset_fields(model: Any) -> Any:
     return model
 
 
+AssetCriticality = Literal["low", "medium", "high", "life_safety"]
+# Fields an edit may explicitly clear back to "not recorded". name / category are required and never clearable.
+ASSET_CLEARABLE_FIELDS = Literal[
+    "asset_tag", "manufacturer", "model", "serial_number", "room_id", "location_text", "notes",
+    "installation_date", "warranty_expires", "purchase_date",
+]
+
+
 class CreateAssetRequest(SanitizedBaseModel):
+    # Optional client-generated id: a retry of the same registration replays the original instead of creating a second asset.
+    id: Optional[UUID4] = None
     name: str = Field(min_length=1, max_length=SHORT_TEXT_MAX)
     category_id: UUID4
+    criticality: Optional[AssetCriticality] = None
     room_id: Optional[UUID4] = None
     location_text: Optional[str] = Field(default=None, max_length=MEDIUM_TEXT_MAX)
     manufacturer: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
@@ -1100,6 +1111,10 @@ class RestoreAssetDowntimeRequest(SanitizedBaseModel):
 
 
 class UpdateAssetRequest(SanitizedBaseModel):
+    # The row_version the editor loaded. Present => a stale edit is refused (409) rather than overwriting a newer one.
+    expected_row_version: Optional[int] = Field(default=None, ge=1)
+    clear_fields: List[ASSET_CLEARABLE_FIELDS] = Field(default_factory=list, max_length=12)
+    criticality: Optional[AssetCriticality] = None
     name: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX)
     category_id: Optional[UUID4] = None
     room_id: Optional[UUID4] = None
@@ -1121,6 +1136,16 @@ class UpdateAssetRequest(SanitizedBaseModel):
     @model_validator(mode="after")
     def _validate_asset(self):
         return _check_asset_fields(self)
+
+
+class RetireAssetRequest(SanitizedBaseModel):
+    reason: str = Field(min_length=3, max_length=MEDIUM_TEXT_MAX)
+    expected_row_version: Optional[int] = Field(default=None, ge=1)
+
+
+class AttachAssetPhotoRequest(SanitizedBaseModel):
+    evidence_id: UUID4
+    expected_row_version: Optional[int] = Field(default=None, ge=1)
 
 
 MeterType = Literal[

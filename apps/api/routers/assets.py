@@ -4,8 +4,8 @@ from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from core.roles import ASSET_MANAGER_ROLES, PM_EXECUTION_ROLES, PM_SCHEDULE_MANAGER_ROLES
-from models.requests import AssignPMChecklistRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
+from core.roles import ASSET_MANAGER_ROLES, ASSET_RETIRE_ROLES, PM_EXECUTION_ROLES, PM_SCHEDULE_MANAGER_ROLES
+from models.requests import AssignPMChecklistRequest, AttachAssetPhotoRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, RetireAssetRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
@@ -35,6 +35,30 @@ def _is_unique_violation(exc: Exception) -> bool:
     return "23505" in text or "duplicate key" in text.lower()
 
 
+def _unique_violation_kind(exc: Exception) -> Optional[str]:
+    """Which uniqueness a 23505 broke: the physical label ("tag"), the record id ("id"), or something else (None)."""
+    if not _is_unique_violation(exc):
+        return None
+    text = str(exc).lower()
+    if "tag" in text:
+        return "tag"
+    if "pkey" in text or "(id)" in text:
+        return "id"
+    return "tag"  # the only other unique rule on this table; keeps the pre-existing behaviour for unnamed errors
+
+
+def _tag_conflict() -> HTTPException:
+    return HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."})
+
+
+def _version_conflict(current: Optional[dict]) -> HTTPException:
+    return HTTPException(status_code=409, detail={
+        "code": "asset_conflict",
+        "message": "This equipment record was changed by someone else. Review the latest version and try again.",
+        "current": current,
+    })
+
+
 def _normalize_tag(tag: Optional[str]) -> Optional[str]:
     """The stored form of a physical label: trimmed, and absent when blank. Case is kept (it is what is printed)."""
     cleaned = (tag or "").strip()
@@ -61,6 +85,12 @@ def _require_same_property(table: str, row_id: Optional[str], current_user: Curr
     found = supabase.table(table).select("id").eq("id", str(row_id)).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
     if not found or not found.data:
         raise HTTPException(status_code=422, detail=f"{label} not found at this property")
+
+
+def _own_asset(asset_id: str, current_user: CurrentUser) -> Optional[dict]:
+    """The full asset row when it belongs to the caller's property, otherwise None (never another property's row)."""
+    found = supabase.table("assets").select("*").eq("id", str(asset_id)).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    return found.data if found and found.data else None
 
 
 class CreateCategoryRequest(BaseModel):
@@ -124,17 +154,25 @@ async def create_asset(
     request: CreateAssetRequest,
     current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES))
 ):
+    """Register equipment. A client-generated `id` makes the call retry-safe: replaying the same id returns the record
+    that was already created (HTTP 200) and never a second asset."""
     asset_data = {
         "tenant_id": current_user.hotel_id,
         **request.model_dump(exclude_none=True),
     }
-    if "category_id" in asset_data:
-        asset_data["category_id"] = str(asset_data["category_id"])
-    if "room_id" in asset_data:
-        asset_data["room_id"] = str(asset_data["room_id"])
+    client_id = str(asset_data.pop("id")) if "id" in asset_data else None
+    for uuid_field in ("category_id", "room_id"):
+        if uuid_field in asset_data:
+            asset_data[uuid_field] = str(asset_data[uuid_field])
     for date_field in ("purchase_date", "installation_date", "warranty_expires"):
         if date_field in asset_data:
             asset_data[date_field] = str(asset_data[date_field])
+
+    if client_id:
+        replay = _own_asset(client_id, current_user)
+        if replay:
+            return {"data": replay}
+        asset_data["id"] = client_id
 
     _require_same_property("asset_categories", asset_data.get("category_id"), current_user, "Category")
     _require_same_property("rooms", asset_data.get("room_id"), current_user, "Room")
@@ -145,9 +183,17 @@ async def create_asset(
 
     try:
         result = supabase.table("assets").insert(asset_data).execute()
-    except Exception as exc:  # noqa: BLE001 - only the tag race is translated
-        if _is_unique_violation(exc):
-            raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."}) from exc
+    except Exception as exc:  # noqa: BLE001 - only uniqueness races are translated
+        kind = _unique_violation_kind(exc)
+        if kind == "tag":
+            raise _tag_conflict() from exc
+        if kind == "id":
+            # Two taps of the same registration racing each other: the loser reads back the winner's row. An id that
+            # exists only in another property is refused without saying so.
+            replay = _own_asset(client_id, current_user) if client_id else None
+            if replay:
+                return {"data": replay}
+            raise HTTPException(status_code=409, detail={"code": "asset_id_in_use", "message": "That equipment id cannot be used."}) from exc
         raise
     created = result.data[0] if result.data else None
     if created:
@@ -1011,7 +1057,9 @@ async def lookup_asset(
     """Resolve a scanned or typed identifier to one asset in the caller's own property.
 
     The code is only a lookup key: the same tenant scope and 404 apply whether the id belongs to another
-    property or to nothing, so a code never confirms that equipment exists elsewhere.
+    property or to nothing, so a code never confirms that equipment exists elsewhere. A tag matches regardless of
+    letter case (uniqueness is case-insensitive too). Retired equipment still resolves, flagged `is_active: false`, so a
+    label left on a retired unit says so instead of looking unknown; an active record always wins over a retired one.
     """
     if bool(asset_id) == bool(tag):
         raise HTTPException(status_code=422, detail="Provide exactly one of asset_id or tag")
@@ -1020,9 +1068,18 @@ async def lookup_asset(
             UUID(asset_id)
         except ValueError:
             raise HTTPException(status_code=404, detail="Asset not found")
-    query = supabase.table("assets").select("id, name, asset_tag").eq("tenant_id", current_user.hotel_id).eq("is_active", True)
-    query = query.eq("id", asset_id) if asset_id else query.eq("asset_tag", (tag or "").strip())
-    matches = query.limit(2).execute().data or []
+    query = supabase.table("assets").select("id, name, asset_tag, is_active").eq("tenant_id", current_user.hotel_id)
+    wanted = (tag or "").strip()
+    if asset_id:
+        query = query.eq("id", asset_id)
+    else:
+        escaped = wanted.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.ilike("asset_tag", escaped)
+    rows = query.limit(10).execute().data or []
+    if tag:
+        rows = [r for r in rows if (r.get("asset_tag") or "").strip().lower() == wanted.lower()]
+    active = [r for r in rows if r.get("is_active", True)]
+    matches = active or rows
     if not matches:
         raise HTTPException(status_code=404, detail="Asset not found")
     if len(matches) > 1:
@@ -1250,7 +1307,7 @@ async def get_asset(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     result = supabase.table("assets") \
-        .select("*, asset_categories(name, code), rooms(room_number), pm_schedules(*)") \
+        .select("*, asset_categories(name, code), rooms(room_number, floor, building), pm_schedules(*)") \
         .eq("id", asset_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
@@ -1279,6 +1336,7 @@ async def get_asset(
     asset["service_status"] = _service_status(asset["active_downtime"], in_progress)
     # Administrative status (is the record in use?) is deliberately separate from service_status (is it working?).
     asset["administrative_status"] = "active" if asset.get("is_active", True) else "inactive"
+    asset["photo_url"] = _identity_photo_url(asset)
     return {"data": asset}
 
 
@@ -1294,12 +1352,18 @@ async def update_asset(
 ):
     """Edit an equipment record. `is_active` is the administrative status (retire / restore); condition, downtime and
     predicted risk are derived elsewhere and are not editable here (`failure_risk_score` is accepted for older clients
-    and ignored)."""
+    and ignored).
+
+    Concurrency: when `expected_row_version` is sent, the edit applies only if the record is still at that version; the
+    check is part of the UPDATE itself, so two simultaneous editors can never both win (the loser gets 409 with the
+    current record). `clear_fields` explicitly empties optional fields; omitting a field never changes it."""
     try:
         UUID(asset_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Asset not found")
     update_data = request.model_dump(exclude_none=True)
+    expected_version = update_data.pop("expected_row_version", None)
+    clear_fields = list(dict.fromkeys(update_data.pop("clear_fields", None) or []))
     update_data.pop("failure_risk_score", None)
     for field in ("category_id", "room_id"):
         if field in update_data:
@@ -1307,6 +1371,11 @@ async def update_asset(
     for field in ("purchase_date", "installation_date", "warranty_expires"):
         if field in update_data:
             update_data[field] = str(update_data[field])
+    overlap = [f for f in clear_fields if f in update_data]
+    if overlap:
+        raise HTTPException(status_code=422, detail=f"Cannot both set and clear: {', '.join(overlap)}")
+    for field in clear_fields:
+        update_data[field] = None
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
@@ -1314,6 +1383,9 @@ async def update_asset(
     if not existing or not existing.data:
         raise HTTPException(status_code=404, detail="Asset not found")
     before = dict(existing.data)
+    base_version = before.get("row_version") or 1
+    if expected_version is not None and expected_version != base_version:
+        raise _version_conflict(before)
 
     _require_same_property("asset_categories", update_data.get("category_id"), current_user, "Category")
     _require_same_property("rooms", update_data.get("room_id"), current_user, "Room")
@@ -1329,17 +1401,22 @@ async def update_asset(
     if will_be_active and ("asset_tag" in update_data or update_data.get("is_active") is True):
         _require_tag_free(new_tag, current_user, except_asset_id=asset_id)
 
+    update_data["row_version"] = base_version + 1
     try:
         result = supabase.table("assets") \
             .update(update_data) \
             .eq("id", asset_id) \
             .eq("tenant_id", current_user.hotel_id) \
+            .eq("row_version", base_version) \
             .execute()
     except Exception as exc:  # noqa: BLE001 - only the tag race is translated
-        if _is_unique_violation(exc):
-            raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."}) from exc
+        if _unique_violation_kind(exc):
+            raise _tag_conflict() from exc
         raise
-    changed = {k: v for k, v in update_data.items() if before.get(k) != v}
+    if not result.data:
+        # The record moved between the read above and the write: someone else's edit landed first.
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    changed = {k: v for k, v in update_data.items() if k != "row_version" and before.get(k) != v}
     if changed:
         _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.updated",
                old_state={k: before.get(k) for k in changed}, new_state=changed)
@@ -1352,6 +1429,162 @@ async def update_asset(
         _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.retired",
                old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]})
     return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# 15b. POST /{asset_id}/retire  — retire equipment (reasoned, guarded, audited)
+# ---------------------------------------------------------------------------
+
+@router.post("/{asset_id}/retire")
+async def retire_asset(
+    asset_id: str,
+    request: RetireAssetRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_RETIRE_ROLES)),
+):
+    """Take equipment out of service records. Never deletes: the asset, its completions, work orders and downtime stay
+    readable. Refused while the equipment has open work orders or an open downtime period (resolve those first), so a
+    retirement can never strand a live repair. Its recurring schedules are deactivated with it."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.get("is_active", True):
+        raise HTTPException(status_code=409, detail={"code": "asset_already_retired", "message": "This equipment is already retired."})
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+
+    open_orders = supabase.table("work_orders").select("id").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).in_("status", list(_BROWSE_ACTIVE_WO_STATUSES)).limit(1).execute().data or []
+    if open_orders:
+        raise HTTPException(status_code=409, detail={"code": "asset_has_open_work_orders", "message": "Close or reassign this equipment's open work orders before retiring it."})
+    open_downtime = supabase.table("asset_downtime_periods").select("id").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).is_("restored_at", "null").limit(1).execute().data or []
+    if open_downtime:
+        raise HTTPException(status_code=409, detail={"code": "asset_has_open_downtime", "message": "Restore this equipment's open downtime before retiring it."})
+
+    result = supabase.table("assets").update({"is_active": False, "row_version": base_version + 1}).eq("id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    retired = supabase.table("pm_schedules").update({"is_active": False}).eq("asset_id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("is_active", True).execute().data or []
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.retired",
+           old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]},
+           reason_note=request.reason)
+    return {"data": result.data[0]}
+
+
+# ---------------------------------------------------------------------------
+# 15c. PUT/DELETE /{asset_id}/photo  — the equipment's identity photograph
+# ---------------------------------------------------------------------------
+
+_PHOTO_CONTENT_TYPES = ("image/jpeg", "image/png", "image/webp")
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _identity_photo_url(asset: dict) -> Optional[str]:
+    """A short-lived signed URL for the identity photo, or None. The storage path is never returned."""
+    evidence_id = asset.get("photo_evidence_id")
+    if not evidence_id:
+        return None
+    record = supabase.table("evidence_records").select("storage_path").eq("id", evidence_id).eq(
+        "tenant_id", asset["tenant_id"]
+    ).maybe_single().execute()
+    path = ((record.data if record else None) or {}).get("storage_path")
+    return (_create_evidence_signed_url(path) or None) if path else None
+
+
+def _discard_evidence(evidence_id: Optional[str], current_user: CurrentUser) -> None:
+    """Best effort removal of a superseded identity photo (file, then record), within the caller's property only."""
+    if not evidence_id:
+        return
+    try:
+        record = supabase.table("evidence_records").select("storage_path").eq("id", evidence_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).maybe_single().execute()
+        path = ((record.data if record else None) or {}).get("storage_path")
+        if path:
+            supabase.storage.from_("evidence-files").remove([path])
+        supabase.table("evidence_records").delete().eq("id", evidence_id).eq("tenant_id", current_user.hotel_id).execute()
+    except Exception:  # noqa: BLE001 - an unreferenced leftover record is harmless; failing the edit over it is not
+        pass
+
+
+@router.put("/{asset_id}/photo")
+async def set_asset_photo(
+    asset_id: str,
+    request: AttachAssetPhotoRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES)),
+):
+    """Make an already-uploaded evidence photo this equipment's identity photograph. The record must belong to this
+    property, be an uploaded image, and have been captured for THIS asset; the previous identity photo (and only it) is
+    then removed. Inspection photos are never touched."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+    evidence = supabase.table("evidence_records").select("*").eq("id", str(request.evidence_id)).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    record = evidence.data if evidence else None
+    if (
+        not record
+        or record.get("related_entity_type") != "asset"
+        or str(record.get("related_entity_id")) != str(asset_id)
+        or record.get("evidence_type") != "photo"
+        or not record.get("storage_path")
+        or record.get("file_content_type") not in _PHOTO_CONTENT_TYPES
+    ):
+        raise HTTPException(status_code=422, detail="That upload is not a photo of this equipment")
+    previous = asset.get("photo_evidence_id")
+    if str(previous or "") == str(request.evidence_id):
+        return {"data": {**asset, "photo_url": _identity_photo_url(asset)}}
+    result = supabase.table("assets").update({"photo_evidence_id": str(request.evidence_id), "row_version": base_version + 1}).eq(
+        "id", asset_id
+    ).eq("tenant_id", current_user.hotel_id).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.photo_changed",
+           old_state={"photo_evidence_id": previous}, new_state={"photo_evidence_id": str(request.evidence_id)})
+    _discard_evidence(previous, current_user)
+    updated = result.data[0]
+    return {"data": {**updated, "photo_url": _identity_photo_url(updated)}}
+
+
+@router.delete("/{asset_id}/photo")
+async def remove_asset_photo(
+    asset_id: str,
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES)),
+):
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    previous = asset.get("photo_evidence_id")
+    if not previous:
+        return {"data": {**asset, "photo_url": None}}
+    base_version = asset.get("row_version") or 1
+    result = supabase.table("assets").update({"photo_evidence_id": None, "row_version": base_version + 1}).eq("id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.photo_removed",
+           old_state={"photo_evidence_id": previous}, new_state={"photo_evidence_id": None})
+    _discard_evidence(previous, current_user)
+    return {"data": {**result.data[0], "photo_url": None}}
 
 
 # ---------------------------------------------------------------------------
@@ -1431,4 +1664,17 @@ async def get_pm_completion(
     for item in items:
         item["evidence"] = _resolve_evidence_signed_urls(item.get("evidence") or [], tenant_id)
     completion["items"] = items
+    # The links a record needs: the exact equipment it was done on, and the corrective work orders this very completion
+    # opened (read, never created, here). Both are looked up inside the caller's property by id.
+    asset = None
+    if completion.get("asset_id"):
+        found = supabase.table("assets").select("id, name, asset_tag, is_active").eq("id", completion["asset_id"]).eq(
+            "tenant_id", tenant_id
+        ).maybe_single().execute()
+        asset = found.data if found and found.data else None
+    orders = supabase.table("work_orders").select("id, title, status, work_order_number").eq("tenant_id", tenant_id).eq(
+        "pm_completion_id", completion_id
+    ).order("created_at").execute().data or []
+    completion["asset"] = asset
+    completion["corrective_work_orders"] = orders
     return {"data": completion}

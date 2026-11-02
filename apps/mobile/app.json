@@ -80,7 +80,9 @@
           "faceIDPermission": "Allow PatelRep to use Face ID to unlock the app."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -35,6 +35,13 @@ interface Props {
   /** Creating an order needs the network (nothing is queued for equipment), so the button says why it is off. */
   offline: boolean;
   canRecordReading: boolean;
+  /** Administrative actions (server-enforced; these only decide what is offered). */
+  canManage?: boolean;
+  canRetire?: boolean;
+  onEdit?: () => void;
+  onLabel?: () => void;
+  onScan?: () => void;
+  onRetire?: () => void;
   onCreateWorkOrder: () => void;
   /** Opens the room this equipment is registered to (absent when it is not in a guest room). */
   onOpenRoom?: () => void;
@@ -54,7 +61,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Equipment identity, what is happening to it right now, and the actions an engineer takes from here. */
-export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
+export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -66,6 +73,7 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
   const warranty = asset.warranty_expires ? formatDayYear(asset.warranty_expires, timezone, language) : null;
   const warrantyExpired = !!asset.warranty_expires && asset.warranty_expires < (hotelDateKey(new Date(), timezone) ?? "");
 
+  const retired = asset.is_active === false;
   const specs: Array<[string, string | null]> = [
     [t("assets.detail.name"), asset.name],
     [t("assets.detail.tag"), asset.asset_tag?.trim() || null],
@@ -74,6 +82,7 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
     [t("assets.detail.model"), asset.model?.trim() || null],
     [t("assets.detail.serial"), asset.serial_number?.trim() || null],
     [t("assets.detail.location"), location],
+    [t("assets.detail.criticality"), asset.criticality ? t(`assets.criticality.${asset.criticality}`) : null],
     [t("assets.detail.installed"), asset.installation_date ? formatDayYear(asset.installation_date, timezone, language) : null],
     [t("assets.detail.warranty"), warranty ? (warrantyExpired ? t("assets.detail.warrantyExpired", { date: warranty }) : t("assets.detail.warrantyUntil", { date: warranty })) : null],
   ];
@@ -81,15 +90,23 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
 
   return (
     <View style={styles.stack} testID="asset-overview">
+      {retired ? (
+        <View style={[styles.retired, { backgroundColor: theme.status.pickupSoft }]} accessibilityRole="alert" testID="asset-retired-banner">
+          <Ionicons name="archive-outline" size={18} color={theme.status.pickup} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.retiredText, { color: theme.textPrimary }]}>
+            {t("assets.detail.retiredBanner")}
+          </Text>
+        </View>
+      ) : null}
       <Panel>
-        <Button label={t("assets.detail.createWo")} icon="construct-outline" onPress={onCreateWorkOrder} disabled={offline} testID="asset-create-wo" />
+        <Button label={t("assets.detail.createWo")} icon="construct-outline" onPress={onCreateWorkOrder} disabled={offline || retired} testID="asset-create-wo" />
         {offline ? (
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.notes, { color: theme.textMuted }]} testID="asset-create-offline">
             {t("assets.detail.createOffline")}
           </Text>
         ) : null}
         <View style={styles.actions}>
-          {canRecordReading ? (
+          {canRecordReading && !retired ? (
             <Button label={t("assets.detail.recordReading")} variant="secondary" size="sm" onPress={() => onGoto("readings")} style={styles.action} testID="asset-action-reading" />
           ) : null}
           <Button label={t("assets.detail.more")} icon="ellipsis-horizontal" variant="secondary" size="sm" onPress={() => setMoreOpen(true)} style={styles.action} testID="asset-action-more" />
@@ -145,6 +162,9 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
 
       <Panel testID="asset-specs">
         <PanelTitle>{t("assets.detail.equipmentTitle")}</PanelTitle>
+        {asset.photo_url ? (
+          <Image source={{ uri: asset.photo_url }} style={[styles.photo, { backgroundColor: theme.surfaceMuted }]} accessibilityLabel={t("assets.photo.previewLabel")} testID="asset-photo" />
+        ) : null}
         {shown.map(([label, value]) => (
           <DetailRow key={label} label={label} value={value} />
         ))}
@@ -174,6 +194,39 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
           }}
           testID="asset-action-pm"
         />
+        {canManage && onEdit ? (
+          <MoreRow
+            icon="create-outline"
+            label={t("assets.detail.edit")}
+            onPress={() => {
+              setMoreOpen(false);
+              onEdit();
+            }}
+            testID="asset-action-edit"
+          />
+        ) : null}
+        {onLabel ? (
+          <MoreRow
+            icon="qr-code-outline"
+            label={t("assets.detail.qrLabel")}
+            onPress={() => {
+              setMoreOpen(false);
+              onLabel();
+            }}
+            testID="asset-action-label"
+          />
+        ) : null}
+        {onScan ? (
+          <MoreRow
+            icon="scan-outline"
+            label={t("assets.detail.scanAnother")}
+            onPress={() => {
+              setMoreOpen(false);
+              onScan();
+            }}
+            testID="asset-action-scan"
+          />
+        ) : null}
         {onOpenRoom && asset.rooms?.room_number ? (
           <MoreRow
             icon="bed-outline"
@@ -183,6 +236,17 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
               onOpenRoom();
             }}
             testID="asset-action-room"
+          />
+        ) : null}
+        {canRetire && onRetire && !retired ? (
+          <MoreRow
+            icon="archive-outline"
+            label={t("assets.detail.retire")}
+            onPress={() => {
+              setMoreOpen(false);
+              onRetire();
+            }}
+            testID="asset-action-retire"
           />
         ) : null}
       </BottomSheet>
@@ -215,6 +279,9 @@ const styles = StyleSheet.create({
   action: { flexGrow: 1, flexBasis: "46%" },
   moreRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52, borderBottomWidth: 1 },
   moreLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
+  retired: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12 },
+  retiredText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  photo: { width: "100%", aspectRatio: 16 / 9, borderRadius: 12, marginBottom: 4 },
   chunk: { gap: 6 },
   chunkLabel: { fontSize: 13 },
   notes: { fontSize: 13.5, lineHeight: 19, marginTop: 2 },

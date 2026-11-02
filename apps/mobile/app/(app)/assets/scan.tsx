@@ -158,7 +158,14 @@ export default function ScanEquipmentScreen() {
                   {t("assets.scan.invalidHint")}
                 </Text>
               ) : null}
-              {permission?.granted ? <Button label={t("assets.scan.scanAgain")} onPress={rescan} testID="asset-scan-again" /> : null}
+              {outcome?.kind === "retired" ? (
+                <Button
+                  label={t("assets.scan.openRetired")}
+                  onPress={() => router.replace({ pathname: "/(app)/assets/[assetId]", params: { assetId: outcome.asset.id } } as never)}
+                  testID="asset-scan-open-retired"
+                />
+              ) : null}
+              {permission?.granted ? <Button label={t("assets.scan.scanAgain")} variant={outcome?.kind === "retired" ? "secondary" : "primary"} onPress={rescan} testID="asset-scan-again" /> : null}
             </View>
           ) : null}
         </View>

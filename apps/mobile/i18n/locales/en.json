@@ -2641,9 +2641,11 @@
         "ambiguous": "More than one asset has that tag. Search by name or location instead.",
         "forbidden": "You don't have access to equipment records.",
         "offline": "No connection. Only equipment you've already opened can be found offline.",
-        "failed": "Couldn't look that up. Try again."
+        "failed": "Couldn't look that up. Try again.",
+        "retired": "This equipment has been retired."
       },
-      "manualHint": "Type the asset tag printed on the equipment label, or the asset ID."
+      "manualHint": "Type the asset tag printed on the equipment label, or the asset ID.",
+      "openRetired": "Open retired record"
     },
     "createWo": {
       "forEquipment": "For {{name}}"
@@ -2701,7 +2703,13 @@
       "roomImpact": "Room impact",
       "roomAffected": "Room {{room}} is affected",
       "recentTitle": "Recent activity",
-      "viewHistory": "View full history"
+      "viewHistory": "View full history",
+      "criticality": "Criticality",
+      "edit": "Edit equipment",
+      "qrLabel": "QR label",
+      "scanAnother": "Scan equipment",
+      "retire": "Retire equipment",
+      "retiredBanner": "This equipment is retired. Its history stays here, but no new repairs, readings or inspections can be started."
     },
     "workOrders": {
       "active": "Active",
@@ -2838,6 +2846,154 @@
         "signature": "Signature",
         "attestation": "Attestation",
         "external_certificate": "Certificate"
+      }
+    },
+    "add": "Add equipment",
+    "criticality": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "life_safety": "Life safety"
+    },
+    "form": {
+      "title": {
+        "create": "Register Equipment",
+        "edit": "Edit Equipment"
+      },
+      "subtitle": {
+        "create": "Add equipment to this property.",
+        "edit": "Update this equipment's record."
+      },
+      "sections": {
+        "identity": "Equipment identity",
+        "location": "Where it is",
+        "details": "Details",
+        "review": "Review"
+      },
+      "name": "Equipment name",
+      "namePlaceholder": "e.g. Rooftop chiller 2",
+      "category": "Category",
+      "choose": "Choose",
+      "categoriesFailed": "Couldn't load categories. Go back and try again.",
+      "tag": "Asset tag",
+      "tagPlaceholder": "e.g. CH-102",
+      "tagHint": "The text printed on the label. Leave blank to label by QR code only.",
+      "manufacturer": "Manufacturer",
+      "model": "Model",
+      "serialNumber": "Serial number",
+      "location": "Location",
+      "chooseLocation": "Choose a room or area",
+      "locationNote": "Location notes",
+      "locationNotePlaceholder": "e.g. behind the vanity",
+      "locationHint": "A guest room, or an area like the roof, a mechanical room or the pool plant.",
+      "clearLocation": "Clear location",
+      "installed": "Installation date",
+      "warranty": "Warranty expires",
+      "dateHint": "Opens the date picker",
+      "clearDate": "Clear {{field}}",
+      "notSet": "Not set",
+      "criticality": "Criticality",
+      "notes": "Notes",
+      "photo": "Equipment photo",
+      "submit": {
+        "create": "Register Asset",
+        "edit": "Save changes"
+      },
+      "saving": "Saving…",
+      "uploadingPhoto": "Uploading photo…",
+      "offlineCreate": "Registering equipment needs a connection. Nothing is saved until you are online.",
+      "offlineEdit": "Editing equipment needs a connection.",
+      "errors": {
+        "name_required": "Enter the equipment name.",
+        "name_too_long": "Keep the name to {{max}} characters or fewer.",
+        "category_required": "Choose a category.",
+        "tag_invalid": "Use letters, digits and . _ - / # only, up to 64 characters.",
+        "tag_in_use": "Another active asset already uses this tag.",
+        "text_too_long": "Keep this to {{max}} characters or fewer.",
+        "date_invalid": "Choose a real date.",
+        "install_too_far_ahead": "The installation date can't be more than a year ahead.",
+        "warranty_before_install": "Warranty can't end before the installation date.",
+        "location_too_long": "Keep the location to 255 characters or fewer.",
+        "notes_too_long": "Keep notes to {{max}} characters or fewer."
+      },
+      "failure": {
+        "unconfirmedCreate": "No answer from the server, so we can't tell if it saved. Tap Register Asset again — it won't create a duplicate.",
+        "unconfirmedEdit": "No answer from the server, so we can't tell if your changes saved. Tap Save again to check.",
+        "tag_in_use": "Another active asset already uses this tag. Choose a different one.",
+        "forbidden": "Your role can't make this change.",
+        "not_found": "This equipment is no longer in this property.",
+        "validation": "The server didn't accept these details. Check the fields and try again.",
+        "failed": "Couldn't save. Your entries are kept — try again.",
+        "photoAfterSave": "Your changes were saved, but the photo wasn't updated. Tap Save to retry the photo."
+      },
+      "conflict": {
+        "title": "Someone else changed this equipment",
+        "body": "It was saved by another person after you opened it. Nothing of yours was lost or overwritten.",
+        "mine": "Keep my changes and review",
+        "latest": "Load their version"
+      },
+      "partial": {
+        "title": "{{name}} is registered",
+        "body": "The equipment was saved, but its photo didn't upload. You can retry the photo, or open the equipment now and add one later.",
+        "retry": "Retry photo",
+        "open": "Open equipment"
+      },
+      "discard": {
+        "title": "Discard your changes?",
+        "body": "What you entered hasn't been saved.",
+        "keep": "Keep editing",
+        "discard": "Discard"
+      }
+    },
+    "photo": {
+      "none": "No photo yet",
+      "willRemove": "Photo will be removed when you save",
+      "take": "Take photo",
+      "choose": "Choose photo",
+      "remove": "Remove photo",
+      "keepCurrent": "Keep current photo",
+      "previewLabel": "Equipment photo",
+      "openSettings": "Open settings",
+      "needsConnection": "Photos upload when you save, which needs a connection.",
+      "errors": {
+        "permission_denied": "Allow camera access in Settings to take a photo.",
+        "failed": "Couldn't get that photo. Try again.",
+        "unsupported": "Use a JPEG, PNG or WebP photo.",
+        "too_large": "That photo is too large. Choose a smaller one."
+      }
+    },
+    "label": {
+      "title": "Equipment QR Label",
+      "qrLabel": "QR code label for {{name}}",
+      "share": "Share label",
+      "print": "Print label",
+      "shareTitle": "Label for {{name}}",
+      "shareUnavailable": "Sharing isn't available on this device.",
+      "shareFailed": "Couldn't prepare the label to share.",
+      "printFailed": "Couldn't open printing.",
+      "retiredNote": "This equipment is retired. Its label will still scan, to a record marked retired.",
+      "noTagNote": "This equipment has no asset tag, so the label shows a short code from its id instead.",
+      "handoffNote": "Sharing and printing open your device's own dialogs. PatelRep can't tell whether a label was actually printed or sent.",
+      "backToEquipment": "Back to equipment"
+    },
+    "retire": {
+      "title": "Retire equipment",
+      "body": "{{name}} will be marked retired and its recurring PM schedules will stop. Nothing is deleted — inspections, repairs and downtime stay on record.",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. Replaced by new unit",
+      "continue": "Continue",
+      "confirm": "Retire {{name}}?",
+      "confirmButton": "Retire equipment",
+      "offline": "Retiring equipment needs a connection.",
+      "done": "Equipment retired",
+      "failure": {
+        "asset_has_open_work_orders": "This equipment still has open work orders. Close or reassign them first.",
+        "asset_has_open_downtime": "This equipment still has open downtime. Restore it first.",
+        "asset_already_retired": "This equipment is already retired.",
+        "conflict": "Someone else changed this equipment. Close this and review the latest version.",
+        "unconfirmed": "No answer from the server, so we can't tell if it was retired. Check the equipment before trying again.",
+        "forbidden": "Only a chief engineer or GM can retire equipment.",
+        "failed": "Couldn't retire this equipment. Try again."
       }
     }
   },
@@ -11112,7 +11268,13 @@
       "notFound": "Inspection record not found",
       "completedOn": "Completed {{date}}",
       "version": "Checklist version {{version}}",
-      "labor": "Labor: {{count}} min"
+      "labor": "Labor: {{count}} min",
+      "equipment": "Equipment",
+      "openEquipment": "Open equipment: {{name}}",
+      "openEquipmentFallback": "Open equipment record",
+      "equipmentRetired": "Retired",
+      "correctiveTitle": "Corrective work from this inspection",
+      "openWorkOrder": "Open work order: {{title}}"
     },
     "plan": {
       "week": "Week",

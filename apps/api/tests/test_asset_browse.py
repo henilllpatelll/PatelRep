@@ -221,13 +221,15 @@ def test_lookup_by_tag_and_by_id(monkeypatch):
     assert client.get(f"/assets/lookup?asset_id={A1}").json()["data"]["name"] == "Asset 001"
 
 
-def test_lookup_never_reveals_another_property_or_inactive_equipment(monkeypatch):
+def test_lookup_never_reveals_another_property_and_flags_retired_equipment(monkeypatch):
     other = "5c1d2e3f-0000-4000-8000-000000000001"
     db = _db([_asset(2, id=other, tenant="other-hotel", asset_tag="OTHER-1"), _asset(3, asset_tag="OLD", is_active=False)])
     client = _client(monkeypatch, db)
     assert client.get(f"/assets/lookup?asset_id={other}").status_code == 404
     assert client.get("/assets/lookup?tag=OTHER-1").status_code == 404
-    assert client.get("/assets/lookup?tag=OLD").status_code == 404
+    # A label left on retired equipment resolves, flagged as retired, so the scanner can say so instead of "unknown".
+    retired = client.get("/assets/lookup?tag=old")
+    assert retired.status_code == 200 and retired.json()["data"]["is_active"] is False
     assert client.get("/assets/lookup?asset_id=not-a-uuid").status_code == 404
 
 

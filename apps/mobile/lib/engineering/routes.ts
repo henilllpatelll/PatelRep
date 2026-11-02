@@ -21,6 +21,15 @@ export function assetRoute(assetId: string | null | undefined): ParamRoute | nul
   return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/[assetId]", params: { assetId } } : null;
 }
 
+/** Edit and label screens for one exact asset (built only from a server-supplied id, like every route here). */
+export function assetEditRoute(assetId: string | null | undefined): ParamRoute | null {
+  return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/edit/[assetId]", params: { assetId } } : null;
+}
+
+export function assetLabelRoute(assetId: string | null | undefined): ParamRoute | null {
+  return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/label/[assetId]", params: { assetId } } : null;
+}
+
 export function workOrderRoute(workOrderId: string | null | undefined): ParamRoute | null {
   return isSafeRouteId(workOrderId) ? { pathname: "/(app)/work-orders/[woId]", params: { woId: workOrderId } } : null;
 }
@@ -45,4 +54,5 @@ export function pmRecordRoute(completionId: string | null | undefined, scheduleI
 }
 
 export const ASSETS_LIST_ROUTE = "/(app)/assets";
+export const ASSET_NEW_ROUTE = "/(app)/assets/new";
 export const PM_LIST_ROUTE = "/(app)/pm-schedules";

@@ -1061,3 +1061,15 @@
 - Prettier is NOT the repo style (existing files fail `prettier --check`); do not reformat whole files.
 - API has no criticality, no per-technician assignment (only `assigned_to_role`), and the PM completion summary has no work-order ids: do not render those; list them as later-phase dependencies.
 - Plural keys in this app's i18n use the `key` + `key_plural` style (see pm.inspectionsCount); the test mocks return `key:count` when options include `count`.
+
+## Eng PM+Assets V2 Phase 3 learnings (2026-11-01)
+- CI only runs on PRs, so a branch that is pushed without a PR is never CI-checked. Before trusting an earlier phase, run `pytest tests` (top-level, not just tests/smoke) with dummy env vars (SUPABASE_URL=http://localhost:54321, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_JWT_SECRET, CRON_SECRET, APP_ENV=test). Phase 1 left 10 stale tests in tests/test_programs_routes.py (fixtures used ids like sched-1 and a bare FakeDB); they were ported, not deleted.
+- Never point API tests at apps/api/.env (it is the PRODUCTION Supabase). Use dummy env vars.
+- Python read/write on Windows rewrites LF files as CRLF: open with newline="" (read and write) or run `sed -i 's/\r$//'` and check `git diff --stat` for whole-file churn. Heredocs with backslashes or quotes break the tool wrapper: write patch scripts to the scratchpad with the Write tool.
+- assets has no updated_at trigger; edit concurrency is the explicit `row_version` column, bumped only by the assets API. The risk-score/downtime jobs write the same row, so a timestamp would raise false conflicts.
+- `api.delete` in mobile client.ts parses JSON (the evidence 204 delete is swallowed in deletePmEvidence); the new DELETE /assets/{id}/photo returns a JSON body on purpose.
+- The visual toast is rendered by a viewport, not ToastProvider: in Jest mock `@/lib/theme/useToast` and assert calls, do not look for toast text.
+- Hidden tab screens stay mounted: form screens must key the editor on a per-focus counter (and re-read the record) or the previous visit's dirty form reappears. New hidden routes must be added to HIDDEN_APP_ROUTES in lib/navigation/roleTabs.ts.
+- cache priming: `primeAsyncResource(scope, key, data)` updates the cache AND already-mounted screens; the PATCH response is the bare row (no joins), so use `mergeSavedAsset` to keep category/room/derived fields.
+- New native modules (expo-print, expo-sharing, datetimepicker) need a new EAS/dev-client build; they work in Expo Go.
+- Regenerate lib/app/licenses.generated.json (`node scripts/generate-licenses.js`) whenever dependencies change; it was already stale from the SDK 58 upgrade.

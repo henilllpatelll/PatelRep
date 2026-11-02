@@ -70,3 +70,10 @@ const ASSET_MANAGER_ROLES: readonly string[] = ["engineer", "chief_engineer", "g
 export function canManageAssets(role: string | null | undefined): boolean {
   return role != null && ASSET_MANAGER_ROLES.includes(role);
 }
+
+/** Retire equipment - API guard `require_role("chief_engineer", "gm")`. A line engineer registers and corrects records but does not retire them. */
+const ASSET_RETIRE_ROLES: readonly string[] = ["chief_engineer", "gm"];
+
+export function canRetireAssets(role: string | null | undefined): boolean {
+  return role != null && ASSET_RETIRE_ROLES.includes(role);
+}

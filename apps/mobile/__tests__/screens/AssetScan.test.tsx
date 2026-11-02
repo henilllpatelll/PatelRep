@@ -73,6 +73,25 @@ describe("Scan equipment", () => {
     expect(lookup).toHaveBeenCalledWith({ kind: "id", value: ID });
   });
 
+  it("recognises a label generated for newly registered equipment (the versioned payload the label screen prints)", async () => {
+    const { labelPayload } = require("@/lib/engineering/assetLabel");
+    lookup.mockResolvedValue({ id: ID, name: "New chiller", asset_tag: null, is_active: true });
+    renderScreen();
+    await scan(labelPayload(ID));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith({ pathname: "/(app)/assets/[assetId]", params: { assetId: ID } }));
+    expect(lookup).toHaveBeenCalledWith({ kind: "id", value: ID });
+  });
+
+  it("a label on retired equipment says it is retired and only opens the record when asked", async () => {
+    lookup.mockResolvedValue({ id: ID, name: "Old chiller", asset_tag: "OLD-1", is_active: false });
+    const screen = renderScreen();
+    await scan("OLD-1");
+    expect(await screen.findByText("assets.scan.outcome.retired")).toBeTruthy();
+    expect(router.replace).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("asset-scan-open-retired"));
+    expect(router.replace).toHaveBeenCalledWith({ pathname: "/(app)/assets/[assetId]", params: { assetId: ID } });
+  });
+
   it("also accepts a plain asset-tag label", async () => {
     lookup.mockResolvedValue({ id: ID, name: "PTAC", asset_tag: "AC-312" });
     renderScreen();

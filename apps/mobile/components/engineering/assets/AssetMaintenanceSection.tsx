@@ -50,6 +50,7 @@ function ScheduleRow({ schedule, language, timezone }: { schedule: PmScheduleVie
           </Text>
         </View>
         {frequency ? <Fact icon="repeat-outline" text={frequency} /> : null}
+        {schedule.estimatedMinutes ? <Fact icon="time-outline" text={t("pmSchedules.minutes", { count: schedule.estimatedMinutes })} /> : null}
         <Fact icon="checkmark-done-outline" text={last ? t("assets.maintenance.lastDone", { date: last }) : t("assets.maintenance.neverDone")} />
       </View>
       {/* The checklist workflow lives on the schedule: an inspection is never completed from an asset card. */}

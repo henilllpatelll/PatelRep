@@ -95,3 +95,59 @@ Mobile only (`apps/mobile`); no API or migration change. PM and Assets stay two 
   completion list to return them (the record detail screen is unchanged).
 - Schedule detail has no technician assignment: the API only has `assigned_to_role`.
 - The Record Reading sheet still uses its own Modal (not moved onto the shared BottomSheet, to avoid disturbing its retry protections); checklist selection and inspection confirmations are unchanged. Move them in Phase 4 with the workflow changes.
+
+## Phase 3: equipment identity, asset creation and editing, QR labels, PM-to-asset integration
+
+### Migration 233 (`supabase/migrations/233_asset_identity_photo_and_version.sql`, additive)
+- `assets.row_version` (int, default 1): optimistic-concurrency token. Only user edits through the assets API move it
+  (there is no `updated_at` trigger, and the risk-score / downtime jobs write the same row).
+- `assets.photo_evidence_id` (uuid, FK `evidence_records`, `ON DELETE SET NULL`): the one evidence record that is the
+  equipment's identity photograph. Inspection photos stay linked to their PM completions; replacing the identity photo never
+  touches them. Apply this migration BEFORE deploying the API (the edit path reads/writes `row_version`).
+
+### One source of truth for identity
+`assets.id` (tenant-scoped) is the identity. `asset_tag` is the printed label text (optional, unique among ACTIVE assets per
+property, case-insensitive, trimmed; the DB index `assets_tenant_active_tag_uidx` is the backstop). The QR encodes only
+`patelrep:asset:v1:<asset-uuid>` (unchanged format, already accepted by the scanner). No credentials, user ids or property
+data. A scan is a lookup key resolved inside the signed-in person's property; it authorises nothing.
+
+### API
+- `POST /assets` takes an optional client-generated `id`: replaying the same id returns the original (HTTP 200) and never a
+  second asset; a racing duplicate reads back the winner; an id that exists only in another property is refused
+  (`asset_id_in_use`) without revealing it. `criticality` is accepted.
+- `PATCH /assets/{id}`: `expected_row_version` makes a stale edit a 409 `asset_conflict` (the check is part of the UPDATE, so
+  two simultaneous editors cannot both win). `clear_fields` explicitly empties optional fields (omitting a field never
+  changes it). Older clients (web) keep working: no version sent = checked against what was just read.
+- `POST /assets/{id}/retire` (chief engineer / GM): reason required (3+ chars), refused while open work orders or open
+  downtime exist (`asset_has_open_work_orders` / `asset_has_open_downtime`), deactivates the asset's PM schedules, keeps every
+  completion / work order / downtime row, audited with the reason. PATCH `is_active` still exists for the web app unchanged.
+- `PUT|DELETE /assets/{id}/photo`: attaches an already-uploaded evidence photo (must be this property's, an image, captured for
+  THIS asset) and removes only the previous identity photo. `GET /assets/{id}` returns `photo_url` = a 1-hour signed URL, never
+  a storage path. Files live in the existing private `evidence-files` bucket; no new storage system.
+- `GET /assets/lookup`: tag match is now case-insensitive; retired equipment resolves flagged `is_active:false`.
+- `GET /assets/pm-schedules/{id}/completions/{cid}` now also returns the exact `asset` and the `corrective_work_orders` that
+  completion opened (read only; reading never creates work).
+
+### Mobile
+- Assets > Add (+) > **Register Equipment** (full-screen form: identity, location, details, review). Location is a real room
+  (searched server-side, carries building/floor) or a free-text area (Roof, Pool plant...). Dates use the native picker.
+  Photo: camera or library with permission handling, resized JPEG, uploaded after the record exists.
+- Asset > More > **Edit Equipment**, **QR Label**, **Scan equipment**, **Retire equipment** (chief engineer / GM only).
+- **QR Label** screen: black-on-white QR (quiet zone, error-correction Q), tag, name, location, property. Share = PDF via the
+  system share sheet; Print = the system print dialog. Both only hand off: the app never says "printed" or "sent".
+- New dependencies (justified): `qrcode-generator` (MIT, 0 deps, encoder only), `expo-print`, `expo-sharing` (native: a new
+  EAS/dev-client build is needed to use them outside Expo Go), `@react-native-community/datetimepicker` (native date picker).
+- PM record screen links to its equipment and to the corrective work orders it opened.
+
+### Phase 1 repair found while verifying prerequisites
+`apps/api/tests/test_programs_routes.py` still encoded the pre-Phase-1 contract (ids like `sched-1`, a bare fake DB, an approver
+named in the deferral body): 10 tests failed on this branch (and CI never ran here - it only runs on PRs). The controls they
+guard are intact in the code (`_validate_verifier`, tenant-scoped evidence, `decide_pm_deferral`); the tests were ported to the
+new contract keeping every assertion's intent (`tests/smoke/pm_fakes.py` now mirrors the SQL for photos/attachments/reason codes).
+
+### Not done / dependencies for later phases
+- Offline registration / photo queueing and a durable offline lookup index: Phase 7.
+- A restore-from-retired action on mobile: not built (web `PATCH is_active:true` still exists). Needs the same guarded, audited
+  design as retire; Phase 5.
+- Asset tags are optional by business rule (no generator). A per-category tag sequence is a Phase 5/6 decision.
+- Criticality is now settable and shown; criticality-driven PM/priority rules are Phase 5/6.

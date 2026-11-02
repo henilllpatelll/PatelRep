@@ -2641,9 +2641,11 @@
         "ambiguous": "Más de un equipo tiene esa etiqueta. Busca por nombre o ubicación.",
         "forbidden": "No tienes acceso a los registros de equipos.",
         "offline": "Sin conexión. Sin internet solo se encuentran los equipos que ya abriste.",
-        "failed": "No se pudo buscar. Inténtalo de nuevo."
+        "failed": "No se pudo buscar. Inténtalo de nuevo.",
+        "retired": "Este equipo fue dado de baja."
       },
-      "manualHint": "Escribe la etiqueta impresa en el equipo o el ID del equipo."
+      "manualHint": "Escribe la etiqueta impresa en el equipo o el ID del equipo.",
+      "openRetired": "Abrir registro del equipo dado de baja"
     },
     "createWo": {
       "forEquipment": "Para {{name}}"
@@ -2701,7 +2703,13 @@
       "roomImpact": "Impacto en habitación",
       "roomAffected": "La habitación {{room}} está afectada",
       "recentTitle": "Actividad reciente",
-      "viewHistory": "Ver historial completo"
+      "viewHistory": "Ver historial completo",
+      "criticality": "Criticidad",
+      "edit": "Editar equipo",
+      "qrLabel": "Etiqueta QR",
+      "scanAnother": "Escanear equipo",
+      "retire": "Dar de baja el equipo",
+      "retiredBanner": "Este equipo está dado de baja. Su historial se conserva aquí, pero no se pueden iniciar nuevas reparaciones, lecturas ni inspecciones."
     },
     "workOrders": {
       "active": "Activas",
@@ -2838,6 +2846,154 @@
         "signature": "Firma",
         "attestation": "Declaración",
         "external_certificate": "Certificado"
+      }
+    },
+    "add": "Agregar equipo",
+    "criticality": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "life_safety": "Seguridad de vida"
+    },
+    "form": {
+      "title": {
+        "create": "Registrar equipo",
+        "edit": "Editar equipo"
+      },
+      "subtitle": {
+        "create": "Agrega un equipo a esta propiedad.",
+        "edit": "Actualiza el registro de este equipo."
+      },
+      "sections": {
+        "identity": "Identidad del equipo",
+        "location": "Dónde está",
+        "details": "Detalles",
+        "review": "Revisión"
+      },
+      "name": "Nombre del equipo",
+      "namePlaceholder": "p. ej. Enfriador de azotea 2",
+      "category": "Categoría",
+      "choose": "Elegir",
+      "categoriesFailed": "No se pudieron cargar las categorías. Regresa e inténtalo de nuevo.",
+      "tag": "Etiqueta del activo",
+      "tagPlaceholder": "p. ej. CH-102",
+      "tagHint": "El texto impreso en la etiqueta. Déjalo en blanco para identificarlo solo con el código QR.",
+      "manufacturer": "Fabricante",
+      "model": "Modelo",
+      "serialNumber": "Número de serie",
+      "location": "Ubicación",
+      "chooseLocation": "Elige una habitación o un área",
+      "locationNote": "Notas de ubicación",
+      "locationNotePlaceholder": "p. ej. detrás del tocador",
+      "locationHint": "Una habitación, o un área como la azotea, un cuarto de máquinas o el cuarto de la alberca.",
+      "clearLocation": "Quitar ubicación",
+      "installed": "Fecha de instalación",
+      "warranty": "Vence la garantía",
+      "dateHint": "Abre el selector de fecha",
+      "clearDate": "Borrar {{field}}",
+      "notSet": "Sin definir",
+      "criticality": "Criticidad",
+      "notes": "Notas",
+      "photo": "Foto del equipo",
+      "submit": {
+        "create": "Registrar activo",
+        "edit": "Guardar cambios"
+      },
+      "saving": "Guardando…",
+      "uploadingPhoto": "Subiendo foto…",
+      "offlineCreate": "Registrar un equipo requiere conexión. No se guarda nada hasta que estés en línea.",
+      "offlineEdit": "Editar un equipo requiere conexión.",
+      "errors": {
+        "name_required": "Escribe el nombre del equipo.",
+        "name_too_long": "Usa {{max}} caracteres o menos en el nombre.",
+        "category_required": "Elige una categoría.",
+        "tag_invalid": "Usa solo letras, dígitos y . _ - / #, hasta 64 caracteres.",
+        "tag_in_use": "Otro activo activo ya usa esta etiqueta.",
+        "text_too_long": "Usa {{max}} caracteres o menos.",
+        "date_invalid": "Elige una fecha válida.",
+        "install_too_far_ahead": "La fecha de instalación no puede ser más de un año en el futuro.",
+        "warranty_before_install": "La garantía no puede vencer antes de la fecha de instalación.",
+        "location_too_long": "Usa 255 caracteres o menos en la ubicación.",
+        "notes_too_long": "Usa {{max}} caracteres o menos en las notas."
+      },
+      "failure": {
+        "unconfirmedCreate": "El servidor no respondió, así que no sabemos si se guardó. Toca Registrar activo otra vez: no se creará un duplicado.",
+        "unconfirmedEdit": "El servidor no respondió, así que no sabemos si tus cambios se guardaron. Toca Guardar otra vez para comprobarlo.",
+        "tag_in_use": "Otro activo activo ya usa esta etiqueta. Elige una distinta.",
+        "forbidden": "Tu rol no puede hacer este cambio.",
+        "not_found": "Este equipo ya no está en esta propiedad.",
+        "validation": "El servidor no aceptó estos datos. Revisa los campos e inténtalo de nuevo.",
+        "failed": "No se pudo guardar. Tus datos se conservan: inténtalo de nuevo.",
+        "photoAfterSave": "Tus cambios se guardaron, pero la foto no se actualizó. Toca Guardar para reintentar la foto."
+      },
+      "conflict": {
+        "title": "Alguien más cambió este equipo",
+        "body": "Otra persona lo guardó después de que lo abriste. No se perdió ni se sobrescribió nada tuyo.",
+        "mine": "Conservar mis cambios y revisar",
+        "latest": "Cargar su versión"
+      },
+      "partial": {
+        "title": "{{name}} está registrado",
+        "body": "El equipo se guardó, pero su foto no se subió. Puedes reintentar la foto, o abrir el equipo ahora y agregar una después.",
+        "retry": "Reintentar foto",
+        "open": "Abrir equipo"
+      },
+      "discard": {
+        "title": "¿Descartar tus cambios?",
+        "body": "Lo que escribiste no se ha guardado.",
+        "keep": "Seguir editando",
+        "discard": "Descartar"
+      }
+    },
+    "photo": {
+      "none": "Aún no hay foto",
+      "willRemove": "La foto se quitará al guardar",
+      "take": "Tomar foto",
+      "choose": "Elegir foto",
+      "remove": "Quitar foto",
+      "keepCurrent": "Conservar la foto actual",
+      "previewLabel": "Foto del equipo",
+      "openSettings": "Abrir ajustes",
+      "needsConnection": "Las fotos se suben al guardar, y eso requiere conexión.",
+      "errors": {
+        "permission_denied": "Permite el acceso a la cámara en Ajustes para tomar una foto.",
+        "failed": "No se pudo obtener esa foto. Inténtalo de nuevo.",
+        "unsupported": "Usa una foto JPEG, PNG o WebP.",
+        "too_large": "Esa foto es demasiado grande. Elige una más pequeña."
+      }
+    },
+    "label": {
+      "title": "Etiqueta QR del equipo",
+      "qrLabel": "Etiqueta con código QR de {{name}}",
+      "share": "Compartir etiqueta",
+      "print": "Imprimir etiqueta",
+      "shareTitle": "Etiqueta de {{name}}",
+      "shareUnavailable": "Compartir no está disponible en este dispositivo.",
+      "shareFailed": "No se pudo preparar la etiqueta para compartir.",
+      "printFailed": "No se pudo abrir la impresión.",
+      "retiredNote": "Este equipo está dado de baja. Su etiqueta seguirá escaneándose, hacia un registro marcado como dado de baja.",
+      "noTagNote": "Este equipo no tiene etiqueta de activo, así que la etiqueta muestra un código corto de su id.",
+      "handoffNote": "Compartir e imprimir abren los cuadros de diálogo de tu dispositivo. PatelRep no puede saber si una etiqueta se imprimió o se envió realmente.",
+      "backToEquipment": "Volver al equipo"
+    },
+    "retire": {
+      "title": "Dar de baja el equipo",
+      "body": "{{name}} se marcará como dado de baja y sus programas de mantenimiento preventivo se detendrán. No se borra nada: las inspecciones, reparaciones y paros siguen registrados.",
+      "reason": "Motivo",
+      "reasonPlaceholder": "p. ej. Reemplazado por una unidad nueva",
+      "continue": "Continuar",
+      "confirm": "¿Dar de baja {{name}}?",
+      "confirmButton": "Dar de baja el equipo",
+      "offline": "Dar de baja un equipo requiere conexión.",
+      "done": "Equipo dado de baja",
+      "failure": {
+        "asset_has_open_work_orders": "Este equipo aún tiene órdenes de trabajo abiertas. Ciérralas o reasígnalas primero.",
+        "asset_has_open_downtime": "Este equipo aún tiene un paro abierto. Restáuralo primero.",
+        "asset_already_retired": "Este equipo ya está dado de baja.",
+        "conflict": "Alguien más cambió este equipo. Cierra esto y revisa la versión más reciente.",
+        "unconfirmed": "El servidor no respondió, así que no sabemos si se dio de baja. Revisa el equipo antes de intentarlo de nuevo.",
+        "forbidden": "Solo un ingeniero jefe o el gerente general puede dar de baja equipos.",
+        "failed": "No se pudo dar de baja este equipo. Inténtalo de nuevo."
       }
     }
   },
@@ -11112,7 +11268,13 @@
       "notFound": "Registro de inspección no encontrado",
       "completedOn": "Completado {{date}}",
       "version": "Versión de la lista {{version}}",
-      "labor": "Mano de obra: {{count}} min"
+      "labor": "Mano de obra: {{count}} min",
+      "equipment": "Equipo",
+      "openEquipment": "Abrir equipo: {{name}}",
+      "openEquipmentFallback": "Abrir registro del equipo",
+      "equipmentRetired": "Dado de baja",
+      "correctiveTitle": "Trabajo correctivo de esta inspección",
+      "openWorkOrder": "Abrir orden de trabajo: {{title}}"
     },
     "plan": {
       "week": "Semana",
