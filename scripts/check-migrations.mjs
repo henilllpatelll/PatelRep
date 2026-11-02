@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const FILENAME_PATTERN = /^(?<version>\d{3,})_(?<name>[a-z0-9][a-z0-9_-]*)\.sql$/;
-const DESTRUCTIVE_PATTERN = /\b(?:DROP\s+(?:TABLE|COLUMN|TYPE|SCHEMA|FUNCTION|POLICY|INDEX)|TRUNCATE\b|DELETE\s+FROM\b|ALTER\s+(?:TABLE|TYPE)\b[^;]*\b(?:DROP|RENAME|TYPE)\b)/i;
+export const DESTRUCTIVE_PATTERN = /\b(?:DROP\s+(?:TABLE|COLUMN|TYPE|SCHEMA|FUNCTION|POLICY|INDEX)|TRUNCATE\b|DELETE\s+FROM\b|ALTER\s+(?:TABLE|TYPE)\b[^;]*\b(?:DROP|RENAME|TYPE)\b)/i;
 
 export function parseMigrationFilename(filename) {
   const match = filename.match(FILENAME_PATTERN);
