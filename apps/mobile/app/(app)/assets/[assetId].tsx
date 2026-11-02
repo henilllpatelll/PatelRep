@@ -31,7 +31,7 @@ import {
   type AssetDetail,
 } from "@/lib/api/assets";
 import { listPmCompletions, type PmCompletionSummary } from "@/lib/api/pm";
-import { buildAssetTimeline, type AssetServiceStatus } from "@/lib/engineering/assetModel";
+import { buildAssetTimeline, parseAssetSection, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
 import { buildRoomImpact } from "@/lib/engineering/roomImpact";
@@ -55,7 +55,7 @@ function statusOf(asset: AssetDetail): AssetServiceStatus {
 }
 
 export default function AssetDetailScreen() {
-  const { assetId } = useLocalSearchParams<{ assetId: string }>();
+  const { assetId, section: sectionParam } = useLocalSearchParams<{ assetId: string; section?: string }>();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -85,14 +85,16 @@ export default function AssetDetailScreen() {
   const [roomImpactOpen, setRoomImpactOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
-  // The tab screen is reused for another asset: start that one at the top, on Overview.
+  // The tab screen is reused for another asset: start that one at the top, on the section the link names (Overview unless
+  // it is one of the four real sections).
+  const startSection = parseAssetSection(sectionParam);
   useEffect(() => {
-    setSection("overview");
-    setVisited(new Set(["overview"]));
+    setSection(startSection);
+    setVisited(new Set<AssetSection>(["overview", startSection]));
     setReadingFor(null);
     setRoomImpactOpen(false);
     setPmHistory(null);
-  }, [id]);
+  }, [id, startSection]);
 
   // Report an issue for this equipment: the shared form opens with it linked and its room as the location.
   const openReport = useCallback(() => {

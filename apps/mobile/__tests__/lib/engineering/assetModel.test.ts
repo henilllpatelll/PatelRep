@@ -4,8 +4,14 @@ import {
   activeAssetFilterCount,
   assetBrowseKey,
   assetBrowseParams,
+  ASSET_HISTORY_GROUPS,
   assetCardModel,
+  assetQuickActions,
   buildAssetTimeline,
+  filterAssetEvents,
+  historyGroupCounts,
+  historyGroupOf,
+  parseAssetSection,
   hasAnyAssetFilter,
   mergeAssetPages,
   riskBand,
@@ -151,5 +157,48 @@ describe("timeline", () => {
     expect(events).toHaveLength(30);
     expect(new Set(events.map((e) => e.key)).size).toBe(30);
     expect(events.some((e) => e.key.endsWith("bad"))).toBe(false);
+  });
+});
+
+describe("History groups", () => {
+  const types = ["pm_completed", "work_order_created", "repair_completed", "downtime_started", "downtime_restored", "reading_recorded"] as const;
+  const events = types.map((type) => ({ type }));
+
+  it("puts every event type in exactly one group, so the chips add up", () => {
+    expect(types.map(historyGroupOf)).toEqual(["pm", "repairs", "repairs", "downtime", "downtime", "readings"]);
+    const counts = historyGroupCounts(events);
+    expect(counts).toEqual({ all: 6, pm: 1, repairs: 2, downtime: 2, readings: 1 });
+    expect(counts.pm + counts.repairs + counts.downtime + counts.readings).toBe(counts.all);
+  });
+
+  it("filters to one group, or returns everything for all, without changing order", () => {
+    expect(filterAssetEvents(events, "repairs").map((e) => e.type)).toEqual(["work_order_created", "repair_completed"]);
+    expect(filterAssetEvents(events, "all")).toBe(events);
+    expect(filterAssetEvents([], "pm")).toEqual([]);
+    expect(ASSET_HISTORY_GROUPS[0]).toBe("all");
+  });
+});
+
+describe("parseAssetSection", () => {
+  it("accepts only the four real sections and otherwise opens Overview", () => {
+    expect(parseAssetSection("readings")).toBe("readings");
+    expect(parseAssetSection(["maintenance", "history"])).toBe("maintenance");
+    for (const hostile of [undefined, null, "", "Readings", "../x", "readings?x=1", 4, {}]) expect(parseAssetSection(hostile)).toBe("overview");
+  });
+});
+
+describe("assetQuickActions", () => {
+  it("offers open, report, maintenance and label to everyone, and a reading only to a role that may record one", () => {
+    expect(assetQuickActions(row("a1"), { isOnline: true, canRecordReading: false }).map((i) => i.action)).toEqual(["open", "report", "maintenance", "label"]);
+    expect(assetQuickActions(row("a1"), { isOnline: true, canRecordReading: true }).map((i) => i.action)).toEqual(["open", "report", "reading", "maintenance", "label"]);
+  });
+
+  it("disables reporting offline (creating needs the network) and nothing else", () => {
+    const offline = assetQuickActions(row("a1"), { isOnline: false, canRecordReading: true });
+    expect(offline.filter((i) => i.disabled).map((i) => i.action)).toEqual(["report"]);
+  });
+
+  it("offers nothing for a row without an id", () => {
+    expect(assetQuickActions({ id: "" }, { isOnline: true, canRecordReading: true })).toEqual([]);
   });
 });

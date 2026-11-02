@@ -14,7 +14,7 @@ from .pm_fakes import PmFakeDB
 
 TENANT, OTHER = "11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"
 ASSET, SCHEDULE, COMPLETION, FOREIGN_COMPLETION = (str(uuid.uuid4()) for _ in range(4))
-WO_PM, WO_PLAIN, WO_FOREIGN_LINK = (str(uuid.uuid4()) for _ in range(3))
+WO_PM, WO_PLAIN, WO_FOREIGN_LINK, WO_ITEM, WO_STALE_KEY = (str(uuid.uuid4()) for _ in range(5))
 CHIEF = CurrentUser(user_id="chief-1", hotel_id=TENANT, role="chief_engineer", email="c@example.com")
 ENGINEER = CurrentUser(user_id="eng-1", hotel_id=TENANT, role="engineer", email="e@example.com")
 
@@ -31,14 +31,18 @@ def db(monkeypatch):
              "completed_at": "2026-10-30T15:00:00+00:00", "photos": []},
         ],
         "pm_completion_items": [
-            {"id": "i1", "tenant_id": TENANT, "completion_id": COMPLETION, "label": "Coolant level", "result": "failed",
+            {"id": "i1", "tenant_id": TENANT, "completion_id": COMPLETION, "item_key": "coolant", "label": "Coolant level", "result": "failed",
              "note": "Low, weeping at the gasket", "evidence": [{"evidence_id": "e1"}]},
-            {"id": "i2", "tenant_id": TENANT, "completion_id": COMPLETION, "label": "Belt tension", "result": "passed",
+            {"id": "i2", "tenant_id": TENANT, "completion_id": COMPLETION, "item_key": "belt", "label": "Belt tension", "result": "passed",
              "note": None, "evidence": []},
         ],
         "work_orders": [
             {"id": WO_PM, "tenant_id": TENANT, "title": "PM fail: Coolant level", "status": "open", "priority": "urgent",
              "asset_id": ASSET, "is_pm_generated": True, "pm_completion_id": COMPLETION},
+            {"id": WO_ITEM, "tenant_id": TENANT, "title": "Corrective PM work: Coolant level", "status": "open", "priority": "urgent",
+             "asset_id": ASSET, "is_pm_generated": True, "pm_completion_id": COMPLETION, "pm_completion_item_key": "coolant"},
+            {"id": WO_STALE_KEY, "tenant_id": TENANT, "title": "x", "status": "open", "priority": "urgent",
+             "asset_id": ASSET, "is_pm_generated": True, "pm_completion_id": COMPLETION, "pm_completion_item_key": "belt"},
             {"id": WO_PLAIN, "tenant_id": TENANT, "title": "PM fail: Coolant level", "status": "open", "priority": "normal",
              "asset_id": ASSET, "is_pm_generated": False, "pm_completion_id": None},
             {"id": WO_FOREIGN_LINK, "tenant_id": TENANT, "title": "x", "status": "open", "priority": "normal",
@@ -77,3 +81,21 @@ async def test_a_failed_source_lookup_never_fails_the_repair_screen(db, monkeypa
     data = (await wo_router.get_work_order(WO_PM, CHIEF))["data"]
     assert data["pm_source"] == {"completion_id": COMPLETION, "schedule_id": None, "details_unavailable": True}
     assert data["id"] == WO_PM
+
+
+@pytest.mark.asyncio
+async def test_an_order_that_recorded_its_item_names_exactly_that_step(db):
+    source = (await wo_router.get_work_order(WO_ITEM, CHIEF))["data"]["pm_source"]
+    assert source["this_item"] == {"label": "Coolant level", "note": "Low, weeping at the gasket"}
+    assert [i["label"] for i in source["failed_items"]] == ["Coolant level"]
+
+
+@pytest.mark.asyncio
+async def test_an_older_order_without_a_recorded_item_claims_no_item(db):
+    assert (await wo_router.get_work_order(WO_PM, CHIEF))["data"]["pm_source"]["this_item"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_recorded_key_that_is_not_a_failed_step_claims_nothing(db):
+    """A passed step (or any key that matches no failed item) can never be presented as the cause."""
+    assert (await wo_router.get_work_order(WO_STALE_KEY, CHIEF))["data"]["pm_source"]["this_item"] is None

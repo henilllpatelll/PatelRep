@@ -2509,7 +2509,10 @@
       "priority": "Prioridad: {{priority}}",
       "evidence": "{{count}} foto o archivo registrado",
       "evidence_plural": "{{count}} fotos o archivos registrados",
-      "view": "Ver inspección original"
+      "view": "Ver inspección original",
+      "thisItem": "Abierta por este paso",
+      "alsoFailed": "También falló en esta inspección ({{count}})",
+      "alsoFailed_plural": "También fallaron en esta inspección ({{count}})"
     }
   },
   "assets": {
@@ -2874,6 +2877,15 @@
         "signature": "Firma",
         "attestation": "Declaración",
         "external_certificate": "Certificado"
+      },
+      "filterLabel": "Mostrar historial de",
+      "filterEmpty": "Todavía no hay nada en este grupo.",
+      "filter": {
+        "all": "Todo",
+        "pm": "MP",
+        "repairs": "Reparaciones",
+        "downtime": "Inactividad",
+        "readings": "Lecturas"
       }
     },
     "add": "Agregar equipo",
@@ -3103,6 +3115,16 @@
       "noRepairs": "No hay reparaciones activas.",
       "openRoom": "Abrir habitación",
       "scope": "Solo informativo. Una reparación o un tiempo fuera de servicio no cambia la habitación: su disponibilidad se define en el flujo propio de la habitación, por quien tiene autorización."
+    },
+    "actions": {
+      "title": "Acciones rápidas",
+      "open": "Abrir equipo",
+      "report": "Reportar un problema",
+      "reading": "Registrar una lectura",
+      "maintenance": "Ver mantenimiento",
+      "label": "Etiqueta QR",
+      "reportOffline": "Reportar un problema requiere conexión.",
+      "more": "Más acciones para {{name}}"
     }
   },
   "inspect": {

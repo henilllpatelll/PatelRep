@@ -77,6 +77,8 @@ export interface PmSource {
   asset_id?: string | null;
   completed_at?: string | null;
   failed_items?: { label: string | null; note: string | null }[];
+  /** The step this order was opened for, when the order recorded it. Absent/null for older orders: never inferred. */
+  this_item?: { label: string | null; note: string | null } | null;
   evidence_count?: number;
   /** The lookup failed; only the id is known. */
   details_unavailable?: boolean;

@@ -27,7 +27,12 @@ export function WorkOrderPmSource({ wo, language, timezone }: Props) {
   const source = wo.pm_source;
   if (!source) return null;
   const record = source.details_unavailable ? null : pmRecordRoute(source.completion_id, source.schedule_id);
-  const failed = (source.failed_items ?? []).filter((item) => item.label);
+  const own = source.this_item?.label ? source.this_item : null;
+  // With a recorded step the card leads with it and lists only the OTHER failures; without one (older orders) it lists
+  // every failed item exactly as before, claiming none of them as the cause.
+  const failed = (source.failed_items ?? []).filter(
+    (item) => item.label && !(own && item.label === own.label && (item.note ?? null) === (own.note ?? null)),
+  );
   const done = formatDay(source.completed_at, timezone, language);
   const defect = wo.description?.trim();
 
@@ -49,9 +54,19 @@ export function WorkOrderPmSource({ wo, language, timezone }: Props) {
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.textMuted, fontSize: 12.5 }}>
               {[wo.assets?.name, done ? t("workOrders.pmSource.completedOn", { date: done }) : null].filter(Boolean).join("  ·  ")}
             </Text>
+            {own ? (
+              <>
+                <Text style={[styles.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.thisItem")}</Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.textPrimary, fontSize: 14, fontWeight: "700" }} testID="wo-pm-source-this-item">
+                  {own.note ? `${own.label}: ${own.note}` : own.label}
+                </Text>
+              </>
+            ) : null}
             {failed.length > 0 ? (
               <>
-                <Text style={[styles.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.failed", { count: failed.length })}</Text>
+                <Text style={[styles.label, { color: theme.textMuted }]}>
+                  {t(own ? "workOrders.pmSource.alsoFailed" : "workOrders.pmSource.failed", { count: failed.length })}
+                </Text>
                 {failed.map((item, index) => (
                   <Text key={`${item.label}-${index}`} maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.textPrimary, fontSize: 14 }}>
                     {item.note ? `${item.label}: ${item.note}` : item.label}

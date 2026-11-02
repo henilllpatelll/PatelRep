@@ -8,10 +8,10 @@ import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet
 import { Button } from "@/components/ui/Button";
 import { getAssetDocumentUrl, type AssetDocument, type AssetDowntime, type AssetReliability } from "@/lib/api/assets";
 import { formatDayTime, formatDayYear, formatSpan } from "@/lib/engineering/assetFormat";
-import type { AssetEvent } from "@/lib/engineering/assetModel";
+import { ASSET_HISTORY_GROUPS, filterAssetEvents, historyGroupCounts, type AssetEvent, type AssetHistoryGroup } from "@/lib/engineering/assetModel";
 import { useToast } from "@/lib/theme/useToast";
 import { pmRecordRoute, workOrderRoute } from "@/lib/engineering/routes";
-import { DetailRow, Fact, Panel, PanelTitle } from "./assetUi";
+import { DetailRow, Fact, Panel, PanelTitle, Pill } from "./assetUi";
 
 interface Resource<T> {
   data: T | null;
@@ -202,11 +202,30 @@ function Documents({ res, language, timezone }: { res: Props["documents"]; langu
 /** What has happened to this equipment: a timeline from the records already held, confirmed downtime, reliability figures and linked documents. */
 export function AssetHistorySection({ events, downtime, reliability, documents, language, timezone }: Props) {
   const { t } = useTranslation();
+  const [group, setGroup] = useState<AssetHistoryGroup>("all");
+  const counts = historyGroupCounts(events);
+  // A group that has emptied (the events were reloaded) can no longer be selected: fall back to everything.
+  const active = counts[group] > 0 ? group : "all";
+  const groups = ASSET_HISTORY_GROUPS.filter((key) => key === "all" || counts[key] > 0);
   return (
     <View style={styles.stack} testID="asset-history">
       <Panel>
         <PanelTitle>{t("assets.history.timeline")}</PanelTitle>
-        <Timeline events={events} language={language} timezone={timezone} />
+        {groups.length > 2 ? (
+          <View style={styles.chips} accessibilityRole="tablist" accessibilityLabel={t("assets.history.filterLabel")} testID="asset-history-filter">
+            {groups.map((key) => (
+              <Pill
+                key={key}
+                label={t(`assets.history.filter.${key}`)}
+                count={counts[key]}
+                selected={active === key}
+                onPress={() => setGroup(key)}
+                testID={`asset-history-filter-${key}`}
+              />
+            ))}
+          </View>
+        ) : null}
+        <Timeline events={filterAssetEvents(events, active)} language={language} timezone={timezone} />
       </Panel>
       <Panel>
         <PanelTitle>{t("assets.history.downtimeTitle")}</PanelTitle>
@@ -234,4 +253,5 @@ const styles = StyleSheet.create({
   period: { gap: 6, paddingTop: 10, paddingBottom: 4, borderTopWidth: 1 },
   doc: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52 },
   facts: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 6 },
 });

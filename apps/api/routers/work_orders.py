@@ -1051,7 +1051,7 @@ def _pm_source(wo: dict, tenant_id: str) -> dict | None:
         )
         items = (
             supabase.table("pm_completion_items")
-            .select("label, note, evidence")
+            .select("item_key, label, note, evidence")
             .eq("completion_id", completion_id)
             .eq("tenant_id", tenant_id)
             .eq("result", "failed")
@@ -1059,6 +1059,9 @@ def _pm_source(wo: dict, tenant_id: str) -> dict | None:
         )
         failed = list(items.data or [])
         evidence_count = len(record.get("photos") or []) + sum(len(i.get("evidence") or []) for i in failed)
+        # The step this order was opened for, only when the order recorded one (older orders did not): never guessed.
+        item_key = wo.get("pm_completion_item_key")
+        this_item = next((i for i in failed if item_key and i.get("item_key") == item_key), None)
         return {
             "completion_id": record["id"],
             "schedule_id": record["pm_schedule_id"],
@@ -1066,6 +1069,7 @@ def _pm_source(wo: dict, tenant_id: str) -> dict | None:
             "asset_id": record.get("asset_id"),
             "completed_at": record.get("completed_at"),
             "failed_items": [{"label": i.get("label"), "note": i.get("note")} for i in failed],
+            "this_item": {"label": this_item.get("label"), "note": this_item.get("note")} if this_item else None,
             "evidence_count": evidence_count,
         }
     except Exception:

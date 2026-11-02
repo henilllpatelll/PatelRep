@@ -21,6 +21,11 @@ export function assetRoute(assetId: string | null | undefined): ParamRoute | nul
   return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/[assetId]", params: { assetId } } : null;
 }
 
+/** The exact equipment record, opened on one of its sections (readings, maintenance...). Same id rules as `assetRoute`. */
+export function assetSectionRoute(assetId: string | null | undefined, section: "maintenance" | "readings" | "history"): ParamRoute | null {
+  return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/[assetId]", params: { assetId, section } } : null;
+}
+
 /** Edit and label screens for one exact asset (built only from a server-supplied id, like every route here). */
 export function assetEditRoute(assetId: string | null | undefined): ParamRoute | null {
   return isSafeRouteId(assetId) ? { pathname: "/(app)/assets/edit/[assetId]", params: { assetId } } : null;

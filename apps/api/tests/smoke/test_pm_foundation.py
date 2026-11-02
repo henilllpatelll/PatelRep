@@ -578,3 +578,74 @@ async def test_lookup_resolves_only_the_callers_own_active_equipment(db):
     db.rows["assets"][0]["is_active"] = False
     retired = (await assets_router.lookup_asset(asset_id=ASSET, tag=None, current_user=ENGINEER))["data"]
     assert retired["id"] == ASSET and retired["is_active"] is False  # a retired label still resolves, flagged as retired
+
+
+# ── Phase 6 follow-up: item link and corrective-work notifications ───────────
+
+CHIEF_A, CHIEF_B, OTHER_HOTEL_CHIEF = "chief-a", "chief-b", "chief-elsewhere"
+
+
+def _notified(db):
+    from services import engineering_notify
+    return engineering_notify, [(n["user_id"], n["type"], n["data"].get("wo_id")) for n in db.rows["notifications"]]
+
+
+@pytest.fixture
+def team(db, monkeypatch):
+    from services import engineering_notify
+    db.rows["notifications"] = []
+    db.rows["user_roles"] = [
+        {"tenant_id": TENANT, "user_id": CHIEF_A, "role": "chief_engineer", "is_active": True},
+        {"tenant_id": TENANT, "user_id": CHIEF_B, "role": "chief_engineer", "is_active": True},
+        {"tenant_id": TENANT, "user_id": "engineer-1", "role": "engineer", "is_active": True},
+        {"tenant_id": OTHER, "user_id": OTHER_HOTEL_CHIEF, "role": "chief_engineer", "is_active": True},
+    ]
+    monkeypatch.setattr(engineering_notify, "supabase", db)
+    return db
+
+
+@pytest.mark.asyncio
+async def test_each_corrective_order_records_the_step_it_was_opened_for(db):
+    await complete(db, items=[{"key": "a", "label": "Belt", "result": "failed"}, {"label": "Air Filter", "result": "failed"}, {"key": "c", "label": "Oil", "result": "passed"}])
+    keys = {w["title"]: w["pm_completion_item_key"] for w in db.rows["work_orders"]}
+    stored = {i["label"]: i["item_key"] for i in db.rows["pm_completion_items"]} if db.rows.get("pm_completion_items") else None
+    assert keys == {"Corrective PM work: Belt": "a", "Corrective PM work: Air Filter": "air_filter"}
+    if stored:
+        assert keys["Corrective PM work: Air Filter"] == stored["Air Filter"]
+
+
+@pytest.mark.asyncio
+async def test_chief_engineers_of_this_property_are_told_once_per_order_and_the_completer_is_not(team):
+    items = [{"key": "a", "label": "Belt", "result": "failed"}, {"key": "b", "label": "Filter", "result": "failed"}]
+    out = await complete(team, who=user("chief_engineer", CHIEF_A), items=items)
+    _, rows = _notified(team)
+    order_ids = {o["id"] for o in out["data"]["corrective_work_orders"]}
+    assert {(u, t) for u, t, _ in rows} == {(CHIEF_B, "pm_corrective_work_order")}
+    assert {w for _, _, w in rows} == order_ids and len(rows) == 2
+    assert all(n["data"]["url"] == f"/(app)/work-orders/{n['data']['wo_id']}" for n in team.rows["notifications"])
+    assert OTHER_HOTEL_CHIEF not in {u for u, _, _ in rows}
+
+
+@pytest.mark.asyncio
+async def test_a_retry_of_an_accepted_completion_notifies_nobody_again(team):
+    submission = str(uuid.uuid4())
+    items = [{"key": "a", "label": "Belt", "result": "failed"}]
+    await complete(team, submission_id=submission, items=items)
+    first = len(team.rows["notifications"])
+    await complete(team, submission_id=submission, items=items)
+    assert first == 2 and len(team.rows["notifications"]) == first  # both chiefs, once
+
+
+@pytest.mark.asyncio
+async def test_a_clean_inspection_notifies_nobody(team):
+    await complete(team, items=[{"key": "a", "label": "Belt", "result": "passed"}])
+    assert team.rows["notifications"] == []
+
+
+@pytest.mark.asyncio
+async def test_a_notification_failure_never_fails_the_recorded_completion(team, monkeypatch):
+    from services import engineering_notify
+    real = team.table
+    monkeypatch.setattr(engineering_notify.supabase, "table", lambda name: (_ for _ in ()).throw(RuntimeError("inbox down")) if name in ("notifications", "user_roles") else real(name))
+    out = await complete(team, items=[{"key": "a", "label": "Belt", "result": "failed"}])
+    assert out["data"]["corrective_work_orders"] and len(team.rows["pm_completion_records"]) == 1

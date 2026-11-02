@@ -2509,7 +2509,10 @@
       "priority": "Priority: {{priority}}",
       "evidence": "{{count}} photo or file recorded",
       "evidence_plural": "{{count}} photos or files recorded",
-      "view": "View original inspection"
+      "view": "View original inspection",
+      "thisItem": "Opened for this step",
+      "alsoFailed": "Also failed in this inspection ({{count}})",
+      "alsoFailed_plural": "Also failed in this inspection ({{count}})"
     }
   },
   "assets": {
@@ -2874,6 +2877,15 @@
         "signature": "Signature",
         "attestation": "Attestation",
         "external_certificate": "Certificate"
+      },
+      "filterLabel": "Show history for",
+      "filterEmpty": "Nothing in this group yet.",
+      "filter": {
+        "all": "All",
+        "pm": "PM",
+        "repairs": "Repairs",
+        "downtime": "Downtime",
+        "readings": "Readings"
       }
     },
     "add": "Add equipment",
@@ -3103,6 +3115,16 @@
       "noRepairs": "No active repairs.",
       "openRoom": "Open room",
       "scope": "This is information only. A repair or downtime record does not change the room: availability is set in the room's own workflow, by someone authorized to do it."
+    },
+    "actions": {
+      "title": "Quick actions",
+      "open": "Open equipment",
+      "report": "Report an issue",
+      "reading": "Record a reading",
+      "maintenance": "View maintenance",
+      "label": "QR label",
+      "reportOffline": "Reporting an issue needs a connection.",
+      "more": "More actions for {{name}}"
     }
   },
   "inspect": {

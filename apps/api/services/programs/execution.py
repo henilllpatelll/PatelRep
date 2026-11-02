@@ -15,6 +15,7 @@ from services.programs.contracts import (
     validate_completion_items,
 )
 from services.condition_monitoring import persist_condition_reading
+from services.engineering_notify import notify_managers
 
 
 class PmCompletionRefused(Exception):
@@ -145,6 +146,26 @@ def _apply_template_evidence_rules(template: dict[str, Any] | None, items: list[
             raise EvidenceRequiredError(f"Evidence is required for {item.get('label', 'this checklist item')}")
         resolved.append(item)
     return resolved
+
+
+def _item_key(item: dict[str, Any]) -> str:
+    """The key a checklist step is stored under (`pm_completion_items.item_key`). One definition, used both for the stored
+    item and for the corrective order opened for it, so the order's link always names the step that failed."""
+    return item.get("key") or item["label"].lower().replace(" ", "_")
+
+
+def _notify_corrective_orders(*, tenant_id: str, user_id: str, schedule: dict[str, Any], orders: list[dict[str, Any]]) -> None:
+    """Tell the chief engineers that an inspection opened corrective work. Inbox only, one unread row per person and
+    order (so a retry cannot alert twice), never to the person who recorded the inspection, and best effort: the
+    completion is already committed, so a notification problem must never fail or retry it."""
+    where = schedule.get("name")
+    for order in orders:
+        title = order.get("title") or "Corrective work order"
+        notify_managers(
+            tenant_id=tenant_id, event="pm_corrective_work_order", title="Inspection opened corrective work",
+            body=f"{title} - {where}" if where else title, subject_key="wo_id", subject_id=str(order["id"]),
+            data={"url": f"/(app)/work-orders/{order['id']}"}, exclude=user_id,
+        )
 
 
 def _fetch_asset_criticality(*, db: Any, tenant_id: str, asset_id: str | None) -> str | None:
@@ -282,7 +303,7 @@ def persist_pm_completion(
                 completed_at=completed_at,
                 criticality=criticality,
             )
-            corrective.append({"label": item["label"], **{k: work_order[k] for k in (
+            corrective.append({"label": item["label"], "item_key": _item_key(item), **{k: work_order[k] for k in (
                 "asset_id", "title", "description", "category", "priority", "created_by", "sla_minutes", "due_at",
             )}})
 
@@ -310,7 +331,7 @@ def persist_pm_completion(
             "notes": payload.get("notes"),
         },
         "p_items": [{
-            "item_key": item.get("key") or item["label"].lower().replace(" ", "_"),
+            "item_key": _item_key(item),
             "label": item["label"],
             "result": item["result"],
             "requires_evidence": item.get("requires_evidence", False),
@@ -357,6 +378,8 @@ def persist_pm_completion(
         ]
     completion["corrective_work_orders"] = orders
     completion["replayed"] = replayed
+    if orders and not replayed:
+        _notify_corrective_orders(tenant_id=tenant_id, user_id=user_id, schedule=schedule, orders=orders)
     # When the equipment is next due, as the schedule now stands (read back, never computed by the app).
     refreshed = db.table("pm_schedules").select("next_due_at").eq("id", str(schedule["id"])).eq(
         "tenant_id", tenant_id

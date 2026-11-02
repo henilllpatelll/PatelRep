@@ -309,17 +309,35 @@ scheduled PM and PM history as separate, paged reads, and reloads on focus after
 Home already opens Engineering Work, PM Today, the exact attention PM schedule or work order; the original failed PM result is never
 rewritten when a repair completes; completing a repair does not end downtime or touch a room; failing a PM does not create downtime.
 
-**Not done (honest list)**
-- No `Request Room Status Review`: PatelRep has no request/escalation mechanism for that, and none was invented.
-- No notifications. Integration point for later: after `record_pm_completion()` returns `corrective_work_orders`, notify the chief
-  engineer with `data.url = /(app)/work-orders/{id}`, deduplicated on `(work_order_id, event)`; delivery policy lives in `services/notify.py`.
-- The failed checklist item is not stored on the work order (no column); linking it durably would need a new nullable
-  `work_orders.pm_completion_item_id` set inside `record_pm_completion()`.
-- No History filter chips (PM / repairs / downtime / readings) and no Asset quick-actions sheet beyond the existing More sheet.
-- No server-side single "maintenance timeline" endpoint: the app still composes the four paged reads.
-- No multi-hotel scale fixtures, no device/emulator run, no two-hotel run. The shared read cache is keyed by `tenant:user`, which is
-  what isolates a hotel switch; it is covered by existing unit tests, not re-proved here.
+**Completed after Phase 7 (2026-11-02): migration 235 and the remaining Phase 6 items**
+- **Notifications.** When a PM inspection is recorded and opens corrective work, every chief engineer of that property gets one inbox row per
+  work order (`pm_corrective_work_order`, `data.url = /(app)/work-orders/{id}`), through the existing `services/engineering_notify.notify_managers`.
+  Inbox only (listed in `INBOX_ONLY_EVENTS`, never pushed), one unread row per person and order, never to the person who recorded the
+  inspection, and **not sent again on a replay** of an accepted submission. Best effort: a notification failure cannot fail or retry a completion
+  that is already committed. The mobile inbox files the type under Maintenance.
+- **Item-level link.** Migration `235_pm_corrective_item_link.sql` adds nullable `work_orders.pm_completion_item_key` and replaces
+  `record_pm_completion()` with a copy that differs only in storing that key on each corrective order, inside the same transaction.
+  Signature, locking, idempotency, the `(tenant, completion, title)` uniqueness and privileges are unchanged (SQL tests check each). It is not a
+  foreign key: `pm_completion_items` is append-only and the order must never be blocked or cascaded by it. Nothing is backfilled: orders created
+  before this migration keep a NULL key and show no "this step", exactly as before. `GET /v1/work-orders/{id}` now returns `pm_source.this_item`
+  only when the stored key matches a **failed** item of that completion; a key that matches a passed or missing item claims nothing. The Work Order
+  card leads with "Opened for this step" and lists only the other failures under "Also failed in this inspection".
+- **History filter chips.** Asset -> History -> Timeline has chips (All / PM / Repairs / Downtime / Readings) with counts. Each event type belongs to
+  exactly one group, so the counts add up; a group with no events has no chip, and nothing is shown when only one group exists. Pure functions
+  over the events already loaded: no new request. A selected group that empties after a reload falls back to All.
+- **Asset quick actions.** Every directory card has an ellipsis button (also long press, and a screen-reader "actions" action) opening a sheet:
+  Open equipment, Report an issue (pre-filled exactly like the equipment screen; disabled offline), Record a reading (only for roles that may),
+  View maintenance, QR label. Nothing in the sheet changes data; each item opens the existing screen where the action, its permission check and its
+  result happen. The equipment screen now accepts `?section=readings|maintenance|history`; any other value opens Overview.
 
+**Deliberately not built (and why)**
+- **`Request Room Status Review`:** PatelRep has no request/escalation mechanism for it, and none was invented. Room availability is still set only in
+  the existing authorised room workflow.
+- **A single server "maintenance timeline" endpoint:** the History chips filter the four paged reads the screen already makes, which keeps each read
+  independently paged and failure-isolated. A combined endpoint would need its own paging contract and a migration/index review; it is a possible
+  later optimisation, not a missing feature.
+- No multi-hotel scale fixtures, no device/emulator run, no two-hotel run. The shared read cache is keyed by `tenant:user`, which is what isolates a
+  hotel switch; it is covered by existing unit tests, not re-proved here.
 
 ## Phase 7: offline reliability, durable evidence, safe sync, conflicts and performance
 
@@ -426,7 +444,7 @@ short code only - no tokens, notes, file paths or signed URLs. Dev builds only.
 - Drafts are not listed in the sign-out warning. An unreadable queue row is shown as needing review but has no "repair" action (discard only).
 - Cache invalidation after a recorded completion resets the PM schedule cache and marks the asset list stale; mounted screens refresh on
   their next focus, not live. Work-order-completion and asset-edit invalidation paths were reviewed, not changed.
-- Phase 6 leftovers (notifications, item-level link, history chips) remain as documented above.
+- Phase 6 leftovers (notifications, item-level link, history chips, quick actions) were completed afterwards on 2026-11-02; see Phase 6.
 - PM Today/Plan/Calendar/History large-list performance (500 schedules, virtualization audit) was **not** done in this phase.
 - Realtime duplicate-subscription audit not done.
 
@@ -453,14 +471,15 @@ Release decision: **NOT READY - blockers remain** (see "Blockers"). Nothing here
 |---|---|---|---|
 | TypeScript | `npm run type-check` (apps/mobile) | local, Windows | pass |
 | ESLint | `npm run lint` (apps/mobile) | local | pass |
-| Jest | `npx jest --ci` (apps/mobile) | local, all suites | 445 suites / 10,117 tests pass |
+| Jest | `npx jest --ci` (apps/mobile) | local, all suites | 445 suites / 10,141 tests pass (after the Phase 6 completion) |
 | Python lint | `ruff check .` (apps/api) | local | pass |
 | Migration integrity | `node scripts/check-migrations.mjs` | local | pass after the header fix (failed before) |
 | Migration script tests | `node --test scripts/check-migrations.test.mjs scripts/remote-migration-apply.test.mjs scripts/staging-target-guard.test.mjs` | local | 12/12 pass |
-| SQL behaviour | `pytest tests/sql` | disposable `postgres:16-alpine` container | 34 pass |
+| SQL behaviour | `pytest tests/sql` | disposable `postgres:16-alpine` container | 40 pass (34 + 6 for migration 235) |
 | API unit/route suite | `pytest tests --ignore=tests/sql --ignore=tests/integration` (apps/api, dummy env, never the production `.env`) | local venv | all pass except 6 known environment failures (old stripe/dateutil/httpx in the shared venv; `test_snooze_sets_snoozed_until_one_hour_out` flakes in the full run, passes alone) |
 | RBAC matrix drift | `pytest tests/smoke/test_rbac_matrix_contract.py` | local | failed (stale line refs after Phase 7); regenerated with `generate_rbac_matrix.py` (line numbers only), now 3/3 pass |
-| EN/ES | key-set comparison of `i18n/locales/{en,es}.json` | local script | 9,699 / 9,699 keys, none missing either way |
+| EN/ES | key-set comparison of `i18n/locales/{en,es}.json` | local script | 9,717 / 9,717 keys, none missing either way |
+**Incomplete:** after the Phase 6 completion the full API suite was started but stopped at about 18% when the machine ran out of memory, so it has NOT been re-run in full since; the affected suites (PM connected/foundation, engineering notifications, notification policy, RBAC matrix contract: 111 tests) pass and ruff is clean. The full-suite result above predates the Phase 6 completion.
 Not run: `tests/integration` (needs a migrated database; collection fails without one), real device/emulator, Mobile CI and CI Gate on GitHub (no PR), Staging Gate, clean-room replay of all migrations through the Supabase CLI,
 large-hotel load test, accessibility tooling, live cross-tenant negative tests against a real database.
 
@@ -479,14 +498,14 @@ create/edit, assignment, deferral decisions (never one's own request), performan
 The UI hides what the API refuses, but the API is the authority.
 
 ### Rollout path and recovery
-- Forward only: `232 -> 233 -> 234`, all additive (new nullable columns, new tables, idempotent functions/triggers). Apply to production only through the
+- Forward only: `232 -> 233 -> 234 -> 235`, all additive (new nullable columns, new tables, idempotent functions/triggers). Apply to production only through the
   existing authorized Production Release process after a human merge; apply to staging only once blocker 1 is fixed.
-- Recovery: 234's header documents the rollback (drop its trigger, policy, `pm_schedule_assignment_events` and the added columns). 232/233 add columns,
+- Recovery: 235 only adds a nullable column and replaces one function with a copy of 232's body (rollback: redeploy 232's body, drop the column). 234's header documents the rollback (drop its trigger, policy, `pm_schedule_assignment_events` and the added columns). 232/233 add columns,
   an active-tag unique index and functions; none rewrites history. Roll back app behaviour by redeploying the previous API; the mobile client treats an
   unknown server response as "needs review", not as success.
 
 ### Known limitations and open items
 - P2: PM Today/Plan/Calendar load every schedule into a ScrollView (no virtualization); behaviour at ~500 schedules is unmeasured. PM History and the Asset directory are paged/virtualized.
 - P2: `assets` table is still read in full per browse request (Phase 7 residual); needs an indexed RPC with keyset paging and a migration.
-- P2: Phase 6 leftovers (notifications, item-level link, history chips) and the Phase 7 list in "Not done / not verified" above remain open.
+- P2: the Phase 7 list in "Not done / not verified" above remains open. The Phase 6 leftovers were completed afterwards (see Phase 6).
 - P3: the two unscoped `.in_("id", ...)` lookups noted above.

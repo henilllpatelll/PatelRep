@@ -23,6 +23,7 @@ const KIND_BY_TYPE: Record<string, FeedKind> = {
   wo_reassigned: "maintenance",
   wo_verification_required: "priority",
   pm_due: "maintenance",
+  pm_corrective_work_order: "maintenance",
   room_availability_changed: "room",
   work_order_complete: "maintenance",
   guest_request_wo_completed: "maintenance",

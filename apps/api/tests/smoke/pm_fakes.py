@@ -137,7 +137,7 @@ class PmFakeDB(FakeDB):
                         "tenant_id": p_tenant_id, "asset_id": item.get("asset_id"), "title": item["title"],
                         "description": item.get("description"), "category": item.get("category"), "priority": item.get("priority"),
                         "created_by": item.get("created_by"), "is_pm_generated": True, "pm_completion_id": p_completion_id,
-                        "sla_minutes": item.get("sla_minutes"), "due_at": item.get("due_at"),
+                        "pm_completion_item_key": item.get("item_key") or None, "sla_minutes": item.get("sla_minutes"), "due_at": item.get("due_at"),
                     })
                     work_order_id = work_order["id"]
                     wos.append({"id": work_order_id, "title": item["title"]})

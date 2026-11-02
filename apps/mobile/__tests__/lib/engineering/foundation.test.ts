@@ -15,6 +15,7 @@ import {
   assetEditRoute,
   assetLabelRoute,
   assetRoute,
+  assetSectionRoute,
   isSafeRouteId,
   pmInspectRoute,
   pmRecordRoute,
@@ -183,5 +184,15 @@ describe("completion submission identity", () => {
     const b = resolveSubmission(null, base);
     expect(a.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("assetSectionRoute", () => {
+  it("opens the exact asset on a named section", () => {
+    expect(assetSectionRoute(UUID, "readings")).toEqual({ pathname: "/(app)/assets/[assetId]", params: { assetId: UUID, section: "readings" } });
+  });
+
+  it("refuses an id that could change the destination", () => {
+    for (const hostile of ["../x", "a/b", "a?b=1", "", null, undefined]) expect(assetSectionRoute(hostile, "maintenance")).toBeNull();
   });
 });

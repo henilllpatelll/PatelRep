@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { EngineeringState } from "@/components/engineering/EngineeringState";
 import { AssetCard } from "@/components/engineering/assets/AssetCard";
 import { AssetFilterSheet } from "@/components/engineering/assets/AssetFilterSheet";
+import { AssetQuickActionsSheet } from "@/components/engineering/assets/AssetQuickActionsSheet";
 import { Pill, StaleNote } from "@/components/engineering/assets/assetUi";
 import { getFailurePredictions, listAssetCategories } from "@/lib/api/assets";
 import {
@@ -21,7 +22,7 @@ import {
   type AssetRow,
 } from "@/lib/engineering/assetModel";
 import { resolveLoadState } from "@/lib/engineering/loadState";
-import { canManageAssets, canRetireAssets } from "@/lib/engineering/roles";
+import { canManageAssets, canRecordReadings, canRetireAssets } from "@/lib/engineering/roles";
 import { ASSET_NEW_ROUTE } from "@/lib/engineering/routes";
 import { recallAssetView, rememberAssetView, takeAssetListStale, useAssetBrowse } from "@/lib/engineering/useAssetBrowse";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
@@ -82,7 +83,8 @@ export default function AssetsScreen() {
   const emptyStatus = state.status === "ready" || !browse.loaded ? state.status : "empty";
   const signalCount = signals.data?.length ?? 0;
 
-  const renderItem = useCallback(({ item }: { item: AssetRow }) => <AssetCard row={item} onPress={openAsset} />, [openAsset]);
+  const [actionsFor, setActionsFor] = useState<AssetRow | null>(null);
+  const renderItem = useCallback(({ item }: { item: AssetRow }) => <AssetCard row={item} onPress={openAsset} onActions={setActionsFor} />, [openAsset]);
 
   const header = useMemo(
     () => (
@@ -238,6 +240,12 @@ export default function AssetsScreen() {
           setSheetOpen(false);
         }}
         onClose={() => setSheetOpen(false)}
+      />
+      <AssetQuickActionsSheet
+        row={actionsFor}
+        isOnline={isOnline}
+        canRecordReading={canRecordReadings(user?.effective_role ?? user?.role)}
+        onClose={() => setActionsFor(null)}
       />
     </View>
   );
