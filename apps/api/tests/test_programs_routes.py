@@ -170,7 +170,7 @@ def _use(monkeypatch, db) -> TestClient:
 def test_pm_completion_returns_signed_urls(monkeypatch):
     """A completion's attachments read back as short-lived signed URLs, never a raw storage_path."""
     db = _pm_db(evidence_records=[
-        {"id": "evidence-1", "tenant_id": "hotel-a", "storage_path": "hotel-a/evidence-1/proof.jpg", "file_name": "proof.jpg"},
+        {"id": "evidence-1", "tenant_id": "hotel-a", "collected_by": "user-a-1", "storage_path": "hotel-a/evidence-1/proof.jpg", "file_name": "proof.jpg"},
     ])
     client = _use(monkeypatch, db)
 

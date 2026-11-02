@@ -151,3 +151,86 @@ new contract keeping every assertion's intent (`tests/smoke/pm_fakes.py` now mir
   design as retire; Phase 5.
 - Asset tags are optional by business rule (no generator). A per-category tag sequence is a Phase 5/6 decision.
 - Criticality is now settable and shown; criticality-driven PM/priority rules are Phase 5/6.
+
+## Phase 4: guided PM inspections, field evidence, readings, findings and safe completion
+
+No migration. API: evidence integrity on completion and a permanent-evidence guard. Mobile: the inspection screen,
+photo/finding/reading components and the local draft store. The existing inspection architecture is reused (one
+`usePmInspection` hook, one local draft, one idempotent completion); nothing competes with it.
+
+### Evidence integrity (API)
+Completion used to check only that an evidence id belonged to the property. It now refuses (422, nothing written) evidence that:
+is not in this property, has no uploaded file yet, was captured by someone else, was captured for other equipment or other work
+(`related_entity_type` must be empty or this asset), or is already part of a recorded inspection (recording re-links evidence to
+the new completion, so without this a photo could be pulled off a finished inspection and reused as proof for the next one).
+The same id may appear only once per completion (an item, another item and the general photos are different places), so one
+photo can never satisfy two steps. A replay of an already accepted `submission_id` skips these ownership checks (its evidence is
+already linked to its own completion) and the database function answers replay/conflict as before.
+
+The procedure, not the app, decides what needs a photo: `requires_evidence` is taken from the resolved checklist template
+(matched by item key, else label) and stored as true even if the request said false; a controlled step without its own evidence
+is refused unless it is N/A. The template lookups now select `items` (`checklist_binding.py`).
+
+`DELETE /evidence/records/{id}` and `POST /evidence/records/{id}/file` return 409 for evidence linked to a `pm_completion`:
+recorded proof can neither be deleted nor have its file replaced. A draft's photo or a failed upload stays removable, which is
+what makes "Discard draft" safe even when an earlier submit's outcome was unknown.
+
+The completion response now carries `next_due_at` (read back from the schedule, never computed by the app) and the corrective
+work orders' `status` / `work_order_number` as the database holds them.
+
+Residual risk, accepted and recorded: two simultaneous first submissions that both reference the same photo could pass the
+ownership check before either links it (the check is before the transaction; closing it needs a SQL change in a new migration).
+The duplicate-id rule and the per-user rule make this a deliberate-misuse case, not an app flow.
+
+### Guided inspection (mobile)
+- Header: `Equipment - Inspection name`, `TAG - location`, `Checklist name - vX`, and the local save status; one button opens the
+  exact equipment record. Back steps through the sections, then leaves.
+- Four sections in a tab row (`PmStepper`): **Checklist, Readings, Findings, Review**. Moving between them never touches the draft.
+  Status icons (complete / needs attention / not started) come from `sectionStatuses` and are spoken, never colour-only.
+- Checklist card: Pass / Fail / N/A as radio buttons with icons, nothing pre-answered, no "pass all". The answer stays visible when
+  the card is collapsed. N/A is allowed as the checklist allows it (the checklist model has no configurable "reason required" flag,
+  so none is invented).
+- **Report failed check** (`PmFailureSheet`, shared `BottomSheet`): equipment, the failed step, escalation guidance ("if this is an
+  immediate danger ... tell the Chief Engineer; saving a finding does not alert anyone"), the finding text, a photo, Save. The text is
+  written into the draft as it is typed, so dismissing the sheet loses nothing and the step stays Failed. A failed step now needs a
+  written finding before the inspection can be completed (client rule; it travels as the step's note and becomes the corrective work
+  order's description). Per-step severity is not offered: the API has no per-step severity (priority comes from asset criticality),
+  and the existing "other defects" list keeps its optional severity.
+- Photos (`PmPhotoField`): camera / library with permission states, preview, remove, per-thumbnail "Uploaded" mark (every thumbnail
+  is an upload the server confirmed), upload failure keeps the prepared photo so **Retry upload** needs no re-pick, status announced
+  to screen readers. Offline is stated; there is no offline photo queue (Phase 7).
+- Readings: only the equipment's own meters, unit beside the field, configured band ("Normal: up to / at least / x to y"), last
+  value, and a warning that states the entered value and which limit it is beyond. A plus/minus button is there because the iPhone
+  decimal pad has no minus key. A reading never changes an answer. No meters gives an honest empty state.
+- Labor / parts / defects / notes: unchanged semantics (actual labor only as typed, parts are a usage record with no stock
+  deduction, defects are not work orders); inline errors per row.
+- Review: blockers first, each with **Fix this** that switches section and scrolls to the exact field (a failed step's finding or
+  photo opens the sheet); then inspection / equipment / checklist version / technician / due date, result counts, readings with
+  out-of-range marks, photo count and required-photo status, findings, labor/parts, notes.
+- Submission: one stable `submission_id` per logical attempt (existing). A retry after an unknown outcome is labelled "Retry safely",
+  sends the same id and payload, and keeps the draft until the server confirms. Outcomes are titled (not confirmed yet / not
+  recorded / not ready) and announced to screen readers.
+- Completed: shows what the server confirmed (time, technician, results, readings and photos sent, work orders with their numbers,
+  next due date when returned). A failed step is never summarised as a pass. Actions: View Inspection Record, View Equipment.
+
+### Local draft
+Saves are serialised per draft (an older write can never land after a newer one or resurrect a cleared draft), `savePmDraft` reports
+whether the phone really stored it, and the header says Saving / Saved on this phone / Couldn't save. A draft is never written
+under a different signed-in person: the hook resets and reloads when the user changes, and the unmount flush checks the owner.
+Draft recovery for a changed checklist is the Phase 1 behaviour (blocked with "Use updated checklist"; answers follow only
+items with the same key/label). The draft is local work in progress; nothing calls it recorded.
+
+### Assets: Record Reading
+The sheet moved onto the shared `BottomSheet` (its retry protections are unchanged: one request in flight, and an unconfirmed
+attempt is re-read before it can be sent again). It now shows the meter's fixed unit, configured range and last reading. Observed-time
+entry is deliberately not offered: the API would accept `recorded_at`, but back-dating readings would corrupt trends and the
+unconfirmed-attempt re-read.
+
+### Not done / dependencies
+- A "reason required for N/A" setting, per-step severity and per-step instructions/safety text: the template model has none; this
+  needs a template schema change (Phase 5/6) rather than invented client text.
+- Offline photo queue and durable offline completion: Phase 7.
+- Closing the simultaneous-first-submission window on shared evidence needs a SQL change (new migration).
+- No device or emulator run (no safe backend: the local .env is production and shared staging is wiped by the candidate workflow).
+  The screens were exercised in a desktop browser through Expo web with a stubbed API (390x844), which does not cover native
+  camera, keyboard, safe-area or VoiceOver/TalkBack behaviour.

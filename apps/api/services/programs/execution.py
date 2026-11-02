@@ -10,6 +10,7 @@ from typing import Any
 
 from services.programs.checklist_binding import resolve_completion_template
 from services.programs.contracts import (
+    EvidenceRequiredError,
     build_corrective_work_order,
     validate_completion_items,
 )
@@ -70,21 +71,80 @@ def _validate_verifier(*, db: Any, tenant_id: str, user_id: str, verifier_id: st
         raise ValueError("Verifier is not an active user at this property.")
 
 
-def _validate_tenant_evidence_ids(*, db: Any, tenant_id: str, evidence_ids: list[str]) -> None:
-    """Reject a PM completion that references evidence_records missing or owned by another tenant."""
+def _reject_duplicate_evidence(payload: dict[str, Any], items: list[dict[str, Any]]) -> None:
+    """One evidence record proves one thing. The same id on two checklist items (or on an item and the general photos)
+    would let a single photo silently satisfy another step's evidence requirement."""
+    seen: set[str] = set()
+    groups = [payload.get("photos") or [], payload.get("certificate_attachments") or [], *[(item.get("evidence") or []) for item in items]]
+    for group in groups:
+        for evidence_id in group:
+            if evidence_id in seen:
+                raise ValueError(f"Evidence record {evidence_id} is attached more than once; each photo can back only one place.")
+            seen.add(evidence_id)
+
+
+def _submission_already_recorded(*, db: Any, tenant_id: str, submission_id: str | None) -> bool:
+    if not submission_id:
+        return False
+    result = (
+        db.table("pm_completion_records").select("id").eq("tenant_id", tenant_id)
+        .eq("submission_id", str(submission_id)).maybe_single().execute()
+    )
+    return bool(result and result.data)
+
+
+def _validate_tenant_evidence_ids(
+    *, db: Any, tenant_id: str, evidence_ids: list[str], user_id: str | None = None, asset_id: str | None = None,
+) -> None:
+    """Reject a PM completion that references evidence that is missing, from another tenant, never uploaded, captured by
+    someone else, for other equipment, or already recorded against an earlier completion.
+
+    The last rule matters because recording a completion re-links its evidence to itself: without it a technician could
+    pull a photo off a finished inspection and reuse it as proof for the next one."""
     if not evidence_ids:
         return
     result = (
-        db.table("evidence_records").select("id").eq("tenant_id", tenant_id)
-        .in_("id", evidence_ids).execute()
+        db.table("evidence_records").select("id, collected_by, storage_path, related_entity_type, related_entity_id")
+        .eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
     )
-    found_ids = {row["id"] for row in ((result.data if result else None) or [])}
-    missing = [evidence_id for evidence_id in evidence_ids if evidence_id not in found_ids]
+    found = {row["id"]: row for row in ((result.data if result else None) or [])}
+    missing = [evidence_id for evidence_id in evidence_ids if evidence_id not in found]
     if missing:
         raise ValueError(
             f"Evidence record(s) not found at this property: {', '.join(missing)}"
         )
+    if user_id is None:
+        return
+    for evidence_id in evidence_ids:
+        row = found[evidence_id]
+        if not row.get("storage_path"):
+            raise ValueError(f"Evidence record {evidence_id} has no uploaded file yet. Upload it, or remove it, and try again.")
+        if row.get("collected_by") != user_id:
+            raise ValueError(f"Evidence record {evidence_id} was captured by someone else and cannot be used in this inspection.")
+        linked_type, linked_id = row.get("related_entity_type"), row.get("related_entity_id")
+        if linked_type == "pm_completion":
+            raise ValueError(f"Evidence record {evidence_id} is already part of a recorded inspection.")
+        if linked_type and not (linked_type == "asset" and asset_id is not None and str(linked_id) == str(asset_id)):
+            raise ValueError(f"Evidence record {evidence_id} was captured for different equipment or work.")
 
+
+def _apply_template_evidence_rules(template: dict[str, Any] | None, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The procedure, not the app, says which steps need a photo. A step the procedure marks as controlled is recorded
+    as such and refused without its own evidence, whatever the request claimed."""
+    checklist = (((template or {}).get("items") or {}).get("checklist")) or []
+    by_key = {str(e["key"]): bool(e.get("requires_evidence")) for e in checklist if e.get("key")}
+    by_label = {str(e["label"]).strip(): bool(e.get("requires_evidence")) for e in checklist if e.get("label")}
+    if not by_key and not by_label:
+        return items
+    resolved: list[dict[str, Any]] = []
+    for item in items:
+        required = by_key.get(str(item.get("key") or "")) or by_label.get(str(item.get("label") or "").strip(), False)
+        if required and not item.get("requires_evidence"):
+            item = {**item, "requires_evidence": True}
+        if required and item["result"] != "not_applicable" and not item.get("evidence"):
+            raise EvidenceRequiredError(f"Evidence is required for {item.get('label', 'this checklist item')}")
+        resolved.append(item)
+    return resolved
 
 
 def _fetch_asset_criticality(*, db: Any, tenant_id: str, asset_id: str | None) -> str | None:
@@ -182,8 +242,16 @@ def persist_pm_completion(
     _validate_verifier(
         db=db, tenant_id=tenant_id, user_id=user_id, verifier_id=payload.get("verifier_id"),
     )
+    _reject_duplicate_evidence(payload, items)
     evidence_ids = _collect_evidence_ids(payload, items)
-    _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
+    # A replay of an accepted submission finds its evidence already linked to its own completion; the database function
+    # recognises the replay (or refuses a changed payload) first, so ownership is checked for new work only.
+    if _submission_already_recorded(db=db, tenant_id=tenant_id, submission_id=payload.get("submission_id")):
+        _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
+    else:
+        _validate_tenant_evidence_ids(
+            db=db, tenant_id=tenant_id, evidence_ids=evidence_ids, user_id=user_id, asset_id=schedule.get("asset_id"),
+        )
     if payload.get("vendor_id"):
         vendor = db.table("engineering_vendors").select("id, name").eq("id", str(payload["vendor_id"])).eq("tenant_id", tenant_id).maybe_single().execute()
         if not vendor or not vendor.data:
@@ -192,6 +260,7 @@ def persist_pm_completion(
         payload["vendor_name"] = payload.get("vendor_name") or vendor.data["name"]
 
     template = resolve_completion_template(db, tenant_id, schedule, payload.get("checklist_template_id"))
+    items = _apply_template_evidence_rules(template, items)
     checklist_template_id = template["id"] if template else None
     checklist_version = payload.get("checklist_version")
     if template and checklist_version is None:
@@ -275,6 +344,22 @@ def persist_pm_completion(
             db=db, tenant_id=tenant_id, user_id=user_id, completion_id=completion["id"],
             readings=condition_readings, meters_by_id=meters_by_id, replayed=replayed,
         )
-    completion["corrective_work_orders"] = outcome.get("corrective_work_orders") or []
+    orders = outcome.get("corrective_work_orders") or []
+    if orders:
+        # The order numbers people recognise, read back from what the database actually created.
+        numbered = db.table("work_orders").select("id, title, status, work_order_number").eq("tenant_id", tenant_id).in_(
+            "id", [str(order["id"]) for order in orders]
+        ).execute().data or []
+        by_id = {str(row["id"]): row for row in numbered}
+        orders = [
+            {**order, **{k: v for k, v in by_id.get(str(order["id"]), {}).items() if k in ("status", "work_order_number")}}
+            for order in orders
+        ]
+    completion["corrective_work_orders"] = orders
     completion["replayed"] = replayed
+    # When the equipment is next due, as the schedule now stands (read back, never computed by the app).
+    refreshed = db.table("pm_schedules").select("next_due_at").eq("id", str(schedule["id"])).eq(
+        "tenant_id", tenant_id
+    ).maybe_single().execute()
+    completion["next_due_at"] = ((refreshed.data if refreshed else None) or {}).get("next_due_at")
     return completion

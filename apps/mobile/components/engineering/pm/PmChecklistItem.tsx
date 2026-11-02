@@ -18,7 +18,11 @@ interface Props {
   showUnanswered: boolean;
   /** Review was attempted and this item still lacks its required evidence. */
   showEvidenceMissing: boolean;
+  /** Review was attempted and this failed item still has no written finding. */
+  showFindingMissing: boolean;
   onToggle: () => void;
+  /** Opens the "Report failed check" sheet for this step. */
+  onOpenFailure: () => void;
   onResult: (result: PmItemResult) => void;
   onNote: (note: string) => void;
   onAddPhoto: (uri: string, signal: AbortSignal) => Promise<void>;
@@ -41,7 +45,9 @@ export function PmChecklistItem({
   uploading,
   showUnanswered,
   showEvidenceMissing,
+  showFindingMissing,
   onToggle,
+  onOpenFailure,
   onResult,
   onNote,
   onAddPhoto,
@@ -54,7 +60,11 @@ export function PmChecklistItem({
   const summaryTone = answer.result === "failed" ? theme.status.dirty : answer.result ? theme.status.ready : theme.textDisabled;
   const summaryIcon = answer.result === "failed" ? "close-circle" : answer.result ? "checkmark-circle" : "ellipse-outline";
   const resultLabel = answer.result ? t(RESULTS.find((r) => r.value === answer.result)!.labelKey) : t("pm.result.unanswered");
-  const invalid = (showUnanswered && !answer.result) || (showEvidenceMissing && needsEvidence && answer.evidence.length === 0);
+  const findingMissing = failed && !answer.note.trim();
+  const invalid =
+    (showUnanswered && !answer.result) ||
+    (showEvidenceMissing && needsEvidence && answer.evidence.length === 0) ||
+    (showFindingMissing && findingMissing);
 
   return (
     <View
@@ -81,6 +91,7 @@ export function PmChecklistItem({
           {!expanded && answer.result ? (
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.resultText, { color: summaryTone }]}>
               {resultLabel}
+              {findingMissing ? `  ·  ${t("pm.failure.missing")}` : ""}
             </Text>
           ) : null}
         </View>
@@ -96,7 +107,11 @@ export function PmChecklistItem({
               return (
                 <Pressable
                   key={r.value}
-                  onPress={() => onResult(r.value)}
+                  onPress={() => {
+                    onResult(r.value);
+                    // Choosing Fail goes straight to describing it; the answer is already recorded if the sheet is dismissed.
+                    if (r.value === "failed" && answer.result !== "failed") onOpenFailure();
+                  }}
                   style={[
                     styles.resultButton,
                     { borderColor: selected ? color : theme.border, backgroundColor: selected ? color : theme.surfaceSubtle },
@@ -126,27 +141,56 @@ export function PmChecklistItem({
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueTitle, { color: theme.status.dirty }]}>
                 {t("pm.issue.title")}
               </Text>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
-                {t("pm.issue.autoWorkOrder")}
-              </Text>
+              {answer.note.trim() ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textPrimary }]} testID={`pm-item-${item.id}-finding`}>
+                  {answer.note.trim()}
+                </Text>
+              ) : (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: showFindingMissing ? theme.status.dirty : theme.textSecondary }]} accessibilityLiveRegion={showFindingMissing ? "polite" : "none"}>
+                  {showFindingMissing ? t("pm.errors.findingRequired") : t("pm.failure.required")}
+                </Text>
+              )}
+              {answer.evidence.length > 0 ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+                  {t("pm.review.evidenceCount", { count: answer.evidence.length })}
+                </Text>
+              ) : needsEvidence && showEvidenceMissing ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.status.dirty }]} accessibilityLiveRegion="polite">
+                  {t("pm.errors.evidenceRequired")}
+                </Text>
+              ) : null}
+              <Pressable
+                onPress={onOpenFailure}
+                style={[styles.findingButton, { borderColor: theme.status.dirtyLine }]}
+                accessibilityRole="button"
+                accessibilityLabel={`${answer.note.trim() ? t("pm.failure.edit") : t("pm.failure.add")}, ${item.label}`}
+                testID={`pm-item-${item.id}-finding-edit`}
+              >
+                <Ionicons name="create-outline" size={18} color={theme.status.dirty} />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.findingButtonText, { color: theme.status.dirty }]}>
+                  {answer.note.trim() ? t("pm.failure.edit") : t("pm.failure.add")}
+                </Text>
+              </Pressable>
             </View>
-          ) : null}
+          ) : (
+            <>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.fieldLabel, { color: theme.textMuted }]}>
+                {t("pm.note")}
+              </Text>
+              <TextInput
+                value={answer.note}
+                onChangeText={onNote}
+                placeholder={t("pm.notePlaceholder")}
+                placeholderTextColor={theme.textDisabled}
+                multiline
+                style={[styles.input, { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
+                accessibilityLabel={t("pm.note")}
+                testID={`pm-item-${item.id}-note`}
+              />
+            </>
+          )}
 
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.fieldLabel, { color: theme.textMuted }]}>
-            {failed ? t("pm.issue.whatWentWrong") : t("pm.note")}
-          </Text>
-          <TextInput
-            value={answer.note}
-            onChangeText={onNote}
-            placeholder={failed ? t("pm.issue.placeholder") : t("pm.notePlaceholder")}
-            placeholderTextColor={theme.textDisabled}
-            multiline
-            style={[styles.input, { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.surfaceSubtle }]}
-            accessibilityLabel={failed ? t("pm.issue.whatWentWrong") : t("pm.note")}
-            testID={`pm-item-${item.id}-note`}
-          />
-
-          {answer.result && answer.result !== "not_applicable" ? (
+          {answer.result && answer.result !== "not_applicable" && !failed ? (
             <>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.fieldLabel, { color: theme.textMuted }]}>
                 {needsEvidence ? `${t("pm.photos")} · ${t("pm.photoRequired")}` : t("pm.photos")}
@@ -183,7 +227,9 @@ const styles = StyleSheet.create({
   results: { flexDirection: "row", gap: 8 },
   resultButton: { flex: 1, minHeight: 52, borderRadius: 12, borderWidth: 1.5, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 6 },
   resultButtonText: { fontSize: 14, fontWeight: "700" },
-  issue: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 4 },
+  issue: { borderWidth: 1, borderRadius: 10, padding: 10, gap: 6 },
+  findingButton: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, alignSelf: "flex-start" },
+  findingButtonText: { fontSize: 14, fontWeight: "700" },
   issueTitle: { fontSize: 13, fontWeight: "700" },
   hint: { fontSize: 13, lineHeight: 18 },
   fieldLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },

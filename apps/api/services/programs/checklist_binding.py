@@ -55,7 +55,7 @@ def load_resolutions(db: Any, tenant_id: str, schedules: list[dict[str, Any]]) -
     codes = {s["checklist_template_code"] for s in schedules if s.get("checklist_template_code")}
     templates_by_id: dict[str, dict[str, Any]] = {}
     if ids:
-        rows = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active").eq(
+        rows = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active, items").eq(
             "tenant_id", tenant_id
         ).in_("id", ids).execute().data or []
         templates_by_id = {str(row["id"]): row for row in rows}
@@ -74,7 +74,7 @@ def load_resolutions(db: Any, tenant_id: str, schedules: list[dict[str, Any]]) -
 
 def load_assignable_template(db: Any, tenant_id: str, template_id: str) -> dict[str, Any]:
     """The template a manager may bind: this property's, engineering, active. ValueError otherwise."""
-    result = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active").eq(
+    result = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active, items").eq(
         "id", template_id
     ).eq("tenant_id", tenant_id).maybe_single().execute()
     template = result.data if result else None
@@ -100,7 +100,7 @@ def resolve_completion_template(
     bound_id, bound_code = schedule.get("checklist_template_id"), schedule.get("checklist_template_code")
     requested = None
     if requested_template_id:
-        result = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active").eq(
+        result = db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active, items").eq(
             "id", requested_template_id
         ).eq("tenant_id", tenant_id).maybe_single().execute()
         requested = result.data if result else None
@@ -112,7 +112,7 @@ def resolve_completion_template(
         return requested
     resolution = load_resolutions(db, tenant_id, [schedule])[str(schedule["id"])]
     if resolution["state"] == "ready" and requested is None:
-        return db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active").eq(
+        return db.table("pm_checklist_templates").select("id, code, name, version, program_area, is_active, items").eq(
             "id", resolution["template_id"]
         ).eq("tenant_id", tenant_id).maybe_single().execute().data
     if requested is None:

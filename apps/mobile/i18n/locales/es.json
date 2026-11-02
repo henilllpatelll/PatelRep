@@ -2795,7 +2795,10 @@
         "rejected": "El sistema rechazó esa lectura. Revisa el valor.",
         "failed": "No se pudo guardar la lectura. No se registró nada.",
         "unconfirmed": "No hubo respuesta del servidor. Es posible que la lectura se haya guardado. Presiona Guardar otra vez para comprobarlo antes de enviar nada dos veces."
-      }
+      },
+      "reference": "Rango normal configurado: {{low}} a {{high}} {{unit}}",
+      "last": "Última lectura: {{value}} {{unit}}",
+      "unitFixed": "Unidad: {{unit}}"
     },
     "history": {
       "timeline": "Cronología",
@@ -11177,7 +11180,14 @@
       "uploading": "Subiendo foto",
       "library": "Galería",
       "failed": "No se pudo usar esa foto.",
-      "uploadFailed": "La foto no se subió, así que no se adjuntó. Inténtalo de nuevo."
+      "uploadFailed": "La foto no se subió, así que no se adjuntó. Inténtalo de nuevo.",
+      "uploaded": "Subida",
+      "preview": "Ver foto",
+      "previewClose": "Cerrar foto",
+      "retry": "Reintentar subida",
+      "announceUploaded": "Foto subida.",
+      "announceFailed": "Falló la subida de la foto.",
+      "offlineNote": "Las fotos se suben de inmediato, por lo que se necesita conexión."
     },
     "readings": "Lecturas",
     "reading": {
@@ -11188,7 +11198,14 @@
         "normal": "Dentro de los límites",
         "warning": "Fuera del límite de advertencia",
         "critical": "Fuera del límite crítico"
-      }
+      },
+      "toggleSign": "Cambiar entre positivo y negativo",
+      "detail": {
+        "warning": "{{value}} {{unit}} está fuera del límite de advertencia configurado.",
+        "critical": "{{value}} {{unit}} está fuera del límite crítico configurado."
+      },
+      "referenceMax": "Normal: hasta {{high}} {{unit}}",
+      "referenceMin": "Normal: al menos {{low}} {{unit}}"
     },
     "extras": {
       "labor": "Mano de obra (minutos)",
@@ -11230,7 +11247,10 @@
       "refused": "La inspección no se registró.",
       "forbidden": "Tu rol no puede completar esta inspección.",
       "scheduleGone": "Este programa ya no existe, así que la inspección no se registró.",
-      "unknown": "No pudimos confirmar si la inspección se registró. Tu borrador está a salvo. Inténtalo de nuevo y primero buscaremos un duplicado."
+      "unknown": "No pudimos confirmar si la inspección se registró. Tu borrador está a salvo. Inténtalo de nuevo y primero buscaremos un duplicado.",
+      "findingRequired": "Describe lo que falló.",
+      "partInvalid": "Ingresa el nombre de la pieza y una cantidad mayor que cero.",
+      "defectInvalid": "Describe el defecto o quítalo."
     },
     "review": {
       "summary": "Inspección",
@@ -11248,7 +11268,22 @@
       "issues": "Problemas",
       "willOpenWorkOrders": "Se abrirá {{count}} orden de trabajo correctiva al completar.",
       "willOpenWorkOrders_plural": "Se abrirán {{count}} órdenes de trabajo correctivas al completar.",
-      "laborParts": "Mano de obra y piezas"
+      "laborParts": "Mano de obra y piezas",
+      "due": "Vence",
+      "fixThis": "Corregir",
+      "evidenceCount": "{{count}} foto adjunta",
+      "evidenceCount_plural": "{{count}} fotos adjuntas",
+      "evidenceRequired": "Fotos requeridas: {{done}} de {{total}}",
+      "evidenceNone": "Ningún paso de esta lista requiere foto.",
+      "findingFor": "Describe la falla: {{name}}",
+      "fixReading": "Corrige la lectura: {{name}}",
+      "fixLabor": "Corrige los minutos de mano de obra",
+      "fixPart": "Completa la pieza",
+      "fixDefect": "Completa el defecto",
+      "outOfRange": "Fuera del límite configurado",
+      "noReadings": "No se ingresaron lecturas",
+      "pending": "Estado",
+      "version": "versión {{version}}"
     },
     "recorded": {
       "title": "Inspección registrada",
@@ -11261,7 +11296,18 @@
       "workOrders": "Órdenes de trabajo correctivas abiertas: {{count}}",
       "notSafeClaim": "Registrar una inspección no libera el equipo ni devuelve una habitación al servicio. Hazlo mediante el flujo de reparación.",
       "viewRecord": "Ver registro de inspección",
-      "back": "Volver al programa de PM"
+      "back": "Volver al programa de PM",
+      "completedAt": "Registrada",
+      "technician": "Técnico",
+      "readings": "{{count}} lectura registrada",
+      "readings_plural": "{{count}} lecturas registradas",
+      "evidence": "{{count}} foto adjunta",
+      "evidence_plural": "{{count}} fotos adjuntas",
+      "nextDue": "Próxima inspección",
+      "viewEquipment": "Ver equipo",
+      "workOrderNumber": "Orden de trabajo n.º {{number}}",
+      "resultsLine": "{{passed}} aprobados · {{failed}} fallidos · {{na}} N/A",
+      "announce": "Inspección registrada"
     },
     "record": {
       "title": "Registro de inspección",
@@ -11292,6 +11338,60 @@
       "followUp": "{{count}} defecto de seguimiento",
       "followUp_plural": "{{count}} defectos de seguimiento",
       "openEquipment": "Abrir equipo: {{name}}"
+    },
+    "save": {
+      "saving": "Guardando en este teléfono…",
+      "saved": "Guardado en este teléfono",
+      "failed": "No se pudo guardar en este teléfono. Mantén esta pantalla abierta."
+    },
+    "header": {
+      "checklist": "{{name}} · v{{version}}",
+      "viewEquipment": "Ver equipo"
+    },
+    "stepper": {
+      "label": "Secciones de la inspección",
+      "checklist": "Lista",
+      "measurements": "Lecturas",
+      "findings": "Hallazgos",
+      "review": "Revisión",
+      "position": "Sección {{current}} de {{total}}: {{name}}",
+      "complete": "completa",
+      "attention": "requiere atención",
+      "next": "Siguiente: {{name}}",
+      "toReview": "Revisar inspección"
+    },
+    "failure": {
+      "title": "Reportar revisión fallida",
+      "equipment": "Equipo",
+      "check": "Revisión fallida",
+      "what": "¿Qué encontraste?",
+      "placeholder": "Describe el problema para que el equipo de reparación sepa qué arreglar. Esto va en la orden de trabajo correctiva.",
+      "required": "Describe lo que encontraste antes de completar la inspección.",
+      "photo": "Foto del problema",
+      "save": "Guardar hallazgo",
+      "edit": "Editar hallazgo",
+      "add": "Describe el hallazgo",
+      "missing": "Falta el hallazgo",
+      "guidance": "Si es un peligro inmediato para huéspedes o personal, sigue el procedimiento de escalamiento de tu propiedad y avisa ahora al Jefe de Ingeniería. Guardar un hallazgo no avisa a nadie.",
+      "afterComplete": "Al completar la inspección se abre una orden de trabajo correctiva para esta revisión."
+    },
+    "measure": {
+      "none": "Este equipo no tiene medidores configurados",
+      "noneBody": "No hay nada que medir aquí. Los medidores se agregan desde el registro del equipo.",
+      "intro": "Ingresa solo lo que mediste. Las lecturas son opcionales y nunca cambian una respuesta de la lista."
+    },
+    "findings": {
+      "intro": "Registra mano de obra, piezas, otros defectos, fotos y notas. Todo aquí es opcional."
+    },
+    "submit": {
+      "sending": "Registrando la inspección…",
+      "retry": "Reintentar de forma segura",
+      "unknownTitle": "Aún sin confirmar",
+      "rejectedTitle": "No se registró",
+      "blockedTitle": "Aún no se puede completar",
+      "announceRecorded": "Inspección registrada.",
+      "announceUnknown": "Es posible que la inspección no se haya registrado. Tu borrador está a salvo.",
+      "announceRejected": "La inspección no se registró."
     }
   },
   "engRooms": {

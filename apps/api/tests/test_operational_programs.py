@@ -104,7 +104,7 @@ def test_pm_completion_persists_items_and_corrective_work_orders():
     db = PmFakeDB({
         "pm_schedules": [schedule],
         "assets": [{"id": "asset-1", "tenant_id": "hotel-1", "is_active": True}],
-        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-1"}],
+        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-1", "collected_by": "engineer-1", "storage_path": "hotel-1/photo-1/a.jpg"}],
     })
     record = persist_pm_completion(
         db=db,

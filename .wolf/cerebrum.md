@@ -1073,3 +1073,20 @@
 - cache priming: `primeAsyncResource(scope, key, data)` updates the cache AND already-mounted screens; the PATCH response is the bare row (no joins), so use `mergeSavedAsset` to keep category/room/derived fields.
 - New native modules (expo-print, expo-sharing, datetimepicker) need a new EAS/dev-client build; they work in Expo Go.
 - Regenerate lib/app/licenses.generated.json (`node scripts/generate-licenses.js`) whenever dependencies change; it was already stale from the SDK 58 upgrade.
+
+## Eng PM+Assets V2 Phase 4 learnings (2026-11-01)
+- Evidence integrity lives in services/programs/execution.py `_validate_tenant_evidence_ids`: tenant, uploaded file, captured by THIS user, related entity empty or THIS asset, not already on a pm_completion, each id once per completion. A replay of an accepted submission_id skips it (its evidence is already linked to its own completion). The SQL function re-links evidence to the new completion, so the Python check is what stops reuse of a recorded photo.
+- `requires_evidence` is read from the resolved template (key, else label), not trusted from the request. Template lookups in checklist_binding.py now select `items`.
+- Recorded evidence (related_entity_type = pm_completion) is immutable: DELETE and file upload return 409. "Discard draft" deletes unrecorded photos only in practice.
+- A failed checklist step needs a written finding (client rule `finding_required`); it is the step note and the corrective work order description. There is no per-step severity in the API.
+- The inspection is four sections (checklist, measurements, findings, review) over ONE draft: PmStepper + sectionStatuses + issueSection (pmChecklist.ts). Existing tests reach review with the `pm-step-review` tab, readings with `pm-step-measurements`; `pm-review-button` only exists on the findings section.
+- The failure sheet edits the draft directly (no local copy), so any dismissal keeps the text; Save only closes when the text is non-empty.
+- pmDraftStore serialises writes per key (enqueue) and `savePmDraft` returns whether it stored; usePmInspection exposes `saveState` and resets on a user change (draftOwner ref).
+- The iPhone decimal pad has no minus key: PmReadingInput has a plus/minus button (toggleReadingSign).
+- API tests: `pytest tests` takes ~16 minutes; 5 known env failures (stripe sdk contract, dependency_upgrade_compat x4) plus an order-dependent flake in test_work_order_console_features::test_snooze (passes alone). RBAC-MATRIX.md records source line numbers: regenerate it (`python apps/api/scripts/generate_rbac_matrix.py`) after ANY edit to a router file, even one that adds no route.
+- Mobile jest full run: ~270 s, 430 suites. Expo web visual check recipe worked again (needs EXPO_PUBLIC_SUPABASE_ANON_KEY=placeholder too, else "supabaseKey is required").
+
+## Do-Not-Repeat (2026-11-01, Phase 4)
+- Never pipe non-ASCII source through a bash heredoc into `python -` on Windows: stdin is read as cp1252 and a middle dot or an em dash is written as a lone 0xB7/0x97 byte (invalid UTF-8, `file` says ISO-8859). Put the script in a file (Write tool) or use Edit. Verify with a UTF-8 decode of every changed file.
+- Do not `spyOn` AsyncStorage.setItem and then call a `.bind`-ed original: the jest AsyncStorage mock is already a jest.fn, so the spy replaces what you captured (infinite recursion). Swap the property with a wrapper that calls the saved function instead.
+- `Card` (components/ui/Card) takes no onLayout; wrap it in a View.

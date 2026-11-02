@@ -27,6 +27,9 @@ import type { PmScheduleView } from "./pmSchedules";
 
 const AUTOSAVE_MS = 400;
 
+/** "idle" = nothing worth keeping yet; "failed" = the phone could not store it (it is still on screen). */
+export type DraftSaveState = "idle" | "saving" | "saved" | "failed";
+
 export type SubmitOutcome =
   | { kind: "recorded"; result: PmCompletionResult }
   /** The request may or may not have landed and could not be confirmed either way. */
@@ -50,6 +53,8 @@ export interface PmInspection {
    */
   checklistIssue: PmChecklistBinding | null;
   submitting: boolean;
+  /** Whether the latest edit is safely stored on this phone. Local only: never a statement about the server. */
+  saveState: DraftSaveState;
   /** Evidence slots currently uploading (`itemId` or `"general"`). */
   uploading: ReadonlySet<string>;
   reload: () => void;
@@ -84,6 +89,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState<ReadonlySet<string>>(new Set());
   const [reloadTick, setReloadTick] = useState(0);
+  const [saveState, setSaveState] = useState<DraftSaveState>("idle");
 
   const draftRef = useRef<PmDraft | null>(null);
   draftRef.current = draft;
@@ -93,6 +99,9 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   const uploadLocks = useRef(new Set<string>());
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const removed = useRef(false);
+  /** The person this draft was loaded for. A draft is never written under anyone else's name. */
+  const draftOwner = useRef<string | null>(null);
+  const sameOwner = () => draftOwner.current != null && draftOwner.current === useAppStore.getState().user?.id;
 
   useEffect(() => {
     removed.current = false;
@@ -106,6 +115,11 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     let cancelled = false;
     setLoading(true);
     setFailure(null);
+    // Another person (or property) signing in on this screen never sees, or saves over, the previous person's draft.
+    draftOwner.current = userId;
+    draftRef.current = null;
+    setDraft(null);
+    setSaveState("idle");
     (async () => {
       const [tpl, met, saved] = await Promise.allSettled([
         listPmTemplates(),
@@ -134,14 +148,23 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     return () => {
       cancelled = true;
     };
-  }, [scheduleId, assetId, reloadTick, bindingState, boundTemplateId]);
+  }, [scheduleId, assetId, reloadTick, bindingState, boundTemplateId, userId]);
 
   // Autosave: an untouched draft is not stored; an emptied one is removed.
   useEffect(() => {
     if (!draft || !scheduleId) return undefined;
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (draftHasContent(draft)) setSaveState("saving");
     saveTimer.current = setTimeout(() => {
-      void (draftHasContent(draft) ? savePmDraft(draft) : clearPmDraft(scheduleId));
+      if (!sameOwner()) return;
+      if (!draftHasContent(draft)) {
+        void clearPmDraft(scheduleId);
+        if (!removed.current) setSaveState("idle");
+        return;
+      }
+      void savePmDraft(draft).then((stored) => {
+        if (!removed.current && draftRef.current === draft) setSaveState(stored ? "saved" : "failed");
+      });
     }, AUTOSAVE_MS);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -152,7 +175,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   useEffect(
     () => () => {
       const latest = draftRef.current;
-      if (latest && draftHasContent(latest)) void savePmDraft(latest);
+      if (latest && draftHasContent(latest) && sameOwner()) void savePmDraft(latest);
     },
     [],
   );
@@ -268,7 +291,10 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
       await clearPmDraft(scheduleId);
       // The inspection is recorded: drop the in-memory copy too, or leaving the screen would re-save it as a draft.
       draftRef.current = null;
-      if (!removed.current) setDraft(null);
+      if (!removed.current) {
+        setDraft(null);
+        setSaveState("idle");
+      }
       return { kind: "recorded", result };
     } catch (err) {
       const status = (err as { status?: unknown } | null)?.status;
@@ -293,6 +319,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     issues,
     checklistIssue,
     submitting,
+    saveState,
     uploading,
     reload: () => setReloadTick((n) => n + 1),
     chooseTemplate,

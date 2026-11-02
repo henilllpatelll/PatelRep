@@ -76,6 +76,16 @@ export function limitState(meter: Pick<AssetMeter, "warning_low" | "warning_high
   return "inside_configured";
 }
 
+/** The normal band the meter is configured with (warning limits, else critical), or null when it has none. Never invented. */
+export function configuredRange(
+  meter: Pick<AssetMeter, "warning_low" | "warning_high" | "critical_low" | "critical_high">,
+): { low: number | null; high: number | null } | null {
+  const pick = (a: number | null | undefined, b: number | null | undefined) => (a ?? b) == null ? null : Number(a ?? b);
+  const low = pick(meter.warning_low, meter.critical_low);
+  const high = pick(meter.warning_high, meter.critical_high);
+  return low == null && high == null ? null : { low, high };
+}
+
 export function readingNumber(reading: Pick<MeterReading, "value">): number | null {
   const n = typeof reading.value === "number" ? reading.value : Number(reading.value);
   return Number.isFinite(n) ? n : null;

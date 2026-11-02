@@ -207,11 +207,23 @@ export interface PmProgress {
   unansweredIds: string[];
   /** Items that need evidence before they can be submitted. */
   evidenceMissingIds: string[];
+  /** Failed items that still have no written finding. */
+  findingMissingIds: string[];
   percent: number;
 }
 
 export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
-  const out: PmProgress = { total: template.items.length, answered: 0, passed: 0, failed: 0, notApplicable: 0, unansweredIds: [], evidenceMissingIds: [], percent: 0 };
+  const out: PmProgress = {
+    total: template.items.length,
+    answered: 0,
+    passed: 0,
+    failed: 0,
+    notApplicable: 0,
+    unansweredIds: [],
+    evidenceMissingIds: [],
+    findingMissingIds: [],
+    percent: 0,
+  };
   for (const item of template.items) {
     const answer = draft.items[item.id] ?? emptyItem();
     if (!answer.result) {
@@ -220,8 +232,10 @@ export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
     }
     out.answered += 1;
     if (answer.result === "passed") out.passed += 1;
-    else if (answer.result === "failed") out.failed += 1;
-    else out.notApplicable += 1;
+    else if (answer.result === "failed") {
+      out.failed += 1;
+      if (!answer.note.trim()) out.findingMissingIds.push(item.id);
+    } else out.notApplicable += 1;
     if (item.requiresEvidence && answer.result !== "not_applicable" && answer.evidence.length === 0) out.evidenceMissingIds.push(item.id);
   }
   out.percent = out.total === 0 ? 0 : Math.round((out.answered / out.total) * 100);
@@ -231,6 +245,7 @@ export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
 export type PmInspectionIssue =
   | { code: "unanswered"; itemId: string }
   | { code: "evidence_required"; itemId: string }
+  | { code: "finding_required"; itemId: string }
   | { code: "reading_invalid"; meterId: string }
   | { code: "labor_invalid" }
   | { code: "part_invalid"; partId: string }
@@ -241,6 +256,7 @@ export function validateInspection(template: PmTemplate, draft: PmDraft, meters:
   const progress = pmProgress(template, draft);
   for (const itemId of progress.unansweredIds) issues.push({ code: "unanswered", itemId });
   for (const itemId of progress.evidenceMissingIds) issues.push({ code: "evidence_required", itemId });
+  for (const itemId of progress.findingMissingIds) issues.push({ code: "finding_required", itemId });
   for (const meter of meters) {
     if (parseReading(draft.readings[meter.id]?.value).kind === "invalid") issues.push({ code: "reading_invalid", meterId: meter.id });
   }
@@ -254,6 +270,75 @@ export function validateInspection(template: PmTemplate, draft: PmDraft, meters:
     if (!defect.description.trim()) issues.push({ code: "defect_invalid", defectId: defect.id });
   }
   return issues;
+}
+
+/* ── sections ── */
+
+/** The four parts of a guided inspection, in the order a technician works through them. */
+export const PM_SECTIONS = ["checklist", "measurements", "findings", "review"] as const;
+export type PmSection = (typeof PM_SECTIONS)[number];
+
+/** Where the person fixes an issue, so "Fix this" lands on the exact field instead of the top of a long form. */
+export function issueSection(issue: PmInspectionIssue): Exclude<PmSection, "review"> {
+  switch (issue.code) {
+    case "unanswered":
+    case "evidence_required":
+    case "finding_required":
+      return "checklist";
+    case "reading_invalid":
+      return "measurements";
+    default:
+      return "findings";
+  }
+}
+
+export type PmSectionStatus = "todo" | "complete" | "attention";
+
+/**
+ * What each part of the inspection shows in the stepper. A part is only marked as needing attention once the person has
+ * tried to review (`attempted`), except an unreadable reading, which is wrong the moment it is typed. Readings and the
+ * findings/labor/parts part are optional, so they are never "required to be complete" - they only show what was done.
+ */
+export function sectionStatuses(
+  template: PmTemplate,
+  draft: PmDraft,
+  meters: readonly PmMeter[],
+  issues: readonly PmInspectionIssue[],
+  attempted: boolean,
+): Record<PmSection, PmSectionStatus> {
+  const progress = pmProgress(template, draft);
+  const inSection = (section: Exclude<PmSection, "review">) => issues.some((issue) => issueSection(issue) === section);
+  const enteredReadings = meters.filter((m) => parseReading(draft.readings[m.id]?.value).kind === "ok").length;
+  const extrasEntered = !!draft.laborMinutes.trim() || draft.parts.length > 0 || draft.defects.length > 0 || draft.photos.length > 0 || !!draft.notes.trim();
+
+  const checklist: PmSectionStatus = attempted && inSection("checklist") ? "attention" : progress.unansweredIds.length === 0 && !inSection("checklist") ? "complete" : "todo";
+  const measurements: PmSectionStatus = inSection("measurements") ? "attention" : enteredReadings > 0 || meters.length === 0 ? "complete" : "todo";
+  const findings: PmSectionStatus = attempted && inSection("findings") ? "attention" : extrasEntered && !inSection("findings") ? "complete" : "todo";
+  return { checklist, measurements, findings, review: attempted && issues.length > 0 ? "attention" : "todo" };
+}
+
+export interface PmEvidenceSummary {
+  /** Photos attached anywhere (steps and general). */
+  photos: number;
+  /** Steps that need a photo for the answer given (N/A needs none). */
+  required: number;
+  /** Of those, how many have at least one. */
+  satisfied: number;
+  missingIds: string[];
+}
+
+/** Evidence counted per step: a photo on one step never counts toward another. */
+export function evidenceSummary(template: PmTemplate, draft: PmDraft): PmEvidenceSummary {
+  const summary: PmEvidenceSummary = { photos: draft.photos.length, required: 0, satisfied: 0, missingIds: [] };
+  for (const item of template.items) {
+    const answer = draft.items[item.id] ?? emptyItem();
+    summary.photos += answer.evidence.length;
+    if (!item.requiresEvidence || answer.result === "not_applicable") continue;
+    summary.required += 1;
+    if (answer.result && answer.evidence.length > 0) summary.satisfied += 1;
+    else if (answer.result) summary.missingIds.push(item.id);
+  }
+  return summary;
 }
 
 /**

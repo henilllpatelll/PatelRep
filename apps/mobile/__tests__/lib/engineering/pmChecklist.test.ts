@@ -174,7 +174,7 @@ describe("buildCompletionPayload", () => {
 
   it("omits optional sections that were not filled in, and does not turn a reading into a Pass", () => {
     const draft = answered();
-    draft.items.i1 = { result: "failed", note: "", evidence: [] };
+    draft.items.i1 = { result: "failed", note: "Slow drip at fitting", evidence: [] };
     draft.readings.m1 = { value: "12", note: "" }; // an in-range number
     const payload = buildCompletionPayload(template(), draft, meters);
     expect(payload).not.toHaveProperty("photos");
@@ -182,7 +182,7 @@ describe("buildCompletionPayload", () => {
     expect(payload).not.toHaveProperty("parts_used");
     expect(payload).not.toHaveProperty("defects");
     expect(payload).not.toHaveProperty("notes");
-    expect(payload.items[1]).toEqual({ key: "leaks", label: "No visible leaks", result: "failed", requires_evidence: false, evidence: [] });
+    expect(payload.items[1]).toEqual({ key: "leaks", label: "No visible leaks", result: "failed", requires_evidence: false, evidence: [], note: "Slow drip at fitting" });
     expect(payload.condition_readings).toEqual([{ meter_id: "m1", value: 12 }]);
   });
 

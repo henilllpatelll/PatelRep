@@ -982,3 +982,12 @@
 - apps/mobile/components/engineering/assets/form/{AssetEditor,DateField,PhotoField}.tsx, QrCode.tsx, RetireSheet.tsx - the register/edit form and retire sheet
 - apps/mobile/app/(app)/assets/{new.tsx, edit/[assetId].tsx, label/[assetId].tsx} - Register, Edit, QR Label screens (hidden tab routes registered in lib/navigation/roleTabs.ts)
 - apps/api/routers/assets.py - POST /assets idempotent, PATCH versioned, POST /{id}/retire, PUT|DELETE /{id}/photo, lookup (case-insensitive, retired flag), PM completion returns asset + corrective_work_orders
+
+## Eng PM+Assets V2 Phase 4 (guided inspection, field evidence) - files added 2026-11-01
+- apps/mobile/components/engineering/pm/PmStepper.tsx - four-section tab row (checklist, readings, findings, review) with spoken status (~0.9k tok)
+- apps/mobile/components/engineering/pm/PmFailureSheet.tsx - "Report failed check" bottom sheet: step, escalation guidance, finding text written straight into the draft, photo (~1.6k tok)
+- apps/mobile/components/engineering/pm/PmInspectionHeader.tsx - equipment - inspection title, tag - location, checklist version, local save status, equipment link (~1k tok)
+- apps/mobile/components/engineering/pm/PmInspectionGate.tsx - loading / failure / unusable checklist / picker / changed-checklist states; `inspectionReady` (~1.5k tok)
+- apps/mobile/components/engineering/pm/PmRecordedView.tsx - recorded screen wrapper: hotel-clock time, next due, routes (~0.7k tok)
+- apps/api/tests/smoke/test_pm_field_evidence.py - evidence ownership, duplicate ids, template-required photos, replay, immutability (~2.4k tok)
+- apps/mobile/__tests__/lib/engineering/pmFieldWork.test.ts, __tests__/components/PmPhotoField.test.tsx - finding rule, sections, evidence per step, draft write order, photo retry (~3k tok)

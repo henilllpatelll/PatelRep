@@ -35134,6 +35134,57 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-01T00:00:00.000Z"
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2136",
+      "error_message": "PM completion accepted any evidence id in the tenant: another user's photo, a photo for other equipment, a file-less record, or a photo already recorded on an earlier completion (re-linked to the new one); the same id could back two checklist items",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "_validate_tenant_evidence_ids only checked tenant_id; record_pm_completion() unconditionally re-links the evidence to the new completion; requires_evidence was trusted from the request",
+      "fix": "Ownership rules (uploaded, captured by this user, empty-or-this-asset link, not on a recorded completion), duplicate-id refusal across items/photos, requires_evidence taken from the resolved template, replay skips the ownership check; DELETE/upload of recorded evidence returns 409",
+      "tags": [
+        "pm",
+        "evidence",
+        "security",
+        "tenant-isolation",
+        "phase-4"
+      ]
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2137",
+      "error_message": "Header still said 'Saving on this phone...' on the Inspection recorded screen; the work order button label was clipped on both sides",
+      "file": "apps/mobile/lib/engineering/usePmInspection.ts",
+      "root_cause": "submit() cleared the draft but the autosave effect returns early for a null draft, so saveState stayed 'saving'; the shared Button is single-line",
+      "fix": "submit() sets saveState idle and the screen passes idle once recorded; work orders are a wrapping row with the number as its own line",
+      "tags": [
+        "pm",
+        "mobile",
+        "visual",
+        "phase-4"
+      ]
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2138",
+      "error_message": "Edited .tsx contained a lone 0xB7 byte (invalid UTF-8) after a Python heredoc patch",
+      "file": "apps/mobile/components/engineering/pm/PmChecklistItem.tsx",
+      "root_cause": "python reading a script from stdin on Windows decodes as cp1252 and re-encodes the middle dot as one byte",
+      "fix": "Replaced the byte with U+00B7 and verified every changed file decodes as UTF-8; use script files, not stdin, for non-ASCII",
+      "tags": [
+        "windows",
+        "encoding",
+        "tooling"
+      ]
     }
   ]
 }

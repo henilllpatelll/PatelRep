@@ -46,6 +46,20 @@ function sheet(over: Partial<React.ComponentProps<typeof RecordReadingSheet>> = 
 beforeEach(() => jest.clearAllMocks());
 
 describe("Record reading sheet", () => {
+  it("shows the meter's real unit, configured range and last reading before anything is typed", () => {
+    const { getByText, queryByTestId } = sheet({ meters: [{ ...meter, warning_low: 10, latest_reading: { id: "r1", value: 14.5, recorded_at: iso(-1) } }] });
+    expect(getByText("assets.readings.unitFixed:unit=PSI")).toBeTruthy();
+    expect(getByText("assets.readings.reference:low=10,high=20,unit=PSI")).toBeTruthy();
+    expect(getByText("assets.readings.last:value=14.5,unit=PSI")).toBeTruthy();
+    expect(queryByTestId("reading-error")).toBeNull();
+  });
+
+  it("invents no range for a meter that has none", () => {
+    const { queryByTestId } = sheet({ meters: [noLimits] });
+    expect(queryByTestId("reading-range")).toBeNull();
+    expect(queryByTestId("reading-last")).toBeNull();
+  });
+
   it("won't send a missing, non-numeric, out-of-range or over-precise value", async () => {
     const { getByTestId, queryByTestId } = sheet();
     expect(getByTestId("reading-save").props.accessibilityState).toMatchObject({ disabled: true });

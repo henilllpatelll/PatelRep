@@ -101,27 +101,27 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | engineering_team.py | /v1/engineering/team/technicians | GET | chief_engineer, gm | require_role(*TEAM_ROLES) [L231] |
 | engineering_team.py | /v1/engineering/team/overview | GET | chief_engineer, gm | require_role(*TEAM_ROLES) [L239] |
 | evidence.py | /v1/evidence/applicability | GET | none |  |
-| evidence.py | /v1/evidence/applicability | PUT | gm | require_role('gm') [L269] |
+| evidence.py | /v1/evidence/applicability | PUT | gm | require_role('gm') [L276] |
 | evidence.py | /v1/evidence/documents | GET | none |  |
 | evidence.py | /v1/evidence/documents/{document_id} | GET | none |  |
 | evidence.py | /v1/evidence/documents/{document_id}/history | GET | none |  |
-| evidence.py | /v1/evidence/documents | POST | gm | require_role('gm') [L316] |
-| evidence.py | /v1/evidence/documents/{document_id}/approve | POST | gm | require_role('gm') [L340] |
-| evidence.py | /v1/evidence/documents/{document_id}/supersede | POST | gm | require_role('gm') [L365] |
-| evidence.py | /v1/evidence/documents/{document_id}/assignments | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L393] |
+| evidence.py | /v1/evidence/documents | POST | gm | require_role('gm') [L323] |
+| evidence.py | /v1/evidence/documents/{document_id}/approve | POST | gm | require_role('gm') [L347] |
+| evidence.py | /v1/evidence/documents/{document_id}/supersede | POST | gm | require_role('gm') [L372] |
+| evidence.py | /v1/evidence/documents/{document_id}/assignments | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L400] |
 | evidence.py | /v1/evidence/my-acknowledgements | GET | none |  |
-| evidence.py | /v1/evidence/documents/{document_id}/assignments | GET | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L438] |
-| evidence.py | /v1/evidence/acknowledgements/{assignment_id}/acknowledge | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L452] |
-| evidence.py | /v1/evidence/acknowledgements/{assignment_id}/competency | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L475] |
-| evidence.py | /v1/evidence/records | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L513] |
+| evidence.py | /v1/evidence/documents/{document_id}/assignments | GET | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L445] |
+| evidence.py | /v1/evidence/acknowledgements/{assignment_id}/acknowledge | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L459] |
+| evidence.py | /v1/evidence/acknowledgements/{assignment_id}/competency | POST | chief_engineer, gm, housekeeping_supervisor | require_role(*COMPETENCY_MANAGER_ROLES) [L482] |
+| evidence.py | /v1/evidence/records | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L520] |
 | evidence.py | /v1/evidence/records | GET | none |  |
 | evidence.py | /v1/evidence/records/{record_id} | GET | none |  |
 | evidence.py | /v1/evidence/records/{record_id}/file-url | GET | none |  |
-| evidence.py | /v1/evidence/records/{record_id} | DELETE | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L557]; inline: current_user.role in COMPETENCY_MANAGER_ROLES [L562] |
-| evidence.py | /v1/evidence/records/{record_id}/file | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L576] |
+| evidence.py | /v1/evidence/records/{record_id} | DELETE | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L564]; inline: current_user.role in COMPETENCY_MANAGER_ROLES [L570] |
+| evidence.py | /v1/evidence/records/{record_id}/file | POST | chief_engineer, engineer, front_desk, gm, housekeeper, housekeeping_supervisor | require_role(*EVIDENCE_CAPTURE_ROLES) [L584] |
 | evidence.py | /v1/evidence/exceptions | GET | none |  |
-| evidence.py | /v1/evidence/exceptions/{kind}/{reference_id}/actions | POST | gm | require_role('gm') [L651] |
-| evidence.py | /v1/evidence/export | GET | gm | require_role('gm') [L706] |
+| evidence.py | /v1/evidence/exceptions/{kind}/{reference_id}/actions | POST | gm | require_role('gm') [L659] |
+| evidence.py | /v1/evidence/export | GET | gm | require_role('gm') [L714] |
 | feature_flag_demo.py | /v1/internal/feature-flag-demo | GET | N/A (feature-gated, not role-based) | require_feature('staging_flag_demo') [L21] |
 | feedback.py | /v1/feedback | POST | none |  |
 | feedback.py | /v1/feedback/mine | GET | none |  |

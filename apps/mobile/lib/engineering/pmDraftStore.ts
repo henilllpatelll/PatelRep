@@ -25,21 +25,40 @@ export async function loadPmDraft(scheduleId: string): Promise<PmDraft | null> {
   }
 }
 
-export async function savePmDraft(draft: PmDraft): Promise<void> {
+/** Writes and removals for one draft run strictly in the order they were asked for, so an older save that is still in
+ * flight can never land after a newer one (or resurrect a draft that was just cleared). */
+const queues = new Map<string, Promise<unknown>>();
+
+function enqueue<T>(storageKey: string, job: () => Promise<T>): Promise<T> {
+  const run = (queues.get(storageKey) ?? Promise.resolve()).then(job, job);
+  const tail = run.catch(() => undefined);
+  queues.set(storageKey, tail);
+  void tail.then(() => {
+    if (queues.get(storageKey) === tail) queues.delete(storageKey);
+  });
+  return run;
+}
+
+/** Whether the draft is now on this phone. False means it exists only in memory (storage full or unavailable). */
+export async function savePmDraft(draft: PmDraft): Promise<boolean> {
   const owner = getQueueOwner();
-  if (!owner) return;
+  if (!owner) return false;
+  const storageKey = key(owner, draft.scheduleId);
+  const body = JSON.stringify(draft);
   try {
-    await AsyncStorage.setItem(key(owner, draft.scheduleId), JSON.stringify(draft));
+    await enqueue(storageKey, () => AsyncStorage.setItem(storageKey, body));
+    return true;
   } catch {
-    // Saving is best effort; the screen still holds the draft in memory.
+    return false;
   }
 }
 
 export async function clearPmDraft(scheduleId: string): Promise<void> {
   const owner = getQueueOwner();
   if (!owner) return;
+  const storageKey = key(owner, scheduleId);
   try {
-    await AsyncStorage.removeItem(key(owner, scheduleId));
+    await enqueue(storageKey, () => AsyncStorage.removeItem(storageKey));
   } catch {
     // Nothing to do.
   }

@@ -2795,7 +2795,10 @@
         "rejected": "The system rejected that reading. Check the value.",
         "failed": "Couldn't save the reading. Nothing was recorded.",
         "unconfirmed": "No answer from the server. The reading may have been saved. Press Save again to check before anything is sent twice."
-      }
+      },
+      "reference": "Configured normal range: {{low}} to {{high}} {{unit}}",
+      "last": "Last reading: {{value}} {{unit}}",
+      "unitFixed": "Unit: {{unit}}"
     },
     "history": {
       "timeline": "Timeline",
@@ -11177,7 +11180,14 @@
       "uploading": "Uploading photo",
       "library": "Photo library",
       "failed": "That photo couldn't be used.",
-      "uploadFailed": "The photo didn't upload, so it wasn't attached. Try again."
+      "uploadFailed": "The photo didn't upload, so it wasn't attached. Try again.",
+      "uploaded": "Uploaded",
+      "preview": "View photo",
+      "previewClose": "Close photo",
+      "retry": "Retry upload",
+      "announceUploaded": "Photo uploaded.",
+      "announceFailed": "Photo upload failed.",
+      "offlineNote": "Photos upload straight away, so a connection is needed."
     },
     "readings": "Readings",
     "reading": {
@@ -11188,7 +11198,14 @@
         "normal": "Within limits",
         "warning": "Outside the warning limit",
         "critical": "Outside the critical limit"
-      }
+      },
+      "toggleSign": "Switch between positive and negative",
+      "detail": {
+        "warning": "{{value}} {{unit}} is outside the configured warning limit.",
+        "critical": "{{value}} {{unit}} is outside the configured critical limit."
+      },
+      "referenceMax": "Normal: up to {{high}} {{unit}}",
+      "referenceMin": "Normal: at least {{low}} {{unit}}"
     },
     "extras": {
       "labor": "Labor (minutes)",
@@ -11230,7 +11247,10 @@
       "refused": "The inspection wasn't recorded.",
       "forbidden": "Your role isn't allowed to complete this inspection.",
       "scheduleGone": "This schedule no longer exists, so the inspection wasn't recorded.",
-      "unknown": "We couldn't confirm whether the inspection was recorded. Your draft is safe. Try again and we will check for a duplicate first."
+      "unknown": "We couldn't confirm whether the inspection was recorded. Your draft is safe. Try again and we will check for a duplicate first.",
+      "findingRequired": "Describe what failed.",
+      "partInvalid": "Enter a part name and a quantity above zero.",
+      "defectInvalid": "Describe the defect or remove it."
     },
     "review": {
       "summary": "Inspection",
@@ -11248,7 +11268,22 @@
       "issues": "Issues",
       "willOpenWorkOrders": "{{count}} corrective work order will be opened when you complete this.",
       "willOpenWorkOrders_plural": "{{count}} corrective work orders will be opened when you complete this.",
-      "laborParts": "Labor and parts"
+      "laborParts": "Labor and parts",
+      "due": "Due",
+      "fixThis": "Fix this",
+      "evidenceCount": "{{count}} photo attached",
+      "evidenceCount_plural": "{{count}} photos attached",
+      "evidenceRequired": "Required photos: {{done}} of {{total}}",
+      "evidenceNone": "No step in this checklist requires a photo.",
+      "findingFor": "Describe the failure: {{name}}",
+      "fixReading": "Correct the reading: {{name}}",
+      "fixLabor": "Correct the labor minutes",
+      "fixPart": "Complete the part entry",
+      "fixDefect": "Complete the defect entry",
+      "outOfRange": "Outside the configured limit",
+      "noReadings": "No readings entered",
+      "pending": "Status",
+      "version": "version {{version}}"
     },
     "recorded": {
       "title": "Inspection recorded",
@@ -11261,7 +11296,18 @@
       "workOrders": "Corrective work orders opened: {{count}}",
       "notSafeClaim": "Recording an inspection doesn't clear equipment downtime or return a room to service. Do that through the repair workflow.",
       "viewRecord": "View Inspection Record",
-      "back": "Return to PM Schedule"
+      "back": "Return to PM Schedule",
+      "completedAt": "Recorded",
+      "technician": "Technician",
+      "readings": "{{count}} reading recorded",
+      "readings_plural": "{{count}} readings recorded",
+      "evidence": "{{count}} photo attached",
+      "evidence_plural": "{{count}} photos attached",
+      "nextDue": "Next inspection due",
+      "viewEquipment": "View Equipment",
+      "workOrderNumber": "Work order #{{number}}",
+      "resultsLine": "{{passed}} passed · {{failed}} failed · {{na}} N/A",
+      "announce": "Inspection recorded"
     },
     "record": {
       "title": "Inspection record",
@@ -11292,6 +11338,60 @@
       "followUp": "{{count}} follow-up defect",
       "followUp_plural": "{{count}} follow-up defects",
       "openEquipment": "Open equipment: {{name}}"
+    },
+    "save": {
+      "saving": "Saving on this phone…",
+      "saved": "Saved on this phone",
+      "failed": "Couldn't save on this phone. Keep this screen open."
+    },
+    "header": {
+      "checklist": "{{name}} · v{{version}}",
+      "viewEquipment": "View equipment"
+    },
+    "stepper": {
+      "label": "Inspection sections",
+      "checklist": "Checklist",
+      "measurements": "Readings",
+      "findings": "Findings",
+      "review": "Review",
+      "position": "Section {{current}} of {{total}}: {{name}}",
+      "complete": "complete",
+      "attention": "needs attention",
+      "next": "Next: {{name}}",
+      "toReview": "Review inspection"
+    },
+    "failure": {
+      "title": "Report failed check",
+      "equipment": "Equipment",
+      "check": "Failed check",
+      "what": "What did you find?",
+      "placeholder": "Describe the problem so the repair crew knows what to fix. This goes on the corrective work order.",
+      "required": "Describe what you found before completing the inspection.",
+      "photo": "Photo of the problem",
+      "save": "Save finding",
+      "edit": "Edit finding",
+      "add": "Describe the finding",
+      "missing": "Finding needed",
+      "guidance": "If this is an immediate danger to guests or staff, follow your property's escalation procedure and tell the Chief Engineer now. Saving a finding does not alert anyone.",
+      "afterComplete": "A corrective work order is opened for this check when you complete the inspection."
+    },
+    "measure": {
+      "none": "No meters are set up for this equipment",
+      "noneBody": "There is nothing to measure here. Meters are added from the equipment record.",
+      "intro": "Enter only what you measured. Readings are optional and never change a checklist answer."
+    },
+    "findings": {
+      "intro": "Record labor, parts, other defects, photos and notes. Everything here is optional."
+    },
+    "submit": {
+      "sending": "Recording the inspection…",
+      "retry": "Retry safely",
+      "unknownTitle": "Not confirmed yet",
+      "rejectedTitle": "Not recorded",
+      "blockedTitle": "Not ready to complete",
+      "announceRecorded": "Inspection recorded.",
+      "announceUnknown": "The inspection may not have been recorded. Your draft is safe.",
+      "announceRejected": "The inspection was not recorded."
     }
   },
   "engRooms": {

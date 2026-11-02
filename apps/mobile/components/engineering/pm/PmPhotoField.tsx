@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -22,35 +22,46 @@ interface Props {
 
 /**
  * Photo evidence for one slot. A photo is uploaded the moment it is chosen and only counts once the server has returned
- * its evidence record id - a failed upload leaves nothing attached, shows why, and can simply be retried. Uploading
- * needs a connection (a file cannot be queued safely), and a slot takes one upload at a time.
+ * its evidence record id - every thumbnail here is therefore an upload the server confirmed (marked "Uploaded"), and a
+ * failed upload attaches nothing, says so, and keeps the prepared photo so it can be retried without picking it again.
+ * Uploading needs a connection (a file cannot be queued safely yet), and a slot takes one upload at a time.
  */
 export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testID }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [pickFailure, setPickFailure] = useState<Failure | null>(null);
-  const [uploadError, setUploadError] = useState(false);
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PmEvidenceRef | null>(null);
   const abort = useRef<AbortController | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
+
+  async function upload(uri: string) {
+    const controller = new AbortController();
+    abort.current = controller;
+    try {
+      await onAdd(uri, controller.signal);
+      setFailedUri(null);
+      AccessibilityInfo.announceForAccessibility(t("pm.photo.announceUploaded"));
+    } catch (err) {
+      if ((err as { name?: string } | null)?.name !== "AbortError") {
+        setFailedUri(uri);
+        AccessibilityInfo.announceForAccessibility(t("pm.photo.announceFailed"));
+      }
+    } finally {
+      abort.current = null;
+    }
+  }
 
   async function add(source: PhotoSource) {
     if (uploading) return;
     setPickFailure(null);
-    setUploadError(false);
+    setFailedUri(null);
     const picked = await pickPhoto(source);
     if (!picked.ok) {
       if (picked.reason !== "cancelled") setPickFailure(picked.reason);
       return;
     }
-    const controller = new AbortController();
-    abort.current = controller;
-    try {
-      await onAdd(await prepareForUpload(picked.uri), controller.signal);
-    } catch (err) {
-      if ((err as { name?: string } | null)?.name !== "AbortError") setUploadError(true);
-    } finally {
-      abort.current = null;
-    }
+    await upload(await prepareForUpload(picked.uri));
   }
 
   return (
@@ -58,11 +69,18 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
       <View style={styles.thumbs}>
         {photos.map((photo) => (
           <View key={photo.id} style={[styles.thumb, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
-            {photo.uri ? (
-              <Image source={{ uri: photo.uri }} style={styles.image} accessibilityLabel={t("pm.photo.attached")} />
-            ) : (
-              <Ionicons name="image-outline" size={22} color={theme.textMuted} accessibilityLabel={t("pm.photo.attached")} />
-            )}
+            <Pressable
+              onPress={() => setPreview(photo)}
+              style={styles.thumbPress}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={`${t("pm.photo.preview")}. ${t("pm.photo.uploaded")}`}
+              testID={`${testID}-preview-${photo.id}`}
+            >
+              {photo.uri ? <Image source={{ uri: photo.uri }} style={styles.image} /> : <Ionicons name="image-outline" size={22} color={theme.textMuted} />}
+            </Pressable>
+            <View style={[styles.badge, { backgroundColor: theme.status.ready }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Ionicons name="checkmark" size={11} color={theme.surface} />
+            </View>
             <Pressable
               onPress={() => onRemove(photo.id)}
               style={[styles.remove, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -76,7 +94,7 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
           </View>
         ))}
         {uploading ? (
-          <View style={[styles.thumb, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} accessibilityLabel={t("pm.photo.uploading")}>
+          <View style={[styles.thumb, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} accessibilityLabel={t("pm.photo.uploading")} accessibilityLiveRegion="polite">
             <ActivityIndicator color={theme.primaryAction} />
           </View>
         ) : null}
@@ -87,6 +105,7 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
           disabled={!online || uploading}
           style={[styles.action, { borderColor: theme.border, opacity: !online || uploading ? 0.5 : 1 }]}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !online || uploading }}
           accessibilityLabel={t("workOrders.repair.evidence.takePhoto")}
           testID={`${testID}-camera`}
         >
@@ -100,6 +119,7 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
           disabled={!online || uploading}
           style={[styles.action, { borderColor: theme.border, opacity: !online || uploading ? 0.5 : 1 }]}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !online || uploading }}
           accessibilityLabel={t("workOrders.repair.evidence.library")}
           testID={`${testID}-library`}
         >
@@ -119,11 +139,36 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
           {t(`workOrders.repair.evidence.pick.${pickFailure}`, { defaultValue: t("pm.photo.failed") })}
         </Text>
       ) : null}
-      {uploadError ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, { color: theme.status.dirty }]} accessibilityLiveRegion="polite" testID={`${testID}-error`}>
-          {t("pm.photo.uploadFailed")}
-        </Text>
+      {failedUri ? (
+        <View style={styles.retryRow} testID={`${testID}-error`}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, styles.retryText, { color: theme.status.dirty }]} accessibilityLiveRegion="polite">
+            {t("pm.photo.uploadFailed")}
+          </Text>
+          <Pressable
+            onPress={() => void upload(failedUri)}
+            disabled={!online || uploading}
+            style={[styles.action, { borderColor: theme.status.dirty, opacity: !online || uploading ? 0.5 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel={t("pm.photo.retry")}
+            testID={`${testID}-retry`}
+          >
+            <Ionicons name="refresh" size={18} color={theme.status.dirty} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.actionText, { color: theme.status.dirty }]}>
+              {t("pm.photo.retry")}
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
+
+      <Modal visible={preview != null} transparent animationType="fade" onRequestClose={() => setPreview(null)}>
+        <View style={styles.previewBackdrop}>
+          {preview?.uri ? <Image source={{ uri: preview.uri }} style={styles.previewImage} resizeMode="contain" accessibilityLabel={t("pm.photo.attached")} /> : null}
+          {preview && !preview.uri ? <Ionicons name="image-outline" size={64} color="#fff" /> : null}
+          <Pressable onPress={() => setPreview(null)} style={styles.previewClose} accessibilityRole="button" accessibilityLabel={t("pm.photo.previewClose")} testID={`${testID}-preview-close`}>
+            <Ionicons name="close" size={26} color="#fff" />
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -132,10 +177,17 @@ const styles = StyleSheet.create({
   wrap: { gap: 8 },
   thumbs: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   thumb: { width: 64, height: 64, borderRadius: 10, borderWidth: 1, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  thumbPress: { width: 64, height: 64, alignItems: "center", justifyContent: "center" },
   image: { width: 64, height: 64 },
+  badge: { position: "absolute", bottom: 3, left: 3, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   remove: { position: "absolute", top: 2, right: 2, width: 22, height: 22, borderRadius: 11, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   actions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   action: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1 },
   actionText: { fontSize: 14, fontWeight: "600" },
   error: { fontSize: 13 },
+  retryRow: { gap: 8 },
+  retryText: { flexShrink: 1 },
+  previewBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center" },
+  previewImage: { width: "100%", height: "80%" },
+  previewClose: { position: "absolute", top: 56, right: 20, width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.18)" },
 });

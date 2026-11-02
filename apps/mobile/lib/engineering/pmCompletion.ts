@@ -46,7 +46,9 @@ export interface PmCompletionResult {
   pm_schedule_id: string;
   completed_at: string;
   /** Work orders the server opened for failed steps - only present on a direct response, not a re-read. */
-  corrective_work_orders?: Array<{ id: string; title: string }>;
+  corrective_work_orders?: Array<{ id: string; title: string; status?: string | null; work_order_number?: string | number | null }>;
+  /** When the schedule is next due, as the server now holds it. Absent from an older API or a re-read. */
+  next_due_at?: string | null;
   /** True when the first request's outcome was unknown and a re-read found the completion already recorded. */
   reconciled?: boolean;
   /** True when the server had already recorded this submission and handed back the original. */
