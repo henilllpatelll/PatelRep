@@ -14,6 +14,7 @@ import { PmReviewSection } from "@/components/engineering/pm/PmReviewSection";
 import { type PmRecordedSummary } from "@/components/engineering/pm/PmCompletionSummary";
 import { PmRecordedView } from "@/components/engineering/pm/PmRecordedView";
 import { PmFailureSheet } from "@/components/engineering/pm/PmFailureSheet";
+import { PmQueuedNotice } from "@/components/engineering/pm/PmQueuedNotice";
 import { PmInspectionGate, inspectionReady } from "@/components/engineering/pm/PmInspectionGate";
 import { PmInspectionHeader } from "@/components/engineering/pm/PmInspectionHeader";
 import { PmStepper } from "@/components/engineering/pm/PmStepper";
@@ -22,6 +23,9 @@ import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet
 import type { PmCompletionResult } from "@/lib/api/pm";
 import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
 import { usePmInspection, type SubmitOutcome } from "@/lib/engineering/usePmInspection";
+import { localPhotoRefs } from "@/lib/engineering/pmChecklist";
+import { queuedState } from "@/lib/engineering/pmSyncState";
+import { usePmSyncActivity } from "@/lib/engineering/pmSyncRunner";
 import { evidenceSummary, issueSection, sectionStatuses, PM_SECTIONS, type PmInspectionIssue, type PmSection } from "@/lib/engineering/pmChecklist";
 import { canCompletePm } from "@/lib/engineering/roles";
 import { assetRoute } from "@/lib/engineering/routes";
@@ -51,6 +55,7 @@ export default function PmInspectionScreen() {
   const inspection = usePmInspection(canInspect ? schedule : null);
   const { draft, template, progress, compatibility } = inspection;
 
+  const syncingRows = usePmSyncActivity((s) => s.active);
   const [section, setSection] = useState<PmSection>("checklist");
   const [attempted, setAttempted] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -123,7 +128,8 @@ export default function PmInspectionScreen() {
   // Screen readers hear how a submission ended; the on-screen text is the same words.
   useEffect(() => {
     if (!outcome) return;
-    if (outcome.kind === "unknown") AccessibilityInfo.announceForAccessibility(t("pm.submit.announceUnknown"));
+    if (outcome.kind === "queued") AccessibilityInfo.announceForAccessibility(t("pm.queued.announce"));
+    else if (outcome.kind === "unknown") AccessibilityInfo.announceForAccessibility(t("pm.submit.announceUnknown"));
     else if (outcome.kind === "refused") AccessibilityInfo.announceForAccessibility(t("pm.submit.announceRejected"));
   }, [outcome, t]);
 
@@ -179,6 +185,18 @@ export default function PmInspectionScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {header}
         <PmRecordedView scheduleId={schedule.id} summary={recorded.summary} result={recorded.result} />
+      </View>
+    );
+  }
+
+  // A completion already frozen for this schedule: the form is not offered again, so one inspection cannot be recorded twice.
+  if (inspection.queued && schedule) {
+    const row = inspection.queued;
+    const state = queuedState({ phase: row.data?.phase ?? "queued", stop: row.data ? row.lastError : "unreadable", attempts: row.attempts, active: syncingRows.includes(row.rowId) });
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {header}
+        <PmQueuedNotice state={state} onOpenSync={() => router.push("/(app)/engineering-sync" as never)} onBack={() => router.back()} />
       </View>
     );
   }
@@ -371,8 +389,17 @@ export default function PmInspectionScreen() {
         ? t("pm.errors.unknown")
         : outcome?.kind === "blocked" && outcome.issues.length > 0
           ? t("pm.errors.incomplete")
-          : null;
+          : outcome?.kind === "photo_missing"
+            ? t("pm.errors.photoMissing")
+            : outcome?.kind === "already_queued"
+              ? t("pm.errors.alreadyQueued")
+              : outcome?.kind === "queue_failed"
+                ? t("pm.errors.queueFailed")
+                : null;
   const outcomeTitle = outcome?.kind === "refused" ? t("pm.submit.rejectedTitle") : outcome?.kind === "unknown" ? t("pm.submit.unknownTitle") : null;
+  // Offline, or holding a photo that is only on this phone: the button saves the inspection for the sync instead of
+  // completing it, and says so. Completing means the server confirmed it.
+  const savesForSync = !isOnline || (draft != null && localPhotoRefs(draft).length > 0);
   const sectionIndex = PM_SECTIONS.indexOf(section);
   const nextSection = PM_SECTIONS[Math.min(PM_SECTIONS.length - 1, sectionIndex + 1)];
 
@@ -414,9 +441,9 @@ export default function PmInspectionScreen() {
             />
           ) : (
             <>
-              {!isOnline ? (
+              {!isOnline || savesForSync ? (
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcome, { color: theme.status.pickup }]} testID="pm-offline-submit">
-                  {t("pm.needsConnection")}
+                  {t(isOnline ? "pm.photosPendingNote" : "pm.saveForSyncNote")}
                 </Text>
               ) : null}
               {inspection.submitting ? (
@@ -425,11 +452,11 @@ export default function PmInspectionScreen() {
                 </Text>
               ) : null}
               <Button
-                label={outcome?.kind === "unknown" ? t("pm.submit.retry") : t("pm.completeInspection")}
+                label={savesForSync ? t("pm.saveForSync") : outcome?.kind === "unknown" ? t("pm.submit.retry") : t("pm.completeInspection")}
                 onPress={() => void complete()}
                 size="lg"
                 loading={inspection.submitting}
-                disabled={blocked || !isOnline || inspection.submitting}
+                disabled={blocked || inspection.submitting}
                 testID="pm-complete-button"
               />
               {blocked && inspection.issues.length > 0 ? (

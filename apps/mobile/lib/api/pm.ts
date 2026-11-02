@@ -127,21 +127,37 @@ export async function listScheduleCompletions(scheduleId: string): Promise<Array
  * upload fails the empty record is removed again so a failed attempt leaves nothing behind to be mistaken for proof.
  */
 export async function uploadPmEvidence(input: { assetId: string; uri: string; label: string; signal?: AbortSignal }): Promise<string> {
-  const created = await api.post<{ data: { id: string } }>(
-    "/evidence/records",
-    { label: input.label, evidence_type: "photo", related_entity_type: "asset", related_entity_id: input.assetId },
-    { signal: input.signal },
-  );
-  const id = created.data.id;
+  const id = await createPmEvidenceRecord(input);
   try {
-    const form = new FormData();
-    form.append("file", { uri: input.uri, type: "image/jpeg", name: `pm_${Date.now()}.jpg` } as unknown as Blob);
-    await api.postForm(`/evidence/records/${id}/file`, form, { signal: input.signal });
+    await uploadPmEvidenceFile(id, input.uri, input.signal);
   } catch (err) {
     await deletePmEvidence(id);
     throw err;
   }
   return id;
+}
+
+/** Step 1 of an upload: the (still empty) evidence record, tied to the asset. Its id is the only thing kept. */
+export async function createPmEvidenceRecord(input: { assetId: string; label: string; signal?: AbortSignal }): Promise<string> {
+  const created = await api.post<{ data: { id: string } }>(
+    "/evidence/records",
+    { label: input.label, evidence_type: "photo", related_entity_type: "asset", related_entity_id: input.assetId },
+    { signal: input.signal },
+  );
+  return created.data.id;
+}
+
+/** Step 2: the file for an existing record. The server refuses a second file for the same record. */
+export async function uploadPmEvidenceFile(evidenceId: string, uri: string, signal?: AbortSignal): Promise<void> {
+  const form = new FormData();
+  form.append("file", { uri, type: "image/jpeg", name: `pm_${Date.now()}.jpg` } as unknown as Blob);
+  await api.postForm(`/evidence/records/${evidenceId}/file`, form, { signal });
+}
+
+/** What the server holds for a record: used to learn whether a file landed when the reply was lost. */
+export async function getPmEvidenceRecord(evidenceId: string): Promise<{ id: string; storage_path?: string | null; related_entity_id?: string | null }> {
+  const res = await api.get<{ data: { id: string; storage_path?: string | null; related_entity_id?: string | null } }>(`/evidence/records/${evidenceId}`);
+  return res.data;
 }
 
 /** Best effort: removing evidence the technician took out, or a failed upload's empty record. */

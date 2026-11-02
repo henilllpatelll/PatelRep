@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { pickPhoto, prepareForUpload, type PhotoPick, type PhotoSource } from "@/lib/housekeeping/photo";
-import type { PmEvidenceRef } from "@/lib/engineering/pmChecklist";
+import { isLocalPhoto, type PmEvidenceRef } from "@/lib/engineering/pmChecklist";
 
 type Failure = Extract<PhotoPick, { ok: false }>["reason"];
 
@@ -21,16 +21,19 @@ interface Props {
 }
 
 /**
- * Photo evidence for one slot. A photo is uploaded the moment it is chosen and only counts once the server has returned
- * its evidence record id - every thumbnail here is therefore an upload the server confirmed (marked "Uploaded"), and a
- * failed upload attaches nothing, says so, and keeps the prepared photo so it can be retried without picking it again.
- * Uploading needs a connection (a file cannot be queued safely yet), and a slot takes one upload at a time.
+ * Photo evidence for one slot. Online, a photo is uploaded the moment it is chosen and is marked "Uploaded" once the
+ * server returned its evidence record id. Offline, it is copied into the app's own folder and marked "Saved on this
+ * phone" - in words, never with the green check reserved for the server - and is uploaded later by the sync. A failure
+ * to keep or upload a photo attaches nothing, says why, and keeps the prepared photo so it can be retried. A slot takes
+ * one photo at a time.
  */
 export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testID }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [pickFailure, setPickFailure] = useState<Failure | null>(null);
   const [failedUri, setFailedUri] = useState<string | null>(null);
+  /** Why a photo could not be kept on this phone (full storage, too large, ...), when that is what failed. */
+  const [localFailure, setLocalFailure] = useState<string | null>(null);
   const [preview, setPreview] = useState<PmEvidenceRef | null>(null);
   const abort = useRef<AbortController | null>(null);
   useEffect(() => () => abort.current?.abort(), []);
@@ -41,10 +44,12 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
     try {
       await onAdd(uri, controller.signal);
       setFailedUri(null);
+      setLocalFailure(null);
       AccessibilityInfo.announceForAccessibility(t("pm.photo.announceUploaded"));
     } catch (err) {
       if ((err as { name?: string } | null)?.name !== "AbortError") {
         setFailedUri(uri);
+        setLocalFailure((err as { reason?: string } | null)?.reason ?? null);
         AccessibilityInfo.announceForAccessibility(t("pm.photo.announceFailed"));
       }
     } finally {
@@ -73,13 +78,17 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
               onPress={() => setPreview(photo)}
               style={styles.thumbPress}
               accessibilityRole="imagebutton"
-              accessibilityLabel={`${t("pm.photo.preview")}. ${t("pm.photo.uploaded")}`}
+              accessibilityLabel={`${t("pm.photo.preview")}. ${isLocalPhoto(photo) ? t("pm.photo.savedOnPhone") : t("pm.photo.uploaded")}`}
               testID={`${testID}-preview-${photo.id}`}
             >
               {photo.uri ? <Image source={{ uri: photo.uri }} style={styles.image} /> : <Ionicons name="image-outline" size={22} color={theme.textMuted} />}
             </Pressable>
-            <View style={[styles.badge, { backgroundColor: theme.status.ready }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Ionicons name="checkmark" size={11} color={theme.surface} />
+            <View
+              style={[styles.badge, { backgroundColor: isLocalPhoto(photo) ? theme.status.pickup : theme.status.ready }]}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <Ionicons name={isLocalPhoto(photo) ? "phone-portrait-outline" : "checkmark"} size={11} color={theme.surface} />
             </View>
             <Pressable
               onPress={() => onRemove(photo.id)}
@@ -102,10 +111,10 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
       <View style={styles.actions}>
         <Pressable
           onPress={() => void add("camera")}
-          disabled={!online || uploading}
-          style={[styles.action, { borderColor: theme.border, opacity: !online || uploading ? 0.5 : 1 }]}
+          disabled={uploading}
+          style={[styles.action, { borderColor: theme.border, opacity: uploading ? 0.5 : 1 }]}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !online || uploading }}
+          accessibilityState={{ disabled: uploading }}
           accessibilityLabel={t("workOrders.repair.evidence.takePhoto")}
           testID={`${testID}-camera`}
         >
@@ -116,10 +125,10 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
         </Pressable>
         <Pressable
           onPress={() => void add("gallery")}
-          disabled={!online || uploading}
-          style={[styles.action, { borderColor: theme.border, opacity: !online || uploading ? 0.5 : 1 }]}
+          disabled={uploading}
+          style={[styles.action, { borderColor: theme.border, opacity: uploading ? 0.5 : 1 }]}
           accessibilityRole="button"
-          accessibilityState={{ disabled: !online || uploading }}
+          accessibilityState={{ disabled: uploading }}
           accessibilityLabel={t("workOrders.repair.evidence.library")}
           testID={`${testID}-library`}
         >
@@ -130,8 +139,8 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
         </Pressable>
       </View>
       {!online ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, { color: theme.status.pickup }]}>
-          {t("workOrders.repair.evidence.needsConnection")}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, { color: theme.status.pickup }]} testID={`${testID}-offline-note`}>
+          {t("pm.photo.offlineNote")}
         </Text>
       ) : null}
       {pickFailure ? (
@@ -142,12 +151,12 @@ export function PmPhotoField({ photos, uploading, online, onAdd, onRemove, testI
       {failedUri ? (
         <View style={styles.retryRow} testID={`${testID}-error`}>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, styles.retryText, { color: theme.status.dirty }]} accessibilityLiveRegion="polite">
-            {t("pm.photo.uploadFailed")}
+            {localFailure ? t(`pm.photo.local.${localFailure}`, { defaultValue: t("pm.photo.local.save_failed") }) : t("pm.photo.uploadFailed")}
           </Text>
           <Pressable
             onPress={() => void upload(failedUri)}
-            disabled={!online || uploading}
-            style={[styles.action, { borderColor: theme.status.dirty, opacity: !online || uploading ? 0.5 : 1 }]}
+            disabled={uploading}
+            style={[styles.action, { borderColor: theme.status.dirty, opacity: uploading ? 0.5 : 1 }]}
             accessibilityRole="button"
             accessibilityLabel={t("pm.photo.retry")}
             testID={`${testID}-retry`}

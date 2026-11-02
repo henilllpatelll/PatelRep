@@ -150,7 +150,7 @@ describe("Scan equipment", () => {
     expect(await screen.findByText("assets.scan.outcome.offline")).toBeTruthy();
   });
 
-  it("offline, an asset this person already loaded in this hotel still opens", async () => {
+  it("offline, an asset this person already loaded in this hotel shows as a saved copy with its confirmed time", async () => {
     const browse = require("@/lib/api/assets").browseAssets as jest.Mock;
     browse.mockResolvedValue({ rows: [{ id: ID, name: "PTAC", asset_tag: "AC-312", service_status: "operational" }], hasMore: false, total: 1 });
     const { renderHook } = require("@testing-library/react-native");
@@ -160,10 +160,23 @@ describe("Scan equipment", () => {
     await waitFor(() => expect(seeded.result.current.rows).toHaveLength(1));
 
     mockOnline = false;
-    renderScreen();
+    const screen = renderScreen();
     await scan("AC-312");
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith({ pathname: "/(app)/assets/[assetId]", params: { assetId: ID } }));
+    await waitFor(() => expect(screen.getByTestId("asset-scan-cached")).toBeTruthy());
+    expect(screen.getByTestId("asset-scan-cached-note").props.children).toBe("assets.scan.cached.verified");
+    expect(router.replace).not.toHaveBeenCalled();
     expect(lookup).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId("asset-scan-cached-open"));
+    expect(router.replace).toHaveBeenCalledWith({ pathname: "/(app)/assets/[assetId]", params: { assetId: ID } });
+  });
+
+  it("offline, an unknown tag is never matched to saved equipment", async () => {
+    mockOnline = false;
+    const screen = renderScreen();
+    await scan("NOPE-999");
+    await waitFor(() => expect(screen.getByTestId("asset-scan-outcome")).toBeTruthy());
+    expect(screen.queryByTestId("asset-scan-cached")).toBeNull();
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it("manual entry resolves the same way and is always available", async () => {

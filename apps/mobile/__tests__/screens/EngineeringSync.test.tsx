@@ -30,6 +30,9 @@ jest.mock("@/lib/offline/useSyncOverview", () => ({
 
 const mockPending = { actions: [] as unknown[], loaded: true, refresh: jest.fn(), retry: jest.fn(), discard: jest.fn() };
 jest.mock("@/lib/engineering/usePendingActions", () => ({ usePendingActions: () => mockPending }));
+jest.mock("@/lib/engineering/usePmSyncItems", () => ({
+  usePmSyncItems: () => ({ rows: [], drafts: [], active: [], loaded: true, refresh: jest.fn(), retry: jest.fn(), submitDespiteConflict: jest.fn(), discard: jest.fn() }),
+}));
 let mockClaims: { woId: string; label: string | null; reason: string; at: string }[] = [];
 jest.mock("@/lib/engineering/claimConflicts", () => ({ useClaimConflicts: () => mockClaims, dismissClaimConflict: jest.fn() }));
 jest.mock("@/lib/engineering/pendingReports", () => ({ useReportRecords: () => [], dismissReportRecord: jest.fn() }));

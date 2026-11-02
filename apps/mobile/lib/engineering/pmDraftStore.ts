@@ -6,7 +6,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
-import type { PmDraft } from "./pmChecklist";
+import { draftPhotoRefs, isLocalPhoto, type PmDraft } from "./pmChecklist";
 
 const key = (owner: string, scheduleId: string) => `engineering.pmDraft.v1:${owner}:${scheduleId}`;
 
@@ -64,8 +64,33 @@ export async function clearPmDraft(scheduleId: string): Promise<void> {
   }
 }
 
+/**
+ * Every photo file address any saved draft of the signed-in person still refers to, or null when ANY draft could not
+ * be read - cleanup must treat "unknown" as "keep everything".
+ */
+export async function listPmDraftLocalUris(): Promise<string[] | null> {
+  const owner = getQueueOwner();
+  if (!owner) return null;
+  try {
+    const prefix = `engineering.pmDraft.v1:${owner}:`;
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(prefix));
+    const uris: string[] = [];
+    for (const k of keys) {
+      const raw = await AsyncStorage.getItem(k);
+      if (!raw) continue;
+      const draft = JSON.parse(raw) as PmDraft;
+      if (draft?.v !== 1 || typeof draft.items !== "object") return null;
+      for (const ref of draftPhotoRefs(draft)) if (isLocalPhoto(ref) && ref.uri) uris.push(ref.uri);
+    }
+    return uris;
+  } catch {
+    return null;
+  }
+}
+
 export interface PmDraftSummary {
   scheduleId: string;
+  label: string | null;
   /** Checklist items with a recorded result. */
   answered: number;
   total: number;
@@ -84,7 +109,7 @@ export async function listPmDraftSummaries(): Promise<PmDraftSummary[]> {
       const draft = await loadPmDraft(k.slice(prefix.length));
       if (!draft) continue;
       const answered = Object.values(draft.items).filter((item) => item?.result != null).length;
-      summaries.push({ scheduleId: draft.scheduleId, answered, total: draft.identities.length, updatedAt: draft.updatedAt });
+      summaries.push({ scheduleId: draft.scheduleId, label: draft.label ?? null, answered, total: draft.identities.length, updatedAt: draft.updatedAt });
     }
     return summaries;
   } catch {

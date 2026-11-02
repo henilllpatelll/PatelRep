@@ -81,9 +81,17 @@ describe("PM photo evidence", () => {
     expect(ui.props.onRemove).toHaveBeenCalledWith("ev-2");
   });
 
-  it("cannot be used offline, and says why instead of queueing a file it cannot keep safe", () => {
+  it("works offline: photos are kept on the phone, and the field says so", () => {
     const ui = field({ online: false });
-    expect(ui.getByTestId("photos-camera").props.accessibilityState.disabled).toBe(true);
-    expect(ui.getByText("workOrders.repair.evidence.needsConnection")).toBeTruthy();
+    expect(ui.getByTestId("photos-camera").props.accessibilityState.disabled).toBe(false);
+    expect(ui.getByTestId("photos-offline-note")).toBeTruthy();
+    expect(ui.getByText("pm.photo.offlineNote")).toBeTruthy();
+  });
+
+  it("marks a photo that is only on the phone in words, never as uploaded", () => {
+    const ui = field({ photos: [{ id: "local:abc", uri: "file:///docs/a.jpg", local: { bytes: 10 } }, { id: "ev-1", uri: "file:///c/b.jpg" }] });
+    expect(ui.getByTestId("photos-preview-local:abc").props.accessibilityLabel).toContain("pm.photo.savedOnPhone");
+    expect(ui.getByTestId("photos-preview-ev-1").props.accessibilityLabel).toContain("pm.photo.uploaded");
+    expect(ui.getByTestId("photos-preview-local:abc").props.accessibilityLabel).not.toContain("pm.photo.uploaded");
   });
 });

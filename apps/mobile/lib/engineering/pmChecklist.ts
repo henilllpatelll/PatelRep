@@ -78,9 +78,25 @@ export function templateSignature(template: PmTemplate): string {
 export interface PmEvidenceRef {
   /** `evidence_records.id` returned by the upload - the only thing ever sent. */
   id: string;
-  /** Local preview; may be gone after a restart. */
+  /** Local preview; may be gone after a restart. For a local-only photo this is the durable file in the app's folder. */
   uri?: string;
+  /**
+   * Set while the photo exists only on this phone (taken offline). `id` is then `local:<token>`, which can never be
+   * sent as evidence; the sync step uploads the file and swaps in the real record id.
+   */
+  local?: { bytes: number };
 }
+
+/** Whether this photo is still only on the phone. */
+export const isLocalPhoto = (ref: PmEvidenceRef): boolean => ref.local != null || ref.id.startsWith("local:");
+
+/** Every photo in a draft (steps and general), in order. */
+export function draftPhotoRefs(draft: PmDraft): PmEvidenceRef[] {
+  return [...Object.values(draft.items).flatMap((i) => i.evidence), ...draft.photos];
+}
+
+/** Photos that have not reached the server yet. */
+export const localPhotoRefs = (draft: PmDraft): PmEvidenceRef[] => draftPhotoRefs(draft).filter(isLocalPhoto);
 
 export interface PmDraftItem {
   result: PmItemResult | null;
@@ -117,6 +133,8 @@ export interface PmDraft {
   parts: PmDraftPart[];
   defects: PmDraftDefect[];
   notes: string;
+  /** Caption for lists ("Boiler 2 - Monthly"): equipment and schedule name, written when the draft is saved. */
+  label?: string;
   /** The submission id of the last completion attempt made from this draft, so a retry (even after a restart) reuses it. */
   submission?: PmSubmission;
 }
@@ -345,7 +363,12 @@ export function evidenceSummary(template: PmTemplate, draft: PmDraft): PmEvidenc
  * The exact body for POST /assets/pm-schedules/{id}/complete. Throws PmCompletionBlockedError rather than build a body
  * that skips an unanswered item - there is no path from here to an empty or defaulted completion.
  */
-export function buildCompletionPayload(template: PmTemplate, draft: PmDraft, meters: readonly PmMeter[]): PmCompletionPayload {
+export function buildCompletionPayload(
+  template: PmTemplate,
+  draft: PmDraft,
+  meters: readonly PmMeter[],
+  options: { allowLocalEvidence?: boolean } = {},
+): PmCompletionPayload {
   const issues = validateInspection(template, draft, meters);
   if (issues.length > 0) throw new PmCompletionBlockedError({ code: "bad_result", label: issues[0].code });
 
@@ -377,7 +400,14 @@ export function buildCompletionPayload(template: PmTemplate, draft: PmDraft, met
   if (draft.defects.length) payload.defects = draft.defects.map((d) => ({ description: d.description.trim(), ...(d.severity ? { severity: d.severity } : {}) }));
   if (draft.notes.trim()) payload.notes = draft.notes.trim();
 
-  const blocked = validatePmCompletion(payload);
+  // A body prepared for later sync may still hold `local:` ids; they are checked as if real and swapped before sending.
+  const blocked = validatePmCompletion(options.allowLocalEvidence ? maskLocalEvidence(payload) : payload);
   if (blocked) throw new PmCompletionBlockedError(blocked);
   return payload;
+}
+
+/** A copy where each `local:` id is replaced by a valid-looking one, so the rest of the body can be validated. */
+function maskLocalEvidence(payload: PmCompletionPayload): PmCompletionPayload {
+  const mask = (id: string) => (id.startsWith("local:") ? `L${id.slice(6).replace(/[^A-Za-z0-9_-]/g, "_")}` : id);
+  return { ...payload, photos: payload.photos?.map(mask), items: payload.items.map((i) => ({ ...i, evidence: i.evidence?.map(mask) })) };
 }

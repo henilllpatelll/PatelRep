@@ -909,6 +909,117 @@ def _sort_key(sort_by: str):
     return name
 
 
+_BROWSE_DERIVED_SORTS = ("last_serviced", "next_pm")
+
+
+def _browse_aggregates(tenant_id: str, now: datetime, tz, today, asset_ids: Optional[list[str]]) -> dict:
+    """Per-asset maintenance facts for the browse list, keyed by asset id.
+
+    `asset_ids` limits every read to those assets (the page on screen); None reads the whole property (a filter or sort
+    needs every asset). Each value is computed per asset from that asset's own rows, so restricting the read never
+    changes an asset's result.
+    """
+    def scoped(query):
+        return query.in_("asset_id", asset_ids) if asset_ids is not None else query
+
+    if asset_ids is not None and not asset_ids:
+        return {k: ({} if k in _BROWSE_DICT_KEYS else set()) for k in _BROWSE_AGG_KEYS}
+
+    downtime_rows = _fetch_all(lambda: scoped(supabase.table("asset_downtime_periods").select(
+        "asset_id, started_at, restored_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", tenant_id).gte("started_at", (now - timedelta(days=365)).isoformat())).order("started_at"))
+    active_downtime: dict[str, dict] = {}
+    downtime_assets: set[str] = set()
+    for row in downtime_rows:
+        downtime_assets.add(str(row["asset_id"]))
+        if not row.get("restored_at"):
+            active_downtime[str(row["asset_id"])] = with_elapsed_minutes(row)
+
+    # Work orders with no equipment are never read below, so they are not fetched.
+    wo_rows = _fetch_all(lambda: scoped(supabase.table("work_orders").select(
+        "asset_id, status, completed_at"
+    ).eq("tenant_id", tenant_id).not_.is_("asset_id", "null").gte("created_at", (now - timedelta(days=365)).isoformat())).order("created_at"))
+    active_wo: dict[str, int] = {}
+    in_progress: dict[str, int] = {}
+    last_repair: dict[str, str] = {}
+    repeat: dict[str, int] = {}
+    for row in wo_rows:
+        asset_key = str(row.get("asset_id") or "")
+        if not asset_key:
+            continue
+        if row.get("status") in _BROWSE_ACTIVE_WO_STATUSES:
+            active_wo[asset_key] = active_wo.get(asset_key, 0) + 1
+            if row.get("status") == "in_progress":
+                in_progress[asset_key] = in_progress.get(asset_key, 0) + 1
+        elif row.get("status") == "completed" and row.get("completed_at"):
+            completed = str(row["completed_at"])
+            if completed > last_repair.get(asset_key, ""):
+                last_repair[asset_key] = completed
+            if (_parse_iso(completed) or now) >= now - timedelta(days=90):
+                repeat[asset_key] = repeat.get(asset_key, 0) + 1
+
+    pm_rows = _fetch_all(lambda: scoped(supabase.table("pm_schedules").select(
+        "asset_id, next_due_at, last_completed_at"
+    ).eq("tenant_id", tenant_id).eq("is_active", True)).order("id"))
+    next_pm: dict[str, str] = {}
+    pm_overdue: set[str] = set()
+    pm_due_soon: set[str] = set()
+    last_pm: dict[str, str] = {}
+    for row in pm_rows:
+        asset_key = str(row["asset_id"])
+        due = _parse_iso(row.get("next_due_at"))
+        if due:
+            if asset_key not in next_pm or str(row["next_due_at"]) < next_pm[asset_key]:
+                next_pm[asset_key] = str(row["next_due_at"])
+            # Hotel calendar days, the same rule the PM screens use: due earlier today is "due today", not overdue.
+            days_until = (due.astimezone(tz).date() - today).days
+            if days_until < 0:
+                pm_overdue.add(asset_key)
+            elif days_until <= _PM_DUE_SOON_DAYS:
+                pm_due_soon.add(asset_key)
+        if row.get("last_completed_at") and str(row["last_completed_at"]) > last_pm.get(asset_key, ""):
+            last_pm[asset_key] = str(row["last_completed_at"])
+
+    prediction_rows = _fetch_all(lambda: scoped(supabase.table("failure_predictions").select(
+        "asset_id"
+    ).eq("tenant_id", tenant_id).eq("is_acknowledged", False)).order("id"))
+    predicted = {str(row["asset_id"]) for row in prediction_rows if row.get("asset_id")}
+
+    return {
+        "active_downtime": active_downtime, "downtime_assets": downtime_assets, "active_wo": active_wo,
+        "in_progress": in_progress, "last_repair": last_repair, "repeat": repeat, "next_pm": next_pm,
+        "pm_overdue": pm_overdue, "pm_due_soon": pm_due_soon, "last_pm": last_pm, "predicted": predicted,
+    }
+
+
+_BROWSE_DICT_KEYS = ("active_downtime", "active_wo", "in_progress", "last_repair", "repeat", "next_pm", "last_pm")
+_BROWSE_AGG_KEYS = _BROWSE_DICT_KEYS + ("downtime_assets", "pm_overdue", "pm_due_soon", "predicted")
+
+
+def _decorate_browse_rows(assets: list[dict], agg: dict) -> list[dict]:
+    rows: list[dict] = []
+    for asset in assets:
+        key = str(asset["id"])
+        downtime = agg["active_downtime"].get(key)
+        serviced = max(filter(None, [agg["last_repair"].get(key), agg["last_pm"].get(key)]), default=None)
+        asset.pop("serial_number", None)  # searchable, not listed
+        asset.update({
+            "active_downtime": downtime,
+            "service_status": _service_status(downtime, agg["in_progress"].get(key, 0)),
+            "active_work_order_count": agg["active_wo"].get(key, 0),
+            "next_pm_due_at": agg["next_pm"].get(key),
+            "pm_overdue": key in agg["pm_overdue"],
+            "pm_due_soon": key in agg["pm_due_soon"],
+            "last_serviced_at": serviced,
+            "repeat_repairs_90d": agg["repeat"].get(key, 0),
+            "has_active_prediction": key in agg["predicted"],
+            "had_downtime_365d": key in agg["downtime_assets"],
+        })
+        rows.append(asset)
+    return rows
+
+
+
 @router.get("/browse")
 async def browse_assets(
     q: Optional[str] = Query(None, max_length=100),
@@ -957,84 +1068,21 @@ async def browse_assets(
     if building:
         assets = [a for a in assets if (a.get("rooms") or {}).get("building") == building]
 
-    downtime_rows = _fetch_all(lambda: supabase.table("asset_downtime_periods").select(
-        "asset_id, started_at, restored_at, downtime_type, impact_level, work_order_id"
-    ).eq("tenant_id", tenant_id).gte("started_at", (now - timedelta(days=365)).isoformat()).order("started_at"))
-    active_downtime: dict[str, dict] = {}
-    downtime_assets: set[str] = set()
-    for row in downtime_rows:
-        downtime_assets.add(str(row["asset_id"]))
-        if not row.get("restored_at"):
-            active_downtime[str(row["asset_id"])] = with_elapsed_minutes(row)
+    # The derived facts (active repairs, PM due dates, downtime, predictions) are only needed for every asset when a
+    # filter or the sort reads them. Plain browsing and searching reads them for the page on screen only, so the
+    # request no longer pulls a year of the whole property's work orders to return 25 rows.
+    derived_for_all = bool(status or attention or maintenance or reliability) or sort_by in _BROWSE_DERIVED_SORTS
+    if not derived_for_all:
+        assets.sort(key=_sort_key(sort_by))
+        total = len(assets)
+        start = (page - 1) * per_page
+        window = assets[start:start + per_page]
+        rows = _decorate_browse_rows(window, _browse_aggregates(tenant_id, now, tz, today, [str(a["id"]) for a in window]))
+        return {"data": rows, "meta": {
+            "page": page, "per_page": per_page, "total": total, "has_more": start + per_page < total,
+        }}
 
-    wo_rows = _fetch_all(lambda: supabase.table("work_orders").select(
-        "asset_id, status, completed_at"
-    ).eq("tenant_id", tenant_id).gte("created_at", (now - timedelta(days=365)).isoformat()).order("created_at"))
-    active_wo: dict[str, int] = {}
-    in_progress: dict[str, int] = {}
-    last_repair: dict[str, str] = {}
-    repeat: dict[str, int] = {}
-    for row in wo_rows:
-        asset_key = str(row.get("asset_id") or "")
-        if not asset_key:
-            continue
-        if row.get("status") in _BROWSE_ACTIVE_WO_STATUSES:
-            active_wo[asset_key] = active_wo.get(asset_key, 0) + 1
-            if row.get("status") == "in_progress":
-                in_progress[asset_key] = in_progress.get(asset_key, 0) + 1
-        elif row.get("status") == "completed" and row.get("completed_at"):
-            completed = str(row["completed_at"])
-            if completed > last_repair.get(asset_key, ""):
-                last_repair[asset_key] = completed
-            if (_parse_iso(completed) or now) >= now - timedelta(days=90):
-                repeat[asset_key] = repeat.get(asset_key, 0) + 1
-
-    pm_rows = _fetch_all(lambda: supabase.table("pm_schedules").select(
-        "asset_id, next_due_at, last_completed_at"
-    ).eq("tenant_id", tenant_id).eq("is_active", True).order("id"))
-    next_pm: dict[str, str] = {}
-    pm_overdue: set[str] = set()
-    pm_due_soon: set[str] = set()
-    last_pm: dict[str, str] = {}
-    for row in pm_rows:
-        asset_key = str(row["asset_id"])
-        due = _parse_iso(row.get("next_due_at"))
-        if due:
-            if asset_key not in next_pm or str(row["next_due_at"]) < next_pm[asset_key]:
-                next_pm[asset_key] = str(row["next_due_at"])
-            # Hotel calendar days, the same rule the PM screens use: due earlier today is "due today", not overdue.
-            days_until = (due.astimezone(tz).date() - today).days
-            if days_until < 0:
-                pm_overdue.add(asset_key)
-            elif days_until <= _PM_DUE_SOON_DAYS:
-                pm_due_soon.add(asset_key)
-        if row.get("last_completed_at") and str(row["last_completed_at"]) > last_pm.get(asset_key, ""):
-            last_pm[asset_key] = str(row["last_completed_at"])
-
-    prediction_rows = _fetch_all(lambda: supabase.table("failure_predictions").select(
-        "asset_id"
-    ).eq("tenant_id", tenant_id).eq("is_acknowledged", False).order("id"))
-    predicted = {str(row["asset_id"]) for row in prediction_rows if row.get("asset_id")}
-
-    rows: list[dict] = []
-    for asset in assets:
-        key = str(asset["id"])
-        downtime = active_downtime.get(key)
-        serviced = max(filter(None, [last_repair.get(key), last_pm.get(key)]), default=None)
-        asset.pop("serial_number", None)  # searchable, not listed
-        asset.update({
-            "active_downtime": downtime,
-            "service_status": _service_status(downtime, in_progress.get(key, 0)),
-            "active_work_order_count": active_wo.get(key, 0),
-            "next_pm_due_at": next_pm.get(key),
-            "pm_overdue": key in pm_overdue,
-            "pm_due_soon": key in pm_due_soon,
-            "last_serviced_at": serviced,
-            "repeat_repairs_90d": repeat.get(key, 0),
-            "has_active_prediction": key in predicted,
-            "had_downtime_365d": key in downtime_assets,
-        })
-        rows.append(asset)
+    rows = _decorate_browse_rows(assets, _browse_aggregates(tenant_id, now, tz, today, None))
 
     if status:
         rows = [a for a in rows if a["service_status"] == status]

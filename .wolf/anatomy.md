@@ -991,3 +991,13 @@
 - apps/mobile/components/engineering/pm/PmRecordedView.tsx - recorded screen wrapper: hotel-clock time, next due, routes (~0.7k tok)
 - apps/api/tests/smoke/test_pm_field_evidence.py - evidence ownership, duplicate ids, template-required photos, replay, immutability (~2.4k tok)
 - apps/mobile/__tests__/lib/engineering/pmFieldWork.test.ts, __tests__/components/PmPhotoField.test.tsx - finding rule, sections, evidence per step, draft write order, photo retry (~3k tok)
+- apps/mobile/lib/engineering/pmSyncState.ts - engineering offline-state model (current/cached/local_draft/queued/syncing/synced/needs_review/rejected/unknown_outcome), queuedState(), dataState() (~1k tok)
+- apps/mobile/lib/engineering/pmLocalEvidence.ts - durable phone-only PM photos: copy to documents/pm-evidence/<owner>, quota, storage-full, own-folder-only delete, orphan sweep (~2.5k tok)
+- apps/mobile/lib/engineering/pmCompletionQueue.ts - freeze a validated inspection into the shared sync_queue (entity pm_schedule), one row per schedule, saveProgress (~2k tok)
+- apps/mobile/lib/engineering/pmSyncWorker.ts - dependency-ordered replay (conflict pre-check, photo record->file, same submission_id), outcomes, backoff (~3k tok)
+- apps/mobile/lib/engineering/pmSyncRunner.ts - real deps + single-flight flush, retry/submitAnyway/discard, conservative photo sweep (~2.5k tok)
+- apps/mobile/lib/engineering/pmSyncItems.ts, usePmSyncItems.ts, usePmForegroundSync.ts - Sync Status rows/counts, hook, foreground retry (~2k tok)
+- apps/mobile/lib/engineering/assetCacheStore.ts - owner-scoped durable equipment lookup index (300 entries, 30 days) (~1.8k tok)
+- apps/mobile/components/engineering/pm/PmQueuedNotice.tsx, PmSyncSection.tsx - queued notice screen, Sync Status PM section (~2k tok)
+- apps/mobile/__tests__/lib/engineering/{pmSyncState,pmLocalEvidence,pmSyncWorker,pmSyncRunner,pmSyncItems,usePmInspectionOffline,assetCacheStore}.test.ts(x) - Phase 7 tests (~12k tok)
+- apps/api/routers/assets.py - /assets/browse now reads maintenance facts for the page only (_browse_aggregates/_decorate_browse_rows); tests in tests/test_asset_browse.py

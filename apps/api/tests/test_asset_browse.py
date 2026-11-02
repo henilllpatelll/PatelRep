@@ -255,3 +255,74 @@ def test_detail_carries_the_same_derived_status_as_the_list(monkeypatch):
     assert detail["active_work_order_count"] == 1
     assert detail["repeat_repairs_90d"] == 1
     assert detail["service_status"] == {r["id"]: r for r in client.get("/assets/browse").json()["data"]}[A1]["service_status"]
+
+
+# --- Phase 7: plain browsing reads maintenance facts for the page only, with identical results ---------------------
+
+def _rich_db(count=60):
+    assets = [_asset(n, failure_risk_score=n % 7, location_text=f"Zone {n % 4}") for n in range(1, count + 1)]
+    work_orders = []
+    for n in range(1, count + 1):
+        if n % 3 == 0:
+            work_orders.append({"tenant_id": TENANT, "asset_id": f"a-{n}", "status": "in_progress", "completed_at": None, "created_at": _t(-5)})
+        if n % 4 == 0:
+            work_orders.append({"tenant_id": TENANT, "asset_id": f"a-{n}", "status": "completed", "completed_at": _t(-10), "created_at": _t(-20)})
+            work_orders.append({"tenant_id": TENANT, "asset_id": f"a-{n}", "status": "completed", "completed_at": _t(-30), "created_at": _t(-40)})
+    # Work orders with no equipment and another property's rows must never leak into an asset.
+    work_orders += [{"tenant_id": TENANT, "asset_id": None, "status": "open", "completed_at": None, "created_at": _t(-1)} for _ in range(40)]
+    work_orders.append({"tenant_id": "other-hotel", "asset_id": "a-1", "status": "in_progress", "completed_at": None, "created_at": _t(-1)})
+    downtime = [{"tenant_id": TENANT, "asset_id": f"a-{n}", "started_at": _t(-3), "restored_at": None, "downtime_type": "repair", "impact_level": "out_of_service", "work_order_id": None} for n in (5, 10, 15)]
+    pm = [{"tenant_id": TENANT, "asset_id": f"a-{n}", "is_active": True, "next_due_at": _t(-2 if n % 5 == 0 else 3 if n % 5 == 1 else 40), "last_completed_at": _t(-15)} for n in range(1, count + 1)]
+    predictions = [{"tenant_id": TENANT, "asset_id": f"a-{n}", "is_acknowledged": False} for n in (2, 4, 6)]
+    return _db(assets, downtime=downtime, work_orders=work_orders, pm=pm, predictions=predictions)
+
+
+def test_page_only_path_returns_the_same_rows_as_the_full_path(monkeypatch):
+    queries = ["", "q=zone%201", "q=asset%200", "category_id=c-hvac"]
+    for sort_by in ("name", "location", "risk", "updated"):
+        for query in queries:
+            for page in (1, 2, 3):
+                url = f"/assets/browse?sort_by={sort_by}&page={page}&per_page=7&{query}"
+                lazy = _client(monkeypatch, _rich_db()).get(url).json()
+                # Forcing the derived path reads every asset's facts: the old behaviour, now the reference.
+                monkeypatch.setattr(assets_router, "_BROWSE_DERIVED_SORTS", ("last_serviced", "next_pm", sort_by))
+                full = _client(monkeypatch, _rich_db()).get(url).json()
+                monkeypatch.setattr(assets_router, "_BROWSE_DERIVED_SORTS", ("last_serviced", "next_pm"))
+                assert lazy == full, url
+
+
+def test_plain_browse_reads_facts_for_the_page_only(monkeypatch):
+    seen: list[tuple[str, int]] = []
+    real = assets_router._fetch_all
+
+    def spy(build):
+        rows = real(build)
+        seen.append((build().table, len(rows)))
+        return rows
+
+    monkeypatch.setattr(assets_router, "_fetch_all", spy)
+    client = _client(monkeypatch, _rich_db(count=60))
+    body = client.get("/assets/browse?per_page=5&page=2").json()
+    assert len(body["data"]) == 5 and body["meta"]["total"] == 60
+    by_table = {table: rows for table, rows in seen if table != "assets"}
+    assert by_table["pm_schedules"] <= 5  # not the whole property's schedules
+    assert by_table["work_orders"] <= 10  # the page's repairs only, and no equipment-less or foreign rows
+    assert by_table["failure_predictions"] <= 5
+    # A filter that needs everyone's facts still reads them all.
+    seen.clear()
+    client.get("/assets/browse?maintenance=pm_overdue&per_page=5")
+    assert dict(seen)["pm_schedules"] == 60
+
+
+def test_page_only_path_never_shows_another_hotels_or_unlinked_work(monkeypatch):
+    body = _client(monkeypatch, _rich_db()).get("/assets/browse?q=asset%20001&per_page=5").json()
+    first = body["data"][0]
+    assert first["id"] == "a-1"
+    assert first["active_work_order_count"] == 0  # the other hotel's in-progress order on a-1 does not count
+    assert first["service_status"] == "operational"
+
+
+def test_empty_page_reads_no_facts(monkeypatch):
+    client = _client(monkeypatch, _rich_db(count=5))
+    body = client.get("/assets/browse?page=9&per_page=5").json()
+    assert body["data"] == [] and body["meta"]["total"] == 5 and body["meta"]["has_more"] is False

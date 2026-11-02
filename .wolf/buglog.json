@@ -35202,6 +35202,23 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-01T20:35:08-06:00"
+    },
+    {
+      "id": "bug-2132",
+      "timestamp": "2026-11-02T04:30:00-06:00",
+      "error_message": "Caught before shipping: queued PM completions would have been deleted by the generic sync loop",
+      "file": "apps/mobile/lib/offline/sync.ts",
+      "root_cause": "flushSyncQueue falls through to deleteSyncQueueItem for any entity_type/action it has no branch for; a new pm_schedule row has none.",
+      "fix": "The loop skips PM_QUEUE_ENTITY rows; pmSyncRunner replays and deletes them only after the server confirmed the completion.",
+      "tags": [
+        "offline",
+        "sync",
+        "data-loss",
+        "queue"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-02T04:30:00-06:00"
     }
   ]
 }

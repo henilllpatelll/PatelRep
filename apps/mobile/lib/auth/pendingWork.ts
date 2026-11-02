@@ -7,7 +7,7 @@ import { MAX_ACTION_ATTEMPTS, useAppStore, type OfflineAction } from "@/stores/a
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 
-export type PendingCategoryKey = "roomUpdates" | "taskCompletions" | "workOrders" | "logbook" | "cleaningSessions";
+export type PendingCategoryKey = "roomUpdates" | "taskCompletions" | "workOrders" | "logbook" | "cleaningSessions" | "pmInspections";
 
 export interface PendingCategory {
   key: PendingCategoryKey;
@@ -67,7 +67,8 @@ export function summarizePendingWork(input: {
     add(ACTION_CATEGORY[action.type] ?? "roomUpdates", action.createdAt ?? null, (action.attempts ?? 0) >= MAX_ACTION_ATTEMPTS);
   }
   for (const row of input.queue ?? []) {
-    add(row.entity_type === "task" ? "taskCompletions" : "workOrders", row.created_at ?? null, row.attempts >= MAX_SYNC_ATTEMPTS);
+    const key: PendingCategoryKey = row.entity_type === "task" ? "taskCompletions" : row.entity_type === "pm_schedule" ? "pmInspections" : "workOrders";
+    add(key, row.created_at ?? null, row.attempts >= MAX_SYNC_ATTEMPTS || !!row.last_error);
   }
   if (input.userScope && input.outboxScope === input.userScope) {
     for (const entry of Object.values(input.outbox)) {

@@ -1938,7 +1938,8 @@
           "room_status": "Room status change",
           "task": "Task update",
           "logbook": "Logbook entry",
-          "other": "Update"
+          "other": "Update",
+          "pm_completion": "PM inspection"
         },
         "states": {
           "pending": "Pending",
@@ -2657,7 +2658,13 @@
         "retired": "This equipment has been retired."
       },
       "manualHint": "Type the asset tag printed on the equipment label, or the asset ID.",
-      "openRetired": "Open retired record"
+      "openRetired": "Open retired record",
+      "cached": {
+        "verified": "Saved copy — last confirmed {{time}}",
+        "unverified": "Saved copy — confirmation time not recorded",
+        "body": "You're offline, so this equipment can't be checked now. Open it for what's on this phone, and reconnect to refresh it.",
+        "open": "Open saved equipment"
+      }
     },
     "createWo": {
       "forEquipment": "For {{name}}"
@@ -5220,7 +5227,8 @@
         "taskCompletions": "Task completions",
         "workOrders": "Work orders",
         "logbook": "Logbook entries",
-        "cleaningSessions": "Cleaning sessions"
+        "cleaningSessions": "Cleaning sessions",
+        "pmInspections": "PM inspections"
       }
     },
     "errors": {
@@ -11285,7 +11293,16 @@
       "retry": "Retry upload",
       "announceUploaded": "Photo uploaded.",
       "announceFailed": "Photo upload failed.",
-      "offlineNote": "Photos upload straight away, so a connection is needed."
+      "offlineNote": "No connection. Photos are saved on this phone and uploaded when you're back online.",
+      "savedOnPhone": "Saved on this phone, not uploaded yet",
+      "local": {
+        "no_owner": "Sign in again before adding photos.",
+        "missing_source": "That photo could not be read, so it wasn't saved. Try again.",
+        "too_large": "That photo is too large to send (limit 10 MB), so it wasn't saved.",
+        "quota": "Photos waiting to upload are using all the space allowed. Connect to upload them, then add more.",
+        "storage_full": "This phone is out of storage, so the photo wasn't saved. Free up space and try again.",
+        "save_failed": "The photo couldn't be saved on this phone, so it wasn't attached. Try again."
+      }
     },
     "readings": "Readings",
     "reading": {
@@ -11348,7 +11365,10 @@
       "unknown": "We couldn't confirm whether the inspection was recorded. Your draft is safe. Try again and we will check for a duplicate first.",
       "findingRequired": "Describe what failed.",
       "partInvalid": "Enter a part name and a quantity above zero.",
-      "defectInvalid": "Describe the defect or remove it."
+      "defectInvalid": "Describe the defect or remove it.",
+      "photoMissing": "A saved photo is missing from this phone, so the inspection can't be sent with its evidence. Remove it or take it again.",
+      "alreadyQueued": "This schedule already has a saved inspection waiting to sync.",
+      "queueFailed": "The inspection couldn't be saved on this phone. Nothing was sent. Try again."
     },
     "review": {
       "summary": "Inspection",
@@ -11490,6 +11510,18 @@
       "announceRecorded": "Inspection recorded.",
       "announceUnknown": "The inspection may not have been recorded. Your draft is safe.",
       "announceRejected": "The inspection was not recorded."
+    },
+    "saveForSync": "Save for sync",
+    "saveForSyncNote": "No connection. This saves the inspection on this phone. It is not recorded until PatelRep confirms it.",
+    "photosPendingNote": "Some photos are still on this phone. Saving sends them first, and the inspection is not recorded until PatelRep confirms it.",
+    "queued": {
+      "title": "Saved — waiting to sync",
+      "body": "This inspection is saved on this phone. It has not been recorded yet. It is sent automatically when you're back online.",
+      "reviewTitle": "Needs review",
+      "reviewBody": "This saved inspection can't be sent as it is. Your answers and photos are kept. Open Sync Status to decide what to do.",
+      "openSync": "Open Sync Status",
+      "back": "Back to inspections",
+      "announce": "Inspection saved on this phone. Waiting to sync, not recorded yet."
     }
   },
   "engRooms": {
@@ -12022,6 +12054,36 @@
       "not_found": "That work order no longer exists.",
       "invalid": "The server rejected the details. Open the work order and redo it.",
       "unknown": "The server refused this change."
+    },
+    "pm": {
+      "title": "Inspections waiting to sync",
+      "none": "No inspections are waiting.",
+      "draftsTitle": "Unfinished inspections on this phone",
+      "draftsNone": "No unfinished inspections.",
+      "draftsHint": "Saved on this phone only. Not sent.",
+      "draftProgress": "{{answered}} of {{total}} steps answered",
+      "continue": "Continue",
+      "photosLabel": "Photos: {{count}}",
+      "unknownNote": "The last attempt may have reached the server. It is checked before anything is sent again.",
+      "stop": {
+        "conflict_completed": "Someone else already recorded this inspection. Your answers and photos are kept.",
+        "conflict_changed": "The schedule changed and the server wouldn't accept this inspection as saved.",
+        "checklist_unavailable": "The checklist for this schedule is no longer available. A chief engineer needs to assign a current one.",
+        "checklist_changed": "The checklist changed after this was saved.",
+        "schedule_gone": "This schedule or its equipment is no longer active.",
+        "evidence_missing": "A saved photo file is missing from this phone.",
+        "evidence_rejected": "A photo was too large or wasn't accepted.",
+        "forbidden": "Your account isn't allowed to record this inspection.",
+        "invalid": "The server rejected this inspection as saved.",
+        "owner_changed": "Saved under a different account or hotel.",
+        "unreadable": "This saved inspection can't be read on this phone. Discard it and start the inspection again."
+      },
+      "retry": "Retry now",
+      "submitAnyway": "Submit anyway",
+      "open": "Open",
+      "discard": "Discard",
+      "confirmDiscard": "Yes, discard",
+      "discardWarning": "This removes the saved inspection and its photos from this phone. Nothing recorded on the server changes."
     }
   },
   "repairAssist": {
@@ -12305,6 +12367,19 @@
         "due_past": "Choose today or a later date.",
         "checklist_missing": "Choose the inspection procedure."
       }
+    }
+  },
+  "engSync": {
+    "state": {
+      "current": "Up to date",
+      "cached": "Saved data, not checked just now",
+      "local_draft": "Draft on this phone",
+      "queued": "Waiting to sync",
+      "syncing": "Syncing",
+      "synced": "Recorded",
+      "needs_review": "Needs review",
+      "rejected": "Could not sync",
+      "unknown_outcome": "Server confirmation pending"
     }
   }
 }

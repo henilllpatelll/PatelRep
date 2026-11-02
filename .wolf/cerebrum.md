@@ -1100,3 +1100,18 @@
 - `InlineError` renders icon + text: assert with getByText, not `.props.children`.
 - Do-Not-Repeat (repeat of the Phase 4 entry): scripted Python edits on Windows MUST pass encoding="utf-8" (or work in bytes). A bare open() wrote an em dash as 0x97 and the Edit tool then refused the file as non-UTF-8.
 - [2026-11-02] Any screen that calls useToast() needs ToastProvider in its test wrapper (PmScheduleDetail.test broke when the detail screen gained a toast). Run the PM/asset-named jest files after touching shared screens: `find __tests__ -iname "*pm*" -o -iname "*asset*"` with --maxWorkers=2 (the whole suite was killed for memory).
+
+## Eng PM+Assets V2 Phase 7 (offline reliability) - learnings (2026-11-02)
+- The generic `flushSyncQueue` (lib/offline/sync.ts) DELETES any sync_queue row it has no branch for. A new entity_type MUST be skipped there (`PM_QUEUE_ENTITY`) and replayed by its own runner, or queued work silently vanishes.
+- PM offline = the existing owner-scoped SQLite queue (`pm_schedule`/`complete`), frozen payload + fingerprint + `submission_id`; replay progress is written back with `updateSyncQueuePayload`. Do not build a second queue.
+- `local:<token>` evidence ids fail `validatePmCompletion` (EVIDENCE_ID regex) by design: a phone-only photo can never be sent as server evidence. `buildCompletionPayload(..., { allowLocalEvidence: true })` masks them only for the frozen body.
+- Server facts: `POST /evidence/records/{id}/file` uploads with `upsert:false` to a path derived from the record id (a second file for the same record fails); `record_pm_completion` is idempotent per submission_id but does NOT detect "another technician already did this round" - the only guard is the client's pre-upload check against `GET .../completions`.
+- ApiError carries `status`, `code`, `detail`; the PM refusal code is `detail.code` (checklist_unavailable, schedule_inactive, asset_inactive, submission_conflict).
+- `GET /assets/browse` now reads maintenance facts for the page only unless a derived filter/sort (`status/attention/maintenance/reliability`, `last_serviced`, `next_pm`) is used. The `assets` table is still read in full per request (residual).
+- i18n: `engineeringSync.*` and `engineeringTeam.*` keys must not end in `_one`/`_other` (pluralKeys test) - `conflict_other` was renamed `conflict_changed`.
+- Test fixtures: appStore mocks often omit `isOnline`; treat `isOnline !== false` as online in new code. jest.mock factories may only reference variables prefixed `mock`.
+- The mobile ESLint config is only the i18n hard-fail gate for floor-facing paths; type safety is `npx tsc --noEmit -p .`.
+
+## Do-Not-Repeat (2026-11-02)
+- Bash tool heredocs containing apostrophes in the body (even with <<'EOF') failed with "unexpected EOF". Write the file with the Write tool (or a scratchpad .py/.json) and run it instead.
+- Do not read "queue returned []" as "nothing queued" in cleanup code: a failed/corrupt read must abort the sweep (see `sweepPmPhotos`; `listPmDraftLocalUris` returns null when unreadable).

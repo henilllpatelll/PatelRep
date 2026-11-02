@@ -62,7 +62,7 @@ describe("draft summaries (Continue Inspection)", () => {
     draft.items.i0 = { result: "passed", note: "", evidence: [] };
     await savePmDraft(draft);
     const summaries = await listPmDraftSummaries();
-    expect(summaries).toEqual([{ scheduleId: "s1", answered: 1, total: 1, updatedAt: draft.updatedAt }]);
+    expect(summaries).toEqual([{ scheduleId: "s1", label: null, answered: 1, total: 1, updatedAt: draft.updatedAt }]);
     setQueueOwner("hotel-1:user-2");
     expect(await listPmDraftSummaries()).toEqual([]);
   });

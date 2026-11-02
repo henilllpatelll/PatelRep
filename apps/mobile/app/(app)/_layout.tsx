@@ -30,6 +30,7 @@ import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
+import { usePmForegroundSync } from "@/lib/engineering/usePmForegroundSync";
 
 // Secondary screens (profile/*, detail pages, role-hidden tab roots) are declared as tabs but never shown in the bar.
 // Do not hide them with the href-null shortcut: expo-router 58 turns that into `hidden: true`, and a focused hidden tab is
@@ -65,6 +66,7 @@ export default function AppLayout() {
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
   const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
+  usePmForegroundSync();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

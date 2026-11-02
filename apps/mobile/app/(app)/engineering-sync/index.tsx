@@ -15,6 +15,9 @@ import { dismissReportRecord, useReportRecords } from "@/lib/engineering/pending
 import { summarizePending, type PendingAction } from "@/lib/engineering/offlineActions";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { usePendingActions } from "@/lib/engineering/usePendingActions";
+import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
+import { buildPmQueuedItems, countPmSync } from "@/lib/engineering/pmSyncItems";
+import { PmSyncSection } from "@/components/engineering/pm/PmSyncSection";
 import { loadRecentlySynced, type SyncedEntry } from "@/lib/engineering/syncedHistory";
 import { listCompletionDrafts, type SavedCompletionDraftRow } from "@/lib/engineering/workOrderDrafts";
 import { syncOnConnect } from "@/lib/offline/sync";
@@ -36,6 +39,7 @@ export default function EngineeringSyncScreen() {
   const role = user?.effective_role ?? user?.role;
   const { overview, syncing, runSync } = useSyncOverview();
   const pending = usePendingActions();
+  const pm = usePmSyncItems();
   const claimConflicts = useClaimConflicts(user?.id ?? null);
   const reports = useReportRecords().filter((r) => r.kind === "refused");
   const [confirming, setConfirming] = useState<number | null>(null);
@@ -58,7 +62,9 @@ export default function EngineeringSyncScreen() {
 
   // Opening the Sync Center is one of the moments to try: once, and only when something is actually waiting.
   const triedOnOpen = useRef(false);
-  const waitingNow = pending.loaded ? summarizePending(pending.actions).waiting : 0;
+  const pmItems = buildPmQueuedItems(pm.rows, pm.active, t("pm.inspection"));
+  const pmCounts = countPmSync(pmItems, pm.drafts);
+  const waitingNow = (pending.loaded ? summarizePending(pending.actions).waiting : 0) + (pm.loaded ? pmCounts.waiting : 0);
   useEffect(() => {
     if (triedOnOpen.current || !pending.loaded) return;
     triedOnOpen.current = true;
@@ -69,7 +75,7 @@ export default function EngineeringSyncScreen() {
 
   const summary = summarizePending(pending.actions);
   const lastConfirmed = formatClock(overview.lastSyncedAt, ctx);
-  const attention = summary.needsAttention + claimConflicts.length + reports.length;
+  const attention = summary.needsAttention + claimConflicts.length + reports.length + pmCounts.needsReview + pmCounts.failed;
 
   const kindText = (a: PendingAction) => t(`engineeringSync.kind.${a.kind}`);
   const stateText = (a: PendingAction) =>
@@ -92,8 +98,8 @@ export default function EngineeringSyncScreen() {
           </View>
         </View>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textSecondary }]} testID="esync-counts">
-          {pending.loaded
-            ? [t("engineeringSync.waiting", { count: summary.waiting }), t("engineeringSync.attention", { count: attention })].join(" · ")
+          {pending.loaded && pm.loaded
+            ? [t("engineeringSync.waiting", { count: summary.waiting + pmCounts.waiting + pmCounts.syncing }), t("engineeringSync.attention", { count: attention })].join(" · ")
             : t("engineeringSync.unreadable")}
         </Text>
         <Button
@@ -152,6 +158,15 @@ export default function EngineeringSyncScreen() {
           </View>
         )}
       </SettingsSection>
+
+      <PmSyncSection
+        items={pmItems}
+        drafts={pm.drafts}
+        loaded={pm.loaded}
+        onRetry={(rowId) => void pm.retry(rowId)}
+        onSubmitAnyway={(rowId) => void pm.submitDespiteConflict(rowId)}
+        onDiscard={(rowId) => void pm.discard(rowId)}
+      />
 
       <SettingsSection title={t("engineeringSync.draftsTitle")} testID="esync-drafts">
         {drafts.length === 0 ? (

@@ -319,3 +319,113 @@ rewritten when a repair completes; completing a repair does not end downtime or 
 - No server-side single "maintenance timeline" endpoint: the app still composes the four paged reads.
 - No multi-hotel scale fixtures, no device/emulator run, no two-hotel run. The shared read cache is keyed by `tenant:user`, which is
   what isolates a hotel switch; it is covered by existing unit tests, not re-proved here.
+
+
+## Phase 7: offline reliability, durable evidence, safe sync, conflicts and performance
+
+**No migration. No new queue.** Everything rides the existing owner-scoped SQLite `sync_queue` (`lib/offline/db.ts`), the
+`tenant:user` queue owner and `offlineStore`. The one generic-queue hazard found: `flushSyncQueue` **deletes any row it has no branch
+for**, so PM rows (`entity_type = pm_schedule`) are skipped there and replayed only by `pmSyncRunner`.
+
+### State model (`lib/engineering/pmSyncState.ts`)
+`current` / `cached` / `local_draft` / `queued` / `syncing` / `synced` / `needs_review` / `rejected` / `unknown_outcome`, each with a
+written label (`engSync.state.*`, en + es). Only `current` and `synced` are statements about the server. A queued completion is never
+shown as recorded; an unknown verification time is `null`, never zero.
+
+### Local draft (unchanged storage, extended)
+`pmDraftStore` keeps its serialised per-key writes, owner scoping and "saved only after the write succeeded" indicator. Added: a `label`
+for lists, `listPmDraftLocalUris()` (null = unreadable = keep every file). Checklist change still blocks the draft with the old content
+preserved (`draftCompatibility`); nothing is auto-mapped.
+
+### Durable photos (`pmLocalEvidence.ts`)
+Offline (or server unreachable) a photo is copied into `documents/pm-evidence/<tenant_user>/<token>.jpg`, read back, size-checked
+(10 MB = the server limit), and quota-checked (150 MB per person). It is a `local:<token>` id that **cannot pass the completion
+validator**, so it can never be sent as evidence. Deletion is allowed only inside the caller's own folder; storage-full is told apart
+from other failures; a failed save attaches nothing. Orphans (no draft, no queued row, older than 24 h) are swept only when every draft
+and queued row was read successfully. **Not claimed:** encryption at rest (app sandbox only).
+
+### Save for sync (`pmCompletionQueue.ts`)
+Offline, or holding a phone-only photo, the review button becomes **Save for sync**: the validated body, submission id and photo list
+are frozen (fingerprinted) into one queue row, **then** the draft is cleared (a crash between leaves both; the queue wins on reopen).
+One outstanding row per schedule: reopening shows "Saved - waiting to sync" instead of the form, so one inspection cannot become two.
+Editing after saving is not possible without discarding (explicit, confirmed) - there is no silent revision of a queued payload.
+
+### Replay order (`pmSyncWorker.ts`, driven by `pmSyncRunner.ts`)
+1. same `tenant:user` as the row, else pause (nothing touched, no attempt counted); 2. fingerprint intact, else stop `invalid`;
+3. **conflict check before any upload**: another technician's completion for the schedule since the draft started => stop
+`conflict_completed`; 4. per photo: create record -> **persist its id** -> upload file (a lost reply is reconciled by reading the record
+back: `storage_path` set = landed; a record on a different asset is never reused; 2 server errors => start that photo on a fresh record;
+413/400 => `evidence_rejected`); 5. swap `local:` ids for record ids and POST once under the **frozen `submission_id`** (the server
+records once per id, so a re-POST is the safe reconciliation of every unknown outcome); 6. only on `recorded`: delete the row, clear
+any leftover draft, invalidate PM/asset caches, **then** delete the photo files.
+Outcomes: `retry` (network/5xx: attempt counted, exponential backoff 30 s -> 30 min, +/-20 % jitter, in-memory), `stopped` (marked
+refused with a code; never replayed on its own), `paused`. One run at a time app-wide; offline runs are skipped so they cannot burn the
+5-attempt budget. Manual **Sync now** clears the backoff.
+
+**Conflict policy (what the server does and does not do).** `record_pm_completion` is idempotent per `submission_id` and refuses
+`schedule_inactive`, `asset_inactive`, `checklist_unavailable`, `submission_conflict`. It does **not** detect "another technician
+already did this round", so the client check in step 3 is the only guard; it compares `technician_id`/`completed_at` from
+`GET .../completions`. It is a best-effort guard (a completion that lands between the check and the POST is not caught) and the server
+has no occurrence-level version check - recorded as a limitation, not hidden. Recovery for a conflict: **Submit anyway** (explicit; keeps
+the frozen content and submission id) or **Discard**. The other person's record is never edited or overwritten.
+
+### Sync Status (extends the existing `engineering-sync` screen)
+Real counts from the real rows: waiting, syncing, needs review, could not sync, unfinished drafts, photos still on the phone. Per item:
+state in words, reason code text, Open / Retry now / Submit anyway (conflicts only) / Discard (two taps, warns it only removes unsent
+work). The shared Sync overview and the sign-out warning now count PM inspections (`pm_completion` kind / `pmInspections` category).
+Unfinished **drafts are not** in the sign-out warning (they are private to their owner and return when that person signs in again).
+
+### Offline action policy (enforced by what is queueable)
+| Offline | Online only |
+|---|---|
+| PM checklist answers, notes, readings (in the draft), defects, labor, parts, photos | PM schedule create/edit, reassignment |
+| Save for sync (PM completion, idempotent) | Deferral approve/reject, asset retire, criticality |
+| Cached asset lookup by exact id/tag | Downtime start/end, room status, permissions |
+| Existing Work Order offline queue (unchanged) | Anything needing fresh authoritative state |
+No standalone meter-reading or equipment-issue queue was added: the existing endpoints lack the idempotency contract this phase requires.
+
+### Offline asset lookup (`assetCacheStore.ts`)
+Owner-scoped lookup index (id, name, tag, short location, `verifiedAt`; nothing else), 300 entries, 30-day age limit, serialised
+writes, corrupt records dropped. Filled from browse pages and successful lookups; an offline scan shows a **Saved copy - last
+confirmed HH:MM** card (never auto-opens as live), an unknown code stays "offline/not on this phone", a retired copy stays retired, a
+server 404 forgets the entry, a changed tag stops matching the old one.
+
+### Browse performance (`GET /assets/browse`)
+Previously every page request read the whole property's assets **and a year of every work order, all PM schedules, downtime and
+predictions** in Python. Now a request with no maintenance-derived filter and a non-derived sort (`name`, `location`, `risk`,
+`updated`) sorts the (still fully read) assets, slices the page, and reads the derived facts **for those assets only** (`IN` on the page
+ids; equipment-less work orders are no longer fetched). Filters/sorts that read the facts (`status`, `attention`, `maintenance`,
+`reliability`, `last_serviced`, `next_pm`) behave exactly as before. A test proves page-only results equal the full path for 4 sorts x
+4 searches x 3 pages.
+Measured (in-memory fake DB, 2,000 assets / 20,000 work orders / 2,000 PM schedules; handler time is Python-side only, no SQL/network):
+| Request | Work orders read | PM read | Median | p90 |
+|---|---|---|---|---|
+| Browse page 1, before | 20,000 | 2,000 | 349 ms | 390 ms |
+| Browse page 1, after | 250 | 25 | 29 ms | 31 ms |
+| Search "asset 001", after | 20 | 2 | 25 ms | 26 ms |
+| `maintenance=pm_overdue` (needs all, unchanged) | 20,000 | 2,000 | 372 ms | 419 ms |
+**Residual:** the `assets` table is still read in full per request (search/sort run in Python). The real fix is an indexed SQL query /
+RPC with keyset paging; it needs a migration and validation on a disposable Postgres, so it was deliberately not done here.
+
+### Logout / account / hotel switch
+Rows, drafts, caches and photo folders are keyed by `tenant:user`. Nothing is deleted at sign-out (unsent work stays under its owner;
+the sign-out sheet warns about queued PM inspections). A different account never lists, counts, replays or deletes them; a replay stops
+the moment the owner changes; hotel switch changes the owner so nothing replays into the new hotel.
+
+### Observability
+`[pm-sync]` events (`evidence_upload_started/confirmed`, `completion_submitted`, `completion_outcome_unknown`,
+`completion_reconciled`, `conflict_detected`, `permanent_rejection`, `queue_item_resolved`) with an 8-character operation id and a
+short code only - no tokens, notes, file paths or signed URLs. Dev builds only.
+
+### Not done / not verified (honest list)
+- **No device or emulator run** (no safe backend: local `.env` is production, shared staging is destructive). Offline airplane-mode
+  scenarios A-F are covered by unit tests with fakes only. The real `expo-file-system` copy, camera and NetInfo paths are untested.
+- **No background sync**: replay runs while the app is open (network reconnect via the shared sync, app-foreground via `usePmForegroundSync` in
+  the authenticated layout, Sync now, opening Sync Status). Nothing is claimed about uploads continuing after the app is force-closed.
+- No encryption of local photos/drafts is claimed. Draft **schema migration**: an unknown `v` is ignored, not converted (v1 only).
+- Drafts are not listed in the sign-out warning. An unreadable queue row is shown as needing review but has no "repair" action (discard only).
+- Cache invalidation after a recorded completion resets the PM schedule cache and marks the asset list stale; mounted screens refresh on
+  their next focus, not live. Work-order-completion and asset-edit invalidation paths were reviewed, not changed.
+- Phase 6 leftovers (notifications, item-level link, history chips) remain as documented above.
+- PM Today/Plan/Calendar/History large-list performance (500 schedules, virtualization audit) was **not** done in this phase.
+- Realtime duplicate-subscription audit not done.

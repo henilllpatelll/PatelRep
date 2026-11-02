@@ -10,6 +10,9 @@ import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet
 import { Button } from "@/components/ui/Button";
 import { resolveAssetCode, type LookupOutcome } from "@/lib/engineering/assetLookup";
 import { findCachedAsset } from "@/lib/engineering/useAssetBrowse";
+import { findDurableAsset, forgetAsset, rememberAssets } from "@/lib/engineering/assetCacheStore";
+import { formatClock } from "@/lib/housekeeping/myRoomsText";
+import { useTextContext } from "@/components/housekeeping/useTextContext";
 import { useAppStore } from "@/stores/appStore";
 
 /** The same code seen again inside this window is the camera re-reading one frame, not a second scan. */
@@ -24,6 +27,7 @@ export default function ScanEquipmentScreen() {
   const isOnline = useAppStore((s) => s.isOnline);
   const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
   const [permission, requestPermission] = useCameraPermissions();
+  const textContext = useTextContext();
 
   // Hidden tab screens stay mounted, so the camera is only live while this screen is the focused one.
   const [focused, setFocused] = useState(false);
@@ -51,8 +55,20 @@ export default function ScanEquipmentScreen() {
       busy.current = true;
       setResolving(true);
       try {
-        const result = await resolveAssetCode(raw, { isOnline, findCached: (code) => findCachedAsset(scope, code) });
-        if (result.kind === "found") {
+        const result = await resolveAssetCode(raw, {
+          isOnline,
+          // This session's loaded pages first, then the small durable copy of equipment this person opened before.
+          findCached: async (code) => {
+            const live = findCachedAsset(scope, code);
+            if (live) return live;
+            const saved = await findDurableAsset(code);
+            return saved ? { id: saved.id, name: saved.name, asset_tag: saved.asset_tag, is_active: saved.is_active, verifiedAt: saved.verifiedAt, location: saved.location } : null;
+          },
+          remember: (asset) => void rememberAssets([asset]),
+          forget: (code) => void forgetAsset(code),
+        });
+        // A saved copy is shown as exactly that - with when it was last confirmed - instead of being opened as if it were live.
+        if (result.kind === "found" && !result.fromCache) {
           // Replace, so Back from the asset returns to the list rather than to a live camera.
           router.replace({ pathname: "/(app)/assets/[assetId]", params: { assetId: result.asset.id } } as never);
           return;
@@ -83,6 +99,8 @@ export default function ScanEquipmentScreen() {
   }, []);
 
   const message = outcome && outcome.kind !== "found" ? t(`assets.scan.outcome.${outcome.kind}`) : null;
+  const savedCopy = outcome?.kind === "found" ? outcome : null;
+  const verifiedClock = savedCopy?.verifiedAt ? formatClock(savedCopy.verifiedAt, textContext) : null;
 
   const denied = permission && !permission.granted;
   const showCamera = !!permission?.granted && focused && !manual && !outcome;
@@ -144,6 +162,26 @@ export default function ScanEquipmentScreen() {
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockBody, { color: theme.shell.ink2 }]}>
                 {t("assets.scan.manualHint")}
               </Text>
+            </View>
+          ) : null}
+
+          {savedCopy ? (
+            <View style={styles.block} accessibilityLiveRegion="polite" testID="asset-scan-cached">
+              <Ionicons name="cloud-offline-outline" size={36} color={theme.status.pickup} />
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockTitle, { color: theme.shell.ink }]}>
+                {savedCopy.asset.name}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockBody, { color: theme.shell.ink2 }]}>
+                {[savedCopy.asset.asset_tag, savedCopy.location].filter(Boolean).join(" \u00b7 ")}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockBody, { color: theme.status.pickup }]} testID="asset-scan-cached-note">
+                {verifiedClock ? t("assets.scan.cached.verified", { time: verifiedClock }) : t("assets.scan.cached.unverified")}
+              </Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockBody, { color: theme.shell.ink2 }]}>
+                {t("assets.scan.cached.body")}
+              </Text>
+              <Button label={t("assets.scan.cached.open")} onPress={() => router.replace({ pathname: "/(app)/assets/[assetId]", params: { assetId: savedCopy.asset.id } } as never)} testID="asset-scan-cached-open" />
+              {permission?.granted ? <Button label={t("assets.scan.scanAgain")} variant="secondary" onPress={rescan} testID="asset-scan-again" /> : null}
             </View>
           ) : null}
 

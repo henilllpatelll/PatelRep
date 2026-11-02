@@ -6,6 +6,8 @@ import {
   buildCompletionPayload,
   draftCompatibility,
   draftHasContent,
+  isLocalPhoto,
+  localPhotoRefs,
   newDraft,
   pmProgress,
   rebaseDraft,
@@ -13,6 +15,7 @@ import {
   type DraftCompatibility,
   type PmDraft,
   type PmDraftItem,
+  type PmEvidenceRef,
   type PmInspectionIssue,
   type PmProgress,
   type PmTemplate,
@@ -21,6 +24,9 @@ import { adaptPmMeters, type PmMeter } from "./pmReadings";
 import { UNASSIGNED_CHECKLIST, checklistNeedsAttention, type PmChecklistBinding } from "./engineeringContracts";
 import { resolveSubmission } from "./pmSubmission";
 import { clearPmDraft, loadPmDraft, savePmDraft } from "./pmDraftStore";
+import { enqueueCompletion, freezeCompletion, queuedCompletionFor, type QueuedPmRow } from "./pmCompletionQueue";
+import { localPhotoReadable, persistPmPhoto, removeLocalPhoto, type LocalPhotoFailure } from "./pmLocalEvidence";
+import { flushPmCompletions } from "./pmSyncRunner";
 import { classifyLoadFailure, type LoadFailure } from "./loadState";
 import type { PmItemResult } from "./pmCompletion";
 import type { PmScheduleView } from "./pmSchedules";
@@ -35,7 +41,31 @@ export type SubmitOutcome =
   /** The request may or may not have landed and could not be confirmed either way. */
   | { kind: "unknown"; error: unknown }
   | { kind: "refused"; error: unknown }
-  | { kind: "blocked"; issues: PmInspectionIssue[] };
+  | { kind: "blocked"; issues: PmInspectionIssue[] }
+  /** Frozen and saved on this phone for a later send. NOT recorded: the server has not seen it. */
+  | { kind: "queued" }
+  /** A photo file on this phone is gone or unreadable, so the inspection cannot be sent with its evidence. */
+  | { kind: "photo_missing" }
+  /** This schedule already has a saved inspection waiting; a second one would be a second logical completion. */
+  | { kind: "already_queued" }
+  | { kind: "queue_failed" };
+
+/** A photo could not be kept on this phone (thrown by attachPhoto; the draft is unchanged). */
+export class LocalPhotoError extends Error {
+  readonly reason: LocalPhotoFailure;
+  constructor(reason: LocalPhotoFailure) {
+    super(`local photo not saved: ${reason}`);
+    this.name = "LocalPhotoError";
+    this.reason = reason;
+  }
+}
+
+/** A failure with no HTTP answer: the phone could not reach the server (as opposed to the server refusing). */
+const isUnreachable = (err: unknown): boolean => {
+  if ((err as { name?: string } | null)?.name === "AbortError") return false;
+  const status = (err as { status?: unknown } | null)?.status;
+  return typeof status !== "number" || status === 0;
+};
 
 export interface PmInspection {
   loading: boolean;
@@ -53,6 +83,8 @@ export interface PmInspection {
    */
   checklistIssue: PmChecklistBinding | null;
   submitting: boolean;
+  /** A completion already frozen for this schedule and waiting to be sent (or needing review). Null when none. */
+  queued: QueuedPmRow | null;
   /** Whether the latest edit is safely stored on this phone. Local only: never a statement about the server. */
   saveState: DraftSaveState;
   /** Evidence slots currently uploading (`itemId` or `"general"`). */
@@ -77,6 +109,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   const userId = useAppStore((s) => s.user?.id ?? null);
   const scheduleId = schedule?.id ?? null;
   const assetId = schedule?.assetId ?? null;
+  const scheduleCaption = schedule ? (schedule.assetName ? `${schedule.assetName} - ${schedule.name}` : schedule.name) : "";
   const binding = schedule?.checklist ?? UNASSIGNED_CHECKLIST;
   const bindingState = binding.state;
   const boundTemplateId = binding.templateId;
@@ -87,6 +120,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
   const [meters, setMeters] = useState<PmMeter[]>([]);
   const [draft, setDraft] = useState<PmDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [queued, setQueued] = useState<QueuedPmRow | null>(null);
   const [uploading, setUploading] = useState<ReadonlySet<string>>(new Set());
   const [reloadTick, setReloadTick] = useState(0);
   const [saveState, setSaveState] = useState<DraftSaveState>("idle");
@@ -121,12 +155,14 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     setDraft(null);
     setSaveState("idle");
     (async () => {
-      const [tpl, met, saved] = await Promise.allSettled([
+      const [tpl, met, saved, waiting] = await Promise.allSettled([
         listPmTemplates(),
         assetId ? listAssetMeters(assetId) : Promise.resolve([]),
         loadPmDraft(scheduleId),
+        queuedCompletionFor(scheduleId),
       ]);
       if (cancelled) return;
+      setQueued(waiting.status === "fulfilled" ? waiting.value : null);
       // The checklist is the inspection: without it nothing can start. Meters are optional extras and fail softly.
       if (tpl.status === "rejected") {
         setFailure(classifyLoadFailure(tpl.reason));
@@ -162,14 +198,14 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
         if (!removed.current) setSaveState("idle");
         return;
       }
-      void savePmDraft(draft).then((stored) => {
+      void savePmDraft(draft.label || !scheduleCaption ? draft : { ...draft, label: scheduleCaption }).then((stored) => {
         if (!removed.current && draftRef.current === draft) setSaveState(stored ? "saved" : "failed");
       });
     }, AUTOSAVE_MS);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [draft, scheduleId]);
+  }, [draft, scheduleId, scheduleCaption]);
 
   // Leaving the screen flushes the latest draft immediately so nothing typed in the last moment is lost.
   useEffect(
@@ -230,8 +266,8 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     setDraft(bound ? newDraft(scheduleId, bound) : bindingState === "unassigned" && templates.length === 1 ? newDraft(scheduleId, templates[0]) : null);
     // Evidence the technician is walking away from should not linger unreferenced.
     if (abandoned) {
-      const ids = [...abandoned.photos.map((p) => p.id), ...Object.values(abandoned.items).flatMap((i) => i.evidence.map((e) => e.id))];
-      await Promise.all(ids.map((id) => deletePmEvidence(id)));
+      const refs = [...abandoned.photos, ...Object.values(abandoned.items).flatMap((i) => i.evidence)];
+      await Promise.all(refs.map((ref) => (isLocalPhoto(ref) ? (ref.uri ? removeLocalPhoto(ref.uri) : Promise.resolve(false)) : deletePmEvidence(ref.id))));
     }
   }, [scheduleId, templates, bindingState, boundTemplateId]);
 
@@ -242,9 +278,22 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
       uploadLocks.current.add(slot);
       setUploading(new Set(uploadLocks.current));
       try {
-        const id = await uploadPmEvidence({ assetId, uri, label, signal });
+        let ref: PmEvidenceRef | null = null;
+        // Online: the server holds it at once. Offline - or when the server cannot be reached - the photo is copied into
+        // the app's own folder and marked as living only on this phone (it is uploaded later, in order, by the sync).
+        if (useAppStore.getState().isOnline !== false) {
+          try {
+            ref = { id: await uploadPmEvidence({ assetId, uri, label, signal }), uri };
+          } catch (err) {
+            if (!isUnreachable(err)) throw err;
+          }
+        }
+        if (!ref) {
+          const saved = await persistPmPhoto(uri);
+          if (!saved.ok) throw new LocalPhotoError(saved.reason);
+          ref = { id: saved.photo.id, uri: saved.photo.uri, local: { bytes: saved.photo.bytes } };
+        }
         if (removed.current) return;
-        const ref = { id, uri };
         if (slot === "general") patch((d) => ({ ...d, photos: [...d.photos, ref] }));
         else patch((d) => ({ ...d, items: { ...d.items, [slot]: { ...d.items[slot], evidence: [...(d.items[slot]?.evidence ?? []), ref] } } }));
       } finally {
@@ -257,11 +306,49 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
 
   const removePhoto = useCallback(
     async (slot: string, evidenceId: string) => {
+      const uri = (slot === "general" ? draftRef.current?.photos : draftRef.current?.items[slot]?.evidence)?.find((e) => e.id === evidenceId)?.uri;
       if (slot === "general") patch((d) => ({ ...d, photos: d.photos.filter((p) => p.id !== evidenceId) }));
       else patch((d) => ({ ...d, items: { ...d.items, [slot]: { ...d.items[slot], evidence: (d.items[slot]?.evidence ?? []).filter((e) => e.id !== evidenceId) } } }));
+      if (evidenceId.startsWith("local:")) {
+        if (uri) await removeLocalPhoto(uri);
+        return;
+      }
       await deletePmEvidence(evidenceId);
     },
     [patch],
+  );
+
+  /** Freezes the validated draft into the shared offline queue. The draft is cleared only once the queue row exists. */
+  const queueForSync = useCallback(
+    async (current: PmDraft): Promise<SubmitOutcome> => {
+      if (!template || !scheduleId || !assetId) return { kind: "queue_failed" };
+      for (const ref of localPhotoRefs(current)) {
+        if (!ref.uri || !(await localPhotoReadable(ref.uri))) return { kind: "photo_missing" };
+      }
+      const built = buildCompletionPayload(template, current, meters, { allowLocalEvidence: true });
+      const submission = resolveSubmission(current.submission, built);
+      const frozen = freezeCompletion({
+        draft: current,
+        template,
+        meters,
+        schedule: { id: scheduleId, assetId, name: scheduleCaption },
+        submissionId: submission.id,
+      });
+      const saved = await enqueueCompletion(frozen);
+      if (!saved.ok) return saved.reason === "already_queued" ? { kind: "already_queued" } : { kind: "queue_failed" };
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      await clearPmDraft(scheduleId); // photo files stay: the queued row now refers to them
+      draftRef.current = null;
+      const row = await queuedCompletionFor(scheduleId);
+      if (!removed.current) {
+        setDraft(null);
+        setSaveState("idle");
+        setQueued(row);
+      }
+      void flushPmCompletions(); // does nothing without a connection
+      return { kind: "queued" };
+    },
+    [template, scheduleId, assetId, meters, scheduleCaption],
   );
 
   const submit = useCallback(async (): Promise<SubmitOutcome> => {
@@ -275,6 +362,9 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     setSubmitting(true);
     const attemptStartedAt = Date.now();
     try {
+      // No connection, or a photo that is still only on this phone: the inspection is frozen and saved for the sync.
+      // That is "waiting to sync", never "completed" - the server has not seen it.
+      if (useAppStore.getState().isOnline === false || localPhotoRefs(current).length > 0) return await queueForSync(current);
       const built = buildCompletionPayload(template, current, meters);
       // The same content keeps the same submission id (even after a restart), so a retry can never record it twice.
       const submission = resolveSubmission(current.submission, built);
@@ -305,7 +395,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
       submitLock.current = false;
       if (!removed.current) setSubmitting(false);
     }
-  }, [template, scheduleId, userId, compatibility, meters]);
+  }, [template, scheduleId, userId, compatibility, meters, queueForSync]);
 
   return {
     loading,
@@ -319,6 +409,7 @@ export function usePmInspection(schedule: PmScheduleView | null): PmInspection {
     issues,
     checklistIssue,
     submitting,
+    queued,
     saveState,
     uploading,
     reload: () => setReloadTick((n) => n + 1),
