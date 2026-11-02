@@ -139,7 +139,14 @@ export default function PmProgramsScreen() {
             </View>
           ) : null}
         </Pressable>
-        <Button label={p.effective_assigned_to ? t("pmMgmt.programs.reassign") : t("pmMgmt.programs.assign")} variant="secondary" onPress={() => openAssign(p)} disabled={!isOnline || !p.is_active} testID={`pm-program-assign-${p.id}`} />
+        <View style={styles.actions}>
+          <View style={styles.action}>
+            <Button label={p.effective_assigned_to ? t("pmMgmt.programs.reassign") : t("pmMgmt.programs.assign")} variant="secondary" onPress={() => openAssign(p)} disabled={!isOnline || !p.is_active} testID={`pm-program-assign-${p.id}`} />
+          </View>
+          <View style={styles.action}>
+            <Button label={t("pmMgmt.programs.edit")} variant="secondary" onPress={() => router.push({ pathname: "/(app)/pm-schedules/management/schedule-form", params: { scheduleId: p.id } } as never)} disabled={!p.is_active} testID={`pm-program-edit-${p.id}`} />
+          </View>
+        </View>
       </Card>
     );
   };
@@ -214,4 +221,6 @@ const styles = StyleSheet.create({
   pill: { fontSize: 11, fontWeight: "700", borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, overflow: "hidden" },
   sub: { fontSize: 13, lineHeight: 18 },
   issue: { flexDirection: "row", alignItems: "center", gap: 6 },
+  actions: { flexDirection: "row", gap: 8 },
+  action: { flex: 1 },
 });

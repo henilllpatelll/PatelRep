@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { EngineeringState } from "@/components/engineering/EngineeringState";
 import { EngineeringSegmented } from "@/components/engineering/EngineeringSegmented";
 import { ManagementHeader, SectionTitle } from "@/components/engineering/pm/management/ManagementChrome";
@@ -22,6 +23,7 @@ import { useToast } from "@/lib/theme/useToast";
 
 const PROGRAMS = "/(app)/pm-schedules/management/programs";
 const APPROVALS = "/(app)/pm-schedules/management/approvals";
+const FORM = "/(app)/pm-schedules/management/schedule-form";
 const PERFORMANCE = "/(app)/pm-schedules/management/performance";
 
 export default function PmManagementScreen() {
@@ -190,6 +192,7 @@ export default function PmManagementScreen() {
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textMuted }]}>{t("pmMgmt.workload.disclaimer")}</Text>
 
             <SectionTitle>{t("pmMgmt.sections.programs")}</SectionTitle>
+            <Button label={t("pmMgmt.form.createTitle")} onPress={() => go(FORM)} disabled={!isOnline} testID="pm-mgmt-create" />
             <Pressable onPress={() => go(PROGRAMS)} accessibilityRole="button" testID="pm-mgmt-open-programs">
               <Card style={styles.rowCard}>
                 <Ionicons name="list-outline" size={20} color={theme.textSecondary} />

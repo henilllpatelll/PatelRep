@@ -314,3 +314,22 @@ export async function retireAsset(assetId: string, reason: string, expectedRowVe
   });
   return res.data;
 }
+
+/** Starts downtime on equipment. The server stamps the time and the signed-in person; a period already open is returned with `created: false`. */
+export async function startAssetDowntime(
+  assetId: string,
+  input: { downtimeType: "planned" | "unplanned"; impactLevel: "degraded" | "out_of_service"; notes: string | null },
+): Promise<{ created: boolean; period: AssetDowntime }> {
+  const res = await api.post<{ data: { created: boolean; period: AssetDowntime } }>(`/assets/${assetId}/downtime`, {
+    downtime_type: input.downtimeType,
+    impact_level: input.impactLevel,
+    notes: input.notes?.trim() || null,
+  });
+  return res.data;
+}
+
+/** Ends an open downtime period. It changes nothing else: no work order is closed, no room released, nothing marked repaired. */
+export async function restoreAssetDowntime(assetId: string, downtimeId: string, notes: string | null): Promise<{ restored: boolean; period: AssetDowntime }> {
+  const res = await api.post<{ data: { restored: boolean; period: AssetDowntime } }>(`/assets/${assetId}/downtime/${downtimeId}/restore`, { notes: notes?.trim() || null });
+  return res.data;
+}

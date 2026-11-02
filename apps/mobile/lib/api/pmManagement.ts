@@ -171,3 +171,72 @@ export async function setAssetCriticality(assetId: string, input: { criticality:
     expected_row_version: input.expectedRowVersion ?? null,
   });
 }
+
+/* ── schedule management (create, edit, checklist, deactivate) ── */
+
+export type PmIntervalType = "daily" | "weekly" | "monthly" | "quarterly" | "annual" | "custom";
+
+export interface PmScheduleCreateBody {
+  asset_id: string;
+  name: string;
+  description?: string | null;
+  interval_type: PmIntervalType;
+  interval_days?: number | null;
+  estimated_minutes: number;
+  next_due_at: string;
+  recurrence_basis: "scheduled_date" | "completion_date";
+  checklist_template_id?: string | null;
+}
+
+/** The server validates the property, the equipment (active, same property) and the procedure (active, engineering). */
+export async function createPmSchedule(body: PmScheduleCreateBody): Promise<{ id: string }> {
+  return (await api.post<{ data: { id: string } }>("/assets/pm-schedules", body)).data;
+}
+
+/** Edits send only what changed plus the version the manager saw; a newer version on the server refuses (409 version_conflict). */
+export async function updatePmSchedule(scheduleId: string, changes: Record<string, unknown>, expectedVersion: number): Promise<void> {
+  await api.patch(`/assets/pm-schedules/${scheduleId}`, { ...changes, expected_version: expectedVersion });
+}
+
+/** Bind (or null = unbind) the procedure. Past inspections keep the procedure they were done against. */
+export async function assignPmChecklist(scheduleId: string, templateId: string | null): Promise<void> {
+  await api.put(`/assets/pm-schedules/${scheduleId}/checklist`, { checklist_template_id: templateId });
+}
+
+/** Soft deactivation: completions, history and the equipment stay; future inspections stop being scheduled. */
+export async function deactivatePmSchedule(scheduleId: string): Promise<void> {
+  await api.delete(`/assets/pm-schedules/${scheduleId}`);
+}
+
+/* ── equipment attention overview ── */
+
+export interface AssetOverviewItem {
+  id: string;
+  name: string | null;
+  asset_tag: string | null;
+  location_text: string | null;
+  criticality: Criticality | null;
+  warranty_expires: string | null;
+  downtime_impact: string | null;
+}
+
+export interface AssetOverviewSection {
+  count: number;
+  items: AssetOverviewItem[];
+}
+
+export interface AssetOverview {
+  critical: AssetOverviewSection;
+  out_of_service: AssetOverviewSection;
+  active_repairs: AssetOverviewSection;
+  warranty_expiring: AssetOverviewSection;
+  warranty_expired: AssetOverviewSection;
+  retired: { count: number };
+  active_assets: number;
+  warranty_unknown: number;
+  warranty_window_days: number;
+}
+
+export async function getAssetOverview(): Promise<AssetOverview> {
+  return (await api.get<{ data: AssetOverview }>("/pm-management/asset-overview")).data;
+}

@@ -467,3 +467,80 @@ def test_deferral_list_resolves_context_scopes_to_the_property_and_flags_stale_r
 def test_deferral_list_is_manager_only(monkeypatch):
     client = make_client(monkeypatch, _Db(**base_tables(pm_schedules=[])), role="engineer", user_id=TECH_A)
     assert client.get("/pm-management/deferrals").status_code == 403
+
+
+# --- asset overview + warranty ----------------------------------------------------
+
+def test_warranty_state_rules():
+    from datetime import date
+    from routers.pm_management import warranty_state
+    today = date(2026, 11, 2)
+    assert warranty_state(None, today) == "unknown"
+    assert warranty_state("garbage", today) == "unknown"
+    assert warranty_state("2026-11-01", today) == "expired"
+    assert warranty_state("2026-11-02", today) == "expiring_soon"      # the last day still counts
+    assert warranty_state("2027-01-31", today) == "expiring_soon"      # exactly 90 days
+    assert warranty_state("2027-02-01", today) == "active"
+
+
+def test_asset_overview_uses_recorded_facts_scopes_to_the_property_and_excludes_retired(monkeypatch):
+    soon = (NOW + timedelta(days=30)).date().isoformat()
+    past = (NOW - timedelta(days=30)).date().isoformat()
+    far = (NOW + timedelta(days=400)).date().isoformat()
+    def asset(n, **over):
+        row = {"id": f"a{n}", "tenant_id": TENANT, "name": f"Asset {n}", "asset_tag": f"T{n}", "location_text": "Roof", "criticality": "medium", "warranty_expires": None, "is_active": True}
+        row.update(over)
+        return row
+    db = _Db(**base_tables(
+        assets=[
+            asset(1, criticality="life_safety", warranty_expires=soon),
+            asset(2, criticality="high", warranty_expires=far),
+            asset(3, criticality="low", warranty_expires=past),
+            asset(4, criticality="life_safety", is_active=False),       # retired: not coverage
+            asset(5, tenant_id=OTHER_TENANT, criticality="life_safety"),
+        ],
+        asset_downtime_periods=[
+            {"tenant_id": TENANT, "asset_id": "a3", "impact_level": "out_of_service", "started_at": iso(-3), "restored_at": None},
+            {"tenant_id": TENANT, "asset_id": "a2", "impact_level": "degraded", "started_at": iso(-9), "restored_at": iso(-8)},   # ended
+        ],
+        work_orders=[
+            {"tenant_id": TENANT, "asset_id": "a2", "status": "in_progress"},
+            {"tenant_id": TENANT, "asset_id": "a1", "status": "completed"},
+            {"tenant_id": OTHER_TENANT, "asset_id": "a1", "status": "open"},
+        ],
+    ))
+    data = make_client(monkeypatch, db).get("/pm-management/asset-overview").json()["data"]
+    assert [i["id"] for i in data["critical"]["items"]] == ["a1", "a2"]          # life safety first, retired + other hotel excluded
+    assert [i["id"] for i in data["out_of_service"]["items"]] == ["a3"]
+    assert [i["id"] for i in data["active_repairs"]["items"]] == ["a2"]
+    assert [i["id"] for i in data["warranty_expiring"]["items"]] == ["a1"]
+    assert [i["id"] for i in data["warranty_expired"]["items"]] == ["a3"]
+    assert data["retired"]["count"] == 1 and data["active_assets"] == 3 and data["warranty_unknown"] == 0
+
+
+def test_asset_overview_is_manager_only(monkeypatch):
+    client = make_client(monkeypatch, _Db(**base_tables(assets=[])), role="engineer", user_id=TECH_A)
+    assert client.get("/pm-management/asset-overview").status_code == 403
+
+
+# --- downtime audit ------------------------------------------------------------------
+
+def test_downtime_start_and_end_are_audited_once_and_replays_are_not(monkeypatch):
+    aid = "00000000-0000-4000-8000-0000000000aa"
+    period = {"id": "p1", "impact_level": "out_of_service", "downtime_type": "unplanned", "restored_at": iso(0), "downtime_minutes": 12}
+    state = {"created": True, "restored": True}
+    def handler(name, params):
+        if name == "start_asset_downtime":
+            return {"created": state["created"], "period": period}
+        return {"restored": state["restored"], "period": period}
+    db = _Db(rpc_handler=handler, **base_tables(assets=[{"id": aid, "tenant_id": TENANT, "is_active": True}]))
+    client = make_client(monkeypatch, db, role="engineer", user_id=TECH_A)
+    assert client.post(f"/assets/{aid}/downtime", json={"impact_level": "out_of_service", "notes": "Pump seized"}).status_code == 200
+    assert client.post(f"/assets/{aid}/downtime/p1/restore", json={}).status_code == 200
+    actions = [e["action"] for e in db.tables["operational_audit_events"]]
+    assert actions == ["asset.downtime_started", "asset.downtime_ended"]
+    assert db.tables["operational_audit_events"][0]["actor_id"] == TECH_A
+    state.update(created=False, restored=False)                     # a retry / second tap
+    client.post(f"/assets/{aid}/downtime", json={})
+    client.post(f"/assets/{aid}/downtime/p1/restore", json={})
+    assert len(db.tables["operational_audit_events"]) == 2

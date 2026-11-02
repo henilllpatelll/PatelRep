@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { warrantyState } from "@/lib/engineering/scheduleForm";
 import { useTheme } from "@/lib/theme/useTheme";
 import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
@@ -40,6 +41,8 @@ interface Props {
   canRetire?: boolean;
   /** Set the equipment's criticality - the same managers who may retire it. */
   onCriticality?: () => void;
+  /** Record or end downtime (engineers, chief engineer, GM - the same people the API allows). */
+  onDowntime?: () => void;
   onEdit?: () => void;
   onLabel?: () => void;
   onScan?: () => void;
@@ -63,7 +66,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Equipment identity, what is happening to it right now, and the actions an engineer takes from here. */
-export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onCriticality, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
+export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onCriticality, onDowntime, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -73,7 +76,7 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
   const lastPm = pm.map((p) => p.lastCompletedAt).filter((v): v is string => !!v).sort().pop() ?? null;
   const downtime = asset.active_downtime ?? null;
   const warranty = asset.warranty_expires ? formatDayYear(asset.warranty_expires, timezone, language) : null;
-  const warrantyExpired = !!asset.warranty_expires && asset.warranty_expires < (hotelDateKey(new Date(), timezone) ?? "");
+  const warrantyKind = warrantyState(asset.warranty_expires, timezone);
 
   const retired = asset.is_active === false;
   const specs: Array<[string, string | null]> = [
@@ -86,7 +89,7 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
     [t("assets.detail.location"), location],
     [t("assets.detail.criticality"), asset.criticality ? t(`assets.criticality.${asset.criticality}`) : null],
     [t("assets.detail.installed"), asset.installation_date ? formatDayYear(asset.installation_date, timezone, language) : null],
-    [t("assets.detail.warranty"), warranty ? (warrantyExpired ? t("assets.detail.warrantyExpired", { date: warranty }) : t("assets.detail.warrantyUntil", { date: warranty })) : null],
+    [t("assets.detail.warranty"), warranty ? t(`assets.detail.warrantyState.${warrantyKind === "unknown" ? "active" : warrantyKind}`, { date: warranty }) : null],
   ];
   const shown = specs.filter((row): row is [string, string] => !!row[1]);
 
@@ -238,6 +241,17 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
               onOpenRoom();
             }}
             testID="asset-action-room"
+          />
+        ) : null}
+        {onDowntime && !retired ? (
+          <MoreRow
+            icon={downtime ? "refresh-circle-outline" : "ban-outline"}
+            label={downtime ? t("assets.downtime.endAction") : t("assets.downtime.startAction")}
+            onPress={() => {
+              setMoreOpen(false);
+              onDowntime();
+            }}
+            testID="asset-action-downtime"
           />
         ) : null}
         {canRetire && onCriticality && !retired ? (

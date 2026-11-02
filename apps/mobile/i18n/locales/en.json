@@ -2709,7 +2709,12 @@
       "qrLabel": "QR label",
       "scanAnother": "Scan equipment",
       "retire": "Retire equipment",
-      "retiredBanner": "This equipment is retired. Its history stays here, but no new repairs, readings or inspections can be started."
+      "retiredBanner": "This equipment is retired. Its history stays here, but no new repairs, readings or inspections can be started.",
+      "warrantyState": {
+        "active": "Until {{date}}",
+        "expiring_soon": "Ends soon: {{date}}",
+        "expired": "Expired {{date}}"
+      }
     },
     "workOrders": {
       "active": "Active",
@@ -3010,6 +3015,54 @@
         "unconfirmed": "No answer from the server, so we can't tell if it was retired. Check the equipment before trying again.",
         "forbidden": "Only a chief engineer or GM can retire equipment.",
         "failed": "Couldn't retire this equipment. Try again."
+      }
+    },
+    "management": {
+      "title": "Asset Management",
+      "subtitle": "Equipment that needs a manager's attention.",
+      "open": "Asset Management",
+      "empty": "No equipment records to show yet.",
+      "group": {
+        "critical": "Critical equipment",
+        "out_of_service": "Down now",
+        "active_repairs": "Open repairs",
+        "warranty_expiring": "Warranty ending",
+        "warranty_expired": "Warranty ended"
+      },
+      "about": {
+        "critical": "Equipment your property marked Life safety or High. Life safety first.",
+        "out_of_service": "Equipment with recorded downtime that hasn't been ended.",
+        "active_repairs": "Equipment with a work order that is open, in progress, escalated or on hold.",
+        "warranty_expiring": "Recorded warranty end dates within the next {{days}} days.",
+        "warranty_expired": "Recorded warranty end dates that have passed."
+      },
+      "none": "Nothing here right now.",
+      "warrantyDate": "Warranty date {{date}}",
+      "showingFirst": "Showing the first {{shown}} of {{total}}.",
+      "sectionRecords": "Records",
+      "summary": "{{active}} active · {{retired}} retired · {{unknown}} with no warranty date recorded",
+      "disclaimer": "These come from recorded dates and statuses. A warranty date doesn't say a claim would be accepted, and criticality is your property's own assessment."
+    },
+    "downtime": {
+      "startAction": "Record downtime",
+      "endAction": "End downtime",
+      "startTitle": "Record downtime",
+      "endTitle": "End downtime",
+      "start": "Record downtime",
+      "end": "End downtime",
+      "startBody": "Record that {{name}} is down or running below normal.",
+      "endBody": "{{name}} has been down since {{since}}. Record that it is back in service.",
+      "impact": "Condition",
+      "kind": "Type",
+      "notes": "What happened (optional)",
+      "endNotes": "Notes (optional)",
+      "notesPlaceholder": "Add context for the record",
+      "startScope": "The time and your name are recorded automatically. This does not take any guest room out of order - that is a separate decision.",
+      "endScope": "The time and your name are recorded automatically. This does not close a work order or mark anything repaired.",
+      "done": {
+        "started": "Downtime recorded",
+        "ended": "Downtime ended",
+        "already_open": "Downtime was already open"
       }
     }
   },
@@ -12044,7 +12097,8 @@
         "missing": "Its procedure no longer exists. Choose a current one.",
         "inactive": "Its procedure was retired. Choose a current one.",
         "incompatible": "Its procedure is not an engineering checklist."
-      }
+      },
+      "edit": "Edit"
     },
     "assign": {
       "title": "Assign Inspection",
@@ -12161,6 +12215,64 @@
       "validation": "Check the details and try again.",
       "unconfirmed": "No answer from the server, so we can't tell whether it went through. Check before trying again.",
       "failed": "That didn't work. Nothing was confirmed - try again."
+    },
+    "form": {
+      "createTitle": "Create PM Schedule",
+      "createSubtitle": "Plan recurring maintenance for equipment.",
+      "editTitle": "Edit PM Schedule",
+      "sectionEquipment": "Equipment",
+      "equipmentFixed": "A schedule stays with its equipment. To move it to other equipment, create a new schedule.",
+      "changeEquipment": "Change",
+      "searchEquipment": "Search equipment by name, tag or location",
+      "noEquipment": "No active equipment matches.",
+      "name": "Schedule name",
+      "description": "Instructions (optional)",
+      "descriptionPlaceholder": "Anything the technician should know",
+      "sectionProcedure": "Inspection procedure",
+      "templatesFailed": "Couldn't load the inspection procedures. Go back and try again.",
+      "noTemplates": "No active inspection procedure exists, so a schedule can't be created yet.",
+      "templateMeta": "Version {{version}} · {{steps}} steps · {{evidence}} need a photo",
+      "boundMissing": "This schedule's current procedure is no longer available. Choose a current one before saving.",
+      "checklistWarning": "Changing the procedure applies to future inspections. Past inspections keep the procedure they were done with, and an inspection already in progress on someone's phone keeps the old one until they start over.",
+      "sectionRecurrence": "Repeats",
+      "everyDays": "Every how many days",
+      "dueNote": "The due date isn't edited here. To postpone this inspection, use Request deferral, which another manager approves.",
+      "firstDue": "First due date",
+      "basis": "Next due date is counted from",
+      "basisScheduled": "The scheduled date",
+      "basisScheduledHint": "Late work doesn't push the next one back",
+      "basisCompletion": "The completion date",
+      "basisCompletionHint": "The next one is counted from when it was done",
+      "minutes": "Estimated minutes",
+      "sectionResponsibility": "Who does it",
+      "responsibilityNote": "Engineers carry out inspections. Assign a specific person from Programs or the schedule page - assignment applies to one inspection at a time.",
+      "sectionReview": "Review",
+      "reviewEquipment": "Equipment",
+      "reviewProcedure": "Procedure",
+      "reviewRepeats": "Repeats",
+      "everyNDays": "Every {{days}} days",
+      "create": "Create Schedule",
+      "save": "Save changes",
+      "savedToast": "Schedule updated",
+      "createdToast": "Schedule created",
+      "deactivatedToast": "Schedule deactivated",
+      "partial": "The schedule details were saved, but the procedure change was not. Check the schedule, then try the procedure again.",
+      "deactivate": "Deactivate schedule",
+      "deactivateTitle": "Deactivate schedule",
+      "deactivateBody": "Stop scheduling \"{{name}}\"?",
+      "deactivateEffects": "No new inspections will come due and it can't be completed any more. Every past inspection, photo and finding stays on record, and nothing is deleted.",
+      "deactivateConfirm": "Deactivate",
+      "problem": {
+        "asset_missing": "Choose the equipment.",
+        "name_missing": "Give the schedule a name.",
+        "name_long": "That name is too long.",
+        "description_long": "That text is too long.",
+        "interval_days": "Enter a number of days from 1 to 3650.",
+        "minutes": "Enter minutes from 1 to 1440.",
+        "due_missing": "Choose the first due date.",
+        "due_past": "Choose today or a later date.",
+        "checklist_missing": "Choose the inspection procedure."
+      }
     }
   }
 }

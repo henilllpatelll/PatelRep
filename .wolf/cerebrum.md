@@ -1099,3 +1099,4 @@
 - `Card` takes no `accessible`/a11y props: wrap it in a View. `ChoiceChips` takes `{value,label}` options + `testIDPrefix`. Theme status tokens: ready/clean/inProgress/dirty/pickup/outOfOrder (+Soft); there is no "inspected".
 - `InlineError` renders icon + text: assert with getByText, not `.props.children`.
 - Do-Not-Repeat (repeat of the Phase 4 entry): scripted Python edits on Windows MUST pass encoding="utf-8" (or work in bytes). A bare open() wrote an em dash as 0x97 and the Edit tool then refused the file as non-UTF-8.
+- [2026-11-02] Any screen that calls useToast() needs ToastProvider in its test wrapper (PmScheduleDetail.test broke when the detail screen gained a toast). Run the PM/asset-named jest files after touching shared screens: `find __tests__ -iname "*pm*" -o -iname "*asset*"` with --maxWorkers=2 (the whole suite was killed for memory).

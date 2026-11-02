@@ -501,3 +501,86 @@ async def get_performance(
         "note": "Still overdue and upcoming describe the schedules as they stand now, not the selected period. "
                 "Completions before deadline capture began have no recorded deadline and are excluded from the rate.",
     }}
+
+
+# ---------------------------------------------------------------------------
+# GET /pm-management/asset-overview
+# ---------------------------------------------------------------------------
+
+ASSET_SCAN_LIMIT = 5000
+WARRANTY_SOON_DAYS = 90
+ACTIVE_WORK_ORDER_STATUSES = ("open", "escalated", "in_progress", "on_hold")
+OVERVIEW_LIST_LIMIT = 25
+_CRITICALITY_RANK = {"life_safety": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def warranty_state(expires, today) -> str:
+    """unknown (no date recorded) | active | expiring_soon (today..90 days) | expired. It reports the recorded date only:
+    it says nothing about whether a claim would be honoured (exclusions, service requirements and terms still apply)."""
+    if not expires:
+        return "unknown"
+    try:
+        day = expires if hasattr(expires, "toordinal") else datetime.fromisoformat(str(expires)[:10]).date()
+    except ValueError:
+        return "unknown"
+    days = (day - today).days
+    if days < 0:
+        return "expired"
+    return "expiring_soon" if days <= WARRANTY_SOON_DAYS else "active"
+
+
+@router.get("/asset-overview")
+async def get_asset_overview(current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))):
+    """Equipment that needs a manager's attention, from recorded facts only: criticality set by the property, warranty
+    dates, open downtime, open repairs and retirement. Nothing here is inferred from a prediction."""
+    tz = hotel_timezone(supabase, current_user.hotel_id)
+    today = local_today(tz, _now())
+    rows = supabase.table("assets").select("id, name, asset_tag, location_text, criticality, warranty_expires, is_active").eq(
+        "tenant_id", current_user.hotel_id
+    ).limit(ASSET_SCAN_LIMIT + 1).execute().data or []
+    truncated = len(rows) > ASSET_SCAN_LIMIT
+    rows = rows[:ASSET_SCAN_LIMIT]
+    active = [a for a in rows if a.get("is_active") is not False]
+    retired = [a for a in rows if a.get("is_active") is False]
+
+    downtime = {
+        str(d["asset_id"]): d
+        for d in supabase.table("asset_downtime_periods").select("asset_id, impact_level, started_at").eq(
+            "tenant_id", current_user.hotel_id
+        ).is_("restored_at", "null").limit(ASSET_SCAN_LIMIT).execute().data or []
+    }
+    repair_assets = {
+        str(w["asset_id"])
+        for w in supabase.table("work_orders").select("asset_id, status").eq("tenant_id", current_user.hotel_id).in_(
+            "status", list(ACTIVE_WORK_ORDER_STATUSES)
+        ).limit(ASSET_SCAN_LIMIT).execute().data or []
+        if w.get("asset_id")
+    }
+
+    def card(a: dict, **extra) -> dict:
+        return {"id": a["id"], "name": a.get("name"), "asset_tag": a.get("asset_tag"), "location_text": a.get("location_text"),
+                "criticality": a.get("criticality"), **extra}
+
+    critical = sorted((a for a in active if a.get("criticality") in ("life_safety", "high")),
+                      key=lambda a: (_CRITICALITY_RANK.get(a.get("criticality"), 9), (a.get("name") or "").lower()))
+    states = {str(a["id"]): warranty_state(a.get("warranty_expires"), today) for a in active}
+    soon = sorted((a for a in active if states[str(a["id"])] == "expiring_soon"), key=lambda a: str(a.get("warranty_expires")))
+    expired = [a for a in active if states[str(a["id"])] == "expired"]
+    out_of_service = [a for a in active if str(a["id"]) in downtime]
+    repairs = [a for a in active if str(a["id"]) in repair_assets]
+
+    def section(items: list[dict]) -> dict:
+        return {"count": len(items), "items": [card(a, warranty_expires=a.get("warranty_expires"), downtime_impact=(downtime.get(str(a["id"])) or {}).get("impact_level"))
+                                               for a in items[:OVERVIEW_LIST_LIMIT]]}
+
+    return {"data": {
+        "critical": section(critical),
+        "out_of_service": section(out_of_service),
+        "active_repairs": section(repairs),
+        "warranty_expiring": section(soon),
+        "warranty_expired": section(expired),
+        "retired": {"count": len(retired)},
+        "active_assets": len(active),
+        "warranty_unknown": sum(1 for s in states.values() if s == "unknown"),
+        "warranty_window_days": WARRANTY_SOON_DAYS,
+    }, "meta": {"truncated": truncated}}

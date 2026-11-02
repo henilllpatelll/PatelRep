@@ -59,23 +59,23 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | assets.py | /v1/assets/lookup | GET | none |  |
 | assets.py | /v1/assets/{asset_id}/downtime | GET | none |  |
 | assets.py | /v1/assets/{asset_id}/downtime | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1131] |
-| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1148] |
+| assets.py | /v1/assets/{asset_id}/downtime/{downtime_id}/restore | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1156] |
 | assets.py | /v1/assets/{asset_id}/reliability | GET | none |  |
-| assets.py | /v1/assets/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1203] |
+| assets.py | /v1/assets/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1218] |
 | assets.py | /v1/assets/meters/{meter_id} | GET | none |  |
-| assets.py | /v1/assets/meters/{meter_id} | PATCH | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1226] |
+| assets.py | /v1/assets/meters/{meter_id} | PATCH | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1241] |
 | assets.py | /v1/assets/meters/{meter_id}/readings | GET | none |  |
-| assets.py | /v1/assets/meters/{meter_id}/readings | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1267] |
+| assets.py | /v1/assets/meters/{meter_id}/readings | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L1282] |
 | assets.py | /v1/assets/{asset_id}/meters | GET | none |  |
-| assets.py | /v1/assets/{asset_id}/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1294] |
+| assets.py | /v1/assets/{asset_id}/meters | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L1309] |
 | assets.py | /v1/assets/{asset_id}/condition-summary | GET | none |  |
 | assets.py | /v1/assets/{asset_id} | GET | none |  |
-| assets.py | /v1/assets/{asset_id} | PATCH | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1369] |
-| assets.py | /v1/assets/{asset_id}/retire | POST | chief_engineer, gm | require_role(*ASSET_RETIRE_ROLES) [L1460] |
-| assets.py | /v1/assets/{asset_id}/criticality | PUT | chief_engineer, gm | require_role(*ASSET_RETIRE_ROLES) [L1507] |
-| assets.py | /v1/assets/{asset_id}/photo | PUT | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1580] |
-| assets.py | /v1/assets/{asset_id}/photo | DELETE | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1622] |
-| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L1649] |
+| assets.py | /v1/assets/{asset_id} | PATCH | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1384] |
+| assets.py | /v1/assets/{asset_id}/retire | POST | chief_engineer, gm | require_role(*ASSET_RETIRE_ROLES) [L1475] |
+| assets.py | /v1/assets/{asset_id}/criticality | PUT | chief_engineer, gm | require_role(*ASSET_RETIRE_ROLES) [L1522] |
+| assets.py | /v1/assets/{asset_id}/photo | PUT | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1595] |
+| assets.py | /v1/assets/{asset_id}/photo | DELETE | chief_engineer, engineer, gm | require_role(*ASSET_MANAGER_ROLES) [L1637] |
+| assets.py | /v1/assets/{asset_id}/run-prediction | POST | engineer, gm | require_role('gm', 'engineer') [L1664] |
 | assets.py | /v1/assets/pm-schedules/{schedule_id}/completions/{completion_id} | GET | none |  |
 | auth.py | /v1/auth/me | GET | none |  |
 | auth.py | /v1/auth/hotel-context | POST | none |  |
@@ -328,6 +328,7 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | pm_management.py | /v1/pm-management/workload | GET | chief_engineer, gm | require_role(*PM_SCHEDULE_MANAGER_ROLES) [L344] |
 | pm_management.py | /v1/pm-management/technicians/{user_id}/assignments | GET | chief_engineer, gm | require_role(*PM_SCHEDULE_MANAGER_ROLES) [L401] |
 | pm_management.py | /v1/pm-management/performance | GET | chief_engineer, gm | require_role(*PM_SCHEDULE_MANAGER_ROLES) [L421] |
+| pm_management.py | /v1/pm-management/asset-overview | GET | chief_engineer, gm | require_role(*PM_SCHEDULE_MANAGER_ROLES) [L533] |
 | programs.py | /v1/programs/overview | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*PROGRAM_MANAGER_ROLES) [L85] |
 | programs.py | /v1/programs/pm-templates | GET | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L109] |
 | programs.py | /v1/programs/templates/initialize | POST | gm | require_role('gm') [L119] |
@@ -624,4 +625,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2307] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2381] |
 
-**55 routers, 613 routes.**
+**55 routers, 614 routes.**

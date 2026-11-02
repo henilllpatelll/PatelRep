@@ -1138,19 +1138,34 @@ async def start_asset_downtime(asset_id: str, request: StartAssetDowntimeRequest
             raise HTTPException(status_code=404, detail="Work order not found")
         if str(work_order.data.get("asset_id") or "") != asset_id:
             raise HTTPException(status_code=422, detail="Work order must be linked to this asset")
-    return {"data": start_asset_downtime_service(
+    outcome = start_asset_downtime_service(
         db=supabase, asset_id=asset_id, tenant_id=current_user.hotel_id, actor_id=current_user.user_id,
         payload=request.model_dump(mode="json", exclude_none=True),
-    )}
+    )
+    # `created: false` = an open period already existed (a retry or a second tap): returned as is, audited once.
+    if (outcome or {}).get("created"):
+        period = outcome.get("period") or {}
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.downtime_started",
+               old_state={}, new_state={"downtime_id": period.get("id"), "impact_level": period.get("impact_level"),
+                                        "downtime_type": period.get("downtime_type"), "work_order_id": period.get("work_order_id")},
+               reason_note=request.notes)
+    return {"data": outcome}
 
 
 @router.post("/{asset_id}/downtime/{downtime_id}/restore")
 async def restore_asset_downtime(asset_id: str, downtime_id: str, request: RestoreAssetDowntimeRequest, current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))):
     _asset_or_404(asset_id, current_user)
-    return {"data": restore_asset_downtime_service(
+    outcome = restore_asset_downtime_service(
         db=supabase, asset_id=asset_id, downtime_id=downtime_id, tenant_id=current_user.hotel_id,
         actor_id=current_user.user_id, notes=request.notes,
-    )}
+    )
+    # Ending downtime changes nothing else: no work order is closed, no room is released, nothing is marked repaired.
+    if (outcome or {}).get("restored"):
+        period = outcome.get("period") or {}
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.downtime_ended",
+               old_state={"downtime_id": downtime_id}, new_state={"restored_at": period.get("restored_at"), "downtime_minutes": period.get("downtime_minutes")},
+               reason_note=request.notes)
+    return {"data": outcome}
 
 
 @router.get("/{asset_id}/reliability")

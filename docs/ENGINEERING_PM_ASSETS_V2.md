@@ -264,6 +264,10 @@ on time = `completed_at <= due_at`; late = after; `no_recorded_deadline` is repo
 Programs (search + filters + paging + assign), Pending Approvals (+ Decided), PM Performance. Schedule detail: assignee +
 Assign/Reassign + Request deferral. Asset detail -> More -> Set criticality. Technician cards show "Assigned to you".
 
-**Not in Phase 5 (stated, not hidden):** create/edit/reschedule/deactivate-schedule forms (the API for them already exists from
-Phase 1/3; no mobile UI), the Assets management dashboard, warranty-state chips, a downtime sheet (the API exists), asset
-reinstatement (unsupported by the backend, so no action is shown), a per-technician performance filter UI, and any device run.
+**Completed in the second Phase 5 pass:**
+- *Schedule form* (`pm-schedules/management/schedule-form`): create (real equipment search, real procedure, recurrence, hotel-local first due date, review) and edit (only changed fields + `expected_version`; procedure bound through its own write, with a "details saved, procedure not" message if the second write fails) and deactivate (confirmation; nothing deleted). **Editing has no due-date field by design**: postponing is a deferral request another manager approves. The API still lets a chief engineer/GM PATCH `next_due_at` directly; that is a Phase 1 control left unchanged.
+- *Asset Management* (`assets/management`, `GET /v1/pm-management/asset-overview`): critical equipment (life safety/high), down now, open repairs, warranty ending (<= 90 days) and ended, with retired/unknown counts. Recorded facts only.
+- *Warranty state* (active / ends soon / expired / unknown) from the recorded date in the hotel calendar, same rule on server and app.
+- *Downtime sheet* (More -> Record / End downtime): server stamps time and person; a repeat start returns the open period; start/end are now audited (`asset.downtime_started/ended`, once). It does not change room availability, close work orders or mark repairs.
+
+**Still not done:** asset reinstatement (backend does not support it, so no action), a per-technician performance filter UI, create-schedule retry-dedupe (POST has no client id: a lost response is reported as unconfirmed and the manager is told to check Programs), and any device run.

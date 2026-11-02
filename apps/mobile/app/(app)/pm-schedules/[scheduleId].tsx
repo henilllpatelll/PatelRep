@@ -293,6 +293,7 @@ export default function PmScheduleDetailScreen() {
                   disabled={!isOnline}
                   testID="pm-detail-assign"
                 />
+                <Button label={t("pmMgmt.programs.edit")} variant="secondary" onPress={() => router.push({ pathname: "/(app)/pm-schedules/management/schedule-form", params: { scheduleId: schedule.id } } as never)} disabled={!isOnline} testID="pm-detail-edit" />
                 {canDefer ? (
                   <Button label={t("pmMgmt.deferral.open")} variant="secondary" onPress={() => setDeferOpen(true)} disabled={!isOnline} testID="pm-detail-defer" />
                 ) : null}

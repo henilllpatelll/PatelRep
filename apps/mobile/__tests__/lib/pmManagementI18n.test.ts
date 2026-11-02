@@ -14,7 +14,7 @@ function leaves(node: Tree, prefix = ""): Record<string, string> {
 
 const placeholders = (text: string) => (text.match(/\{\{\s*\w+\s*\}\}/g) ?? []).map((p) => p.replace(/\s/g, "")).sort();
 const ROOT = path.resolve(__dirname, "../..");
-const SOURCES = ["app/(app)/pm-schedules", "components/engineering/pm/management", "components/engineering/assets", "components/engineering/pm", "app/(app)/assets"];
+const SOURCES = ["app/(app)/pm-schedules", "components/engineering/pm/management", "components/engineering/assets", "components/engineering/pm", "app/(app)/assets", "lib/engineering"];
 
 function sourceFiles(dir: string): string[] {
   const abs = path.join(ROOT, dir);
@@ -26,8 +26,15 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe("PM management strings", () => {
-  const enLeaves = { ...leaves((en as unknown as Tree).pmMgmt as Tree, "pmMgmt"), ...leaves(((en as unknown as Tree).assets as Tree).criticality as Tree, "assets.criticality") };
-  const esLeaves = { ...leaves((es as unknown as Tree).pmMgmt as Tree, "pmMgmt"), ...leaves(((es as unknown as Tree).assets as Tree).criticality as Tree, "assets.criticality") };
+  const collect = (root: Tree) => ({
+    ...leaves(root.pmMgmt as Tree, "pmMgmt"),
+    ...leaves((root.assets as Tree).criticality as Tree, "assets.criticality"),
+    ...leaves((root.assets as Tree).management as Tree, "assets.management"),
+    ...leaves((root.assets as Tree).downtime as Tree, "assets.downtime"),
+    ...leaves(((root.assets as Tree).detail as Tree).warrantyState as Tree, "assets.detail.warrantyState"),
+  });
+  const enLeaves = collect(en as unknown as Tree);
+  const esLeaves = collect(es as unknown as Tree);
 
   it("Spanish has exactly the English keys, with the same placeholders", () => {
     expect(Object.keys(esLeaves).sort()).toEqual(Object.keys(enLeaves).sort());
@@ -42,7 +49,7 @@ describe("PM management strings", () => {
     const used = new Set<string>();
     for (const file of SOURCES.flatMap(sourceFiles)) {
       const code = fs.readFileSync(path.join(ROOT, file), "utf8");
-      for (const match of code.matchAll(/\bt\(\s*"((?:pmMgmt|assets\.criticality)\.[\w.]+)"/g)) used.add(match[1]);
+      for (const match of code.matchAll(/\bt\(\s*"((?:pmMgmt|assets\.criticality|assets\.management|assets\.downtime|assets\.detail\.warrantyState)\.[\w.]+)"/g)) used.add(match[1]);
     }
     expect(used.size).toBeGreaterThan(40);
     const known = new Set(Object.keys(enLeaves).flatMap((k) => [k, k.replace(/_plural$/, "")]));
@@ -60,6 +67,11 @@ describe("PM management strings", () => {
       ["pmMgmt.performance.metric", ["onTime", "late", "overdue", "upcoming", "deferred", "findings"]],
       ["pmMgmt.period", ["today", "week", "month"]],
       ["assets.criticality.help", ["low", "medium", "high", "life_safety"]],
+      ["pmMgmt.form.problem", ["asset_missing", "name_missing", "name_long", "description_long", "interval_days", "minutes", "due_missing", "due_past", "checklist_missing"]],
+      ["assets.management.group", ["critical", "out_of_service", "active_repairs", "warranty_expiring", "warranty_expired"]],
+      ["assets.management.about", ["critical", "out_of_service", "active_repairs", "warranty_expiring", "warranty_expired"]],
+      ["assets.downtime.done", ["started", "ended", "already_open"]],
+      ["assets.detail.warrantyState", ["active", "expiring_soon", "expired"]],
     ];
     for (const [family, keys] of families) for (const key of keys) expect(enLeaves[`${family}.${key}`]).toBeTruthy();
   });

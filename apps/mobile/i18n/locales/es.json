@@ -2709,7 +2709,12 @@
       "qrLabel": "Etiqueta QR",
       "scanAnother": "Escanear equipo",
       "retire": "Dar de baja el equipo",
-      "retiredBanner": "Este equipo está dado de baja. Su historial se conserva aquí, pero no se pueden iniciar nuevas reparaciones, lecturas ni inspecciones."
+      "retiredBanner": "Este equipo está dado de baja. Su historial se conserva aquí, pero no se pueden iniciar nuevas reparaciones, lecturas ni inspecciones.",
+      "warrantyState": {
+        "active": "Hasta {{date}}",
+        "expiring_soon": "Vence pronto: {{date}}",
+        "expired": "Venció {{date}}"
+      }
     },
     "workOrders": {
       "active": "Activas",
@@ -3010,6 +3015,54 @@
         "unconfirmed": "El servidor no respondió, así que no sabemos si se dio de baja. Revisa el equipo antes de intentarlo de nuevo.",
         "forbidden": "Solo un ingeniero jefe o el gerente general puede dar de baja equipos.",
         "failed": "No se pudo dar de baja este equipo. Inténtalo de nuevo."
+      }
+    },
+    "management": {
+      "title": "Gestión de activos",
+      "subtitle": "Equipos que necesitan la atención de un gerente.",
+      "open": "Gestión de activos",
+      "empty": "Aún no hay registros de equipos que mostrar.",
+      "group": {
+        "critical": "Equipos críticos",
+        "out_of_service": "Fuera de servicio",
+        "active_repairs": "Reparaciones abiertas",
+        "warranty_expiring": "Garantía por vencer",
+        "warranty_expired": "Garantía vencida"
+      },
+      "about": {
+        "critical": "Equipos que su propiedad marcó como Seguridad de vida o Alta. Primero seguridad de vida.",
+        "out_of_service": "Equipos con tiempo fuera de servicio registrado que no se ha cerrado.",
+        "active_repairs": "Equipos con una orden de trabajo abierta, en curso, escalada o en espera.",
+        "warranty_expiring": "Fechas de fin de garantía registradas dentro de los próximos {{days}} días.",
+        "warranty_expired": "Fechas de fin de garantía registradas que ya pasaron."
+      },
+      "none": "No hay nada aquí por ahora.",
+      "warrantyDate": "Fecha de garantía {{date}}",
+      "showingFirst": "Mostrando los primeros {{shown}} de {{total}}.",
+      "sectionRecords": "Registros",
+      "summary": "{{active}} activos · {{retired}} retirados · {{unknown}} sin fecha de garantía registrada",
+      "disclaimer": "Esto proviene de fechas y estados registrados. Una fecha de garantía no garantiza que se acepte un reclamo, y la criticidad es la evaluación de su propiedad."
+    },
+    "downtime": {
+      "startAction": "Registrar tiempo fuera de servicio",
+      "endAction": "Terminar tiempo fuera de servicio",
+      "startTitle": "Registrar tiempo fuera de servicio",
+      "endTitle": "Terminar tiempo fuera de servicio",
+      "start": "Registrar",
+      "end": "Terminar",
+      "startBody": "Registre que {{name}} está fuera de servicio o funciona por debajo de lo normal.",
+      "endBody": "{{name}} está fuera de servicio desde {{since}}. Registre que volvió a funcionar.",
+      "impact": "Condición",
+      "kind": "Tipo",
+      "notes": "Qué pasó (opcional)",
+      "endNotes": "Notas (opcional)",
+      "notesPlaceholder": "Agregue contexto para el registro",
+      "startScope": "La hora y su nombre se registran automáticamente. Esto no saca ninguna habitación de servicio: esa es una decisión aparte.",
+      "endScope": "La hora y su nombre se registran automáticamente. Esto no cierra una orden de trabajo ni marca nada como reparado.",
+      "done": {
+        "started": "Tiempo fuera de servicio registrado",
+        "ended": "Tiempo fuera de servicio terminado",
+        "already_open": "Ya había un período abierto"
       }
     }
   },
@@ -12044,7 +12097,8 @@
         "missing": "Su procedimiento ya no existe. Elija uno vigente.",
         "inactive": "Su procedimiento fue retirado. Elija uno vigente.",
         "incompatible": "Su procedimiento no es una lista de verificación de ingeniería."
-      }
+      },
+      "edit": "Editar"
     },
     "assign": {
       "title": "Asignar inspección",
@@ -12161,6 +12215,64 @@
       "validation": "Revise los datos e inténtelo de nuevo.",
       "unconfirmed": "Sin respuesta del servidor, así que no sabemos si se procesó. Verifique antes de intentarlo de nuevo.",
       "failed": "No funcionó. No se confirmó nada: inténtelo de nuevo."
+    },
+    "form": {
+      "createTitle": "Crear programa de MP",
+      "createSubtitle": "Planifique mantenimiento recurrente para un equipo.",
+      "editTitle": "Editar programa de MP",
+      "sectionEquipment": "Equipo",
+      "equipmentFixed": "Un programa pertenece a su equipo. Para pasarlo a otro equipo, cree un programa nuevo.",
+      "changeEquipment": "Cambiar",
+      "searchEquipment": "Buscar equipo por nombre, etiqueta o ubicación",
+      "noEquipment": "Ningún equipo activo coincide.",
+      "name": "Nombre del programa",
+      "description": "Instrucciones (opcional)",
+      "descriptionPlaceholder": "Todo lo que el técnico deba saber",
+      "sectionProcedure": "Procedimiento de inspección",
+      "templatesFailed": "No se pudieron cargar los procedimientos. Regrese e inténtelo de nuevo.",
+      "noTemplates": "No existe ningún procedimiento de inspección activo, por lo que aún no se puede crear un programa.",
+      "templateMeta": "Versión {{version}} · {{steps}} pasos · {{evidence}} requieren foto",
+      "boundMissing": "El procedimiento actual de este programa ya no está disponible. Elija uno vigente antes de guardar.",
+      "checklistWarning": "Cambiar el procedimiento aplica a inspecciones futuras. Las inspecciones pasadas conservan el procedimiento con el que se hicieron, y una inspección ya iniciada en el teléfono de alguien conserva el anterior hasta que empiece de nuevo.",
+      "sectionRecurrence": "Se repite",
+      "everyDays": "Cada cuántos días",
+      "dueNote": "La fecha de vencimiento no se edita aquí. Para posponer esta inspección use Solicitar aplazamiento, que aprueba otro gerente.",
+      "firstDue": "Primera fecha de vencimiento",
+      "basis": "La siguiente fecha se cuenta desde",
+      "basisScheduled": "La fecha programada",
+      "basisScheduledHint": "El trabajo tardío no retrasa el siguiente",
+      "basisCompletion": "La fecha de finalización",
+      "basisCompletionHint": "La siguiente se cuenta desde que se hizo",
+      "minutes": "Minutos estimados",
+      "sectionResponsibility": "Quién lo hace",
+      "responsibilityNote": "Los ingenieros realizan las inspecciones. Asigne a una persona desde Programas o la página del programa: la asignación aplica a una inspección a la vez.",
+      "sectionReview": "Revisión",
+      "reviewEquipment": "Equipo",
+      "reviewProcedure": "Procedimiento",
+      "reviewRepeats": "Se repite",
+      "everyNDays": "Cada {{days}} días",
+      "create": "Crear programa",
+      "save": "Guardar cambios",
+      "savedToast": "Programa actualizado",
+      "createdToast": "Programa creado",
+      "deactivatedToast": "Programa desactivado",
+      "partial": "Los datos del programa se guardaron, pero el cambio de procedimiento no. Revise el programa e inténtelo de nuevo.",
+      "deactivate": "Desactivar programa",
+      "deactivateTitle": "Desactivar programa",
+      "deactivateBody": "¿Dejar de programar \"{{name}}\"?",
+      "deactivateEffects": "No vencerán nuevas inspecciones y ya no se podrá completar. Todas las inspecciones, fotos y hallazgos pasados quedan registrados y no se elimina nada.",
+      "deactivateConfirm": "Desactivar",
+      "problem": {
+        "asset_missing": "Elija el equipo.",
+        "name_missing": "Póngale un nombre al programa.",
+        "name_long": "Ese nombre es demasiado largo.",
+        "description_long": "Ese texto es demasiado largo.",
+        "interval_days": "Ingrese un número de días de 1 a 3650.",
+        "minutes": "Ingrese minutos de 1 a 1440.",
+        "due_missing": "Elija la primera fecha de vencimiento.",
+        "due_past": "Elija hoy o una fecha posterior.",
+        "checklist_missing": "Elija el procedimiento de inspección."
+      }
     }
   }
 }

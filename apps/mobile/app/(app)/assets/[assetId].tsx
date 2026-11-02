@@ -18,6 +18,7 @@ import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReli
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
 import { RetireSheet } from "@/components/engineering/assets/RetireSheet";
 import { CriticalitySheet } from "@/components/engineering/assets/CriticalitySheet";
+import { DowntimeSheet } from "@/components/engineering/assets/DowntimeSheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
   getAsset,
@@ -77,6 +78,7 @@ export default function AssetDetailScreen() {
   const [readingToken, setReadingToken] = useState(0);
   const [retireOpen, setRetireOpen] = useState(false);
   const [criticalityOpen, setCriticalityOpen] = useState(false);
+  const [downtimeOpen, setDowntimeOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
   // The tab screen is reused for another asset: start that one at the top, on Overview.
@@ -313,6 +315,7 @@ export default function AssetDetailScreen() {
               onScan={openScan}
               onRetire={() => setRetireOpen(true)}
               onCriticality={() => setCriticalityOpen(true)}
+              onDowntime={canRecord ? () => setDowntimeOpen(true) : undefined}
               onCreateWorkOrder={openReport}
               onOpenRoom={data.room_id ? openRoom : undefined}
               onGoto={go}
@@ -372,6 +375,22 @@ export default function AssetDetailScreen() {
         ) : null}
       </ScrollView>
 
+      <DowntimeSheet
+        visible={downtimeOpen}
+        asset={{ id: data.id, name: data.name, activeDowntime: data.active_downtime ?? null }}
+        timezone={timezone}
+        language={language}
+        isOnline={isOnline}
+        onClose={() => setDowntimeOpen(false)}
+        onDone={(result) => {
+          markAssetListStale();
+          toast.success(t(`assets.downtime.done.${result}`));
+          void asset.reload();
+          void downtime.reload();
+          void reliability.reload();
+        }}
+        onNeedsRefresh={() => void asset.reload()}
+      />
       <CriticalitySheet
         visible={criticalityOpen}
         asset={{ id: data.id, name: data.name, criticality: data.criticality, row_version: data.row_version }}

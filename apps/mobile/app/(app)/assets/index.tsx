@@ -21,7 +21,7 @@ import {
   type AssetRow,
 } from "@/lib/engineering/assetModel";
 import { resolveLoadState } from "@/lib/engineering/loadState";
-import { canManageAssets } from "@/lib/engineering/roles";
+import { canManageAssets, canRetireAssets } from "@/lib/engineering/roles";
 import { ASSET_NEW_ROUTE } from "@/lib/engineering/routes";
 import { recallAssetView, rememberAssetView, takeAssetListStale, useAssetBrowse } from "@/lib/engineering/useAssetBrowse";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
@@ -137,6 +137,17 @@ export default function AssetsScreen() {
               {t("assets.subtitle")}
             </Text>
           </View>
+          {canRetireAssets(user?.effective_role ?? user?.role) ? (
+            <Pressable
+              onPress={() => router.push("/(app)/assets/management" as never)}
+              accessibilityRole="button"
+              accessibilityLabel={t("assets.management.open")}
+              style={[styles.scanButton, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}
+              testID="asset-management-open"
+            >
+              <Ionicons name="shield-checkmark-outline" size={22} color={theme.shell.ink} />
+            </Pressable>
+          ) : null}
           {canAdd ? (
             <Pressable
               onPress={add}

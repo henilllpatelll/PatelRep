@@ -26,11 +26,17 @@ jest.mock("@/lib/api/pm", () => ({
   listPmTemplates: jest.fn(),
 }));
 jest.mock("@/lib/engineering/pmDraftStore", () => ({ loadPmDraft: jest.fn() }));
+let mockRole = "engineer";
+jest.mock("@/lib/api/pmManagement", () => ({
+  listPmTechnicians: jest.fn().mockResolvedValue([{ id: "u2", name: "Ana", role: "engineer" }]),
+  assignPmSchedule: jest.fn(),
+  requestPmDeferral: jest.fn(),
+}));
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
     useAppStore: makeAppStoreMock(() => ({
-      user: { id: "u1", tenant_id: "h1", role: "engineer" },
+      user: { id: "u1", tenant_id: "h1", role: mockRole },
       isOnline: true,
       hotelTimezone: "America/Chicago",
     })),
@@ -43,6 +49,7 @@ import { getPmAsset, listAssetMeters, listPmCompletions, listPmTemplates } from 
 import { loadPmDraft } from "@/lib/engineering/pmDraftStore";
 import PmScheduleDetailScreen from "@/app/(app)/pm-schedules/[scheduleId]";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { resetPmScheduleCache } from "@/lib/engineering/usePmSchedules";
 
 const schedulesApi = listPmSchedules as jest.Mock;
@@ -73,11 +80,14 @@ jest.setTimeout(20000);
 const renderScreen = () =>
   render(
     <ThemeProvider>
-      <PmScheduleDetailScreen />
+      <ToastProvider>
+        <PmScheduleDetailScreen />
+      </ToastProvider>
     </ThemeProvider>,
   );
 
 beforeEach(() => {
+  mockRole = "engineer";
   jest.clearAllMocks();
   resetPmScheduleCache();
   (getPmAsset as jest.Mock).mockResolvedValue({ id: "asset-7", name: "Boiler 1", asset_tag: "BL-1", service_status: "under_repair" });
@@ -143,5 +153,27 @@ describe("PM schedule detail", () => {
     const { findByTestId } = renderScreen();
     fireEvent.press(await findByTestId("pm-detail-history-c1"));
     expect(router.push).toHaveBeenCalledWith("/(app)/pm-schedules/record/c1?scheduleId=s1");
+  });
+
+  it("a chief engineer sees the management actions, wired to this exact schedule", async () => {
+    mockRole = "chief_engineer";
+    schedulesApi.mockResolvedValue([schedule({ row_version: 4, effective_assigned_to: "u2" })]);
+    const { findByTestId, getByTestId, findByText } = renderScreen();
+    await findByTestId("pm-detail-summary");
+    expect(getByTestId("pm-detail-assign")).toBeTruthy();
+    expect(getByTestId("pm-detail-defer")).toBeTruthy();
+    expect(await findByText("Ana")).toBeTruthy(); // the current assignee, by name
+    fireEvent.press(getByTestId("pm-detail-edit"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/pm-schedules/management/schedule-form", params: { scheduleId: "s1" } });
+  });
+
+  it("a line engineer sees no management actions", async () => {
+    schedulesApi.mockResolvedValue([schedule()]);
+    const { findByTestId, queryByTestId } = renderScreen();
+    await findByTestId("pm-detail-summary");
+    expect(queryByTestId("pm-detail-assign")).toBeNull();
+    expect(queryByTestId("pm-detail-defer")).toBeNull();
+    expect(queryByTestId("pm-detail-edit")).toBeNull();
+    expect(queryByTestId("pm-detail-start")).toBeTruthy(); // they still run the inspection
   });
 });
