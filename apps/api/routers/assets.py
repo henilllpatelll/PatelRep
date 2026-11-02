@@ -5,10 +5,11 @@ from uuid import UUID
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
 from core.roles import ASSET_MANAGER_ROLES, ASSET_RETIRE_ROLES, PM_EXECUTION_ROLES, PM_SCHEDULE_MANAGER_ROLES
-from models.requests import AssignPMChecklistRequest, AttachAssetPhotoRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, RetireAssetRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
+from models.requests import AssignPMChecklistRequest, AttachAssetPhotoRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, RetireAssetRequest, StartAssetDowntimeRequest, UpdateAssetCriticalityRequest, UpdateAssetRequest, UpdateMeterRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
+from services.programs.assignment import annotate_assignee
 from services.programs.checklist_binding import PmChecklistUnavailable, load_assignable_template, load_resolutions
 from services.programs.execution import PmCompletionRefused, persist_pm_completion
 from services.asset_reliability import calculate_asset_reliability, restore_asset_downtime as restore_asset_downtime_service, start_asset_downtime as start_asset_downtime_service, with_elapsed_minutes
@@ -507,6 +508,7 @@ async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user
     resolutions = load_resolutions(supabase, current_user.hotel_id, schedules)
     for schedule in schedules:
         schedule["checklist"] = resolutions[str(schedule["id"])]
+        annotate_assignee(schedule)
     return {"data": schedules}
 
 
@@ -524,6 +526,7 @@ async def get_pm_schedule(schedule_id: str, current_user: CurrentUser = Depends(
     if not schedule:
         raise HTTPException(status_code=404, detail="PM schedule not found")
     schedule["checklist"] = load_resolutions(supabase, current_user.hotel_id, [schedule])[str(schedule["id"])]
+    annotate_assignee(schedule)
     return {"data": schedule}
 
 
@@ -735,6 +738,9 @@ async def update_pm_schedule(
 ):
     """Update a PM schedule (reschedule, deactivate, change interval). Due-date, interval and active changes are audited."""
     body = await request.json()
+    expected_version = body.get("expected_version")
+    if expected_version is not None and (not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1):
+        raise HTTPException(status_code=422, detail="expected_version must be a positive integer")
     allowed = {"name", "description", "interval_type", "interval_days",
                "estimated_minutes", "next_due_at", "is_active", "assigned_to_role", "recurrence_basis"}
     update_data = {k: v for k, v in body.items() if k in allowed}
@@ -748,12 +754,24 @@ async def update_pm_schedule(
     if not before or not before.data:
         raise HTTPException(status_code=404, detail="PM schedule not found")
     previous = dict(before.data)
+    base_version = previous.get("row_version") or 1
+    if expected_version is not None and expected_version != base_version:
+        raise HTTPException(status_code=409, detail={
+            "code": "version_conflict", "current_version": base_version,
+            "message": "This schedule was changed by someone else. Review the latest version and try again.",
+        })
 
+    update_data["row_version"] = base_version + 1
     result = supabase.table("pm_schedules")\
         .update(update_data)\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
+        .eq("row_version", base_version)\
         .execute()
+    if not result.data:
+        raise HTTPException(status_code=409, detail={
+            "code": "version_conflict", "message": "This schedule was changed by someone else. Review the latest version and try again.",
+        })
     changed = {k: v for k, v in update_data.items() if k in _SCHEDULE_AUDITED_FIELDS and previous.get(k) != v}
     if changed:
         _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.updated",
@@ -1476,6 +1494,40 @@ async def retire_asset(
            old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]},
            reason_note=request.reason)
     return {"data": result.data[0]}
+
+
+# ---------------------------------------------------------------------------
+# 15b2. PUT /{asset_id}/criticality - the property's documented assessment of operational impact
+# ---------------------------------------------------------------------------
+
+@router.put("/{asset_id}/criticality")
+async def set_asset_criticality(
+    asset_id: str,
+    request: UpdateAssetCriticalityRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_RETIRE_ROLES)),
+):
+    """Set criticality (low | medium | high | life_safety). An administrative judgement by the equipment register's owner:
+    never inferred from the asset's category or a prediction, and a change is audited with its reason. Guarded by the
+    record's row_version so two managers cannot silently overwrite each other."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.get("is_active", True):
+        raise HTTPException(status_code=409, detail={"code": "asset_retired", "message": "Retired equipment cannot be reclassified."})
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+    previous = asset.get("criticality")
+    if previous == request.criticality:
+        return {"data": asset, "meta": {"changed": False}}
+    result = supabase.table("assets").update({"criticality": request.criticality, "row_version": base_version + 1}).eq(
+        "id", asset_id
+    ).eq("tenant_id", current_user.hotel_id).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.criticality_changed",
+           old_state={"criticality": previous}, new_state={"criticality": request.criticality}, reason_note=request.reason)
+    return {"data": result.data[0], "meta": {"changed": True}}
 
 
 # ---------------------------------------------------------------------------

@@ -12,6 +12,14 @@ CREATE TABLE auth.users (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
 CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE TABLE public.tenants (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
 
+CREATE TABLE public.user_profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  full_name text NOT NULL DEFAULT 'x', is_active boolean NOT NULL DEFAULT true);
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE, role text NOT NULL, is_active boolean NOT NULL DEFAULT true,
+  UNIQUE (user_id, tenant_id, role));
+
 CREATE TABLE public.assets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   name text NOT NULL, asset_tag text, is_active boolean NOT NULL DEFAULT true);

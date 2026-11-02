@@ -1283,6 +1283,22 @@ class DecidePMDeferralRequest(SanitizedBaseModel):
     note: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
 
 
+class AssignPMScheduleRequest(SanitizedBaseModel):
+    """Assign (or, with a null assignee, unassign) the technician for a schedule's CURRENT inspection.
+    `expected_version` is the schedule's row_version the caller saw; a stale value is refused, never overwritten."""
+
+    assignee_id: Optional[UUID4] = None
+    expected_version: int = Field(ge=1)
+
+
+class UpdateAssetCriticalityRequest(SanitizedBaseModel):
+    """An administrative assessment of operational impact - not a prediction. Values are the schema's own scale."""
+
+    criticality: Literal["low", "medium", "high", "life_safety"]
+    reason: Optional[str] = Field(default=None, max_length=LONG_TEXT_MAX)
+    expected_row_version: Optional[int] = Field(default=None, ge=1)
+
+
 class ProgramTemplateItemInput(SanitizedBaseModel):
     """One checklist item on a PM/housekeeping program template (D-05, G5)."""
 
