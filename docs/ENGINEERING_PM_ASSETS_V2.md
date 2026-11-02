@@ -462,9 +462,9 @@ Release decision: **NOT READY - blockers remain** (see "Blockers"). Nothing here
    There is no safe backend: local `apps/api/.env` points at production, and staging is item 1.
 
 ### Found and fixed in Phase 8
-- Migration `234_pm_management_assignments.sql` failed `node scripts/check-migrations.mjs` ("Destructive migration requires -- migration-safety:
-  destructive-reviewed and -- rollback-plan"). Both `DROP`s only re-create objects migration 234 itself creates. The two header lines were added
-  (no SQL changed). CI never ran on this branch, so this would have failed the first CI run.
+- Migration `234_pm_management_assignments.sql` contained `DROP POLICY`/`DROP TRIGGER`, which the staging planner (`scripts/staging-migration-plan.mjs`, PR #194)
+  refuses to auto-apply. The policy is now created inside a `pg_policies` existence guard and the trigger uses `CREATE OR REPLACE TRIGGER`; the
+  destructive-reviewed/rollback header was removed because nothing destructive remains. `scripts/engineering-migrations-plan.test.mjs` pins 232-235 as auto-appliable.
 
 ### Verification evidence (commit `c356c9ea` + the migration header edit)
 | Check | Command | Environment | Result |

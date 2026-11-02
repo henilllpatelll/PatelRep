@@ -1,5 +1,3 @@
--- migration-safety: destructive-reviewed
--- rollback-plan: Both DROP statements only re-create objects this migration itself creates (the pm_schedule_assignment_events_select policy and the pm_completion_capture_due_at trigger), so re-running is idempotent and no pre-existing object is removed. To roll back, drop the trigger, the policy, pm_schedule_assignment_events and the added pm_schedules/pm_completion_records columns; nothing historical is rewritten and the new columns are nullable.
 -- =============================================================================
 -- Migration 234: Engineering PM + Assets V2 - management assignments (Phase 5)
 -- =============================================================================
@@ -50,10 +48,20 @@ CREATE INDEX IF NOT EXISTS pm_schedule_assignment_events_schedule_idx
 
 ALTER TABLE public.pm_schedule_assignment_events ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS pm_schedule_assignment_events_select ON public.pm_schedule_assignment_events;
-CREATE POLICY pm_schedule_assignment_events_select ON public.pm_schedule_assignment_events
-  FOR SELECT TO authenticated
-  USING (tenant_id = ((SELECT auth.jwt()) ->> 'hotel_id')::uuid);
+-- Additive and idempotent: create the policy only when it is absent (never removes an existing policy).
+DO $policy$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'public' AND tablename = 'pm_schedule_assignment_events'
+       AND policyname = 'pm_schedule_assignment_events_select'
+  ) THEN
+    CREATE POLICY pm_schedule_assignment_events_select ON public.pm_schedule_assignment_events
+      FOR SELECT TO authenticated
+      USING (tenant_id = ((SELECT auth.jwt()) ->> 'hotel_id')::uuid);
+  END IF;
+END
+$policy$;
 
 -- Append-only: no UPDATE / DELETE policy exists for authenticated users; writes go through assign_pm_schedule() as service_role.
 
@@ -166,8 +174,7 @@ BEGIN
 END;
 $function$;
 
-DROP TRIGGER IF EXISTS pm_completion_capture_due_at ON public.pm_completion_records;
-CREATE TRIGGER pm_completion_capture_due_at BEFORE INSERT ON public.pm_completion_records
+CREATE OR REPLACE TRIGGER pm_completion_capture_due_at BEFORE INSERT ON public.pm_completion_records
   FOR EACH ROW EXECUTE FUNCTION public.pm_completion_capture_due_at();
 
 CREATE INDEX IF NOT EXISTS pm_completion_records_completed_idx
