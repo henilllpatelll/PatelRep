@@ -121,7 +121,7 @@ test('collects API runtime diagnostics only after a protected staging readiness 
 test('migrates persistent staging forward only, guarded, and proves API/web identity before staging smoke', () => {
   const guard = workflow.indexOf('node scripts/staging-target-guard.mjs')
   const plan = workflow.indexOf('node scripts/staging-migration-plan.mjs')
-  const push = workflow.indexOf('supabase db push --db-url "$STAGING_SUPABASE_DB_URL"')
+  const push = workflow.indexOf('node scripts/staging-migration-apply.mjs')
   const postgresClient = workflow.indexOf('apt-get install --yes postgresql-client')
   const driftCheck = workflow.indexOf('node scripts/check-db-drift.mjs --environment staging')
   const fixtureAccess = workflow.indexOf('Grant staging fixture service access')
@@ -130,6 +130,7 @@ test('migrates persistent staging forward only, guarded, and proves API/web iden
   assert.ok(postgresClient >= 0 && postgresClient < plan, 'psql must be installed before the plan reads migration history')
   assert.ok(push > plan && push < driftCheck, 'forward push happens only after the plan and before the clean-drift proof')
   assert.match(workflow, /if: steps\.plan\.outputs\.has_pending == 'true'/)
+  assert.doesNotMatch(workflow, /supabase db push/, 'a bare db push rejects grandfathered duplicate-version files; use the workspace apply')
   assert.ok(fixtureAccess > driftCheck && fixtureAccess < fixtureSeed, 'fixture service access must be established only after clean drift verification and before seeding')
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role/i)
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*notify pgrst, 'reload schema'/i, 'PostgREST must reload its schema cache after the migrations and grants, before the API serves the smoke')
