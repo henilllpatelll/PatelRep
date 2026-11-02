@@ -270,11 +270,16 @@ jobs:
         run: |
           for attempt in {1..24}; do
             if curl --fail --silent --show-error "${STAGING_API_URL%/}/health" > health.json && curl --fail --silent --show-error "${STAGING_API_URL%/}/ready" > ready.json; then
-              node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'
-              exit 0
+              # Must be inside the `if`: under bash -e a failing check would abort on the first
+              # attempt (e.g. the previous container still answering during rollover) instead of retrying.
+              if node -e 'const fs=require("fs"); const h=JSON.parse(fs.readFileSync("health.json")); const r=JSON.parse(fs.readFileSync("ready.json")); if(h.status!=="ok"||h.db!=="ok"||h.environment!=="staging"||h.release_sha!==process.env.CANDIDATE_SHA||h.supabase_host!==process.env.STAGING_EXPECTED_SUPABASE_HOST||r.status!=="ready"||r.release_sha!==process.env.CANDIDATE_SHA) process.exit(1)'; then
+                exit 0
+              fi
             fi
             sleep 10
           done
+          echo "Staging API never reported the exact candidate identity; last /health and /ready:" >&2
+          cat health.json ready.json >&2 || true
           exit 1
         env:
           STAGING_API_URL: ${{ vars.STAGING_API_URL }}

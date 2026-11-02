@@ -173,3 +173,11 @@ test('Railway deploy recovery is narrow: no ignored exit codes, no re-upload, wr
   assert.match(workflow, /Require API health, readiness, staging database, and exact SHA/, 'recovered API deploys still pass the exact-SHA health gate')
   assert.match(workflow, /Verify deployed web\/API\/database release identity/, 'recovered web deploys still pass the release-identity check')
 })
+
+test('staging API identity check retries inside the polling loop instead of aborting under bash -e', () => {
+  const start = workflow.indexOf('- name: Require API health, readiness, staging database, and exact SHA')
+  const step = workflow.slice(start, workflow.indexOf('env:', start))
+  assert.match(step, /if node -e '[^\n]*r\.release_sha!==process\.env\.CANDIDATE_SHA\) process\.exit\(1\)'; then\s+exit 0\s+fi/)
+  assert.doesNotMatch(step, /^\s*node -e /m, 'a bare node check under bash -e aborts on the first stale-container response')
+  assert.match(step, /sleep 10/)
+})
