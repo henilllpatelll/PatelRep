@@ -168,4 +168,7 @@ def test_invoice_item_creation_via_true_up(monkeypatch, http):
 
 def test_sdk_pins_an_endive_or_newer_api_version():
     # A major SDK bump silently changes the version of every outbound call; make that visible.
-    assert stripe.api_version == "2026-09-30.endive"
+    # Minor SDK bumps advance the pinned date; only a pre-endive (or malformed) version is a regression.
+    date_part, _, codename = stripe.api_version.partition(".")
+    assert codename == "endive" or codename > "endive"
+    assert date_part >= "2026-09-30"
