@@ -271,3 +271,51 @@ Assign/Reassign + Request deferral. Asset detail -> More -> Set criticality. Tec
 - *Downtime sheet* (More -> Record / End downtime): server stamps time and person; a repeat start returns the open period; start/end are now audited (`asset.downtime_started/ended`, once). It does not change room availability, close work orders or mark repairs.
 
 **Still not done:** asset reinstatement (backend does not support it, so no action), a per-technician performance filter UI, create-schedule retry-dedupe (POST has no client id: a lost response is reported as unconfirmed and the manager is told to check Programs), and any device run.
+
+## Phase 6: connected PM, Assets, Work Orders and room impact
+
+**No migration.** Every relationship this phase needs already exists as a real column or foreign key, so nothing was added and
+nothing was backfilled:
+
+| Relationship | Stored as |
+|---|---|
+| PM schedule -> asset | `pm_schedules.asset_id` |
+| PM completion -> schedule / asset | `pm_completion_records.pm_schedule_id`, `asset_id` (append-only) |
+| Corrective work order -> originating inspection | `work_orders.pm_completion_id` (FK, `ON DELETE SET NULL`) + `is_pm_generated` |
+| Work order -> asset / room | `work_orders.asset_id`, `room_id` |
+| Asset -> room / shared area | `assets.room_id` or `assets.location_text` |
+| Downtime -> asset / work order | `asset_downtime_periods.asset_id`, `work_order_id` (server checks same property and same asset) |
+
+Older PM work orders without `pm_completion_id` stay unlinked. Nothing is inferred from a title, date or equipment name.
+
+**What changed**
+- `GET /v1/work-orders/{id}` now returns `pm_source` (or `null`): schedule name, completion date, asset, the inspection's *failed items*
+  with their notes, and an evidence count. It is read through the order's `pm_completion_id` inside the caller's property, so a link
+  into another property reads as no source. A lookup failure returns only the id with `details_unavailable: true`; it never fails the
+  repair screen. Existing work-order permissions are unchanged (it rides the same read).
+- Work order detail (Overview) shows a **Preventive Maintenance Source** card with **View original inspection**, which opens the exact
+  historical completion. No PM origin => no card. The failed items are facts about the inspection; an inspection can open several
+  orders and no single item is claimed as the cause of this one (the order's own description is the recorded defect).
+- Asset -> Maintenance repair rows carry a **From PM inspection** marker when the server says the order is PM-generated.
+- Asset -> More -> **Review room impact**: read-only sheet with the equipment's recorded service status and open downtime, the room (or
+  the shared area, never a guessed room), the room's own occupancy/availability from the existing room-board read (a role that cannot
+  read it sees a note, not a guess), active repairs linked to this asset, **Open room** and **Open work order**. It has no mutating
+  action: availability is set only in the existing authorised room workflow, and the sheet says so.
+- Downtime start can optionally link one of the asset's active repairs (`work_order_id`). Linking records the relationship only.
+
+**Verified as already correct (no change):** completion idempotency and one corrective order per failed item (Phase 1, migration 232);
+PM record -> equipment and corrective work order links (Phase 3); asset Maintenance already loads active repairs, completed repairs,
+scheduled PM and PM history as separate, paged reads, and reloads on focus after returning from a work order or PM record; Engineering
+Home already opens Engineering Work, PM Today, the exact attention PM schedule or work order; the original failed PM result is never
+rewritten when a repair completes; completing a repair does not end downtime or touch a room; failing a PM does not create downtime.
+
+**Not done (honest list)**
+- No `Request Room Status Review`: PatelRep has no request/escalation mechanism for that, and none was invented.
+- No notifications. Integration point for later: after `record_pm_completion()` returns `corrective_work_orders`, notify the chief
+  engineer with `data.url = /(app)/work-orders/{id}`, deduplicated on `(work_order_id, event)`; delivery policy lives in `services/notify.py`.
+- The failed checklist item is not stored on the work order (no column); linking it durably would need a new nullable
+  `work_orders.pm_completion_item_id` set inside `record_pm_completion()`.
+- No History filter chips (PM / repairs / downtime / readings) and no Asset quick-actions sheet beyond the existing More sheet.
+- No server-side single "maintenance timeline" endpoint: the app still composes the four paged reads.
+- No multi-hotel scale fixtures, no device/emulator run, no two-hotel run. The shared read cache is keyed by `tenant:user`, which is
+  what isolates a hotel switch; it is covered by existing unit tests, not re-proved here.

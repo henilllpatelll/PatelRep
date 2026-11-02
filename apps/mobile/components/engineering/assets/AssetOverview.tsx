@@ -50,6 +50,8 @@ interface Props {
   onCreateWorkOrder: () => void;
   /** Opens the room this equipment is registered to (absent when it is not in a guest room). */
   onOpenRoom?: () => void;
+  /** Opens the read-only Review Room Impact sheet (absent only when the screen offers no sheet). */
+  onRoomImpact?: () => void;
   onGoto: (section: AssetSection) => void;
 }
 
@@ -66,7 +68,7 @@ function Chunk({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Equipment identity, what is happening to it right now, and the actions an engineer takes from here. */
-export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onCriticality, onDowntime, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onGoto }: Props) {
+export function AssetOverview({ asset, status, summary, pm, openSignals, language, timezone, offline, canRecordReading, canManage, canRetire, onCriticality, onDowntime, onEdit, onLabel, onScan, onRetire, onCreateWorkOrder, onOpenRoom, onRoomImpact, onGoto }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -241,6 +243,17 @@ export function AssetOverview({ asset, status, summary, pm, openSignals, languag
               onOpenRoom();
             }}
             testID="asset-action-room"
+          />
+        ) : null}
+        {onRoomImpact && !retired ? (
+          <MoreRow
+            icon="alert-circle-outline"
+            label={t("assets.roomImpact.action")}
+            onPress={() => {
+              setMoreOpen(false);
+              onRoomImpact();
+            }}
+            testID="asset-action-room-impact"
           />
         ) : null}
         {onDowntime && !retired ? (

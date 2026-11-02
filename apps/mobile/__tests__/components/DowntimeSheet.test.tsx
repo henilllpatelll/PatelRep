@@ -39,8 +39,17 @@ describe("Downtime sheet", () => {
     fireEvent.changeText(getByTestId("asset-downtime-notes"), "  Replacing the pump  ");
     fireEvent.press(getByTestId("asset-downtime-submit"));
     await waitFor(() => expect(props.onDone).toHaveBeenCalledWith("started"));
-    expect(api.startAssetDowntime).toHaveBeenCalledWith("a1", { downtimeType: "planned", impactLevel: "degraded", notes: "  Replacing the pump  " });
+    expect(api.startAssetDowntime).toHaveBeenCalledWith("a1", { downtimeType: "planned", impactLevel: "degraded", notes: "  Replacing the pump  ", workOrderId: null });
     expect(api.restoreAssetDowntime).not.toHaveBeenCalled();
+  });
+
+  it("an optional linked repair travels as its id; choosing none sends no link", async () => {
+    api.startAssetDowntime.mockResolvedValue({ created: true, period: open });
+    const { getByTestId, props } = sheet(null, { repairs: [{ id: "wo9", label: "WO-9" }] });
+    fireEvent.press(getByTestId("asset-downtime-repair-wo9"));
+    fireEvent.press(getByTestId("asset-downtime-submit"));
+    await waitFor(() => expect(props.onDone).toHaveBeenCalledWith("started"));
+    expect(api.startAssetDowntime).toHaveBeenCalledWith("a1", expect.objectContaining({ workOrderId: "wo9" }));
   });
 
   it("an already-open period is reported as such, not as a new record", async () => {

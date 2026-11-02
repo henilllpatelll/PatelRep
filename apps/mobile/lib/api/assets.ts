@@ -318,12 +318,14 @@ export async function retireAsset(assetId: string, reason: string, expectedRowVe
 /** Starts downtime on equipment. The server stamps the time and the signed-in person; a period already open is returned with `created: false`. */
 export async function startAssetDowntime(
   assetId: string,
-  input: { downtimeType: "planned" | "unplanned"; impactLevel: "degraded" | "out_of_service"; notes: string | null },
+  input: { downtimeType: "planned" | "unplanned"; impactLevel: "degraded" | "out_of_service"; notes: string | null; workOrderId?: string | null },
 ): Promise<{ created: boolean; period: AssetDowntime }> {
   const res = await api.post<{ data: { created: boolean; period: AssetDowntime } }>(`/assets/${assetId}/downtime`, {
     downtime_type: input.downtimeType,
     impact_level: input.impactLevel,
     notes: input.notes?.trim() || null,
+    // Only sent when chosen; the server checks it is this property's order for this very asset.
+    ...(input.workOrderId ? { work_order_id: input.workOrderId } : {}),
   });
   return res.data;
 }

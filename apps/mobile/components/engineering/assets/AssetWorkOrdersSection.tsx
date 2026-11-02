@@ -36,6 +36,7 @@ function Row({ wo, language, timezone }: { wo: WorkOrder; language: string; time
         </Text>
         <View style={styles.facts}>
           {number ? <Fact icon="pricetag-outline" text={number} /> : null}
+          {wo.is_pm_generated && wo.pm_completion_id ? <Fact icon="clipboard-outline" text={t("assets.workOrders.fromPm")} /> : null}
           <Fact icon="flag-outline" text={t(`workQueue.priority.${wo.priority}`)} tone={wo.priority === "emergency" || wo.priority === "urgent" ? "alert" : undefined} />
           <Fact icon="ellipse-outline" text={t(`workOrders.status.${wo.status}`)} />
           {wo.assigned_to_name ? <Fact icon="person-outline" text={wo.assigned_to_name} /> : null}

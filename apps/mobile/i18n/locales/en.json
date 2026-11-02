@@ -2497,6 +2497,18 @@
         "repair": "Repair work",
         "more": "Additional actions"
       }
+    },
+    "pmSource": {
+      "title": "Preventive Maintenance Source",
+      "unavailable": "This repair came from a PM inspection, but its details can't be loaded right now.",
+      "completedOn": "Inspected {{date}}",
+      "failed": "Failed in this inspection ({{count}})",
+      "failed_plural": "Failed in this inspection ({{count}})",
+      "recorded": "Recorded defect",
+      "priority": "Priority: {{priority}}",
+      "evidence": "{{count}} photo or file recorded",
+      "evidence_plural": "{{count}} photos or files recorded",
+      "view": "View original inspection"
     }
   },
   "assets": {
@@ -2736,7 +2748,8 @@
         "passed": "Verified: passed",
         "failed": "Verified: failed",
         "follow_up_required": "Follow-up required"
-      }
+      },
+      "fromPm": "From PM inspection"
     },
     "maintenance": {
       "schedules": "Scheduled maintenance",
@@ -3063,7 +3076,26 @@
         "started": "Downtime recorded",
         "ended": "Downtime ended",
         "already_open": "Downtime was already open"
-      }
+      },
+      "linkRepair": "Related repair (optional)",
+      "noRepair": "None"
+    },
+    "roomImpact": {
+      "action": "Review room impact",
+      "title": "Review Room Impact",
+      "equipment": "Equipment",
+      "downSince": "Recorded down since {{date}}",
+      "noDowntime": "No downtime recorded",
+      "serves": "Serves",
+      "floor": "Floor {{floor}}",
+      "roomUnread": "The room's current status isn't available to you here. Open the room to see it.",
+      "shared": "Shared area: {{place}}. No guest room is linked.",
+      "noRoom": "No room or shared area is recorded for this equipment.",
+      "repairs": "Active repairs on this equipment ({{count}})",
+      "repairs_plural": "Active repairs on this equipment ({{count}})",
+      "noRepairs": "No active repairs.",
+      "openRoom": "Open room",
+      "scope": "This is information only. A repair or downtime record does not change the room: availability is set in the room's own workflow, by someone authorized to do it."
     }
   },
   "inspect": {

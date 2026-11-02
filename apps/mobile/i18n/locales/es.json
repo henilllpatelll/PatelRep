@@ -2497,6 +2497,18 @@
         "repair": "Trabajo de reparación",
         "more": "Más acciones"
       }
+    },
+    "pmSource": {
+      "title": "Origen del mantenimiento preventivo",
+      "unavailable": "Esta reparación viene de una inspección de MP, pero ahora no se pueden cargar sus detalles.",
+      "completedOn": "Inspeccionado {{date}}",
+      "failed": "Fallo en esta inspección ({{count}})",
+      "failed_plural": "Fallos en esta inspección ({{count}})",
+      "recorded": "Defecto registrado",
+      "priority": "Prioridad: {{priority}}",
+      "evidence": "{{count}} foto o archivo registrado",
+      "evidence_plural": "{{count}} fotos o archivos registrados",
+      "view": "Ver inspección original"
     }
   },
   "assets": {
@@ -2736,7 +2748,8 @@
         "passed": "Verificada: aprobada",
         "failed": "Verificada: no aprobada",
         "follow_up_required": "Requiere seguimiento"
-      }
+      },
+      "fromPm": "De inspección de MP"
     },
     "maintenance": {
       "schedules": "Mantenimiento programado",
@@ -3063,7 +3076,26 @@
         "started": "Tiempo fuera de servicio registrado",
         "ended": "Tiempo fuera de servicio terminado",
         "already_open": "Ya había un período abierto"
-      }
+      },
+      "linkRepair": "Reparación relacionada (opcional)",
+      "noRepair": "Ninguna"
+    },
+    "roomImpact": {
+      "action": "Revisar impacto en la habitación",
+      "title": "Revisar impacto en la habitación",
+      "equipment": "Equipo",
+      "downSince": "Registrado fuera de servicio desde {{date}}",
+      "noDowntime": "Sin tiempo fuera de servicio registrado",
+      "serves": "Da servicio a",
+      "floor": "Piso {{floor}}",
+      "roomUnread": "No tienes acceso aquí al estado actual de la habitación. Abre la habitación para verlo.",
+      "shared": "Área compartida: {{place}}. No hay habitación de huéspedes vinculada.",
+      "noRoom": "No hay habitación ni área compartida registrada para este equipo.",
+      "repairs": "Reparaciones activas de este equipo ({{count}})",
+      "repairs_plural": "Reparaciones activas de este equipo ({{count}})",
+      "noRepairs": "No hay reparaciones activas.",
+      "openRoom": "Abrir habitación",
+      "scope": "Solo informativo. Una reparación o un tiempo fuera de servicio no cambia la habitación: su disponibilidad se define en el flujo propio de la habitación, por quien tiene autorización."
     }
   },
   "inspect": {

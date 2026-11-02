@@ -15,6 +15,8 @@ type Kind = "unplanned" | "planned";
 interface Props {
   visible: boolean;
   asset: { id: string; name: string; activeDowntime: AssetDowntime | null };
+  /** This asset's active repairs, offered as an optional link. Linking records the relationship only; it closes nothing. */
+  repairs?: readonly { id: string; label: string }[];
   timezone: string | null | undefined;
   language: string;
   isOnline: boolean;
@@ -29,13 +31,14 @@ interface Props {
  * never precede its start. This changes the equipment's recorded service condition only: it does NOT take guest rooms out
  * of order, close a work order or mark anything repaired - those are separate, authorised actions.
  */
-export function DowntimeSheet({ visible, asset, timezone, language, isOnline, onClose, onDone, onNeedsRefresh }: Props) {
+export function DowntimeSheet({ visible, asset, repairs = [], timezone, language, isOnline, onClose, onDone, onNeedsRefresh }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const open = asset.activeDowntime;
   const [kind, setKind] = useState<Kind>("unplanned");
   const [impact, setImpact] = useState<Impact>("out_of_service");
   const [notes, setNotes] = useState("");
+  const [linked, setLinked] = useState("none");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ManagementFailure | null>(null);
   const working = useRef(false);
@@ -45,6 +48,7 @@ export function DowntimeSheet({ visible, asset, timezone, language, isOnline, on
     setKind("unplanned");
     setImpact("out_of_service");
     setNotes("");
+    setLinked("none");
     setFailure(null);
   }, [visible, asset.id, open?.id]);
 
@@ -58,7 +62,7 @@ export function DowntimeSheet({ visible, asset, timezone, language, isOnline, on
         await restoreAssetDowntime(asset.id, open.id, notes);
         onDone("ended");
       } else {
-        const res = await startAssetDowntime(asset.id, { downtimeType: kind, impactLevel: impact, notes });
+        const res = await startAssetDowntime(asset.id, { downtimeType: kind, impactLevel: impact, notes, workOrderId: linked === "none" ? null : linked });
         onDone(res.created ? "started" : "already_open");
       }
       onClose();
@@ -106,6 +110,17 @@ export function DowntimeSheet({ visible, asset, timezone, language, isOnline, on
               { value: "planned", label: t("assets.history.type.planned") },
             ]}
           />
+          {repairs.length > 0 ? (
+            <>
+              <FieldLabel>{t("assets.downtime.linkRepair")}</FieldLabel>
+              <ChoiceChips<string>
+                value={linked}
+                onChange={setLinked}
+                testIDPrefix="asset-downtime-repair"
+                options={[{ value: "none", label: t("assets.downtime.noRepair") }, ...repairs.slice(0, 4).map((r) => ({ value: r.id, label: r.label }))]}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
       <FieldLabel>{open ? t("assets.downtime.endNotes") : t("assets.downtime.notes")}</FieldLabel>

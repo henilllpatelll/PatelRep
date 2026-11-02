@@ -49,6 +49,7 @@ import { WorkOrderHeader, WorkOrderSummary } from "@/components/engineering/work
 import { WorkOrderActionBar, type BarAction } from "@/components/engineering/workorder/WorkOrderActionBar";
 import { WorkOrderReportedIssue } from "@/components/engineering/workorder/WorkOrderReportedIssue";
 import { WorkOrderAssetContext } from "@/components/engineering/workorder/WorkOrderAssetContext";
+import { WorkOrderPmSource } from "@/components/engineering/workorder/WorkOrderPmSource";
 import { WorkOrderRepairTools, type ToolId } from "@/components/engineering/workorder/WorkOrderRepairTools";
 import { WorkOrderTabs, type DetailTab } from "@/components/engineering/workorder/WorkOrderTabs";
 import { WorkOrderProgress } from "@/components/engineering/workorder/WorkOrderProgress";
@@ -87,6 +88,7 @@ export default function WorkOrderDetailScreen() {
   const toast = useToast();
   const { isOnline, user } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
+  const hotelTimezone = useAppStore((s) => s.hotelTimezone);
   const role = user?.effective_role ?? user?.role;
   const userId = user?.id ?? null;
 
@@ -463,6 +465,7 @@ export default function WorkOrderDetailScreen() {
                   </View>
                 ) : null}
                 <WorkOrderReportedIssue wo={order} locale={locale} occupancy={occupancy} availability={availability} technicianName={technicianName} />
+                <WorkOrderPmSource wo={order} language={locale} timezone={hotelTimezone} />
                 <WorkOrderAssetContext wo={order} related={secondary.related} relatedFailed={!!sectionFailed.related} locale={locale} variant="summary" />
                 {order.status === "completed" ? <WorkOrderRecordCard wo={order} labor={labor} consumed={secondary.parts} /> : null}
               </>

@@ -19,6 +19,7 @@ import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadin
 import { RetireSheet } from "@/components/engineering/assets/RetireSheet";
 import { CriticalitySheet } from "@/components/engineering/assets/CriticalitySheet";
 import { DowntimeSheet } from "@/components/engineering/assets/DowntimeSheet";
+import { RoomImpactSheet } from "@/components/engineering/assets/RoomImpactSheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
   getAsset,
@@ -33,9 +34,11 @@ import { listPmCompletions, type PmCompletionSummary } from "@/lib/api/pm";
 import { buildAssetTimeline, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
+import { buildRoomImpact } from "@/lib/engineering/roomImpact";
 import { canActOnSignals, canManageAssets, canRecordReadings, canRetireAssets } from "@/lib/engineering/roles";
 import { assetEditRoute, assetLabelRoute } from "@/lib/engineering/routes";
 import { markAssetListStale } from "@/lib/engineering/useAssetBrowse";
+import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useAssetWorkOrders } from "@/lib/engineering/useAssetWorkOrders";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
@@ -79,6 +82,7 @@ export default function AssetDetailScreen() {
   const [retireOpen, setRetireOpen] = useState(false);
   const [criticalityOpen, setCriticalityOpen] = useState(false);
   const [downtimeOpen, setDowntimeOpen] = useState(false);
+  const [roomImpactOpen, setRoomImpactOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
   // The tab screen is reused for another asset: start that one at the top, on Overview.
@@ -86,6 +90,7 @@ export default function AssetDetailScreen() {
     setSection("overview");
     setVisited(new Set(["overview"]));
     setReadingFor(null);
+    setRoomImpactOpen(false);
     setPmHistory(null);
   }, [id]);
 
@@ -318,6 +323,7 @@ export default function AssetDetailScreen() {
               onDowntime={canRecord ? () => setDowntimeOpen(true) : undefined}
               onCreateWorkOrder={openReport}
               onOpenRoom={data.room_id ? openRoom : undefined}
+              onRoomImpact={() => setRoomImpactOpen(true)}
               onGoto={go}
             />
             <AssetReliabilityPanel
@@ -378,6 +384,7 @@ export default function AssetDetailScreen() {
       <DowntimeSheet
         visible={downtimeOpen}
         asset={{ id: data.id, name: data.name, activeDowntime: data.active_downtime ?? null }}
+        repairs={active.orders.map((wo) => ({ id: wo.id, label: workOrderLabel(wo) || wo.title }))}
         timezone={timezone}
         language={language}
         isOnline={isOnline}
@@ -390,6 +397,23 @@ export default function AssetDetailScreen() {
           void reliability.reload();
         }}
         onNeedsRefresh={() => void asset.reload()}
+      />
+      <RoomImpactSheet
+        visible={roomImpactOpen}
+        impact={buildRoomImpact({
+          roomId: data.room_id,
+          roomNumber: data.rooms?.room_number,
+          locationText: data.location_text,
+          serviceStatus: status,
+          repairs: active.orders,
+          activeDowntimeSince: data.active_downtime?.started_at,
+        })}
+        assetName={data.name}
+        assetTag={data.asset_tag}
+        scope={scope}
+        language={language}
+        timezone={timezone}
+        onClose={() => setRoomImpactOpen(false)}
       />
       <CriticalitySheet
         visible={criticalityOpen}
