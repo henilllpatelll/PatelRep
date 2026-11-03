@@ -18,37 +18,44 @@ import {
   isHighPriority,
   sortQueue,
   type WorkOrder,
-  type WorkOrderStatus,
 } from "@/lib/engineering/workOrders";
 import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
+import type { PmDraftSummary } from "@/lib/engineering/pmDraftStore";
+import { ACTIONABLE_STATUSES, availableOrders, focusWorkOrderId, resolveFocus, type FocusState } from "@/lib/engineering/homeFocus";
 
-/** Statuses an engineer can start or keep working right now. */
-export const ACTIONABLE_STATUSES: readonly WorkOrderStatus[] = ["open", "escalated", "in_progress"];
+export { ACTIONABLE_STATUSES };
 
 export type WorkAttentionReason = "emergency" | "urgent_unassigned" | "past_due" | "on_hold";
 
 export type AttentionItem =
   | { kind: "wo"; key: string; reason: WorkAttentionReason; wo: WorkOrder }
-  | { kind: "pm"; key: string; reason: "pm_overdue"; pm: PmScheduleView };
+  | { kind: "pm"; key: string; reason: "pm_overdue"; pm: PmScheduleView }
+  /** Saved PM inspections that stopped and need the person (review / refused / unknown outcome). */
+  | { kind: "sync"; key: string; reason: "sync_blocked"; count: number };
 
 export type AttentionReason = AttentionItem["reason"];
 
 const REASON_RANK: Record<AttentionReason, number> = {
   emergency: 0,
-  urgent_unassigned: 1,
-  past_due: 2,
-  pm_overdue: 3,
-  on_hold: 4,
+  sync_blocked: 1,
+  urgent_unassigned: 2,
+  past_due: 3,
+  pm_overdue: 4,
+  on_hold: 5,
 };
 
 export interface HomeModel {
   myJobs: number;
   urgent: number;
   pmDue: number;
+  /** The contextual primary card (see homeFocus.ts). */
+  focus: FocusState;
   /** The viewer's own in-progress job to continue (most severe first); never someone else's. */
   activeJob: WorkOrder | null;
   /** Further in-progress jobs of mine beyond `activeJob`. */
   moreActive: number;
+  /** Unassigned open work a technician could pick up. */
+  available: number;
   /** Every attention signal, most severe first, one entry per work order / PM schedule. */
   attention: AttentionItem[];
 }
@@ -72,11 +79,21 @@ function isPastDue(wo: WorkOrder, now: Date): boolean {
   return !Number.isNaN(due) && due < now.getTime();
 }
 
+export interface HomeModelOptions {
+  /** Role may claim / work orders; false (chief engineer) never gets a personal focus card. */
+  canAct?: boolean;
+  drafts?: readonly PmDraftSummary[];
+  /** Saved PM inspections stuck waiting for the person. */
+  blockedSync?: number;
+  loaded?: { queue: boolean; pm: boolean; drafts: boolean };
+}
+
 export function buildHomeModel(
   orders: readonly WorkOrder[],
   pm: readonly PmScheduleView[],
   viewerId: string | null | undefined,
   now: Date = new Date(),
+  options: HomeModelOptions = {},
 ): HomeModel {
   const queue = activeQueue(orders);
   const mine = (wo: WorkOrder) => viewerId != null && wo.assigned_to === viewerId;
@@ -85,16 +102,24 @@ export function buildHomeModel(
   const urgent = queue.filter((wo) => isHighPriority(wo.priority)).length;
   const pmDue = pm.filter((p) => p.state === "overdue" || p.state === "due_today").length;
 
-  const inProgress = sortQueue(
-    queue.filter((wo) => mine(wo) && wo.status === "in_progress"),
+  const canAct = options.canAct ?? true;
+  const focus = resolveFocus({
+    queue,
+    viewerId,
+    canAct,
+    pm,
+    drafts: options.drafts ?? [],
+    loaded: options.loaded ?? { queue: true, pm: true, drafts: true },
     now,
-  );
-  const activeJob = inProgress[0] ?? null;
+  });
+  const activeJob = focus.kind === "continue_repair" ? focus.wo : null;
+  const moreActive = focus.kind === "continue_repair" ? focus.moreActive : 0;
+  const focusId = focusWorkOrderId(focus);
 
-  // One entry per work order: the most severe reason wins. The job on the Continue card is not repeated.
+  // One entry per work order: the most severe reason wins. The order on the primary card is not repeated.
   const items: AttentionItem[] = [];
   for (const wo of sortQueue(queue, now)) {
-    if (activeJob && wo.id === activeJob.id) continue;
+    if (focusId && wo.id === focusId) continue;
     let reason: WorkAttentionReason | null = null;
     if (wo.priority === "emergency") reason = "emergency";
     else if (wo.priority === "urgent" && !wo.assigned_to) reason = "urgent_unassigned";
@@ -105,6 +130,7 @@ export function buildHomeModel(
   for (const view of pm) {
     if (view.state === "overdue") items.push({ kind: "pm", key: `pm:${view.id}`, reason: "pm_overdue", pm: view });
   }
+  if ((options.blockedSync ?? 0) > 0) items.push({ kind: "sync", key: "sync:pm", reason: "sync_blocked", count: options.blockedSync as number });
 
   // Stable sort: severity first, then the order each source was already in (priority/age, most overdue PM).
   const attention = items
@@ -112,7 +138,7 @@ export function buildHomeModel(
     .sort((a, b) => REASON_RANK[a.item.reason] - REASON_RANK[b.item.reason] || a.index - b.index)
     .map(({ item }) => item);
 
-  return { myJobs, urgent, pmDue, activeJob, moreActive: Math.max(0, inProgress.length - 1), attention };
+  return { myJobs, urgent, pmDue, focus, activeJob, moreActive, available: availableOrders(queue).length, attention };
 }
 
 /* ─── Sync status ─────────────────────────────────────────────────────────── */

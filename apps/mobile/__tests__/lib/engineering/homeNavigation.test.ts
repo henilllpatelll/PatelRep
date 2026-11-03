@@ -1,7 +1,7 @@
 import {
   ASSET_SCAN_ROUTE,
-  FIND_ASSET_ROUTE,
-  attentionOverflowLinks,
+  attentionRoute,
+  focusRoute,
   continueLabelKey,
   myJobsRoute,
   quickActionKeys,
@@ -142,35 +142,62 @@ describe("role-specific destinations", () => {
 });
 
 describe("quick actions", () => {
-  it("opens the existing scanner, not the asset list, and keeps the list as the manual fallback", () => {
-    expect(quickActionKeys()).toEqual(["report", "room", "scan", "pm"]);
+  it("offers a technician Report, Scan, Room Status and Available Work, in that order", () => {
+    expect(quickActionKeys("engineer")).toEqual(["report", "scan", "room", "available"]);
+  });
+
+  it("gives a chief engineer PM instead of the technician's Available Work queue", () => {
+    expect(quickActionKeys("chief_engineer")).toEqual(["report", "scan", "room", "pm"]);
+    expect(quickActionKeys(undefined)).toEqual(["report", "scan", "room", "pm"]);
+  });
+
+  it("opens the existing scanner (it owns manual entry and asset search), not the asset list", () => {
     expect(quickActionRoute("scan")).toBe("/(app)/assets/scan");
     expect(ASSET_SCAN_ROUTE).toBe("/(app)/assets/scan");
-    expect(FIND_ASSET_ROUTE).toBe("/(app)/assets");
     expect(quickActionRoute("report")).toBe("/(app)/work-orders/new");
     expect(quickActionRoute("room")).toBe("/(app)/room-status");
     expect(quickActionRoute("pm")).toBe("/(app)/pm-schedules");
   });
+
+  it("opens the existing unassigned queue for Available Work, with a per-tap token", () => {
+    expect(quickActionRoute("available")).toEqual({ pathname: "/(app)/work-orders", params: { view: "available" } });
+    expect(quickActionRoute("available", "t1")).toEqual({ pathname: "/(app)/work-orders", params: { view: "available", nav: "t1" } });
+  });
 });
 
-describe("attention overflow", () => {
-  const items = (rows: { wo: WorkOrder[]; pm: PmScheduleRow[] }) =>
-    buildHomeModel(rows.wo, adaptPmSchedules(rows.pm, "America/Chicago", NOW), ME, NOW).attention;
+describe("primary card and attention destinations", () => {
+  const model = (orders: WorkOrder[], pmRows: PmScheduleRow[] = [], blockedSync = 0) =>
+    buildHomeModel(orders, adaptPmSchedules(pmRows, "America/Chicago", NOW), ME, NOW, { canAct: true, blockedSync });
 
-  it("reaches every kind of hidden item: work orders and PM each get their own link and count", () => {
-    const attention = items({
-      wo: [wo({ id: "e1", priority: "emergency" }), wo({ id: "e2", priority: "emergency" })],
-      pm: [pm("p1"), pm("p2"), pm("p3")],
-    });
-    expect(attentionOverflowLinks(attention)).toEqual([
-      { kind: "wo", count: 2, route: workViewRoute("all") },
-      { kind: "pm", count: 3, route: "/(app)/pm-schedules" },
-    ]);
+  it("continue and start-next both open that exact work order; neither mutates", () => {
+    const cont = model([wo({ id: "w1", assigned_to: ME, status: "in_progress" })]);
+    expect(focusRoute(cont.focus)).toBe("/(app)/work-orders/w1");
+    const next = model([wo({ id: "w2", assigned_to: ME })]);
+    expect(focusRoute(next.focus)).toBe("/(app)/work-orders/w2");
   });
 
-  it("offers a link only for a kind that was actually cut", () => {
-    const onlyPm = items({ wo: [], pm: [pm("p1")] });
-    expect(attentionOverflowLinks(onlyPm)).toEqual([{ kind: "pm", count: 1, route: "/(app)/pm-schedules" }]);
-    expect(attentionOverflowLinks([])).toEqual([]);
+  it("resume opens the existing inspection screen for that schedule", () => {
+    const focus = { kind: "resume_pm", pm: { draft: { scheduleId: "pm1", label: null, answered: 1, total: 3, updatedAt: NOW.toISOString() }, schedule: null } } as const;
+    expect(focusRoute(focus)).toBe("/(app)/pm-schedules/inspect/pm1");
+  });
+
+  it("available work and the all-clear states open the available queue; none opens nothing", () => {
+    expect(focusRoute({ kind: "available_work", count: 2 }, "t")).toEqual({ pathname: "/(app)/work-orders", params: { view: "available", nav: "t" } });
+    expect(focusRoute({ kind: "none" })).toBeNull();
+  });
+
+  it("routes each attention kind to its own exact destination", () => {
+    const m = model([wo({ id: "e1", priority: "emergency" })], [pm("p1")], 2);
+    const byKind = Object.fromEntries(m.attention.map((item) => [item.kind, attentionRoute(item)]));
+    expect(byKind).toEqual({ wo: "/(app)/work-orders/e1", pm: "/(app)/pm-schedules/p1", sync: "/(app)/engineering-sync" });
+  });
+
+  it("ranks a blocked save right after emergencies, ahead of urgent unassigned, overdue and PM", () => {
+    const m = model(
+      [wo({ id: "u1", priority: "urgent" }), wo({ id: "e1", priority: "emergency" }), wo({ id: "late", due_at: "2026-10-30T10:00:00Z" })],
+      [pm("p1")],
+      1,
+    );
+    expect(m.attention.map((item) => item.key)).toEqual(["wo:e1", "sync:pm", "wo:u1", "wo:late", "pm:p1"]);
   });
 });

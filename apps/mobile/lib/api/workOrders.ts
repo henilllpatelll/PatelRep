@@ -1,5 +1,6 @@
 import { API_BASE, api, toApiError } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
+import { ACTIVE_WORK_ORDER_STATUSES } from "@/lib/engineering/workOrders";
 import type {
   HoldReasonCode,
   WorkOrder,
@@ -156,6 +157,21 @@ export async function listAssetWorkOrderPage(
   );
   const orders = res.data ?? [];
   return { orders, hasMore: res.meta?.has_more ?? orders.length >= ASSET_WORK_ORDER_PAGE_SIZE };
+}
+
+/**
+ * The whole active queue (open, escalated, in progress, on hold) in as few requests as the server allows: one call per
+ * page of 100 with every status together, instead of one call per status. `truncated` says there may be more than was
+ * read, so callers show "N+" rather than a false total.
+ */
+export async function listActiveWorkOrders(maxPages = 5): Promise<{ orders: WorkOrder[]; truncated: boolean }> {
+  const orders: WorkOrder[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const res = await listWorkOrderPage({ statuses: [...ACTIVE_WORK_ORDER_STATUSES] }, page, WORK_ORDER_PAGE_SIZE);
+    orders.push(...res.orders);
+    if (!res.hasMore) return { orders, truncated: false };
+  }
+  return { orders, truncated: true };
 }
 
 export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {

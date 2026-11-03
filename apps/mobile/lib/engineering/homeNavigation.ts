@@ -8,10 +8,11 @@
    - A list that shows only part of its items links to every kind of item it contains (work orders and PM).
    - What a role is offered follows apps/api guards (see roles.ts); the server still enforces every action. */
 
-import { PM_LIST_ROUTE, ASSETS_LIST_ROUTE } from "@/lib/engineering/routes";
+import { PM_LIST_ROUTE, pmInspectRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 import { canActOnWorkOrders } from "@/lib/engineering/roles";
 import { defaultView } from "@/lib/engineering/workNavigation";
 import type { AttentionItem } from "@/lib/engineering/homeModel";
+import type { FocusState } from "@/lib/engineering/homeFocus";
 import type { QueueView } from "@/lib/engineering/workQueue";
 
 export const WORK_ROUTE = "/(app)/work-orders";
@@ -52,48 +53,61 @@ export function continueLabelKey(role: string | null | undefined): "continueRepa
   return canActOnWorkOrders(role) ? "continueRepair" : "viewOrder";
 }
 
-/** Scan opens the existing equipment scanner (manual code entry and the equipment list are inside it). */
+/** Scan opens the existing equipment scanner (it already offers manual code entry and the equipment search). */
 export const SCAN_ASSET_ROUTE = ASSET_SCAN_ROUTE;
-/** Manual fallback for Scan: the equipment directory and its search. */
-export const FIND_ASSET_ROUTE = ASSETS_LIST_ROUTE;
+export const ENGINEERING_SYNC_ROUTE = "/(app)/engineering-sync";
 
-export type QuickActionKey = "report" | "room" | "scan" | "pm";
+export type QuickActionKey = "report" | "scan" | "room" | "available" | "pm";
 
-/** Technician shortcuts, in order. Reporting an issue is open to every signed-in role (POST /work-orders has no role guard). */
-export function quickActionKeys(): QuickActionKey[] {
-  return ["report", "room", "scan", "pm"];
+/**
+ * Home shortcuts, in order. Reporting an issue, scanning and room status are open to every engineering role. The
+ * Available Work queue is the technician's pick-up list, so a role that cannot act on work orders gets PM instead and
+ * is never offered a technician-only entry point.
+ */
+export function quickActionKeys(role?: string | null): QuickActionKey[] {
+  return canActOnWorkOrders(role) ? ["report", "scan", "room", "available"] : ["report", "scan", "room", "pm"];
 }
 
-export function quickActionRoute(key: QuickActionKey): string {
+export function quickActionRoute(key: QuickActionKey, token?: string): WorkRoute | string {
   switch (key) {
     case "report":
       return REPORT_ISSUE_ROUTE;
-    case "room":
-      return ROOM_STATUS_ROUTE;
     case "scan":
       return SCAN_ASSET_ROUTE;
+    case "room":
+      return ROOM_STATUS_ROUTE;
+    case "available":
+      return workViewRoute("available", token);
     case "pm":
       return PM_LIST_ROUTE;
   }
 }
 
-export interface OverflowLink {
-  kind: "wo" | "pm";
-  /** How many items of this kind are not shown in the list. */
-  count: number;
-  route: WorkRoute | string;
+/** Where the primary card's button goes for each state. Never a mutation: starting a repair happens on the order itself. */
+export function focusRoute(focus: FocusState, token?: string): WorkRoute | string | null {
+  switch (focus.kind) {
+    case "continue_repair":
+    case "start_next":
+      return `${WORK_ROUTE}/${focus.wo.id}`;
+    case "resume_pm":
+      return pmInspectRoute(focus.pm.draft.scheduleId);
+    case "available_work":
+    case "caught_up":
+    case "caught_up_pm_unknown":
+      return workViewRoute("available", token);
+    case "none":
+      return null;
+  }
 }
 
-/**
- * "See the rest" links for an attention list that shows only its first items. One link per kind that was cut, so a
- * hidden PM schedule is reachable even when every hidden work order is not (and the reverse). Work orders open the
- * `all` view because the list mixes emergencies, unassigned urgent work, past-due work and held work.
- */
-export function attentionOverflowLinks(hidden: readonly AttentionItem[], token?: string): OverflowLink[] {
-  const wo = hidden.filter((item) => item.kind === "wo").length;
-  const pm = hidden.length - wo;
-  const links: OverflowLink[] = [];
-  if (wo > 0) links.push({ kind: "wo", count: wo, route: workViewRoute("all", token) });
-  if (pm > 0) links.push({ kind: "pm", count: pm, route: PM_LIST_ROUTE });
-  return links;
+/** The row's destination in Needs Attention. */
+export function attentionRoute(item: AttentionItem): string | null {
+  switch (item.kind) {
+    case "wo":
+      return `${WORK_ROUTE}/${item.wo.id}`;
+    case "pm":
+      return pmScheduleRoute(item.pm.id);
+    case "sync":
+      return ENGINEERING_SYNC_ROUTE;
+  }
 }
