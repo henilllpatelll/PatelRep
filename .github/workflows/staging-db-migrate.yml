@@ -6,6 +6,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # The same group as Staging Candidate: two workflows must never migrate or deploy the persistent shared staging
+  # stack at once. Queued, never cancelled -- a run that has started mutating staging is not interrupted.
+  group: staging-release-candidate
+  cancel-in-progress: false
+
 jobs:
   migrate-staging:
     name: Apply pending migrations to staging
@@ -20,6 +26,8 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
+      - name: Verify this checkout is the exact trusted workflow commit on main
+        run: node scripts/staging-trusted-control-plane.mjs assert
       - name: Confirm migration history is safe to release
         run: node scripts/check-migrations.mjs
       - name: Refuse any non-staging database target

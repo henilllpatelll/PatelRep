@@ -37,6 +37,11 @@ import {
 } from './production-migration-apply-workspace.mjs';
 import { assertStagingTarget } from './staging-target-guard.mjs';
 import { planStagingMigrations } from './staging-migration-plan.mjs';
+import {
+  CANDIDATE_MIGRATIONS_ENV,
+  assertTrustedControlPlaneFromEnvironment,
+  trustedControlPlaneRequired,
+} from './staging-trusted-control-plane.mjs';
 
 export { PINNED_SUPABASE_CLI_VERSION };
 
@@ -320,7 +325,8 @@ export function optionsFromEnvironment(environment = process.env) {
   return {
     databaseUrl,
     runnerTemp: environment.RUNNER_TEMP || tmpdir(),
-    migrationsDirectory: 'supabase/migrations',
+    // The candidate's migrations are DATA; every other input (config, registries) comes from the trusted checkout.
+    migrationsDirectory: environment[CANDIDATE_MIGRATIONS_ENV] || 'supabase/migrations',
     configPath: 'supabase/config.toml',
     coveragePath: 'supabase/staging-duplicate-coverage.json',
     target: {
@@ -340,6 +346,8 @@ function main() {
   if (!commands[command]) throw new Error('Usage: staging-migration-apply-workspace.mjs plan|apply|verify-applied');
   const options = optionsFromEnvironment();
   try {
+    // Fail closed before any CLI or database access: in Actions this driver must be the trusted main copy.
+    if (trustedControlPlaneRequired()) assertTrustedControlPlaneFromEnvironment();
     const result = commands[command](options);
     if (process.env.GITHUB_OUTPUT && result.pending) appendFileSync(process.env.GITHUB_OUTPUT, `has_pending=${result.pending.length > 0}\n`);
   } catch (error) {

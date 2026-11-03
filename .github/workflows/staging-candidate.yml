@@ -156,6 +156,18 @@ jobs:
           fetch-depth: 1
       - name: Prove exact candidate checkout
         run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      # TRUST BOUNDARY. The candidate checkout above is PR-influenced code and holds NO privileged staging logic. Every
+      # script that runs with STAGING_SUPABASE_DB_URL comes from this second checkout of the exact trusted workflow
+      # commit (github.sha, on main), and the candidate contributes only its supabase/migrations files as data.
+      - name: Refuse a candidate that shadows the trusted control-plane directory
+        run: test ! -e .trusted-control-plane
+      - name: Check out the trusted control plane (workflow commit on main)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-control-plane
+          fetch-depth: 1
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -165,9 +177,18 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
-      - name: Check candidate migration integrity
-        run: node scripts/check-migrations.mjs
+      - name: Verify the trusted control plane and treat candidate migrations as data only
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Check candidate migration integrity (trusted checker and released-migration manifest)
+        working-directory: .trusted-control-plane
+        run: node scripts/check-migrations.mjs --migration-dir "$STAGING_CANDIDATE_MIGRATIONS_DIR"
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
       - name: Refuse any non-staging database target
+        working-directory: .trusted-control-plane
         run: node scripts/staging-target-guard.mjs
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
@@ -182,8 +203,10 @@ jobs:
       # candidate's migrations already ran against an isolated throwaway stack in CI Gate (Database Migration Gate).
       - name: Plan forward-only staging migrations (read-only, verified by a dry run of the pinned CLI)
         id: plan
+        working-directory: .trusted-control-plane
         run: node scripts/staging-migration-apply-workspace.mjs plan
         env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
           STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
@@ -192,8 +215,10 @@ jobs:
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Apply pending migrations forward to staging (verified ephemeral workspace, never a reset)
         if: steps.plan.outputs.has_pending == 'true'
+        working-directory: .trusted-control-plane
         run: node scripts/staging-migration-apply-workspace.mjs apply
         env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
           STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
@@ -205,10 +230,12 @@ jobs:
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify staging migration state equals this candidate
+        working-directory: .trusted-control-plane
         run: |
           node scripts/check-db-drift.mjs --environment staging
           node scripts/staging-migration-apply-workspace.mjs verify-applied
         env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
           STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
