@@ -69,6 +69,12 @@ test('the staging fixture seed is additive: it never deletes users, tenants, ass
   assert.match(seed, /hostname !== EXPECTED_HOST/)
 })
 
+test('the staging fixture seed never UPDATEs rooms, which have no updated_at column but still carry trg_rooms_updated_at', () => {
+  const seed = readFileSync('apps/web/e2e/fixtures/seed-staging-tenant.mjs', 'utf8')
+  assert.doesNotMatch(seed, /from\('rooms'\)\.(upsert|update)/)
+  assert.match(seed, /from\('rooms'\)\.insert\(/)
+})
+
 test('replay tool refuses non-disposable targets before it touches any database client', () => {
   const run = (...argv) => spawnSync(process.execPath, ['scripts/remote-migration-apply.mjs', ...argv], {
     // An empty PATH proves the refusal happens before psql/supabase could be invoked at all.
