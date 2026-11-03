@@ -187,7 +187,7 @@ jobs:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Apply pending migrations forward to staging (never a reset)
         if: steps.plan.outputs.has_pending == 'true'
-        run: node scripts/staging-migration-apply.mjs
+        run: supabase db push --db-url "$STAGING_SUPABASE_DB_URL"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify candidate schema contracts
