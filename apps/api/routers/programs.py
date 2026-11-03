@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from core.database import supabase
-from core.roles import PROGRAM_MANAGER_ROLES
+from core.roles import PM_DEFERRAL_REQUEST_ROLES, PM_DEFERRAL_REVIEWER_ROLES, PROGRAM_MANAGER_ROLES
 from middleware.auth import CurrentUser, require_role
 from models.requests import (
     CompleteDeepCleanRequest,
@@ -17,6 +17,7 @@ from models.requests import (
     CreatePMDeferralRequest,
     CreateProgramTemplateRequest,
     CreatePublicAreaRequest,
+    DecidePMDeferralRequest,
     UpdateDndWelfarePolicyRequest,
     UpdateProgramTemplateRequest,
     UpdateStayoverRuleRequest,
@@ -56,17 +57,6 @@ def _get_property_applicability(current_user: CurrentUser) -> dict:
     return (result.data if result and result.data else {
         "facilities": [], "services": [], "brand_requirements": [],
     })
-
-
-def _require_active_tenant_approver(user_id: str, current_user: CurrentUser) -> None:
-    """D-07: a deferral approver must be a distinct, active user at this tenant."""
-    result = (
-        supabase.table("user_roles").select("user_id")
-        .eq("tenant_id", current_user.hotel_id).eq("user_id", user_id)
-        .eq("is_active", True).maybe_single().execute()
-    )
-    if not result or not result.data:
-        raise HTTPException(status_code=404, detail="Deferral approver is not active at this property.")
 
 
 def _record_audit_event(
@@ -185,6 +175,15 @@ async def update_program_template(
         raise HTTPException(status_code=404, detail="Template not found")
 
     payload: dict = {"items": _template_items_json(request.items, request.default_frequency_days)}
+    if payload["items"].get("checklist") != (result.data.get("items") or {}).get("checklist"):
+        # A changed checklist is a new revision: completions record the version they were done against, so the
+        # number must move when the questions do. Past completions keep their own item rows and are untouched.
+        latest = (
+            supabase.table("pm_checklist_templates").select("version")
+            .eq("tenant_id", current_user.hotel_id).eq("code", result.data["code"])
+            .order("version", desc=True).limit(1).execute().data or []
+        )
+        payload["version"] = max([result.data.get("version") or 1, *(row["version"] for row in latest)]) + 1
     if request.name is not None:
         payload["name"] = request.name
     if request.name_es is not None:
@@ -226,41 +225,156 @@ async def create_program_template(
     return {"data": record}
 
 
+def _deferral_status(deferral: dict, decision: dict | None) -> str:
+    """pending | approved | rejected. A row written before decisions existed carries approved_by and was applied
+    when it was created, so it reads as approved."""
+    if decision:
+        return decision["decision"]
+    return "approved" if deferral.get("approved_by") else "pending"
+
+
+def _with_status(deferrals: list[dict], decisions: list[dict]) -> list[dict]:
+    by_deferral = {row["deferral_id"]: row for row in decisions}
+    out = []
+    for deferral in deferrals:
+        decision = by_deferral.get(deferral["id"])
+        out.append({
+            **deferral,
+            "status": _deferral_status(deferral, decision),
+            "decision": decision,
+        })
+    return out
+
+
+def _decisions_for(deferral_ids: list[str], current_user: CurrentUser) -> list[dict]:
+    if not deferral_ids:
+        return []
+    return supabase.table("pm_deferral_decisions").select("*").eq(
+        "tenant_id", current_user.hotel_id
+    ).in_("deferral_id", deferral_ids).execute().data or []
+
+
 @router.post("/pm-schedules/{schedule_id}/deferrals")
 async def defer_pm_schedule(
     schedule_id: str,
     request: CreatePMDeferralRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "chief_engineer")),
+    current_user: CurrentUser = Depends(require_role(*PM_DEFERRAL_REQUEST_ROLES)),
 ):
-    _get_pm_schedule(schedule_id, current_user)
-    if request.approved_by == current_user.user_id:
-        raise HTTPException(
-            status_code=422,
-            detail="A deferral requires an approver distinct from the requester",
-        )
-    _require_active_tenant_approver(request.approved_by, current_user)
+    """Request a deferral. The schedule's due date does NOT move: an independent reviewer decides the request with
+    their own login (POST /pm-deferrals/{id}/approve | /reject). `approved_by` in the body is ignored."""
+    schedule = _get_pm_schedule(schedule_id, current_user)
+    if not schedule.get("is_active"):
+        raise HTTPException(status_code=409, detail="This PM schedule is not active.")
+    deferred_until = request.deferred_until if request.deferred_until.tzinfo else request.deferred_until.replace(tzinfo=timezone.utc)
+    if deferred_until <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=422, detail="The requested date must be in the future")
+    current_due = datetime.fromisoformat(str(schedule["next_due_at"]).replace("Z", "+00:00"))
+    if current_due.tzinfo is None:
+        current_due = current_due.replace(tzinfo=timezone.utc)
+    if deferred_until <= current_due:
+        raise HTTPException(status_code=422, detail="A deferral must move the due date later than it is now")
+
+    open_requests = supabase.table("pm_deferrals").select("id, approved_by").eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("pm_schedule_id", schedule_id).is_("approved_by", "null").execute().data or []
+    decided = {row["deferral_id"] for row in _decisions_for([row["id"] for row in open_requests], current_user)}
+    if any(row["id"] not in decided for row in open_requests):
+        raise HTTPException(status_code=409, detail="This schedule already has a deferral request awaiting review")
+
     record = supabase.table("pm_deferrals").insert({
         "tenant_id": current_user.hotel_id,
         "pm_schedule_id": schedule_id,
         "reason": request.reason,
         "requested_by": current_user.user_id,
-        "approved_by": request.approved_by,
-        "deferred_until": request.deferred_until.isoformat(),
+        "deferred_until": deferred_until.isoformat(),
     }).execute().data[0]
-    supabase.table("pm_schedules").update({"next_due_at": request.deferred_until.isoformat()}).eq("id", schedule_id).eq("tenant_id", current_user.hotel_id).execute()
     _record_audit_event(
         current_user=current_user,
         resource_type="pm_deferral",
         resource_id=record["id"],
-        action="pm_deferral.approved",
+        action="pm_deferral.requested",
         reason_code="pm_deferral",
-        new_state={
-            "deferred_until": request.deferred_until.isoformat(),
-            "reason": request.reason,
-            "approved_by": request.approved_by,
-        },
+        reason_note=request.reason,
+        old_state={"next_due_at": schedule["next_due_at"]},
+        new_state={"deferred_until": deferred_until.isoformat(), "pm_schedule_id": schedule_id},
     )
-    return {"data": record}
+    return {"data": {**record, "status": "pending", "decision": None}}
+
+
+@router.get("/pm-deferrals")
+async def list_pm_deferrals(
+    status: str = Query("pending", pattern="^(pending|approved|rejected|all)$"),
+    schedule_id: str | None = Query(None, max_length=64),
+    limit: int = Query(50, ge=1, le=100),
+    current_user: CurrentUser = Depends(require_role(*PM_DEFERRAL_REQUEST_ROLES)),
+):
+    """Deferral requests for this property, newest first, with their decision (if any)."""
+    query = supabase.table("pm_deferrals").select("*").eq("tenant_id", current_user.hotel_id)
+    if schedule_id:
+        query = query.eq("pm_schedule_id", schedule_id)
+    rows = query.order("created_at", desc=True).limit(500).execute().data or []
+    rows = _with_status(rows, _decisions_for([row["id"] for row in rows], current_user))
+    if status != "all":
+        rows = [row for row in rows if row["status"] == status]
+    return {"data": rows[:limit], "meta": {"limit": limit}}
+
+
+def _decide(deferral_id: str, decision: str, note: str | None, current_user: CurrentUser) -> dict:
+    """One guarded operation: the database function locks the schedule, refuses self-review, applies an approval and
+    writes the decision + audit rows in a single transaction. The reviewer is ALWAYS the authenticated caller."""
+    try:
+        outcome = supabase.rpc("decide_pm_deferral", {
+            "p_tenant_id": current_user.hotel_id,
+            "p_deferral_id": deferral_id,
+            "p_reviewer_id": current_user.user_id,
+            "p_reviewer_role": current_user.role,
+            "p_decision": decision,
+            "p_note": note,
+        }).execute().data
+    except Exception as exc:  # noqa: BLE001 - classify, never swallow
+        if "PGRST202" in str(exc) or "Could not find the function" in str(exc):
+            raise HTTPException(status_code=503, detail={"code": "deferral_unavailable", "message": "Deferral decisions are temporarily unavailable. Nothing was changed."}) from exc
+        raise
+    if isinstance(outcome, list):
+        outcome = outcome[0] if outcome else None
+    status = (outcome or {}).get("status")
+    if status == "ok":
+        return {"data": outcome["decision"], "meta": {"replayed": False}}
+    if status == "already_decided":
+        prior = outcome.get("decision")
+        if prior and prior.get("decision") == decision and prior.get("decided_by") == current_user.user_id:
+            return {"data": prior, "meta": {"replayed": True}}
+        raise HTTPException(status_code=409, detail={"code": "already_decided", "message": "This request has already been decided."})
+    refusals = {
+        "not_found": (404, "not_found", "Deferral request not found"),
+        "self_review": (403, "self_review", "You cannot decide a deferral you requested. Ask another reviewer."),
+        "schedule_inactive": (409, "schedule_inactive", "This PM schedule is no longer active."),
+        "stale": (409, "stale", "The schedule's due date has already moved to or past the requested date."),
+        "expired": (409, "expired", "The requested date has already passed. Ask for a new deferral."),
+        "invalid_decision": (422, "invalid_decision", "Decision must be approved or rejected"),
+    }
+    if status in refusals:
+        code_, key, message = refusals[status]
+        raise HTTPException(status_code=code_, detail={"code": key, "message": message})
+    raise HTTPException(status_code=502, detail={"code": "decision_unverified", "message": "The decision could not be verified. Check the request before retrying."})
+
+
+@router.post("/pm-deferrals/{deferral_id}/approve")
+async def approve_pm_deferral(
+    deferral_id: str,
+    request: DecidePMDeferralRequest,
+    current_user: CurrentUser = Depends(require_role(*PM_DEFERRAL_REVIEWER_ROLES)),
+):
+    return _decide(deferral_id, "approved", request.note, current_user)
+
+
+@router.post("/pm-deferrals/{deferral_id}/reject")
+async def reject_pm_deferral(
+    deferral_id: str,
+    request: DecidePMDeferralRequest,
+    current_user: CurrentUser = Depends(require_role(*PM_DEFERRAL_REVIEWER_ROLES)),
+):
+    return _decide(deferral_id, "rejected", request.note, current_user)
 
 
 @router.post("/public-areas")

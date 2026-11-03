@@ -27,6 +27,7 @@ from routers import (
     task_lifecycle,
     work_orders,
     assets,
+    pm_management,
     ai_copilot,
     sop,
     billing,
@@ -352,6 +353,7 @@ app.include_router(task_blockers.router, prefix=PREFIX)
 app.include_router(tasks.router, prefix=PREFIX)
 app.include_router(work_orders.router, prefix=PREFIX)
 app.include_router(assets.router, prefix=PREFIX)
+app.include_router(pm_management.router, prefix=PREFIX)
 app.include_router(ai_copilot.router, prefix=PREFIX)
 app.include_router(sop.router, prefix=PREFIX)
 app.include_router(billing.router, prefix=PREFIX)

@@ -10,10 +10,12 @@ import { Fact, StatusBadge, useStatusTone } from "./assetUi";
 interface Props {
   row: AssetRow;
   onPress: (assetId: string) => void;
+  /** Opens the quick-actions sheet for this row: from the ellipsis, a long press, or the screen reader's actions menu. */
+  onActions?: (row: AssetRow) => void;
 }
 
 /** One piece of equipment: name, tag + category, where it is, its service status and any open maintenance signal. The whole card opens it. */
-function AssetCardBase({ row, onPress }: Props) {
+function AssetCardBase({ row, onPress, onActions }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const card = assetCardModel(row);
@@ -25,9 +27,12 @@ function AssetCardBase({ row, onPress }: Props) {
   return (
     <Pressable
       onPress={() => onPress(card.id)}
+      onLongPress={onActions ? () => onActions(row) : undefined}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={t("assets.card.openHint")}
+      accessibilityActions={onActions ? [{ name: "actions", label: t("assets.actions.title") }] : undefined}
+      onAccessibilityAction={onActions ? (event) => event.nativeEvent.actionName === "actions" && onActions(row) : undefined}
       testID={`asset-card-${card.id}`}
       style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.85 : 1 }]}
     >
@@ -54,6 +59,18 @@ function AssetCardBase({ row, onPress }: Props) {
           {card.hasPrediction ? <Fact icon="pulse-outline" text={t("assets.card.signal")} tone="warn" /> : null}
         </View>
       </View>
+      {onActions ? (
+        <Pressable
+          onPress={() => onActions(row)}
+          accessibilityRole="button"
+          accessibilityLabel={t("assets.actions.more", { name: card.title })}
+          hitSlop={4}
+          style={styles.more}
+          testID={`asset-actions-${card.id}`}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color={theme.textMuted} />
+        </Pressable>
+      ) : null}
       <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
     </Pressable>
   );
@@ -66,6 +83,7 @@ const styles = StyleSheet.create({
   rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4 },
   tile: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   body: { flex: 1, minWidth: 0, gap: 4 },
+  more: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   name: { fontSize: 15, fontWeight: "700" },
   sub: { fontSize: 12.5 },
   badges: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 2 },

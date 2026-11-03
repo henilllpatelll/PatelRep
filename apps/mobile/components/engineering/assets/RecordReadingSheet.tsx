@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme/useTheme";
+import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, InlineError, Note } from "@/components/engineering/workorder/sheetKit";
 import { recordMeterReading, listMeterReadings, type RecordedReading } from "@/lib/api/assets";
@@ -10,6 +10,7 @@ import { classifyLoadFailure } from "@/lib/engineering/loadState";
 import {
   READING_NOTES_MAX,
   checkReadingInput,
+  configuredRange,
   limitState,
   readingNumber,
   type AssetMeter,
@@ -35,7 +36,6 @@ interface Props {
 export function RecordReadingSheet({ visible, meters, initialMeterId, isOnline, onClose, onRecorded }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const [meterId, setMeterId] = useState<string | null>(initialMeterId ?? meters[0]?.id ?? null);
   const [valueText, setValueText] = useState("");
   const [notes, setNotes] = useState("");
@@ -59,6 +59,8 @@ export function RecordReadingSheet({ visible, meters, initialMeterId, isOnline, 
   const check = checkReadingInput(valueText, notes);
   const showError = valueText.length > 0 && check.error != null;
   const limit = meter && check.value != null ? limitState(meter, check.value) : null;
+  const range = meter ? configuredRange(meter) : null;
+  const last = meter?.latest_reading ? readingNumber(meter.latest_reading) : null;
 
   const submit = async () => {
     if (!meter || check.value == null || inFlight.current || !isOnline) return;
@@ -107,97 +109,93 @@ export function RecordReadingSheet({ visible, meters, initialMeterId, isOnline, 
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessible={false}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <Pressable style={[styles.sheet, { backgroundColor: theme.surface, paddingBottom: insets.bottom + 14 }]} onPress={() => undefined} accessible={false} testID="record-reading-sheet">
-            <Text style={[styles.title, { color: theme.textPrimary }]} accessibilityRole="header">
-              {t("assets.readings.record")}
-            </Text>
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-              {meters.length > 1 ? (
-                <View style={styles.chips}>
-                  {meters.map((m) => (
-                    <Pressable
-                      key={m.id}
-                      onPress={() => setMeterId(m.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: m.id === meterId }}
-                      style={[styles.chip, { borderColor: m.id === meterId ? theme.primaryAction : theme.border, backgroundColor: m.id === meterId ? theme.primarySoft : theme.surface }]}
-                      testID={`reading-meter-${m.id}`}
-                    >
-                      <Text style={[styles.chipText, { color: m.id === meterId ? theme.primary : theme.textSecondary }]} maxFontSizeMultiplier={1.4}>
-                        {m.name}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
+    <BottomSheet
+      visible={visible}
+      title={t("assets.readings.record")}
+      onClose={onClose}
+      testID="record-reading-sheet"
+      scrollKey={error}
+      footer={
+        <View style={styles.footer}>
+          <Button label={t("common.cancel")} variant="ghost" onPress={onClose} style={styles.cancel} />
+          <Button
+            label={t("assets.readings.save")}
+            onPress={() => void submit()}
+            loading={busy}
+            disabled={!meter || check.value == null || !isOnline}
+            style={styles.save}
+            testID="reading-save"
+          />
+        </View>
+      }
+    >
+      {meters.length > 1 ? (
+        <View style={styles.chips}>
+          {meters.map((m) => (
+            <Pressable
+              key={m.id}
+              onPress={() => setMeterId(m.id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: m.id === meterId }}
+              style={[styles.chip, { borderColor: m.id === meterId ? theme.primaryAction : theme.border, backgroundColor: m.id === meterId ? theme.primarySoft : theme.surface }]}
+              testID={`reading-meter-${m.id}`}
+            >
+              <Text style={[styles.chipText, { color: m.id === meterId ? theme.primary : theme.textSecondary }]} maxFontSizeMultiplier={1.4}>
+                {m.name}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
-              <FieldLabel required>{meter ? `${meter.name} (${meter.unit})` : t("assets.readings.value")}</FieldLabel>
-              <TextInput
-                value={valueText}
-                onChangeText={(text) => {
-                  setValueText(text);
-                  setError(null);
-                }}
-                keyboardType="numbers-and-punctuation"
-                placeholder={meter ? t("assets.readings.valuePlaceholder", { unit: meter.unit }) : ""}
-                placeholderTextColor={theme.textDisabled}
-                style={[styles.input, { borderColor: showError ? theme.status.dirty : theme.border, color: theme.textPrimary }]}
-                accessibilityLabel={meter ? `${meter.name}, ${meter.unit}` : t("assets.readings.value")}
-                testID="reading-value"
-              />
-              {showError ? <InlineError testID="reading-value-error">{t(`assets.readings.errors.${check.error}`)}</InlineError> : null}
-              {limit === "outside_critical" ? <Note tone="warn" testID="reading-limit">{t("assets.readings.limit.critical")}</Note> : null}
-              {limit === "outside_warning" ? <Note tone="warn" testID="reading-limit">{t("assets.readings.limit.warning")}</Note> : null}
-              {limit === "no_limits" ? <Note testID="reading-limit">{t("assets.readings.limit.none")}</Note> : null}
+      <FieldLabel required>{meter ? `${meter.name} (${meter.unit})` : t("assets.readings.value")}</FieldLabel>
+      {meter ? <Note testID="reading-unit">{t("assets.readings.unitFixed", { unit: meter.unit })}</Note> : null}
+      {range ? <Note testID="reading-range">{t("assets.readings.reference", { low: range.low ?? "–", high: range.high ?? "–", unit: meter?.unit })}</Note> : null}
+      {last != null && meter ? <Note testID="reading-last">{t("assets.readings.last", { value: last, unit: meter.unit })}</Note> : null}
+      <TextInput
+        value={valueText}
+        onChangeText={(text) => {
+          setValueText(text);
+          setError(null);
+        }}
+        keyboardType="numbers-and-punctuation"
+        placeholder={meter ? t("assets.readings.valuePlaceholder", { unit: meter.unit }) : ""}
+        placeholderTextColor={theme.textDisabled}
+        style={[styles.input, { borderColor: showError ? theme.status.dirty : theme.border, color: theme.textPrimary }]}
+        accessibilityLabel={meter ? `${meter.name}, ${meter.unit}` : t("assets.readings.value")}
+        testID="reading-value"
+      />
+      {showError ? <InlineError testID="reading-value-error">{t(`assets.readings.errors.${check.error}`)}</InlineError> : null}
+      {limit === "outside_critical" ? <Note tone="warn" testID="reading-limit">{t("assets.readings.limit.critical")}</Note> : null}
+      {limit === "outside_warning" ? <Note tone="warn" testID="reading-limit">{t("assets.readings.limit.warning")}</Note> : null}
+      {limit === "no_limits" ? <Note testID="reading-limit">{t("assets.readings.limit.none")}</Note> : null}
 
-              <FieldLabel>{t("assets.readings.notes")}</FieldLabel>
-              <TextInput
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                maxLength={READING_NOTES_MAX}
-                placeholder={t("assets.readings.notesPlaceholder")}
-                placeholderTextColor={theme.textDisabled}
-                style={[styles.input, styles.multiline, { borderColor: theme.border, color: theme.textPrimary }]}
-                accessibilityLabel={t("assets.readings.notes")}
-                testID="reading-notes"
-              />
+      <FieldLabel>{t("assets.readings.notes")}</FieldLabel>
+      <TextInput
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+        maxLength={READING_NOTES_MAX}
+        placeholder={t("assets.readings.notesPlaceholder")}
+        placeholderTextColor={theme.textDisabled}
+        style={[styles.input, styles.multiline, { borderColor: theme.border, color: theme.textPrimary }]}
+        accessibilityLabel={t("assets.readings.notes")}
+        testID="reading-notes"
+      />
 
-              {!isOnline ? <InlineError testID="reading-offline">{t("assets.readings.errors.offline")}</InlineError> : null}
-              {error ? <InlineError testID="reading-error">{error}</InlineError> : null}
-            </ScrollView>
-            <View style={styles.footer}>
-              <Button label={t("common.cancel")} variant="ghost" onPress={onClose} style={styles.cancel} />
-              <Button
-                label={t("assets.readings.save")}
-                onPress={() => void submit()}
-                loading={busy}
-                disabled={!meter || check.value == null || !isOnline}
-                style={styles.save}
-                testID="reading-save"
-              />
-            </View>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
-    </Modal>
+      {!isOnline ? <InlineError testID="reading-offline">{t("assets.readings.errors.offline")}</InlineError> : null}
+      {error ? <InlineError testID="reading-error">{error}</InlineError> : null}
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 18, maxHeight: "90%" },
-  title: { fontSize: 18, fontWeight: "700", paddingHorizontal: 18, marginBottom: 6 },
-  content: { paddingHorizontal: 18, gap: 8, paddingBottom: 8 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 6 },
   chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   chipText: { fontSize: 14, fontWeight: "600" },
   input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 16 },
   multiline: { minHeight: 80, textAlignVertical: "top", paddingTop: 10 },
-  footer: { flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingTop: 10 },
+  footer: { flexDirection: "row", gap: 10 },
   cancel: { flex: 1 },
   save: { flex: 2 },
 });

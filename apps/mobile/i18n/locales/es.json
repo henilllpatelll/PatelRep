@@ -1938,7 +1938,8 @@
           "room_status": "Cambio de estado de la habitación",
           "task": "Actualización de tarea",
           "logbook": "Entrada de bitácora",
-          "other": "Actualización"
+          "other": "Actualización",
+          "pm_completion": "Inspección de mantenimiento preventivo"
         },
         "states": {
           "pending": "Pendiente",
@@ -2497,6 +2498,21 @@
         "repair": "Trabajo de reparación",
         "more": "Más acciones"
       }
+    },
+    "pmSource": {
+      "title": "Origen del mantenimiento preventivo",
+      "unavailable": "Esta reparación viene de una inspección de MP, pero ahora no se pueden cargar sus detalles.",
+      "completedOn": "Inspeccionado {{date}}",
+      "failed": "Fallo en esta inspección ({{count}})",
+      "failed_plural": "Fallos en esta inspección ({{count}})",
+      "recorded": "Defecto registrado",
+      "priority": "Prioridad: {{priority}}",
+      "evidence": "{{count}} foto o archivo registrado",
+      "evidence_plural": "{{count}} fotos o archivos registrados",
+      "view": "Ver inspección original",
+      "thisItem": "Abierta por este paso",
+      "alsoFailed": "También falló en esta inspección ({{count}})",
+      "alsoFailed_plural": "También fallaron en esta inspección ({{count}})"
     }
   },
   "assets": {
@@ -2541,7 +2557,6 @@
     },
     "sections": {
       "overview": "Resumen",
-      "workOrders": "Órdenes",
       "maintenance": "Mantenimiento",
       "readings": "Lecturas",
       "history": "Historial"
@@ -2597,7 +2612,7 @@
       "reliability": "Fiabilidad",
       "sort": "Ordenar por",
       "reset": "Restablecer",
-      "show": "Ver resultados",
+      "show": "Ver equipos",
       "maintenanceOptions": {
         "active_work_order": "Orden de trabajo activa",
         "pm_overdue": "MP vencido",
@@ -2642,9 +2657,17 @@
         "ambiguous": "Más de un equipo tiene esa etiqueta. Busca por nombre o ubicación.",
         "forbidden": "No tienes acceso a los registros de equipos.",
         "offline": "Sin conexión. Sin internet solo se encuentran los equipos que ya abriste.",
-        "failed": "No se pudo buscar. Inténtalo de nuevo."
+        "failed": "No se pudo buscar. Inténtalo de nuevo.",
+        "retired": "Este equipo fue dado de baja."
       },
-      "manualHint": "Escribe la etiqueta impresa en el equipo o el ID del equipo."
+      "manualHint": "Escribe la etiqueta impresa en el equipo o el ID del equipo.",
+      "openRetired": "Abrir registro del equipo dado de baja",
+      "cached": {
+        "verified": "Copia guardada — última confirmación {{time}}",
+        "unverified": "Copia guardada — hora de confirmación no registrada",
+        "body": "Estás sin conexión, así que este equipo no se puede verificar ahora. Ábrelo para ver lo que hay en este teléfono y reconecta para actualizarlo.",
+        "open": "Abrir equipo guardado"
+      }
     },
     "createWo": {
       "forEquipment": "Para {{name}}"
@@ -2697,7 +2720,23 @@
       "unavailableBody": "Puede haberse eliminado o no pertenecer a este hotel.",
       "backToAssets": "Volver a equipos",
       "offlineUncached": "Sin conexión, y este equipo aún no se ha abierto en este dispositivo.",
-      "viewRoom": "Ver habitación {{room}}"
+      "viewRoom": "Ver habitación {{room}}",
+      "more": "Más",
+      "roomImpact": "Impacto en habitación",
+      "roomAffected": "La habitación {{room}} está afectada",
+      "recentTitle": "Actividad reciente",
+      "viewHistory": "Ver historial completo",
+      "criticality": "Criticidad",
+      "edit": "Editar equipo",
+      "qrLabel": "Etiqueta QR",
+      "scanAnother": "Escanear equipo",
+      "retire": "Dar de baja el equipo",
+      "retiredBanner": "Este equipo está dado de baja. Su historial se conserva aquí, pero no se pueden iniciar nuevas reparaciones, lecturas ni inspecciones.",
+      "warrantyState": {
+        "active": "Hasta {{date}}",
+        "expiring_soon": "Vence pronto: {{date}}",
+        "expired": "Venció {{date}}"
+      }
     },
     "workOrders": {
       "active": "Activas",
@@ -2719,10 +2758,11 @@
         "passed": "Verificada: aprobada",
         "failed": "Verificada: no aprobada",
         "follow_up_required": "Requiere seguimiento"
-      }
+      },
+      "fromPm": "De inspección de MP"
     },
     "maintenance": {
-      "schedules": "Planes de MP",
+      "schedules": "Mantenimiento programado",
       "noSchedule": "No hay mantenimiento preventivo programado para este equipo.",
       "lastDone": "Último: {{date}}",
       "neverDone": "Aún sin completar",
@@ -2736,7 +2776,10 @@
       "passed": "{{count}} aprobado",
       "passed_plural": "{{count}} aprobados",
       "failed": "{{count}} fallido",
-      "failed_plural": "{{count}} fallidos"
+      "failed_plural": "{{count}} fallidos",
+      "activeRepairs": "Reparaciones activas",
+      "records": "Registros de mantenimiento recientes",
+      "completedRepairs": "Reparaciones completadas"
     },
     "readings": {
       "title": "Lecturas del equipo",
@@ -2780,7 +2823,10 @@
         "rejected": "El sistema rechazó esa lectura. Revisa el valor.",
         "failed": "No se pudo guardar la lectura. No se registró nada.",
         "unconfirmed": "No hubo respuesta del servidor. Es posible que la lectura se haya guardado. Presiona Guardar otra vez para comprobarlo antes de enviar nada dos veces."
-      }
+      },
+      "reference": "Rango normal configurado: {{low}} a {{high}} {{unit}}",
+      "last": "Última lectura: {{value}} {{unit}}",
+      "unitFixed": "Unidad: {{unit}}"
     },
     "history": {
       "timeline": "Cronología",
@@ -2831,7 +2877,254 @@
         "signature": "Firma",
         "attestation": "Declaración",
         "external_certificate": "Certificado"
+      },
+      "filterLabel": "Mostrar historial de",
+      "filterEmpty": "Todavía no hay nada en este grupo.",
+      "filter": {
+        "all": "Todo",
+        "pm": "MP",
+        "repairs": "Reparaciones",
+        "downtime": "Inactividad",
+        "readings": "Lecturas"
       }
+    },
+    "add": "Agregar equipo",
+    "criticality": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "life_safety": "Seguridad de vida",
+      "action": "Definir criticidad",
+      "title": "Criticidad del equipo",
+      "body": "¿Cuánto dependen las operaciones de {{name}}? Es la evaluación de su propiedad, no una predicción.",
+      "save": "Guardar criticidad",
+      "reason": "Motivo (opcional)",
+      "reasonPlaceholder": "p. ej. Calienta todo el edificio",
+      "done": "Criticidad actualizada",
+      "help": {
+        "low": "Se toleran cortes breves; huéspedes y personal casi no lo notan.",
+        "medium": "Se nota cuando falla; existen alternativas.",
+        "high": "Las operaciones se resienten rápido cuando falla.",
+        "life_safety": "De esto depende la seguridad de huéspedes o personal (por ejemplo, sistemas contra incendios)."
+      }
+    },
+    "form": {
+      "title": {
+        "create": "Registrar equipo",
+        "edit": "Editar equipo"
+      },
+      "subtitle": {
+        "create": "Agrega un equipo a esta propiedad.",
+        "edit": "Actualiza el registro de este equipo."
+      },
+      "sections": {
+        "identity": "Identidad del equipo",
+        "location": "Dónde está",
+        "details": "Detalles",
+        "review": "Revisión"
+      },
+      "name": "Nombre del equipo",
+      "namePlaceholder": "p. ej. Enfriador de azotea 2",
+      "category": "Categoría",
+      "choose": "Elegir",
+      "categoriesFailed": "No se pudieron cargar las categorías. Regresa e inténtalo de nuevo.",
+      "tag": "Etiqueta del activo",
+      "tagPlaceholder": "p. ej. CH-102",
+      "tagHint": "El texto impreso en la etiqueta. Déjalo en blanco para identificarlo solo con el código QR.",
+      "manufacturer": "Fabricante",
+      "model": "Modelo",
+      "serialNumber": "Número de serie",
+      "location": "Ubicación",
+      "chooseLocation": "Elige una habitación o un área",
+      "locationNote": "Notas de ubicación",
+      "locationNotePlaceholder": "p. ej. detrás del tocador",
+      "locationHint": "Una habitación, o un área como la azotea, un cuarto de máquinas o el cuarto de la alberca.",
+      "clearLocation": "Quitar ubicación",
+      "installed": "Fecha de instalación",
+      "warranty": "Vence la garantía",
+      "dateHint": "Abre el selector de fecha",
+      "clearDate": "Borrar {{field}}",
+      "notSet": "Sin definir",
+      "criticality": "Criticidad",
+      "notes": "Notas",
+      "photo": "Foto del equipo",
+      "submit": {
+        "create": "Registrar activo",
+        "edit": "Guardar cambios"
+      },
+      "saving": "Guardando…",
+      "uploadingPhoto": "Subiendo foto…",
+      "offlineCreate": "Registrar un equipo requiere conexión. No se guarda nada hasta que estés en línea.",
+      "offlineEdit": "Editar un equipo requiere conexión.",
+      "errors": {
+        "name_required": "Escribe el nombre del equipo.",
+        "name_too_long": "Usa {{max}} caracteres o menos en el nombre.",
+        "category_required": "Elige una categoría.",
+        "tag_invalid": "Usa solo letras, dígitos y . _ - / #, hasta 64 caracteres.",
+        "tag_in_use": "Otro activo activo ya usa esta etiqueta.",
+        "text_too_long": "Usa {{max}} caracteres o menos.",
+        "date_invalid": "Elige una fecha válida.",
+        "install_too_far_ahead": "La fecha de instalación no puede ser más de un año en el futuro.",
+        "warranty_before_install": "La garantía no puede vencer antes de la fecha de instalación.",
+        "location_too_long": "Usa 255 caracteres o menos en la ubicación.",
+        "notes_too_long": "Usa {{max}} caracteres o menos en las notas."
+      },
+      "failure": {
+        "unconfirmedCreate": "El servidor no respondió, así que no sabemos si se guardó. Toca Registrar activo otra vez: no se creará un duplicado.",
+        "unconfirmedEdit": "El servidor no respondió, así que no sabemos si tus cambios se guardaron. Toca Guardar otra vez para comprobarlo.",
+        "tag_in_use": "Otro activo activo ya usa esta etiqueta. Elige una distinta.",
+        "forbidden": "Tu rol no puede hacer este cambio.",
+        "not_found": "Este equipo ya no está en esta propiedad.",
+        "validation": "El servidor no aceptó estos datos. Revisa los campos e inténtalo de nuevo.",
+        "failed": "No se pudo guardar. Tus datos se conservan: inténtalo de nuevo.",
+        "photoAfterSave": "Tus cambios se guardaron, pero la foto no se actualizó. Toca Guardar para reintentar la foto."
+      },
+      "conflict": {
+        "title": "Alguien más cambió este equipo",
+        "body": "Otra persona lo guardó después de que lo abriste. No se perdió ni se sobrescribió nada tuyo.",
+        "mine": "Conservar mis cambios y revisar",
+        "latest": "Cargar su versión"
+      },
+      "partial": {
+        "title": "{{name}} está registrado",
+        "body": "El equipo se guardó, pero su foto no se subió. Puedes reintentar la foto, o abrir el equipo ahora y agregar una después.",
+        "retry": "Reintentar foto",
+        "open": "Abrir equipo"
+      },
+      "discard": {
+        "title": "¿Descartar tus cambios?",
+        "body": "Lo que escribiste no se ha guardado.",
+        "keep": "Seguir editando",
+        "discard": "Descartar"
+      }
+    },
+    "photo": {
+      "none": "Aún no hay foto",
+      "willRemove": "La foto se quitará al guardar",
+      "take": "Tomar foto",
+      "choose": "Elegir foto",
+      "remove": "Quitar foto",
+      "keepCurrent": "Conservar la foto actual",
+      "previewLabel": "Foto del equipo",
+      "openSettings": "Abrir ajustes",
+      "needsConnection": "Las fotos se suben al guardar, y eso requiere conexión.",
+      "errors": {
+        "permission_denied": "Permite el acceso a la cámara en Ajustes para tomar una foto.",
+        "failed": "No se pudo obtener esa foto. Inténtalo de nuevo.",
+        "unsupported": "Usa una foto JPEG, PNG o WebP.",
+        "too_large": "Esa foto es demasiado grande. Elige una más pequeña."
+      }
+    },
+    "label": {
+      "title": "Etiqueta QR del equipo",
+      "qrLabel": "Etiqueta con código QR de {{name}}",
+      "share": "Compartir etiqueta",
+      "print": "Imprimir etiqueta",
+      "shareTitle": "Etiqueta de {{name}}",
+      "shareUnavailable": "Compartir no está disponible en este dispositivo.",
+      "shareFailed": "No se pudo preparar la etiqueta para compartir.",
+      "printFailed": "No se pudo abrir la impresión.",
+      "retiredNote": "Este equipo está dado de baja. Su etiqueta seguirá escaneándose, hacia un registro marcado como dado de baja.",
+      "noTagNote": "Este equipo no tiene etiqueta de activo, así que la etiqueta muestra un código corto de su id.",
+      "handoffNote": "Compartir e imprimir abren los cuadros de diálogo de tu dispositivo. PatelRep no puede saber si una etiqueta se imprimió o se envió realmente.",
+      "backToEquipment": "Volver al equipo"
+    },
+    "retire": {
+      "title": "Dar de baja el equipo",
+      "body": "{{name}} se marcará como dado de baja y sus programas de mantenimiento preventivo se detendrán. No se borra nada: las inspecciones, reparaciones y paros siguen registrados.",
+      "reason": "Motivo",
+      "reasonPlaceholder": "p. ej. Reemplazado por una unidad nueva",
+      "continue": "Continuar",
+      "confirm": "¿Dar de baja {{name}}?",
+      "confirmButton": "Dar de baja el equipo",
+      "offline": "Dar de baja un equipo requiere conexión.",
+      "done": "Equipo dado de baja",
+      "failure": {
+        "asset_has_open_work_orders": "Este equipo aún tiene órdenes de trabajo abiertas. Ciérralas o reasígnalas primero.",
+        "asset_has_open_downtime": "Este equipo aún tiene un paro abierto. Restáuralo primero.",
+        "asset_already_retired": "Este equipo ya está dado de baja.",
+        "conflict": "Alguien más cambió este equipo. Cierra esto y revisa la versión más reciente.",
+        "unconfirmed": "El servidor no respondió, así que no sabemos si se dio de baja. Revisa el equipo antes de intentarlo de nuevo.",
+        "forbidden": "Solo un ingeniero jefe o el gerente general puede dar de baja equipos.",
+        "failed": "No se pudo dar de baja este equipo. Inténtalo de nuevo."
+      }
+    },
+    "management": {
+      "title": "Gestión de activos",
+      "subtitle": "Equipos que necesitan la atención de un gerente.",
+      "open": "Gestión de activos",
+      "empty": "Aún no hay registros de equipos que mostrar.",
+      "group": {
+        "critical": "Equipos críticos",
+        "out_of_service": "Fuera de servicio",
+        "active_repairs": "Reparaciones abiertas",
+        "warranty_expiring": "Garantía por vencer",
+        "warranty_expired": "Garantía vencida"
+      },
+      "about": {
+        "critical": "Equipos que su propiedad marcó como Seguridad de vida o Alta. Primero seguridad de vida.",
+        "out_of_service": "Equipos con tiempo fuera de servicio registrado que no se ha cerrado.",
+        "active_repairs": "Equipos con una orden de trabajo abierta, en curso, escalada o en espera.",
+        "warranty_expiring": "Fechas de fin de garantía registradas dentro de los próximos {{days}} días.",
+        "warranty_expired": "Fechas de fin de garantía registradas que ya pasaron."
+      },
+      "none": "No hay nada aquí por ahora.",
+      "warrantyDate": "Fecha de garantía {{date}}",
+      "showingFirst": "Mostrando los primeros {{shown}} de {{total}}.",
+      "sectionRecords": "Registros",
+      "summary": "{{active}} activos · {{retired}} retirados · {{unknown}} sin fecha de garantía registrada",
+      "disclaimer": "Esto proviene de fechas y estados registrados. Una fecha de garantía no garantiza que se acepte un reclamo, y la criticidad es la evaluación de su propiedad."
+    },
+    "downtime": {
+      "startAction": "Registrar tiempo fuera de servicio",
+      "endAction": "Terminar tiempo fuera de servicio",
+      "startTitle": "Registrar tiempo fuera de servicio",
+      "endTitle": "Terminar tiempo fuera de servicio",
+      "start": "Registrar",
+      "end": "Terminar",
+      "startBody": "Registre que {{name}} está fuera de servicio o funciona por debajo de lo normal.",
+      "endBody": "{{name}} está fuera de servicio desde {{since}}. Registre que volvió a funcionar.",
+      "impact": "Condición",
+      "kind": "Tipo",
+      "notes": "Qué pasó (opcional)",
+      "endNotes": "Notas (opcional)",
+      "notesPlaceholder": "Agregue contexto para el registro",
+      "startScope": "La hora y su nombre se registran automáticamente. Esto no saca ninguna habitación de servicio: esa es una decisión aparte.",
+      "endScope": "La hora y su nombre se registran automáticamente. Esto no cierra una orden de trabajo ni marca nada como reparado.",
+      "done": {
+        "started": "Tiempo fuera de servicio registrado",
+        "ended": "Tiempo fuera de servicio terminado",
+        "already_open": "Ya había un período abierto"
+      },
+      "linkRepair": "Reparación relacionada (opcional)",
+      "noRepair": "Ninguna"
+    },
+    "roomImpact": {
+      "action": "Revisar impacto en la habitación",
+      "title": "Revisar impacto en la habitación",
+      "equipment": "Equipo",
+      "downSince": "Registrado fuera de servicio desde {{date}}",
+      "noDowntime": "Sin tiempo fuera de servicio registrado",
+      "serves": "Da servicio a",
+      "floor": "Piso {{floor}}",
+      "roomUnread": "No tienes acceso aquí al estado actual de la habitación. Abre la habitación para verlo.",
+      "shared": "Área compartida: {{place}}. No hay habitación de huéspedes vinculada.",
+      "noRoom": "No hay habitación ni área compartida registrada para este equipo.",
+      "repairs": "Reparaciones activas de este equipo ({{count}})",
+      "repairs_plural": "Reparaciones activas de este equipo ({{count}})",
+      "noRepairs": "No hay reparaciones activas.",
+      "openRoom": "Abrir habitación",
+      "scope": "Solo informativo. Una reparación o un tiempo fuera de servicio no cambia la habitación: su disponibilidad se define en el flujo propio de la habitación, por quien tiene autorización."
+    },
+    "actions": {
+      "title": "Acciones rápidas",
+      "open": "Abrir equipo",
+      "report": "Reportar un problema",
+      "reading": "Registrar una lectura",
+      "maintenance": "Ver mantenimiento",
+      "label": "Etiqueta QR",
+      "reportOffline": "Reportar un problema requiere conexión.",
+      "more": "Más acciones para {{name}}"
     }
   },
   "inspect": {
@@ -4956,7 +5249,8 @@
         "taskCompletions": "Tareas completadas",
         "workOrders": "Órdenes de trabajo",
         "logbook": "Entradas de bitácora",
-        "cleaningSessions": "Sesiones de limpieza"
+        "cleaningSessions": "Sesiones de limpieza",
+        "pmInspections": "Inspecciones de mantenimiento preventivo"
       }
     },
     "errors": {
@@ -10873,7 +11167,8 @@
       "today": "Hoy",
       "week": "Semana",
       "calendar": "Calendario",
-      "history": "Historial"
+      "history": "Historial",
+      "plan": "Plan"
     },
     "weekday": {
       "mo": "Lu",
@@ -10927,7 +11222,11 @@
       "any": "Cualquiera",
       "reset": "Restablecer",
       "apply": "Mostrar resultados",
-      "showing": "Mostrando {{shown}} de {{total}}"
+      "showing": "Mostrando {{shown}} de {{total}}",
+      "titleActive": "Filtrar y ordenar · {{count}} activos",
+      "allStatuses": "Todos",
+      "showResults": "Mostrar {{count}} resultado",
+      "showResults_plural": "Mostrar {{count}} resultados"
     },
     "sort": {
       "due_soonest": "Vence primero",
@@ -10952,8 +11251,16 @@
       "previous": "Mantenimiento anterior",
       "noPrevious": "Aún no se han registrado inspecciones de este equipo.",
       "openAssets": "Abrir Activos",
+      "openAsset": "Abrir este equipo",
       "notFound": "Programa no encontrado",
-      "notFoundBody": "Puede que se haya eliminado o que no tengas conexión. Desliza para actualizar en la pantalla de PM."
+      "notFoundBody": "Puede que se haya eliminado o que no tengas conexión. Desliza para actualizar en la pantalla de PM.",
+      "checklist": "Lista de verificación",
+      "version": "Versión",
+      "steps": "Pasos",
+      "photosRequired": "Fotos requeridas",
+      "stepsWithPhoto": "{{count}} paso",
+      "stepsWithPhoto_plural": "{{count}} pasos",
+      "mostRecent": "Más reciente"
     },
     "chooseChecklist": "Elige una lista",
     "chooseChecklistBody": "Elige la lista que corresponde a esta inspección. El resultado se registra con ella.",
@@ -10962,6 +11269,20 @@
     "config": {
       "noTemplatesTitle": "No hay lista de inspección configurada",
       "noTemplatesBody": "Esta propiedad aún no tiene listas de ingeniería, así que no se puede registrar una inspección. Pide a un gerente que configure las listas de PM en la consola web."
+    },
+    "binding": {
+      "missing": {
+        "title": "La lista de este programa ya no existe",
+        "body": "La lista asignada a este PM ya no existe, así que no se puede registrar la inspección. Pide a un jefe de ingeniería que asigne una lista vigente."
+      },
+      "inactive": {
+        "title": "La lista de este programa fue retirada",
+        "body": "La lista asignada a este PM fue retirada. Pide a un jefe de ingeniería que asigne su reemplazo antes de inspeccionar."
+      },
+      "incompatible": {
+        "title": "No se puede usar la lista de este programa",
+        "body": "La lista asignada a este PM no es una lista de ingeniería. Pide a un jefe de ingeniería que asigne la correcta."
+      }
     },
     "progress": "{{done}} de {{total}} pasos completados",
     "step": "Paso {{number}}",
@@ -10987,7 +11308,23 @@
       "uploading": "Subiendo foto",
       "library": "Galería",
       "failed": "No se pudo usar esa foto.",
-      "uploadFailed": "La foto no se subió, así que no se adjuntó. Inténtalo de nuevo."
+      "uploadFailed": "La foto no se subió, así que no se adjuntó. Inténtalo de nuevo.",
+      "uploaded": "Subida",
+      "preview": "Ver foto",
+      "previewClose": "Cerrar foto",
+      "retry": "Reintentar subida",
+      "announceUploaded": "Foto subida.",
+      "announceFailed": "Falló la subida de la foto.",
+      "offlineNote": "Sin conexión. Las fotos se guardan en este teléfono y se suben cuando vuelva la conexión.",
+      "savedOnPhone": "Guardada en este teléfono, aún sin subir",
+      "local": {
+        "no_owner": "Inicia sesión de nuevo antes de agregar fotos.",
+        "missing_source": "No se pudo leer esa foto, así que no se guardó. Inténtalo de nuevo.",
+        "too_large": "Esa foto es demasiado grande para enviarla (límite de 10 MB), así que no se guardó.",
+        "quota": "Las fotos pendientes de subir ocupan todo el espacio permitido. Conéctate para subirlas y luego agrega más.",
+        "storage_full": "Este teléfono no tiene almacenamiento, así que la foto no se guardó. Libera espacio e inténtalo de nuevo.",
+        "save_failed": "No se pudo guardar la foto en este teléfono, así que no se adjuntó. Inténtalo de nuevo."
+      }
     },
     "readings": "Lecturas",
     "reading": {
@@ -10998,7 +11335,14 @@
         "normal": "Dentro de los límites",
         "warning": "Fuera del límite de advertencia",
         "critical": "Fuera del límite crítico"
-      }
+      },
+      "toggleSign": "Cambiar entre positivo y negativo",
+      "detail": {
+        "warning": "{{value}} {{unit}} está fuera del límite de advertencia configurado.",
+        "critical": "{{value}} {{unit}} está fuera del límite crítico configurado."
+      },
+      "referenceMax": "Normal: hasta {{high}} {{unit}}",
+      "referenceMin": "Normal: al menos {{low}} {{unit}}"
     },
     "extras": {
       "labor": "Mano de obra (minutos)",
@@ -11040,7 +11384,13 @@
       "refused": "La inspección no se registró.",
       "forbidden": "Tu rol no puede completar esta inspección.",
       "scheduleGone": "Este programa ya no existe, así que la inspección no se registró.",
-      "unknown": "No pudimos confirmar si la inspección se registró. Tu borrador está a salvo. Inténtalo de nuevo y primero buscaremos un duplicado."
+      "unknown": "No pudimos confirmar si la inspección se registró. Tu borrador está a salvo. Inténtalo de nuevo y primero buscaremos un duplicado.",
+      "findingRequired": "Describe lo que falló.",
+      "partInvalid": "Ingresa el nombre de la pieza y una cantidad mayor que cero.",
+      "defectInvalid": "Describe el defecto o quítalo.",
+      "photoMissing": "Falta una foto guardada en este teléfono, así que la inspección no se puede enviar con su evidencia. Quítala o tómala de nuevo.",
+      "alreadyQueued": "Esta programación ya tiene una inspección guardada esperando sincronizar.",
+      "queueFailed": "No se pudo guardar la inspección en este teléfono. No se envió nada. Inténtalo de nuevo."
     },
     "review": {
       "summary": "Inspección",
@@ -11058,7 +11408,22 @@
       "issues": "Problemas",
       "willOpenWorkOrders": "Se abrirá {{count}} orden de trabajo correctiva al completar.",
       "willOpenWorkOrders_plural": "Se abrirán {{count}} órdenes de trabajo correctivas al completar.",
-      "laborParts": "Mano de obra y piezas"
+      "laborParts": "Mano de obra y piezas",
+      "due": "Vence",
+      "fixThis": "Corregir",
+      "evidenceCount": "{{count}} foto adjunta",
+      "evidenceCount_plural": "{{count}} fotos adjuntas",
+      "evidenceRequired": "Fotos requeridas: {{done}} de {{total}}",
+      "evidenceNone": "Ningún paso de esta lista requiere foto.",
+      "findingFor": "Describe la falla: {{name}}",
+      "fixReading": "Corrige la lectura: {{name}}",
+      "fixLabor": "Corrige los minutos de mano de obra",
+      "fixPart": "Completa la pieza",
+      "fixDefect": "Completa el defecto",
+      "outOfRange": "Fuera del límite configurado",
+      "noReadings": "No se ingresaron lecturas",
+      "pending": "Estado",
+      "version": "versión {{version}}"
     },
     "recorded": {
       "title": "Inspección registrada",
@@ -11071,14 +11436,114 @@
       "workOrders": "Órdenes de trabajo correctivas abiertas: {{count}}",
       "notSafeClaim": "Registrar una inspección no libera el equipo ni devuelve una habitación al servicio. Hazlo mediante el flujo de reparación.",
       "viewRecord": "Ver registro de inspección",
-      "back": "Volver al programa de PM"
+      "back": "Volver al programa de PM",
+      "completedAt": "Registrada",
+      "technician": "Técnico",
+      "readings": "{{count}} lectura registrada",
+      "readings_plural": "{{count}} lecturas registradas",
+      "evidence": "{{count}} foto adjunta",
+      "evidence_plural": "{{count}} fotos adjuntas",
+      "nextDue": "Próxima inspección",
+      "viewEquipment": "Ver equipo",
+      "workOrderNumber": "Orden de trabajo n.º {{number}}",
+      "resultsLine": "{{passed}} aprobados · {{failed}} fallidos · {{na}} N/A",
+      "announce": "Inspección registrada"
     },
     "record": {
       "title": "Registro de inspección",
       "notFound": "Registro de inspección no encontrado",
       "completedOn": "Completado {{date}}",
       "version": "Versión de la lista {{version}}",
-      "labor": "Mano de obra: {{count}} min"
+      "labor": "Mano de obra: {{count}} min",
+      "equipment": "Equipo",
+      "openEquipment": "Abrir equipo: {{name}}",
+      "openEquipmentFallback": "Abrir registro del equipo",
+      "equipmentRetired": "Dado de baja",
+      "correctiveTitle": "Trabajo correctivo de esta inspección",
+      "openWorkOrder": "Abrir orden de trabajo: {{title}}"
+    },
+    "plan": {
+      "week": "Semana",
+      "calendar": "Calendario"
+    },
+    "today": {
+      "continue": "Continuar inspección",
+      "needsAttention": "Requiere atención",
+      "nothingElseToday": "No hay más inspecciones para hoy.",
+      "progress": "{{done}} de {{total}} pasos completados",
+      "viewPlan": "Ver plan completo",
+      "viewPlanMore": "Ver plan completo (+{{count}} más)"
+    },
+    "history": {
+      "followUp": "{{count}} defecto de seguimiento",
+      "followUp_plural": "{{count}} defectos de seguimiento",
+      "openEquipment": "Abrir equipo: {{name}}"
+    },
+    "save": {
+      "saving": "Guardando en este teléfono…",
+      "saved": "Guardado en este teléfono",
+      "failed": "No se pudo guardar en este teléfono. Mantén esta pantalla abierta."
+    },
+    "header": {
+      "checklist": "{{name}} · v{{version}}",
+      "viewEquipment": "Ver equipo"
+    },
+    "stepper": {
+      "label": "Secciones de la inspección",
+      "checklist": "Lista",
+      "measurements": "Lecturas",
+      "findings": "Hallazgos",
+      "review": "Revisión",
+      "position": "Sección {{current}} de {{total}}: {{name}}",
+      "complete": "completa",
+      "attention": "requiere atención",
+      "next": "Siguiente: {{name}}",
+      "toReview": "Revisar inspección"
+    },
+    "failure": {
+      "title": "Reportar revisión fallida",
+      "equipment": "Equipo",
+      "check": "Revisión fallida",
+      "what": "¿Qué encontraste?",
+      "placeholder": "Describe el problema para que el equipo de reparación sepa qué arreglar. Esto va en la orden de trabajo correctiva.",
+      "required": "Describe lo que encontraste antes de completar la inspección.",
+      "photo": "Foto del problema",
+      "save": "Guardar hallazgo",
+      "edit": "Editar hallazgo",
+      "add": "Describe el hallazgo",
+      "missing": "Falta el hallazgo",
+      "guidance": "Si es un peligro inmediato para huéspedes o personal, sigue el procedimiento de escalamiento de tu propiedad y avisa ahora al Jefe de Ingeniería. Guardar un hallazgo no avisa a nadie.",
+      "afterComplete": "Al completar la inspección se abre una orden de trabajo correctiva para esta revisión."
+    },
+    "measure": {
+      "none": "Este equipo no tiene medidores configurados",
+      "noneBody": "No hay nada que medir aquí. Los medidores se agregan desde el registro del equipo.",
+      "intro": "Ingresa solo lo que mediste. Las lecturas son opcionales y nunca cambian una respuesta de la lista."
+    },
+    "findings": {
+      "intro": "Registra mano de obra, piezas, otros defectos, fotos y notas. Todo aquí es opcional."
+    },
+    "submit": {
+      "sending": "Registrando la inspección…",
+      "retry": "Reintentar de forma segura",
+      "unknownTitle": "Aún sin confirmar",
+      "rejectedTitle": "No se registró",
+      "blockedTitle": "Aún no se puede completar",
+      "announceRecorded": "Inspección registrada.",
+      "announceUnknown": "Es posible que la inspección no se haya registrado. Tu borrador está a salvo.",
+      "announceRejected": "La inspección no se registró."
+    },
+    "saveForSync": "Guardar para sincronizar",
+    "saveForSyncNote": "Sin conexión. Esto guarda la inspección en este teléfono. No queda registrada hasta que PatelRep la confirme.",
+    "photosPendingNote": "Algunas fotos siguen solo en este teléfono. Al guardar se envían primero, y la inspección no queda registrada hasta que PatelRep la confirme.",
+    "queued": {
+      "title": "Guardada — esperando sincronizar",
+      "body": "Esta inspección está guardada en este teléfono. Aún no se ha registrado. Se envía automáticamente cuando vuelvas a tener conexión.",
+      "reviewTitle": "Requiere revisión",
+      "reviewBody": "Esta inspección guardada no se puede enviar tal como está. Tus respuestas y fotos se conservan. Abre Estado de sincronización para decidir qué hacer.",
+      "openSync": "Abrir Estado de sincronización",
+      "back": "Volver a las inspecciones",
+      "announce": "Inspección guardada en este teléfono. Esperando sincronizar, aún no registrada."
     }
   },
   "engRooms": {
@@ -11611,6 +12076,36 @@
       "not_found": "Esa orden ya no existe.",
       "invalid": "El servidor rechazó los datos. Abre la orden y vuelve a hacerlo.",
       "unknown": "El servidor rechazó este cambio."
+    },
+    "pm": {
+      "title": "Inspecciones esperando sincronizar",
+      "none": "No hay inspecciones esperando.",
+      "draftsTitle": "Inspecciones sin terminar en este teléfono",
+      "draftsNone": "No hay inspecciones sin terminar.",
+      "draftsHint": "Guardadas solo en este teléfono. No enviadas.",
+      "draftProgress": "{{answered}} de {{total}} pasos respondidos",
+      "continue": "Continuar",
+      "photosLabel": "Fotos: {{count}}",
+      "unknownNote": "El último intento pudo haber llegado al servidor. Se verifica antes de enviar nada de nuevo.",
+      "stop": {
+        "conflict_completed": "Otra persona ya registró esta inspección. Tus respuestas y fotos se conservan.",
+        "conflict_changed": "La programación cambió y el servidor no aceptó esta inspección tal como se guardó.",
+        "checklist_unavailable": "La lista de verificación de esta programación ya no está disponible. Un ingeniero jefe debe asignar una vigente.",
+        "checklist_changed": "La lista de verificación cambió después de guardar esto.",
+        "schedule_gone": "Esta programación o su equipo ya no está activo.",
+        "evidence_missing": "Falta un archivo de foto guardado en este teléfono.",
+        "evidence_rejected": "Una foto era demasiado grande o no fue aceptada.",
+        "forbidden": "Tu cuenta no puede registrar esta inspección.",
+        "invalid": "El servidor rechazó esta inspección tal como se guardó.",
+        "owner_changed": "Guardada con otra cuenta u otro hotel.",
+        "unreadable": "Esta inspección guardada no se puede leer en este teléfono. Descártala y vuelve a iniciar la inspección."
+      },
+      "retry": "Reintentar ahora",
+      "submitAnyway": "Enviar de todos modos",
+      "open": "Abrir",
+      "discard": "Descartar",
+      "confirmDiscard": "Sí, descartar",
+      "discardWarning": "Esto quita del teléfono la inspección guardada y sus fotos. Nada de lo registrado en el servidor cambia."
     }
   },
   "repairAssist": {
@@ -11649,6 +12144,264 @@
       "not_found": "Esta orden no está disponible para el asistente.",
       "offline": "Sin conexión.",
       "failed": "No se obtuvo respuesta. Inténtalo de nuevo."
+    }
+  },
+  "pmMgmt": {
+    "open": "Gestión de MP",
+    "title": "Gestión de MP",
+    "subtitle": "Administre inspecciones, programas y cobertura de mantenimiento.",
+    "empty": "Aún no hay cobertura de mantenimiento que mostrar.",
+    "loading": "Cargando…",
+    "needsConnection": "Necesita conexión para hacer esto.",
+    "seeAll": "Ver todo",
+    "allClear": "Nada requiere atención por ahora.",
+    "noPending": "No hay solicitudes de aplazamiento esperando revisión.",
+    "pendingLine": "{{name}} pidió moverla al {{date}}",
+    "assignedToYou": "Asignada a usted",
+    "cards": {
+      "overdue": "Vencidas",
+      "unassigned": "Sin asignar",
+      "approvals": "Aprobaciones pendientes",
+      "dueThisWeek": "Vencen esta semana"
+    },
+    "sections": {
+      "attention": "Requiere atención",
+      "workload": "Carga del equipo",
+      "programs": "Programas y desempeño"
+    },
+    "period": {
+      "today": "Hoy",
+      "week": "Esta semana",
+      "month": "Este mes"
+    },
+    "workload": {
+      "none": "No hay ingenieros que mostrar.",
+      "a11y": "{{name}}: {{assigned}} asignadas, {{overdue}} vencidas, {{completed}} completadas",
+      "ineligible": "Ya no es ingeniero activo aquí, pero aún tiene inspecciones asignadas",
+      "line": "{{assigned}} asignadas · {{today}} vencen hoy · {{overdue}} vencidas · {{completed}} completadas",
+      "next": "Próxima: {{date}}",
+      "unassigned": "{{count}} inspección necesita un técnico",
+      "unassigned_plural": "{{count}} inspecciones necesitan un técnico",
+      "disclaimer": "Asignada significa planificada, no iniciada. Los minutos estimados nunca se cuentan como mano de obra."
+    },
+    "programs": {
+      "title": "Programas de MP",
+      "subtitle": "Cada programa activo, su procedimiento y quién lo tiene.",
+      "forTechnician": "Asignadas a {{name}}",
+      "count": "{{count}} programa activo",
+      "count_plural": "{{count}} programas activos",
+      "search": "Buscar programas o equipos",
+      "filter": {
+        "all": "Todos",
+        "overdue": "Vencidos",
+        "unassigned": "Sin asignar",
+        "checklist": "Falta procedimiento"
+      },
+      "empty": "Ningún programa coincide",
+      "emptyBody": "Pruebe otro filtro o búsqueda.",
+      "shown": "Mostrando {{shown}} de {{total}}",
+      "more": "Mostrar más",
+      "overdue": "Vencida",
+      "due": "Vence {{date}}",
+      "assignedTo": "Asignada a {{name}}",
+      "lapsed": "Sin asignar (la asignación anterior terminó con la última inspección)",
+      "unassigned": "Sin asignar",
+      "assign": "Asignar",
+      "reassign": "Reasignar",
+      "checklist": {
+        "unassigned": "Aún sin procedimiento: el técnico elige uno",
+        "missing": "Su procedimiento ya no existe. Elija uno vigente.",
+        "inactive": "Su procedimiento fue retirado. Elija uno vigente.",
+        "incompatible": "Su procedimiento no es una lista de verificación de ingeniería."
+      },
+      "edit": "Editar"
+    },
+    "assign": {
+      "title": "Asignar inspección",
+      "due": "Vence {{date}}",
+      "estimate": "unos {{minutes}} min",
+      "currentlyWith": "Asignada actualmente a {{name}}",
+      "unassigned": "Aún sin asignar",
+      "scopeNote": "Esto asigna solo esta inspección. Al completarla, la siguiente empieza sin asignar.",
+      "search": "Buscar un ingeniero",
+      "searchPlaceholder": "Buscar por nombre",
+      "loadFailed": "No se pudieron cargar los ingenieros. Cierre esto e inténtelo de nuevo.",
+      "noMatch": "Ningún ingeniero coincide con ese nombre.",
+      "alreadyAssigned": "Ya asignada",
+      "roleChief": "Jefe de ingeniería",
+      "roleEngineer": "Ingeniero",
+      "unassign": "Quitar asignación",
+      "confirm": "Confirmar asignación",
+      "confirmReassign": "Confirmar reasignación",
+      "unknownPerson": "Persona desconocida",
+      "done": {
+        "assigned": "Inspección asignada",
+        "reassigned": "Inspección reasignada",
+        "unassigned": "Asignación quitada"
+      }
+    },
+    "detail": {
+      "section": "Administrar",
+      "assignee": "Asignada a"
+    },
+    "deferral": {
+      "title": "Solicitar aplazamiento de MP",
+      "open": "Solicitar aplazamiento",
+      "submit": "Enviar solicitud",
+      "currentDue": "Vence actualmente el {{date}}",
+      "requestNote": "Esto envía una solicitud. La fecha no cambia hasta que otro gerente la apruebe.",
+      "newDate": "Nueva fecha solicitada",
+      "reason": "Motivo",
+      "reasonPlaceholder": "¿Por qué debe moverse?",
+      "requestedToast": "Solicitud enviada: en espera de revisión",
+      "problem": {
+        "reason_short": "Indique un motivo (al menos 5 caracteres).",
+        "reason_long": "Ese motivo es demasiado largo.",
+        "date_missing": "Elija una fecha.",
+        "date_not_later": "Elija una fecha posterior al vencimiento actual.",
+        "date_past": "Elija una fecha futura, a partir del {{date}}."
+      }
+    },
+    "review": {
+      "title": "Revisar aplazamiento de MP",
+      "equipment": "Equipo",
+      "requestedBy": "Solicitado por",
+      "requestedOn": "Solicitado",
+      "currentDue": "Fecha actual",
+      "newDue": "Fecha solicitada",
+      "reason": "Motivo",
+      "ownRequest": "Usted hizo esta solicitud, así que otro gerente debe decidirla.",
+      "stale": "El programa ya se movió a esta fecha o después, por lo que no se puede aprobar.",
+      "inactive": "Este programa ya no está activo.",
+      "confirmApprove": "¿Aprobar y mover el vencimiento al {{date}}?",
+      "confirmReject": "¿Rechazar esta solicitud? La fecha queda como está.",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "note": "Nota (opcional)",
+      "notePlaceholder": "Agregue contexto para el registro",
+      "approvedToast": "Aplazamiento aprobado",
+      "rejectedToast": "Aplazamiento rechazado"
+    },
+    "approvals": {
+      "title": "Aprobaciones pendientes",
+      "subtitle": "Solicitudes de aplazamiento que necesitan una decisión.",
+      "pending": "Pendientes",
+      "decided": "Decididas",
+      "emptyPending": "Nada espera revisión",
+      "emptyDecided": "Aún no hay decisiones",
+      "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobada",
+        "rejected": "Rechazada"
+      },
+      "move": "Vence {{from}} → solicitada {{to}}",
+      "by": "Solicitada por {{name}} el {{date}}"
+    },
+    "performance": {
+      "title": "Desempeño de MP",
+      "subtitle": "Cómo se llevó a cabo el mantenimiento.",
+      "rateA11y": "Tasa a tiempo {{rate}}: {{onTime}} de {{total}} finalizaciones con fecha límite registrada",
+      "rateNone": "Aún no hay finalizaciones con fecha límite registrada en este período",
+      "rateBasis": "A tiempo: {{onTime}} de {{total}} completadas",
+      "metric": {
+        "onTime": "Completadas a tiempo",
+        "late": "Completadas tarde",
+        "overdue": "Aún vencidas",
+        "upcoming": "Vencen en 7 días",
+        "deferred": "Aplazamientos aprobados",
+        "findings": "Inspecciones con hallazgos"
+      },
+      "unclassified": "{{count}} inspección completada no tiene fecha límite registrada, por lo que no cuenta como a tiempo ni tarde.",
+      "unclassified_plural": "{{count}} inspecciones completadas no tienen fecha límite registrada, por lo que no cuentan como a tiempo ni tarde.",
+      "aboutTitle": "Sobre estas cifras",
+      "about": "Describen cómo se realizó el trabajo. No son un resultado de cumplimiento normativo ni de seguridad. Aún vencidas y Vencen en 7 días muestran los programas tal como están ahora."
+    },
+    "failure": {
+      "version_conflict": "Alguien más lo cambió primero. Cierre esto para ver lo último e inténtelo de nuevo.",
+      "schedule_inactive": "Este programa ya no está activo.",
+      "assignee_ineligible": "Esa persona no es un ingeniero activo en esta propiedad.",
+      "self_review": "No puede decidir una solicitud que usted hizo. Debe hacerlo otro gerente.",
+      "already_decided": "Esta solicitud ya fue decidida.",
+      "stale": "El programa ya se movió a esa fecha o después.",
+      "expired": "La fecha solicitada ya pasó. Pida una nueva.",
+      "pending_exists": "Este programa ya tiene una solicitud en espera de revisión.",
+      "unavailable": "Esto no está disponible temporalmente. No se cambió nada.",
+      "forbidden": "Su rol no puede hacer esto.",
+      "not_found": "Ese registro ya no existe.",
+      "validation": "Revise los datos e inténtelo de nuevo.",
+      "unconfirmed": "Sin respuesta del servidor, así que no sabemos si se procesó. Verifique antes de intentarlo de nuevo.",
+      "failed": "No funcionó. No se confirmó nada: inténtelo de nuevo."
+    },
+    "form": {
+      "createTitle": "Crear programa de MP",
+      "createSubtitle": "Planifique mantenimiento recurrente para un equipo.",
+      "editTitle": "Editar programa de MP",
+      "sectionEquipment": "Equipo",
+      "equipmentFixed": "Un programa pertenece a su equipo. Para pasarlo a otro equipo, cree un programa nuevo.",
+      "changeEquipment": "Cambiar",
+      "searchEquipment": "Buscar equipo por nombre, etiqueta o ubicación",
+      "noEquipment": "Ningún equipo activo coincide.",
+      "name": "Nombre del programa",
+      "description": "Instrucciones (opcional)",
+      "descriptionPlaceholder": "Todo lo que el técnico deba saber",
+      "sectionProcedure": "Procedimiento de inspección",
+      "templatesFailed": "No se pudieron cargar los procedimientos. Regrese e inténtelo de nuevo.",
+      "noTemplates": "No existe ningún procedimiento de inspección activo, por lo que aún no se puede crear un programa.",
+      "templateMeta": "Versión {{version}} · {{steps}} pasos · {{evidence}} requieren foto",
+      "boundMissing": "El procedimiento actual de este programa ya no está disponible. Elija uno vigente antes de guardar.",
+      "checklistWarning": "Cambiar el procedimiento aplica a inspecciones futuras. Las inspecciones pasadas conservan el procedimiento con el que se hicieron, y una inspección ya iniciada en el teléfono de alguien conserva el anterior hasta que empiece de nuevo.",
+      "sectionRecurrence": "Se repite",
+      "everyDays": "Cada cuántos días",
+      "dueNote": "La fecha de vencimiento no se edita aquí. Para posponer esta inspección use Solicitar aplazamiento, que aprueba otro gerente.",
+      "firstDue": "Primera fecha de vencimiento",
+      "basis": "La siguiente fecha se cuenta desde",
+      "basisScheduled": "La fecha programada",
+      "basisScheduledHint": "El trabajo tardío no retrasa el siguiente",
+      "basisCompletion": "La fecha de finalización",
+      "basisCompletionHint": "La siguiente se cuenta desde que se hizo",
+      "minutes": "Minutos estimados",
+      "sectionResponsibility": "Quién lo hace",
+      "responsibilityNote": "Los ingenieros realizan las inspecciones. Asigne a una persona desde Programas o la página del programa: la asignación aplica a una inspección a la vez.",
+      "sectionReview": "Revisión",
+      "reviewEquipment": "Equipo",
+      "reviewProcedure": "Procedimiento",
+      "reviewRepeats": "Se repite",
+      "everyNDays": "Cada {{days}} días",
+      "create": "Crear programa",
+      "save": "Guardar cambios",
+      "savedToast": "Programa actualizado",
+      "createdToast": "Programa creado",
+      "deactivatedToast": "Programa desactivado",
+      "partial": "Los datos del programa se guardaron, pero el cambio de procedimiento no. Revise el programa e inténtelo de nuevo.",
+      "deactivate": "Desactivar programa",
+      "deactivateTitle": "Desactivar programa",
+      "deactivateBody": "¿Dejar de programar \"{{name}}\"?",
+      "deactivateEffects": "No vencerán nuevas inspecciones y ya no se podrá completar. Todas las inspecciones, fotos y hallazgos pasados quedan registrados y no se elimina nada.",
+      "deactivateConfirm": "Desactivar",
+      "problem": {
+        "asset_missing": "Elija el equipo.",
+        "name_missing": "Póngale un nombre al programa.",
+        "name_long": "Ese nombre es demasiado largo.",
+        "description_long": "Ese texto es demasiado largo.",
+        "interval_days": "Ingrese un número de días de 1 a 3650.",
+        "minutes": "Ingrese minutos de 1 a 1440.",
+        "due_missing": "Elija la primera fecha de vencimiento.",
+        "due_past": "Elija hoy o una fecha posterior.",
+        "checklist_missing": "Elija el procedimiento de inspección."
+      }
+    }
+  },
+  "engSync": {
+    "state": {
+      "current": "Al día",
+      "cached": "Datos guardados, no verificados ahora",
+      "local_draft": "Borrador en este teléfono",
+      "queued": "Esperando sincronizar",
+      "syncing": "Sincronizando",
+      "synced": "Registrada",
+      "needs_review": "Requiere revisión",
+      "rejected": "No se pudo sincronizar",
+      "unknown_outcome": "Confirmación del servidor pendiente"
     }
   }
 }

@@ -118,21 +118,33 @@ test('collects API runtime diagnostics only after a protected staging readiness 
   assert.doesNotMatch(diagnostics, /RAILWAY_API_TOKEN/)
 })
 
-test('guards the remote rebuild, installs psql before drift verification, and proves API/web identity before staging smoke', () => {
+test('migrates persistent staging forward only, guarded, and proves API/web identity before staging smoke', () => {
   const guard = workflow.indexOf('node scripts/staging-target-guard.mjs')
-  const remoteRebuild = workflow.indexOf('node scripts/remote-migration-apply.mjs')
+  const plan = workflow.indexOf('node scripts/staging-migration-apply-workspace.mjs plan')
+  const push = workflow.indexOf('node scripts/staging-migration-apply-workspace.mjs apply')
   const postgresClient = workflow.indexOf('apt-get install --yes postgresql-client')
   const driftCheck = workflow.indexOf('node scripts/check-db-drift.mjs --environment staging')
   const fixtureAccess = workflow.indexOf('Grant staging fixture service access')
-  const fixtureSeed = workflow.indexOf('npm run seed:staging-fixture')
-  assert.ok(guard >= 0 && remoteRebuild > guard, 'target guard must execute before remote rebuild')
-  assert.ok(postgresClient >= 0 && postgresClient < driftCheck, 'psql must be installed before drift verification')
+  const fixtureSeed = workflow.indexOf('node apps/web/e2e/fixtures/seed-staging-tenant.mjs') // trusted copy; see staging-trusted-execution.test.mjs
+  assert.ok(guard >= 0 && plan > guard, 'target guard must execute before the read-only plan')
+  assert.ok(postgresClient >= 0 && postgresClient < plan, 'psql must be installed before the plan reads migration history')
+  assert.ok(push > plan && push < driftCheck, 'forward push happens only after the plan and before the clean-drift proof')
+  assert.match(workflow, /if: steps\.plan\.outputs\.has_pending == 'true'/)
+  assert.doesNotMatch(workflow, /supabase db push|--include-all/, 'the workflow never pushes the full repository directory; only the verified workspace script does')
+  assert.match(workflow, /node scripts\/staging-migration-apply-workspace\.mjs verify-applied/)
   assert.ok(fixtureAccess > driftCheck && fixtureAccess < fixtureSeed, 'fixture service access must be established only after clean drift verification and before seeding')
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role/i)
-  assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*notify pgrst, 'reload schema'/i, 'PostgREST must reload its schema cache after the rebuild and grants, before the API serves the smoke')
+  assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*notify pgrst, 'reload schema'/i, 'PostgREST must reload its schema cache after the migrations and grants, before the API serves the smoke')
   assert.match(workflow, /npm run check:staging-health/)
   assert.match(workflow, /npm run test:e2e:staging/)
   assert.match(workflow, /npm run check:deployment-drift/)
+})
+
+test('never resets, wipes or replays-from-scratch the persistent staging database', () => {
+  assert.doesNotMatch(workflow, /remote-migration-apply/)
+  assert.doesNotMatch(workflow, /\bdb\s+reset\b/)
+  assert.doesNotMatch(workflow, /migration\s+repair|TRUNCATE|DROP\s+(SCHEMA|DATABASE)/i)
+  assert.doesNotMatch(workflow, /Rebuild isolated staging database/)
 })
 
 test('web service root directory carries its own Dockerfile Railway config', () => {

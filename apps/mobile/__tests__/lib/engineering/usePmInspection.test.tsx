@@ -7,9 +7,10 @@ jest.mock("@/lib/api/pm", () => ({
   uploadPmEvidence: jest.fn(),
   deletePmEvidence: jest.fn().mockResolvedValue(undefined),
 }));
+let mockUserId = "user-1";
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../../helpers/appStoreMock");
-  return { useAppStore: makeAppStoreMock(() => ({ user: { id: "user-1", tenant_id: "hotel-1", role: "engineer" } })) };
+  return { useAppStore: makeAppStoreMock(() => ({ user: { id: mockUserId, tenant_id: "hotel-1", role: "engineer" } })) };
 });
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -40,6 +41,7 @@ const schedule = adaptPmSchedule(
 )!;
 
 beforeEach(async () => {
+  mockUserId = "user-1";
   jest.clearAllMocks();
   await AsyncStorage.clear();
   setQueueOwner("hotel-1:user-1");
@@ -58,6 +60,7 @@ async function answerAll(result: { current: ReturnType<typeof usePmInspection> }
   await act(async () => {
     result.current.setResult("i0", "passed");
     result.current.setResult("i1", "failed");
+    result.current.patchItem("i1", { note: "Slow drip" });
   });
   await act(async () => {
     uploadApi.mockResolvedValueOnce("ev-1");
@@ -199,7 +202,7 @@ describe("submitting", () => {
     expect(payload.checklist_version).toBe(1);
     expect(payload.items).toEqual([
       { key: "a", label: "Relief valve", result: "passed", requires_evidence: true, evidence: ["ev-1"] },
-      { key: "b", label: "Leaks", result: "failed", requires_evidence: false, evidence: [] },
+      { key: "b", label: "Leaks", result: "failed", requires_evidence: false, evidence: [], note: "Slow drip" },
     ]);
     expect(context).toMatchObject({ userId: "user-1", unknownSince: null });
     expect(out).toMatchObject({ kind: "recorded", result: { id: "c1" } });
@@ -268,5 +271,68 @@ describe("submitting", () => {
     const retryContext = submitApi.mock.calls[1][2];
     expect(typeof retryContext.unknownSince).toBe("number");
     expect(out).toMatchObject({ kind: "recorded" });
+  });
+});
+
+describe("saving on this phone", () => {
+  it("says when the latest edit is stored locally, and that nothing is stored for an untouched draft", async () => {
+    const { result } = await mount();
+    expect(result.current.saveState).toBe("idle");
+    await act(async () => result.current.setResult("i1", "passed"));
+    expect(result.current.saveState).toBe("saving");
+    await waitFor(() => expect(result.current.saveState).toBe("saved"), { timeout: 3000 });
+    expect((await loadPmDraft("s1"))?.items.i1.result).toBe("passed");
+    await act(async () => result.current.setResult("i1", null));
+    await waitFor(() => expect(result.current.saveState).toBe("idle"), { timeout: 3000 });
+    expect(await loadPmDraft("s1")).toBeNull();
+  });
+
+  it("reports honestly when the phone could not store the draft", async () => {
+    const store = AsyncStorage as unknown as { setItem: (key: string, value: string) => Promise<void> };
+    const original = store.setItem;
+    store.setItem = () => Promise.reject(new Error("disk full"));
+    try {
+      const { result } = await mount();
+      await act(async () => result.current.setResult("i1", "passed"));
+      await waitFor(() => expect(result.current.saveState).toBe("failed"), { timeout: 3000 });
+      expect(result.current.draft?.items.i1.result).toBe("passed"); // still on screen, not lost
+    } finally {
+      store.setItem = original;
+    }
+  });
+
+  it("a photo attached to one step is that step's evidence only", async () => {
+    uploadApi.mockResolvedValueOnce("ev-9");
+    const { result } = await mount();
+    await act(async () => {
+      result.current.setResult("i0", "passed");
+      result.current.setResult("i1", "passed");
+    });
+    await act(async () => {
+      await result.current.attachPhoto("i1", "file:///p.jpg", "label");
+    });
+    expect(result.current.draft?.items.i1.evidence).toEqual([{ id: "ev-9", uri: "file:///p.jpg" }]);
+    expect(result.current.draft?.items.i0.evidence).toEqual([]);
+    expect(result.current.issues).toContainEqual({ code: "evidence_required", itemId: "i0" });
+  });
+});
+
+describe("a different person on the same screen", () => {
+  it("never sees, or saves over, the previous person's draft", async () => {
+    const hook = renderHook(() => usePmInspection(schedule));
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    await act(async () => hook.result.current.setResult("i1", "passed"));
+    await waitFor(async () => expect((await loadPmDraft("s1"))?.items.i1.result).toBe("passed"), { timeout: 3000 });
+
+    // user-2 signs in at the same property: another owner key, another store.
+    mockUserId = "user-2";
+    setQueueOwner("hotel-1:user-2");
+    hook.rerender({});
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+    await waitFor(() => expect(hook.result.current.draft?.items.i1.result).toBeNull());
+    expect(await loadPmDraft("s1")).toBeNull();
+
+    setQueueOwner("hotel-1:user-1");
+    expect((await loadPmDraft("s1"))?.items.i1.result).toBe("passed"); // still there for its owner
   });
 });

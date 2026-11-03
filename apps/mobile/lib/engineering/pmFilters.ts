@@ -91,3 +91,26 @@ export function todaySections(views: readonly PmScheduleView[]): { overdue: PmSc
     next: sorted.filter((v) => v.state === "due_soon"),
   };
 }
+
+export interface PmTodayPlan {
+  /** Schedules with a real saved draft. Listed only here, never again below. */
+  continueWork: PmScheduleView[];
+  needsAttention: PmScheduleView[];
+  dueToday: PmScheduleView[];
+  comingUp: PmScheduleView[];
+}
+
+/**
+ * The Today worklist. Each schedule lands in exactly one section: a saved draft wins (so the person resumes it), then
+ * overdue (most overdue first), due today, and a short look ahead. Overdue work is never also "due today".
+ */
+export function todayPlan(views: readonly PmScheduleView[], draftIds: ReadonlySet<string>): PmTodayPlan {
+  const sorted = [...views].sort(compareDue);
+  const rest = sorted.filter((v) => !draftIds.has(v.id));
+  return {
+    continueWork: sorted.filter((v) => draftIds.has(v.id)),
+    needsAttention: rest.filter((v) => v.state === "overdue"),
+    dueToday: rest.filter((v) => v.state === "due_today"),
+    comingUp: rest.filter((v) => v.state === "due_soon"),
+  };
+}

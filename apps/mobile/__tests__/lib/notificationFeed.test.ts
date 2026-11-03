@@ -140,3 +140,9 @@ describe("rendering the inbox makes no AI calls", () => {
     }
   });
 });
+
+describe("kindOf corrective PM work", () => {
+  it("files the corrective work order alert under maintenance, not other", () => {
+    expect(kindOf("pm_corrective_work_order")).toBe("maintenance");
+  });
+});

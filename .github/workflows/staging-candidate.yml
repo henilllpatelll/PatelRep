@@ -22,8 +22,8 @@ on:
         type: string
 
 concurrency:
-  # Staging is disposable and rebuilt per candidate, so mixed deployments are
-  # unsafe. Never cancel a run after it has started mutating the shared stack.
+  # Staging is persistent and shared; mixed deployments are unsafe. Never cancel a
+  # run after it has started mutating the shared stack.
   group: staging-release-candidate
   cancel-in-progress: false
 
@@ -98,7 +98,7 @@ jobs:
               details_url: `https://github.com/${sameRepository}/actions/runs/${context.runId}`,
               output: {
                 title: 'Staging candidate queued',
-                summary: `PR #${current.number} commit ${candidateSha.slice(0, 7)} passed CI Gate and is queued for isolated staging verification.`,
+                summary: `PR #${current.number} commit ${candidateSha.slice(0, 7)} passed CI Gate and is queued for staging verification.`,
               },
             }
             const check = stagingCheck
@@ -144,7 +144,7 @@ jobs:
           if-no-files-found: error
 
   prepare-staging-database:
-    name: Prepare disposable staging database
+    name: Prepare persistent staging database (forward-only)
     needs: resolve-candidate
     if: needs.resolve-candidate.outputs.eligible == 'true'
     runs-on: ubuntu-latest
@@ -156,6 +156,18 @@ jobs:
           fetch-depth: 1
       - name: Prove exact candidate checkout
         run: git checkout --detach "${{ needs.resolve-candidate.outputs.sha }}" && test "$(git rev-parse HEAD)" = "${{ needs.resolve-candidate.outputs.sha }}"
+      # TRUST BOUNDARY. The candidate checkout above is PR-influenced code and holds NO privileged staging logic. Every
+      # script that runs with STAGING_SUPABASE_DB_URL comes from this second checkout of the exact trusted workflow
+      # commit (github.sha, on main), and the candidate contributes only its supabase/migrations files as data.
+      - name: Refuse a candidate that shadows the trusted control-plane directory
+        run: test ! -e .trusted-control-plane
+      - name: Check out the trusted control plane (workflow commit on main)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-control-plane
+          fetch-depth: 1
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -165,9 +177,18 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: 2.112.0
-      - name: Check candidate migration integrity
-        run: node scripts/check-migrations.mjs
-      - name: Refuse any non-staging reset target
+      - name: Verify the trusted control plane and treat candidate migrations as data only
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Check candidate migration integrity (trusted checker and released-migration manifest)
+        working-directory: .trusted-control-plane
+        run: node scripts/check-migrations.mjs --migration-dir "$STAGING_CANDIDATE_MIGRATIONS_DIR"
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Refuse any non-staging database target
+        working-directory: .trusted-control-plane
         run: node scripts/staging-target-guard.mjs
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
@@ -176,29 +197,74 @@ jobs:
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
-      - name: Rebuild isolated staging database from candidate migrations
-        run: |
-          sudo apt-get update && sudo apt-get install --yes postgresql-client
-          node scripts/remote-migration-apply.mjs --db-url "$STAGING_SUPABASE_DB_URL"
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      # Staging is persistent and shared: it is NEVER reset, wiped or rebuilt here. Destructive replay of the
+      # candidate's migrations already ran against an isolated throwaway stack in CI Gate (Database Migration Gate).
+      - name: Plan forward-only staging migrations (read-only, verified by a dry run of the pinned CLI)
+        id: plan
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-migration-apply-workspace.mjs plan
         env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      - name: Verify candidate schema contracts
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Apply pending migrations forward to staging (verified ephemeral workspace, never a reset)
+        if: steps.plan.outputs.has_pending == 'true'
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-migration-apply-workspace.mjs apply
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      # The schema contracts are trusted main's copy: a candidate-supplied SQL file would run with the staging database
+      # credential. The candidate's own contract additions still run on the throwaway database in CI Gate.
+      - name: Verify schema contracts (trusted copy)
+        working-directory: .trusted-control-plane
         run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       - name: Verify staging migration state equals this candidate
-        run: node scripts/check-db-drift.mjs --environment staging
+        working-directory: .trusted-control-plane
+        run: |
+          node scripts/check-db-drift.mjs --environment staging
+          node scripts/staging-migration-apply-workspace.mjs verify-applied
         env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Grant staging fixture service access
+        working-directory: .trusted-control-plane
         run: |
           psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; notify pgrst, 'reload schema';"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      - name: Install fixture dependencies
-        run: cd apps/web && npm ci
-      - name: Seed deterministic synthetic hotel fixture
-        run: cd apps/web && npm run seed:staging-fixture
+      # Fixture seeding and flag changes use the staging service-role key, so they run trusted main's scripts with
+      # trusted main's lockfile. Lifecycle scripts are disabled, and the candidate's package.json, lockfile, .npmrc and
+      # install scripts are never used in this job. No secret is present in this step's environment.
+      - name: Install trusted fixture dependencies (lockfile from main, no lifecycle scripts)
+        working-directory: .trusted-control-plane/apps/web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Re-verify the trusted control plane before using the service-role key
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Seed deterministic synthetic hotel fixture (trusted script)
+        working-directory: .trusted-control-plane
+        run: node apps/web/e2e/fixtures/seed-staging-tenant.mjs
         env:
           APP_ENV: staging
           SEED_STAGING_FIXTURES: confirm
@@ -206,17 +272,21 @@ jobs:
           SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
-      - name: Enable this PR's required feature flags on the staging fixture tenant
+      # The registry check and the flag writer are trusted main's scripts. The candidate's registry files are read only as
+      # DATA (the key must be registered in the candidate's own registries); the writer only touches the fixture tenant.
+      - name: Enable this PR's required feature flags on the staging fixture tenant (trusted scripts)
         if: needs.resolve-candidate.outputs.flags_csv != ''
+        working-directory: .trusted-control-plane
         run: |
           IFS=',' read -ra FLAG_KEYS <<< "$FLAGS_CSV"
           for key in "${FLAG_KEYS[@]}"; do
             [ -z "$key" ] && continue
             echo "Enabling $key for the staging fixture tenant"
-            node scripts/check-feature-flag-registry.mjs --key "$key"
+            node scripts/check-feature-flag-registry.mjs --python "$CANDIDATE_WORKSPACE/apps/api/core/feature_registry.py" --typescript "$CANDIDATE_WORKSPACE/apps/web/lib/featureRegistry.ts" --key "$key"
             FEATURE_KEY="$key" node apps/web/scripts/apply-feature-flag.mjs
           done
         env:
+          CANDIDATE_WORKSPACE: ${{ github.workspace }}
           FLAGS_CSV: ${{ needs.resolve-candidate.outputs.flags_csv }}
           SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}

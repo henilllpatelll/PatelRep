@@ -4,13 +4,15 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
-import { DEFAULT_PM_FILTERS, type PmFilterState, type PmFrequency, type PmSort } from "@/lib/engineering/pmFilters";
+import { DEFAULT_PM_FILTERS, activeFilterCount, type PmFilterState, type PmFrequency, type PmSort } from "@/lib/engineering/pmFilters";
 import type { PmDueState } from "@/lib/engineering/pmSchedules";
 
 interface Props {
   visible: boolean;
   filters: PmFilterState;
   categories: readonly string[];
+  /** How many schedules a draft would show, so "Show results" can say so before it is applied. */
+  countResults: (filters: PmFilterState) => number;
   onApply: (filters: PmFilterState) => void;
   onClose: () => void;
 }
@@ -53,7 +55,7 @@ function toggle<T>(list: readonly T[], value: T): T[] {
 }
 
 /** Filter & Sort. Nothing applies until "Show results"; Reset clears the draft inside the sheet only. */
-export function PmFilterSheet({ visible, filters, categories, onApply, onClose }: Props) {
+export function PmFilterSheet({ visible, filters, categories, countResults, onApply, onClose }: Props) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<PmFilterState>(filters);
 
@@ -61,24 +63,28 @@ export function PmFilterSheet({ visible, filters, categories, onApply, onClose }
     if (visible) setDraft(filters);
   }, [visible, filters]);
 
+  const draftCount = activeFilterCount(draft);
+  const results = countResults(draft);
+
   const stateLabel = (s: PmDueState) =>
     s === "overdue" ? t("pmSchedules.overdue") : s === "due_today" ? t("pmSchedules.dueToday") : s === "due_soon" ? t("pmSchedules.dueSoon") : t("pmSchedules.upcoming");
 
   return (
     <BottomSheet
       visible={visible}
-      title={t("pm.filter.title")}
+      title={draftCount > 0 ? t("pm.filter.titleActive", { count: draftCount }) : t("pm.filter.title")}
       onClose={onClose}
       tall
       testID="pm-filter-sheet"
       footer={
         <View style={styles.footer}>
           <Button label={t("pm.filter.reset")} variant="ghost" onPress={() => setDraft({ ...DEFAULT_PM_FILTERS, query: draft.query })} testID="pm-filter-reset" />
-          <Button label={t("pm.filter.apply")} onPress={() => onApply(draft)} testID="pm-filter-apply" style={styles.apply} />
+          <Button label={t("pm.filter.showResults", { count: results })} onPress={() => onApply(draft)} testID="pm-filter-apply" style={styles.apply} />
         </View>
       }
     >
       <Group title={t("pm.filter.status")}>
+        <Chip label={t("pm.filter.allStatuses")} selected={draft.states.length === 0} onPress={() => setDraft({ ...draft, states: [] })} testID="pm-filter-state-all" />
         {STATES.map((s) => (
           <Chip key={s} label={stateLabel(s)} selected={draft.states.includes(s)} onPress={() => setDraft({ ...draft, states: toggle(draft.states, s) })} testID={`pm-filter-state-${s}`} />
         ))}

@@ -16,7 +16,8 @@ function requiredHost(value, label) {
 }
 
 /**
- * Hard stop before any command that can mutate the disposable staging database.
+ * Hard stop before any command that mutates the persistent shared staging database. Staging is never wiped;
+ * only forward migrations and idempotent synthetic fixtures may follow this guard.
  * Hostnames are non-secret GitHub Environment variables; credentials never print.
  */
 export function assertStagingTarget({
@@ -35,13 +36,13 @@ export function assertStagingTarget({
   const productionApi = productionSupabaseHost.trim().toLowerCase()
 
   if (databaseHost !== expectedDb || (productionDb && databaseHost === productionDb)) {
-    throw new Error('Refusing destructive action: database URL is not the expected staging database host.')
+    throw new Error('Refusing database action: database URL is not the expected staging database host.')
   }
   if (apiHost !== expectedApi || (productionApi && apiHost === productionApi)) {
-    throw new Error('Refusing destructive action: Supabase URL is not the expected staging Supabase host.')
+    throw new Error('Refusing database action: Supabase URL is not the expected staging Supabase host.')
   }
   if (expectedDb === productionDb || expectedApi === productionApi) {
-    throw new Error('Refusing destructive action: staging and production host allowlists overlap.')
+    throw new Error('Refusing database action: staging and production host allowlists overlap.')
   }
 }
 
@@ -54,5 +55,5 @@ if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
     productionDatabaseHost: process.env.PRODUCTION_DATABASE_HOST,
     productionSupabaseHost: process.env.PRODUCTION_SUPABASE_HOST,
   })
-  console.log('Staging target identity validated; destructive database actions are allowed.')
+  console.log('Staging target identity validated; only non-destructive actions (forward migrations, idempotent fixtures) may run against it.')
 }

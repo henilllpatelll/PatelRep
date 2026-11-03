@@ -1,5 +1,6 @@
 import { resetFailedSyncQueueAttempts } from "@/lib/offline/db";
 import { syncOnConnect } from "@/lib/offline/sync";
+import { clearPmBackoff } from "@/lib/engineering/pmSyncRunner";
 import { loadSyncRows } from "@/lib/housekeeping/syncDetails";
 import { useAppStore } from "@/stores/appStore";
 
@@ -30,6 +31,7 @@ export function runSyncNow(): Promise<SyncRunResult> {
       // The person asked: items that ran out of automatic retries get another go.
       await resetFailedSyncQueueAttempts().catch(() => undefined);
       await useAppStore.getState().resetFailedActions().catch(() => undefined);
+      clearPmBackoff(); // a manual Sync now overrides any retry waiting period
       await syncOnConnect();
       const { rows, complete } = await loadSyncRows();
       const weight = (row: { count?: number }) => row.count ?? 1;

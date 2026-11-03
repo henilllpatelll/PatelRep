@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -18,6 +18,8 @@ interface Props {
   laborInvalid: boolean;
   onAddPhoto: (uri: string, signal: AbortSignal) => Promise<void>;
   onRemovePhoto: (evidenceId: string) => void;
+  /** Reports where a field sits inside this section so "Fix this" can scroll to it. */
+  onAnchor?: (key: string, y: number) => void;
 }
 
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -48,16 +50,19 @@ function Input(props: React.ComponentProps<typeof TextInput> & { invalid?: boole
  * Everything beyond the checklist: labor, parts, extra defects, general photos and final notes. Parts and labor are
  * recorded with the inspection exactly as typed - the API does not deduct stock for a PM, and the copy says so.
  */
-export function PmExtrasSection({ draft, patch, online, uploading, showErrors, invalidPartIds, invalidDefectIds, laborInvalid, onAddPhoto, onRemovePhoto }: Props) {
+export function PmExtrasSection({ draft, patch, online, uploading, showErrors, invalidPartIds, invalidDefectIds, laborInvalid, onAddPhoto, onRemovePhoto, onAnchor }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
 
+  const anchor = (key: string) => (e: LayoutChangeEvent) => onAnchor?.(key, e.nativeEvent.layout.y);
   const setPart = (id: string, change: Partial<PmDraftPart>) => patch((d) => ({ ...d, parts: d.parts.map((p) => (p.id === id ? { ...p, ...change } : p)) }));
   const setDefect = (id: string, change: Partial<PmDraftDefect>) => patch((d) => ({ ...d, defects: d.defects.map((x) => (x.id === id ? { ...x, ...change } : x)) }));
 
   return (
     <View style={styles.wrap} testID="pm-extras">
-      <Label>{t("pm.extras.labor")}</Label>
+      <View onLayout={anchor("labor")}>
+        <Label>{t("pm.extras.labor")}</Label>
+      </View>
       <Input
         value={draft.laborMinutes}
         onChangeText={(laborMinutes) => patch((d) => ({ ...d, laborMinutes: laborMinutes.replace(/[^0-9]/g, "") }))}
@@ -78,7 +83,8 @@ export function PmExtrasSection({ draft, patch, online, uploading, showErrors, i
         {t("pm.extras.partsNote")}
       </Text>
       {draft.parts.map((part) => (
-        <View key={part.id} style={styles.pair}>
+        <View key={part.id} onLayout={anchor(`part:${part.id}`)}>
+        <View style={styles.pair}>
           <Input
             value={part.name}
             onChangeText={(name) => setPart(part.id, { name })}
@@ -107,6 +113,12 @@ export function PmExtrasSection({ draft, patch, online, uploading, showErrors, i
             <Ionicons name="trash-outline" size={20} color={theme.textMuted} />
           </Pressable>
         </View>
+        {showErrors && invalidPartIds.has(part.id) ? (
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, { color: theme.status.dirty }]} accessibilityLiveRegion="polite">
+            {t("pm.errors.partInvalid")}
+          </Text>
+        ) : null}
+        </View>
       ))}
       <Pressable
         onPress={() => patch((d) => ({ ...d, parts: [...d.parts, { id: newId(), name: "", qty: "1" }] }))}
@@ -122,7 +134,7 @@ export function PmExtrasSection({ draft, patch, online, uploading, showErrors, i
 
       <Label>{t("pm.extras.defects")}</Label>
       {draft.defects.map((defect) => (
-        <View key={defect.id} style={styles.defect}>
+        <View key={defect.id} style={styles.defect} onLayout={anchor(`defect:${defect.id}`)}>
           <View style={styles.pair}>
             <Input
               value={defect.description}
@@ -143,6 +155,11 @@ export function PmExtrasSection({ draft, patch, online, uploading, showErrors, i
               <Ionicons name="trash-outline" size={20} color={theme.textMuted} />
             </Pressable>
           </View>
+          {showErrors && invalidDefectIds.has(defect.id) ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.error, { color: theme.status.dirty }]} accessibilityLiveRegion="polite">
+              {t("pm.errors.defectInvalid")}
+            </Text>
+          ) : null}
           <View style={styles.severity} accessibilityRole="radiogroup">
             {SEVERITIES.map((sev) => {
               const selected = defect.severity === sev;

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
+import { useAppStore } from "@/stores/appStore";
 import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
 import { dueLabel, frequencyLabel, locationLabel, Meta, useDueTone } from "./pmUi";
 
@@ -22,6 +23,8 @@ interface Props {
 export function PmScheduleCard({ schedule, language, hasDraft, canInspect, onOpen, onInspect }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const userId = useAppStore((s) => s.user?.id);
+  const assignedToMe = !!userId && schedule.assigneeId === userId;
   const tone = useDueTone(schedule.state);
   const place = [schedule.assetName ?? t("pmSchedules.unknownAsset"), locationLabel(schedule, t)].filter(Boolean).join(" · ");
   const frequency = frequencyLabel(schedule, t);
@@ -53,6 +56,7 @@ export function PmScheduleCard({ schedule, language, hasDraft, canInspect, onOpe
         <View style={styles.metaRow}>
           {frequency ? <Meta icon="refresh-outline" text={frequency} /> : null}
           {schedule.estimatedMinutes ? <Meta icon="time-outline" text={t("pmSchedules.minutes", { count: schedule.estimatedMinutes })} /> : null}
+          {assignedToMe ? <Meta icon="person-outline" text={t("pmMgmt.assignedToYou")} color={theme.primaryAction} /> : null}
           {hasDraft ? <Meta icon="create-outline" text={t("pm.localDraft")} color={theme.status.pickup} /> : null}
         </View>
       </Pressable>

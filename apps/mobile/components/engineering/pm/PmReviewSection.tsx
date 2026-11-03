@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/Card";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
-import type { PmDraft, PmProgress, PmTemplate } from "@/lib/engineering/pmChecklist";
+import { evidenceSummary, type PmDraft, type PmInspectionIssue, type PmProgress, type PmTemplate } from "@/lib/engineering/pmChecklist";
 import { evaluateReading, hasReferenceLimits, parseReading, type PmMeter } from "@/lib/engineering/pmReadings";
-import type { PmScheduleView } from "@/lib/engineering/pmSchedules";
+import { formatDueDate, type PmScheduleView } from "@/lib/engineering/pmSchedules";
 import { locationLabel } from "./pmUi";
 
 interface Props {
@@ -16,7 +16,9 @@ interface Props {
   progress: PmProgress;
   meters: readonly PmMeter[];
   technician: string | null;
-  onJump: (itemId: string) => void;
+  /** Everything still blocking completion; each one has a "Fix this" that goes to the exact field. */
+  issues: readonly PmInspectionIssue[];
+  onFix: (issue: PmInspectionIssue) => void;
 }
 
 function Block({ title, children, testID }: { title: string; children: React.ReactNode; testID?: string }) {
@@ -46,24 +48,72 @@ function Line({ label, value, color }: { label: string; value: string; color?: s
 }
 
 /** Everything that will be recorded, in one place, before the single Complete button. */
-export function PmReviewSection({ schedule, template, draft, progress, meters, technician, onJump }: Props) {
-  const { t } = useTranslation();
+export function PmReviewSection({ schedule, template, draft, progress, meters, technician, issues, onFix }: Props) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const failedItems = template.items.filter((i) => draft.items[i.id]?.result === "failed");
   const readings = meters.flatMap((meter) => {
     const parsed = parseReading(draft.readings[meter.id]?.value);
     return parsed.kind === "ok" ? [{ meter, value: parsed.value, status: hasReferenceLimits(meter) ? evaluateReading(meter, parsed.value) : null }] : [];
   });
-  const photoCount = draft.photos.length + template.items.reduce((n, i) => n + (draft.items[i.id]?.evidence.length ?? 0), 0);
+  const evidence = evidenceSummary(template, draft);
   const itemName = (id: string) => template.items.find((i) => i.id === id)?.label ?? id;
+  const meterName = (id: string) => meters.find((m) => m.id === id)?.name ?? id;
+  const due = formatDueDate(schedule.dueDate, i18n.language);
+
+  const describe = (issue: PmInspectionIssue): { icon: React.ComponentProps<typeof Ionicons>["name"]; text: string; testID: string } => {
+    switch (issue.code) {
+      case "unanswered":
+        return { icon: "alert-circle-outline", text: t("pm.review.answerStep", { name: itemName(issue.itemId) }), testID: `pm-review-jump-${issue.itemId}` };
+      case "evidence_required":
+        return { icon: "camera-outline", text: t("pm.review.addPhotoFor", { name: itemName(issue.itemId) }), testID: `pm-review-evidence-${issue.itemId}` };
+      case "finding_required":
+        return { icon: "create-outline", text: t("pm.review.findingFor", { name: itemName(issue.itemId) }), testID: `pm-review-finding-${issue.itemId}` };
+      case "reading_invalid":
+        return { icon: "speedometer-outline", text: t("pm.review.fixReading", { name: meterName(issue.meterId) }), testID: `pm-review-reading-${issue.meterId}` };
+      case "labor_invalid":
+        return { icon: "time-outline", text: t("pm.review.fixLabor"), testID: "pm-review-labor" };
+      case "part_invalid":
+        return { icon: "cube-outline", text: t("pm.review.fixPart"), testID: `pm-review-part-${issue.partId}` };
+      default:
+        return { icon: "warning-outline", text: t("pm.review.fixDefect"), testID: `pm-review-defect-${issue.defectId}` };
+    }
+  };
 
   return (
     <View style={styles.stack} testID="pm-review">
+      {issues.length > 0 ? (
+        <Block title={t("pm.submit.blockedTitle")} testID="pm-review-blockers">
+          {issues.map((issue, index) => {
+            const row = describe(issue);
+            return (
+              <Pressable
+                key={`${issue.code}-${index}`}
+                onPress={() => onFix(issue)}
+                style={styles.jump}
+                accessibilityRole="button"
+                accessibilityLabel={`${t("pm.review.fixThis")}: ${row.text}`}
+                testID={row.testID}
+              >
+                <Ionicons name={row.icon} size={18} color={theme.status.dirty} />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.jumpText, { color: theme.status.dirty }]} numberOfLines={3}>
+                  {row.text}
+                </Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.fix, { color: theme.primaryAction }]}>
+                  {t("pm.review.fixThis")}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Block>
+      ) : null}
+
       <Block title={t("pm.review.summary")}>
         <Line label={t("pm.review.inspection")} value={schedule.name} />
         <Line label={t("pm.review.equipment")} value={[schedule.assetName, locationLabel(schedule, t)].filter(Boolean).join(" · ") || "–"} />
         <Line label={t("pm.review.checklist")} value={template.version != null ? `${template.name} (v${template.version})` : template.name} />
         {technician ? <Line label={t("pm.review.technician")} value={technician} /> : null}
+        {due ? <Line label={t("pm.review.due")} value={due} /> : null}
       </Block>
 
       <Block title={t("pm.review.results")} testID="pm-review-results">
@@ -72,46 +122,39 @@ export function PmReviewSection({ schedule, template, draft, progress, meters, t
         <Line label={t("pm.result.fail")} value={String(progress.failed)} color={progress.failed > 0 ? theme.status.dirty : undefined} />
         <Line label={t("pm.result.na")} value={String(progress.notApplicable)} />
         <Line label={t("pm.review.unanswered")} value={String(progress.unansweredIds.length)} color={progress.unansweredIds.length > 0 ? theme.status.dirty : undefined} />
-        {progress.unansweredIds.map((id) => (
-          <Pressable key={id} onPress={() => onJump(id)} style={styles.jump} accessibilityRole="button" testID={`pm-review-jump-${id}`}>
-            <Ionicons name="alert-circle-outline" size={16} color={theme.status.dirty} />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.jumpText, { color: theme.status.dirty }]} numberOfLines={2}>
-              {t("pm.review.answerStep", { name: itemName(id) })}
-            </Text>
-          </Pressable>
-        ))}
-        {progress.evidenceMissingIds.map((id) => (
-          <Pressable key={id} onPress={() => onJump(id)} style={styles.jump} accessibilityRole="button" testID={`pm-review-evidence-${id}`}>
-            <Ionicons name="camera-outline" size={16} color={theme.status.dirty} />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.jumpText, { color: theme.status.dirty }]} numberOfLines={2}>
-              {t("pm.review.addPhotoFor", { name: itemName(id) })}
-            </Text>
-          </Pressable>
-        ))}
       </Block>
 
-      {readings.length > 0 ? (
-        <Block title={t("pm.review.measurements")}>
-          {readings.map(({ meter, value, status }) => (
-            <Line
-              key={meter.id}
-              label={meter.name}
-              value={`${value} ${meter.unit}${status && status !== "normal" ? ` · ${t(`pm.reading.status.${status}`)}` : ""}`}
-              color={status === "critical" ? theme.status.dirty : status === "warning" ? theme.status.pickup : undefined}
-            />
-          ))}
+      {meters.length > 0 ? (
+        <Block title={t("pm.review.measurements")} testID="pm-review-readings">
+          {readings.length === 0 ? (
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineLabel, { color: theme.textSecondary }]}>
+              {t("pm.review.noReadings")}
+            </Text>
+          ) : (
+            readings.map(({ meter, value, status }) => (
+              <Line
+                key={meter.id}
+                label={meter.name}
+                value={`${value} ${meter.unit}${status && status !== "normal" ? ` · ${t("pm.review.outOfRange")}` : ""}`}
+                color={status === "critical" ? theme.status.dirty : status === "warning" ? theme.status.pickup : undefined}
+              />
+            ))
+          )}
         </Block>
       ) : null}
 
-      <Block title={t("pm.review.evidence")}>
-        <Line label={t("pm.photos")} value={String(photoCount)} />
+      <Block title={t("pm.review.evidence")} testID="pm-review-evidence">
+        <Line label={t("pm.photos")} value={String(evidence.photos)} />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineLabel, { color: evidence.missingIds.length > 0 ? theme.status.dirty : theme.textSecondary }]}>
+          {evidence.required === 0 ? t("pm.review.evidenceNone") : t("pm.review.evidenceRequired", { done: evidence.satisfied, total: evidence.required })}
+        </Text>
       </Block>
 
       {failedItems.length > 0 || draft.defects.length > 0 ? (
         <Block title={t("pm.review.issues")} testID="pm-review-issues">
           {failedItems.map((item) => (
             <View key={item.id} style={styles.issue}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineValue, { color: theme.status.dirty }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineValue, styles.left, { color: theme.status.dirty }]}>
                 {item.label}
               </Text>
               {draft.items[item.id].note.trim() ? (
@@ -143,7 +186,7 @@ export function PmReviewSection({ schedule, template, draft, progress, meters, t
 
       {draft.notes.trim() ? (
         <Block title={t("pm.extras.notes")}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineValue, { color: theme.textPrimary, textAlign: "left" }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.lineValue, styles.left, { color: theme.textPrimary }]}>
             {draft.notes.trim()}
           </Text>
         </Block>
@@ -160,7 +203,9 @@ const styles = StyleSheet.create({
   line: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   lineLabel: { fontSize: 13, flexShrink: 1 },
   lineValue: { fontSize: 14, fontWeight: "600", flexShrink: 1, textAlign: "right" },
-  jump: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  left: { textAlign: "left" },
+  jump: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48 },
   jumpText: { flex: 1, fontSize: 14, fontWeight: "600" },
+  fix: { fontSize: 14, fontWeight: "800" },
   issue: { gap: 2 },
 });

@@ -50,7 +50,7 @@ describe("asset screen strings", () => {
   const dynamic: Array<[string, readonly string[]]> = [
     ["assets.status", ASSET_SERVICE_STATUSES],
     ["assets.quick", ASSET_QUICK_FILTERS],
-    ["assets.sections", ["overview", "workOrders", "maintenance", "readings", "history"]],
+    ["assets.sections", ["overview", "maintenance", "readings", "history"]],
     ["assets.filter.maintenanceOptions", ASSET_MAINTENANCE_FILTERS],
     ["assets.filter.reliabilityOptions", ASSET_RELIABILITY_FILTERS],
     ["assets.filter.sortOptions", ASSET_SORTS],

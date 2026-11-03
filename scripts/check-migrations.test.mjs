@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { checkMigrations, sha256 } from './check-migrations.mjs';
+import { checkMigrations, findNonSqlMigrationEntries, sha256 } from './check-migrations.mjs';
 
 function migration(filename, content = 'CREATE TABLE example (id uuid);') {
   const [, version, name] = filename.match(/^(\d+)_(.+)\.sql$/) ?? [];
@@ -60,4 +60,12 @@ test('rejects unreviewed destructive SQL and accepts an explicit review marker',
   assert.match(unsafeResult.violations.join('\n'), /Destructive migration requires/);
   assert.deepEqual(safeResult.violations, []);
   assert.match(safeResult.notices.join('\n'), /DESTRUCTIVE MIGRATION REVIEWED/);
+});
+
+test('flags committed non-SQL artifacts in the migrations directory', () => {
+  assert.deepEqual(findNonSqlMigrationEntries(['001_init.sql', '232_example.sql']), []);
+  assert.deepEqual(
+    findNonSqlMigrationEntries(['001_init.sql', 'graphify-out/cache/stat-index.json', 'notes.md']),
+    ['graphify-out/cache/stat-index.json', 'notes.md'],
+  );
 });

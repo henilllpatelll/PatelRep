@@ -4,16 +4,94 @@ from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel
 from middleware.auth import get_current_user, require_role, CurrentUser
-from models.requests import BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, StartAssetDowntimeRequest, UpdateAssetRequest, UpdateMeterRequest
+from core.roles import ASSET_MANAGER_ROLES, ASSET_RETIRE_ROLES, PM_EXECUTION_ROLES, PM_SCHEDULE_MANAGER_ROLES
+from models.requests import AssignPMChecklistRequest, AttachAssetPhotoRequest, BatchAcknowledgePredictionsRequest, CompletePMProgramRequest, CreateAssetRequest, CreateMeterRequest, CreatePMScheduleRequest, RecordMeterReadingRequest, RestoreAssetDowntimeRequest, RetireAssetRequest, StartAssetDowntimeRequest, UpdateAssetCriticalityRequest, UpdateAssetRequest, UpdateMeterRequest
 from core.database import supabase
 from routers.evidence import _create_evidence_signed_url
 from services.programs.contracts import EvidenceRequiredError
-from services.programs.execution import persist_pm_completion
+from services.programs.assignment import annotate_assignee
+from services.programs.checklist_binding import PmChecklistUnavailable, load_assignable_template, load_resolutions
+from services.programs.execution import PmCompletionRefused, persist_pm_completion
 from services.asset_reliability import calculate_asset_reliability, restore_asset_downtime as restore_asset_downtime_service, start_asset_downtime as start_asset_downtime_service, with_elapsed_minutes
 from services.reporting.periods import hotel_timezone
 from services.condition_monitoring import meter_freshness_status, persist_condition_reading
 
 router = APIRouter(prefix="/assets", tags=["assets"])
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers: audit, tag identity, same-property references
+# ---------------------------------------------------------------------------
+
+def _audit(*, current_user: CurrentUser, resource_type: str, resource_id: str, action: str, old_state: dict, new_state: dict, reason_note: Optional[str] = None) -> None:
+    supabase.table("operational_audit_events").insert({
+        "tenant_id": current_user.hotel_id, "resource_type": resource_type, "resource_id": resource_id,
+        "action": action, "actor_id": current_user.user_id, "actor_role": current_user.role,
+        "old_state": old_state, "new_state": new_state, "reason_note": reason_note, "source": "api",
+    }).execute()
+
+
+def _is_unique_violation(exc: Exception) -> bool:
+    text = str(exc)
+    return "23505" in text or "duplicate key" in text.lower()
+
+
+def _unique_violation_kind(exc: Exception) -> Optional[str]:
+    """Which uniqueness a 23505 broke: the physical label ("tag"), the record id ("id"), or something else (None)."""
+    if not _is_unique_violation(exc):
+        return None
+    text = str(exc).lower()
+    if "tag" in text:
+        return "tag"
+    if "pkey" in text or "(id)" in text:
+        return "id"
+    return "tag"  # the only other unique rule on this table; keeps the pre-existing behaviour for unnamed errors
+
+
+def _tag_conflict() -> HTTPException:
+    return HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."})
+
+
+def _version_conflict(current: Optional[dict]) -> HTTPException:
+    return HTTPException(status_code=409, detail={
+        "code": "asset_conflict",
+        "message": "This equipment record was changed by someone else. Review the latest version and try again.",
+        "current": current,
+    })
+
+
+def _normalize_tag(tag: Optional[str]) -> Optional[str]:
+    """The stored form of a physical label: trimmed, and absent when blank. Case is kept (it is what is printed)."""
+    cleaned = (tag or "").strip()
+    return cleaned or None
+
+
+def _require_tag_free(tag: Optional[str], current_user: CurrentUser, *, except_asset_id: Optional[str] = None) -> None:
+    """An active asset's tag identifies it at the scanner, so two active assets cannot share one (case-insensitive)."""
+    if not tag:
+        return
+    pattern = tag.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    rows = supabase.table("assets").select("id, asset_tag").eq("tenant_id", current_user.hotel_id).eq(
+        "is_active", True
+    ).ilike("asset_tag", pattern).limit(5).execute().data or []
+    clash = [r for r in rows if (r.get("asset_tag") or "").strip().lower() == tag.lower() and str(r["id"]) != str(except_asset_id or "")]
+    if clash:
+        raise HTTPException(status_code=409, detail={"code": "asset_tag_in_use", "message": "Another active asset already uses this tag."})
+
+
+def _require_same_property(table: str, row_id: Optional[str], current_user: CurrentUser, label: str) -> None:
+    """A category or room named in a request must belong to the caller's own property."""
+    if not row_id:
+        return
+    found = supabase.table(table).select("id").eq("id", str(row_id)).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not found or not found.data:
+        raise HTTPException(status_code=422, detail=f"{label} not found at this property")
+
+
+def _own_asset(asset_id: str, current_user: CurrentUser) -> Optional[dict]:
+    """The full asset row when it belongs to the caller's property, otherwise None (never another property's row)."""
+    found = supabase.table("assets").select("*").eq("id", str(asset_id)).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    return found.data if found and found.data else None
 
 
 class CreateCategoryRequest(BaseModel):
@@ -75,22 +153,54 @@ async def list_assets(
 @router.post("")
 async def create_asset(
     request: CreateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES))
 ):
+    """Register equipment. A client-generated `id` makes the call retry-safe: replaying the same id returns the record
+    that was already created (HTTP 200) and never a second asset."""
     asset_data = {
         "tenant_id": current_user.hotel_id,
         **request.model_dump(exclude_none=True),
     }
-    if "category_id" in asset_data:
-        asset_data["category_id"] = str(asset_data["category_id"])
-    if "room_id" in asset_data:
-        asset_data["room_id"] = str(asset_data["room_id"])
+    client_id = str(asset_data.pop("id")) if "id" in asset_data else None
+    for uuid_field in ("category_id", "room_id"):
+        if uuid_field in asset_data:
+            asset_data[uuid_field] = str(asset_data[uuid_field])
     for date_field in ("purchase_date", "installation_date", "warranty_expires"):
         if date_field in asset_data:
             asset_data[date_field] = str(asset_data[date_field])
 
-    result = supabase.table("assets").insert(asset_data).execute()
-    return {"data": result.data[0] if result.data else None}
+    if client_id:
+        replay = _own_asset(client_id, current_user)
+        if replay:
+            return {"data": replay}
+        asset_data["id"] = client_id
+
+    _require_same_property("asset_categories", asset_data.get("category_id"), current_user, "Category")
+    _require_same_property("rooms", asset_data.get("room_id"), current_user, "Room")
+    tag = _normalize_tag(asset_data.pop("asset_tag", None))
+    if tag:
+        _require_tag_free(tag, current_user)
+        asset_data["asset_tag"] = tag
+
+    try:
+        result = supabase.table("assets").insert(asset_data).execute()
+    except Exception as exc:  # noqa: BLE001 - only uniqueness races are translated
+        kind = _unique_violation_kind(exc)
+        if kind == "tag":
+            raise _tag_conflict() from exc
+        if kind == "id":
+            # Two taps of the same registration racing each other: the loser reads back the winner's row. An id that
+            # exists only in another property is refused without saying so.
+            replay = _own_asset(client_id, current_user) if client_id else None
+            if replay:
+                return {"data": replay}
+            raise HTTPException(status_code=409, detail={"code": "asset_id_in_use", "message": "That equipment id cannot be used."}) from exc
+        raise
+    created = result.data[0] if result.data else None
+    if created:
+        _audit(current_user=current_user, resource_type="asset", resource_id=created["id"], action="asset.created",
+               old_state={}, new_state={"name": created.get("name"), "asset_tag": created.get("asset_tag"), "room_id": created.get("room_id")})
+    return {"data": created}
 
 
 # ---------------------------------------------------------------------------
@@ -383,15 +493,41 @@ async def get_recurring_issues(
 # 7. GET /pm-schedules  — list PM schedules
 # ---------------------------------------------------------------------------
 
+_PM_SCHEDULE_SELECT = "*, assets(name, room_id, asset_tag, location_text, manufacturer, is_active, asset_categories(name, code), rooms(room_number))"
+
+
 @router.get("/pm-schedules")
 async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user)):
     result = supabase.table("pm_schedules")\
-        .select("*, assets(name, room_id, asset_tag, location_text, manufacturer, asset_categories(name, code), rooms(room_number))")\
+        .select(_PM_SCHEDULE_SELECT)\
         .eq("tenant_id", current_user.hotel_id)\
         .eq("is_active", True)\
         .order("next_due_at")\
         .execute()
-    return {"data": result.data}
+    schedules = result.data or []
+    resolutions = load_resolutions(supabase, current_user.hotel_id, schedules)
+    for schedule in schedules:
+        schedule["checklist"] = resolutions[str(schedule["id"])]
+        annotate_assignee(schedule)
+    return {"data": schedules}
+
+
+@router.get("/pm-schedules/{schedule_id}")
+async def get_pm_schedule(schedule_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """One schedule with its exact asset and checklist state: the target of every "open this PM" link."""
+    try:
+        UUID(schedule_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    result = supabase.table("pm_schedules").select(_PM_SCHEDULE_SELECT).eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    schedule = result.data if result else None
+    if not schedule:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    schedule["checklist"] = load_resolutions(supabase, current_user.hotel_id, [schedule])[str(schedule["id"])]
+    annotate_assignee(schedule)
+    return {"data": schedule}
 
 
 # ---------------------------------------------------------------------------
@@ -401,13 +537,64 @@ async def list_pm_schedules(current_user: CurrentUser = Depends(get_current_user
 @router.post("/pm-schedules")
 async def create_pm_schedule(
     request: CreatePMScheduleRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    result = supabase.table("pm_schedules").insert({
-        "tenant_id": current_user.hotel_id,
-        **request.model_dump(),
-    }).execute()
-    return {"data": result.data[0] if result.data else None}
+    asset = supabase.table("assets").select("id, is_active").eq("id", str(request.asset_id)).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not asset or not asset.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.data.get("is_active"):
+        raise HTTPException(status_code=409, detail="A PM schedule cannot be created for inactive equipment")
+    row = {"tenant_id": current_user.hotel_id, **request.model_dump(mode="json", exclude={"checklist_template_id"})}
+    if request.checklist_template_id:
+        try:
+            template = load_assignable_template(supabase, current_user.hotel_id, str(request.checklist_template_id))
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        row["checklist_template_id"] = template["id"]
+        row["checklist_template_code"] = template["code"]
+    result = supabase.table("pm_schedules").insert(row).execute()
+    created = result.data[0] if result.data else None
+    if created:
+        _audit(current_user=current_user, resource_type="pm_schedule", resource_id=created["id"], action="pm_schedule.created",
+               old_state={}, new_state={"asset_id": created["asset_id"], "next_due_at": created["next_due_at"], "checklist_template_id": created.get("checklist_template_id")})
+    return {"data": created}
+
+
+@router.put("/pm-schedules/{schedule_id}/checklist")
+async def assign_pm_schedule_checklist(
+    schedule_id: str,
+    request: AssignPMChecklistRequest,
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES)),
+):
+    """Bind (or with null, unbind) the checklist a technician follows for this schedule. Past completions keep the
+    procedure they were done against; only future inspections use the new binding."""
+    schedule = supabase.table("pm_schedules").select("id, checklist_template_id, checklist_template_code").eq(
+        "id", schedule_id
+    ).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not schedule or not schedule.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    update = {"checklist_template_id": None, "checklist_template_code": None}
+    if request.checklist_template_id:
+        try:
+            template = load_assignable_template(supabase, current_user.hotel_id, str(request.checklist_template_id))
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        update = {"checklist_template_id": template["id"], "checklist_template_code": template["code"]}
+    result = supabase.table("pm_schedules").update(update).eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).execute()
+    _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.checklist_assigned",
+           old_state={"checklist_template_id": schedule.data.get("checklist_template_id")}, new_state={"checklist_template_id": update["checklist_template_id"]})
+    updated = result.data[0] if result.data else None
+    if updated:
+        updated["checklist"] = load_resolutions(supabase, current_user.hotel_id, [updated])[str(updated["id"])]
+    return {"data": updated}
 
 
 # ---------------------------------------------------------------------------
@@ -418,9 +605,13 @@ async def create_pm_schedule(
 async def complete_pm_schedule(
     schedule_id: str,
     request: CompletePMProgramRequest,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm", "chief_engineer"))
+    current_user: CurrentUser = Depends(require_role(*PM_EXECUTION_ROLES))
 ):
-    """Record PM proof and advance the schedule only after a valid completion."""
+    """Record PM proof and advance the schedule, atomically and at most once per `submission_id`."""
+    try:
+        UUID(schedule_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
     sched_result = supabase.table("pm_schedules")\
         .select("*")\
         .eq("id", schedule_id)\
@@ -441,9 +632,19 @@ async def complete_pm_schedule(
             schedule=sched,
             payload=request.model_dump(mode="json"),
         )
+    except PmChecklistUnavailable as exc:
+        raise HTTPException(status_code=409, detail={
+            "code": "checklist_unavailable",
+            "message": "This schedule's checklist is not available. Ask a chief engineer to assign a current one.",
+            "checklist": exc.resolution,
+        }) from exc
+    except PmCompletionRefused as exc:
+        raise HTTPException(status_code=exc.status_code, detail={"code": exc.code, "message": exc.message}) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (EvidenceRequiredError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"data": record}
+    return {"data": record, "meta": {"replayed": bool(record.get("replayed"))}}
 
 
 # ---------------------------------------------------------------------------
@@ -526,14 +727,20 @@ async def list_pm_completions(
 # 10. PATCH /pm-schedules/{schedule_id}  — update PM schedule (NEW)
 # ---------------------------------------------------------------------------
 
+_SCHEDULE_AUDITED_FIELDS = ("next_due_at", "is_active", "interval_type", "interval_days", "recurrence_basis")
+
+
 @router.patch("/pm-schedules/{schedule_id}")
 async def update_pm_schedule(
     schedule_id: str,
     request: Request,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    """Update a PM schedule (reschedule, deactivate, change interval)."""
+    """Update a PM schedule (reschedule, deactivate, change interval). Due-date, interval and active changes are audited."""
     body = await request.json()
+    expected_version = body.get("expected_version")
+    if expected_version is not None and (not isinstance(expected_version, int) or isinstance(expected_version, bool) or expected_version < 1):
+        raise HTTPException(status_code=422, detail="expected_version must be a positive integer")
     allowed = {"name", "description", "interval_type", "interval_days",
                "estimated_minutes", "next_due_at", "is_active", "assigned_to_role", "recurrence_basis"}
     update_data = {k: v for k, v in body.items() if k in allowed}
@@ -541,11 +748,34 @@ async def update_pm_schedule(
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
+    before = supabase.table("pm_schedules").select("*").eq("id", schedule_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    if not before or not before.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    previous = dict(before.data)
+    base_version = previous.get("row_version") or 1
+    if expected_version is not None and expected_version != base_version:
+        raise HTTPException(status_code=409, detail={
+            "code": "version_conflict", "current_version": base_version,
+            "message": "This schedule was changed by someone else. Review the latest version and try again.",
+        })
+
+    update_data["row_version"] = base_version + 1
     result = supabase.table("pm_schedules")\
         .update(update_data)\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
+        .eq("row_version", base_version)\
         .execute()
+    if not result.data:
+        raise HTTPException(status_code=409, detail={
+            "code": "version_conflict", "message": "This schedule was changed by someone else. Review the latest version and try again.",
+        })
+    changed = {k: v for k, v in update_data.items() if k in _SCHEDULE_AUDITED_FIELDS and previous.get(k) != v}
+    if changed:
+        _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.updated",
+               old_state={k: previous.get(k) for k in changed}, new_state=changed)
 
     return {"data": result.data[0] if result.data else None}
 
@@ -557,16 +787,19 @@ async def update_pm_schedule(
 @router.delete("/pm-schedules/{schedule_id}")
 async def deactivate_pm_schedule(
     schedule_id: str,
-    current_user: CurrentUser = Depends(require_role("engineer", "gm"))
+    current_user: CurrentUser = Depends(require_role(*PM_SCHEDULE_MANAGER_ROLES))
 ):
-    """Soft-delete (deactivate) a PM schedule."""
+    """Soft-delete (deactivate) a PM schedule. Its completions stay readable."""
     result = supabase.table("pm_schedules")\
         .update({"is_active": False})\
         .eq("id", schedule_id)\
         .eq("tenant_id", current_user.hotel_id)\
         .execute()
-
-    return {"data": result.data[0] if result.data else None}
+    if not result.data:
+        raise HTTPException(status_code=404, detail="PM schedule not found")
+    _audit(current_user=current_user, resource_type="pm_schedule", resource_id=schedule_id, action="pm_schedule.deactivated",
+           old_state={"is_active": True}, new_state={"is_active": False})
+    return {"data": result.data[0]}
 
 
 # ---------------------------------------------------------------------------
@@ -676,6 +909,117 @@ def _sort_key(sort_by: str):
     return name
 
 
+_BROWSE_DERIVED_SORTS = ("last_serviced", "next_pm")
+
+
+def _browse_aggregates(tenant_id: str, now: datetime, tz, today, asset_ids: Optional[list[str]]) -> dict:
+    """Per-asset maintenance facts for the browse list, keyed by asset id.
+
+    `asset_ids` limits every read to those assets (the page on screen); None reads the whole property (a filter or sort
+    needs every asset). Each value is computed per asset from that asset's own rows, so restricting the read never
+    changes an asset's result.
+    """
+    def scoped(query):
+        return query.in_("asset_id", asset_ids) if asset_ids is not None else query
+
+    if asset_ids is not None and not asset_ids:
+        return {k: ({} if k in _BROWSE_DICT_KEYS else set()) for k in _BROWSE_AGG_KEYS}
+
+    downtime_rows = _fetch_all(lambda: scoped(supabase.table("asset_downtime_periods").select(
+        "asset_id, started_at, restored_at, downtime_type, impact_level, work_order_id"
+    ).eq("tenant_id", tenant_id).gte("started_at", (now - timedelta(days=365)).isoformat())).order("started_at"))
+    active_downtime: dict[str, dict] = {}
+    downtime_assets: set[str] = set()
+    for row in downtime_rows:
+        downtime_assets.add(str(row["asset_id"]))
+        if not row.get("restored_at"):
+            active_downtime[str(row["asset_id"])] = with_elapsed_minutes(row)
+
+    # Work orders with no equipment are never read below, so they are not fetched.
+    wo_rows = _fetch_all(lambda: scoped(supabase.table("work_orders").select(
+        "asset_id, status, completed_at"
+    ).eq("tenant_id", tenant_id).not_.is_("asset_id", "null").gte("created_at", (now - timedelta(days=365)).isoformat())).order("created_at"))
+    active_wo: dict[str, int] = {}
+    in_progress: dict[str, int] = {}
+    last_repair: dict[str, str] = {}
+    repeat: dict[str, int] = {}
+    for row in wo_rows:
+        asset_key = str(row.get("asset_id") or "")
+        if not asset_key:
+            continue
+        if row.get("status") in _BROWSE_ACTIVE_WO_STATUSES:
+            active_wo[asset_key] = active_wo.get(asset_key, 0) + 1
+            if row.get("status") == "in_progress":
+                in_progress[asset_key] = in_progress.get(asset_key, 0) + 1
+        elif row.get("status") == "completed" and row.get("completed_at"):
+            completed = str(row["completed_at"])
+            if completed > last_repair.get(asset_key, ""):
+                last_repair[asset_key] = completed
+            if (_parse_iso(completed) or now) >= now - timedelta(days=90):
+                repeat[asset_key] = repeat.get(asset_key, 0) + 1
+
+    pm_rows = _fetch_all(lambda: scoped(supabase.table("pm_schedules").select(
+        "asset_id, next_due_at, last_completed_at"
+    ).eq("tenant_id", tenant_id).eq("is_active", True)).order("id"))
+    next_pm: dict[str, str] = {}
+    pm_overdue: set[str] = set()
+    pm_due_soon: set[str] = set()
+    last_pm: dict[str, str] = {}
+    for row in pm_rows:
+        asset_key = str(row["asset_id"])
+        due = _parse_iso(row.get("next_due_at"))
+        if due:
+            if asset_key not in next_pm or str(row["next_due_at"]) < next_pm[asset_key]:
+                next_pm[asset_key] = str(row["next_due_at"])
+            # Hotel calendar days, the same rule the PM screens use: due earlier today is "due today", not overdue.
+            days_until = (due.astimezone(tz).date() - today).days
+            if days_until < 0:
+                pm_overdue.add(asset_key)
+            elif days_until <= _PM_DUE_SOON_DAYS:
+                pm_due_soon.add(asset_key)
+        if row.get("last_completed_at") and str(row["last_completed_at"]) > last_pm.get(asset_key, ""):
+            last_pm[asset_key] = str(row["last_completed_at"])
+
+    prediction_rows = _fetch_all(lambda: scoped(supabase.table("failure_predictions").select(
+        "asset_id"
+    ).eq("tenant_id", tenant_id).eq("is_acknowledged", False)).order("id"))
+    predicted = {str(row["asset_id"]) for row in prediction_rows if row.get("asset_id")}
+
+    return {
+        "active_downtime": active_downtime, "downtime_assets": downtime_assets, "active_wo": active_wo,
+        "in_progress": in_progress, "last_repair": last_repair, "repeat": repeat, "next_pm": next_pm,
+        "pm_overdue": pm_overdue, "pm_due_soon": pm_due_soon, "last_pm": last_pm, "predicted": predicted,
+    }
+
+
+_BROWSE_DICT_KEYS = ("active_downtime", "active_wo", "in_progress", "last_repair", "repeat", "next_pm", "last_pm")
+_BROWSE_AGG_KEYS = _BROWSE_DICT_KEYS + ("downtime_assets", "pm_overdue", "pm_due_soon", "predicted")
+
+
+def _decorate_browse_rows(assets: list[dict], agg: dict) -> list[dict]:
+    rows: list[dict] = []
+    for asset in assets:
+        key = str(asset["id"])
+        downtime = agg["active_downtime"].get(key)
+        serviced = max(filter(None, [agg["last_repair"].get(key), agg["last_pm"].get(key)]), default=None)
+        asset.pop("serial_number", None)  # searchable, not listed
+        asset.update({
+            "active_downtime": downtime,
+            "service_status": _service_status(downtime, agg["in_progress"].get(key, 0)),
+            "active_work_order_count": agg["active_wo"].get(key, 0),
+            "next_pm_due_at": agg["next_pm"].get(key),
+            "pm_overdue": key in agg["pm_overdue"],
+            "pm_due_soon": key in agg["pm_due_soon"],
+            "last_serviced_at": serviced,
+            "repeat_repairs_90d": agg["repeat"].get(key, 0),
+            "has_active_prediction": key in agg["predicted"],
+            "had_downtime_365d": key in agg["downtime_assets"],
+        })
+        rows.append(asset)
+    return rows
+
+
+
 @router.get("/browse")
 async def browse_assets(
     q: Optional[str] = Query(None, max_length=100),
@@ -724,84 +1068,21 @@ async def browse_assets(
     if building:
         assets = [a for a in assets if (a.get("rooms") or {}).get("building") == building]
 
-    downtime_rows = _fetch_all(lambda: supabase.table("asset_downtime_periods").select(
-        "asset_id, started_at, restored_at, downtime_type, impact_level, work_order_id"
-    ).eq("tenant_id", tenant_id).gte("started_at", (now - timedelta(days=365)).isoformat()).order("started_at"))
-    active_downtime: dict[str, dict] = {}
-    downtime_assets: set[str] = set()
-    for row in downtime_rows:
-        downtime_assets.add(str(row["asset_id"]))
-        if not row.get("restored_at"):
-            active_downtime[str(row["asset_id"])] = with_elapsed_minutes(row)
+    # The derived facts (active repairs, PM due dates, downtime, predictions) are only needed for every asset when a
+    # filter or the sort reads them. Plain browsing and searching reads them for the page on screen only, so the
+    # request no longer pulls a year of the whole property's work orders to return 25 rows.
+    derived_for_all = bool(status or attention or maintenance or reliability) or sort_by in _BROWSE_DERIVED_SORTS
+    if not derived_for_all:
+        assets.sort(key=_sort_key(sort_by))
+        total = len(assets)
+        start = (page - 1) * per_page
+        window = assets[start:start + per_page]
+        rows = _decorate_browse_rows(window, _browse_aggregates(tenant_id, now, tz, today, [str(a["id"]) for a in window]))
+        return {"data": rows, "meta": {
+            "page": page, "per_page": per_page, "total": total, "has_more": start + per_page < total,
+        }}
 
-    wo_rows = _fetch_all(lambda: supabase.table("work_orders").select(
-        "asset_id, status, completed_at"
-    ).eq("tenant_id", tenant_id).gte("created_at", (now - timedelta(days=365)).isoformat()).order("created_at"))
-    active_wo: dict[str, int] = {}
-    in_progress: dict[str, int] = {}
-    last_repair: dict[str, str] = {}
-    repeat: dict[str, int] = {}
-    for row in wo_rows:
-        asset_key = str(row.get("asset_id") or "")
-        if not asset_key:
-            continue
-        if row.get("status") in _BROWSE_ACTIVE_WO_STATUSES:
-            active_wo[asset_key] = active_wo.get(asset_key, 0) + 1
-            if row.get("status") == "in_progress":
-                in_progress[asset_key] = in_progress.get(asset_key, 0) + 1
-        elif row.get("status") == "completed" and row.get("completed_at"):
-            completed = str(row["completed_at"])
-            if completed > last_repair.get(asset_key, ""):
-                last_repair[asset_key] = completed
-            if (_parse_iso(completed) or now) >= now - timedelta(days=90):
-                repeat[asset_key] = repeat.get(asset_key, 0) + 1
-
-    pm_rows = _fetch_all(lambda: supabase.table("pm_schedules").select(
-        "asset_id, next_due_at, last_completed_at"
-    ).eq("tenant_id", tenant_id).eq("is_active", True).order("id"))
-    next_pm: dict[str, str] = {}
-    pm_overdue: set[str] = set()
-    pm_due_soon: set[str] = set()
-    last_pm: dict[str, str] = {}
-    for row in pm_rows:
-        asset_key = str(row["asset_id"])
-        due = _parse_iso(row.get("next_due_at"))
-        if due:
-            if asset_key not in next_pm or str(row["next_due_at"]) < next_pm[asset_key]:
-                next_pm[asset_key] = str(row["next_due_at"])
-            # Hotel calendar days, the same rule the PM screens use: due earlier today is "due today", not overdue.
-            days_until = (due.astimezone(tz).date() - today).days
-            if days_until < 0:
-                pm_overdue.add(asset_key)
-            elif days_until <= _PM_DUE_SOON_DAYS:
-                pm_due_soon.add(asset_key)
-        if row.get("last_completed_at") and str(row["last_completed_at"]) > last_pm.get(asset_key, ""):
-            last_pm[asset_key] = str(row["last_completed_at"])
-
-    prediction_rows = _fetch_all(lambda: supabase.table("failure_predictions").select(
-        "asset_id"
-    ).eq("tenant_id", tenant_id).eq("is_acknowledged", False).order("id"))
-    predicted = {str(row["asset_id"]) for row in prediction_rows if row.get("asset_id")}
-
-    rows: list[dict] = []
-    for asset in assets:
-        key = str(asset["id"])
-        downtime = active_downtime.get(key)
-        serviced = max(filter(None, [last_repair.get(key), last_pm.get(key)]), default=None)
-        asset.pop("serial_number", None)  # searchable, not listed
-        asset.update({
-            "active_downtime": downtime,
-            "service_status": _service_status(downtime, in_progress.get(key, 0)),
-            "active_work_order_count": active_wo.get(key, 0),
-            "next_pm_due_at": next_pm.get(key),
-            "pm_overdue": key in pm_overdue,
-            "pm_due_soon": key in pm_due_soon,
-            "last_serviced_at": serviced,
-            "repeat_repairs_90d": repeat.get(key, 0),
-            "has_active_prediction": key in predicted,
-            "had_downtime_365d": key in downtime_assets,
-        })
-        rows.append(asset)
+    rows = _decorate_browse_rows(assets, _browse_aggregates(tenant_id, now, tz, today, None))
 
     if status:
         rows = [a for a in rows if a["service_status"] == status]
@@ -842,7 +1123,9 @@ async def lookup_asset(
     """Resolve a scanned or typed identifier to one asset in the caller's own property.
 
     The code is only a lookup key: the same tenant scope and 404 apply whether the id belongs to another
-    property or to nothing, so a code never confirms that equipment exists elsewhere.
+    property or to nothing, so a code never confirms that equipment exists elsewhere. A tag matches regardless of
+    letter case (uniqueness is case-insensitive too). Retired equipment still resolves, flagged `is_active: false`, so a
+    label left on a retired unit says so instead of looking unknown; an active record always wins over a retired one.
     """
     if bool(asset_id) == bool(tag):
         raise HTTPException(status_code=422, detail="Provide exactly one of asset_id or tag")
@@ -851,9 +1134,18 @@ async def lookup_asset(
             UUID(asset_id)
         except ValueError:
             raise HTTPException(status_code=404, detail="Asset not found")
-    query = supabase.table("assets").select("id, name, asset_tag").eq("tenant_id", current_user.hotel_id).eq("is_active", True)
-    query = query.eq("id", asset_id) if asset_id else query.eq("asset_tag", (tag or "").strip())
-    matches = query.limit(2).execute().data or []
+    query = supabase.table("assets").select("id, name, asset_tag, is_active").eq("tenant_id", current_user.hotel_id)
+    wanted = (tag or "").strip()
+    if asset_id:
+        query = query.eq("id", asset_id)
+    else:
+        escaped = wanted.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.ilike("asset_tag", escaped)
+    rows = query.limit(10).execute().data or []
+    if tag:
+        rows = [r for r in rows if (r.get("asset_tag") or "").strip().lower() == wanted.lower()]
+    active = [r for r in rows if r.get("is_active", True)]
+    matches = active or rows
     if not matches:
         raise HTTPException(status_code=404, detail="Asset not found")
     if len(matches) > 1:
@@ -894,19 +1186,34 @@ async def start_asset_downtime(asset_id: str, request: StartAssetDowntimeRequest
             raise HTTPException(status_code=404, detail="Work order not found")
         if str(work_order.data.get("asset_id") or "") != asset_id:
             raise HTTPException(status_code=422, detail="Work order must be linked to this asset")
-    return {"data": start_asset_downtime_service(
+    outcome = start_asset_downtime_service(
         db=supabase, asset_id=asset_id, tenant_id=current_user.hotel_id, actor_id=current_user.user_id,
         payload=request.model_dump(mode="json", exclude_none=True),
-    )}
+    )
+    # `created: false` = an open period already existed (a retry or a second tap): returned as is, audited once.
+    if (outcome or {}).get("created"):
+        period = outcome.get("period") or {}
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.downtime_started",
+               old_state={}, new_state={"downtime_id": period.get("id"), "impact_level": period.get("impact_level"),
+                                        "downtime_type": period.get("downtime_type"), "work_order_id": period.get("work_order_id")},
+               reason_note=request.notes)
+    return {"data": outcome}
 
 
 @router.post("/{asset_id}/downtime/{downtime_id}/restore")
 async def restore_asset_downtime(asset_id: str, downtime_id: str, request: RestoreAssetDowntimeRequest, current_user: CurrentUser = Depends(require_role("engineer", "chief_engineer", "gm"))):
     _asset_or_404(asset_id, current_user)
-    return {"data": restore_asset_downtime_service(
+    outcome = restore_asset_downtime_service(
         db=supabase, asset_id=asset_id, downtime_id=downtime_id, tenant_id=current_user.hotel_id,
         actor_id=current_user.user_id, notes=request.notes,
-    )}
+    )
+    # Ending downtime changes nothing else: no work order is closed, no room is released, nothing is marked repaired.
+    if (outcome or {}).get("restored"):
+        period = outcome.get("period") or {}
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.downtime_ended",
+               old_state={"downtime_id": downtime_id}, new_state={"restored_at": period.get("restored_at"), "downtime_minutes": period.get("downtime_minutes")},
+               reason_note=request.notes)
+    return {"data": outcome}
 
 
 @router.get("/{asset_id}/reliability")
@@ -1081,7 +1388,7 @@ async def get_asset(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     result = supabase.table("assets") \
-        .select("*, asset_categories(name, code), rooms(room_number), pm_schedules(*)") \
+        .select("*, asset_categories(name, code), rooms(room_number, floor, building), pm_schedules(*)") \
         .eq("id", asset_id) \
         .eq("tenant_id", current_user.hotel_id) \
         .execute()
@@ -1108,6 +1415,9 @@ async def get_asset(
     ).execute().data or []
     asset["repeat_repairs_90d"] = len(recent)
     asset["service_status"] = _service_status(asset["active_downtime"], in_progress)
+    # Administrative status (is the record in use?) is deliberately separate from service_status (is it working?).
+    asset["administrative_status"] = "active" if asset.get("is_active", True) else "inactive"
+    asset["photo_url"] = _identity_photo_url(asset)
     return {"data": asset}
 
 
@@ -1119,22 +1429,277 @@ async def get_asset(
 async def update_asset(
     asset_id: str,
     request: UpdateAssetRequest,
-    current_user: CurrentUser = Depends(require_role("gm", "engineer"))
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES))
 ):
+    """Edit an equipment record. `is_active` is the administrative status (retire / restore); condition, downtime and
+    predicted risk are derived elsewhere and are not editable here (`failure_risk_score` is accepted for older clients
+    and ignored).
+
+    Concurrency: when `expected_row_version` is sent, the edit applies only if the record is still at that version; the
+    check is part of the UPDATE itself, so two simultaneous editors can never both win (the loser gets 409 with the
+    current record). `clear_fields` explicitly empties optional fields; omitting a field never changes it."""
+    try:
+        UUID(asset_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Asset not found")
     update_data = request.model_dump(exclude_none=True)
+    expected_version = update_data.pop("expected_row_version", None)
+    clear_fields = list(dict.fromkeys(update_data.pop("clear_fields", None) or []))
+    update_data.pop("failure_risk_score", None)
     for field in ("category_id", "room_id"):
         if field in update_data:
             update_data[field] = str(update_data[field])
     for field in ("purchase_date", "installation_date", "warranty_expires"):
         if field in update_data:
             update_data[field] = str(update_data[field])
+    overlap = [f for f in clear_fields if f in update_data]
+    if overlap:
+        raise HTTPException(status_code=422, detail=f"Cannot both set and clear: {', '.join(overlap)}")
+    for field in clear_fields:
+        update_data[field] = None
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
 
-    result = supabase.table("assets") \
-        .update(update_data) \
-        .eq("id", asset_id) \
-        .eq("tenant_id", current_user.hotel_id) \
-        .execute()
+    existing = supabase.table("assets").select("*").eq("id", asset_id).eq("tenant_id", current_user.hotel_id).maybe_single().execute()
+    if not existing or not existing.data:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    before = dict(existing.data)
+    base_version = before.get("row_version") or 1
+    if expected_version is not None and expected_version != base_version:
+        raise _version_conflict(before)
+
+    _require_same_property("asset_categories", update_data.get("category_id"), current_user, "Category")
+    _require_same_property("rooms", update_data.get("room_id"), current_user, "Room")
+    # A date edit is checked against the dates already on record, not only against the others in this request.
+    merged = {**before, **update_data}
+    for later, earlier in (("warranty_expires", "installation_date"), ("warranty_expires", "purchase_date"), ("installation_date", "purchase_date")):
+        if merged.get(later) and merged.get(earlier) and str(merged[later]) < str(merged[earlier]):
+            raise HTTPException(status_code=422, detail=f"{later} cannot be before {earlier}")
+    if "asset_tag" in update_data:
+        update_data["asset_tag"] = _normalize_tag(update_data["asset_tag"])
+    will_be_active = update_data.get("is_active", before.get("is_active", True))
+    new_tag = update_data.get("asset_tag", before.get("asset_tag"))
+    if will_be_active and ("asset_tag" in update_data or update_data.get("is_active") is True):
+        _require_tag_free(new_tag, current_user, except_asset_id=asset_id)
+
+    update_data["row_version"] = base_version + 1
+    try:
+        result = supabase.table("assets") \
+            .update(update_data) \
+            .eq("id", asset_id) \
+            .eq("tenant_id", current_user.hotel_id) \
+            .eq("row_version", base_version) \
+            .execute()
+    except Exception as exc:  # noqa: BLE001 - only the tag race is translated
+        if _unique_violation_kind(exc):
+            raise _tag_conflict() from exc
+        raise
+    if not result.data:
+        # The record moved between the read above and the write: someone else's edit landed first.
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    changed = {k: v for k, v in update_data.items() if k != "row_version" and before.get(k) != v}
+    if changed:
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.updated",
+               old_state={k: before.get(k) for k in changed}, new_state=changed)
+    if before.get("is_active", True) and update_data.get("is_active") is False:
+        # Retiring equipment ends its recurring work: its schedules stop generating work and drop out of the PM list.
+        # Completions, work orders and downtime history stay readable. Restoring does not re-activate schedules.
+        retired = supabase.table("pm_schedules").update({"is_active": False}).eq("asset_id", asset_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).eq("is_active", True).execute().data or []
+        _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.retired",
+               old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]})
     return {"data": result.data[0] if result.data else None}
+
+
+# ---------------------------------------------------------------------------
+# 15b. POST /{asset_id}/retire  — retire equipment (reasoned, guarded, audited)
+# ---------------------------------------------------------------------------
+
+@router.post("/{asset_id}/retire")
+async def retire_asset(
+    asset_id: str,
+    request: RetireAssetRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_RETIRE_ROLES)),
+):
+    """Take equipment out of service records. Never deletes: the asset, its completions, work orders and downtime stay
+    readable. Refused while the equipment has open work orders or an open downtime period (resolve those first), so a
+    retirement can never strand a live repair. Its recurring schedules are deactivated with it."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.get("is_active", True):
+        raise HTTPException(status_code=409, detail={"code": "asset_already_retired", "message": "This equipment is already retired."})
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+
+    open_orders = supabase.table("work_orders").select("id").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).in_("status", list(_BROWSE_ACTIVE_WO_STATUSES)).limit(1).execute().data or []
+    if open_orders:
+        raise HTTPException(status_code=409, detail={"code": "asset_has_open_work_orders", "message": "Close or reassign this equipment's open work orders before retiring it."})
+    open_downtime = supabase.table("asset_downtime_periods").select("id").eq("tenant_id", current_user.hotel_id).eq(
+        "asset_id", asset_id
+    ).is_("restored_at", "null").limit(1).execute().data or []
+    if open_downtime:
+        raise HTTPException(status_code=409, detail={"code": "asset_has_open_downtime", "message": "Restore this equipment's open downtime before retiring it."})
+
+    result = supabase.table("assets").update({"is_active": False, "row_version": base_version + 1}).eq("id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    retired = supabase.table("pm_schedules").update({"is_active": False}).eq("asset_id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("is_active", True).execute().data or []
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.retired",
+           old_state={"is_active": True}, new_state={"is_active": False, "pm_schedules_deactivated": [row["id"] for row in retired]},
+           reason_note=request.reason)
+    return {"data": result.data[0]}
+
+
+# ---------------------------------------------------------------------------
+# 15b2. PUT /{asset_id}/criticality - the property's documented assessment of operational impact
+# ---------------------------------------------------------------------------
+
+@router.put("/{asset_id}/criticality")
+async def set_asset_criticality(
+    asset_id: str,
+    request: UpdateAssetCriticalityRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_RETIRE_ROLES)),
+):
+    """Set criticality (low | medium | high | life_safety). An administrative judgement by the equipment register's owner:
+    never inferred from the asset's category or a prediction, and a change is audited with its reason. Guarded by the
+    record's row_version so two managers cannot silently overwrite each other."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.get("is_active", True):
+        raise HTTPException(status_code=409, detail={"code": "asset_retired", "message": "Retired equipment cannot be reclassified."})
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+    previous = asset.get("criticality")
+    if previous == request.criticality:
+        return {"data": asset, "meta": {"changed": False}}
+    result = supabase.table("assets").update({"criticality": request.criticality, "row_version": base_version + 1}).eq(
+        "id", asset_id
+    ).eq("tenant_id", current_user.hotel_id).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.criticality_changed",
+           old_state={"criticality": previous}, new_state={"criticality": request.criticality}, reason_note=request.reason)
+    return {"data": result.data[0], "meta": {"changed": True}}
+
+
+# ---------------------------------------------------------------------------
+# 15c. PUT/DELETE /{asset_id}/photo  — the equipment's identity photograph
+# ---------------------------------------------------------------------------
+
+_PHOTO_CONTENT_TYPES = ("image/jpeg", "image/png", "image/webp")
+
+
+def _is_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+        return True
+    except ValueError:
+        return False
+
+
+def _identity_photo_url(asset: dict) -> Optional[str]:
+    """A short-lived signed URL for the identity photo, or None. The storage path is never returned."""
+    evidence_id = asset.get("photo_evidence_id")
+    if not evidence_id:
+        return None
+    record = supabase.table("evidence_records").select("storage_path").eq("id", evidence_id).eq(
+        "tenant_id", asset["tenant_id"]
+    ).maybe_single().execute()
+    path = ((record.data if record else None) or {}).get("storage_path")
+    return (_create_evidence_signed_url(path) or None) if path else None
+
+
+def _discard_evidence(evidence_id: Optional[str], current_user: CurrentUser) -> None:
+    """Best effort removal of a superseded identity photo (file, then record), within the caller's property only."""
+    if not evidence_id:
+        return
+    try:
+        record = supabase.table("evidence_records").select("storage_path").eq("id", evidence_id).eq(
+            "tenant_id", current_user.hotel_id
+        ).maybe_single().execute()
+        path = ((record.data if record else None) or {}).get("storage_path")
+        if path:
+            supabase.storage.from_("evidence-files").remove([path])
+        supabase.table("evidence_records").delete().eq("id", evidence_id).eq("tenant_id", current_user.hotel_id).execute()
+    except Exception:  # noqa: BLE001 - an unreferenced leftover record is harmless; failing the edit over it is not
+        pass
+
+
+@router.put("/{asset_id}/photo")
+async def set_asset_photo(
+    asset_id: str,
+    request: AttachAssetPhotoRequest,
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES)),
+):
+    """Make an already-uploaded evidence photo this equipment's identity photograph. The record must belong to this
+    property, be an uploaded image, and have been captured for THIS asset; the previous identity photo (and only it) is
+    then removed. Inspection photos are never touched."""
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    base_version = asset.get("row_version") or 1
+    if request.expected_row_version is not None and request.expected_row_version != base_version:
+        raise _version_conflict(asset)
+    evidence = supabase.table("evidence_records").select("*").eq("id", str(request.evidence_id)).eq(
+        "tenant_id", current_user.hotel_id
+    ).maybe_single().execute()
+    record = evidence.data if evidence else None
+    if (
+        not record
+        or record.get("related_entity_type") != "asset"
+        or str(record.get("related_entity_id")) != str(asset_id)
+        or record.get("evidence_type") != "photo"
+        or not record.get("storage_path")
+        or record.get("file_content_type") not in _PHOTO_CONTENT_TYPES
+    ):
+        raise HTTPException(status_code=422, detail="That upload is not a photo of this equipment")
+    previous = asset.get("photo_evidence_id")
+    if str(previous or "") == str(request.evidence_id):
+        return {"data": {**asset, "photo_url": _identity_photo_url(asset)}}
+    result = supabase.table("assets").update({"photo_evidence_id": str(request.evidence_id), "row_version": base_version + 1}).eq(
+        "id", asset_id
+    ).eq("tenant_id", current_user.hotel_id).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.photo_changed",
+           old_state={"photo_evidence_id": previous}, new_state={"photo_evidence_id": str(request.evidence_id)})
+    _discard_evidence(previous, current_user)
+    updated = result.data[0]
+    return {"data": {**updated, "photo_url": _identity_photo_url(updated)}}
+
+
+@router.delete("/{asset_id}/photo")
+async def remove_asset_photo(
+    asset_id: str,
+    current_user: CurrentUser = Depends(require_role(*ASSET_MANAGER_ROLES)),
+):
+    asset = _own_asset(asset_id, current_user) if _is_uuid(asset_id) else None
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    previous = asset.get("photo_evidence_id")
+    if not previous:
+        return {"data": {**asset, "photo_url": None}}
+    base_version = asset.get("row_version") or 1
+    result = supabase.table("assets").update({"photo_evidence_id": None, "row_version": base_version + 1}).eq("id", asset_id).eq(
+        "tenant_id", current_user.hotel_id
+    ).eq("row_version", base_version).execute()
+    if not result.data:
+        raise _version_conflict(_own_asset(asset_id, current_user))
+    _audit(current_user=current_user, resource_type="asset", resource_id=asset_id, action="asset.photo_removed",
+           old_state={"photo_evidence_id": previous}, new_state={"photo_evidence_id": None})
+    _discard_evidence(previous, current_user)
+    return {"data": {**result.data[0], "photo_url": None}}
 
 
 # ---------------------------------------------------------------------------
@@ -1214,4 +1779,17 @@ async def get_pm_completion(
     for item in items:
         item["evidence"] = _resolve_evidence_signed_urls(item.get("evidence") or [], tenant_id)
     completion["items"] = items
+    # The links a record needs: the exact equipment it was done on, and the corrective work orders this very completion
+    # opened (read, never created, here). Both are looked up inside the caller's property by id.
+    asset = None
+    if completion.get("asset_id"):
+        found = supabase.table("assets").select("id, name, asset_tag, is_active").eq("id", completion["asset_id"]).eq(
+            "tenant_id", tenant_id
+        ).maybe_single().execute()
+        asset = found.data if found and found.data else None
+    orders = supabase.table("work_orders").select("id, title, status, work_order_number").eq("tenant_id", tenant_id).eq(
+        "pm_completion_id", completion_id
+    ).order("created_at").execute().data or []
+    completion["asset"] = asset
+    completion["corrective_work_orders"] = orders
     return {"data": completion}

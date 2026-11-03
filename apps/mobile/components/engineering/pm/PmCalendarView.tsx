@@ -38,6 +38,19 @@ export function PmCalendarView({ schedules, today, ...rest }: Props) {
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]} accessibilityRole="header">
           {title}
         </Text>
+        <Pressable
+          onPress={() => {
+            setMonth(today.slice(0, 7));
+            setSelected(today);
+          }}
+          style={styles.todayButton}
+          accessibilityRole="button"
+          testID="pm-cal-today"
+        >
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.primaryAction, fontSize: 13, fontWeight: "700" }}>
+            {t("pm.views.today")}
+          </Text>
+        </Pressable>
         <Pressable onPress={() => setMonth(shiftMonth(month, 1))} style={styles.navButton} accessibilityRole="button" accessibilityLabel={t("pm.nextMonth")} testID="pm-cal-next">
           <Ionicons name="chevron-forward" size={20} color={theme.textPrimary} />
         </Pressable>
@@ -120,6 +133,7 @@ const styles = StyleSheet.create({
   stack: { gap: 6 },
   nav: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   navButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  todayButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
   title: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700" },
   weekRow: { flexDirection: "row", gap: 2 },
   weekday: { flex: 1, textAlign: "center", fontSize: 11, fontWeight: "700", paddingBottom: 2 },

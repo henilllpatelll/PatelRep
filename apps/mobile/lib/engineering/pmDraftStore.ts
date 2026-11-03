@@ -6,7 +6,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getQueueOwner } from "@/lib/offline/queueOwner";
-import type { PmDraft } from "./pmChecklist";
+import { draftPhotoRefs, isLocalPhoto, type PmDraft } from "./pmChecklist";
 
 const key = (owner: string, scheduleId: string) => `engineering.pmDraft.v1:${owner}:${scheduleId}`;
 
@@ -25,23 +25,95 @@ export async function loadPmDraft(scheduleId: string): Promise<PmDraft | null> {
   }
 }
 
-export async function savePmDraft(draft: PmDraft): Promise<void> {
+/** Writes and removals for one draft run strictly in the order they were asked for, so an older save that is still in
+ * flight can never land after a newer one (or resurrect a draft that was just cleared). */
+const queues = new Map<string, Promise<unknown>>();
+
+function enqueue<T>(storageKey: string, job: () => Promise<T>): Promise<T> {
+  const run = (queues.get(storageKey) ?? Promise.resolve()).then(job, job);
+  const tail = run.catch(() => undefined);
+  queues.set(storageKey, tail);
+  void tail.then(() => {
+    if (queues.get(storageKey) === tail) queues.delete(storageKey);
+  });
+  return run;
+}
+
+/** Whether the draft is now on this phone. False means it exists only in memory (storage full or unavailable). */
+export async function savePmDraft(draft: PmDraft): Promise<boolean> {
   const owner = getQueueOwner();
-  if (!owner) return;
+  if (!owner) return false;
+  const storageKey = key(owner, draft.scheduleId);
+  const body = JSON.stringify(draft);
   try {
-    await AsyncStorage.setItem(key(owner, draft.scheduleId), JSON.stringify(draft));
+    await enqueue(storageKey, () => AsyncStorage.setItem(storageKey, body));
+    return true;
   } catch {
-    // Saving is best effort; the screen still holds the draft in memory.
+    return false;
   }
 }
 
 export async function clearPmDraft(scheduleId: string): Promise<void> {
   const owner = getQueueOwner();
   if (!owner) return;
+  const storageKey = key(owner, scheduleId);
   try {
-    await AsyncStorage.removeItem(key(owner, scheduleId));
+    await enqueue(storageKey, () => AsyncStorage.removeItem(storageKey));
   } catch {
     // Nothing to do.
+  }
+}
+
+/**
+ * Every photo file address any saved draft of the signed-in person still refers to, or null when ANY draft could not
+ * be read - cleanup must treat "unknown" as "keep everything".
+ */
+export async function listPmDraftLocalUris(): Promise<string[] | null> {
+  const owner = getQueueOwner();
+  if (!owner) return null;
+  try {
+    const prefix = `engineering.pmDraft.v1:${owner}:`;
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(prefix));
+    const uris: string[] = [];
+    for (const k of keys) {
+      const raw = await AsyncStorage.getItem(k);
+      if (!raw) continue;
+      const draft = JSON.parse(raw) as PmDraft;
+      if (draft?.v !== 1 || typeof draft.items !== "object") return null;
+      for (const ref of draftPhotoRefs(draft)) if (isLocalPhoto(ref) && ref.uri) uris.push(ref.uri);
+    }
+    return uris;
+  } catch {
+    return null;
+  }
+}
+
+export interface PmDraftSummary {
+  scheduleId: string;
+  label: string | null;
+  /** Checklist items with a recorded result. */
+  answered: number;
+  total: number;
+  updatedAt: string;
+}
+
+/** Real saved drafts for the signed-in person, with how far each got. A malformed record is skipped, never half-read. */
+export async function listPmDraftSummaries(): Promise<PmDraftSummary[]> {
+  const owner = getQueueOwner();
+  if (!owner) return [];
+  try {
+    const prefix = `engineering.pmDraft.v1:${owner}:`;
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(prefix));
+    const summaries: PmDraftSummary[] = [];
+    for (const k of keys) {
+      const draft = await loadPmDraft(k.slice(prefix.length));
+      if (!draft) continue;
+      const answered = Object.values(draft.items).filter((item) => item?.result != null).length;
+      summaries.push({ scheduleId: draft.scheduleId, label: draft.label ?? null, answered, total: draft.identities.length, updatedAt: draft.updatedAt });
+    }
+    return summaries;
+  } catch {
+    return [];
   }
 }
 

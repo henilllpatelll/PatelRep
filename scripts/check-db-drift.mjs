@@ -629,7 +629,11 @@ export function evaluateLiveMigrationDrift({
 
 function main() {
   const { environment, databaseUrl, allowPending, showRemoteMigrationNames } = getDriftCheckConfig(process.argv.slice(2));
-  const { remoteRows, localInventory, evaluation } = evaluateLiveMigrationDrift({ environment, databaseUrl, allowPending });
+  // Staging Candidate runs this trusted script and supplies the candidate's migrations as data; never used for production.
+  const candidateMigrationsDirectory = environment === 'staging' ? process.env.STAGING_CANDIDATE_MIGRATIONS_DIR || undefined : undefined;
+  const { remoteRows, localInventory, evaluation } = evaluateLiveMigrationDrift({
+    environment, databaseUrl, allowPending, migrationsDirectory: candidateMigrationsDirectory,
+  });
   const localVersions = localInventory.map((migration) => migration.version);
   const production = environment === 'production';
   const { verifiedAliases, attestedRows, unresolvedRemoteRows, duplicateCoverage } = evaluation;

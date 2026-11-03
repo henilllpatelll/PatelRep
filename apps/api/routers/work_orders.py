@@ -1019,6 +1019,64 @@ async def get_repeat_suggestion(
     return {"data": (result.data or [None])[0]}
 
 
+def _pm_source(wo: dict, tenant_id: str) -> dict | None:
+    """The preventive-maintenance inspection this order came from, read through its real `pm_completion_id` link.
+
+    None when the order has no such link (never inferred from a title, date or asset). The completion and its failed
+    items are looked up inside the caller's property, so a link that points elsewhere reads as no source. The failed
+    items are facts about the completion: an inspection can open several orders, so no single item is claimed as
+    "the" cause of this one. A lookup failure never fails the repair screen: it returns a source with only the id."""
+    completion_id = wo.get("pm_completion_id")
+    if not completion_id:
+        return None
+    try:
+        completion = (
+            supabase.table("pm_completion_records")
+            .select("id, pm_schedule_id, asset_id, completed_at, photos")
+            .eq("id", completion_id)
+            .eq("tenant_id", tenant_id)
+            .maybe_single()
+            .execute()
+        )
+        record = completion.data if completion else None
+        if not record:
+            return None
+        schedule = (
+            supabase.table("pm_schedules")
+            .select("name")
+            .eq("id", record["pm_schedule_id"])
+            .eq("tenant_id", tenant_id)
+            .maybe_single()
+            .execute()
+        )
+        items = (
+            supabase.table("pm_completion_items")
+            .select("item_key, label, note, evidence")
+            .eq("completion_id", completion_id)
+            .eq("tenant_id", tenant_id)
+            .eq("result", "failed")
+            .execute()
+        )
+        failed = list(items.data or [])
+        evidence_count = len(record.get("photos") or []) + sum(len(i.get("evidence") or []) for i in failed)
+        # The step this order was opened for, only when the order recorded one (older orders did not): never guessed.
+        item_key = wo.get("pm_completion_item_key")
+        this_item = next((i for i in failed if item_key and i.get("item_key") == item_key), None)
+        return {
+            "completion_id": record["id"],
+            "schedule_id": record["pm_schedule_id"],
+            "schedule_name": ((schedule.data if schedule else None) or {}).get("name"),
+            "asset_id": record.get("asset_id"),
+            "completed_at": record.get("completed_at"),
+            "failed_items": [{"label": i.get("label"), "note": i.get("note")} for i in failed],
+            "this_item": {"label": this_item.get("label"), "note": this_item.get("note")} if this_item else None,
+            "evidence_count": evidence_count,
+        }
+    except Exception:
+        logger.exception("PM source lookup failed for work order %s", wo.get("id"))
+        return {"completion_id": completion_id, "schedule_id": None, "details_unavailable": True}
+
+
 @router.get("/{wo_id}")
 async def get_work_order(
     wo_id: str, current_user: CurrentUser = Depends(get_current_user)
@@ -1038,6 +1096,7 @@ async def get_work_order(
     # Same best-effort enrichment the queue uses: assignee name, room context (room-board roles only) and, when
     # held, the recorded reason.
     _enrich_list_rows([row], current_user.hotel_id, current_user.role)
+    row["pm_source"] = _pm_source(row, current_user.hotel_id)
     return {"data": row}
 
 
