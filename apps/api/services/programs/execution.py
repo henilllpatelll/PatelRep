@@ -2,15 +2,38 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from services.programs.checklist_binding import resolve_completion_template
 from services.programs.contracts import (
+    EvidenceRequiredError,
     build_corrective_work_order,
     validate_completion_items,
 )
-from services.pm_schedules import compute_next_due_at
 from services.condition_monitoring import persist_condition_reading
+from services.engineering_notify import notify_managers
+
+
+class PmCompletionRefused(Exception):
+    """The completion was understood but must not be recorded. Nothing was written."""
+
+    def __init__(self, code: str, message: str, status_code: int = 409):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status_code = status_code
+
+
+def compute_submission_hash(schedule_id: str, payload: dict[str, Any]) -> str:
+    """Stable fingerprint of WHAT was submitted (never of the key itself), so a retry of the same attempt matches and
+    the same key reused for different content is detected."""
+    body = {k: v for k, v in payload.items() if k != "submission_id"}
+    canonical = json.dumps({"schedule_id": str(schedule_id), "payload": body}, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _collect_evidence_ids(payload: dict[str, Any], items: list[dict[str, Any]]) -> list[str]:
@@ -49,31 +72,100 @@ def _validate_verifier(*, db: Any, tenant_id: str, user_id: str, verifier_id: st
         raise ValueError("Verifier is not an active user at this property.")
 
 
-def _validate_tenant_evidence_ids(*, db: Any, tenant_id: str, evidence_ids: list[str]) -> None:
-    """Reject a PM completion that references evidence_records missing or owned by another tenant."""
+def _reject_duplicate_evidence(payload: dict[str, Any], items: list[dict[str, Any]]) -> None:
+    """One evidence record proves one thing. The same id on two checklist items (or on an item and the general photos)
+    would let a single photo silently satisfy another step's evidence requirement."""
+    seen: set[str] = set()
+    groups = [payload.get("photos") or [], payload.get("certificate_attachments") or [], *[(item.get("evidence") or []) for item in items]]
+    for group in groups:
+        for evidence_id in group:
+            if evidence_id in seen:
+                raise ValueError(f"Evidence record {evidence_id} is attached more than once; each photo can back only one place.")
+            seen.add(evidence_id)
+
+
+def _submission_already_recorded(*, db: Any, tenant_id: str, submission_id: str | None) -> bool:
+    if not submission_id:
+        return False
+    result = (
+        db.table("pm_completion_records").select("id").eq("tenant_id", tenant_id)
+        .eq("submission_id", str(submission_id)).maybe_single().execute()
+    )
+    return bool(result and result.data)
+
+
+def _validate_tenant_evidence_ids(
+    *, db: Any, tenant_id: str, evidence_ids: list[str], user_id: str | None = None, asset_id: str | None = None,
+) -> None:
+    """Reject a PM completion that references evidence that is missing, from another tenant, never uploaded, captured by
+    someone else, for other equipment, or already recorded against an earlier completion.
+
+    The last rule matters because recording a completion re-links its evidence to itself: without it a technician could
+    pull a photo off a finished inspection and reuse it as proof for the next one."""
     if not evidence_ids:
         return
     result = (
-        db.table("evidence_records").select("id").eq("tenant_id", tenant_id)
-        .in_("id", evidence_ids).execute()
+        db.table("evidence_records").select("id, collected_by, storage_path, related_entity_type, related_entity_id")
+        .eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
     )
-    found_ids = {row["id"] for row in ((result.data if result else None) or [])}
-    missing = [evidence_id for evidence_id in evidence_ids if evidence_id not in found_ids]
+    found = {row["id"]: row for row in ((result.data if result else None) or [])}
+    missing = [evidence_id for evidence_id in evidence_ids if evidence_id not in found]
     if missing:
         raise ValueError(
             f"Evidence record(s) not found at this property: {', '.join(missing)}"
         )
-
-
-def _link_evidence_to_completion(*, db: Any, tenant_id: str, completion_id: str, evidence_ids: list[str]) -> None:
-    """Backfill evidence_records.related_entity_* after the completion exists (evidence_records
-    is mutable; pm_completion_records is not, so the link must be an UPDATE on the evidence side)."""
-    if not evidence_ids:
+    if user_id is None:
         return
-    db.table("evidence_records").update({
-        "related_entity_type": "pm_completion",
-        "related_entity_id": completion_id,
-    }).eq("tenant_id", tenant_id).in_("id", evidence_ids).execute()
+    for evidence_id in evidence_ids:
+        row = found[evidence_id]
+        if not row.get("storage_path"):
+            raise ValueError(f"Evidence record {evidence_id} has no uploaded file yet. Upload it, or remove it, and try again.")
+        if row.get("collected_by") != user_id:
+            raise ValueError(f"Evidence record {evidence_id} was captured by someone else and cannot be used in this inspection.")
+        linked_type, linked_id = row.get("related_entity_type"), row.get("related_entity_id")
+        if linked_type == "pm_completion":
+            raise ValueError(f"Evidence record {evidence_id} is already part of a recorded inspection.")
+        if linked_type and not (linked_type == "asset" and asset_id is not None and str(linked_id) == str(asset_id)):
+            raise ValueError(f"Evidence record {evidence_id} was captured for different equipment or work.")
+
+
+def _apply_template_evidence_rules(template: dict[str, Any] | None, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The procedure, not the app, says which steps need a photo. A step the procedure marks as controlled is recorded
+    as such and refused without its own evidence, whatever the request claimed."""
+    checklist = (((template or {}).get("items") or {}).get("checklist")) or []
+    by_key = {str(e["key"]): bool(e.get("requires_evidence")) for e in checklist if e.get("key")}
+    by_label = {str(e["label"]).strip(): bool(e.get("requires_evidence")) for e in checklist if e.get("label")}
+    if not by_key and not by_label:
+        return items
+    resolved: list[dict[str, Any]] = []
+    for item in items:
+        required = by_key.get(str(item.get("key") or "")) or by_label.get(str(item.get("label") or "").strip(), False)
+        if required and not item.get("requires_evidence"):
+            item = {**item, "requires_evidence": True}
+        if required and item["result"] != "not_applicable" and not item.get("evidence"):
+            raise EvidenceRequiredError(f"Evidence is required for {item.get('label', 'this checklist item')}")
+        resolved.append(item)
+    return resolved
+
+
+def _item_key(item: dict[str, Any]) -> str:
+    """The key a checklist step is stored under (`pm_completion_items.item_key`). One definition, used both for the stored
+    item and for the corrective order opened for it, so the order's link always names the step that failed."""
+    return item.get("key") or item["label"].lower().replace(" ", "_")
+
+
+def _notify_corrective_orders(*, tenant_id: str, user_id: str, schedule: dict[str, Any], orders: list[dict[str, Any]]) -> None:
+    """Tell the chief engineers that an inspection opened corrective work. Inbox only, one unread row per person and
+    order (so a retry cannot alert twice), never to the person who recorded the inspection, and best effort: the
+    completion is already committed, so a notification problem must never fail or retry it."""
+    where = schedule.get("name")
+    for order in orders:
+        title = order.get("title") or "Corrective work order"
+        notify_managers(
+            tenant_id=tenant_id, event="pm_corrective_work_order", title="Inspection opened corrective work",
+            body=f"{title} - {where}" if where else title, subject_key="wo_id", subject_id=str(order["id"]),
+            data={"url": f"/(app)/work-orders/{order['id']}"}, exclude=user_id,
+        )
 
 
 def _fetch_asset_criticality(*, db: Any, tenant_id: str, asset_id: str | None) -> str | None:
@@ -88,40 +180,76 @@ def _fetch_asset_criticality(*, db: Any, tenant_id: str, asset_id: str | None) -
     return data.get("criticality") if data else None
 
 
-def _record_containment_audit(
-    *, db: Any, tenant_id: str, user_id: str, actor_role: str, completion_id: str,
-    item_label: str, work_order_id: str | None,
+
+def _rpc_result(db: Any, params: dict[str, Any]) -> dict[str, Any]:
+    try:
+        data = db.rpc("record_pm_completion", params).execute().data
+    except Exception as exc:  # noqa: BLE001 - classify, never swallow
+        text = str(exc)
+        if "PGRST202" in text or "Could not find the function" in text:
+            # Fail closed: the non-atomic path is exactly what this function replaces.
+            raise PmCompletionRefused(
+                "completion_unavailable",
+                "PM completion is temporarily unavailable. Nothing was recorded; try again shortly.",
+                503,
+            ) from exc
+        raise
+    if isinstance(data, list):
+        data = data[0] if data else None
+    if not isinstance(data, dict) or "status" not in data:
+        raise PmCompletionRefused(
+            "completion_unverified", "The PM completion could not be verified. Check the schedule before retrying.", 502
+        )
+    return data
+
+
+def _heal_condition_readings(
+    *, db: Any, tenant_id: str, user_id: str, completion_id: str, readings: list[dict[str, Any]],
+    meters_by_id: dict[str, dict[str, Any]], replayed: bool,
 ) -> None:
-    """Append-only containment record for a failed PM check (G2/T-04-11). execution.py has
-    no CurrentUser, so this inserts directly into operational_audit_events with the same
-    column set as routers/evidence.py's _record_audit_event, rather than a parallel mechanism."""
-    db.table("operational_audit_events").insert({
-        "tenant_id": tenant_id,
-        "resource_type": "pm_completion",
-        "resource_id": completion_id,
-        "action": "pm_check.failed_containment",
-        "actor_id": user_id,
-        "actor_role": actor_role,
-        "old_state": {},
-        "new_state": {"item": item_label, "work_order_id": work_order_id},
-        "reason_code": "failed_check",
-        "reason_note": None,
-        "source": "api",
-    }).execute()
+    """Readings are appended after the atomic write. On a replay, any that a crashed first attempt never wrote are
+    written now, keyed by (completion, meter), so a retry finishes the job rather than duplicating it."""
+    existing: set[str] = set()
+    if replayed and readings:
+        rows = db.table("meter_readings").select("meter_id").eq("tenant_id", tenant_id).eq(
+            "pm_completion_id", completion_id
+        ).execute().data or []
+        existing = {str(row["meter_id"]) for row in rows}
+    for reading in readings:
+        meter_id = str(reading["meter_id"])
+        if meter_id in existing:
+            continue
+        persist_condition_reading(
+            db=db,
+            meter=meters_by_id[meter_id],
+            tenant_id=tenant_id,
+            user_id=user_id,
+            value=float(reading["value"]),
+            source="pm",
+            recorded_at=reading.get("recorded_at"),
+            pm_completion_id=completion_id,
+            notes=reading.get("notes"),
+        )
 
 
 def persist_pm_completion(
     *, db: Any, tenant_id: str, user_id: str, actor_role: str,
     schedule: dict[str, Any], payload: dict[str, Any],
 ) -> dict[str, Any]:
-    """Append a complete PM record, its immutable results, and failed-check follow-ups.
+    """Record one PM completion atomically and idempotently.
 
-    All submitted `photos`/`certificate_attachments`/per-item `evidence` values are
-    `evidence_records.id` UUID strings (D-06) — validated for tenant ownership before the
-    completion is written, then linked to the completion via a post-insert UPDATE.
+    Everything that must happen together - the completion, its immutable items, the corrective work orders, the
+    evidence links, the audit rows and the schedule advance - is ONE database transaction (`record_pm_completion`,
+    migration 232). The caller's `submission_id` makes it replay-safe: the same accepted submission returns the
+    original record, a different payload under the same id is refused, and concurrent identical submissions are
+    serialised by the schedule row lock.
+
+    All submitted `photos`/`certificate_attachments`/per-item `evidence` values are `evidence_records.id` UUIDs (D-06),
+    validated for tenant ownership before anything is written.
     """
     items = payload.get("items") or []
     condition_readings = payload.get("condition_readings") or []
+    submission_hash = compute_submission_hash(schedule["id"], payload)
     meter_ids = [str(reading["meter_id"]) for reading in condition_readings]
     meters_by_id: dict[str, dict[str, Any]] = {}
     if meter_ids:
@@ -135,109 +263,126 @@ def persist_pm_completion(
     _validate_verifier(
         db=db, tenant_id=tenant_id, user_id=user_id, verifier_id=payload.get("verifier_id"),
     )
+    _reject_duplicate_evidence(payload, items)
     evidence_ids = _collect_evidence_ids(payload, items)
-    _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
+    # A replay of an accepted submission finds its evidence already linked to its own completion; the database function
+    # recognises the replay (or refuses a changed payload) first, so ownership is checked for new work only.
+    if _submission_already_recorded(db=db, tenant_id=tenant_id, submission_id=payload.get("submission_id")):
+        _validate_tenant_evidence_ids(db=db, tenant_id=tenant_id, evidence_ids=evidence_ids)
+    else:
+        _validate_tenant_evidence_ids(
+            db=db, tenant_id=tenant_id, evidence_ids=evidence_ids, user_id=user_id, asset_id=schedule.get("asset_id"),
+        )
     if payload.get("vendor_id"):
         vendor = db.table("engineering_vendors").select("id, name").eq("id", str(payload["vendor_id"])).eq("tenant_id", tenant_id).maybe_single().execute()
         if not vendor or not vendor.data:
             raise ValueError("Vendor not found")
         # Retain the readable snapshot even if the vendor name changes later.
         payload["vendor_name"] = payload.get("vendor_name") or vendor.data["name"]
+
+    template = resolve_completion_template(db, tenant_id, schedule, payload.get("checklist_template_id"))
+    items = _apply_template_evidence_rules(template, items)
+    checklist_template_id = template["id"] if template else None
+    checklist_version = payload.get("checklist_version")
+    if template and checklist_version is None:
+        checklist_version = template.get("version")
+
+    completion_id = str(uuid.uuid4())
     completed_at = datetime.now(timezone.utc)
-    completion_payload = {
-        "tenant_id": tenant_id,
-        "pm_schedule_id": schedule["id"],
-        "asset_id": schedule.get("asset_id"),
-        "checklist_template_id": payload.get("checklist_template_id"),
-        "checklist_version": payload.get("checklist_version"),
-        "technician_id": user_id,
-        "verifier_id": payload.get("verifier_id"),
-        "measurements": payload.get("measurements") or {},
-        "meter_readings": payload.get("meter_readings") or {},
-        "photos": payload.get("photos") or [],
-        "labor_minutes": payload.get("labor_minutes", 0),
-        "parts_used": payload.get("parts_used") or [],
-        "defects": payload.get("defects") or [],
-        "vendor_id": str(payload["vendor_id"]) if payload.get("vendor_id") else None,
-        "vendor_name": payload.get("vendor_name"),
-        "certificate_attachments": payload.get("certificate_attachments") or [],
-        "notes": payload.get("notes"),
-        "completed_at": completed_at.isoformat(),
-    }
-    completion = db.table("pm_completion_records").insert(completion_payload).execute().data[0]
-    _link_evidence_to_completion(
-        db=db, tenant_id=tenant_id, completion_id=completion["id"], evidence_ids=evidence_ids,
-    )
-
-    item_rows = [{
-        "tenant_id": tenant_id,
-        "completion_id": completion["id"],
-        "item_key": item.get("key") or item["label"].lower().replace(" ", "_"),
-        "label": item["label"],
-        "result": item["result"],
-        "requires_evidence": item.get("requires_evidence", False),
-        "evidence": item.get("evidence") or [],
-        "note": item.get("note"),
-    } for item in items]
-    if item_rows:
-        db.table("pm_completion_items").insert(item_rows).execute()
-
-    for condition_reading in condition_readings:
-        meter = meters_by_id[str(condition_reading["meter_id"])]
-        persist_condition_reading(
-            db=db,
-            meter=meter,
-            tenant_id=tenant_id,
-            user_id=user_id,
-            value=float(condition_reading["value"]),
-            source="pm",
-            recorded_at=condition_reading.get("recorded_at"),
-            pm_completion_id=completion["id"],
-            notes=condition_reading.get("notes"),
-        )
-
+    corrective: list[dict[str, Any]] = []
     failed_items = [item for item in items if item["result"] == "failed"]
-    corrective_work_orders: list[dict[str, str]] = []
     if failed_items:
-        criticality = _fetch_asset_criticality(
-            db=db, tenant_id=tenant_id, asset_id=schedule.get("asset_id"),
-        )
+        criticality = _fetch_asset_criticality(db=db, tenant_id=tenant_id, asset_id=schedule.get("asset_id"))
         for item in failed_items:
             work_order = build_corrective_work_order(
                 tenant_id=tenant_id,
                 asset_id=schedule.get("asset_id"),
-                completion_id=completion["id"],
+                completion_id=completion_id,
                 checklist_item=item,
                 created_by=user_id,
                 completed_at=completed_at,
                 criticality=criticality,
             )
-            wo_result = db.table("work_orders").insert(work_order).execute()
-            wo_rows = wo_result.data if wo_result else None
-            work_order_id = wo_rows[0]["id"] if wo_rows else None
-            if work_order_id:
-                corrective_work_orders.append({"id": work_order_id, "title": work_order["title"]})
-            _record_containment_audit(
-                db=db,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                actor_role=actor_role,
-                completion_id=completion["id"],
-                item_label=item["label"],
-                work_order_id=work_order_id,
-            )
+            corrective.append({"label": item["label"], "item_key": _item_key(item), **{k: work_order[k] for k in (
+                "asset_id", "title", "description", "category", "priority", "created_by", "sla_minutes", "due_at",
+            )}})
 
-    scheduled_due_at = schedule.get("next_due_at")
-    recurrence_base = (
-        completed_at
-        if schedule.get("recurrence_basis") == "completion_date" or not scheduled_due_at
-        else datetime.fromisoformat(scheduled_due_at)
-    )
-    db.table("pm_schedules").update({
-        "last_completed_at": completed_at.isoformat(),
-        "next_due_at": compute_next_due_at(
-            recurrence_base, schedule.get("interval_type", "monthly"), schedule.get("interval_days"),
-        ).isoformat(),
-    }).eq("id", schedule["id"]).eq("tenant_id", tenant_id).execute()
-    completion["corrective_work_orders"] = corrective_work_orders
+    params = {
+        "p_tenant_id": tenant_id,
+        "p_schedule_id": str(schedule["id"]),
+        "p_user_id": user_id,
+        "p_actor_role": actor_role,
+        "p_completion_id": completion_id,
+        "p_submission_id": str(payload["submission_id"]) if payload.get("submission_id") else None,
+        "p_submission_hash": submission_hash,
+        "p_completion": {
+            "checklist_template_id": checklist_template_id,
+            "checklist_version": checklist_version,
+            "verifier_id": payload.get("verifier_id"),
+            "measurements": payload.get("measurements") or {},
+            "meter_readings": payload.get("meter_readings") or {},
+            "photos": payload.get("photos") or [],
+            "labor_minutes": payload.get("labor_minutes", 0),
+            "parts_used": payload.get("parts_used") or [],
+            "defects": payload.get("defects") or [],
+            "vendor_id": str(payload["vendor_id"]) if payload.get("vendor_id") else None,
+            "vendor_name": payload.get("vendor_name"),
+            "certificate_attachments": payload.get("certificate_attachments") or [],
+            "notes": payload.get("notes"),
+        },
+        "p_items": [{
+            "item_key": _item_key(item),
+            "label": item["label"],
+            "result": item["result"],
+            "requires_evidence": item.get("requires_evidence", False),
+            "evidence": item.get("evidence") or [],
+            "note": item.get("note"),
+        } for item in items],
+        "p_corrective": corrective,
+        "p_evidence_ids": evidence_ids,
+        "p_completed_at": completed_at.isoformat(),
+    }
+    outcome = _rpc_result(db, params)
+    status = outcome["status"]
+    if status == "schedule_not_found":
+        raise LookupError("PM schedule not found")
+    if status == "conflict":
+        raise PmCompletionRefused(
+            "submission_conflict",
+            "This submission id was already used for a different inspection. Nothing was changed.",
+        )
+    if status == "schedule_inactive":
+        raise PmCompletionRefused("schedule_inactive", "This PM schedule is no longer active.")
+    if status == "asset_inactive":
+        raise PmCompletionRefused("asset_inactive", "This equipment is no longer active, so its PM cannot be completed.")
+    if status not in ("created", "replayed"):
+        raise PmCompletionRefused("completion_unverified", "The PM completion could not be verified.", 502)
+
+    completion = outcome["completion"]
+    replayed = status == "replayed"
+    if condition_readings:
+        _heal_condition_readings(
+            db=db, tenant_id=tenant_id, user_id=user_id, completion_id=completion["id"],
+            readings=condition_readings, meters_by_id=meters_by_id, replayed=replayed,
+        )
+    orders = outcome.get("corrective_work_orders") or []
+    if orders:
+        # The order numbers people recognise, read back from what the database actually created.
+        numbered = db.table("work_orders").select("id, title, status, work_order_number").eq("tenant_id", tenant_id).in_(
+            "id", [str(order["id"]) for order in orders]
+        ).execute().data or []
+        by_id = {str(row["id"]): row for row in numbered}
+        orders = [
+            {**order, **{k: v for k, v in by_id.get(str(order["id"]), {}).items() if k in ("status", "work_order_number")}}
+            for order in orders
+        ]
+    completion["corrective_work_orders"] = orders
+    completion["replayed"] = replayed
+    if orders and not replayed:
+        _notify_corrective_orders(tenant_id=tenant_id, user_id=user_id, schedule=schedule, orders=orders)
+    # When the equipment is next due, as the schedule now stands (read back, never computed by the app).
+    refreshed = db.table("pm_schedules").select("next_due_at").eq("id", str(schedule["id"])).eq(
+        "tenant_id", tenant_id
+    ).maybe_single().execute()
+    completion["next_due_at"] = ((refreshed.data if refreshed else None) or {}).get("next_due_at")
     return completion

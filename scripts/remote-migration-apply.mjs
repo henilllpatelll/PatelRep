@@ -1,44 +1,44 @@
 #!/usr/bin/env node
 /**
- * Remote-safe full migration apply for a from-scratch database (staging bootstrap).
+ * Replay every real migration, in exact repository order, into a BLANK DISPOSABLE database.
  *
- * supabase/migrations/ contains grandfathered historical identifier
- * collisions (039/042/110 -- see docs/DATABASE_MIGRATIONS.md) that Supabase's
- * migration tracker cannot record twice: supabase_migrations.schema_migrations
- * is keyed by version, and two files sharing a version can only ever produce
- * one row. `supabase db reset`/`db push` apply each file's SQL and its
- * tracking-row insert in one transaction, so the second file in a collision
- * group fails the insert and rolls back its own SQL too -- it is never
- * actually applied to the schema.
+ * supabase/migrations/ contains grandfathered historical identifier collisions (039/042/110 -- see
+ * docs/DATABASE_MIGRATIONS.md) that Supabase's migration tracker cannot record twice: supabase_migrations.
+ * schema_migrations is keyed by version, and `supabase db reset`/`db push` apply each file's SQL and its tracking
+ * insert in one transaction, so the second file in a collision group fails the insert and rolls back its own SQL.
+ * This script instead applies every file's SQL directly via psql, recording each distinct version exactly once.
  *
- * build-migration-replay-workspace.mjs already solves this for LOCAL/CI
- * rebuilds by renumbering migrations under synthetic unique versions, but
- * that is deliberately never used against a remote environment: it would
- * desync the remote's recorded identifiers from the real repository history
- * that check-db-drift.mjs compares against (which dedupes by version, so it
- * already tolerates exactly one row per grandfathered collision).
- *
- * This script instead: 1) wipes the remote database to Supabase's own blank
- * baseline via `supabase db reset` against an ephemeral workspace with an
- * EMPTY migrations directory (so nothing can collide during the wipe), then
- * 2) replays every real migration file directly against the database via
- * psql, in exact repository order, recording each distinct version exactly
- * once while still executing every file's SQL -- including every "extra"
- * file in a collision group, whose SQL must still take effect even though
- * its version is already recorded.
+ * SAFETY (this tool never destroys data):
+ *   - It does NOT wipe or reset anything. The previous version ran `supabase db reset` against the target, which
+ *     erased the shared staging database (auth users, tenants, assets, work orders) on every PR push.
+ *   - The target must be explicitly declared `--disposable`, must be a loopback database, and must not match any
+ *     configured staging/production/application host (scripts/destructive-db-guard.mjs).
+ *   - Even then it refuses unless the database is already blank (no public tables, no recorded migrations, no
+ *     auth users), so it can only ever build into an empty database.
+ * Persistent staging is migrated forward with `supabase db push` (see staging-candidate.yml); production through the
+ * controlled release workflow. Neither uses this script.
  */
-import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { loadMigrations } from './check-migrations.mjs';
+import { assertDisposableDatabaseTarget, evaluateBlankness } from './destructive-db-guard.mjs';
 
-const SUPABASE_CLI = 'supabase@2.112.0';
+function psqlScalar(databaseUrl, sql) {
+  const output = execFileSync('psql', ['--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align', '--command', sql], { encoding: 'utf8' });
+  return output.trim();
+}
 
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { stdio: 'inherit', shell: false, ...options });
-  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} exited with status ${result.status}`);
+/** Read-only inspection of what already lives in the target. */
+function inspectTarget(databaseUrl) {
+  const publicTableCount = Number(psqlScalar(databaseUrl, "select count(*) from pg_tables where schemaname = 'public'"));
+  const hasHistory = psqlScalar(databaseUrl, "select to_regclass('supabase_migrations.schema_migrations') is not null") === 't';
+  const migrationRowCount = hasHistory ? Number(psqlScalar(databaseUrl, 'select count(*) from supabase_migrations.schema_migrations')) : 0;
+  const hasAuthUsers = psqlScalar(databaseUrl, "select to_regclass('auth.users') is not null") === 't';
+  const authUserCount = hasAuthUsers ? Number(psqlScalar(databaseUrl, 'select count(*) from auth.users')) : 0;
+  return { publicTableCount, migrationRowCount, authUserCount };
 }
 
 function psqlFile(databaseUrl, filePath) {
@@ -75,16 +75,26 @@ export function planApplyOrder(migrations, alreadyRecordedVersions = []) {
 
 function parseArguments(argv) {
   const args = new Map();
-  for (let index = 0; index < argv.length; index += 2) args.set(argv[index], argv[index + 1]);
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === '--disposable') args.set(token, true);
+    else args.set(token, argv[++index]);
+  }
   return args;
 }
 
 function main() {
   const args = parseArguments(process.argv.slice(2));
-  const databaseUrl = args.get('--db-url') ?? process.env.STAGING_SUPABASE_DB_URL;
-  if (!databaseUrl) throw new Error('--db-url (or STAGING_SUPABASE_DB_URL) is required.');
+  // No environment fallback: a stray STAGING_/PRODUCTION_ URL must never become the target by accident.
+  const databaseUrl = args.get('--db-url');
+  if (!databaseUrl) throw new Error('--db-url is required.');
+  assertDisposableDatabaseTarget({ databaseUrl, disposable: args.get('--disposable') === true });
   const migrationDir = resolve(args.get('--migration-dir') ?? 'supabase/migrations');
-  const configPath = resolve(args.get('--config') ?? 'supabase/config.toml');
+
+  const blankness = evaluateBlankness(inspectTarget(databaseUrl));
+  if (!blankness.blank) {
+    throw new Error(`Refusing to replay: the target database is not blank (${blankness.problems.join(', ')}). This tool never wipes a database.`);
+  }
 
   const migrations = loadMigrations(migrationDir);
   const malformed = migrations.filter((migration) => !migration.version);
@@ -92,16 +102,12 @@ function main() {
     throw new Error(`Malformed migration filename(s): ${malformed.map((migration) => migration.filename).join(', ')}`);
   }
 
-  const workspace = join(tmpdir(), 'patelrep-remote-bootstrap');
+  const workspace = join(tmpdir(), 'patelrep-disposable-replay');
   rmSync(workspace, { recursive: true, force: true });
-  mkdirSync(join(workspace, 'supabase', 'migrations'), { recursive: true });
-  copyFileSync(configPath, join(workspace, 'supabase', 'config.toml'));
-  console.log('Wiping remote database to the blank Supabase baseline (empty migrations workspace)...');
-  // `--workdir` alone does not redirect which supabase/migrations a remote
-  // (--db-url) `db reset` replays -- it still reads cwd's real directory,
-  // which is exactly the collision we are trying to avoid here. Actually
-  // changing the child process's cwd is what makes it see the empty one.
-  run('npx', ['--yes', SUPABASE_CLI, 'db', 'reset', '--db-url', databaseUrl, '--workdir', workspace, '--yes'], { cwd: workspace });
+  mkdirSync(workspace, { recursive: true });
+  // Additive and idempotent: only creates the tracking table when the blank baseline lacks it.
+  execFileSync('psql', ['--set', 'ON_ERROR_STOP=1', databaseUrl, '--command',
+    'create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);'], { stdio: 'inherit' });
 
   const migrationByFilename = new Map(migrations.map((migration) => [migration.filename, migration]));
   const plan = planApplyOrder(migrations, recordedVersions(databaseUrl));

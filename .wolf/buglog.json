@@ -35064,6 +35064,161 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-01T17:30:00.000Z"
+    },
+    {
+      "id": "bug-2132",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "PM deferral approval could be forged: POST /programs/pm-schedules/{id}/deferrals took `approved_by` from the request body and applied the new due date immediately.",
+      "file": "apps/api/routers/programs.py",
+      "root_cause": "Approval was modelled as 'supply another active user's id', which proves nothing about that person; the schedule moved on request. Engineers could also PATCH next_due_at directly.",
+      "fix": "Request/decision split: pending request (no schedule change) + append-only pm_deferral_decisions written by decide_pm_deferral() from the authenticated reviewer; self-review refused; UNIQUE(deferral_id) makes a decision apply once; PM schedule edits restricted to chief_engineer/gm.",
+      "tags": [
+        "security",
+        "rbac",
+        "pm",
+        "deferral",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
+    },
+    {
+      "id": "bug-2133",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "PM completion was several separate Supabase calls (completion, items, work orders, audit, schedule advance) with no idempotency key; a retry could duplicate the record and corrective work orders, and cross-tenant asset/room/category ids were accepted on create/update.",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "Multiple PostgREST requests are not a transaction, and the only duplicate protection was a client-side re-read.",
+      "fix": "record_pm_completion() Postgres function (one transaction, schedule row lock, unique submission key) + same-property validation for asset/room/category/template ids; mobile sends a content-bound submission_id.",
+      "tags": [
+        "pm",
+        "idempotency",
+        "atomicity",
+        "tenant-isolation",
+        "engineering"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
+    },
+    {
+      "id": "bug-2134",
+      "timestamp": "2026-11-01T18:00:00.000Z",
+      "error_message": "git diff --stat showed 3,000+ changed lines for ~600 real ones after scripted edits.",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "Python open(path, 'w') on Windows converted LF files to CRLF; the Write tool also creates new files with CRLF.",
+      "fix": "Restored LF with sed; new files normalised before commit. Use newline='' for scripted rewrites.",
+      "tags": [
+        "windows",
+        "line-endings",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T18:00:00.000Z"
+    },
+    {
+      "id": "bug-2135",
+      "timestamp": "2026-11-01T00:00:00.000Z",
+      "error_message": "tests/test_programs_routes.py: 10 failed on feat/engineering-pm-assets-v2 (404 == 200 / 404 == 422 / 409 == 422) while 24 pass on main",
+      "file": "apps/api/tests/test_programs_routes.py",
+      "root_cause": "Phase 1 moved PM completion into record_pm_completion() and made a deferral a request decided by an independent reviewer, and rejects non-UUID schedule ids with 404. These tests still used ids like sched-1, a bare FakeDB (no RPC, no assets row) and an approver named in the deferral body. CI only runs on PRs, so the branch was never checked.",
+      "fix": "Ported the 10 tests onto PmFakeDB with UUID ids and the request/decision deferral flow, keeping every original assertion intent; made PmFakeDB mirror the SQL (photos, certificate_attachments, reason codes). Security controls in code were verified intact (_validate_verifier, tenant-scoped evidence).",
+      "tags": [
+        "tests",
+        "phase-1",
+        "ci-gap",
+        "pm",
+        "fake-db"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T00:00:00.000Z"
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2136",
+      "error_message": "PM completion accepted any evidence id in the tenant: another user's photo, a photo for other equipment, a file-less record, or a photo already recorded on an earlier completion (re-linked to the new one); the same id could back two checklist items",
+      "file": "apps/api/services/programs/execution.py",
+      "root_cause": "_validate_tenant_evidence_ids only checked tenant_id; record_pm_completion() unconditionally re-links the evidence to the new completion; requires_evidence was trusted from the request",
+      "fix": "Ownership rules (uploaded, captured by this user, empty-or-this-asset link, not on a recorded completion), duplicate-id refusal across items/photos, requires_evidence taken from the resolved template, replay skips the ownership check; DELETE/upload of recorded evidence returns 409",
+      "tags": [
+        "pm",
+        "evidence",
+        "security",
+        "tenant-isolation",
+        "phase-4"
+      ]
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2137",
+      "error_message": "Header still said 'Saving on this phone...' on the Inspection recorded screen; the work order button label was clipped on both sides",
+      "file": "apps/mobile/lib/engineering/usePmInspection.ts",
+      "root_cause": "submit() cleared the draft but the autosave effect returns early for a null draft, so saveState stayed 'saving'; the shared Button is single-line",
+      "fix": "submit() sets saveState idle and the screen passes idle once recorded; work orders are a wrapping row with the number as its own line",
+      "tags": [
+        "pm",
+        "mobile",
+        "visual",
+        "phase-4"
+      ]
+    },
+    {
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T22:00:00.000Z",
+      "timestamp": "2026-11-01T22:00:00.000Z",
+      "id": "bug-2138",
+      "error_message": "Edited .tsx contained a lone 0xB7 byte (invalid UTF-8) after a Python heredoc patch",
+      "file": "apps/mobile/components/engineering/pm/PmChecklistItem.tsx",
+      "root_cause": "python reading a script from stdin on Windows decodes as cp1252 and re-encodes the middle dot as one byte",
+      "fix": "Replaced the byte with U+00B7 and verified every changed file decodes as UTF-8; use script files, not stdin, for non-ASCII",
+      "tags": [
+        "windows",
+        "encoding",
+        "tooling"
+      ]
+    },
+    {
+      "id": "bug-2131",
+      "timestamp": "2026-11-01T20:35:08-06:00",
+      "error_message": "Edit tool: File is not valid UTF-8 (apps/api/routers/assets.py) after a scripted insert",
+      "file": "apps/api/routers/assets.py",
+      "root_cause": "A python one-off used open(path, newline='') with no encoding, so Windows read/wrote cp1252; an em-dash in the inserted text was written as byte 0x97.",
+      "fix": "Replaced the byte with ASCII, and used encoding='utf-8' (or binary decode/encode) for every scripted edit afterwards.",
+      "tags": [
+        "windows",
+        "encoding",
+        "python",
+        "edit-tool"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-01T20:35:08-06:00"
+    },
+    {
+      "id": "bug-2132",
+      "timestamp": "2026-11-02T04:30:00-06:00",
+      "error_message": "Caught before shipping: queued PM completions would have been deleted by the generic sync loop",
+      "file": "apps/mobile/lib/offline/sync.ts",
+      "root_cause": "flushSyncQueue falls through to deleteSyncQueueItem for any entity_type/action it has no branch for; a new pm_schedule row has none.",
+      "fix": "The loop skips PM_QUEUE_ENTITY rows; pmSyncRunner replays and deletes them only after the server confirmed the completion.",
+      "tags": [
+        "offline",
+        "sync",
+        "data-loss",
+        "queue"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-02T04:30:00-06:00"
     }
   ]
 }

@@ -70,6 +70,20 @@ export interface WorkOrderComment {
   created_at?: string;
 }
 
+export interface PmSource {
+  completion_id: string;
+  schedule_id: string | null;
+  schedule_name?: string | null;
+  asset_id?: string | null;
+  completed_at?: string | null;
+  failed_items?: { label: string | null; note: string | null }[];
+  /** The step this order was opened for, when the order recorded it. Absent/null for older orders: never inferred. */
+  this_item?: { label: string | null; note: string | null } | null;
+  evidence_count?: number;
+  /** The lookup failed; only the id is known. */
+  details_unavailable?: boolean;
+}
+
 export interface WorkOrder {
   id: string;
   title: string;
@@ -89,6 +103,11 @@ export interface WorkOrder {
   } | null;
   asset_id?: string | null;
   source?: string | null;
+  /** Set by the server when an inspection opened this order; the only trustworthy "came from PM" signal. */
+  is_pm_generated?: boolean | null;
+  pm_completion_id?: string | null;
+  /** The originating inspection, on the single-order read only (never inferred from titles or dates). */
+  pm_source?: PmSource | null;
   /** Server-confirmed timing (migration 111); absent until the event happens. */
   acknowledged_at?: string | null;
   arrived_at?: string | null;

@@ -110,7 +110,7 @@ INBOX_ONLY_EVENTS: frozenset[str] = frozenset(
         "escalation_auto", "escalation_auto_asset", "escalation_tier1", "escalation_tier2",
         "feedback_submitted", "guest_request_wo_completed", "housekeeping",
         "logbook_acknowledgment_reminder", "logbook_acknowledgment_requested", "logbook_mention",
-        "occupancy_discrepancy_reported", "occupancy_discrepancy_resolved", "re_clean_dispatched", "room_risk_high", "room_stayover",
+        "occupancy_discrepancy_reported", "occupancy_discrepancy_resolved", "pm_corrective_work_order", "re_clean_dispatched", "room_risk_high", "room_stayover",
         "safety_drill_follow_up_escalation", "safety_training_escalation", "safety_training_overdue",
         "safety_training_reminder", "shift_summary", "task_blocked", "welfare_check_requested", "wo_reassigned",
         "wo_verification_required", "room_availability_changed", "pm_due",

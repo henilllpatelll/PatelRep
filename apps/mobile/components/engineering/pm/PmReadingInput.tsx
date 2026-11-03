@@ -1,9 +1,9 @@
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
-import { evaluateReading, hasReferenceLimits, parseReading, referenceRange, type PmMeter } from "@/lib/engineering/pmReadings";
+import { evaluateReading, hasReferenceLimits, parseReading, referenceRange, toggleReadingSign, type PmMeter } from "@/lib/engineering/pmReadings";
 
 interface Props {
   meter: PmMeter;
@@ -35,7 +35,11 @@ export function PmReadingInput({ meter, value, onChange, showError }: Props) {
           </Text>
           {range ? (
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-              {t("pm.reading.reference", { low: range.low ?? "–", high: range.high ?? "–", unit: meter.unit })}
+              {range.low != null && range.high != null
+                ? t("pm.reading.reference", { low: range.low, high: range.high, unit: meter.unit })
+                : range.high != null
+                  ? t("pm.reading.referenceMax", { high: range.high, unit: meter.unit })
+                  : t("pm.reading.referenceMin", { low: range.low, unit: meter.unit })}
             </Text>
           ) : null}
           {meter.last ? (
@@ -45,6 +49,18 @@ export function PmReadingInput({ meter, value, onChange, showError }: Props) {
           ) : null}
         </View>
         <View style={[styles.inputWrap, { borderColor: parsed.kind === "invalid" && showError ? theme.status.dirty : theme.border, backgroundColor: theme.surfaceSubtle }]}>
+          <Pressable
+            onPress={() => onChange(toggleReadingSign(value))}
+            style={styles.sign}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={t("pm.reading.toggleSign")}
+            testID={`pm-reading-${meter.id}-sign`}
+          >
+            <Text maxFontSizeMultiplier={1.3} style={[styles.signText, { color: theme.primaryAction }]}>
+              ±
+            </Text>
+          </Pressable>
           <TextInput
             value={value}
             onChangeText={onChange}
@@ -70,7 +86,7 @@ export function PmReadingInput({ meter, value, onChange, showError }: Props) {
         <View style={styles.status} accessibilityLiveRegion="polite" testID={`pm-reading-${meter.id}-status`}>
           <Ionicons name={status === "normal" ? "checkmark-circle-outline" : "warning-outline"} size={15} color={statusColor} />
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.statusText, { color: statusColor }]}>
-            {t(`pm.reading.status.${status}`)}
+            {status === "normal" ? t("pm.reading.status.normal") : t(`pm.reading.detail.${status}`, { value: parsed.kind === "ok" ? parsed.value : "", unit: meter.unit })}
             {status === "critical" && meter.opensWorkOrderWhenCritical ? ` · ${t("pm.reading.opensWorkOrder")}` : ""}
           </Text>
         </View>
@@ -85,8 +101,10 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   name: { fontSize: 15, fontWeight: "600" },
   hint: { fontSize: 12 },
-  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, minHeight: 48, paddingHorizontal: 10, width: 130, gap: 6 },
-  input: { flex: 1, fontSize: 17, fontWeight: "600", minHeight: 44, padding: 0 },
+  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, minHeight: 48, paddingHorizontal: 6, width: 156, gap: 4 },
+  sign: { width: 32, height: 44, alignItems: "center", justifyContent: "center" },
+  signText: { fontSize: 20, fontWeight: "700" },
+  input: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: "600", minHeight: 44, padding: 0 },
   unit: { fontSize: 13 },
   error: { fontSize: 13 },
   status: { flexDirection: "row", alignItems: "center", gap: 6 },

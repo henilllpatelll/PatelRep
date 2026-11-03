@@ -15,6 +15,13 @@ describe("resolving a scanned or typed code", () => {
     expect(lookup).toHaveBeenLastCalledWith({ kind: "tag", value: "AC-312" });
   });
 
+  it("reports retired equipment as its own outcome instead of opening it as live equipment", async () => {
+    const retired = { ...asset, is_active: false };
+    expect(await resolveAssetCode("AC-312", { isOnline: true, lookup: jest.fn().mockResolvedValue(retired) })).toEqual({ kind: "retired", asset: retired });
+    const active = { ...asset, is_active: true };
+    expect((await resolveAssetCode("AC-312", { isOnline: true, lookup: jest.fn().mockResolvedValue(active) })).kind).toBe("found");
+  });
+
   it("never calls the API for an invalid payload or an arbitrary web address", async () => {
     const lookup = jest.fn();
     for (const code of ["", "https://evil.example/x", "javascript:alert(1)", "patelrep:asset:v9:abc", "two words"]) {

@@ -223,3 +223,75 @@ export function riskBand(score: number | null | undefined): "high" | "elevated" 
   if (score >= 40) return "elevated";
   return "low";
 }
+
+/* ─── History filter ────────────────────────────────────────────────────────
+   The History timeline mixes six kinds of event. Each belongs to exactly one group, so a chip shows precisely the events
+   that group names and nothing is counted twice. Pure functions over the events already loaded: nothing is fetched. */
+
+export const ASSET_HISTORY_GROUPS = ["all", "pm", "repairs", "downtime", "readings"] as const;
+export type AssetHistoryGroup = (typeof ASSET_HISTORY_GROUPS)[number];
+
+const GROUP_BY_EVENT: Record<AssetEventType, Exclude<AssetHistoryGroup, "all">> = {
+  pm_completed: "pm",
+  work_order_created: "repairs",
+  repair_completed: "repairs",
+  downtime_started: "downtime",
+  downtime_restored: "downtime",
+  reading_recorded: "readings",
+};
+
+export function historyGroupOf(type: AssetEventType): Exclude<AssetHistoryGroup, "all"> {
+  return GROUP_BY_EVENT[type];
+}
+
+export function filterAssetEvents<T extends { type: AssetEventType }>(events: readonly T[], group: AssetHistoryGroup): readonly T[] {
+  return group === "all" ? events : events.filter((event) => GROUP_BY_EVENT[event.type] === group);
+}
+
+/** How many events each group holds. `all` is the total, so the chips always add up. */
+export function historyGroupCounts(events: readonly { type: AssetEventType }[]): Record<AssetHistoryGroup, number> {
+  const counts: Record<AssetHistoryGroup, number> = { all: events.length, pm: 0, repairs: 0, downtime: 0, readings: 0 };
+  for (const event of events) counts[GROUP_BY_EVENT[event.type]] += 1;
+  return counts;
+}
+
+/* ─── Equipment detail deep link + directory quick actions ───────────────── */
+
+export const ASSET_SECTIONS = ["overview", "maintenance", "readings", "history"] as const;
+export type AssetSectionKey = (typeof ASSET_SECTIONS)[number];
+
+/** The `section` link parameter, accepted only when it names a real section: anything else opens Overview. */
+export function parseAssetSection(value: unknown): AssetSectionKey {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return (ASSET_SECTIONS as readonly unknown[]).includes(raw) ? (raw as AssetSectionKey) : "overview";
+}
+
+export type AssetQuickAction = "open" | "report" | "reading" | "maintenance" | "label";
+
+export interface QuickActionContext {
+  isOnline: boolean;
+  /** The person's role may record readings (the same rule the detail screen applies). */
+  canRecordReading: boolean;
+}
+
+export interface QuickActionItem {
+  action: AssetQuickAction;
+  /** Shown but not usable, with the reason the label should give. */
+  disabled: boolean;
+}
+
+/**
+ * The actions offered for one directory row. Only things that can be done from what the row already says: opening the
+ * record, reporting an issue (creating needs the network), jumping to its readings or maintenance, and its QR label.
+ * Roles are never widened here; recording a reading is offered only when the detail screen would offer it too.
+ */
+export function assetQuickActions(row: Pick<AssetRow, "id">, context: QuickActionContext): QuickActionItem[] {
+  if (!row.id) return [];
+  const items: QuickActionItem[] = [
+    { action: "open", disabled: false },
+    { action: "report", disabled: !context.isOnline },
+  ];
+  if (context.canRecordReading) items.push({ action: "reading", disabled: false });
+  items.push({ action: "maintenance", disabled: false }, { action: "label", disabled: false });
+  return items;
+}

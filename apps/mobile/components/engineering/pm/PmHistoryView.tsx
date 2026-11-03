@@ -21,12 +21,14 @@ interface Props {
   refreshToken: number;
   assetId?: string;
   onOpen: (row: PmCompletionSummary) => void;
+  /** Opens the exact equipment a completed inspection was for. */
+  onOpenAsset?: (assetId: string) => void;
 }
 
 const PAGE = 20;
 
 /** Completed inspections, newest first, read a page at a time and only once this view is opened. */
-export function PmHistoryView({ scope, hotelTimezone, language, refreshToken, assetId, onOpen }: Props) {
+export function PmHistoryView({ scope, hotelTimezone, language, refreshToken, assetId, onOpen, onOpenAsset }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const [rows, setRows] = useState<PmCompletionSummary[]>([]);
@@ -80,6 +82,7 @@ export function PmHistoryView({ scope, hotelTimezone, language, refreshToken, as
       {rows.map((row) => {
         const date = formatDueDate(hotelDateKey(row.completed_at, hotelTimezone), language);
         const hasFailures = row.failed_count > 0;
+        const followUps = row.defects?.length ?? 0;
         return (
           <Card key={row.id} style={styles.card}>
             <Pressable
@@ -102,8 +105,23 @@ export function PmHistoryView({ scope, hotelTimezone, language, refreshToken, as
                 <Meta icon="checkmark-circle-outline" text={t("pm.countPassed", { count: row.passed_count })} color={theme.status.ready} />
                 {hasFailures ? <Meta icon="close-circle-outline" text={t("pm.countFailed", { count: row.failed_count })} color={theme.status.dirty} /> : null}
                 {row.not_applicable_count > 0 ? <Meta icon="remove-circle-outline" text={t("pm.countNa", { count: row.not_applicable_count })} /> : null}
+                {followUps > 0 ? <Meta icon="alert-circle-outline" text={t("pm.history.followUp", { count: followUps })} color={theme.status.dirty} /> : null}
               </View>
             </Pressable>
+            {row.asset_id && onOpenAsset ? (
+              <Pressable
+                onPress={() => onOpenAsset(row.asset_id!)}
+                style={styles.assetLink}
+                accessibilityRole="button"
+                accessibilityLabel={t("pm.history.openEquipment", { name: row.asset_name ?? "" })}
+                testID={`pm-history-asset-${row.id}`}
+              >
+                <Ionicons name="cube-outline" size={15} color={theme.primaryAction} />
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.assetLinkText, { color: theme.primaryAction }]} numberOfLines={1}>
+                  {t("pm.detail.openAsset")}
+                </Text>
+              </Pressable>
+            ) : null}
           </Card>
         );
       })}
@@ -123,7 +141,9 @@ export function PmHistoryView({ scope, hotelTimezone, language, refreshToken, as
 
 const styles = StyleSheet.create({
   stack: { gap: 8 },
-  card: { padding: 14 },
+  card: { padding: 14, gap: 4 },
+  assetLink: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 },
+  assetLinkText: { fontSize: 13, fontWeight: "700" },
   body: { gap: 5 },
   titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   title: { flex: 1, fontSize: 15, fontWeight: "700" },

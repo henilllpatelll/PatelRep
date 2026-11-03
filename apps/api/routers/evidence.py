@@ -106,6 +106,13 @@ def _get_evidence_record(record_id: str, current_user: CurrentUser) -> dict:
     return result.data
 
 
+def _require_not_recorded(record: dict) -> None:
+    """Proof that a completed PM inspection points at is part of its permanent record: it cannot be deleted or have its
+    file replaced. Evidence not yet recorded (a draft's photo, a failed upload) stays removable."""
+    if record.get("related_entity_type") == "pm_completion":
+        raise HTTPException(status_code=409, detail="This evidence is part of a recorded inspection and cannot be changed.")
+
+
 def _require_same_tenant_evidence_links(
     request: CreateEvidenceRecordRequest, current_user: CurrentUser,
 ) -> None:
@@ -558,6 +565,7 @@ async def delete_evidence_record(
 ):
     """Remove a failed/unneeded private upload without leaving orphan files."""
     record = _get_evidence_record(record_id, current_user)
+    _require_not_recorded(record)
     is_collector = record.get("collected_by") == current_user.user_id
     is_manager = current_user.role in COMPETENCY_MANAGER_ROLES
     if not (is_collector or is_manager):
@@ -575,7 +583,7 @@ async def upload_evidence_file(
     file: UploadFile = File(...),
     current_user: CurrentUser = Depends(require_role(*EVIDENCE_CAPTURE_ROLES)),
 ):
-    _get_evidence_record(record_id, current_user)
+    _require_not_recorded(_get_evidence_record(record_id, current_user))
     if file.content_type not in ALLOWED_EVIDENCE_CONTENT_TYPES:
         raise HTTPException(status_code=400, detail="Evidence must be a PDF, JPEG, PNG, or WebP file.")
     content = await file.read(MAX_EVIDENCE_UPLOAD_BYTES + 1)

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { EngineeringState } from "@/components/engineering/EngineeringState";
 import { AssetCard } from "@/components/engineering/assets/AssetCard";
 import { AssetFilterSheet } from "@/components/engineering/assets/AssetFilterSheet";
+import { AssetQuickActionsSheet } from "@/components/engineering/assets/AssetQuickActionsSheet";
 import { Pill, StaleNote } from "@/components/engineering/assets/assetUi";
 import { getFailurePredictions, listAssetCategories } from "@/lib/api/assets";
 import {
@@ -21,6 +22,8 @@ import {
   type AssetRow,
 } from "@/lib/engineering/assetModel";
 import { resolveLoadState } from "@/lib/engineering/loadState";
+import { canManageAssets, canRecordReadings, canRetireAssets } from "@/lib/engineering/roles";
+import { ASSET_NEW_ROUTE } from "@/lib/engineering/routes";
 import { recallAssetView, rememberAssetView, takeAssetListStale, useAssetBrowse } from "@/lib/engineering/useAssetBrowse";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
 import { useAppStore } from "@/stores/appStore";
@@ -43,6 +46,7 @@ export default function AssetsScreen() {
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
   const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
+  const canAdd = canManageAssets(user?.effective_role ?? user?.role);
 
   const [filters, setFilters] = useState<AssetFilters>(() => recallAssetView(scope)?.filters ?? EMPTY_ASSET_FILTERS);
   const [text, setText] = useState(() => recallAssetView(scope)?.text ?? "");
@@ -66,6 +70,7 @@ export default function AssetsScreen() {
 
   const openAsset = useCallback((assetId: string) => router.push({ pathname: "/(app)/assets/[assetId]", params: { assetId } } as never), []);
   const scan = useCallback(() => router.push("/(app)/assets/scan" as never), []);
+  const add = useCallback(() => router.push(ASSET_NEW_ROUTE as never), []);
   const clearAll = useCallback(() => {
     setFilters(EMPTY_ASSET_FILTERS);
     setText("");
@@ -78,7 +83,8 @@ export default function AssetsScreen() {
   const emptyStatus = state.status === "ready" || !browse.loaded ? state.status : "empty";
   const signalCount = signals.data?.length ?? 0;
 
-  const renderItem = useCallback(({ item }: { item: AssetRow }) => <AssetCard row={item} onPress={openAsset} />, [openAsset]);
+  const [actionsFor, setActionsFor] = useState<AssetRow | null>(null);
+  const renderItem = useCallback(({ item }: { item: AssetRow }) => <AssetCard row={item} onPress={openAsset} onActions={setActionsFor} />, [openAsset]);
 
   const header = useMemo(
     () => (
@@ -133,6 +139,28 @@ export default function AssetsScreen() {
               {t("assets.subtitle")}
             </Text>
           </View>
+          {canRetireAssets(user?.effective_role ?? user?.role) ? (
+            <Pressable
+              onPress={() => router.push("/(app)/assets/management" as never)}
+              accessibilityRole="button"
+              accessibilityLabel={t("assets.management.open")}
+              style={[styles.scanButton, { backgroundColor: theme.shell.surface, borderColor: theme.shell.line }]}
+              testID="asset-management-open"
+            >
+              <Ionicons name="shield-checkmark-outline" size={22} color={theme.shell.ink} />
+            </Pressable>
+          ) : null}
+          {canAdd ? (
+            <Pressable
+              onPress={add}
+              accessibilityRole="button"
+              accessibilityLabel={t("assets.add")}
+              style={[styles.scanButton, { backgroundColor: theme.primaryAction, borderColor: theme.primaryAction }]}
+              testID="asset-add-button"
+            >
+              <Ionicons name="add" size={26} color={theme.onPrimary} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={scan}
             accessibilityRole="button"
@@ -212,6 +240,12 @@ export default function AssetsScreen() {
           setSheetOpen(false);
         }}
         onClose={() => setSheetOpen(false)}
+      />
+      <AssetQuickActionsSheet
+        row={actionsFor}
+        isOnline={isOnline}
+        canRecordReading={canRecordReadings(user?.effective_role ?? user?.role)}
+        onClose={() => setActionsFor(null)}
       />
     </View>
   );

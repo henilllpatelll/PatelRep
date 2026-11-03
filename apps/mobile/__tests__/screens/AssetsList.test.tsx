@@ -23,13 +23,14 @@ jest.mock("@/lib/api/assets", () => ({
   getFailurePredictions: jest.fn(),
 }));
 let mockOnline = true;
+let mockRole = "engineer";
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
     useAppStore: makeAppStoreMock(() => ({
       isOnline: mockOnline,
       hotelTimezone: "America/Chicago",
-      user: { id: "u1", role: "engineer", tenant_id: "h1", language_pref: "en" },
+      user: { id: "u1", role: mockRole, tenant_id: "h1", language_pref: "en" },
     })),
   };
 });
@@ -71,6 +72,7 @@ function renderScreen() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockOnline = true;
+  mockRole = "engineer";
   resetAssetBrowseCache();
   resetAsyncResourceCache();
   (listAssetCategories as jest.Mock).mockResolvedValue([{ id: "c1", name: "HVAC" }]);
@@ -93,6 +95,24 @@ describe("Assets list", () => {
     await screen.findByTestId("asset-card-a1");
     fireEvent.press(screen.getByTestId("asset-scan-button"));
     expect(router.push).toHaveBeenCalledWith("/(app)/assets/scan");
+  });
+
+  it("offers Add equipment next to the scanner to roles that can register equipment", async () => {
+    browse.mockResolvedValue(page([asset(1)]));
+    const screen = renderScreen();
+    await screen.findByTestId("asset-card-a1");
+    expect(screen.getByTestId("asset-scan-button")).toBeTruthy(); // the scan shortcut is kept
+    fireEvent.press(screen.getByTestId("asset-add-button"));
+    expect(router.push).toHaveBeenCalledWith("/(app)/assets/new");
+  });
+
+  it("hides Add equipment from roles the server would refuse", async () => {
+    mockRole = "housekeeping_supervisor";
+    browse.mockResolvedValue(page([asset(1)]));
+    const screen = renderScreen();
+    await screen.findByTestId("asset-card-a1");
+    expect(screen.queryByTestId("asset-add-button")).toBeNull();
+    expect(screen.getByTestId("asset-scan-button")).toBeTruthy();
   });
 
   it("searches the server (debounced) instead of filtering the first page", async () => {

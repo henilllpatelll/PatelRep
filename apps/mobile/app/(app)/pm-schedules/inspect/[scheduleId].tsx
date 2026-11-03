@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,23 +11,36 @@ import { PmChecklistItem } from "@/components/engineering/pm/PmChecklistItem";
 import { PmReadingInput } from "@/components/engineering/pm/PmReadingInput";
 import { PmExtrasSection } from "@/components/engineering/pm/PmExtrasSection";
 import { PmReviewSection } from "@/components/engineering/pm/PmReviewSection";
-import { PmCompletionSummary, type PmRecordedSummary } from "@/components/engineering/pm/PmCompletionSummary";
+import { type PmRecordedSummary } from "@/components/engineering/pm/PmCompletionSummary";
+import { PmRecordedView } from "@/components/engineering/pm/PmRecordedView";
+import { PmFailureSheet } from "@/components/engineering/pm/PmFailureSheet";
+import { PmQueuedNotice } from "@/components/engineering/pm/PmQueuedNotice";
+import { PmInspectionGate, inspectionReady } from "@/components/engineering/pm/PmInspectionGate";
+import { PmInspectionHeader } from "@/components/engineering/pm/PmInspectionHeader";
+import { PmStepper } from "@/components/engineering/pm/PmStepper";
+import { locationLabel } from "@/components/engineering/pm/pmUi";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { PmCompletionResult } from "@/lib/api/pm";
 import { usePmSchedules } from "@/lib/engineering/usePmSchedules";
 import { usePmInspection, type SubmitOutcome } from "@/lib/engineering/usePmInspection";
+import { localPhotoRefs } from "@/lib/engineering/pmChecklist";
+import { queuedState } from "@/lib/engineering/pmSyncState";
+import { usePmSyncActivity } from "@/lib/engineering/pmSyncRunner";
+import { evidenceSummary, issueSection, sectionStatuses, PM_SECTIONS, type PmInspectionIssue, type PmSection } from "@/lib/engineering/pmChecklist";
 import { canCompletePm } from "@/lib/engineering/roles";
+import { assetRoute } from "@/lib/engineering/routes";
 import { parseReading } from "@/lib/engineering/pmReadings";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
-
-type Step = "fill" | "review";
 
 function apiMessage(error: unknown): string | null {
   const detail = (error as { detail?: unknown } | null)?.detail;
   if (typeof detail === "string" && detail.trim()) return detail;
   return error instanceof Error && error.message ? error.message : null;
 }
+
+/** Space the scroll area keeps free of the pinned footer. */
+const FOOTER_ROOM = 170;
 
 export default function PmInspectionScreen() {
   const { scheduleId } = useLocalSearchParams<{ scheduleId: string }>();
@@ -42,14 +55,20 @@ export default function PmInspectionScreen() {
   const inspection = usePmInspection(canInspect ? schedule : null);
   const { draft, template, progress, compatibility } = inspection;
 
-  const [step, setStep] = useState<Step>("fill");
+  const syncingRows = usePmSyncActivity((s) => s.active);
+  const [section, setSection] = useState<PmSection>("checklist");
   const [attempted, setAttempted] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const [failureItem, setFailureItem] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [outcome, setOutcome] = useState<SubmitOutcome | null>(null);
   const [recorded, setRecorded] = useState<{ result: PmCompletionResult; summary: PmRecordedSummary } | null>(null);
   const scroll = useRef<ScrollViewInstance>(null);
-  const offsets = useRef(new Map<string, number>());
+  /** Where each field sits inside its block, and where each block starts, so "Fix this" can scroll to the exact field. */
+  const anchors = useRef(new Map<string, number>());
+  const bases = useRef(new Map<string, number>());
+  const mark = (key: string) => (e: LayoutChangeEvent) => anchors.current.set(key, e.nativeEvent.layout.y);
+  const markBase = (key: string) => (e: LayoutChangeEvent) => bases.current.set(key, e.nativeEvent.layout.y);
 
   const toggle = (id: string) =>
     setExpanded((cur) => {
@@ -59,55 +78,95 @@ export default function PmInspectionScreen() {
       return next;
     });
 
-  const jumpTo = useCallback((itemId: string) => {
-    setStep("fill");
-    setExpanded((cur) => new Set(cur).add(itemId));
-    setTimeout(() => scroll.current?.scrollTo({ y: Math.max(0, (offsets.current.get(itemId) ?? 0) - 80), animated: true }), 60);
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [section]);
+
+  const scrollToField = useCallback((key: string, base: string | null) => {
+    setTimeout(() => {
+      const y = (anchors.current.get(key) ?? 0) + (base ? bases.current.get(base) ?? 0 : 0);
+      scroll.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+    }, 80);
   }, []);
 
-  const unansweredFirst = progress?.unansweredIds[0] ?? progress?.evidenceMissingIds[0] ?? null;
+  const fixIssue = useCallback(
+    (issue: PmInspectionIssue) => {
+      setSection(issueSection(issue));
+      switch (issue.code) {
+        case "unanswered":
+        case "evidence_required":
+        case "finding_required":
+          setExpanded((cur) => new Set(cur).add(issue.itemId));
+          // A failed step is fixed in the failure sheet, where its finding and photo live together.
+          if (draft?.items[issue.itemId]?.result === "failed" && issue.code !== "unanswered") setFailureItem(issue.itemId);
+          else scrollToField(`item:${issue.itemId}`, "checklist");
+          break;
+        case "reading_invalid":
+          scrollToField(`reading:${issue.meterId}`, "readings");
+          break;
+        case "labor_invalid":
+          scrollToField("labor", "extras");
+          break;
+        case "part_invalid":
+          scrollToField(`part:${issue.partId}`, "extras");
+          break;
+        default:
+          scrollToField(`defect:${issue.defectId}`, "extras");
+      }
+    },
+    [draft, scrollToField],
+  );
+
   const goReview = () => {
     setAttempted(true);
     setOutcome(null);
-    setStep("review");
+    setSection("review");
   };
+  const select = (next: PmSection) => (next === "review" ? goReview() : setSection(next));
+  const sectionLabel = (s: PmSection) => t(`pm.stepper.${s}`);
+
+  // Screen readers hear how a submission ended; the on-screen text is the same words.
+  useEffect(() => {
+    if (!outcome) return;
+    if (outcome.kind === "queued") AccessibilityInfo.announceForAccessibility(t("pm.queued.announce"));
+    else if (outcome.kind === "unknown") AccessibilityInfo.announceForAccessibility(t("pm.submit.announceUnknown"));
+    else if (outcome.kind === "refused") AccessibilityInfo.announceForAccessibility(t("pm.submit.announceRejected"));
+  }, [outcome, t]);
 
   const complete = async () => {
-    if (!schedule || !progress) return;
+    if (!schedule || !progress || !draft || !template) return;
     const summary: PmRecordedSummary = {
       scheduleName: schedule.name,
       assetName: schedule.assetName,
+      assetId: schedule.assetId,
+      technician: user?.preferred_name || user?.full_name || null,
       passed: progress.passed,
       failed: progress.failed,
       notApplicable: progress.notApplicable,
+      readings: inspection.meters.filter((m) => parseReading(draft.readings[m.id]?.value).kind === "ok").length,
+      photos: evidenceSummary(template, draft).photos,
     };
     const result = await inspection.submit();
     setOutcome(result);
-    if (result.kind === "recorded") setRecorded({ result: result.result, summary });
+    if (result.kind === "recorded") {
+      AccessibilityInfo.announceForAccessibility(t("pm.submit.announceRecorded"));
+      setRecorded({ result: result.result, summary });
+    }
   };
 
+  const title = schedule ? (schedule.assetName ? `${schedule.assetName} — ${schedule.name}` : schedule.name) : t("pm.inspection");
+  const subtitle = schedule ? [schedule.assetTag, locationLabel(schedule, t)].filter(Boolean).join(" · ") || null : null;
+  const checklistLabel = template ? (template.version != null ? t("pm.header.checklist", { name: template.name, version: template.version }) : template.name) : null;
+  const equipmentRoute = schedule ? assetRoute(schedule.assetId) : null;
   const header = (
-    <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: theme.shell.bg }]}>
-      <Pressable
-        onPress={() => (step === "review" && !recorded ? setStep("fill") : router.back())}
-        style={styles.back}
-        accessibilityRole="button"
-        accessibilityLabel={t("common.back")}
-        testID="pm-inspect-back"
-      >
-        <Ionicons name="chevron-back" size={24} color={theme.shell.ink} />
-      </Pressable>
-      <View style={styles.headerCopy}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headerTitle, { color: theme.shell.ink }]} numberOfLines={1} accessibilityRole="header">
-          {schedule?.name ?? t("pm.inspection")}
-        </Text>
-        {schedule?.assetName ? (
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headerSub, { color: theme.shell.ink3 }]} numberOfLines={1}>
-            {schedule.assetName}
-          </Text>
-        ) : null}
-      </View>
-    </View>
+    <PmInspectionHeader
+      title={title}
+      subtitle={subtitle}
+      checklist={checklistLabel}
+      saveState={recorded ? "idle" : inspection.saveState}
+      onBack={() => (section !== "checklist" && !recorded && draft ? setSection(PM_SECTIONS[Math.max(0, PM_SECTIONS.indexOf(section) - 1)]) : router.back())}
+      onOpenEquipment={equipmentRoute && !recorded ? () => router.push(equipmentRoute as never) : null}
+    />
   );
 
   if (!canInspect) {
@@ -125,15 +184,19 @@ export default function PmInspectionScreen() {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {header}
-        <ScrollView contentContainerStyle={[styles.pad, { paddingBottom: insets.bottom + 24 }]}>
-          <PmCompletionSummary
-            summary={recorded.summary}
-            result={recorded.result}
-            onViewRecord={() => router.replace(`/(app)/pm-schedules/record/${recorded.result.id}?scheduleId=${schedule.id}` as never)}
-            onOpenWorkOrder={(id) => router.push(`/(app)/work-orders/${id}` as never)}
-            onDone={() => router.replace("/(app)/pm-schedules" as never)}
-          />
-        </ScrollView>
+        <PmRecordedView scheduleId={schedule.id} summary={recorded.summary} result={recorded.result} />
+      </View>
+    );
+  }
+
+  // A completion already frozen for this schedule: the form is not offered again, so one inspection cannot be recorded twice.
+  if (inspection.queued && schedule) {
+    const row = inspection.queued;
+    const state = queuedState({ phase: row.data?.phase ?? "queued", stop: row.data ? row.lastError : "unreadable", attempts: row.attempts, active: syncingRows.includes(row.rowId) });
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {header}
+        <PmQueuedNotice state={state} onOpenSync={() => router.push("/(app)/engineering-sync" as never)} onBack={() => router.back()} />
       </View>
     );
   }
@@ -157,76 +220,86 @@ export default function PmInspectionScreen() {
   const readingInvalid = new Set(inspection.issues.flatMap((i) => (i.code === "reading_invalid" ? [i.meterId] : [])));
   const blocked = inspection.issues.length > 0 || compatibility !== "ok";
   const technician = user?.preferred_name || user?.full_name || null;
+  const ready = inspectionReady(inspection);
+  const failing = failureItem && template ? template.items.find((i) => i.id === failureItem) ?? null : null;
 
   /* ── body ── */
   let body: React.ReactNode;
-  if (inspection.loading) {
-    body = <EngineeringState status="loading" emptyTitle="" />;
-  } else if (inspection.failure) {
-    body = <EngineeringState status={inspection.failure === "forbidden" ? "forbidden" : inspection.failure === "offline" ? "offline" : "error"} onRetry={inspection.reload} emptyTitle="" />;
-  } else if (inspection.templates.length === 0) {
+  if (!ready || !draft || !template || !progress) {
+    body = <PmInspectionGate inspection={inspection} />;
+  } else if (section === "review") {
     body = (
-      <Card style={styles.configCard} testID="pm-no-templates">
-        <Ionicons name="construct-outline" size={22} color={theme.status.pickup} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]}>
-          {t("pm.config.noTemplatesTitle")}
-        </Text>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
-          {t("pm.config.noTemplatesBody")}
-        </Text>
-      </Card>
+      <PmReviewSection
+        schedule={schedule}
+        template={template}
+        draft={draft}
+        progress={progress}
+        meters={inspection.meters}
+        technician={technician}
+        issues={inspection.issues}
+        onFix={fixIssue}
+      />
     );
-  } else if (!draft) {
+  } else if (section === "measurements") {
     body = (
-      <View style={styles.stack} testID="pm-template-picker">
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
-          {t("pm.chooseChecklist")}
-        </Text>
+      <View style={styles.stack} testID="pm-readings">
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
-          {t("pm.chooseChecklistBody")}
+          {t("pm.measure.intro")}
         </Text>
-        {inspection.templates.map((tpl) => (
-          <Pressable
-            key={tpl.id}
-            onPress={() => inspection.chooseTemplate(tpl.id)}
-            style={[styles.templateRow, { backgroundColor: theme.surface, borderColor: theme.border }]}
-            accessibilityRole="button"
-            testID={`pm-template-${tpl.id}`}
-          >
-            <View style={{ flex: 1 }}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]}>
-                {tpl.name}
-              </Text>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
-                {t("pm.stepsCount", { count: tpl.items.length })}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textDisabled} />
-          </Pressable>
-        ))}
+        {inspection.meters.length === 0 ? (
+          <Card style={styles.configCard} testID="pm-no-meters">
+            <Ionicons name="speedometer-outline" size={22} color={theme.textMuted} />
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]}>
+              {t("pm.measure.none")}
+            </Text>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+              {t("pm.measure.noneBody")}
+            </Text>
+          </Card>
+        ) : (
+          <View onLayout={markBase("readings")}>
+            <Card style={styles.readingsCard}>
+              {inspection.meters.map((meter) => (
+                <View key={meter.id} onLayout={mark(`reading:${meter.id}`)}>
+                  <PmReadingInput
+                    meter={meter}
+                    value={draft.readings[meter.id]?.value ?? ""}
+                    onChange={(value) => inspection.patch((d) => ({ ...d, readings: { ...d.readings, [meter.id]: { value, note: d.readings[meter.id]?.note ?? "" } } }))}
+                    showError={attempted || parseReading(draft.readings[meter.id]?.value).kind === "invalid" || readingInvalid.has(meter.id)}
+                  />
+                </View>
+              ))}
+            </Card>
+          </View>
+        )}
       </View>
     );
-  } else if (compatibility !== "ok" || !template || !progress) {
+  } else if (section === "findings") {
     body = (
-      <Card style={styles.configCard} testID="pm-draft-incompatible">
-        <Ionicons name="alert-circle-outline" size={22} color={theme.status.pickup} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]}>
-          {compatibility === "template_missing" ? t("pm.draft.templateMissingTitle") : t("pm.draft.templateChangedTitle")}
-        </Text>
+      <View style={styles.stack}>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
-          {compatibility === "template_missing" ? t("pm.draft.templateMissingBody") : t("pm.draft.templateChangedBody")}
+          {t("pm.findings.intro")}
         </Text>
-        {compatibility === "template_changed" ? <Button label={t("pm.draft.useUpdated")} onPress={inspection.useCurrentChecklist} testID="pm-draft-rebase" /> : null}
-        <Button label={t("pm.draft.discard")} variant="secondary" onPress={() => void inspection.discard()} testID="pm-draft-discard-now" />
-      </Card>
-    );
-  } else if (step === "review") {
-    body = (
-      <PmReviewSection schedule={schedule} template={template} draft={draft} progress={progress} meters={inspection.meters} technician={technician} onJump={jumpTo} />
+        <View onLayout={markBase("extras")}>
+          <PmExtrasSection
+            draft={draft}
+            patch={inspection.patch}
+            online={isOnline}
+            uploading={inspection.uploading.has("general")}
+            showErrors={attempted}
+            invalidPartIds={invalidPartIds}
+            invalidDefectIds={invalidDefectIds}
+            laborInvalid={laborInvalid}
+            onAddPhoto={(uri, signal) => inspection.attachPhoto("general", uri, schedule.name, signal)}
+            onRemovePhoto={(id) => void inspection.removePhoto("general", id)}
+            onAnchor={(key, y) => anchors.current.set(key, y)}
+          />
+        </View>
+      </View>
     );
   } else {
     body = (
-      <View style={styles.stack}>
+      <View style={styles.stack} onLayout={markBase("checklist")}>
         <Card style={styles.progressCard} testID="pm-progress">
           <View style={styles.progressRow}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.configTitle, { color: theme.textPrimary }]}>
@@ -249,7 +322,7 @@ export default function PmInspectionScreen() {
         </Card>
 
         {template.items.map((item, index) => (
-          <View key={item.id} onLayout={(e: LayoutChangeEvent) => offsets.current.set(item.id, e.nativeEvent.layout.y)}>
+          <View key={item.id} onLayout={mark(`item:${item.id}`)}>
             <PmChecklistItem
               index={index}
               item={item}
@@ -259,7 +332,9 @@ export default function PmInspectionScreen() {
               uploading={inspection.uploading.has(item.id)}
               showUnanswered={attempted}
               showEvidenceMissing={attempted}
+              showFindingMissing={attempted}
               onToggle={() => toggle(item.id)}
+              onOpenFailure={() => setFailureItem(item.id)}
               onResult={(result) => {
                 inspection.setResult(item.id, result);
               }}
@@ -269,38 +344,6 @@ export default function PmInspectionScreen() {
             />
           </View>
         ))}
-
-        {inspection.meters.length > 0 ? (
-          <View style={styles.stack} testID="pm-readings">
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
-              {t("pm.readings")}
-            </Text>
-            <Card style={styles.readingsCard}>
-              {inspection.meters.map((meter) => (
-                <PmReadingInput
-                  key={meter.id}
-                  meter={meter}
-                  value={draft.readings[meter.id]?.value ?? ""}
-                  onChange={(value) => inspection.patch((d) => ({ ...d, readings: { ...d.readings, [meter.id]: { value, note: d.readings[meter.id]?.note ?? "" } } }))}
-                  showError={attempted || parseReading(draft.readings[meter.id]?.value).kind === "invalid" || readingInvalid.has(meter.id)}
-                />
-              ))}
-            </Card>
-          </View>
-        ) : null}
-
-        <PmExtrasSection
-          draft={draft}
-          patch={inspection.patch}
-          online={isOnline}
-          uploading={inspection.uploading.has("general")}
-          showErrors={attempted}
-          invalidPartIds={invalidPartIds}
-          invalidDefectIds={invalidDefectIds}
-          laborInvalid={laborInvalid}
-          onAddPhoto={(uri, signal) => inspection.attachPhoto("general", uri, schedule.name, signal)}
-          onRemovePhoto={(id) => void inspection.removePhoto("general", id)}
-        />
 
         {confirmDiscard ? (
           <Card style={styles.configCard} testID="pm-discard-confirm">
@@ -315,6 +358,7 @@ export default function PmInspectionScreen() {
                 setConfirmDiscard(false);
                 setAttempted(false);
                 setExpanded(new Set());
+                setSection("checklist");
               }}
               testID="pm-discard-yes"
             />
@@ -333,57 +377,86 @@ export default function PmInspectionScreen() {
   }
 
   /* ── footer ── */
-  const showFooter = !!draft && !!template && !!progress && compatibility === "ok";
+  const refusedStatus = outcome?.kind === "refused" ? (outcome.error as { status?: number } | null)?.status : undefined;
   const outcomeText =
     outcome?.kind === "refused"
-      ? ((outcome.error as { status?: number } | null)?.status === 403
-          ? t("pm.errors.forbidden")
-          : (outcome.error as { status?: number } | null)?.status === 404
-            ? t("pm.errors.scheduleGone")
-            : `${t("pm.errors.refused")}${apiMessage(outcome.error) ? ` ${apiMessage(outcome.error)}` : ""}`)
+      ? refusedStatus === 403
+        ? t("pm.errors.forbidden")
+        : refusedStatus === 404
+          ? t("pm.errors.scheduleGone")
+          : `${t("pm.errors.refused")}${apiMessage(outcome.error) ? ` ${apiMessage(outcome.error)}` : ""}`
       : outcome?.kind === "unknown"
         ? t("pm.errors.unknown")
         : outcome?.kind === "blocked" && outcome.issues.length > 0
           ? t("pm.errors.incomplete")
-          : null;
+          : outcome?.kind === "photo_missing"
+            ? t("pm.errors.photoMissing")
+            : outcome?.kind === "already_queued"
+              ? t("pm.errors.alreadyQueued")
+              : outcome?.kind === "queue_failed"
+                ? t("pm.errors.queueFailed")
+                : null;
+  const outcomeTitle = outcome?.kind === "refused" ? t("pm.submit.rejectedTitle") : outcome?.kind === "unknown" ? t("pm.submit.unknownTitle") : null;
+  // Offline, or holding a photo that is only on this phone: the button saves the inspection for the sync instead of
+  // completing it, and says so. Completing means the server confirmed it.
+  const savesForSync = !isOnline || (draft != null && localPhotoRefs(draft).length > 0);
+  const sectionIndex = PM_SECTIONS.indexOf(section);
+  const nextSection = PM_SECTIONS[Math.min(PM_SECTIONS.length - 1, sectionIndex + 1)];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {header}
-      <ScrollView ref={scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 160 }]} keyboardShouldPersistTaps="handled">
+      {ready ? (
+        <View style={styles.stepper}>
+          <PmStepper current={section} status={sectionStatuses(template!, draft!, inspection.meters, inspection.issues, attempted)} onSelect={select} />
+        </View>
+      ) : null}
+      <ScrollView ref={scroll} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + FOOTER_ROOM }]} keyboardShouldPersistTaps="handled">
         {body}
       </ScrollView>
 
-      {showFooter ? (
+      {ready ? (
         <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
           {outcomeText ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcome, { color: outcome?.kind === "unknown" ? theme.status.pickup : theme.status.dirty }]} accessibilityLiveRegion="polite" testID="pm-outcome">
-              {outcomeText}
-            </Text>
+            <View accessibilityLiveRegion="polite">
+              {outcomeTitle ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcomeTitle, { color: outcome?.kind === "unknown" ? theme.status.pickup : theme.status.dirty }]}>
+                  {outcomeTitle}
+                </Text>
+              ) : null}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcome, { color: outcome?.kind === "unknown" ? theme.status.pickup : theme.status.dirty }]} testID="pm-outcome">
+                {outcomeText}
+              </Text>
+            </View>
           ) : null}
-          {step === "fill" ? (
+          {section !== "review" ? (
             <Button
-              label={t("pm.reviewInspection")}
-              onPress={() => {
-                goReview();
-              }}
+              label={section === "findings" ? t("pm.reviewInspection") : t("pm.stepper.next", { name: sectionLabel(nextSection) })}
+              onPress={() => (section === "findings" ? goReview() : setSection(nextSection))}
               size="lg"
-              testID="pm-review-button"
-              accessibilityLabel={unansweredFirst ? `${t("pm.reviewInspection")}. ${t("pm.progress", { done: progress!.answered, total: progress!.total })}` : t("pm.reviewInspection")}
+              testID={section === "findings" ? "pm-review-button" : "pm-next-button"}
+              accessibilityLabel={
+                section === "findings" ? `${t("pm.reviewInspection")}. ${t("pm.progress", { done: progress!.answered, total: progress!.total })}` : t("pm.stepper.next", { name: sectionLabel(nextSection) })
+              }
             />
           ) : (
             <>
-              {!isOnline ? (
+              {!isOnline || savesForSync ? (
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcome, { color: theme.status.pickup }]} testID="pm-offline-submit">
-                  {t("pm.needsConnection")}
+                  {t(isOnline ? "pm.photosPendingNote" : "pm.saveForSyncNote")}
+                </Text>
+              ) : null}
+              {inspection.submitting ? (
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.outcome, { color: theme.textSecondary }]} accessibilityLiveRegion="polite" testID="pm-submitting">
+                  {t("pm.submit.sending")}
                 </Text>
               ) : null}
               <Button
-                label={t("pm.completeInspection")}
+                label={savesForSync ? t("pm.saveForSync") : outcome?.kind === "unknown" ? t("pm.submit.retry") : t("pm.completeInspection")}
                 onPress={() => void complete()}
                 size="lg"
                 loading={inspection.submitting}
-                disabled={blocked || !isOnline || inspection.submitting}
+                disabled={blocked || inspection.submitting}
                 testID="pm-complete-button"
               />
               {blocked && inspection.issues.length > 0 ? (
@@ -395,17 +468,29 @@ export default function PmInspectionScreen() {
           )}
         </View>
       ) : null}
+
+      {failing && draft ? (
+        <PmFailureSheet
+          visible
+          equipmentName={schedule.assetName}
+          stepLabel={failing.label}
+          note={draft.items[failing.id]?.note ?? ""}
+          evidence={draft.items[failing.id]?.evidence ?? []}
+          uploading={inspection.uploading.has(failing.id)}
+          online={isOnline}
+          onNote={(note) => inspection.patchItem(failing.id, { note })}
+          onAddPhoto={(uri, signal) => inspection.attachPhoto(failing.id, uri, `${schedule.name}: ${failing.label}`, signal)}
+          onRemovePhoto={(id) => void inspection.removePhoto(failing.id, id)}
+          onClose={() => setFailureItem(null)}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingBottom: 12 },
-  back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  headerCopy: { flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
-  headerSub: { fontSize: 13 },
+  stepper: { paddingHorizontal: 16, paddingBottom: 4 },
   pad: { padding: 16 },
   content: { padding: 16 },
   stack: { gap: 12 },
@@ -421,5 +506,6 @@ const styles = StyleSheet.create({
   readingsCard: { padding: 14, gap: 16 },
   discard: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, justifyContent: "center", marginTop: 8 },
   footer: { position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, gap: 8 },
+  outcomeTitle: { fontSize: 14, fontWeight: "800" },
   outcome: { fontSize: 13, lineHeight: 18 },
 });

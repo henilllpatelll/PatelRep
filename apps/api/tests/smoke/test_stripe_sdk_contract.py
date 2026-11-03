@@ -168,4 +168,9 @@ def test_invoice_item_creation_via_true_up(monkeypatch, http):
 
 def test_sdk_pins_an_endive_or_newer_api_version():
     # A major SDK bump silently changes the version of every outbound call; make that visible.
-    assert stripe.api_version == "2026-09-30.endive"
+    # Minor SDK bumps advance the date within a codename (16.0.0 -> 2026-09-30.endive, 16.1.0 -> 2026-10-28.endive)
+    # and are backwards compatible. A different codename marks Stripe's breaking-change boundary, so it must fail
+    # here and force a deliberate review of the billing calls; so must an older date or a malformed version.
+    date_part, dot, codename = stripe.api_version.partition(".")
+    assert dot == "." and codename == "endive", stripe.api_version
+    assert len(date_part) == 10 and date_part >= "2026-09-30", stripe.api_version

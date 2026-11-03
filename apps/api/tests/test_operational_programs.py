@@ -95,18 +95,23 @@ def test_phase_four_migration_makes_completion_and_dnd_records_append_only():
 
 def test_pm_completion_persists_items_and_corrective_work_orders():
     """As a manager, a PM record retains its work proof and its failed-check follow-up."""
-    from tests.smoke.fake_supabase import FakeDB
+    from tests.smoke.pm_fakes import PmFakeDB
 
-    db = FakeDB({
-        "pm_schedules": [{"id": "schedule-1", "tenant_id": "hotel-1"}],
-        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-1"}],
+    schedule = {
+        "id": "schedule-1", "tenant_id": "hotel-1", "asset_id": "asset-1", "is_active": True,
+        "interval_type": "custom", "interval_days": 30, "next_due_at": "2026-07-01T00:00:00+00:00",
+    }
+    db = PmFakeDB({
+        "pm_schedules": [schedule],
+        "assets": [{"id": "asset-1", "tenant_id": "hotel-1", "is_active": True}],
+        "evidence_records": [{"id": "photo-1", "tenant_id": "hotel-1", "collected_by": "engineer-1", "storage_path": "hotel-1/photo-1/a.jpg"}],
     })
     record = persist_pm_completion(
         db=db,
         tenant_id="hotel-1",
         user_id="engineer-1",
         actor_role="engineer",
-        schedule={"id": "schedule-1", "asset_id": "asset-1", "interval_days": 30},
+        schedule=dict(schedule),
         payload={
             "items": [
                 {"key": "battery", "label": "Emergency light battery", "result": "failed", "requires_evidence": True, "evidence": ["photo-1"], "note": "Will not hold charge"},

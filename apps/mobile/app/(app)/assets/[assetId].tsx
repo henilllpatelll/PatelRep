@@ -15,8 +15,11 @@ import { AssetMaintenanceSection } from "@/components/engineering/assets/AssetMa
 import { AssetOverview, type AssetSection } from "@/components/engineering/assets/AssetOverview";
 import { AssetReadingsSection } from "@/components/engineering/assets/AssetReadingsSection";
 import { AssetReliabilityPanel } from "@/components/engineering/assets/AssetReliabilityPanel";
-import { AssetWorkOrdersSection } from "@/components/engineering/assets/AssetWorkOrdersSection";
 import { RecordReadingSheet } from "@/components/engineering/assets/RecordReadingSheet";
+import { RetireSheet } from "@/components/engineering/assets/RetireSheet";
+import { CriticalitySheet } from "@/components/engineering/assets/CriticalitySheet";
+import { DowntimeSheet } from "@/components/engineering/assets/DowntimeSheet";
+import { RoomImpactSheet } from "@/components/engineering/assets/RoomImpactSheet";
 import { Pill, StaleNote, StatusBadge } from "@/components/engineering/assets/assetUi";
 import {
   getAsset,
@@ -28,18 +31,21 @@ import {
   type AssetDetail,
 } from "@/lib/api/assets";
 import { listPmCompletions, type PmCompletionSummary } from "@/lib/api/pm";
-import { buildAssetTimeline, type AssetServiceStatus } from "@/lib/engineering/assetModel";
+import { buildAssetTimeline, parseAssetSection, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
-import { canActOnSignals, canRecordReadings } from "@/lib/engineering/roles";
+import { buildRoomImpact } from "@/lib/engineering/roomImpact";
+import { canActOnSignals, canManageAssets, canRecordReadings, canRetireAssets } from "@/lib/engineering/roles";
+import { assetEditRoute, assetLabelRoute } from "@/lib/engineering/routes";
 import { markAssetListStale } from "@/lib/engineering/useAssetBrowse";
+import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useAssetWorkOrders } from "@/lib/engineering/useAssetWorkOrders";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { useAppStore } from "@/stores/appStore";
 import type { PmScheduleRow } from "@/lib/api/assets";
 
-const SECTIONS: readonly AssetSection[] = ["overview", "workOrders", "maintenance", "readings", "history"];
+const SECTIONS: readonly AssetSection[] = ["overview", "maintenance", "readings", "history"];
 
 /** Falls back to downtime alone only for an older API that does not send the derived status. */
 function statusOf(asset: AssetDetail): AssetServiceStatus {
@@ -49,7 +55,7 @@ function statusOf(asset: AssetDetail): AssetServiceStatus {
 }
 
 export default function AssetDetailScreen() {
-  const { assetId } = useLocalSearchParams<{ assetId: string }>();
+  const { assetId, section: sectionParam } = useLocalSearchParams<{ assetId: string; section?: string }>();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -73,15 +79,22 @@ export default function AssetDetailScreen() {
   const [visited, setVisited] = useState<ReadonlySet<AssetSection>>(new Set(["overview"]));
   const [readingFor, setReadingFor] = useState<string | null>(null);
   const [readingToken, setReadingToken] = useState(0);
+  const [retireOpen, setRetireOpen] = useState(false);
+  const [criticalityOpen, setCriticalityOpen] = useState(false);
+  const [downtimeOpen, setDowntimeOpen] = useState(false);
+  const [roomImpactOpen, setRoomImpactOpen] = useState(false);
   const scroller = useRef<ScrollViewInstance>(null);
 
-  // The tab screen is reused for another asset: start that one at the top, on Overview.
+  // The tab screen is reused for another asset: start that one at the top, on the section the link names (Overview unless
+  // it is one of the four real sections).
+  const startSection = parseAssetSection(sectionParam);
   useEffect(() => {
-    setSection("overview");
-    setVisited(new Set(["overview"]));
+    setSection(startSection);
+    setVisited(new Set<AssetSection>(["overview", startSection]));
     setReadingFor(null);
+    setRoomImpactOpen(false);
     setPmHistory(null);
-  }, [id]);
+  }, [id, startSection]);
 
   // Report an issue for this equipment: the shared form opens with it linked and its room as the location.
   const openReport = useCallback(() => {
@@ -100,6 +113,21 @@ export default function AssetDetailScreen() {
       },
     } as never);
   }, [asset.data]);
+  const openEdit = useCallback(() => {
+    const target = assetEditRoute(asset.data?.id);
+    if (target) router.push(target as never);
+  }, [asset.data]);
+  const openLabel = useCallback(() => {
+    const target = assetLabelRoute(asset.data?.id);
+    if (target) router.push(target as never);
+  }, [asset.data]);
+  const openScan = useCallback(() => router.push("/(app)/assets/scan" as never), []);
+  const onRetired = useCallback(() => {
+    setRetireOpen(false);
+    markAssetListStale();
+    toast.success(t("assets.retire.done"));
+    void asset.reload();
+  }, [asset, t, toast]);
   const openRoom = useCallback(() => {
     const roomId = asset.data?.room_id;
     if (roomId) router.push({ pathname: "/(app)/room-status/[roomId]", params: { roomId } } as never);
@@ -254,7 +282,7 @@ export default function AssetDetailScreen() {
             label={t(`assets.sections.${key}`)}
             selected={section === key}
             onPress={() => go(key)}
-            count={key === "workOrders" ? data.active_work_order_count : undefined}
+            count={key === "maintenance" ? data.active_work_order_count : undefined}
             testID={`asset-section-${key}`}
           />
         ))}
@@ -287,8 +315,17 @@ export default function AssetDetailScreen() {
               timezone={timezone}
               offline={!isOnline}
               canRecordReading={canRecord && recordMeters.length > 0}
+              canManage={canManageAssets(role)}
+              canRetire={canRetireAssets(role)}
+              onEdit={openEdit}
+              onLabel={openLabel}
+              onScan={openScan}
+              onRetire={() => setRetireOpen(true)}
+              onCriticality={() => setCriticalityOpen(true)}
+              onDowntime={canRecord ? () => setDowntimeOpen(true) : undefined}
               onCreateWorkOrder={openReport}
               onOpenRoom={data.room_id ? openRoom : undefined}
+              onRoomImpact={() => setRoomImpactOpen(true)}
               onGoto={go}
             />
             <AssetReliabilityPanel
@@ -304,19 +341,12 @@ export default function AssetDetailScreen() {
           </>
         ) : null}
 
-        {section === "workOrders" ? (
-          <AssetWorkOrdersSection
+        {section === "maintenance" ? (
+          <AssetMaintenanceSection
             active={active}
             completed={completed}
             scoped={role === "engineer"}
             repeats90d={data.repeat_repairs_90d ?? null}
-            language={language}
-            timezone={timezone}
-          />
-        ) : null}
-
-        {section === "maintenance" ? (
-          <AssetMaintenanceSection
             schedules={pmViews}
             history={pmHistory?.rows ?? null}
             historyFailure={pmFailure}
@@ -353,6 +383,53 @@ export default function AssetDetailScreen() {
         ) : null}
       </ScrollView>
 
+      <DowntimeSheet
+        visible={downtimeOpen}
+        asset={{ id: data.id, name: data.name, activeDowntime: data.active_downtime ?? null }}
+        repairs={active.orders.map((wo) => ({ id: wo.id, label: workOrderLabel(wo) || wo.title }))}
+        timezone={timezone}
+        language={language}
+        isOnline={isOnline}
+        onClose={() => setDowntimeOpen(false)}
+        onDone={(result) => {
+          markAssetListStale();
+          toast.success(t(`assets.downtime.done.${result}`));
+          void asset.reload();
+          void downtime.reload();
+          void reliability.reload();
+        }}
+        onNeedsRefresh={() => void asset.reload()}
+      />
+      <RoomImpactSheet
+        visible={roomImpactOpen}
+        impact={buildRoomImpact({
+          roomId: data.room_id,
+          roomNumber: data.rooms?.room_number,
+          locationText: data.location_text,
+          serviceStatus: status,
+          repairs: active.orders,
+          activeDowntimeSince: data.active_downtime?.started_at,
+        })}
+        assetName={data.name}
+        assetTag={data.asset_tag}
+        scope={scope}
+        language={language}
+        timezone={timezone}
+        onClose={() => setRoomImpactOpen(false)}
+      />
+      <CriticalitySheet
+        visible={criticalityOpen}
+        asset={{ id: data.id, name: data.name, criticality: data.criticality, row_version: data.row_version }}
+        isOnline={isOnline}
+        onClose={() => setCriticalityOpen(false)}
+        onChanged={() => {
+          markAssetListStale();
+          toast.success(t("assets.criticality.done"));
+          void asset.reload();
+        }}
+        onNeedsRefresh={() => void asset.reload()}
+      />
+      <RetireSheet visible={retireOpen} asset={data} isOnline={isOnline} onClose={() => setRetireOpen(false)} onRetired={onRetired} />
       <RecordReadingSheet
         visible={readingFor != null}
         meters={recordMeters}

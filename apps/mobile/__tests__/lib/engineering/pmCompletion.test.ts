@@ -95,6 +95,8 @@ describe("the PM screen offers no one-tap completion", () => {
   it("sends technicians into the guided inspection instead of a Log Complete action", () => {
     const screen = fs.readFileSync(path.resolve(__dirname, "../../../app/(app)/pm-schedules/index.tsx"), "utf8");
     expect(screen).not.toMatch(/logComplete|handleComplete|\/complete/);
-    expect(screen).toContain("pm-schedules/inspect/");
+    // The destination is built (and its id validated) by the shared route builder, never typed into the screen.
+    expect(screen).toContain("pmInspectRoute");
+    expect(fs.readFileSync(path.resolve(__dirname, "../../../lib/engineering/routes.ts"), "utf8")).toContain("pm-schedules/inspect/");
   });
 });

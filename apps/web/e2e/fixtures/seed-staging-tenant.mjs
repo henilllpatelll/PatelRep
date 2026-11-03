@@ -83,7 +83,9 @@ async function main() {
   }, { onConflict: 'tenant_id,code' }).select('id').single(), 'Upsert room type')
   const rooms = {}
   for (const [roomNumber, status] of [['101', 'DIRTY'], ['102', 'IN_PROGRESS'], ['103', 'CLEAN'], ['104', 'INSPECTED']]) {
-    const room = await requireOk(await supabase.from('rooms').upsert({ tenant_id: TENANT_ID, room_number: roomNumber, floor: 1, room_type_id: roomType.id, is_active: true }, { onConflict: 'tenant_id,room_number' }).select('id').single(), `Upsert room ${roomNumber}`)
+    // Staging is persistent: rooms.updated_at does not exist but trg_rooms_updated_at (017) still fires on UPDATE, so an upsert over an existing room fails. Insert only when absent.
+    const existingRoomId = await first('rooms', { room_number: roomNumber })
+    const room = existingRoomId ? { id: existingRoomId } : await requireOk(await supabase.from('rooms').insert({ tenant_id: TENANT_ID, room_number: roomNumber, floor: 1, room_type_id: roomType.id, is_active: true }).select('id').single(), `Insert room ${roomNumber}`)
     rooms[roomNumber] = room.id
     await requireOk(await supabase.from('room_status').upsert({ room_id: room.id, tenant_id: TENANT_ID, status, vip_flag: false, dnd_flag: false, do_not_service: false }, { onConflict: 'room_id' }), `Upsert room status ${roomNumber}`)
   }

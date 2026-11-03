@@ -25,6 +25,7 @@ export type SyncKind =
   | "room_status"
   | "task"
   | "logbook"
+  | "pm_completion"
   | "other";
 
 /** pending: waiting for a connection or turn. retrying: tried and will try again. failed: out of retries. conflict: the server refused it. */
@@ -103,7 +104,7 @@ function queueRows(rows: SyncQueueSummaryRow[]): SyncRow[] {
   return rows.map((row) => ({
     key: `queue-${row.id}`,
     roomId: row.room_id,
-    kind: row.entity_type === "work_order" ? (row.action === "create" ? "work_order" : "work_order_update") : row.entity_type === "task" ? "task" : "other",
+    kind: row.entity_type === "work_order" ? (row.action === "create" ? "work_order" : "work_order_update") : row.entity_type === "task" ? "task" : row.entity_type === "pm_schedule" ? "pm_completion" : "other",
     state: row.last_error ? "conflict" : row.attempts >= MAX_SYNC_ATTEMPTS ? "failed" : row.attempts > 0 ? "retrying" : "pending",
     savedAt: row.created_at ?? null,
     ...(row.last_error ? { reason: row.last_error } : {}),

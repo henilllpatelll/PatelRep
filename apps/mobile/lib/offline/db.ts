@@ -428,3 +428,40 @@ export async function deleteSyncQueueItem(id: number): Promise<void> {
   const db = await getDb();
   await db.runAsync("DELETE FROM sync_queue WHERE id = ? AND owner_scope = ?", [id, getQueueOwner()]);
 }
+
+export interface SyncQueueRow {
+  id: number;
+  entity_type: string;
+  action: string;
+  entity_id: string | null;
+  payload: string;
+  attempts: number;
+  created_at: string | null;
+  label: string | null;
+  last_error: string | null;
+}
+
+/** The signed-in person's own rows of one kind, payload included (callers must not show it). Never another account's. */
+export async function getSyncQueueRows(entityType: string, action: string, entityId?: string): Promise<SyncQueueRow[]> {
+  const owner = getQueueOwner();
+  if (!owner) return [];
+  const db = await getDb();
+  const rows = await db.getAllAsync<SyncQueueRow>(
+    `SELECT id, entity_type, action, entity_id, payload, attempts, created_at, label, last_error FROM sync_queue
+     WHERE owner_scope = ? AND entity_type = ? AND action = ?${entityId ? " AND entity_id = ?" : ""} ORDER BY created_at ASC LIMIT 100`,
+    entityId ? [owner, entityType, action, entityId] : [owner, entityType, action]
+  );
+  return rows;
+}
+
+/** Record progress of a multi-step replay (e.g. evidence already uploaded) on the row, so a restart resumes instead of repeating. */
+export async function updateSyncQueuePayload(id: number, payload: unknown): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE sync_queue SET payload = ? WHERE id = ? AND owner_scope = ?", [JSON.stringify(payload), id, getQueueOwner()]);
+}
+
+/** The person looked at a refused change and chose to try it again: clears the refusal so it replays as saved. */
+export async function reopenSyncQueueItem(id: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE sync_queue SET attempts = 0, last_error = NULL WHERE id = ? AND owner_scope = ?", [id, getQueueOwner()]);
+}

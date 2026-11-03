@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "environment": "staging",
+  "note": "Read-only probes proving the effects of every grandfathered duplicate-version migration file are present on persistent staging. A recorded version row does NOT prove every file sharing that version ran (supabase_migrations.schema_migrations holds one row per version). Staging was built by scripts/remote-migration-apply.mjs, which executed every file; these probes verify it. Fails closed when a duplicate file has no entry, its SHA-256 changed, or a probe is not true.",
+  "files": [
+    {
+      "file": "039_drop_room_status_history_trigger.sql",
+      "sha256": "1b8fc5f87e8d1e27715b68513e48ae373a18a9cbb0bef213fa799f2db8c2402c",
+      "description": "The on_room_status_change trigger on room_status is gone",
+      "probe": "select not exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid where t.tgname='on_room_status_change' and c.relname='room_status' and not t.tgisinternal)"
+    },
+    {
+      "file": "039_drop_unused_indexes.sql",
+      "sha256": "1aaa40545884ca05c81924d8cfd73fbca99872599ef306301963f66895298a79",
+      "description": "The ten indexes this file drops are absent (a later migration that recreates one must update this probe)",
+      "probe": "select not exists(select 1 from pg_indexes where schemaname='public' and indexname in ('idx_work_orders_asset_id','idx_work_orders_assigned_to','idx_work_orders_tenant_created','idx_work_orders_tenant_unclaimed','sop_chunks_embedding_idx','idx_opera_oauth_states_nonce','idx_opera_oauth_states_expiry','idx_room_assignments_tenant_date_assignee','idx_guest_requests_tenant_created','idx_guest_requests_tenant_status'))"
+    },
+    {
+      "file": "042_guest_requests_priority.sql",
+      "sha256": "d2834d993cdee964d9eec35d0be0f41ce7e2e1b395d2f14e6c58287e07f1b145",
+      "description": "guest_requests.priority exists",
+      "probe": "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='guest_requests' and column_name='priority')"
+    },
+    {
+      "file": "042_lost_found_photos_bucket.sql",
+      "sha256": "82e15dd789106d6d21ce18d42fa0e31f565666d0b3f51529fb826e804a63ed87",
+      "description": "lost-found-photos bucket and both storage.objects policies exist",
+      "probe": "select exists(select 1 from storage.buckets where id='lost-found-photos') and (select count(*) from pg_policies where schemaname='storage' and tablename='objects' and policyname in ('Authenticated staff can upload lost-found photos','Public can view lost-found photos'))=2"
+    },
+    {
+      "file": "042_room_assignment_clean_type.sql",
+      "sha256": "789f3bdd543326adf5b25b5414e889b2912f5915bb4af94c549fd3e8b0ca2f9a",
+      "description": "room_assignments.clean_type exists",
+      "probe": "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='room_assignments' and column_name='clean_type')"
+    },
+    {
+      "file": "110_room_unavailability_type.sql",
+      "sha256": "0ea3c35054ae922c630e8385759349d2c968ea1c2204ae5e0b8ce3b3ab7ed7ac",
+      "description": "create_room_unavailability(11 args) exists",
+      "probe": "select exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='create_room_unavailability' and p.pronargs=11)"
+    },
+    {
+      "file": "110_work_order_console_features.sql",
+      "sha256": "562d158c4584b6f20dbf988579cca8e0b6774d7b19c4668ffc57740edf279257",
+      "description": "assets.zone, work_orders.snoozed_until and the three checklist tables exist",
+      "probe": "select (select exists(select 1 from information_schema.columns where table_schema='public' and table_name='assets' and column_name='zone')) and (select exists(select 1 from information_schema.columns where table_schema='public' and table_name='work_orders' and column_name='snoozed_until')) and to_regclass('public.work_order_checklist_templates') is not null and to_regclass('public.work_order_checklist_template_items') is not null and to_regclass('public.work_order_checklist_items') is not null"
+    }
+  ]
+}

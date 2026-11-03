@@ -20,6 +20,8 @@ import { getWorkOrder } from "@/lib/api/workOrders";
 import { REPORT_QUEUE_MARK, isTerminalReportFailure, recordReport } from "@/lib/engineering/pendingReports";
 import { clearCompletionDraft } from "@/lib/engineering/workOrderDrafts";
 import { recordSynced } from "@/lib/engineering/syncedHistory";
+import { PM_QUEUE_ENTITY } from "@/lib/engineering/pmCompletionQueue";
+import { flushPmCompletions, sweepPmPhotos } from "@/lib/engineering/pmSyncRunner";
 
 let _syncInProgress = false;
 let _syncOnConnectRun: Promise<void> | null = null;
@@ -54,6 +56,10 @@ async function runSyncOnConnect(): Promise<void> {
   // Flush both queues: appStore queue (logbook, room status, etc.) + SQLite queue
   await useAppStore.getState().flushQueue();
   await flushSyncQueue();
+  // Saved PM inspections have their own dependency-ordered replay (photos, then the completion); the generic queue
+  // above skips them, because it deletes any row it has no branch for.
+  await flushPmCompletions();
+  void sweepPmPhotos();
   // Only refresh rooms for housekeepers and supervisors (API endpoint requires it)
   const user = useAppStore.getState().user;
   if (user && (user.role === "housekeeper" || user.role === "housekeeping_supervisor")) {
@@ -81,6 +87,7 @@ export async function flushSyncQueue(): Promise<void> {
     for (const item of items) {
       // Rows are the signed-in person's own; stop the moment someone else (or nobody) is signed in.
       if (!owner || getQueueOwner() !== owner) break;
+      if (item.entity_type === PM_QUEUE_ENTITY) continue; // owned by pmSyncRunner, never deleted from here
       try {
         const payload = JSON.parse(item.payload);
 

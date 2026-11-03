@@ -24,6 +24,19 @@ interface Options {
 }
 
 const cache = new Map<string, { data: unknown; syncedAt: Date }>();
+const watchers = new Map<string, Set<(data: unknown, at: Date) => void>>();
+
+/**
+ * Replace the cached answer for a scope + key with data the server just confirmed (a saved edit), and update any
+ * screen already showing it, so the change is visible at once instead of after the next read.
+ */
+export function primeAsyncResource(scope: string | null, key: string, data: unknown): void {
+  if (!scope) return;
+  const cacheKey = `${scope}|${key}`;
+  const at = new Date();
+  cache.set(cacheKey, { data, syncedAt: at });
+  watchers.get(cacheKey)?.forEach((notify) => notify(data, at));
+}
 
 /** For tests and sign-out. */
 export function resetAsyncResourceCache(): void {
@@ -103,6 +116,22 @@ export function useAsyncResource<T>(load: (signal: AbortSignal) => Promise<T>, {
       controller.current?.abort();
     };
   }, [cacheKey, enabled, run]);
+
+  useEffect(() => {
+    if (!cacheKey) return;
+    const notify = (next: unknown, at: Date) => {
+      setData(next as T);
+      setSyncedAt(at);
+      setFailure(null);
+    };
+    const set = watchers.get(cacheKey) ?? new Set<(data: unknown, at: Date) => void>();
+    set.add(notify);
+    watchers.set(cacheKey, set);
+    return () => {
+      set.delete(notify);
+      if (set.size === 0) watchers.delete(cacheKey);
+    };
+  }, [cacheKey]);
 
   const reload = useCallback(() => run("refresh"), [run]);
 

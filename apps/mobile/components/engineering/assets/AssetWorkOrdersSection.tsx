@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -12,19 +11,7 @@ import { resolveLoadState } from "@/lib/engineering/loadState";
 import { isActiveWorkOrder, type WorkOrder } from "@/lib/engineering/workOrders";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import type { AssetWorkOrders } from "@/lib/engineering/useAssetWorkOrders";
-import { Fact, Panel, Pill } from "./assetUi";
-
-interface Props {
-  active: AssetWorkOrders;
-  completed: AssetWorkOrders;
-  /** Engineers only see their own and unclaimed orders; the section says so rather than implying a full history. */
-  scoped: boolean;
-  /** The 90-day count when the API reports it for the inventory list; null when unknown. */
-  repeats90d: number | null;
-  language: string;
-  timezone: string | null | undefined;
-  initialKind?: "active" | "completed";
-}
+import { Fact } from "./assetUi";
 
 function Row({ wo, language, timezone }: { wo: WorkOrder; language: string; timezone: string | null | undefined }) {
   const { t } = useTranslation();
@@ -49,6 +36,7 @@ function Row({ wo, language, timezone }: { wo: WorkOrder; language: string; time
         </Text>
         <View style={styles.facts}>
           {number ? <Fact icon="pricetag-outline" text={number} /> : null}
+          {wo.is_pm_generated && wo.pm_completion_id ? <Fact icon="clipboard-outline" text={t("assets.workOrders.fromPm")} /> : null}
           <Fact icon="flag-outline" text={t(`workQueue.priority.${wo.priority}`)} tone={wo.priority === "emergency" || wo.priority === "urgent" ? "alert" : undefined} />
           <Fact icon="ellipse-outline" text={t(`workOrders.status.${wo.status}`)} />
           {wo.assigned_to_name ? <Fact icon="person-outline" text={wo.assigned_to_name} /> : null}
@@ -67,7 +55,8 @@ function Row({ wo, language, timezone }: { wo: WorkOrder; language: string; time
   );
 }
 
-function List({ source, emptyBody, language, timezone }: { source: AssetWorkOrders; emptyBody: string; language: string; timezone: string | null | undefined }) {
+/** Work orders linked to this asset by its canonical id, paged. Active repairs and completed history each use one. */
+export function WorkOrderList({ source, emptyBody, language, timezone }: { source: AssetWorkOrders; emptyBody: string; language: string; timezone: string | null | undefined }) {
   const { t } = useTranslation();
   const res = source.resource;
   const state = resolveLoadState({ loading: res.loading, failure: res.failure, count: source.orders.length });
@@ -98,40 +87,7 @@ function List({ source, emptyBody, language, timezone }: { source: AssetWorkOrde
   );
 }
 
-/** Work orders linked to this asset by its canonical id: active repairs first, then the completed history, paged. */
-export function AssetWorkOrdersSection({ active, completed, scoped, repeats90d, language, timezone, initialKind = "active" }: Props) {
-  const { t } = useTranslation();
-  const theme = useTheme();
-  const [kind, setKind] = useState<"active" | "completed">(initialKind);
-  const source = kind === "active" ? active : completed;
-  return (
-    <Panel testID="asset-work-orders">
-      <View style={styles.pills} accessibilityRole="tablist">
-        <Pill label={t("assets.workOrders.active")} selected={kind === "active"} onPress={() => setKind("active")} testID="asset-wo-kind-active" />
-        <Pill label={t("assets.workOrders.completed")} selected={kind === "completed"} onPress={() => setKind("completed")} testID="asset-wo-kind-completed" />
-      </View>
-      {repeats90d != null && repeats90d >= 2 ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.repeat, { color: theme.textSecondary }]} testID="asset-repeat-note">
-          {t("assets.workOrders.repeat90d", { count: repeats90d })}
-        </Text>
-      ) : null}
-      <List
-        source={source}
-        language={language}
-        timezone={timezone}
-        emptyBody={kind === "active" ? t("assets.workOrders.noActive") : t("assets.workOrders.noCompleted")}
-      />
-      {scoped ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.scope, { color: theme.textMuted }]} testID="asset-wo-scope">
-          {t("assets.workOrders.scoped")}
-        </Text>
-      ) : null}
-    </Panel>
-  );
-}
-
 const styles = StyleSheet.create({
-  pills: { flexDirection: "row", gap: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderTopWidth: 1, minHeight: 56 },
   rowBody: { flex: 1, gap: 5 },
   rowTitle: { fontSize: 14.5, fontWeight: "700" },
@@ -139,6 +95,4 @@ const styles = StyleSheet.create({
   resolution: { fontSize: 13 },
   more: { paddingVertical: 12 },
   stale: { fontSize: 12.5, paddingVertical: 6 },
-  repeat: { fontSize: 13 },
-  scope: { fontSize: 12.5, lineHeight: 17 },
 });

@@ -41,6 +41,7 @@ const KIND_CATEGORY: Record<SyncKind, CategoryKey> = {
   checklist: "sessions",
   linen: "sessions",
   completion: "sessions",
+  pm_completion: "tasks",
   logbook: "other",
   other: "other",
 };

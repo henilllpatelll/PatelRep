@@ -1,6 +1,7 @@
 import { assertPmCompletionAllowed, type PmCompletionPayload, type PmCompletionResult } from "@/lib/engineering/pmCompletion";
 import { ASSET_PAGE_SIZE, assetBrowseParams, type AssetFilters, type AssetPage, type AssetRow, type AssetServiceStatus } from "@/lib/engineering/assetModel";
 import type { AssetMeter, MeterReading } from "@/lib/engineering/assetReadings";
+import type { PmChecklistBindingWire } from "@/lib/engineering/engineeringContracts";
 import { api } from "./client";
 
 export interface Asset {
@@ -42,6 +43,12 @@ export interface PmScheduleRow {
   last_completed_at?: string | null;
   next_due_at?: string | null;
   is_active?: boolean | null;
+  /** The procedure this schedule is bound to. Absent from an older server: read as "unassigned". */
+  checklist?: PmChecklistBindingWire | null;
+  /** Optimistic-concurrency version for management writes. Absent from an older server. */
+  row_version?: number | null;
+  /** The technician assigned to the CURRENT inspection; null when unassigned or when the assignment lapsed with the last cycle. */
+  effective_assigned_to?: string | null;
   assets?: {
     name?: string | null;
     room_id?: string | null;
@@ -106,6 +113,8 @@ export interface AssetLookupResult {
   id: string;
   name: string;
   asset_tag?: string | null;
+  /** False for retired equipment: the label still resolves, so the scanner can say it is retired. Absent = active. */
+  is_active?: boolean;
 }
 
 /** Resolves a scanned/typed code to one asset in the caller's own property. 404 = not found here (never "elsewhere"). */
@@ -156,9 +165,17 @@ export interface AssetDetail {
   failure_risk_score?: number | null;
   failure_risk_updated_at?: string | null;
   is_active?: boolean;
+  /** "active" | "inactive": the record's administrative state, separate from `service_status` and predicted risk. */
+  administrative_status?: "active" | "inactive";
   updated_at?: string | null;
+  /** Optimistic-concurrency token: sent back with an edit, which the server refuses (409) if the record has moved on. */
+  row_version?: number | null;
+  criticality?: "low" | "medium" | "high" | "life_safety" | null;
+  /** Short-lived signed URL of the equipment identity photograph (never a storage path). Absent = no photo. */
+  photo_url?: string | null;
+  photo_evidence_id?: string | null;
   asset_categories?: { name?: string | null; code?: string | null } | null;
-  rooms?: { room_number?: string | null } | null;
+  rooms?: { room_number?: string | null; floor?: number | null; building?: string | null } | null;
   active_downtime?: AssetDowntime | null;
   /** Derived by the API with the same rule as the inventory list. */
   service_status?: AssetServiceStatus;
@@ -256,4 +273,65 @@ export async function getAssetDocumentUrl(recordId: string): Promise<string> {
 export async function getAssetPredictions(assetId: string, signal?: AbortSignal): Promise<FailurePrediction[]> {
   const res = await api.get<{ data: FailurePrediction[] | null }>(`/assets/failure-predictions?${queryString({ asset_id: assetId })}`, { signal });
   return res.data ?? [];
+}
+
+/* ── Register / edit / retire (Phase 3) ──────────────────────────────────── */
+
+/**
+ * Registers equipment. The body carries a client-generated `id`, so repeating the SAME call after a timeout returns the
+ * record that was already created instead of making a second asset.
+ */
+export async function createAsset(body: Record<string, unknown>, signal?: AbortSignal): Promise<AssetDetail> {
+  const res = await api.post<{ data: AssetDetail }>("/assets", body, { signal });
+  return res.data;
+}
+
+/** Saves an edit. A body with `expected_row_version` is refused with 409 (`asset_conflict`) if someone else saved first. */
+export async function updateAsset(assetId: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<AssetDetail> {
+  const res = await api.patch<{ data: AssetDetail }>(`/assets/${assetId}`, body, { signal });
+  return res.data;
+}
+
+/** Makes an uploaded evidence photo this equipment's identity photograph (replacing, and removing, the previous one). */
+export async function setAssetPhoto(assetId: string, evidenceId: string, expectedRowVersion?: number | null): Promise<AssetDetail> {
+  const res = await api.put<{ data: AssetDetail }>(`/assets/${assetId}/photo`, {
+    evidence_id: evidenceId,
+    ...(expectedRowVersion != null ? { expected_row_version: expectedRowVersion } : {}),
+  });
+  return res.data;
+}
+
+export async function removeAssetPhoto(assetId: string): Promise<AssetDetail> {
+  const res = await api.delete<{ data: AssetDetail }>(`/assets/${assetId}/photo`);
+  return res.data;
+}
+
+/** Takes equipment out of service records (never deletes). The server refuses while repairs or downtime are still open. */
+export async function retireAsset(assetId: string, reason: string, expectedRowVersion?: number | null): Promise<AssetDetail> {
+  const res = await api.post<{ data: AssetDetail }>(`/assets/${assetId}/retire`, {
+    reason,
+    ...(expectedRowVersion != null ? { expected_row_version: expectedRowVersion } : {}),
+  });
+  return res.data;
+}
+
+/** Starts downtime on equipment. The server stamps the time and the signed-in person; a period already open is returned with `created: false`. */
+export async function startAssetDowntime(
+  assetId: string,
+  input: { downtimeType: "planned" | "unplanned"; impactLevel: "degraded" | "out_of_service"; notes: string | null; workOrderId?: string | null },
+): Promise<{ created: boolean; period: AssetDowntime }> {
+  const res = await api.post<{ data: { created: boolean; period: AssetDowntime } }>(`/assets/${assetId}/downtime`, {
+    downtime_type: input.downtimeType,
+    impact_level: input.impactLevel,
+    notes: input.notes?.trim() || null,
+    // Only sent when chosen; the server checks it is this property's order for this very asset.
+    ...(input.workOrderId ? { work_order_id: input.workOrderId } : {}),
+  });
+  return res.data;
+}
+
+/** Ends an open downtime period. It changes nothing else: no work order is closed, no room released, nothing marked repaired. */
+export async function restoreAssetDowntime(assetId: string, downtimeId: string, notes: string | null): Promise<{ restored: boolean; period: AssetDowntime }> {
+  const res = await api.post<{ data: { restored: boolean; period: AssetDowntime } }>(`/assets/${assetId}/downtime/${downtimeId}/restore`, { notes: notes?.trim() || null });
+  return res.data;
 }

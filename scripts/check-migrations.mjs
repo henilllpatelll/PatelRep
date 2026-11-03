@@ -4,11 +4,12 @@
  * this checks the immutable release baseline before Supabase is invoked.
  */
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const FILENAME_PATTERN = /^(?<version>\d{3,})_(?<name>[a-z0-9][a-z0-9_-]*)\.sql$/;
-const DESTRUCTIVE_PATTERN = /\b(?:DROP\s+(?:TABLE|COLUMN|TYPE|SCHEMA|FUNCTION|POLICY|INDEX)|TRUNCATE\b|DELETE\s+FROM\b|ALTER\s+(?:TABLE|TYPE)\b[^;]*\b(?:DROP|RENAME|TYPE)\b)/i;
+export const DESTRUCTIVE_PATTERN = /\b(?:DROP\s+(?:TABLE|COLUMN|TYPE|SCHEMA|FUNCTION|POLICY|INDEX)|TRUNCATE\b|DELETE\s+FROM\b|ALTER\s+(?:TABLE|TYPE)\b[^;]*\b(?:DROP|RENAME|TYPE)\b)/i;
 
 export function parseMigrationFilename(filename) {
   const match = filename.match(FILENAME_PATTERN);
@@ -29,6 +30,25 @@ export function loadMigrations(migrationDirectory) {
       return { filename: entry.name, content, checksum: sha256(content), ...parsed };
     })
     .sort((left, right) => left.filename.localeCompare(right.filename));
+}
+
+// Committed paths under the migrations directory that are not top-level regular .sql files
+// (e.g. a tracked generated cache). The staging candidate refuses any such entry.
+export function findNonSqlMigrationEntries(trackedPaths) {
+  return trackedPaths.filter((path) => !/^[^/\\]+\.sql$/.test(path));
+}
+
+function listTrackedMigrationPaths(migrationDirectory) {
+  try {
+    const output = execFileSync('git', ['ls-files', '-z', '--', '.'], {
+      cwd: migrationDirectory,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return output.split('\0').filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 export function checkMigrations({ migrations, releasedMigrations }) {
@@ -118,6 +138,10 @@ function main() {
     migrations: loadMigrations(migrationDirectory),
     releasedMigrations: manifest.migrations,
   });
+  const nonSqlEntries = findNonSqlMigrationEntries(listTrackedMigrationPaths(migrationDirectory));
+  for (const entry of nonSqlEntries) {
+    result.violations.push(`Committed non-SQL entry in the migrations directory: ${entry}`);
+  }
   console.log(`Migration files: ${loadMigrations(migrationDirectory).length}`);
   console.log(`Immutable baseline: ${Object.keys(manifest.migrations ?? {}).length}`);
   for (const notice of result.notices) console.log(notice);
