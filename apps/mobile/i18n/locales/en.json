@@ -198,7 +198,8 @@
       },
       "attentionTitle": "Needs attention",
       "attentionEmpty": "Nothing needs attention right now.",
-      "attentionMore": "+{{count}} more — open Work",
+      "attentionMoreWork": "+{{count}} more work orders — open Work",
+      "attentionMorePm": "+{{count}} more PM — open PM",
       "reason": {
         "emergency": "Emergency",
         "urgentUnassigned": "Urgent",
@@ -213,7 +214,8 @@
       "quickTitle": "Quick actions",
       "quickReport": "Report Issue",
       "quickRoom": "Find Room",
-      "quickAsset": "Find Asset",
+      "quickScan": "Scan Asset",
+      "quickAsset": "Find asset by name",
       "syncFailedEmpty": "Couldn't load work orders"
     },
     "supervisor": {
@@ -10988,14 +10990,16 @@
       "available": "Available",
       "team": "Team",
       "waiting": "Waiting",
-      "done": "Done"
+      "done": "Done",
+      "all": "All active"
     },
     "viewTitles": {
       "mine": "My Work",
       "available": "Available Work",
       "team": "Team Work",
       "waiting": "On Hold",
-      "done": "History"
+      "done": "History",
+      "all": "All Active Work"
     },
     "viewSubtitles": {
       "mine": "Your assigned and in-progress repairs",
@@ -11003,7 +11007,8 @@
       "availableManager": "Unassigned repairs that need an owner",
       "team": "Repairs assigned to other engineers",
       "waiting": "Paused for parts, access or approval",
-      "done": "Completed and cancelled work orders, for reference"
+      "done": "Completed and cancelled work orders, for reference",
+      "all": "Everything open, in progress or on hold that you can see"
     },
     "shortcuts": {
       "waiting": "On hold",

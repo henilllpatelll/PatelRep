@@ -17,7 +17,19 @@ import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { getGreetingKey } from "@/lib/ai/companion";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
-import { urgentLandingView, type QueueView } from "@/lib/engineering/workQueue";
+import type { QueueView } from "@/lib/engineering/workQueue";
+import {
+  FIND_ASSET_ROUTE,
+  attentionOverflowLinks,
+  continueLabelKey,
+  myJobsRoute,
+  quickActionKeys,
+  quickActionRoute,
+  showsMyJobs,
+  urgentWorkRoute,
+  workViewRoute,
+  type QuickActionKey,
+} from "@/lib/engineering/homeNavigation";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -37,18 +49,18 @@ const ATTENTION_LIMIT = 5;
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const QUICK_ACTIONS: { key: string; labelKey: string; icon: IconName; go: () => void }[] = [
-  {
-    key: "report",
-    labelKey: "home.engineer.quickReport",
-    icon: "alert-circle-outline",
-    go: () => router.push("/(app)/work-orders/new" as never),
-  },
-  { key: "room", labelKey: "home.engineer.quickRoom", icon: "bed-outline", go: () => router.push("/(app)/room-status" as never) },
-  // There is no scanner in the app yet, so this opens the asset list and search instead of pretending to scan.
-  { key: "asset", labelKey: "home.engineer.quickAsset", icon: "search-outline", go: () => router.push("/(app)/assets" as never) },
-  { key: "pm", labelKey: "home.engineer.quickPm", icon: "calendar-outline", go: () => router.push("/(app)/pm-schedules" as never) },
-];
+const QUICK_ICONS: Record<QuickActionKey, IconName> = {
+  report: "alert-circle-outline",
+  room: "bed-outline",
+  scan: "qr-code-outline",
+  pm: "calendar-outline",
+};
+const QUICK_LABELS: Record<QuickActionKey, string> = {
+  report: "home.engineer.quickReport",
+  room: "home.engineer.quickRoom",
+  scan: "home.engineer.quickScan",
+  pm: "home.engineer.quickPm",
+};
 
 function firstName(name?: string | null) {
   return name?.trim().split(/\s+/)[0] || "there";
@@ -108,6 +120,7 @@ export function EngineerHome({ name }: { name: string }) {
   const pendingCount = useAppStore((s) => s.pendingActions.length);
   const role = user?.effective_role ?? user?.role;
   const canAct = canActOnWorkOrders(role);
+  const hasMyJobs = showsMyJobs(role);
   const locale = user?.language_pref === "es" ? "es" : "en";
   const { hotelName } = useSettingsIdentity();
   useHotelTimezone();
@@ -190,14 +203,13 @@ export function EngineerHome({ name }: { name: string }) {
 
   const openOrder = useCallback((id: string) => router.push(`/(app)/work-orders/${id}` as never), []);
   const openWork = useCallback(() => router.push("/(app)/work-orders" as never), []);
-  const openQueue = useCallback(
-    (view: QueueView) => router.push({ pathname: "/(app)/work-orders", params: { view } } as never),
-    []
-  );
+  // A fresh token per tap: Work stays mounted, so identical params would otherwise be ignored the second time.
+  const stamp = () => String(Date.now());
+  const openQueue = useCallback((view: QueueView) => router.push(workViewRoute(view, String(Date.now())) as never), []);
   const openPm = useCallback(() => router.push("/(app)/pm-schedules" as never), []);
 
   const attention = model.attention.slice(0, ATTENTION_LIMIT);
-  const attentionHidden = model.attention.length - attention.length;
+  const overflow = attentionOverflowLinks(model.attention.slice(ATTENTION_LIMIT));
 
   function activeCard(wo: WorkOrder) {
     const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
@@ -246,10 +258,10 @@ export function EngineerHome({ name }: { name: string }) {
           ) : null}
         </View>
         <Button
-          label={canAct ? t("home.engineer.continueRepair") : t("home.engineer.viewOrder")}
+          label={t(`home.engineer.${continueLabelKey(role)}`)}
           icon="construct-outline"
           onPress={() => openOrder(wo.id)}
-          accessibilityLabel={`${canAct ? t("home.engineer.continueRepair") : t("home.engineer.viewOrder")}: ${wo.title}`}
+          accessibilityLabel={`${t(`home.engineer.${continueLabelKey(role)}`)}: ${wo.title}`}
           testID="engineer-continue"
         />
         {model.moreActive > 0 ? (
@@ -369,8 +381,10 @@ export function EngineerHome({ name }: { name: string }) {
 
         <View style={styles.body}>
           <View style={styles.summaryRow}>
-            <SummaryCard label={t("home.engineer.cardMyJobs")} value={queueValue(model.myJobs)} onPress={() => openQueue("mine")} testID="summary-my-jobs" />
-            <SummaryCard label={t("home.engineer.cardUrgent")} value={queueValue(model.urgent)} tone={queueReady && model.urgent > 0 ? "alert" : undefined} onPress={() => openQueue(urgentLandingView(data.orders, user?.id))} testID="summary-urgent" />
+            {hasMyJobs ? (
+              <SummaryCard label={t("home.engineer.cardMyJobs")} value={queueValue(model.myJobs)} onPress={() => router.push(myJobsRoute(role, stamp()) as never)} testID="summary-my-jobs" />
+            ) : null}
+            <SummaryCard label={t("home.engineer.cardUrgent")} value={queueValue(model.urgent)} tone={queueReady && model.urgent > 0 ? "alert" : undefined} onPress={() => router.push(urgentWorkRoute(stamp()) as never)} testID="summary-urgent" />
             <SummaryCard label={t("home.engineer.cardPmDue")} value={pmValue} onPress={openPm} testID="summary-pm-due" />
           </View>
 
@@ -379,14 +393,14 @@ export function EngineerHome({ name }: { name: string }) {
           {queueReady ? (
             model.activeJob ? (
               activeCard(model.activeJob)
-            ) : (
+            ) : canAct ? (
               <Card style={styles.continueCard} testID="engineer-no-active">
                 <Text maxFontSizeMultiplier={MAX_FONT} style={[styles.focusTitle, { color: theme.textPrimary }]}>
                   {t("home.engineer.noActiveTitle")}
                 </Text>
                 <Button label={t("home.engineer.viewWork")} icon="list-outline" variant="secondary" onPress={openWork} testID="engineer-view-work" />
               </Card>
-            )
+            ) : null
           ) : (
             <View testID={data.queueFailure ? "engineer-load-error" : "engineer-queue-state"}>
               <EngineeringState
@@ -411,13 +425,19 @@ export function EngineerHome({ name }: { name: string }) {
                   </Text>
                 </Card>
               ) : null}
-              {attentionHidden > 0 ? (
-                <Pressable onPress={openWork} accessibilityRole="button" style={styles.linkRow} testID="attention-more">
+              {overflow.map((link) => (
+                <Pressable
+                  key={link.kind}
+                  onPress={() => router.push((link.kind === "wo" ? workViewRoute("all", stamp()) : link.route) as never)}
+                  accessibilityRole="button"
+                  style={styles.linkRow}
+                  testID={`attention-more-${link.kind}`}
+                >
                   <Text maxFontSizeMultiplier={MAX_FONT} style={[styles.link, { color: theme.primaryAction }]}>
-                    {t("home.engineer.attentionMore", { count: attentionHidden })}
+                    {t(link.kind === "wo" ? "home.engineer.attentionMoreWork" : "home.engineer.attentionMorePm", { count: link.count })}
                   </Text>
                 </Pressable>
-              ) : null}
+              ))}
             </View>
           ) : null}
           {data.pmFailure ? (
@@ -432,22 +452,33 @@ export function EngineerHome({ name }: { name: string }) {
 
           <SectionTitle>{t("home.engineer.quickTitle")}</SectionTitle>
           <View style={styles.quickGrid}>
-            {QUICK_ACTIONS.map((action) => (
+            {quickActionKeys().map((key) => (
               <Pressable
-                key={action.key}
-                onPress={action.go}
+                key={key}
+                onPress={() => router.push(quickActionRoute(key) as never)}
                 accessibilityRole="button"
-                accessibilityLabel={t(action.labelKey)}
-                testID={`quick-${action.key}`}
+                accessibilityLabel={t(QUICK_LABELS[key])}
+                testID={`quick-${key}`}
                 style={[styles.quick, { backgroundColor: theme.surface, borderColor: theme.primaryLine }]}
               >
-                <Ionicons name={action.icon} size={20} color={theme.primaryAction} />
+                <Ionicons name={QUICK_ICONS[key]} size={20} color={theme.primaryAction} />
                 <Text maxFontSizeMultiplier={MAX_FONT} numberOfLines={2} style={[styles.quickText, { color: theme.primaryAction }]}>
-                  {t(action.labelKey)}
+                  {t(QUICK_LABELS[key])}
                 </Text>
               </Pressable>
             ))}
           </View>
+          <Pressable
+            onPress={() => router.push(FIND_ASSET_ROUTE as never)}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.engineer.quickAsset")}
+            style={styles.linkRow}
+            testID="quick-find-asset"
+          >
+            <Text maxFontSizeMultiplier={MAX_FONT} style={[styles.link, { color: theme.primaryAction }]}>
+              {t("home.engineer.quickAsset")}
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>

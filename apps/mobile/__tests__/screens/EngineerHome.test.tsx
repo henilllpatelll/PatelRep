@@ -36,6 +36,8 @@ jest.mock("@/lib/settings/useSettingsIdentity", () => ({
   useSettingsIdentity: () => ({ hotelName: "Fossil Creek Inn" }),
 }));
 let mockRole = "engineer";
+let mockTenant = "h1";
+let mockUserId = "u1";
 let mockOnline = true;
 let mockUnread = 0;
 let mockPending = 0;
@@ -47,7 +49,7 @@ jest.mock("@/stores/appStore", () => {
       hotelTimezone: "America/Chicago",
       unreadCount: mockUnread,
       pendingActions: Array.from({ length: mockPending }, (_, i) => ({ id: `a${i}` })),
-      user: { id: "u1", role: mockRole, tenant_id: "h1", language_pref: "en" },
+      user: { id: mockUserId, role: mockRole, tenant_id: mockTenant, language_pref: "en" },
     })),
   };
 });
@@ -100,6 +102,8 @@ const mine = wo({
 beforeEach(() => {
   jest.clearAllMocks();
   mockRole = "engineer";
+  mockTenant = "h1";
+  mockUserId = "u1";
   mockOnline = true;
   mockUnread = 0;
   mockPending = 0;
@@ -179,10 +183,10 @@ describe("EngineerHome summary cards", () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("summary-my-jobs").props.accessibilityLabel).toBe("home.engineer.cardMyJobs: 0"));
     fireEvent.press(getByTestId("summary-my-jobs"));
-    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine", nav: expect.any(String) } });
     fireEvent.press(getByTestId("summary-urgent"));
-    // Nothing urgent in this fixture, so it falls back to My Work.
-    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
+    // Urgent spans own, unclaimed and held work, so it opens the all view narrowed to urgent (never a single queue).
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "all", filter: "urgent", nav: expect.any(String) } });
     fireEvent.press(getByTestId("summary-pm-due"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules");
   });
@@ -206,7 +210,7 @@ describe("EngineerHome Continue Working", () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("engineer-more-active")).toBeTruthy());
     fireEvent.press(getByTestId("engineer-more-active"));
-    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine" } });
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine", nav: expect.any(String) } });
   });
 
   it("shows a compact empty state with an action when nothing is in progress", async () => {
@@ -277,9 +281,27 @@ describe("EngineerHome Needs Attention", () => {
     // Same-priority orders sort newest first, so give them strictly older timestamps: e0 is newest, e6 is the one cut.
     serve({ open: Array.from({ length: 7 }, (_, i) => wo({ id: `e${i}`, priority: "emergency", title: `Emergency ${i}`, created_at: new Date(Date.now() - i * 60_000).toISOString() })) });
     const { getByTestId, getByText, queryByTestId } = renderHome();
-    await waitFor(() => expect(getByTestId("attention-more")).toBeTruthy());
-    expect(getByText("home.engineer.attentionMore:count=2")).toBeTruthy();
+    await waitFor(() => expect(getByTestId("attention-more-wo")).toBeTruthy());
+    expect(getByText("home.engineer.attentionMoreWork:count=2")).toBeTruthy();
     expect(queryByTestId("attention-wo:e6")).toBeNull();
+    expect(queryByTestId("attention-more-pm")).toBeNull();
+    fireEvent.press(getByTestId("attention-more-wo"));
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "all", nav: expect.any(String) } });
+  });
+
+  it("reaches hidden PM schedules too: a cut list links to Work and to PM, each with its own count", async () => {
+    serve({ open: Array.from({ length: 5 }, (_, i) => wo({ id: `e${i}`, priority: "emergency", title: `Emergency ${i}`, created_at: new Date(Date.now() - i * 60_000).toISOString() })) });
+    mockPm.mockResolvedValue([
+      { id: "pm1", asset_id: "a1", name: "Boiler", interval_type: "monthly", next_due_at: day(-2), is_active: true },
+      { id: "pm2", asset_id: "a2", name: "Filters", interval_type: "monthly", next_due_at: day(-3), is_active: true },
+    ]);
+    const { getByTestId, getByText, queryByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("attention-more-pm")).toBeTruthy());
+    // Five emergencies fill the list; both overdue PM schedules are cut, and no work order is.
+    expect(getByText("home.engineer.attentionMorePm:count=2")).toBeTruthy();
+    expect(queryByTestId("attention-more-wo")).toBeNull();
+    fireEvent.press(getByTestId("attention-more-pm"));
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules");
   });
 });
 
@@ -334,33 +356,93 @@ describe("EngineerHome load, error and refresh states", () => {
 });
 
 describe("EngineerHome quick actions", () => {
-  it("opens the Report an Issue form directly, and the other three destinations", async () => {
+  it("opens Report an Issue, Room Status, the existing asset scanner and PM", async () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("quick-report")).toBeTruthy());
 
     fireEvent.press(getByTestId("quick-report"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/new");
-
     fireEvent.press(getByTestId("quick-room"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/room-status");
-    fireEvent.press(getByTestId("quick-asset"));
-    expect(router.push).toHaveBeenLastCalledWith("/(app)/assets");
+    fireEvent.press(getByTestId("quick-scan"));
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/assets/scan");
     fireEvent.press(getByTestId("quick-pm"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules");
   });
 
-  it("labels the asset action honestly: there is no scanner, so it is Find Asset", async () => {
-    const { getByText, queryByText } = renderHome();
-    await waitFor(() => expect(getByText("home.engineer.quickAsset")).toBeTruthy());
-    expect(queryByText(/scan/i)).toBeNull();
+  it("keeps manual asset search as a visible fallback to the scanner", async () => {
+    const { getByTestId, getByText } = renderHome();
+    await waitFor(() => expect(getByTestId("quick-find-asset")).toBeTruthy());
+    expect(getByText("home.engineer.quickScan")).toBeTruthy();
+    fireEvent.press(getByTestId("quick-find-asset"));
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/assets");
   });
 
   it("gives every quick action a button role and an accessible name", async () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("quick-report")).toBeTruthy());
-    for (const id of ["quick-report", "quick-room", "quick-asset", "quick-pm"]) {
+    for (const id of ["quick-report", "quick-room", "quick-scan", "quick-pm", "quick-find-asset"]) {
       expect(getByTestId(id).props.accessibilityRole).toBe("button");
       expect(getByTestId(id).props.accessibilityLabel).toBeTruthy();
     }
+  });
+
+  it("still navigates while offline or after a failed load (the destinations read their own state)", async () => {
+    mockOnline = false;
+    mockAll.mockRejectedValue(new Error("Network request failed"));
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("quick-scan")).toBeTruthy());
+    fireEvent.press(getByTestId("quick-scan"));
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/assets/scan");
+    fireEvent.press(getByTestId("quick-report"));
+    expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/new");
+  });
+});
+
+describe("EngineerHome for a chief engineer", () => {
+  beforeEach(() => {
+    mockRole = "chief_engineer";
+  });
+
+  it("has no personal My Jobs card and no technician empty state to start a job", async () => {
+    serve({ open: [wo({ id: "o1", priority: "urgent" })] });
+    const { getByTestId, queryByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("summary-urgent").props.accessibilityLabel).toBe("home.engineer.cardUrgent: 1"));
+    expect(queryByTestId("summary-my-jobs")).toBeNull();
+    expect(queryByTestId("engineer-no-active")).toBeNull();
+    expect(queryByTestId("engineer-view-work")).toBeNull();
+  });
+
+  it("opens the same urgent scope as the count, hotel-wide", async () => {
+    serve({ open: [wo({ id: "o1", priority: "urgent", assigned_to: "other" })] });
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("summary-urgent").props.accessibilityLabel).toBe("home.engineer.cardUrgent: 1"));
+    fireEvent.press(getByTestId("summary-urgent"));
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "all", filter: "urgent", nav: expect.any(String) } });
+  });
+
+  it("can still report an issue, scan equipment and open PM", async () => {
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("quick-scan")).toBeTruthy());
+    expect(getByTestId("quick-report")).toBeTruthy();
+    expect(getByTestId("quick-pm")).toBeTruthy();
+  });
+});
+
+describe("EngineerHome tenant and person isolation", () => {
+  it("drops the previous hotel's queue immediately when the signed-in scope changes", async () => {
+    serve({ open: [wo({ id: "emg", title: "Hotel one leak", priority: "emergency" })] });
+    const { getByTestId, queryByTestId, rerender } = renderHome();
+    await waitFor(() => expect(getByTestId("attention-wo:emg")).toBeTruthy());
+
+    mockTenant = "h2";
+    serve({});
+    rerender(
+      <ThemeProvider>
+        <EngineerHome name="Dev Patel" />
+      </ThemeProvider>,
+    );
+    expect(queryByTestId("attention-wo:emg")).toBeNull();
+    await waitFor(() => expect(getByTestId("attention-empty")).toBeTruthy());
   });
 });

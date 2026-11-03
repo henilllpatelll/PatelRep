@@ -6,12 +6,15 @@
    Primary tabs are the work a person acts on now. Waiting (on hold) and Done (history) stay one tap away as
    secondary shortcuts and are still reachable by deep link (`?view=waiting`, `?view=done`). */
 
-import { availableViews, type QueueView } from "@/lib/engineering/workQueue";
+import { EMPTY_FILTERS, availableViews, type QueueFilters, type QueueView } from "@/lib/engineering/workQueue";
 
 export const SECONDARY_VIEWS: readonly QueueView[] = ["waiting", "done"];
 
+/** Views with no tab or shortcut: reached only from a link (Home's Urgent) and left with Back, like a secondary view. */
+export const LINK_ONLY_VIEWS: readonly QueueView[] = ["all"];
+
 export function isSecondaryView(view: QueueView): boolean {
-  return SECONDARY_VIEWS.includes(view);
+  return SECONDARY_VIEWS.includes(view) || LINK_ONLY_VIEWS.includes(view);
 }
 
 /**
@@ -25,7 +28,7 @@ export function primaryViews(role: string | null | undefined): QueueView[] {
 }
 
 export function secondaryViews(role: string | null | undefined): QueueView[] {
-  return availableViews(role).filter(isSecondaryView);
+  return availableViews(role).filter((view) => SECONDARY_VIEWS.includes(view));
 }
 
 /** The Work screen a person lands on and the one "back" returns to. */
@@ -45,4 +48,29 @@ export function resolveView(requested: unknown, role: string | null | undefined)
 /** The summary tiles describe the person's own assignments, so they exist only where My Work does. */
 export function showsSummary(view: QueueView, role: string | null | undefined): boolean {
   return view === "mine" && availableViews(role).includes("mine");
+}
+
+/** Filters a link may ask a Work view to open with. Only values listed here are honoured. */
+export const WORK_LINK_FILTERS = ["urgent"] as const;
+export type WorkLinkFilter = (typeof WORK_LINK_FILTERS)[number];
+
+export interface WorkLink {
+  view: QueueView;
+  /** Replaces that view's filters; null leaves whatever the person already set. */
+  filters: QueueFilters | null;
+}
+
+const first = (value: unknown): unknown => (Array.isArray(value) ? value[0] : value);
+
+/**
+ * What a deep link / Home link to Work asks for, or null when it asks for nothing this role can open. An unknown or
+ * unreachable view is ignored (never rewritten to a different queue), and an unknown filter is dropped while the
+ * view still opens, so a malformed link can only ever land on a screen the person could reach by hand.
+ */
+export function resolveWorkLink(viewParam: unknown, filterParam: unknown, role: string | null | undefined): WorkLink | null {
+  const view = first(viewParam);
+  if (!isReachableView(view, role)) return null;
+  const filter = first(filterParam);
+  const filters = filter === "urgent" ? { ...EMPTY_FILTERS, urgentOnly: true } : null;
+  return { view, filters };
 }

@@ -30,7 +30,7 @@ import {
 } from "@/lib/engineering/managerSummary";
 import { useClaimWorkOrder } from "@/lib/engineering/useClaimWorkOrder";
 import { dismissClaimConflict, useClaimConflicts } from "@/lib/engineering/claimConflicts";
-import { defaultView, isReachableView, primaryViews, resolveView, secondaryViews, showsSummary } from "@/lib/engineering/workNavigation";
+import { defaultView, primaryViews, resolveView, resolveWorkLink, secondaryViews, showsSummary } from "@/lib/engineering/workNavigation";
 import { isSummaryActive, summarySelection, type SummaryKey } from "@/lib/engineering/workSummary";
 import { buildWorkRows } from "@/lib/engineering/workRows";
 import {
@@ -86,7 +86,7 @@ export default function WorkOrdersScreen() {
   const home = defaultView(role);
   const hasSummary = showsSummary("mine", role);
 
-  const params = useLocalSearchParams<{ new?: string; view?: string }>();
+  const params = useLocalSearchParams<{ new?: string; view?: string; filter?: string; nav?: string }>();
   const [view, setView] = useState<QueueView>(() => resolveView(params.view, role));
   const [filtersByView, setFiltersByView] = useState<Record<QueueView, QueueFilters>>(emptyFiltersByView);
   const [searchText, setSearchText] = useState("");
@@ -95,9 +95,13 @@ export default function WorkOrdersScreen() {
   const [pulling, setPulling] = useState(false);
 
   // Home sends `view` to land on the right queue, and a fresh `new` to open the report form once per value.
+  // `filter` (e.g. Home's Urgent) narrows the view it names, so the list holds exactly what the link counted.
   useEffect(() => {
-    if (isReachableView(params.view, role)) setView(params.view);
-  }, [params.view, role]);
+    const link = resolveWorkLink(params.view, params.filter, role);
+    if (!link) return;
+    if (link.filters) setFiltersByView((prev) => ({ ...prev, [link.view]: link.filters as QueueFilters }));
+    setView(link.view);
+  }, [params.view, params.filter, params.nav, role]);
   const handledNew = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!params.new || handledNew.current === params.new) return;

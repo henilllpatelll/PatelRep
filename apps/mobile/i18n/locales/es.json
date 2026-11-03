@@ -198,7 +198,8 @@
       },
       "attentionTitle": "Requiere atención",
       "attentionEmpty": "Nada requiere atención por ahora.",
-      "attentionMore": "+{{count}} más — abrir Trabajo",
+      "attentionMoreWork": "+{{count}} órdenes más — abrir Trabajo",
+      "attentionMorePm": "+{{count}} MP más — abrir MP",
       "reason": {
         "emergency": "Emergencia",
         "urgentUnassigned": "Urgente",
@@ -213,7 +214,8 @@
       "quickTitle": "Acciones rápidas",
       "quickReport": "Reportar problema",
       "quickRoom": "Buscar habitación",
-      "quickAsset": "Buscar equipo",
+      "quickScan": "Escanear equipo",
+      "quickAsset": "Buscar equipo por nombre",
       "syncFailedEmpty": "No se pudieron cargar las órdenes"
     },
     "supervisor": {
@@ -10988,14 +10990,16 @@
       "available": "Disponibles",
       "team": "Equipo",
       "waiting": "En espera",
-      "done": "Hechas"
+      "done": "Hechas",
+      "all": "Todo activo"
     },
     "viewTitles": {
       "mine": "Mi trabajo",
       "available": "Trabajo disponible",
       "team": "Trabajo del equipo",
       "waiting": "En pausa",
-      "done": "Historial"
+      "done": "Historial",
+      "all": "Todo el trabajo activo"
     },
     "viewSubtitles": {
       "mine": "Tus reparaciones asignadas y en progreso",
@@ -11003,7 +11007,8 @@
       "availableManager": "Reparaciones sin asignar que necesitan responsable",
       "team": "Reparaciones asignadas a otros ingenieros",
       "waiting": "Detenidas por piezas, acceso o aprobación",
-      "done": "Órdenes completadas y canceladas, para consulta"
+      "done": "Órdenes completadas y canceladas, para consulta",
+      "all": "Todo lo abierto, en curso o en espera que puede ver"
     },
     "shortcuts": {
       "waiting": "En pausa",
