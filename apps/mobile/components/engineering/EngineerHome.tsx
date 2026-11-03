@@ -25,11 +25,13 @@ import {
   quickActionRoute,
   showsMyJobs,
   urgentWorkRoute,
+  usesChiefHome,
   workViewRoute,
-  type QuickActionKey,
+  type TechnicianQuickActionKey,
 } from "@/lib/engineering/homeNavigation";
 import { PM_LIST_ROUTE } from "@/lib/engineering/routes";
 import { useTheme } from "@/lib/theme/useTheme";
+import { ChiefEngineerHome } from "./home/chief/ChiefEngineerHome";
 import { TechnicianHomeHeader } from "./home/TechnicianHomeHeader";
 import { TechnicianSummaryCards, UNKNOWN_COUNT, type SummaryCardData } from "./home/TechnicianSummaryCards";
 import { TechnicianFocusCard } from "./home/TechnicianFocusCard";
@@ -38,14 +40,21 @@ import { TechnicianQuickActions } from "./home/TechnicianQuickActions";
 import { HomeLoadNotice } from "./home/HomeLoadNotice";
 
 /* ─── Engineering Home ──────────────────────────────────────────────────────
-   Technician layout: compact header, three counts, one contextual primary card, Needs Attention, four shortcuts. A chief
-   engineer gets the same screen without any personal-work pieces (no My Jobs, no focus card, no Available Work shortcut);
-   the management layout replaces it in a later phase. Everything is live; a failed section reports its own error and is
+   Technician layout: compact header, three counts, one contextual primary card, Needs Attention, four shortcuts. The
+   chief engineer has its own management Home (home/chief/ChiefEngineerHome); the dispatcher below picks by role, and the
+   chief branches below stay only as a permission-safe fallback. Everything is live; a failed section reports its own error and is
    never rendered as "nothing to do". Opening this screen never changes a work order: every control only navigates. */
 
 const REALTIME_DEBOUNCE_MS = 1500;
 
+/** One Home per engineering role. The role is read live, so a role change swaps the whole screen (and drops its state). */
 export function EngineerHome({ name }: { name: string }) {
+  const user = useAppStore((s) => s.user);
+  const role = user?.effective_role ?? user?.role;
+  return usesChiefHome(role) ? <ChiefEngineerHome name={name} /> : <TechnicianHome name={name} />;
+}
+
+function TechnicianHome({ name }: { name: string }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const user = useAppStore((s) => s.user);
@@ -173,7 +182,7 @@ export function EngineerHome({ name }: { name: string }) {
   }, [queueReady, canAct, syncItems.loaded, syncItems.drafts, pmViews, data.hasPm]);
 
   const onOpenAttention = (item: AttentionItem) => go(attentionRoute(item));
-  const onQuick = (key: QuickActionKey) => go(quickActionRoute(key, stamp()));
+  const onQuick = (key: TechnicianQuickActionKey) => go(quickActionRoute(key, stamp()));
   const showAttention = queueReady || data.hasPm || model.attention.length > 0;
 
   return (

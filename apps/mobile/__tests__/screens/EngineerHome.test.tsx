@@ -130,10 +130,9 @@ describe("EngineerHome header", () => {
     expect(getByTestId("engineer-hotel").props.children).toBe("Fossil Creek Inn");
   });
 
-  it("labels a chief engineer as such and opens profile from the avatar", async () => {
-    mockRole = "chief_engineer";
+  it("opens profile from the avatar", async () => {
     const { getByTestId } = renderHome();
-    await waitFor(() => expect(getByTestId("engineer-role").props.children).toBe("home.engineer.roleChief"));
+    await waitFor(() => expect(getByTestId("engineer-profile")).toBeTruthy());
     fireEvent.press(getByTestId("engineer-profile"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/profile");
   });
@@ -329,17 +328,6 @@ describe("EngineerHome primary card", () => {
     fireEvent.press(getByTestId("engineer-resume-pm"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/pm-schedules/inspect/pm9");
   });
-
-  it("gives a chief engineer no personal card: no continue, start, available or all-caught-up", async () => {
-    mockRole = "chief_engineer";
-    serve({ in_progress: [mine], open: [wo({ id: "free" })] });
-    const { getByTestId, queryByTestId, queryByText } = renderHome();
-    await waitFor(() => expect(getByTestId("summary-urgent")).toBeTruthy());
-    expect(queryByTestId("engineer-focus")).toBeNull();
-    expect(queryByTestId("engineer-focus-available")).toBeNull();
-    expect(queryByTestId("engineer-caught-up")).toBeNull();
-    expect(queryByText("home.engineer.continueRepair")).toBeNull();
-  });
 });
 
 describe("EngineerHome Needs Attention", () => {
@@ -515,38 +503,6 @@ describe("EngineerHome quick actions", () => {
     expect(router.push).toHaveBeenLastCalledWith("/(app)/assets/scan");
     fireEvent.press(getByTestId("quick-report"));
     expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/new");
-  });
-});
-
-describe("EngineerHome for a chief engineer", () => {
-  beforeEach(() => {
-    mockRole = "chief_engineer";
-  });
-
-  it("has no personal My Jobs card and no technician empty state to start a job", async () => {
-    serve({ open: [wo({ id: "o1", priority: "urgent" })] });
-    const { getByTestId, queryByTestId } = renderHome();
-    await waitFor(() => expect(getByTestId("summary-urgent").props.accessibilityLabel).toBe("home.engineer.cardUrgent: 1"));
-    expect(queryByTestId("summary-my-jobs")).toBeNull();
-    expect(queryByTestId("engineer-focus")).toBeNull();
-    expect(queryByTestId("engineer-view-available")).toBeNull();
-  });
-
-  it("opens the same urgent scope as the count, hotel-wide", async () => {
-    serve({ open: [wo({ id: "o1", priority: "urgent", assigned_to: "other" })] });
-    const { getByTestId } = renderHome();
-    await waitFor(() => expect(getByTestId("summary-urgent").props.accessibilityLabel).toBe("home.engineer.cardUrgent: 1"));
-    fireEvent.press(getByTestId("summary-urgent"));
-    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "all", filter: "urgent", nav: expect.any(String) } });
-  });
-
-  it("can still report an issue, scan equipment, open room status and PM, but is not offered Available Work", async () => {
-    const { getByTestId, queryByTestId } = renderHome();
-    await waitFor(() => expect(getByTestId("quick-scan")).toBeTruthy());
-    expect(getByTestId("quick-report")).toBeTruthy();
-    expect(getByTestId("quick-room")).toBeTruthy();
-    expect(getByTestId("quick-pm")).toBeTruthy();
-    expect(queryByTestId("quick-available")).toBeNull();
   });
 });
 

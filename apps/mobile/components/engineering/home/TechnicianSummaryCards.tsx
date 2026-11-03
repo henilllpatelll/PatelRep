@@ -7,7 +7,7 @@ import { HOME_MAX_FONT } from "./homeStyles";
 export const UNKNOWN_COUNT = "—";
 
 export interface SummaryCardData {
-  key: "myJobs" | "urgent" | "pmDue";
+  key: "myJobs" | "urgent" | "pmDue" | "needsOwner" | "inProgress" | "waiting";
   label: string;
   /** Display text. UNKNOWN_COUNT means the number is not known; it is never shown as a zero. */
   value: string;

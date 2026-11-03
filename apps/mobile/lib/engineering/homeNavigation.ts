@@ -8,7 +8,7 @@
    - A list that shows only part of its items links to every kind of item it contains (work orders and PM).
    - What a role is offered follows apps/api guards (see roles.ts); the server still enforces every action. */
 
-import { PM_LIST_ROUTE, pmInspectRoute, pmScheduleRoute } from "@/lib/engineering/routes";
+import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE, pmInspectRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 import { canActOnWorkOrders } from "@/lib/engineering/roles";
 import { defaultView } from "@/lib/engineering/workNavigation";
 import type { AttentionItem } from "@/lib/engineering/homeModel";
@@ -22,7 +22,7 @@ export const ASSET_SCAN_ROUTE = "/(app)/assets/scan";
 
 export interface WorkRoute {
   pathname: typeof WORK_ROUTE;
-  params: { view: QueueView; filter?: "urgent"; nav?: string };
+  params: { view: QueueView; filter?: "urgent" | "in_progress"; nav?: string };
 }
 
 /**
@@ -57,18 +57,62 @@ export function continueLabelKey(role: string | null | undefined): "continueRepa
 export const SCAN_ASSET_ROUTE = ASSET_SCAN_ROUTE;
 export const ENGINEERING_SYNC_ROUTE = "/(app)/engineering-sync";
 
-export type QuickActionKey = "report" | "scan" | "room" | "available" | "pm";
+export type TechnicianQuickActionKey = "report" | "scan" | "room" | "available" | "pm";
+export type ChiefQuickActionKey = "assign" | "team" | "pm" | "assets";
+export type QuickActionKey = TechnicianQuickActionKey | ChiefQuickActionKey;
 
 /**
  * Home shortcuts, in order. Reporting an issue, scanning and room status are open to every engineering role. The
  * Available Work queue is the technician's pick-up list, so a role that cannot act on work orders gets PM instead and
  * is never offered a technician-only entry point.
  */
-export function quickActionKeys(role?: string | null): QuickActionKey[] {
+export function quickActionKeys(role?: string | null): TechnicianQuickActionKey[] {
   return canActOnWorkOrders(role) ? ["report", "scan", "room", "available"] : ["report", "scan", "room", "pm"];
 }
 
-export function quickActionRoute(key: QuickActionKey, token?: string): WorkRoute | string {
+export const TEAM_OVERVIEW_ROUTE = "/(app)/team";
+
+/** True for the one role that gets the management Home (a GM has its own Home; an engineer gets the technician one). */
+export function usesChiefHome(role: string | null | undefined): boolean {
+  return role === "chief_engineer";
+}
+
+/**
+ * Chief Engineer shortcuts. Assign Work opens Available Work (unassigned open/escalated orders, each with its Assign
+ * action) rather than a target-less sheet; PM Planning opens the PM Plan view; Assets opens the directory.
+ */
+export function chiefQuickActionKeys(): ChiefQuickActionKey[] {
+  return ["assign", "team", "pm", "assets"];
+}
+
+export function chiefQuickActionRoute(key: ChiefQuickActionKey, token?: string): WorkRoute | string | { pathname: string; params: Record<string, string> } {
+  switch (key) {
+    case "assign":
+      return workViewRoute("available", token);
+    case "team":
+      return TEAM_OVERVIEW_ROUTE;
+    case "pm":
+      return { pathname: PM_LIST_ROUTE, params: { view: "plan" } };
+    case "assets":
+      return ASSETS_LIST_ROUTE;
+  }
+}
+
+export type ChiefSummaryKey = "needsOwner" | "inProgress" | "waiting";
+
+/** The three management counts and the exact queue each one opens (the same selections the Work tiles make). */
+export function chiefSummaryRoute(key: ChiefSummaryKey, token?: string): WorkRoute {
+  switch (key) {
+    case "needsOwner":
+      return workViewRoute("available", token);
+    case "waiting":
+      return workViewRoute("waiting", token);
+    case "inProgress":
+      return { pathname: WORK_ROUTE, params: token ? { view: "team", filter: "in_progress", nav: token } : { view: "team", filter: "in_progress" } };
+  }
+}
+
+export function quickActionRoute(key: TechnicianQuickActionKey, token?: string): WorkRoute | string {
   switch (key) {
     case "report":
       return REPORT_ISSUE_ROUTE;

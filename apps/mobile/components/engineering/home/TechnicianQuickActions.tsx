@@ -14,6 +14,9 @@ const ICONS: Record<QuickActionKey, IconName> = {
   room: "bed-outline",
   available: "list-outline",
   pm: "calendar-outline",
+  assign: "person-add-outline",
+  team: "people-outline",
+  assets: "construct-outline",
 };
 
 const LABELS: Record<QuickActionKey, string> = {
@@ -22,10 +25,22 @@ const LABELS: Record<QuickActionKey, string> = {
   room: "home.engineer.quickRoom",
   available: "home.engineer.quickAvailable",
   pm: "home.engineer.quickPm",
+  assign: "home.chief.quickAssign",
+  team: "home.chief.quickTeam",
+  assets: "home.chief.quickAssets",
 };
 
 /** Four real shortcuts into existing screens. No confirmation steps, no placeholders. */
-export function TechnicianQuickActions({ keys, onOpen }: { keys: QuickActionKey[]; onOpen: (key: QuickActionKey) => void }) {
+export function TechnicianQuickActions<K extends QuickActionKey>({
+  keys,
+  onOpen,
+  labelOverrides,
+}: {
+  keys: K[];
+  onOpen: (key: K) => void;
+  /** i18n keys that replace a shortcut's default label (the chief's "pm" reads "PM Planning"). */
+  labelOverrides?: Partial<Record<QuickActionKey, string>>;
+}) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
@@ -39,13 +54,13 @@ export function TechnicianQuickActions({ keys, onOpen }: { keys: QuickActionKey[
             key={key}
             onPress={() => onOpen(key)}
             accessibilityRole="button"
-            accessibilityLabel={t(LABELS[key])}
+            accessibilityLabel={t(labelOverrides?.[key] ?? LABELS[key])}
             testID={`quick-${key}`}
             style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.primaryLine }]}
           >
             <Ionicons name={ICONS[key]} size={22} color={theme.primaryAction} />
             <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[styles.text, { color: theme.primaryAction }]}>
-              {t(LABELS[key])}
+              {t(labelOverrides?.[key] ?? LABELS[key])}
             </Text>
           </Pressable>
         ))}

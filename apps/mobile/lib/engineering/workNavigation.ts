@@ -51,7 +51,7 @@ export function showsSummary(view: QueueView, role: string | null | undefined): 
 }
 
 /** Filters a link may ask a Work view to open with. Only values listed here are honoured. */
-export const WORK_LINK_FILTERS = ["urgent"] as const;
+export const WORK_LINK_FILTERS = ["urgent", "in_progress"] as const;
 export type WorkLinkFilter = (typeof WORK_LINK_FILTERS)[number];
 
 export interface WorkLink {
@@ -71,6 +71,12 @@ export function resolveWorkLink(viewParam: unknown, filterParam: unknown, role: 
   const view = first(viewParam);
   if (!isReachableView(view, role)) return null;
   const filter = first(filterParam);
-  const filters = filter === "urgent" ? { ...EMPTY_FILTERS, urgentOnly: true } : null;
+  // `in_progress` is the manager's In Progress count: Team narrowed to that one status (the same selection the Work tile makes).
+  const filters =
+    filter === "urgent"
+      ? { ...EMPTY_FILTERS, urgentOnly: true }
+      : filter === "in_progress" && view === "team"
+        ? { ...EMPTY_FILTERS, statuses: ["in_progress" as const] }
+        : null;
   return { view, filters };
 }

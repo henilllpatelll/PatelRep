@@ -5,8 +5,8 @@ one draft PR, one commit per phase. The repository is the authority for behavior
 interactive prototype (`patelrep-engineering-home-interactive.html`, supplied separately and not committed) is a visual
 and interaction reference only. Its fictional hotel, people, counts, work orders and PM records are never shipped.
 
-Status: **Phases 1 and 2 of 8 are implemented** (Phase 1: foundation, navigation contract, role correctness; Phase 2: the
-complete Technician Home). Phases 3-8 are scope, not code.
+Status: **Phases 1-3 of 8 are implemented** (Phase 1: foundation, navigation contract, role correctness; Phase 2: the
+complete Technician Home; Phase 3: the Chief Engineer command center). Phases 4-8 are scope, not code.
 
 ## 1. Eight-phase scope
 
@@ -14,7 +14,7 @@ complete Technician Home). Phases 3-8 are scope, not code.
 |---|-------|----------|
 | 1 | Foundation, architecture, correctness | Navigation contract, `all` Work view, scanner shortcut, role-correct Home actions, this document, tests |
 | 2 | Technician Home (**done**) | Compact header, three exact/honest counts, contextual primary card (continue / start next / resume PM / available / caught up), Needs Attention with an in-place full list, four shortcuts, single-request queue, tests |
-| 3 | Chief Engineer Home | Management layout: Needs Owner / In Progress / On Hold, property priorities, workload, PM oversight |
+| 3 | Chief Engineer Home (**done**) | Management layout: Needs owner / In progress / On hold, Property Priorities with in-place Assign, team workload, room/PM oversight, four shortcuts, one overview read, tests |
 | 4 | Manager entry points | Assign Work, Team Overview, PM Planning, Assets entry points; room-down summary |
 | 5 | Sync, connectivity, notifications | Deeper sync/offline/stale states, pending-action visibility, notification entry points beyond the Home header |
 | 6 | Prototype gap closure | Only the genuine gaps in section 6 that the owner approves |
@@ -70,16 +70,112 @@ When the work queue cannot load (offline), a real saved draft is still offered u
 
 ## 3. Chief Engineer Home (role `chief_engineer`)
 
-Target (Phase 3/4): property header; Needs Owner / In Progress / On Hold from the team overview; property-level
-emergencies; room-down information where available; overdue PM oversight; technician workload; entry points to Assign
-Work, Team Overview, PM Planning and Assets; notifications, sync, profile.
+Own screen, not the technician Home with renamed cards. `EngineerHome.tsx` is a thin dispatcher: `usesChiefHome(role)`
+(`homeNavigation.ts`) picks `ChiefEngineerHome` for `chief_engineer`, `TechnicianHome` for everyone else. The role is read live
+from the store, so a role change swaps the whole component and drops its state (and its data: management data is only ever
+held by the chief component). Tab bar unchanged: Home | Work | PM | Assets | More.
 
-Never offered to a chief engineer: claim, start/pause/hold/escalate/complete a work order, My Jobs, Continue Repair
-(API guards in `apps/api/routers/work_orders.py` are `engineer` + `gm` only).
+Top to bottom (`components/engineering/home/chief/`, reusing the Phase 2 header, summary cards, quick actions, notice row):
 
-Phase 2 interim (shared screen, permission-safe): a chief engineer gets the same header, Urgent and PM Due cards, Needs
-Attention and shortcuts, but no My Jobs card, no primary card (`resolveFocus` returns `none` when the role cannot act
-on work orders) and no Available Work shortcut (PM instead). Urgent is hotel-wide. The management layout replaces this in Phase 3.
+1. **Header** - the shared `TechnicianHomeHeader` with `heading` ("Engineering Overview"), hotel name, role line
+   ("Chief engineer - first name"), bell with unread count, avatar (profile) and the connection line (last successful read,
+   offline/failed/pending; opens Engineering Sync). No hotel switcher: PatelRep has no verified property-switching flow.
+2. **Metrics** - Needs owner, In progress, On hold (3.1).
+3. **Property priorities** (`PropertyPriorities`) - the main section (3.2), with in-place Assign (3.3).
+4. **Team workload** (`TeamWorkloadPreview`) - 3.4.
+5. **Rooms and PM** (`ChiefOversight`) - two honest aggregates (3.4).
+6. **Shortcuts** - Assign Work, Team Overview, PM Planning, Assets (3.5).
+
+Never offered to a chief engineer: claim, start/pause/hold/escalate/complete a work order, My Jobs, Continue Repair, Available
+Work as a technician pick-up list (API guards in `apps/api/routers/work_orders.py` are `engineer` + `gm` only). The one action Home
+performs is **Assign**, which `POST /work-orders/{id}/assign` restricts to `chief_engineer` + `gm` server-side.
+
+The Phase 2 "chief interim" branches inside `TechnicianHome` are unreachable for `chief_engineer` now; they stay as a
+permission-safe fallback (they never offer a personal-work control to a role that cannot act).
+
+### 3.1 Metrics
+
+| Card | Value | Opens |
+|------|-------|-------|
+| Needs owner | `counts.needs_owner` | Work `?view=available` (unassigned open/escalated: exactly what the count means) |
+| In progress | `counts.in_progress` | Work `?view=team&filter=in_progress` (Team narrowed to the one status, the selection the Work tile makes) |
+| On hold | `counts.on_hold` | Work `?view=waiting` |
+
+Source: the `managerSummary` contract over `GET /engineering/team/overview`; Home counts nothing itself. A field the server
+omits or malforms is unknown and shows "-" with an "unavailable" accessible name, never 0. Loading and failed reads also show
+"-". If the server read only part of the active work (`truncated`) every card shows `N+`. "All active work has an owner."
+appears only when `needs_owner` is a confirmed 0 and counts are complete.
+
+`resolveWorkLink` gained one filter, `in_progress`, honoured only on the `team` view; on any other view it is dropped (never
+applied to the wrong queue), and an engineer cannot reach `team` at all (the link is ignored, not rewritten).
+
+### 3.2 Property priorities (`chiefHomeModel.buildPriorities`)
+
+Built from the overview's own records; records are never merged or reclassified:
+
+| Rank | Source | Row |
+|------|--------|-----|
+| 0 | `needs_attention` kind `emergency_unassigned` | work order |
+| 1 | `urgent_overdue` | work order |
+| 2 | `escalated` | work order |
+| 3 | `rooms_down` (only when `total > 0`) | one aggregate row |
+| 4 | `on_hold` | work order |
+| 5 | `pm_oversight.overdue` | PM schedule |
+| 6 | `pm_oversight.repeat_defects` | equipment |
+
+The order is a display policy; statuses, permissions and which items qualify are the server's. Within one rank the server's order
+is kept; duplicate ids are dropped. Rows show category, WO number, room, title, owner or "Unassigned", hold reason for held work.
+Four rows are previewed; **View all (N)** expands the same list in place so work orders, rooms and PM stay together (a
+Work-only destination would drop the PM and room rows). Work orders the server flagged but did not send (its
+`attention_counts` exceed the rows) are counted and link to Team Overview. A source the server could not read
+(`pm_oversight` or `rooms_down` null) shows an "unavailable" notice with Retry and disables the all-clear; so do `truncated`
+reads and hidden work orders. The calm state ("No emergency, overdue, escalated or held work, and no rooms or PM flagged.")
+needs every source readable, nothing cut off and nothing flagged.
+
+Row destinations use the safe route builders (`workOrderRoute`, `pmScheduleRoute`, `assetRoute`): a malformed id falls back to
+the relevant list, never a bad link. The room row opens the existing Room Status screen.
+
+**Room semantics.** Only the server's confirmed `rooms_down` figure is shown, as an aggregate. A repair, a faulty asset or an
+alert is never presented as a room being out of order, individual rooms are never fabricated from the aggregate, and Home
+changes no room status. Completing a work order still does not mark a room ready; that stays with housekeeping/front desk.
+
+### 3.3 Assignment
+
+Reuses `AssignTechnicianSheet`, `useTechnicians`, `useAssignTechnician`, `POST /work-orders/{id}/assign` and
+`classifyAssignError` unchanged, plus one optional field: `AssignTarget.location` (the room), shown in the sheet header.
+Assign/Reassign is offered on work-order rows except held work with no owner (same rule as Team Overview) and only for a manager
+role; offline the control is disabled with a note, and the sheet blocks confirm. The sheet sends `expected_assigned_to` (the
+assignee Home displayed) so a stale view is refused (409), and a ref guard prevents a double submit. Success is shown only
+after the server answers; "already assigned to that person" is reported as such. `useAssignTechnician` emits
+`emitAssignmentChanged`, which `useTeamOverview` listens to, so the overview (counts, priorities, workload) re-reads once after
+a confirmed assignment; a conflict triggers one re-read through `onNeedsRefresh`. The sheet lists technicians with their job
+counts only: no "available now" label exists anywhere because no shift/clock-in source does.
+
+### 3.4 Workload and oversight
+
+`TeamWorkloadPreview`: top four technicians by active jobs (name, active count, plus urgent / overdue / on-hold when non-zero),
+**View Team (N)** to Team Overview, each row to that technician's existing work list (`/(app)/team/<id>`). The bar is
+`active / max(active of those shown)`: a relative comparison of job counts, documented as such on screen, always paired with the
+number, and never a utilisation, capacity or availability claim. No technicians: an accurate empty state.
+
+`ChiefOversight`: rooms (confirmed count, "past expected return") opens Room Status; PM (overdue count, repeated-defect equipment
+count) opens the PM **Plan** (`/(app)/pm-schedules?view=plan`). Unknown figures read "Unavailable". PM schedule create/edit/
+defer/inspect/history are not duplicated: rows open the existing screens, whose own role gates (`canManagePmSchedules`,
+`canCompletePm`) apply - a chief engineer's inability to complete work orders says nothing about PM.
+
+### 3.5 Shortcuts
+
+Assign Work -> Available Work (an actionable list: each unassigned order has its Assign action; no target-less sheet),
+Team Overview -> `/(app)/team`, PM Planning -> PM Plan, Assets -> `/(app)/assets`.
+
+### 3.6 Data loading
+
+One request: `useTeamOverview` (`useAsyncResource`, key `tenant:user:team`). It already guarantees: newest request wins, a
+different property/person starts empty (no flash of the previous hotel), a failed refresh keeps the last good data and reports
+the failure, last good data is reused on return. Home adds: refetch on regaining focus (not the first focus), pull-to-refresh
+(its own spinner flag, so realtime reads do not pop the pull spinner), one trailing read per 1.5 s burst of `work_orders`
+realtime events, a minute tick for "synced N min ago". The Phase 2 technician hook reads three endpoints; the chief Home reads
+one.
 
 ## 4. Role permissions per action
 
@@ -157,7 +253,7 @@ Notes:
 | Account / help | `profile/*`, `profile/help` | none |
 | Team screen | `team/index`, `team/[userId]` | none |
 | Dedicated "Attention" screen | none (Work `all` view + PM list cover it for now) | Phase 7, only if approved |
-| Chief dashboard cards (workload, PM oversight, room-down) | pieces exist (`useTeamOverview`, `managerSummary`, room board) | composition in Phase 5/6 |
+| Chief dashboard cards (workload, PM oversight, room-down) | `home/chief/*` over `useTeamOverview` | done in Phase 3 |
 
 ## 7. Canonical data sources
 
@@ -168,7 +264,8 @@ Notes:
 | PM Due | `listPmSchedules`, active schedules overdue or due today in hotel time (`pmSchedules.adaptPmSchedules`) |
 | Primary card | Same queue + PM + saved drafts (`usePmSyncItems`), `homeFocus.resolveFocus` |
 | Attention list | Same queue + overdue PM + blocked saved inspections (`needsPerson` states); one entry per order/schedule, most severe reason wins; the primary card's order is not repeated |
-| Chief: Needs Owner / In Progress / On Hold | `GET /engineering/team/overview` counts (`managerSummary`) - Phase 3 |
+| Chief: Needs owner / In progress / On hold | `GET /engineering/team/overview` `counts.needs_owner` / `in_progress` / `on_hold` via `managerSummary` (section 3.1) |
+| Chief: priorities, workload, rooms, PM | The same overview: `needs_attention`, `technicians`, `rooms_down`, `pm_oversight` (section 3) |
 | Connection line | `resolveSyncStatus`: online flag, pending queue, last successful load |
 
 Attention order: emergency, blocked saved inspection, urgent unassigned, past due, overdue PM, on hold (mine). Ties keep
@@ -197,7 +294,7 @@ reload per 1.5 s burst. Late answers for an old request or scope are dropped.
 
 ## 9. Ownership, accessibility, acceptance
 
-Component ownership: `lib/engineering/homeFocus.ts` (primary-card state machine), `homeModel.ts` (counts, attention, connection
+Component ownership: `lib/engineering/chiefHomeModel.ts` (chief summary, priority ordering, workload scale, routes; pure), `components/engineering/home/chief/*` (chief composition), `lib/engineering/homeFocus.ts` (primary-card state machine), `homeModel.ts` (counts, attention, connection
 state), `homeNavigation.ts` (all links), `useEngineeringHome.ts` (data), `components/engineering/EngineerHome.tsx` (composition) and
 `components/engineering/home/*` (presentational pieces). Business logic stays in the model files; the components only render.
 
@@ -219,5 +316,28 @@ protection, tenant isolation), `listActiveWorkOrders.test.ts`, `workSummary.test
 Departures from the prototype: the prototype's Start Repair button on Home is an "Open Job" link (see 2.1); "View all" expands in
 place instead of opening a separate Attention screen; the fictional hotel, people and counts are never shipped.
 
-Not done / deferred: Chief Engineer management layout (Phase 3); a server-side exact Urgent count (would need a new endpoint
+Not done / deferred: a server-side exact Urgent count (would need a new endpoint
 scoped to own + unclaimed work; today it is exact unless the queue is cut off); device/emulator run (not performed in this phase).
+
+## 11. Phase 3 record
+
+Tests (all in `apps/mobile/__tests__`): `lib/engineering/chiefHomeModel.test.ts` (summary known/unknown/zero, priority order,
+dedup, room aggregate, all-clear conditions, hidden work orders, safe routes and fallbacks, assign eligibility and target,
+workload scaling), `chiefHomeNavigation.test.ts` (the three cards open the same queues and filters as the Work tiles and their
+list requests, role gating of the link, shortcuts), `chiefHomeI18n.test.ts` (en/es key parity, real i18next resolution, v3
+plurals), `screens/ChiefEngineerHome.test.tsx` (role routing and role change, header, cards incl. loading/older server/
+truncated, priorities, assignment success/conflict/403/500/double-tap/no-op/offline/held, workload, oversight, shortcuts,
+error/stale/offline/pull-to-refresh/focus/realtime burst/out-of-order, tenant switch, a11y, dark mode), plus `pluralKeys` and
+`EngineerHome.test.tsx` (chief interim cases removed: that role no longer renders the technician Home).
+
+Departures from the prototype: the prototype's priority "View all" is an in-place expansion plus Team Overview for the rest; its
+"Available now" technician list and utilisation-style bars are not shipped (no availability or capacity data exists); room-down is
+an aggregate (no per-room source in the overview); its fictional data is never shipped. No new tab, route, endpoint, migration or RBAC change.
+
+Not verified: no device or emulator run in this phase; assignment against a live API was not exercised (covered with mocked
+API contracts and the existing sheet tests).
+
+### Remaining for Phase 4
+
+Individual room rows for rooms down (needs a per-room read in the overview or a room-board query); the full drawer/sheet
+refinements for the Work, PM and Assets screens when entered from Home; a server-side exact urgent count; device QA of both roles.

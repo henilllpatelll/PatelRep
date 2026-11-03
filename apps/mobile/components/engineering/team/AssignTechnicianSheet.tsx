@@ -19,6 +19,8 @@ export interface AssignTarget {
   code: string | null;
   title: string;
   priority: string | null;
+  /** Room number (or other place) the order is about, when the caller knows it. */
+  location?: string | null;
   /** The assignee the manager is looking at (null = unassigned). Sent back so the server can detect a stale view. */
   assignedTo: string | null;
   assignedToName?: string | null;
@@ -107,7 +109,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
         <View style={sheetStyles.stack}>
           <View accessible accessibilityLabel={`${target.code ?? ""} ${target.title}`} style={styles.header}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.code, { color: theme.textMuted }]}>
-              {[target.code, target.priority ? t(`workQueue.priority.${target.priority}`) : null].filter(Boolean).join(" · ")}
+              {[target.code, target.priority ? t(`workQueue.priority.${target.priority}`) : null, target.location ? t("workQueue.roomLabel", { room: target.location }) : null].filter(Boolean).join(" · ")}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]} numberOfLines={3}>
               {target.title}

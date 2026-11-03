@@ -17,6 +17,8 @@ function firstName(name?: string | null) {
 interface Props {
   name: string;
   greetingKey: string;
+  /** Replaces the greeting (the chief's "Engineering Overview"); the person is then named in the role line. */
+  heading?: string;
   hotelName: string | null;
   /** Role line, e.g. "Maintenance technician" / "Chief engineer". */
   roleLabel: string;
@@ -25,7 +27,7 @@ interface Props {
 }
 
 /** Compact header: who, where, role, notifications, profile and the honest connection line. */
-export function TechnicianHomeHeader({ name, greetingKey, hotelName, roleLabel, unreadCount, connection }: Props) {
+export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, roleLabel, unreadCount, connection }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -43,7 +45,7 @@ export function TechnicianHomeHeader({ name, greetingKey, hotelName, roleLabel, 
         </Pressable>
         <View style={styles.identity}>
           <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" numberOfLines={1} style={[styles.title, { color: theme.shell.ink }]}>
-            {t(greetingKey, { name: firstName(name) })}
+            {heading ?? t(greetingKey, { name: firstName(name) })}
           </Text>
           {hotelName ? (
             <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.sub, { color: theme.shell.ink2 }]} testID="engineer-hotel">
