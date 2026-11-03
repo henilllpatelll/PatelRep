@@ -225,7 +225,10 @@ jobs:
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
-      - name: Verify candidate schema contracts
+      # The schema contracts are trusted main's copy: a candidate-supplied SQL file would run with the staging database
+      # credential. The candidate's own contract additions still run on the throwaway database in CI Gate.
+      - name: Verify schema contracts (trusted copy)
+        working-directory: .trusted-control-plane
         run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
@@ -243,14 +246,25 @@ jobs:
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
       - name: Grant staging fixture service access
+        working-directory: .trusted-control-plane
         run: |
           psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; notify pgrst, 'reload schema';"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-      - name: Install fixture dependencies
-        run: cd apps/web && npm ci
-      - name: Seed deterministic synthetic hotel fixture
-        run: cd apps/web && npm run seed:staging-fixture
+      # Fixture seeding and flag changes use the staging service-role key, so they run trusted main's scripts with
+      # trusted main's lockfile. Lifecycle scripts are disabled, and the candidate's package.json, lockfile, .npmrc and
+      # install scripts are never used in this job. No secret is present in this step's environment.
+      - name: Install trusted fixture dependencies (lockfile from main, no lifecycle scripts)
+        working-directory: .trusted-control-plane/apps/web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Re-verify the trusted control plane before using the service-role key
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Seed deterministic synthetic hotel fixture (trusted script)
+        working-directory: .trusted-control-plane
+        run: node apps/web/e2e/fixtures/seed-staging-tenant.mjs
         env:
           APP_ENV: staging
           SEED_STAGING_FIXTURES: confirm
@@ -258,17 +272,21 @@ jobs:
           SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
-      - name: Enable this PR's required feature flags on the staging fixture tenant
+      # The registry check and the flag writer are trusted main's scripts. The candidate's registry files are read only as
+      # DATA (the key must be registered in the candidate's own registries); the writer only touches the fixture tenant.
+      - name: Enable this PR's required feature flags on the staging fixture tenant (trusted scripts)
         if: needs.resolve-candidate.outputs.flags_csv != ''
+        working-directory: .trusted-control-plane
         run: |
           IFS=',' read -ra FLAG_KEYS <<< "$FLAGS_CSV"
           for key in "${FLAG_KEYS[@]}"; do
             [ -z "$key" ] && continue
             echo "Enabling $key for the staging fixture tenant"
-            node scripts/check-feature-flag-registry.mjs --key "$key"
+            node scripts/check-feature-flag-registry.mjs --python "$CANDIDATE_WORKSPACE/apps/api/core/feature_registry.py" --typescript "$CANDIDATE_WORKSPACE/apps/web/lib/featureRegistry.ts" --key "$key"
             FEATURE_KEY="$key" node apps/web/scripts/apply-feature-flag.mjs
           done
         env:
+          CANDIDATE_WORKSPACE: ${{ github.workspace }}
           FLAGS_CSV: ${{ needs.resolve-candidate.outputs.flags_csv }}
           SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}

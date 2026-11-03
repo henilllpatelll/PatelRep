@@ -44,7 +44,18 @@ export const PRIVILEGED_STAGING_FILES = [
   'supabase/staging-duplicate-coverage.json',
   'supabase/migration-manifest.json',
   'supabase/config.toml',
+  // Run with the staging database credential or the staging service-role key; never from the candidate checkout.
+  'scripts/schema-contracts.sql',
+  'scripts/check-feature-flag-registry.mjs',
+  'apps/web/scripts/apply-feature-flag.mjs',
+  'apps/web/e2e/fixtures/seed-staging-tenant.mjs',
+  'apps/web/e2e/fixtures/staging-fixture-users.mjs',
+  'apps/web/package.json',
+  'apps/web/package-lock.json',
 ];
+
+/** Trusted-tree directories where an untracked file could shadow or extend privileged code. */
+export const GUARDED_DIRECTORIES = ['scripts', 'supabase', 'apps/web/scripts', 'apps/web/e2e'];
 
 function fail(message) {
   throw new Error(`Refusing privileged staging action: ${message}`);
@@ -102,8 +113,8 @@ export function assertTrustedControlPlane({
   const head = git(root, ['rev-parse', 'HEAD']);
   if (head !== expectedSha) fail(`the trusted checkout is at ${head.slice(0, 12)}, not the workflow commit ${expectedSha.slice(0, 12)}.`);
   if (git(root, ['status', '--porcelain', '--untracked-files=no']) !== '') fail('the trusted checkout has modified tracked files.');
-  if (git(root, ['status', '--porcelain', '--untracked-files=all', '--', 'scripts', 'supabase']) !== '') {
-    fail('the trusted checkout has untracked files under scripts/ or supabase/.');
+  if (git(root, ['status', '--porcelain', '--untracked-files=all', '--', ...GUARDED_DIRECTORIES]) !== '') {
+    fail(`the trusted checkout has untracked files under ${GUARDED_DIRECTORIES.join(', ')}.`);
   }
 
   for (const path of protectedPaths) {

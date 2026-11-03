@@ -125,7 +125,7 @@ test('migrates persistent staging forward only, guarded, and proves API/web iden
   const postgresClient = workflow.indexOf('apt-get install --yes postgresql-client')
   const driftCheck = workflow.indexOf('node scripts/check-db-drift.mjs --environment staging')
   const fixtureAccess = workflow.indexOf('Grant staging fixture service access')
-  const fixtureSeed = workflow.indexOf('npm run seed:staging-fixture')
+  const fixtureSeed = workflow.indexOf('node apps/web/e2e/fixtures/seed-staging-tenant.mjs') // trusted copy; see staging-trusted-execution.test.mjs
   assert.ok(guard >= 0 && plan > guard, 'target guard must execute before the read-only plan')
   assert.ok(postgresClient >= 0 && postgresClient < plan, 'psql must be installed before the plan reads migration history')
   assert.ok(push > plan && push < driftCheck, 'forward push happens only after the plan and before the clean-drift proof')

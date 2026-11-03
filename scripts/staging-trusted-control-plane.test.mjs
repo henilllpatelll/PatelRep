@@ -83,8 +83,17 @@ refusing('GITHUB_SHA is not a full commit SHA', (c) => { c.env.GITHUB_SHA = 'mai
 refusing('trusted checkout is not at the workflow commit', (c) => { c.env.GITHUB_SHA = '0'.repeat(40) }, /not the workflow commit/)
 refusing('a modified privileged script in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, TARGET_GUARD), 'export const guard = "neutered"\n') }, /modified tracked files/)
 refusing('a modified coverage registry in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'supabase/staging-duplicate-coverage.json'), '{"files":[]} \n') }, /modified tracked files/)
-refusing('an untracked script planted in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'scripts/extra.mjs'), 'export {}\n') }, /untracked files under scripts\/ or supabase\//)
-refusing('an untracked registry planted under supabase/', (c) => { writeFileSync(join(c.trusted.root, 'supabase/override.json'), '{}\n') }, /untracked files under scripts\/ or supabase\//)
+const UNTRACKED = /untracked files under scripts, supabase, apps\/web\/scripts, apps\/web\/e2e/
+refusing('an untracked script planted in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'scripts/extra.mjs'), 'export {}\n') }, UNTRACKED)
+refusing('an untracked registry planted under supabase/', (c) => { writeFileSync(join(c.trusted.root, 'supabase/override.json'), '{}\n') }, UNTRACKED)
+refusing('an untracked helper planted next to the trusted flag script', (c) => {
+  mkdirSync(join(c.trusted.root, 'apps/web/scripts'), { recursive: true })
+  writeFileSync(join(c.trusted.root, 'apps/web/scripts/shadow.mjs'), 'export {}\n')
+}, UNTRACKED)
+refusing('an untracked fixture module planted next to the trusted seed', (c) => {
+  mkdirSync(join(c.trusted.root, 'apps/web/e2e/fixtures'), { recursive: true })
+  writeFileSync(join(c.trusted.root, 'apps/web/e2e/fixtures/staging-fixture-users.mjs'), 'export {}\n')
+}, UNTRACKED)
 refusing('the driver does not live in scripts/ of the working directory', (c) => {
   const other = makeRepository(c.parent, 'elsewhere')
   c.options.scriptDirectory = join(other.root, 'scripts')
@@ -141,6 +150,7 @@ test('NEGATIVE: a PR that neuters the target guard is never loaded -- running th
   assert.throws(() => assertion(trusted, actionsEnvironment(trusted.sha)), /untracked files/)
 })
 
+
 test('NEGATIVE: a PR that rewrites the duplicate-history coverage registry or manifest cannot influence the trusted inputs', () => {
   const parent = scratch()
   const trusted = makeRepository(parent, '.trusted-control-plane')
@@ -194,10 +204,13 @@ test('the privileged import closure equals the pinned privileged file list (no u
   visit(DRIVER)
   visit('scripts/check-migrations.mjs')
   visit('scripts/staging-target-guard.mjs')
+  visit('apps/web/e2e/fixtures/seed-staging-tenant.mjs')
+  visit('apps/web/scripts/apply-feature-flag.mjs')
+  visit('scripts/check-feature-flag-registry.mjs')
   const closure = [...seen].sort()
-  const pinnedScripts = PRIVILEGED_STAGING_FILES.filter((file) => file.startsWith('scripts/')).sort()
-  assert.deepEqual(closure, pinnedScripts)
+  assert.deepEqual(closure.filter((file) => !PRIVILEGED_STAGING_FILES.includes(file)), [], 'every transitive import of a privileged script is pinned')
   for (const file of PRIVILEGED_STAGING_FILES) assert.ok(existsSync(file), `${file} exists`)
+  assert.ok(PRIVILEGED_STAGING_FILES.includes('scripts/schema-contracts.sql'), 'the SQL run with the staging DB credential is pinned')
 })
 
 // ---- Workflow contracts -----------------------------------------------------------------------------------------------
@@ -244,8 +257,13 @@ test('every privileged script that can see the staging database secret runs from
   assert.ok(withSecret.length >= 6)
   for (const step of withSecret) {
     const name = step.match(/name: (.+)/)?.[1] ?? step.slice(0, 60)
-    if (/^\s*run: \|?\s*\n?\s*psql|run: psql/.test(step) || /psql --set/.test(step)) continue // read-only SQL checks, listed below
     assert.match(step, /working-directory: \.trusted-control-plane/, `${name} must run from the trusted checkout`)
+  }
+  // Any step that can see ANY staging secret (DB URL, service-role key, fixture password) is trusted-only.
+  for (const step of prepareSteps.filter((item) => /secrets\./.test(item))) {
+    const name = step.match(/name: (.+)/)?.[1] ?? step.slice(0, 60)
+    assert.match(step, /working-directory: \.trusted-control-plane/, `${name} sees a secret and must run from the trusted checkout`)
+    assert.doesNotMatch(step, /\bcd apps\/web\b|scripts\/schema-contracts\.sql.*\$\{\{ github\.workspace/, `${name} must not enter the candidate tree`)
   }
   const candidateFreeRuns = prepareSteps.filter((step) => privilegedScript.test(step) && !step.includes('working-directory: .trusted-control-plane'))
   assert.deepEqual(candidateFreeRuns, [], 'no privileged script is ever executed from the candidate workspace')
