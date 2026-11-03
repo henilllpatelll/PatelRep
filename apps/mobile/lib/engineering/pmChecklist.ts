@@ -11,6 +11,7 @@
      - a draft is only ever submitted against the exact checklist it was started on. */
 
 import { PmCompletionBlockedError, validatePmCompletion, type PmCompletionPayload, type PmItemResult } from "./pmCompletion";
+import type { PmSubmission } from "./pmSubmission";
 import { parseReading, type PmMeter } from "./pmReadings";
 
 /* ── templates ── */
@@ -77,9 +78,25 @@ export function templateSignature(template: PmTemplate): string {
 export interface PmEvidenceRef {
   /** `evidence_records.id` returned by the upload - the only thing ever sent. */
   id: string;
-  /** Local preview; may be gone after a restart. */
+  /** Local preview; may be gone after a restart. For a local-only photo this is the durable file in the app's folder. */
   uri?: string;
+  /**
+   * Set while the photo exists only on this phone (taken offline). `id` is then `local:<token>`, which can never be
+   * sent as evidence; the sync step uploads the file and swaps in the real record id.
+   */
+  local?: { bytes: number };
 }
+
+/** Whether this photo is still only on the phone. */
+export const isLocalPhoto = (ref: PmEvidenceRef): boolean => ref.local != null || ref.id.startsWith("local:");
+
+/** Every photo in a draft (steps and general), in order. */
+export function draftPhotoRefs(draft: PmDraft): PmEvidenceRef[] {
+  return [...Object.values(draft.items).flatMap((i) => i.evidence), ...draft.photos];
+}
+
+/** Photos that have not reached the server yet. */
+export const localPhotoRefs = (draft: PmDraft): PmEvidenceRef[] => draftPhotoRefs(draft).filter(isLocalPhoto);
 
 export interface PmDraftItem {
   result: PmItemResult | null;
@@ -116,6 +133,10 @@ export interface PmDraft {
   parts: PmDraftPart[];
   defects: PmDraftDefect[];
   notes: string;
+  /** Caption for lists ("Boiler 2 - Monthly"): equipment and schedule name, written when the draft is saved. */
+  label?: string;
+  /** The submission id of the last completion attempt made from this draft, so a retry (even after a restart) reuses it. */
+  submission?: PmSubmission;
 }
 
 const itemIdentity = (item: PmTemplateItem): string => (item.key ? `k:${item.key}` : `l:${item.label}`);
@@ -204,11 +225,23 @@ export interface PmProgress {
   unansweredIds: string[];
   /** Items that need evidence before they can be submitted. */
   evidenceMissingIds: string[];
+  /** Failed items that still have no written finding. */
+  findingMissingIds: string[];
   percent: number;
 }
 
 export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
-  const out: PmProgress = { total: template.items.length, answered: 0, passed: 0, failed: 0, notApplicable: 0, unansweredIds: [], evidenceMissingIds: [], percent: 0 };
+  const out: PmProgress = {
+    total: template.items.length,
+    answered: 0,
+    passed: 0,
+    failed: 0,
+    notApplicable: 0,
+    unansweredIds: [],
+    evidenceMissingIds: [],
+    findingMissingIds: [],
+    percent: 0,
+  };
   for (const item of template.items) {
     const answer = draft.items[item.id] ?? emptyItem();
     if (!answer.result) {
@@ -217,8 +250,10 @@ export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
     }
     out.answered += 1;
     if (answer.result === "passed") out.passed += 1;
-    else if (answer.result === "failed") out.failed += 1;
-    else out.notApplicable += 1;
+    else if (answer.result === "failed") {
+      out.failed += 1;
+      if (!answer.note.trim()) out.findingMissingIds.push(item.id);
+    } else out.notApplicable += 1;
     if (item.requiresEvidence && answer.result !== "not_applicable" && answer.evidence.length === 0) out.evidenceMissingIds.push(item.id);
   }
   out.percent = out.total === 0 ? 0 : Math.round((out.answered / out.total) * 100);
@@ -228,6 +263,7 @@ export function pmProgress(template: PmTemplate, draft: PmDraft): PmProgress {
 export type PmInspectionIssue =
   | { code: "unanswered"; itemId: string }
   | { code: "evidence_required"; itemId: string }
+  | { code: "finding_required"; itemId: string }
   | { code: "reading_invalid"; meterId: string }
   | { code: "labor_invalid" }
   | { code: "part_invalid"; partId: string }
@@ -238,6 +274,7 @@ export function validateInspection(template: PmTemplate, draft: PmDraft, meters:
   const progress = pmProgress(template, draft);
   for (const itemId of progress.unansweredIds) issues.push({ code: "unanswered", itemId });
   for (const itemId of progress.evidenceMissingIds) issues.push({ code: "evidence_required", itemId });
+  for (const itemId of progress.findingMissingIds) issues.push({ code: "finding_required", itemId });
   for (const meter of meters) {
     if (parseReading(draft.readings[meter.id]?.value).kind === "invalid") issues.push({ code: "reading_invalid", meterId: meter.id });
   }
@@ -253,11 +290,85 @@ export function validateInspection(template: PmTemplate, draft: PmDraft, meters:
   return issues;
 }
 
+/* ── sections ── */
+
+/** The four parts of a guided inspection, in the order a technician works through them. */
+export const PM_SECTIONS = ["checklist", "measurements", "findings", "review"] as const;
+export type PmSection = (typeof PM_SECTIONS)[number];
+
+/** Where the person fixes an issue, so "Fix this" lands on the exact field instead of the top of a long form. */
+export function issueSection(issue: PmInspectionIssue): Exclude<PmSection, "review"> {
+  switch (issue.code) {
+    case "unanswered":
+    case "evidence_required":
+    case "finding_required":
+      return "checklist";
+    case "reading_invalid":
+      return "measurements";
+    default:
+      return "findings";
+  }
+}
+
+export type PmSectionStatus = "todo" | "complete" | "attention";
+
+/**
+ * What each part of the inspection shows in the stepper. A part is only marked as needing attention once the person has
+ * tried to review (`attempted`), except an unreadable reading, which is wrong the moment it is typed. Readings and the
+ * findings/labor/parts part are optional, so they are never "required to be complete" - they only show what was done.
+ */
+export function sectionStatuses(
+  template: PmTemplate,
+  draft: PmDraft,
+  meters: readonly PmMeter[],
+  issues: readonly PmInspectionIssue[],
+  attempted: boolean,
+): Record<PmSection, PmSectionStatus> {
+  const progress = pmProgress(template, draft);
+  const inSection = (section: Exclude<PmSection, "review">) => issues.some((issue) => issueSection(issue) === section);
+  const enteredReadings = meters.filter((m) => parseReading(draft.readings[m.id]?.value).kind === "ok").length;
+  const extrasEntered = !!draft.laborMinutes.trim() || draft.parts.length > 0 || draft.defects.length > 0 || draft.photos.length > 0 || !!draft.notes.trim();
+
+  const checklist: PmSectionStatus = attempted && inSection("checklist") ? "attention" : progress.unansweredIds.length === 0 && !inSection("checklist") ? "complete" : "todo";
+  const measurements: PmSectionStatus = inSection("measurements") ? "attention" : enteredReadings > 0 || meters.length === 0 ? "complete" : "todo";
+  const findings: PmSectionStatus = attempted && inSection("findings") ? "attention" : extrasEntered && !inSection("findings") ? "complete" : "todo";
+  return { checklist, measurements, findings, review: attempted && issues.length > 0 ? "attention" : "todo" };
+}
+
+export interface PmEvidenceSummary {
+  /** Photos attached anywhere (steps and general). */
+  photos: number;
+  /** Steps that need a photo for the answer given (N/A needs none). */
+  required: number;
+  /** Of those, how many have at least one. */
+  satisfied: number;
+  missingIds: string[];
+}
+
+/** Evidence counted per step: a photo on one step never counts toward another. */
+export function evidenceSummary(template: PmTemplate, draft: PmDraft): PmEvidenceSummary {
+  const summary: PmEvidenceSummary = { photos: draft.photos.length, required: 0, satisfied: 0, missingIds: [] };
+  for (const item of template.items) {
+    const answer = draft.items[item.id] ?? emptyItem();
+    summary.photos += answer.evidence.length;
+    if (!item.requiresEvidence || answer.result === "not_applicable") continue;
+    summary.required += 1;
+    if (answer.result && answer.evidence.length > 0) summary.satisfied += 1;
+    else if (answer.result) summary.missingIds.push(item.id);
+  }
+  return summary;
+}
+
 /**
  * The exact body for POST /assets/pm-schedules/{id}/complete. Throws PmCompletionBlockedError rather than build a body
  * that skips an unanswered item - there is no path from here to an empty or defaulted completion.
  */
-export function buildCompletionPayload(template: PmTemplate, draft: PmDraft, meters: readonly PmMeter[]): PmCompletionPayload {
+export function buildCompletionPayload(
+  template: PmTemplate,
+  draft: PmDraft,
+  meters: readonly PmMeter[],
+  options: { allowLocalEvidence?: boolean } = {},
+): PmCompletionPayload {
   const issues = validateInspection(template, draft, meters);
   if (issues.length > 0) throw new PmCompletionBlockedError({ code: "bad_result", label: issues[0].code });
 
@@ -289,7 +400,14 @@ export function buildCompletionPayload(template: PmTemplate, draft: PmDraft, met
   if (draft.defects.length) payload.defects = draft.defects.map((d) => ({ description: d.description.trim(), ...(d.severity ? { severity: d.severity } : {}) }));
   if (draft.notes.trim()) payload.notes = draft.notes.trim();
 
-  const blocked = validatePmCompletion(payload);
+  // A body prepared for later sync may still hold `local:` ids; they are checked as if real and swapped before sending.
+  const blocked = validatePmCompletion(options.allowLocalEvidence ? maskLocalEvidence(payload) : payload);
   if (blocked) throw new PmCompletionBlockedError(blocked);
   return payload;
+}
+
+/** A copy where each `local:` id is replaced by a valid-looking one, so the rest of the body can be validated. */
+function maskLocalEvidence(payload: PmCompletionPayload): PmCompletionPayload {
+  const mask = (id: string) => (id.startsWith("local:") ? `L${id.slice(6).replace(/[^A-Za-z0-9_-]/g, "_")}` : id);
+  return { ...payload, photos: payload.photos?.map(mask), items: payload.items.map((i) => ({ ...i, evidence: i.evidence?.map(mask) })) };
 }

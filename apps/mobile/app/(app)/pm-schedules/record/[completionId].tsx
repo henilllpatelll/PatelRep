@@ -10,6 +10,7 @@ import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet
 import { getPmCompletion, type PmCompletionDetail, type PmCompletionEvidence } from "@/lib/api/pm";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
 import { formatDueDate } from "@/lib/engineering/pmSchedules";
+import { assetRoute, workOrderRoute } from "@/lib/engineering/routes";
 import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -96,6 +97,35 @@ export default function PmRecordScreen() {
               ) : null}
             </Card>
 
+            {assetRoute(record.asset?.id ?? record.asset_id) ? (
+              <Pressable
+                onPress={() => {
+                  const target = assetRoute(record.asset?.id ?? record.asset_id);
+                  if (target) router.push(target as never);
+                }}
+                accessibilityRole="link"
+                accessibilityLabel={t("pm.record.openEquipment", { name: record.asset?.name ?? t("pm.record.equipment") })}
+                style={[styles.linkCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                testID="pm-record-asset"
+              >
+                <Ionicons name="cube-outline" size={20} color={theme.textMuted} />
+                <View style={styles.linkBody}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
+                    {t("pm.record.equipment")}
+                  </Text>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.itemLabel, { color: theme.textPrimary }]}>
+                    {[record.asset?.name, record.asset?.asset_tag].filter(Boolean).join(" · ") || t("pm.record.openEquipmentFallback")}
+                  </Text>
+                  {record.asset?.is_active === false ? (
+                    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.status.pickup }]}>
+                      {t("pm.record.equipmentRetired")}
+                    </Text>
+                  ) : null}
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+              </Pressable>
+            ) : null}
+
             {record.items.map((item, i) => {
               const color = item.result === "failed" ? theme.status.dirty : item.result === "passed" ? theme.status.ready : theme.textMuted;
               const icon = item.result === "failed" ? "close-circle" : item.result === "passed" ? "checkmark-circle" : "remove-circle";
@@ -119,6 +149,36 @@ export default function PmRecordScreen() {
                 </Card>
               );
             })}
+
+            {(record.corrective_work_orders ?? []).length > 0 ? (
+              <Card style={styles.card} testID="pm-record-work-orders">
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textMuted }]}>
+                  {t("pm.record.correctiveTitle")}
+                </Text>
+                {(record.corrective_work_orders ?? []).map((wo) => {
+                  const target = workOrderRoute(wo.id);
+                  return (
+                    <Pressable
+                      key={wo.id}
+                      disabled={!target}
+                      onPress={() => target && router.push(target as never)}
+                      accessibilityRole="link"
+                      accessibilityLabel={t("pm.record.openWorkOrder", { title: wo.title })}
+                      style={styles.woRow}
+                      testID={`pm-record-wo-${wo.id}`}
+                    >
+                      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.itemLabel, { color: theme.textPrimary, flex: 1 }]}>
+                        {wo.title}
+                      </Text>
+                      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>
+                        {t(`workOrders.status.${wo.status}`, { defaultValue: wo.status })}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            ) : null}
 
             {(record.defects ?? []).length > 0 ? (
               <Card style={styles.card}>
@@ -188,4 +248,7 @@ const styles = StyleSheet.create({
   thumbs: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   thumb: { width: 64, height: 64, borderRadius: 10, borderWidth: 1, overflow: "hidden" },
   thumbImage: { width: 64, height: 64 },
+  linkCard: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderRadius: 14, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
+  linkBody: { flex: 1, gap: 2 },
+  woRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48 },
 });

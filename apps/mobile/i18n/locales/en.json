@@ -1938,7 +1938,8 @@
           "room_status": "Room status change",
           "task": "Task update",
           "logbook": "Logbook entry",
-          "other": "Update"
+          "other": "Update",
+          "pm_completion": "PM inspection"
         },
         "states": {
           "pending": "Pending",
@@ -2497,6 +2498,21 @@
         "repair": "Repair work",
         "more": "Additional actions"
       }
+    },
+    "pmSource": {
+      "title": "Preventive Maintenance Source",
+      "unavailable": "This repair came from a PM inspection, but its details can't be loaded right now.",
+      "completedOn": "Inspected {{date}}",
+      "failed": "Failed in this inspection ({{count}})",
+      "failed_plural": "Failed in this inspection ({{count}})",
+      "recorded": "Recorded defect",
+      "priority": "Priority: {{priority}}",
+      "evidence": "{{count}} photo or file recorded",
+      "evidence_plural": "{{count}} photos or files recorded",
+      "view": "View original inspection",
+      "thisItem": "Opened for this step",
+      "alsoFailed": "Also failed in this inspection ({{count}})",
+      "alsoFailed_plural": "Also failed in this inspection ({{count}})"
     }
   },
   "assets": {
@@ -2541,7 +2557,6 @@
     },
     "sections": {
       "overview": "Overview",
-      "workOrders": "Work orders",
       "maintenance": "Maintenance",
       "readings": "Readings",
       "history": "History"
@@ -2597,7 +2612,7 @@
       "reliability": "Reliability",
       "sort": "Sort by",
       "reset": "Reset",
-      "show": "Show results",
+      "show": "Show equipment",
       "maintenanceOptions": {
         "active_work_order": "Active work order",
         "pm_overdue": "PM overdue",
@@ -2642,9 +2657,17 @@
         "ambiguous": "More than one asset has that tag. Search by name or location instead.",
         "forbidden": "You don't have access to equipment records.",
         "offline": "No connection. Only equipment you've already opened can be found offline.",
-        "failed": "Couldn't look that up. Try again."
+        "failed": "Couldn't look that up. Try again.",
+        "retired": "This equipment has been retired."
       },
-      "manualHint": "Type the asset tag printed on the equipment label, or the asset ID."
+      "manualHint": "Type the asset tag printed on the equipment label, or the asset ID.",
+      "openRetired": "Open retired record",
+      "cached": {
+        "verified": "Saved copy — last confirmed {{time}}",
+        "unverified": "Saved copy — confirmation time not recorded",
+        "body": "You're offline, so this equipment can't be checked now. Open it for what's on this phone, and reconnect to refresh it.",
+        "open": "Open saved equipment"
+      }
     },
     "createWo": {
       "forEquipment": "For {{name}}"
@@ -2697,7 +2720,23 @@
       "unavailableBody": "It may have been removed, or it isn't part of this hotel.",
       "backToAssets": "Back to assets",
       "offlineUncached": "No connection, and this equipment hasn't been opened on this device yet.",
-      "viewRoom": "View room {{room}}"
+      "viewRoom": "View room {{room}}",
+      "more": "More",
+      "roomImpact": "Room impact",
+      "roomAffected": "Room {{room}} is affected",
+      "recentTitle": "Recent activity",
+      "viewHistory": "View full history",
+      "criticality": "Criticality",
+      "edit": "Edit equipment",
+      "qrLabel": "QR label",
+      "scanAnother": "Scan equipment",
+      "retire": "Retire equipment",
+      "retiredBanner": "This equipment is retired. Its history stays here, but no new repairs, readings or inspections can be started.",
+      "warrantyState": {
+        "active": "Until {{date}}",
+        "expiring_soon": "Ends soon: {{date}}",
+        "expired": "Expired {{date}}"
+      }
     },
     "workOrders": {
       "active": "Active",
@@ -2719,10 +2758,11 @@
         "passed": "Verified: passed",
         "failed": "Verified: failed",
         "follow_up_required": "Follow-up required"
-      }
+      },
+      "fromPm": "From PM inspection"
     },
     "maintenance": {
-      "schedules": "PM schedules",
+      "schedules": "Scheduled maintenance",
       "noSchedule": "No preventive maintenance is scheduled for this equipment.",
       "lastDone": "Last done {{date}}",
       "neverDone": "Not completed yet",
@@ -2736,7 +2776,10 @@
       "passed": "{{count}} passed",
       "passed_plural": "{{count}} passed",
       "failed": "{{count}} failed",
-      "failed_plural": "{{count}} failed"
+      "failed_plural": "{{count}} failed",
+      "activeRepairs": "Active repairs",
+      "records": "Recent maintenance records",
+      "completedRepairs": "Completed repairs"
     },
     "readings": {
       "title": "Equipment readings",
@@ -2780,7 +2823,10 @@
         "rejected": "The system rejected that reading. Check the value.",
         "failed": "Couldn't save the reading. Nothing was recorded.",
         "unconfirmed": "No answer from the server. The reading may have been saved. Press Save again to check before anything is sent twice."
-      }
+      },
+      "reference": "Configured normal range: {{low}} to {{high}} {{unit}}",
+      "last": "Last reading: {{value}} {{unit}}",
+      "unitFixed": "Unit: {{unit}}"
     },
     "history": {
       "timeline": "Timeline",
@@ -2831,7 +2877,254 @@
         "signature": "Signature",
         "attestation": "Attestation",
         "external_certificate": "Certificate"
+      },
+      "filterLabel": "Show history for",
+      "filterEmpty": "Nothing in this group yet.",
+      "filter": {
+        "all": "All",
+        "pm": "PM",
+        "repairs": "Repairs",
+        "downtime": "Downtime",
+        "readings": "Readings"
       }
+    },
+    "add": "Add equipment",
+    "criticality": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "life_safety": "Life safety",
+      "action": "Set criticality",
+      "title": "Equipment criticality",
+      "body": "How much do operations depend on {{name}}? This is your property's own assessment, not a prediction.",
+      "save": "Save criticality",
+      "reason": "Reason (optional)",
+      "reasonPlaceholder": "e.g. Heats the whole building",
+      "done": "Criticality updated",
+      "help": {
+        "low": "Short outages are tolerable; guests and staff barely notice.",
+        "medium": "Noticeable when down; work-arounds exist.",
+        "high": "Operations suffer quickly when it's down.",
+        "life_safety": "Guest or staff safety depends on it (for example fire or life-safety systems)."
+      }
+    },
+    "form": {
+      "title": {
+        "create": "Register Equipment",
+        "edit": "Edit Equipment"
+      },
+      "subtitle": {
+        "create": "Add equipment to this property.",
+        "edit": "Update this equipment's record."
+      },
+      "sections": {
+        "identity": "Equipment identity",
+        "location": "Where it is",
+        "details": "Details",
+        "review": "Review"
+      },
+      "name": "Equipment name",
+      "namePlaceholder": "e.g. Rooftop chiller 2",
+      "category": "Category",
+      "choose": "Choose",
+      "categoriesFailed": "Couldn't load categories. Go back and try again.",
+      "tag": "Asset tag",
+      "tagPlaceholder": "e.g. CH-102",
+      "tagHint": "The text printed on the label. Leave blank to label by QR code only.",
+      "manufacturer": "Manufacturer",
+      "model": "Model",
+      "serialNumber": "Serial number",
+      "location": "Location",
+      "chooseLocation": "Choose a room or area",
+      "locationNote": "Location notes",
+      "locationNotePlaceholder": "e.g. behind the vanity",
+      "locationHint": "A guest room, or an area like the roof, a mechanical room or the pool plant.",
+      "clearLocation": "Clear location",
+      "installed": "Installation date",
+      "warranty": "Warranty expires",
+      "dateHint": "Opens the date picker",
+      "clearDate": "Clear {{field}}",
+      "notSet": "Not set",
+      "criticality": "Criticality",
+      "notes": "Notes",
+      "photo": "Equipment photo",
+      "submit": {
+        "create": "Register Asset",
+        "edit": "Save changes"
+      },
+      "saving": "Saving…",
+      "uploadingPhoto": "Uploading photo…",
+      "offlineCreate": "Registering equipment needs a connection. Nothing is saved until you are online.",
+      "offlineEdit": "Editing equipment needs a connection.",
+      "errors": {
+        "name_required": "Enter the equipment name.",
+        "name_too_long": "Keep the name to {{max}} characters or fewer.",
+        "category_required": "Choose a category.",
+        "tag_invalid": "Use letters, digits and . _ - / # only, up to 64 characters.",
+        "tag_in_use": "Another active asset already uses this tag.",
+        "text_too_long": "Keep this to {{max}} characters or fewer.",
+        "date_invalid": "Choose a real date.",
+        "install_too_far_ahead": "The installation date can't be more than a year ahead.",
+        "warranty_before_install": "Warranty can't end before the installation date.",
+        "location_too_long": "Keep the location to 255 characters or fewer.",
+        "notes_too_long": "Keep notes to {{max}} characters or fewer."
+      },
+      "failure": {
+        "unconfirmedCreate": "No answer from the server, so we can't tell if it saved. Tap Register Asset again — it won't create a duplicate.",
+        "unconfirmedEdit": "No answer from the server, so we can't tell if your changes saved. Tap Save again to check.",
+        "tag_in_use": "Another active asset already uses this tag. Choose a different one.",
+        "forbidden": "Your role can't make this change.",
+        "not_found": "This equipment is no longer in this property.",
+        "validation": "The server didn't accept these details. Check the fields and try again.",
+        "failed": "Couldn't save. Your entries are kept — try again.",
+        "photoAfterSave": "Your changes were saved, but the photo wasn't updated. Tap Save to retry the photo."
+      },
+      "conflict": {
+        "title": "Someone else changed this equipment",
+        "body": "It was saved by another person after you opened it. Nothing of yours was lost or overwritten.",
+        "mine": "Keep my changes and review",
+        "latest": "Load their version"
+      },
+      "partial": {
+        "title": "{{name}} is registered",
+        "body": "The equipment was saved, but its photo didn't upload. You can retry the photo, or open the equipment now and add one later.",
+        "retry": "Retry photo",
+        "open": "Open equipment"
+      },
+      "discard": {
+        "title": "Discard your changes?",
+        "body": "What you entered hasn't been saved.",
+        "keep": "Keep editing",
+        "discard": "Discard"
+      }
+    },
+    "photo": {
+      "none": "No photo yet",
+      "willRemove": "Photo will be removed when you save",
+      "take": "Take photo",
+      "choose": "Choose photo",
+      "remove": "Remove photo",
+      "keepCurrent": "Keep current photo",
+      "previewLabel": "Equipment photo",
+      "openSettings": "Open settings",
+      "needsConnection": "Photos upload when you save, which needs a connection.",
+      "errors": {
+        "permission_denied": "Allow camera access in Settings to take a photo.",
+        "failed": "Couldn't get that photo. Try again.",
+        "unsupported": "Use a JPEG, PNG or WebP photo.",
+        "too_large": "That photo is too large. Choose a smaller one."
+      }
+    },
+    "label": {
+      "title": "Equipment QR Label",
+      "qrLabel": "QR code label for {{name}}",
+      "share": "Share label",
+      "print": "Print label",
+      "shareTitle": "Label for {{name}}",
+      "shareUnavailable": "Sharing isn't available on this device.",
+      "shareFailed": "Couldn't prepare the label to share.",
+      "printFailed": "Couldn't open printing.",
+      "retiredNote": "This equipment is retired. Its label will still scan, to a record marked retired.",
+      "noTagNote": "This equipment has no asset tag, so the label shows a short code from its id instead.",
+      "handoffNote": "Sharing and printing open your device's own dialogs. PatelRep can't tell whether a label was actually printed or sent.",
+      "backToEquipment": "Back to equipment"
+    },
+    "retire": {
+      "title": "Retire equipment",
+      "body": "{{name}} will be marked retired and its recurring PM schedules will stop. Nothing is deleted — inspections, repairs and downtime stay on record.",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. Replaced by new unit",
+      "continue": "Continue",
+      "confirm": "Retire {{name}}?",
+      "confirmButton": "Retire equipment",
+      "offline": "Retiring equipment needs a connection.",
+      "done": "Equipment retired",
+      "failure": {
+        "asset_has_open_work_orders": "This equipment still has open work orders. Close or reassign them first.",
+        "asset_has_open_downtime": "This equipment still has open downtime. Restore it first.",
+        "asset_already_retired": "This equipment is already retired.",
+        "conflict": "Someone else changed this equipment. Close this and review the latest version.",
+        "unconfirmed": "No answer from the server, so we can't tell if it was retired. Check the equipment before trying again.",
+        "forbidden": "Only a chief engineer or GM can retire equipment.",
+        "failed": "Couldn't retire this equipment. Try again."
+      }
+    },
+    "management": {
+      "title": "Asset Management",
+      "subtitle": "Equipment that needs a manager's attention.",
+      "open": "Asset Management",
+      "empty": "No equipment records to show yet.",
+      "group": {
+        "critical": "Critical equipment",
+        "out_of_service": "Down now",
+        "active_repairs": "Open repairs",
+        "warranty_expiring": "Warranty ending",
+        "warranty_expired": "Warranty ended"
+      },
+      "about": {
+        "critical": "Equipment your property marked Life safety or High. Life safety first.",
+        "out_of_service": "Equipment with recorded downtime that hasn't been ended.",
+        "active_repairs": "Equipment with a work order that is open, in progress, escalated or on hold.",
+        "warranty_expiring": "Recorded warranty end dates within the next {{days}} days.",
+        "warranty_expired": "Recorded warranty end dates that have passed."
+      },
+      "none": "Nothing here right now.",
+      "warrantyDate": "Warranty date {{date}}",
+      "showingFirst": "Showing the first {{shown}} of {{total}}.",
+      "sectionRecords": "Records",
+      "summary": "{{active}} active · {{retired}} retired · {{unknown}} with no warranty date recorded",
+      "disclaimer": "These come from recorded dates and statuses. A warranty date doesn't say a claim would be accepted, and criticality is your property's own assessment."
+    },
+    "downtime": {
+      "startAction": "Record downtime",
+      "endAction": "End downtime",
+      "startTitle": "Record downtime",
+      "endTitle": "End downtime",
+      "start": "Record downtime",
+      "end": "End downtime",
+      "startBody": "Record that {{name}} is down or running below normal.",
+      "endBody": "{{name}} has been down since {{since}}. Record that it is back in service.",
+      "impact": "Condition",
+      "kind": "Type",
+      "notes": "What happened (optional)",
+      "endNotes": "Notes (optional)",
+      "notesPlaceholder": "Add context for the record",
+      "startScope": "The time and your name are recorded automatically. This does not take any guest room out of order - that is a separate decision.",
+      "endScope": "The time and your name are recorded automatically. This does not close a work order or mark anything repaired.",
+      "done": {
+        "started": "Downtime recorded",
+        "ended": "Downtime ended",
+        "already_open": "Downtime was already open"
+      },
+      "linkRepair": "Related repair (optional)",
+      "noRepair": "None"
+    },
+    "roomImpact": {
+      "action": "Review room impact",
+      "title": "Review Room Impact",
+      "equipment": "Equipment",
+      "downSince": "Recorded down since {{date}}",
+      "noDowntime": "No downtime recorded",
+      "serves": "Serves",
+      "floor": "Floor {{floor}}",
+      "roomUnread": "The room's current status isn't available to you here. Open the room to see it.",
+      "shared": "Shared area: {{place}}. No guest room is linked.",
+      "noRoom": "No room or shared area is recorded for this equipment.",
+      "repairs": "Active repairs on this equipment ({{count}})",
+      "repairs_plural": "Active repairs on this equipment ({{count}})",
+      "noRepairs": "No active repairs.",
+      "openRoom": "Open room",
+      "scope": "This is information only. A repair or downtime record does not change the room: availability is set in the room's own workflow, by someone authorized to do it."
+    },
+    "actions": {
+      "title": "Quick actions",
+      "open": "Open equipment",
+      "report": "Report an issue",
+      "reading": "Record a reading",
+      "maintenance": "View maintenance",
+      "label": "QR label",
+      "reportOffline": "Reporting an issue needs a connection.",
+      "more": "More actions for {{name}}"
     }
   },
   "inspect": {
@@ -4956,7 +5249,8 @@
         "taskCompletions": "Task completions",
         "workOrders": "Work orders",
         "logbook": "Logbook entries",
-        "cleaningSessions": "Cleaning sessions"
+        "cleaningSessions": "Cleaning sessions",
+        "pmInspections": "PM inspections"
       }
     },
     "errors": {
@@ -10873,7 +11167,8 @@
       "today": "Today",
       "week": "Week",
       "calendar": "Calendar",
-      "history": "History"
+      "history": "History",
+      "plan": "Plan"
     },
     "weekday": {
       "mo": "Mo",
@@ -10927,7 +11222,11 @@
       "any": "Any",
       "reset": "Reset",
       "apply": "Show results",
-      "showing": "Showing {{shown}} of {{total}}"
+      "showing": "Showing {{shown}} of {{total}}",
+      "titleActive": "Filter & Sort · {{count}} active",
+      "allStatuses": "All",
+      "showResults": "Show {{count}} result",
+      "showResults_plural": "Show {{count}} results"
     },
     "sort": {
       "due_soonest": "Due soonest",
@@ -10952,8 +11251,16 @@
       "previous": "Previous maintenance",
       "noPrevious": "No inspections have been recorded for this equipment yet.",
       "openAssets": "Open Assets",
+      "openAsset": "Open this equipment",
       "notFound": "Schedule not found",
-      "notFoundBody": "It may have been removed or you may be offline. Pull to refresh on the PM screen."
+      "notFoundBody": "It may have been removed or you may be offline. Pull to refresh on the PM screen.",
+      "checklist": "Checklist",
+      "version": "Version",
+      "steps": "Steps",
+      "photosRequired": "Photos required",
+      "stepsWithPhoto": "{{count}} step",
+      "stepsWithPhoto_plural": "{{count}} steps",
+      "mostRecent": "Most recent"
     },
     "chooseChecklist": "Choose a checklist",
     "chooseChecklistBody": "Pick the checklist that matches this inspection. The result is recorded against it.",
@@ -10962,6 +11269,20 @@
     "config": {
       "noTemplatesTitle": "No inspection checklist is set up",
       "noTemplatesBody": "This property has no engineering checklist templates yet, so an inspection can't be recorded. Ask a manager to set up PM checklists on the web console."
+    },
+    "binding": {
+      "missing": {
+        "title": "This schedule's checklist is gone",
+        "body": "The checklist assigned to this PM no longer exists, so an inspection can't be recorded. Ask a chief engineer to assign a current checklist."
+      },
+      "inactive": {
+        "title": "This schedule's checklist was retired",
+        "body": "The checklist assigned to this PM has been retired. Ask a chief engineer to assign its replacement before inspecting."
+      },
+      "incompatible": {
+        "title": "This schedule's checklist can't be used",
+        "body": "The checklist assigned to this PM isn't an engineering checklist. Ask a chief engineer to assign the right one."
+      }
     },
     "progress": "{{done}} of {{total}} steps completed",
     "step": "Step {{number}}",
@@ -10987,7 +11308,23 @@
       "uploading": "Uploading photo",
       "library": "Photo library",
       "failed": "That photo couldn't be used.",
-      "uploadFailed": "The photo didn't upload, so it wasn't attached. Try again."
+      "uploadFailed": "The photo didn't upload, so it wasn't attached. Try again.",
+      "uploaded": "Uploaded",
+      "preview": "View photo",
+      "previewClose": "Close photo",
+      "retry": "Retry upload",
+      "announceUploaded": "Photo uploaded.",
+      "announceFailed": "Photo upload failed.",
+      "offlineNote": "No connection. Photos are saved on this phone and uploaded when you're back online.",
+      "savedOnPhone": "Saved on this phone, not uploaded yet",
+      "local": {
+        "no_owner": "Sign in again before adding photos.",
+        "missing_source": "That photo could not be read, so it wasn't saved. Try again.",
+        "too_large": "That photo is too large to send (limit 10 MB), so it wasn't saved.",
+        "quota": "Photos waiting to upload are using all the space allowed. Connect to upload them, then add more.",
+        "storage_full": "This phone is out of storage, so the photo wasn't saved. Free up space and try again.",
+        "save_failed": "The photo couldn't be saved on this phone, so it wasn't attached. Try again."
+      }
     },
     "readings": "Readings",
     "reading": {
@@ -10998,7 +11335,14 @@
         "normal": "Within limits",
         "warning": "Outside the warning limit",
         "critical": "Outside the critical limit"
-      }
+      },
+      "toggleSign": "Switch between positive and negative",
+      "detail": {
+        "warning": "{{value}} {{unit}} is outside the configured warning limit.",
+        "critical": "{{value}} {{unit}} is outside the configured critical limit."
+      },
+      "referenceMax": "Normal: up to {{high}} {{unit}}",
+      "referenceMin": "Normal: at least {{low}} {{unit}}"
     },
     "extras": {
       "labor": "Labor (minutes)",
@@ -11040,7 +11384,13 @@
       "refused": "The inspection wasn't recorded.",
       "forbidden": "Your role isn't allowed to complete this inspection.",
       "scheduleGone": "This schedule no longer exists, so the inspection wasn't recorded.",
-      "unknown": "We couldn't confirm whether the inspection was recorded. Your draft is safe. Try again and we will check for a duplicate first."
+      "unknown": "We couldn't confirm whether the inspection was recorded. Your draft is safe. Try again and we will check for a duplicate first.",
+      "findingRequired": "Describe what failed.",
+      "partInvalid": "Enter a part name and a quantity above zero.",
+      "defectInvalid": "Describe the defect or remove it.",
+      "photoMissing": "A saved photo is missing from this phone, so the inspection can't be sent with its evidence. Remove it or take it again.",
+      "alreadyQueued": "This schedule already has a saved inspection waiting to sync.",
+      "queueFailed": "The inspection couldn't be saved on this phone. Nothing was sent. Try again."
     },
     "review": {
       "summary": "Inspection",
@@ -11058,7 +11408,22 @@
       "issues": "Issues",
       "willOpenWorkOrders": "{{count}} corrective work order will be opened when you complete this.",
       "willOpenWorkOrders_plural": "{{count}} corrective work orders will be opened when you complete this.",
-      "laborParts": "Labor and parts"
+      "laborParts": "Labor and parts",
+      "due": "Due",
+      "fixThis": "Fix this",
+      "evidenceCount": "{{count}} photo attached",
+      "evidenceCount_plural": "{{count}} photos attached",
+      "evidenceRequired": "Required photos: {{done}} of {{total}}",
+      "evidenceNone": "No step in this checklist requires a photo.",
+      "findingFor": "Describe the failure: {{name}}",
+      "fixReading": "Correct the reading: {{name}}",
+      "fixLabor": "Correct the labor minutes",
+      "fixPart": "Complete the part entry",
+      "fixDefect": "Complete the defect entry",
+      "outOfRange": "Outside the configured limit",
+      "noReadings": "No readings entered",
+      "pending": "Status",
+      "version": "version {{version}}"
     },
     "recorded": {
       "title": "Inspection recorded",
@@ -11071,14 +11436,114 @@
       "workOrders": "Corrective work orders opened: {{count}}",
       "notSafeClaim": "Recording an inspection doesn't clear equipment downtime or return a room to service. Do that through the repair workflow.",
       "viewRecord": "View Inspection Record",
-      "back": "Return to PM Schedule"
+      "back": "Return to PM Schedule",
+      "completedAt": "Recorded",
+      "technician": "Technician",
+      "readings": "{{count}} reading recorded",
+      "readings_plural": "{{count}} readings recorded",
+      "evidence": "{{count}} photo attached",
+      "evidence_plural": "{{count}} photos attached",
+      "nextDue": "Next inspection due",
+      "viewEquipment": "View Equipment",
+      "workOrderNumber": "Work order #{{number}}",
+      "resultsLine": "{{passed}} passed · {{failed}} failed · {{na}} N/A",
+      "announce": "Inspection recorded"
     },
     "record": {
       "title": "Inspection record",
       "notFound": "Inspection record not found",
       "completedOn": "Completed {{date}}",
       "version": "Checklist version {{version}}",
-      "labor": "Labor: {{count}} min"
+      "labor": "Labor: {{count}} min",
+      "equipment": "Equipment",
+      "openEquipment": "Open equipment: {{name}}",
+      "openEquipmentFallback": "Open equipment record",
+      "equipmentRetired": "Retired",
+      "correctiveTitle": "Corrective work from this inspection",
+      "openWorkOrder": "Open work order: {{title}}"
+    },
+    "plan": {
+      "week": "Week",
+      "calendar": "Calendar"
+    },
+    "today": {
+      "continue": "Continue inspection",
+      "needsAttention": "Needs attention",
+      "nothingElseToday": "No other inspections are due today.",
+      "progress": "{{done}} of {{total}} steps done",
+      "viewPlan": "View full plan",
+      "viewPlanMore": "View full plan (+{{count}} more)"
+    },
+    "history": {
+      "followUp": "{{count}} follow-up defect",
+      "followUp_plural": "{{count}} follow-up defects",
+      "openEquipment": "Open equipment: {{name}}"
+    },
+    "save": {
+      "saving": "Saving on this phone…",
+      "saved": "Saved on this phone",
+      "failed": "Couldn't save on this phone. Keep this screen open."
+    },
+    "header": {
+      "checklist": "{{name}} · v{{version}}",
+      "viewEquipment": "View equipment"
+    },
+    "stepper": {
+      "label": "Inspection sections",
+      "checklist": "Checklist",
+      "measurements": "Readings",
+      "findings": "Findings",
+      "review": "Review",
+      "position": "Section {{current}} of {{total}}: {{name}}",
+      "complete": "complete",
+      "attention": "needs attention",
+      "next": "Next: {{name}}",
+      "toReview": "Review inspection"
+    },
+    "failure": {
+      "title": "Report failed check",
+      "equipment": "Equipment",
+      "check": "Failed check",
+      "what": "What did you find?",
+      "placeholder": "Describe the problem so the repair crew knows what to fix. This goes on the corrective work order.",
+      "required": "Describe what you found before completing the inspection.",
+      "photo": "Photo of the problem",
+      "save": "Save finding",
+      "edit": "Edit finding",
+      "add": "Describe the finding",
+      "missing": "Finding needed",
+      "guidance": "If this is an immediate danger to guests or staff, follow your property's escalation procedure and tell the Chief Engineer now. Saving a finding does not alert anyone.",
+      "afterComplete": "A corrective work order is opened for this check when you complete the inspection."
+    },
+    "measure": {
+      "none": "No meters are set up for this equipment",
+      "noneBody": "There is nothing to measure here. Meters are added from the equipment record.",
+      "intro": "Enter only what you measured. Readings are optional and never change a checklist answer."
+    },
+    "findings": {
+      "intro": "Record labor, parts, other defects, photos and notes. Everything here is optional."
+    },
+    "submit": {
+      "sending": "Recording the inspection…",
+      "retry": "Retry safely",
+      "unknownTitle": "Not confirmed yet",
+      "rejectedTitle": "Not recorded",
+      "blockedTitle": "Not ready to complete",
+      "announceRecorded": "Inspection recorded.",
+      "announceUnknown": "The inspection may not have been recorded. Your draft is safe.",
+      "announceRejected": "The inspection was not recorded."
+    },
+    "saveForSync": "Save for sync",
+    "saveForSyncNote": "No connection. This saves the inspection on this phone. It is not recorded until PatelRep confirms it.",
+    "photosPendingNote": "Some photos are still on this phone. Saving sends them first, and the inspection is not recorded until PatelRep confirms it.",
+    "queued": {
+      "title": "Saved — waiting to sync",
+      "body": "This inspection is saved on this phone. It has not been recorded yet. It is sent automatically when you're back online.",
+      "reviewTitle": "Needs review",
+      "reviewBody": "This saved inspection can't be sent as it is. Your answers and photos are kept. Open Sync Status to decide what to do.",
+      "openSync": "Open Sync Status",
+      "back": "Back to inspections",
+      "announce": "Inspection saved on this phone. Waiting to sync, not recorded yet."
     }
   },
   "engRooms": {
@@ -11611,6 +12076,36 @@
       "not_found": "That work order no longer exists.",
       "invalid": "The server rejected the details. Open the work order and redo it.",
       "unknown": "The server refused this change."
+    },
+    "pm": {
+      "title": "Inspections waiting to sync",
+      "none": "No inspections are waiting.",
+      "draftsTitle": "Unfinished inspections on this phone",
+      "draftsNone": "No unfinished inspections.",
+      "draftsHint": "Saved on this phone only. Not sent.",
+      "draftProgress": "{{answered}} of {{total}} steps answered",
+      "continue": "Continue",
+      "photosLabel": "Photos: {{count}}",
+      "unknownNote": "The last attempt may have reached the server. It is checked before anything is sent again.",
+      "stop": {
+        "conflict_completed": "Someone else already recorded this inspection. Your answers and photos are kept.",
+        "conflict_changed": "The schedule changed and the server wouldn't accept this inspection as saved.",
+        "checklist_unavailable": "The checklist for this schedule is no longer available. A chief engineer needs to assign a current one.",
+        "checklist_changed": "The checklist changed after this was saved.",
+        "schedule_gone": "This schedule or its equipment is no longer active.",
+        "evidence_missing": "A saved photo file is missing from this phone.",
+        "evidence_rejected": "A photo was too large or wasn't accepted.",
+        "forbidden": "Your account isn't allowed to record this inspection.",
+        "invalid": "The server rejected this inspection as saved.",
+        "owner_changed": "Saved under a different account or hotel.",
+        "unreadable": "This saved inspection can't be read on this phone. Discard it and start the inspection again."
+      },
+      "retry": "Retry now",
+      "submitAnyway": "Submit anyway",
+      "open": "Open",
+      "discard": "Discard",
+      "confirmDiscard": "Yes, discard",
+      "discardWarning": "This removes the saved inspection and its photos from this phone. Nothing recorded on the server changes."
     }
   },
   "repairAssist": {
@@ -11649,6 +12144,264 @@
       "not_found": "This work order isn't available to the assistant.",
       "offline": "No connection.",
       "failed": "Couldn't get an answer. Try again."
+    }
+  },
+  "pmMgmt": {
+    "open": "PM Management",
+    "title": "PM Management",
+    "subtitle": "Manage inspections, schedules, and maintenance coverage.",
+    "empty": "No maintenance coverage to show yet.",
+    "loading": "Loading…",
+    "needsConnection": "You need a connection to do this.",
+    "seeAll": "See all",
+    "allClear": "Nothing needs attention right now.",
+    "noPending": "No deferral requests are waiting for review.",
+    "pendingLine": "{{name}} asked to move it to {{date}}",
+    "assignedToYou": "Assigned to you",
+    "cards": {
+      "overdue": "Overdue",
+      "unassigned": "Unassigned",
+      "approvals": "Pending approvals",
+      "dueThisWeek": "Due this week"
+    },
+    "sections": {
+      "attention": "Requires attention",
+      "workload": "Team workload",
+      "programs": "Programs and performance"
+    },
+    "period": {
+      "today": "Today",
+      "week": "This week",
+      "month": "This month"
+    },
+    "workload": {
+      "none": "No engineers to show.",
+      "a11y": "{{name}}: {{assigned}} assigned, {{overdue}} overdue, {{completed}} completed",
+      "ineligible": "No longer an active engineer here, but still holds assigned inspections",
+      "line": "{{assigned}} assigned · {{today}} due today · {{overdue}} overdue · {{completed}} completed",
+      "next": "Next due {{date}}",
+      "unassigned": "{{count}} inspection needs a technician",
+      "unassigned_plural": "{{count}} inspections need a technician",
+      "disclaimer": "Assigned means planned, not started. Estimated minutes are never counted as labor."
+    },
+    "programs": {
+      "title": "PM Programs",
+      "subtitle": "Every active schedule, its procedure and who has it.",
+      "forTechnician": "Assigned to {{name}}",
+      "count": "{{count}} active schedule",
+      "count_plural": "{{count}} active schedules",
+      "search": "Search schedules or equipment",
+      "filter": {
+        "all": "All",
+        "overdue": "Overdue",
+        "unassigned": "Unassigned",
+        "checklist": "Needs a procedure"
+      },
+      "empty": "No schedules match",
+      "emptyBody": "Try a different filter or search.",
+      "shown": "Showing {{shown}} of {{total}}",
+      "more": "Show more",
+      "overdue": "Overdue",
+      "due": "Due {{date}}",
+      "assignedTo": "Assigned to {{name}}",
+      "lapsed": "Not assigned (the earlier assignment ended with the last inspection)",
+      "unassigned": "Not assigned",
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "checklist": {
+        "unassigned": "No procedure chosen yet - the technician picks one",
+        "missing": "Its procedure no longer exists. Choose a current one.",
+        "inactive": "Its procedure was retired. Choose a current one.",
+        "incompatible": "Its procedure is not an engineering checklist."
+      },
+      "edit": "Edit"
+    },
+    "assign": {
+      "title": "Assign Inspection",
+      "due": "Due {{date}}",
+      "estimate": "about {{minutes}} min",
+      "currentlyWith": "Currently assigned to {{name}}",
+      "unassigned": "Not assigned yet",
+      "scopeNote": "This assigns this inspection only. After it is completed, the next one starts unassigned.",
+      "search": "Find an engineer",
+      "searchPlaceholder": "Search by name",
+      "loadFailed": "Couldn't load the engineers. Close this and try again.",
+      "noMatch": "No engineer matches that name.",
+      "alreadyAssigned": "Already assigned",
+      "roleChief": "Chief engineer",
+      "roleEngineer": "Engineer",
+      "unassign": "Remove assignment",
+      "confirm": "Confirm Assignment",
+      "confirmReassign": "Confirm Reassignment",
+      "unknownPerson": "Unknown person",
+      "done": {
+        "assigned": "Inspection assigned",
+        "reassigned": "Inspection reassigned",
+        "unassigned": "Assignment removed"
+      }
+    },
+    "detail": {
+      "section": "Manage",
+      "assignee": "Assigned to"
+    },
+    "deferral": {
+      "title": "Request PM Deferral",
+      "open": "Request deferral",
+      "submit": "Submit Request",
+      "currentDue": "Currently due {{date}}",
+      "requestNote": "This sends a request. The due date does not change until a different manager approves it.",
+      "newDate": "Requested new due date",
+      "reason": "Reason",
+      "reasonPlaceholder": "Why does this need to move?",
+      "requestedToast": "Request sent - waiting for review",
+      "problem": {
+        "reason_short": "Give a reason (at least 5 characters).",
+        "reason_long": "That reason is too long.",
+        "date_missing": "Choose a date.",
+        "date_not_later": "Choose a date after the current due date.",
+        "date_past": "Choose a future date, {{date}} or later."
+      }
+    },
+    "review": {
+      "title": "Review PM Deferral",
+      "equipment": "Equipment",
+      "requestedBy": "Requested by",
+      "requestedOn": "Requested",
+      "currentDue": "Current due date",
+      "newDue": "Requested due date",
+      "reason": "Reason",
+      "ownRequest": "You made this request, so another manager has to decide it.",
+      "stale": "The schedule has already moved to or past this date, so it can't be approved.",
+      "inactive": "This schedule is no longer active.",
+      "confirmApprove": "Approve and move the due date to {{date}}?",
+      "confirmReject": "Reject this request? The due date stays as it is.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "note": "Note (optional)",
+      "notePlaceholder": "Add context for the record",
+      "approvedToast": "Deferral approved",
+      "rejectedToast": "Deferral rejected"
+    },
+    "approvals": {
+      "title": "Pending Approvals",
+      "subtitle": "Deferral requests that need a decision.",
+      "pending": "Pending",
+      "decided": "Decided",
+      "emptyPending": "Nothing is waiting for review",
+      "emptyDecided": "No decisions yet",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "move": "Due {{from}} → requested {{to}}",
+      "by": "Requested by {{name}} on {{date}}"
+    },
+    "performance": {
+      "title": "PM Performance",
+      "subtitle": "How maintenance was carried out.",
+      "rateA11y": "On-time rate {{rate}}: {{onTime}} of {{total}} completions with a recorded deadline",
+      "rateNone": "No completions with a recorded deadline in this period yet",
+      "rateBasis": "On time: {{onTime}} of {{total}} completed",
+      "metric": {
+        "onTime": "Completed on time",
+        "late": "Completed late",
+        "overdue": "Still overdue",
+        "upcoming": "Due in 7 days",
+        "deferred": "Deferrals approved",
+        "findings": "Inspections with findings"
+      },
+      "unclassified": "{{count}} completed inspection has no recorded deadline, so it isn't counted as on time or late.",
+      "unclassified_plural": "{{count}} completed inspections have no recorded deadline, so they aren't counted as on time or late.",
+      "aboutTitle": "About these numbers",
+      "about": "These describe how work was carried out. They are not a safety or regulatory compliance result. Still overdue and Due in 7 days show schedules as they stand now."
+    },
+    "failure": {
+      "version_conflict": "Someone else changed this first. Close this to see the latest, then try again.",
+      "schedule_inactive": "This schedule is no longer active.",
+      "assignee_ineligible": "That person isn't an active engineer at this property.",
+      "self_review": "You can't decide a request you made. Another manager has to.",
+      "already_decided": "This request has already been decided.",
+      "stale": "The schedule has already moved to or past that date.",
+      "expired": "The requested date has already passed. Ask for a new one.",
+      "pending_exists": "This schedule already has a request waiting for review.",
+      "unavailable": "This is temporarily unavailable. Nothing was changed.",
+      "forbidden": "Your role can't do this.",
+      "not_found": "That record no longer exists.",
+      "validation": "Check the details and try again.",
+      "unconfirmed": "No answer from the server, so we can't tell whether it went through. Check before trying again.",
+      "failed": "That didn't work. Nothing was confirmed - try again."
+    },
+    "form": {
+      "createTitle": "Create PM Schedule",
+      "createSubtitle": "Plan recurring maintenance for equipment.",
+      "editTitle": "Edit PM Schedule",
+      "sectionEquipment": "Equipment",
+      "equipmentFixed": "A schedule stays with its equipment. To move it to other equipment, create a new schedule.",
+      "changeEquipment": "Change",
+      "searchEquipment": "Search equipment by name, tag or location",
+      "noEquipment": "No active equipment matches.",
+      "name": "Schedule name",
+      "description": "Instructions (optional)",
+      "descriptionPlaceholder": "Anything the technician should know",
+      "sectionProcedure": "Inspection procedure",
+      "templatesFailed": "Couldn't load the inspection procedures. Go back and try again.",
+      "noTemplates": "No active inspection procedure exists, so a schedule can't be created yet.",
+      "templateMeta": "Version {{version}} · {{steps}} steps · {{evidence}} need a photo",
+      "boundMissing": "This schedule's current procedure is no longer available. Choose a current one before saving.",
+      "checklistWarning": "Changing the procedure applies to future inspections. Past inspections keep the procedure they were done with, and an inspection already in progress on someone's phone keeps the old one until they start over.",
+      "sectionRecurrence": "Repeats",
+      "everyDays": "Every how many days",
+      "dueNote": "The due date isn't edited here. To postpone this inspection, use Request deferral, which another manager approves.",
+      "firstDue": "First due date",
+      "basis": "Next due date is counted from",
+      "basisScheduled": "The scheduled date",
+      "basisScheduledHint": "Late work doesn't push the next one back",
+      "basisCompletion": "The completion date",
+      "basisCompletionHint": "The next one is counted from when it was done",
+      "minutes": "Estimated minutes",
+      "sectionResponsibility": "Who does it",
+      "responsibilityNote": "Engineers carry out inspections. Assign a specific person from Programs or the schedule page - assignment applies to one inspection at a time.",
+      "sectionReview": "Review",
+      "reviewEquipment": "Equipment",
+      "reviewProcedure": "Procedure",
+      "reviewRepeats": "Repeats",
+      "everyNDays": "Every {{days}} days",
+      "create": "Create Schedule",
+      "save": "Save changes",
+      "savedToast": "Schedule updated",
+      "createdToast": "Schedule created",
+      "deactivatedToast": "Schedule deactivated",
+      "partial": "The schedule details were saved, but the procedure change was not. Check the schedule, then try the procedure again.",
+      "deactivate": "Deactivate schedule",
+      "deactivateTitle": "Deactivate schedule",
+      "deactivateBody": "Stop scheduling \"{{name}}\"?",
+      "deactivateEffects": "No new inspections will come due and it can't be completed any more. Every past inspection, photo and finding stays on record, and nothing is deleted.",
+      "deactivateConfirm": "Deactivate",
+      "problem": {
+        "asset_missing": "Choose the equipment.",
+        "name_missing": "Give the schedule a name.",
+        "name_long": "That name is too long.",
+        "description_long": "That text is too long.",
+        "interval_days": "Enter a number of days from 1 to 3650.",
+        "minutes": "Enter minutes from 1 to 1440.",
+        "due_missing": "Choose the first due date.",
+        "due_past": "Choose today or a later date.",
+        "checklist_missing": "Choose the inspection procedure."
+      }
+    }
+  },
+  "engSync": {
+    "state": {
+      "current": "Up to date",
+      "cached": "Saved data, not checked just now",
+      "local_draft": "Draft on this phone",
+      "queued": "Waiting to sync",
+      "syncing": "Syncing",
+      "synced": "Recorded",
+      "needs_review": "Needs review",
+      "rejected": "Could not sync",
+      "unknown_outcome": "Server confirmation pending"
     }
   }
 }

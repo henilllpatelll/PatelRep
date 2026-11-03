@@ -88,6 +88,16 @@ export function parseReading(text: string | null | undefined): ParsedReading {
   return { kind: "ok", value };
 }
 
+/**
+ * Flips the sign of a typed reading. The decimal keypad on iPhone has no minus key, yet a freezer or a chilled-water
+ * return is legitimately below zero, so the field offers this instead of guessing a sign.
+ */
+export function toggleReadingSign(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return "-";
+  return trimmed.startsWith("-") ? trimmed.slice(1) : `-${trimmed}`;
+}
+
 /** "15 - 20 psi" style summary of the configured normal band, or null when no limit is set. */
 export function referenceRange(meter: PmMeter): { low: number | null; high: number | null } | null {
   const low = meter.warningLow ?? meter.criticalLow;

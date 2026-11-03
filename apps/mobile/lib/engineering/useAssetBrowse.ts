@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { browseAssets } from "@/lib/api/assets";
 import { assetBrowseKey, mergeAssetPages, type AssetFilters, type AssetPage, type AssetRow } from "@/lib/engineering/assetModel";
 import { classifyLoadFailure, type LoadFailure } from "@/lib/engineering/loadState";
+import { rememberAssets } from "@/lib/engineering/assetCacheStore";
 
 export interface AssetBrowse {
   rows: AssetRow[];
@@ -69,12 +70,15 @@ export function takeAssetListStale(): boolean {
  * An asset this person already loaded in this hotel, matched by id or exact tag. Only the caller's own scope is
  * searched, so a different account or property on the same device can never open another's equipment.
  */
-export function findCachedAsset(scope: string | null, code: { kind: "id" | "tag"; value: string }): { id: string; name: string; asset_tag?: string | null } | null {
+export function findCachedAsset(
+  scope: string | null,
+  code: { kind: "id" | "tag"; value: string },
+): { id: string; name: string; asset_tag?: string | null; verifiedAt: string } | null {
   if (!scope) return null;
   for (const [key, bucket] of buckets) {
     if (!key.startsWith(`${scope}|`)) continue;
     const hit = bucket.rows.find((row) => (code.kind === "id" ? row.id.toLowerCase() === code.value : row.asset_tag?.trim() === code.value));
-    if (hit) return { id: hit.id, name: hit.name, asset_tag: hit.asset_tag };
+    if (hit) return { id: hit.id, name: hit.name, asset_tag: hit.asset_tag, verifiedAt: bucket.syncedAt.toISOString() };
   }
   return null;
 }
@@ -140,6 +144,8 @@ export function useAssetBrowse({ scope, filters, query, enabled = true, fetchPag
           syncedAt: new Date(),
         };
         store(requestKey, next);
+        // The server just confirmed these rows: keep a small lookup copy so a scan still resolves them without signal.
+        void rememberAssets(result.rows.map((r) => ({ id: r.id, name: r.name, asset_tag: r.asset_tag, location: r.rooms?.room_number ? `#${r.rooms.room_number}` : r.location_text, is_active: true })));
         setBucket(next);
         setFailure(null);
       } catch (err) {

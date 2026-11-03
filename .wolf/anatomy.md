@@ -971,3 +971,33 @@
 - apps/mobile/lib/engineering/workOrderCache.ts - saved WO copies + queue snapshots (72h, bounded, no comments/photos) (~1.4k tok)
 - apps/mobile/lib/engineering/syncedHistory.ts - server-confirmed recently-synced list (~0.7k tok)
 - apps/mobile/lib/engineering/queuedActions.ts - duplicate-queue guard for claim/complete (~0.3k tok)
+
+## Eng PM+Assets V2 Phase 3 (equipment identity) - files added 2026-11-01
+- supabase/migrations/233_asset_identity_photo_and_version.sql - assets.row_version + assets.photo_evidence_id (~0.4k tok)
+- apps/mobile/lib/engineering/assetForm.ts - register/edit form model: validation, create/update bodies (clear_fields, expected_row_version), failure classification, mergeSavedAsset (~2.5k tok)
+- apps/mobile/lib/engineering/useAssetEditor.ts - register/edit lifecycle hook: idempotent id, partial photo failure, conflict resolution (~2k tok)
+- apps/mobile/lib/engineering/useLeaveGuard.ts - discard-changes guard incl. Android hardware back (~0.4k tok)
+- apps/mobile/lib/engineering/assetLabel.ts, assetLabelActions.ts - QR matrix + printable label HTML (escaped); print/share hand-off (~1.5k tok)
+- apps/mobile/lib/api/assetPhoto.ts - evidence upload + attach as identity photo with cleanup (~0.5k tok)
+- apps/mobile/components/engineering/assets/form/{AssetEditor,DateField,PhotoField}.tsx, QrCode.tsx, RetireSheet.tsx - the register/edit form and retire sheet
+- apps/mobile/app/(app)/assets/{new.tsx, edit/[assetId].tsx, label/[assetId].tsx} - Register, Edit, QR Label screens (hidden tab routes registered in lib/navigation/roleTabs.ts)
+- apps/api/routers/assets.py - POST /assets idempotent, PATCH versioned, POST /{id}/retire, PUT|DELETE /{id}/photo, lookup (case-insensitive, retired flag), PM completion returns asset + corrective_work_orders
+
+## Eng PM+Assets V2 Phase 4 (guided inspection, field evidence) - files added 2026-11-01
+- apps/mobile/components/engineering/pm/PmStepper.tsx - four-section tab row (checklist, readings, findings, review) with spoken status (~0.9k tok)
+- apps/mobile/components/engineering/pm/PmFailureSheet.tsx - "Report failed check" bottom sheet: step, escalation guidance, finding text written straight into the draft, photo (~1.6k tok)
+- apps/mobile/components/engineering/pm/PmInspectionHeader.tsx - equipment - inspection title, tag - location, checklist version, local save status, equipment link (~1k tok)
+- apps/mobile/components/engineering/pm/PmInspectionGate.tsx - loading / failure / unusable checklist / picker / changed-checklist states; `inspectionReady` (~1.5k tok)
+- apps/mobile/components/engineering/pm/PmRecordedView.tsx - recorded screen wrapper: hotel-clock time, next due, routes (~0.7k tok)
+- apps/api/tests/smoke/test_pm_field_evidence.py - evidence ownership, duplicate ids, template-required photos, replay, immutability (~2.4k tok)
+- apps/mobile/__tests__/lib/engineering/pmFieldWork.test.ts, __tests__/components/PmPhotoField.test.tsx - finding rule, sections, evidence per step, draft write order, photo retry (~3k tok)
+- apps/mobile/lib/engineering/pmSyncState.ts - engineering offline-state model (current/cached/local_draft/queued/syncing/synced/needs_review/rejected/unknown_outcome), queuedState(), dataState() (~1k tok)
+- apps/mobile/lib/engineering/pmLocalEvidence.ts - durable phone-only PM photos: copy to documents/pm-evidence/<owner>, quota, storage-full, own-folder-only delete, orphan sweep (~2.5k tok)
+- apps/mobile/lib/engineering/pmCompletionQueue.ts - freeze a validated inspection into the shared sync_queue (entity pm_schedule), one row per schedule, saveProgress (~2k tok)
+- apps/mobile/lib/engineering/pmSyncWorker.ts - dependency-ordered replay (conflict pre-check, photo record->file, same submission_id), outcomes, backoff (~3k tok)
+- apps/mobile/lib/engineering/pmSyncRunner.ts - real deps + single-flight flush, retry/submitAnyway/discard, conservative photo sweep (~2.5k tok)
+- apps/mobile/lib/engineering/pmSyncItems.ts, usePmSyncItems.ts, usePmForegroundSync.ts - Sync Status rows/counts, hook, foreground retry (~2k tok)
+- apps/mobile/lib/engineering/assetCacheStore.ts - owner-scoped durable equipment lookup index (300 entries, 30 days) (~1.8k tok)
+- apps/mobile/components/engineering/pm/PmQueuedNotice.tsx, PmSyncSection.tsx - queued notice screen, Sync Status PM section (~2k tok)
+- apps/mobile/__tests__/lib/engineering/{pmSyncState,pmLocalEvidence,pmSyncWorker,pmSyncRunner,pmSyncItems,usePmInspectionOffline,assetCacheStore}.test.ts(x) - Phase 7 tests (~12k tok)
+- apps/api/routers/assets.py - /assets/browse now reads maintenance facts for the page only (_browse_aggregates/_decorate_browse_rows); tests in tests/test_asset_browse.py

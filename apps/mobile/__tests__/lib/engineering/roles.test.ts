@@ -53,6 +53,10 @@ describe("mobile role model matches the API", () => {
     const source = fs.readFileSync(path.join(API, "routers/assets.py"), "utf8");
     const block = /@router\.post\("\/pm-schedules\/\{schedule_id\}\/complete"\)[\s\S]*?require_role\(([^)]*)\)/.exec(source);
     expect(block).not.toBeNull();
-    for (const role of ["engineer", "gm", "chief_engineer"]) expect(block![1]).toContain(`"${role}"`);
+    // The guard is `require_role(*PM_EXECUTION_ROLES)`: read the roles from the shared constant it names.
+    const named = /^\*(\w+)$/.exec(block![1].trim());
+    const roles = fs.readFileSync(path.join(API, "core/roles.py"), "utf8");
+    const guard = named ? new RegExp(`^${named[1]}\\s*=\\s*\\(([^)]*)\\)`, "m").exec(roles)![1] : block![1];
+    for (const role of ["engineer", "gm", "chief_engineer"]) expect(guard).toContain(`"${role}"`);
   });
 });

@@ -110,12 +110,18 @@ describe("PM inspection", () => {
     await openStep(ui, "i1");
     fireEvent.press(ui.getByTestId("pm-item-i1-failed"));
     expect(ui.getByTestId("pm-item-i1-issue")).toBeTruthy();
-    fireEvent.changeText(ui.getByTestId("pm-item-i1-note"), "Dripping at the union");
+    // Choosing Fail opens the failure sheet; the finding is written into the draft as it is typed.
+    expect(ui.getByTestId("pm-failure-sheet")).toBeTruthy();
+    fireEvent.changeText(ui.getByTestId("pm-failure-note"), "Dripping at the union");
+    fireEvent.press(ui.getByTestId("pm-failure-save"));
+    expect(ui.queryByTestId("pm-failure-sheet")).toBeNull();
+    expect(ui.getByTestId("pm-item-i1-finding").props.children).toBe("Dripping at the union");
 
+    fireEvent.press(ui.getByTestId("pm-step-measurements"));
     fireEvent.changeText(ui.getByTestId("pm-reading-m1-input"), "22");
     expect(ui.getByTestId("pm-reading-m1-status")).toBeTruthy();
 
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     expect(ui.getByTestId("pm-review-wo-notice")).toBeTruthy();
     expect(submitApi).not.toHaveBeenCalled();
@@ -150,7 +156,7 @@ describe("PM inspection", () => {
   it("cannot be completed while steps are unanswered, lists them in the review, and never posts", async () => {
     const ui = renderScreen();
     await ui.findByTestId("pm-progress");
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     expect(ui.getByTestId("pm-review-jump-i0")).toBeTruthy();
     expect(ui.getByTestId("pm-review-jump-i1")).toBeTruthy();
@@ -167,7 +173,7 @@ describe("PM inspection", () => {
     fireEvent.press(ui.getByTestId("pm-item-i0-passed"));
     await openStep(ui, "i1");
     fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     expect(ui.getByTestId("pm-review-evidence-i0")).toBeTruthy();
     expect(ui.getByTestId("pm-complete-button").props.accessibilityState.disabled).toBe(true);
@@ -178,7 +184,7 @@ describe("PM inspection", () => {
     const ui = renderScreen();
     await openStep(ui, "i0");
     fireEvent.press(ui.getByTestId("pm-item-i0-passed"));
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     expect(ui.getByTestId("pm-offline-submit")).toBeTruthy();
     expect(ui.getByTestId("pm-complete-button").props.accessibilityState.disabled).toBe(true);
@@ -196,7 +202,7 @@ describe("PM inspection", () => {
     });
     await openStep(ui, "i1");
     fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     await act(async () => {
       fireEvent.press(ui.getByTestId("pm-complete-button"));
@@ -218,7 +224,7 @@ describe("PM inspection", () => {
     });
     await openStep(ui, "i1");
     fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
-    fireEvent.press(ui.getByTestId("pm-review-button"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
     await ui.findByTestId("pm-review");
     await act(async () => {
       fireEvent.press(ui.getByTestId("pm-complete-button"));
@@ -278,5 +284,139 @@ describe("PM inspection", () => {
     await waitFor(() => expect(ui.queryByTestId("pm-progress")).toBeNull());
     expect(templatesApi).not.toHaveBeenCalled();
     expect(submitApi).not.toHaveBeenCalled();
+  });
+});
+
+describe("PM inspection, field work", () => {
+  async function passAll(ui: ReturnType<typeof renderScreen>) {
+    uploadApi.mockResolvedValue("ev-1");
+    await openStep(ui, "i0");
+    fireEvent.press(ui.getByTestId("pm-item-i0-passed"));
+    await act(async () => {
+      fireEvent.press(ui.getByTestId("pm-item-i0-photos-camera"));
+    });
+    await openStep(ui, "i1");
+    fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
+  }
+
+  it("names the equipment and the procedure in the header, and says where the draft is saved", async () => {
+    const ui = renderScreen();
+    await ui.findByTestId("pm-progress");
+    expect(ui.getByText("Boiler 1 — Boiler PM")).toBeTruthy();
+    expect(ui.getByText("pm.header.checklist:Boiler inspection,2")).toBeTruthy();
+    fireEvent.press(ui.getByTestId("pm-step-measurements"));
+    await ui.findByTestId("pm-readings");
+    fireEvent.press(ui.getByTestId("pm-step-checklist"));
+    await openStep(ui, "i1");
+    fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
+    await waitFor(() => expect(ui.getByTestId("pm-save-state").props.children).toContain("pm.save.saved"));
+  });
+
+  it("moving between sections loses nothing that was entered", async () => {
+    const ui = renderScreen();
+    await openStep(ui, "i1");
+    fireEvent.press(ui.getByTestId("pm-item-i1-passed"));
+    fireEvent.press(ui.getByTestId("pm-step-measurements"));
+    fireEvent.changeText(await ui.findByTestId("pm-reading-m1-input"), "18.5");
+    fireEvent.press(ui.getByTestId("pm-step-findings"));
+    fireEvent.changeText(await ui.findByTestId("pm-labor-input"), "45");
+    fireEvent.press(ui.getByTestId("pm-step-checklist"));
+    // The card is still open and still answered.
+    expect(ui.getByTestId("pm-item-i1-passed").props.accessibilityState.selected).toBe(true);
+    fireEvent.press(ui.getByTestId("pm-step-measurements"));
+    expect(ui.getByTestId("pm-reading-m1-input").props.value).toBe("18.5");
+    fireEvent.press(ui.getByTestId("pm-step-findings"));
+    expect(ui.getByTestId("pm-labor-input").props.value).toBe("45");
+  });
+
+  it("offers only the meters the equipment really has", async () => {
+    metersApi.mockResolvedValue([]);
+    const ui = renderScreen();
+    await ui.findByTestId("pm-progress");
+    fireEvent.press(ui.getByTestId("pm-step-measurements"));
+    expect(await ui.findByTestId("pm-no-meters")).toBeTruthy();
+    expect(ui.queryByTestId("pm-reading-m1")).toBeNull();
+  });
+
+  it("dismissing the failure sheet keeps the step Failed; completion stays blocked until the finding is written, and Fix this reopens it", async () => {
+    const ui = renderScreen();
+    await openStep(ui, "i1");
+    fireEvent.press(ui.getByTestId("pm-item-i1-failed"));
+    expect(ui.getByTestId("pm-failure-sheet")).toBeTruthy();
+    expect(ui.getByTestId("pm-failure-guidance")).toBeTruthy(); // says where an immediate danger is reported
+    fireEvent.press(ui.getByTestId("pm-failure-save")); // nothing written yet
+    expect(ui.getByTestId("pm-failure-error")).toBeTruthy();
+    expect(ui.getByTestId("pm-failure-sheet")).toBeTruthy(); // Save did not pretend the finding was saved
+
+    fireEvent(ui.getByTestId("pm-failure-sheet"), "requestClose"); // the Android back button
+    expect(ui.queryByTestId("pm-failure-sheet")).toBeNull();
+
+    expect(ui.getByTestId("pm-item-i1-failed").props.accessibilityState.selected).toBe(true);
+    fireEvent.press(ui.getByTestId("pm-step-review"));
+    await ui.findByTestId("pm-review");
+    expect(ui.getByTestId("pm-review-finding-i1")).toBeTruthy();
+    expect(ui.getByTestId("pm-complete-button").props.accessibilityState.disabled).toBe(true);
+
+    fireEvent.press(ui.getByTestId("pm-review-finding-i1"));
+    expect(await ui.findByTestId("pm-failure-sheet")).toBeTruthy();
+    fireEvent.changeText(ui.getByTestId("pm-failure-note"), "Weeping at the relief valve");
+    await waitFor(async () => expect((await loadPmDraft("s1"))?.items.i1.note).toBe("Weeping at the relief valve"), { timeout: 2000 });
+  });
+
+  it("a retry after an unknown outcome is labelled as a safe retry and re-sends the very same submission", async () => {
+    submitApi.mockRejectedValueOnce(new Error("Network request failed"));
+    submitApi.mockResolvedValueOnce({ id: "c1", pm_schedule_id: "s1", completed_at: "2026-11-01T18:00:00Z" });
+    const ui = renderScreen();
+    await passAll(ui);
+    fireEvent.press(ui.getByTestId("pm-step-review"));
+    await ui.findByTestId("pm-review");
+    await act(async () => {
+      fireEvent.press(ui.getByTestId("pm-complete-button"));
+    });
+    expect((await ui.findByTestId("pm-outcome")).props.children).toBe("pm.errors.unknown");
+    expect(ui.queryByTestId("pm-recorded")).toBeNull();
+    expect(await loadPmDraft("s1")).not.toBeNull(); // nothing is thrown away until the server confirms
+
+    expect(ui.getByText("pm.submit.retry")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(ui.getByTestId("pm-complete-button"));
+    });
+    await ui.findByTestId("pm-recorded");
+    expect(submitApi).toHaveBeenCalledTimes(2);
+    expect(submitApi.mock.calls[1][1].submission_id).toBe(submitApi.mock.calls[0][1].submission_id);
+    expect(submitApi.mock.calls[1][1].submission_id).toBeTruthy();
+  });
+
+  it("shows only what the server confirmed: order numbers, the next due date, and a failed step never reads as a pass", async () => {
+    uploadApi.mockResolvedValue("ev-1");
+    submitApi.mockResolvedValue({
+      id: "c1",
+      pm_schedule_id: "s1",
+      completed_at: "2026-11-01T18:00:00Z",
+      next_due_at: "2026-12-01T18:00:00Z",
+      corrective_work_orders: [{ id: "wo-9", title: "Corrective PM work: No leaks", work_order_number: 1042 }],
+    });
+    const ui = renderScreen();
+    await openStep(ui, "i0");
+    fireEvent.press(ui.getByTestId("pm-item-i0-passed"));
+    await act(async () => {
+      fireEvent.press(ui.getByTestId("pm-item-i0-photos-camera"));
+    });
+    await openStep(ui, "i1");
+    fireEvent.press(ui.getByTestId("pm-item-i1-failed"));
+    fireEvent.changeText(ui.getByTestId("pm-failure-note"), "Drip");
+    fireEvent.press(ui.getByTestId("pm-failure-save"));
+    fireEvent.press(ui.getByTestId("pm-step-review"));
+    await ui.findByTestId("pm-review");
+    await act(async () => {
+      fireEvent.press(ui.getByTestId("pm-complete-button"));
+    });
+    await ui.findByTestId("pm-recorded");
+    expect(ui.getByTestId("pm-recorded-issues").props.children).toBe("pm.recorded.issues:1");
+    expect(ui.getByTestId("pm-recorded-results").props.children).toBe("pm.recorded.resultsLine:1,1,0");
+    expect(ui.getByTestId("pm-recorded-next-due")).toBeTruthy();
+    expect(ui.getByText(/pm\.recorded\.workOrderNumber:1042/)).toBeTruthy();
+    fireEvent.press(ui.getByTestId("pm-recorded-equipment"));
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/assets/[assetId]", params: { assetId: "asset-1" } });
   });
 });

@@ -28,6 +28,8 @@ export interface PmAssetDetail {
   serial_number?: string | null;
   asset_categories?: { name?: string | null } | null;
   rooms?: { room_number?: string | null } | null;
+  /** Derived by the API (downtime impact, else a repair in progress, else operational). Absent from an older API. */
+  service_status?: "operational" | "degraded" | "out_of_service" | "under_repair" | null;
 }
 
 export async function getPmAsset(assetId: string): Promise<PmAssetDetail | null> {
@@ -99,6 +101,10 @@ export interface PmCompletionDetail {
   notes: string | null;
   photos: PmCompletionEvidence[];
   items: PmCompletionItemRecord[];
+  /** The exact equipment this was done on (id-resolved inside the property). Absent from an older server. */
+  asset?: { id: string; name: string; asset_tag?: string | null; is_active?: boolean } | null;
+  /** The corrective work orders this completion opened. Reading the record never creates one. */
+  corrective_work_orders?: Array<{ id: string; title: string; status: string; work_order_number?: string | number | null }> | null;
 }
 
 export async function getPmCompletion(scheduleId: string, completionId: string): Promise<PmCompletionDetail> {
@@ -121,21 +127,37 @@ export async function listScheduleCompletions(scheduleId: string): Promise<Array
  * upload fails the empty record is removed again so a failed attempt leaves nothing behind to be mistaken for proof.
  */
 export async function uploadPmEvidence(input: { assetId: string; uri: string; label: string; signal?: AbortSignal }): Promise<string> {
-  const created = await api.post<{ data: { id: string } }>(
-    "/evidence/records",
-    { label: input.label, evidence_type: "photo", related_entity_type: "asset", related_entity_id: input.assetId },
-    { signal: input.signal },
-  );
-  const id = created.data.id;
+  const id = await createPmEvidenceRecord(input);
   try {
-    const form = new FormData();
-    form.append("file", { uri: input.uri, type: "image/jpeg", name: `pm_${Date.now()}.jpg` } as unknown as Blob);
-    await api.postForm(`/evidence/records/${id}/file`, form, { signal: input.signal });
+    await uploadPmEvidenceFile(id, input.uri, input.signal);
   } catch (err) {
     await deletePmEvidence(id);
     throw err;
   }
   return id;
+}
+
+/** Step 1 of an upload: the (still empty) evidence record, tied to the asset. Its id is the only thing kept. */
+export async function createPmEvidenceRecord(input: { assetId: string; label: string; signal?: AbortSignal }): Promise<string> {
+  const created = await api.post<{ data: { id: string } }>(
+    "/evidence/records",
+    { label: input.label, evidence_type: "photo", related_entity_type: "asset", related_entity_id: input.assetId },
+    { signal: input.signal },
+  );
+  return created.data.id;
+}
+
+/** Step 2: the file for an existing record. The server refuses a second file for the same record. */
+export async function uploadPmEvidenceFile(evidenceId: string, uri: string, signal?: AbortSignal): Promise<void> {
+  const form = new FormData();
+  form.append("file", { uri, type: "image/jpeg", name: `pm_${Date.now()}.jpg` } as unknown as Blob);
+  await api.postForm(`/evidence/records/${evidenceId}/file`, form, { signal });
+}
+
+/** What the server holds for a record: used to learn whether a file landed when the reply was lost. */
+export async function getPmEvidenceRecord(evidenceId: string): Promise<{ id: string; storage_path?: string | null; related_entity_id?: string | null }> {
+  const res = await api.get<{ data: { id: string; storage_path?: string | null; related_entity_id?: string | null } }>(`/evidence/records/${evidenceId}`);
+  return res.data;
 }
 
 /** Best effort: removing evidence the technician took out, or a failed upload's empty record. */
@@ -168,10 +190,12 @@ export async function findLandedCompletion(scheduleId: string, userId: string, s
 /**
  * Completes a PM. Refuses (throws PmCompletionBlockedError) rather than send a body the API would reject.
  *
- * The API has no idempotency key, and a completion also opens corrective work orders and moves the due date, so a blind
- * retry after a timeout could record the inspection twice. When the outcome is unknown (network failure, timeout, 5xx)
- * the schedule's completions are re-read: if one by this person appeared since the attempt began, that is the answer.
- * `since` carries an earlier unknown attempt across presses, so a retry checks before it posts again.
+ * A completion also opens corrective work orders and moves the due date, so it must never be recorded twice. The payload
+ * carries a `submission_id` (see pmSubmission.ts): the server records it once and answers a repeat with the original, so
+ * retrying the same submission is the safe way to resolve an unknown outcome. Older payloads without an id keep the
+ * previous protection as well: when the outcome is unknown (network failure, timeout, 5xx) the schedule's completions are
+ * re-read, and if one by this person appeared since the attempt began, that is the answer. `since` carries an earlier
+ * unknown attempt across presses, so a retry checks before it posts again.
  */
 export async function submitPmCompletion(
   scheduleId: string,
@@ -179,7 +203,9 @@ export async function submitPmCompletion(
   context: { userId: string; attemptStartedAt: number; unknownSince?: number | null },
 ): Promise<PmCompletionResult> {
   assertPmCompletionAllowed(payload);
-  if (context.unknownSince != null) {
+  // With a submission id the POST itself is the safe retry (it replays the original, with its work orders). The re-read is
+  // only needed for a payload that has none.
+  if (context.unknownSince != null && !payload.submission_id) {
     const earlier = await findLandedCompletion(scheduleId, context.userId, context.unknownSince);
     if (earlier) return earlier;
   }
@@ -188,6 +214,9 @@ export async function submitPmCompletion(
   } catch (err) {
     if (isDefinitiveRefusal(err)) throw err;
     try {
+      // Still the same submission: the next press re-posts it and the server answers with the original. Only an id-less
+      // payload needs the re-read to learn whether the first attempt landed.
+      if (payload.submission_id) throw err;
       const landed = await findLandedCompletion(scheduleId, context.userId, context.unknownSince ?? context.attemptStartedAt);
       if (landed) return landed;
     } catch {

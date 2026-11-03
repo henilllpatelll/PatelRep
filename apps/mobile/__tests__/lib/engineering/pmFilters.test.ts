@@ -1,6 +1,6 @@
 import type { PmScheduleRow } from "@/lib/api/assets";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
-import { DEFAULT_PM_FILTERS, activeFilterCount, applyPmFilters, categoriesOf, matchesQuery, todaySections } from "@/lib/engineering/pmFilters";
+import { DEFAULT_PM_FILTERS, activeFilterCount, applyPmFilters, categoriesOf, matchesQuery, todayPlan, todaySections } from "@/lib/engineering/pmFilters";
 
 const NOW = new Date("2026-11-04T16:00:00Z");
 const row = (id: string, due: string | null, extra: Partial<PmScheduleRow> = {}): PmScheduleRow => ({
@@ -89,5 +89,27 @@ describe("todaySections", () => {
     expect(s.overdue.map((v) => v.id)).toEqual(["old", "filter"]);
     expect(s.dueToday.map((v) => v.id)).toEqual(["boiler"]);
     expect(s.next).toEqual([]);
+  });
+});
+
+describe("todayPlan", () => {
+  it("puts a drafted schedule only in Continue, whatever its state", () => {
+    const plan = todayPlan(set, new Set(["old"]));
+    expect(plan.continueWork.map((v) => v.id)).toEqual(["old"]);
+    expect(plan.needsAttention.map((v) => v.id)).not.toContain("old");
+  });
+
+  it("splits the rest into overdue (most overdue first), due today and coming up with no repeats", () => {
+    const plan = todayPlan(set, new Set());
+    expect(plan.needsAttention.map((v) => v.id)).toEqual(["old", "filter"]);
+    expect(plan.dueToday.map((v) => v.id)).toEqual(["boiler"]);
+    const all = [...plan.continueWork, ...plan.needsAttention, ...plan.dueToday, ...plan.comingUp].map((v) => v.id);
+    expect(new Set(all).size).toBe(all.length);
+    expect(plan.needsAttention.every((v) => v.state === "overdue")).toBe(true);
+    expect(plan.dueToday.every((v) => v.state === "due_today")).toBe(true);
+  });
+
+  it("has an empty Continue section when no draft exists", () => {
+    expect(todayPlan(set, new Set()).continueWork).toEqual([]);
   });
 });
