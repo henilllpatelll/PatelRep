@@ -622,3 +622,106 @@ expectations, the pending-count mocks (now the sync summary).
 - Chief In Progress / Team parity assumes a chief never holds assignments (13.2).
 - The Room Impact drawer still needs a per-room read (unchanged from Phase 4).
 - Remaining UI polish and accessibility passes (dynamic type, small screens, EN/ES long names) are Phase 6.
+
+## 14. Phase 6 record: UI polish, accessibility and visual consistency
+
+Phase 6 changed presentation and interaction quality only. No backend endpoint, migration, workflow, permission or business
+rule changed. No sheet shared with Housekeeping, Front Desk or GM was modified.
+
+### 14.1 UI/UX audit (each issue was confirmed in code before it was fixed)
+
+| # | Finding | Severity | Fix |
+|---|---|---|---|
+| 1 | `HOME_MAX_FONT` capped every Home text at 1.4x, so people using large system text were held below their setting. | Accessibility | Ceiling raised to 2.0. Every text block now wraps and grows instead of clipping (see 14.3). |
+| 2 | Summary cards announced "unavailable" while the first read was still running, and showed a bare "-". Loading was indistinguishable from failure. | Truthfulness | `SummaryCardData.loading`: a fixed-size placeholder, announced as "loading" and `busy`. "Unavailable" is now only said after a read failed or is unknown. |
+| 3 | Urgency on the Urgent card was a red number only. | Accessibility (color only) | An alert icon sits beside the number when urgent work exists; the number and label already carry the count. |
+| 4 | Profile and notification buttons in the header were 44dp; the Property Priorities Assign button was 44dp. | Touch target | Raised to 48dp (`HOME_MIN_TOUCH`). The sync line is 32dp high with an 8dp hit slop. |
+| 5 | Technician Needs Attention rows clipped the heading to one line and the title to two, and told hot from routine by bar color only. | Scanability | Heading and title wrap fully. A leading icon (alert for emergency, unassigned-urgent, PM overdue and blocked saves; clock for past-due and on-hold) matches the bar color. |
+| 6 | Chief Property Priorities rows clipped heading, title and meta. | Scanability | Caps removed; the existing per-kind icon is now hidden from screen readers (the row label already says it). |
+| 7 | Quick-action labels and workload names were capped at one or two lines. | Large text | Quick-action labels wrap freely; workload names allow two lines. |
+| 8 | The greeting fell back to a hard-coded English "there", also in Spanish. | Localization | New key `home.engineer.fallbackName` (EN "there", ES "equipo"). |
+| 9 | A double tap on a Home card pushed the destination twice. | Navigation | `useHomeNavigate` ignores a repeat of the same destination (path and params, ignoring the per-tap `nav` stamp) for 700 ms. Different destinations, including different filters on Work, are never blocked. |
+| 10 | Decorative chevrons and icons were reachable by screen readers. | Accessibility | `accessibilityElementsHidden` + `importantForAccessibility="no"` on decorative icons. Rows already expose one label. |
+
+Checked and left unchanged, with the reason:
+
+- **Contrast.** Computed WCAG ratios for the token pairs Home uses. Light: muted text 5.93 on surface, 5.36 on the page;
+  urgent red 6.30 / 5.70; amber 6.42; green action 4.86; header secondary text 5.27 on the shell. Dark: muted text 6.04 /
+  6.45; red 7.60; green action 6.78; amber 9.66; header secondary text 5.85. All are at or above 4.5:1 for text, so no color
+  token changed.
+- **Reduced motion.** Home has no animation of its own. `BottomSheet` already uses `useReducedMotion` (no slide when reduced).
+- **Floating assistant.** `lib/ai/fab.ts` shows the button for the `housekeeper` role only, so it never appears on either
+  Engineering Home, over the tab bar, or over engineering sticky actions. No change; no second assistant was built.
+- **Sheets** (Assign, Hold, Report, PM, Room Impact, filters) share `BottomSheet`: safe-area padding, keyboard avoidance on
+  iOS, Android back via `onRequestClose`, backdrop and 44dp close (60dp with hit slop), screen-reader focus on the title,
+  scrolling body with a pinned footer, title font capped at 1.6. They were not rebuilt.
+- **Tab bar.** Still exactly Home, Work, PM, Assets, More; untouched.
+
+### 14.2 Shared visual language
+
+Both Homes use the same parts and tokens: `TechnicianHomeHeader`, `TechnicianSummaryCards`, `TechnicianQuickActions`,
+`HomeLoadNotice`, `HomeConnectionStatus`, `Card`, `Button`, `StatusBadge`, and `homeStyles` (`HOME_MIN_TOUCH` 48,
+`HOME_MAX_FONT` 2). Radii are `R.sm/md/lg`; colors come from `useTheme()` only. No one-off color or second design system was
+added. The layouts stay different: the technician screen leads with one contextual primary card; the chief screen leads
+with Property Priorities.
+
+### 14.3 Dynamic text and responsive rules
+
+- No Home text block has a line cap that can hide meaning. Rows and cards use `minHeight`, never a fixed height.
+- Summary cards share the row equally (`flex: 1`), labels wrap, and the value placeholder keeps the card from jumping
+  when the number arrives.
+- Header title and hotel name wrap to two lines; the role line stays one line (a short constant label).
+- Quick actions are a two-column wrapping grid (`flexBasis: 47%`); labels wrap.
+- Everything lives in one vertical `ScrollView`, so a primary action is always reachable by scrolling. There is no
+  horizontal scrolling on Home.
+
+### 14.4 Loading, error and offline presentation
+
+First load: cards show placeholders (announced "loading"), then a single `StateBlock` below. A failed section reports itself
+with its own retry (`HomeLoadNotice` / `StaleBanner`) and the rest of Home keeps its data. A failed read is never rendered
+as "nothing to do" and a queued action is never worded as done (unchanged from Phases 4 and 5).
+
+### 14.5 Localization
+
+All new strings are keyed in `en.json` and `es.json` (`home.engineer.loadingCount`, `home.engineer.fallbackName`).
+`homeNavigate.test.ts` asserts EN and ES have identical key sets under `home.engineer` and `home.chief`, and that both new
+strings differ between languages. Long Spanish labels wrap by 14.3.
+
+### 14.6 Tests
+
+New: `__tests__/lib/engineering/homeNavigate.test.ts` (8: route identity, double-tap lock, different destination never
+blocked, lock expiry, EN/ES parity). Added to `EngineerHome.test.tsx`: 48dp header controls; loading placeholder instead of
+zero. Changed (behavior intentionally changed, assertions not loosened): the chief test that pinned a 1.4 cap now requires
+at least 1.6 and a 48dp Assign button; the loading-state card tests expect "loading" instead of "unavailable" (and still
+forbid a zero), while failed reads still expect "unavailable".
+
+Results (local, Windows, in this worktree): `tsc --noEmit` clean; `npm run lint` clean; `git diff --check` clean; full
+mobile Jest 459 suites / 10449 tests passed.
+
+### 14.7 Visual QA matrix
+
+No emulator, simulator or physical device was available in this phase (no `adb`, no Xcode), so **no screenshot was taken and
+no on-device check was done**. Everything below marked "component test" ran in Jest with the React Native test renderer,
+which does not lay out text or measure real pixels.
+
+| Screen / drawer | Device / viewport | Theme | Language | State | Method | Result | Remaining |
+|---|---|---|---|---|---|---|---|
+| Technician Home | none | both (token math only) | EN, ES (key parity) | loading | component test | placeholder + "loading" label, no zero | not seen on screen |
+| Technician Home | none | both | EN | normal, error, offline, stale | component test (existing + Phase 6) | passes | not seen on screen |
+| Technician Home header | none | n/a | EN | normal | component test | controls 48dp | not seen on screen |
+| Chief Home | none | both | EN | normal, loading, failed, all-clear | component test | passes | not seen on screen |
+| Property Priorities / Assign | none | n/a | EN | normal | component test | Assign 48dp | not seen on screen |
+| Home taps | none | n/a | n/a | double tap | unit test | one push per destination | real stack not exercised |
+| Text color pairs | n/a | light + dark | n/a | n/a | computed WCAG ratio | all at or above 4.86:1 | none |
+| Large text (2x), small phones, landscape | none | none | none | none | not run | unverified | needs a device pass |
+| Connected sheets (Hold, Report, Assign, PM, Room Impact, scan) | none | none | none | none | code audit only | shared `BottomSheet` conventions confirmed | keyboard and Android back not exercised on device |
+| Dark-mode sheet rendering | none | dark | none | none | not run | unverified | needs a device pass |
+
+### 14.8 Phase 7 handoff
+
+- A device pass is the biggest gap: large text (1.5x to 2x), a small Android phone, keyboard-open forms, Android hardware
+  back from each sheet, dark mode, and Spanish long labels. Nothing in sections 14.3 or 14.7 has been seen on screen.
+- Room Impact from Home still needs a per-room read (unchanged since Phase 4); only the aggregate is shown.
+- The navigation lock is 700 ms and lives in Home only; Work, PM and Assets screens do not share it.
+- Staging did not appear in the PR checks for this `feat/*` branch in earlier phases; re-check live before claiming
+  readiness.

@@ -62,6 +62,6 @@ export function HomeConnectionStatus({ connection, onPress }: { connection: Home
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, minHeight: 24 },
+  row: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, minHeight: 32 },
   text: { fontSize: 12.5, flexShrink: 1 },
 });

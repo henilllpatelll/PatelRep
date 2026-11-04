@@ -35,7 +35,7 @@ function Row({ row, onOpen }: { row: WorkloadRow; onOpen: (userId: string) => vo
       testID={`workload-${row.tech.user_id}`}
     >
       <View style={styles.rowTop}>
-        <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.name, { color: theme.textPrimary }]}>
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[styles.name, { color: theme.textPrimary }]}>
           {row.name}
         </Text>
         <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.count, { color: theme.textPrimary }]}>

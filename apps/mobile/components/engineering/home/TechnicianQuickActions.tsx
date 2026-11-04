@@ -58,8 +58,8 @@ export function TechnicianQuickActions<K extends QuickActionKey>({
             testID={`quick-${key}`}
             style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.primaryLine }]}
           >
-            <Ionicons name={ICONS[key]} size={22} color={theme.primaryAction} />
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[styles.text, { color: theme.primaryAction }]}>
+            <Ionicons name={ICONS[key]} size={22} color={theme.primaryAction} accessibilityElementsHidden importantForAccessibility="no" />
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.text, { color: theme.primaryAction }]}>
               {t(labelOverrides?.[key] ?? LABELS[key])}
             </Text>
           </Pressable>

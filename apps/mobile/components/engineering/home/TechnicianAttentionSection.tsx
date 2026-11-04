@@ -51,6 +51,7 @@ function Row({ item, viewerId, onOpen }: { item: AttentionItem; viewerId: string
   const hot = item.reason === "emergency" || item.reason === "urgent_unassigned" || item.reason === "pm_overdue" || item.reason === "sync_blocked";
   const heading = [t(`home.engineer.reason.${REASON_KEY[item.reason]}`), where].filter(Boolean).join(" · ");
   const tone = hot ? theme.status.dirty : theme.status.pickup;
+  const icon = hot ? "alert-circle" : "time-outline";
   return (
     <Pressable
       onPress={() => onOpen(item)}
@@ -61,10 +62,13 @@ function Row({ item, viewerId, onOpen }: { item: AttentionItem; viewerId: string
     >
       <View style={[styles.bar, { backgroundColor: tone }]} />
       <View style={styles.body}>
-        <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.heading, { color: tone }]} numberOfLines={1}>
-          {heading}
-        </Text>
-        <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.title, { color: theme.textPrimary }]} numberOfLines={2}>
+        <View style={styles.headRow}>
+          <Ionicons name={icon} size={14} color={tone} accessibilityElementsHidden importantForAccessibility="no" />
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.heading, { color: tone }]}>
+            {heading}
+          </Text>
+        </View>
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.title, { color: theme.textPrimary }]}>
           {title}
         </Text>
         {detail ? (
@@ -73,7 +77,7 @@ function Row({ item, viewerId, onOpen }: { item: AttentionItem; viewerId: string
           </Text>
         ) : null}
       </View>
-      <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+      <Ionicons name="chevron-forward" size={16} color={theme.textMuted} accessibilityElementsHidden importantForAccessibility="no" />
     </Pressable>
   );
 }
@@ -128,6 +132,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: R.md, paddingRight: 12, minHeight: HOME_MIN_TOUCH + 16, overflow: "hidden" },
   bar: { width: 4, alignSelf: "stretch" },
   body: { flex: 1, paddingVertical: 10, gap: 2 },
-  heading: { fontSize: 11.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
+  headRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  heading: { flexShrink: 1, fontSize: 11.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
   title: { fontSize: 15, fontWeight: "600", lineHeight: 20 },
 });

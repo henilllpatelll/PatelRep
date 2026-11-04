@@ -247,12 +247,14 @@ describe("summary cards", () => {
     expect(lastPush()).toEqual({ pathname: "/(app)/work-orders", params: { view: "waiting", nav: expect.any(String) } });
   });
 
-  it("shows unavailable, never zero, while loading and when the read fails", async () => {
+  it("shows a loading placeholder, never zero, while the read is in flight", async () => {
     let release!: (v: TeamOverview) => void;
     mockOverview.mockReturnValueOnce(new Promise<TeamOverview>((r) => (release = r)));
     const home = renderHome();
     for (const id of ["summary-needs-owner", "summary-in-progress", "summary-on-hold"]) {
-      expect(home.getByTestId(id).props.accessibilityLabel).toContain("home.engineer.unavailable");
+      expect(home.getByTestId(id).props.accessibilityLabel).toContain("home.engineer.loadingCount");
+      expect(home.getByTestId(`${id}-loading`)).toBeTruthy();
+      expect(home.queryByText("0")).toBeNull();
     }
     await act(async () => release(base()));
     await ready(home);
@@ -792,7 +794,7 @@ describe("tenant isolation", () => {
     );
     expect(home.queryByText("Water leaking under sink")).toBeNull();
     expect(home.queryByText("Sam R.")).toBeNull();
-    expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toContain("home.engineer.unavailable");
+    expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toContain("home.engineer.loadingCount");
     await act(async () => release(base({ needs_attention: [], technicians: [], attention_counts: { emergency_unassigned: 0, urgent_overdue: 0, escalated: 0, on_hold: 0 }, counts: { ...base().counts, needs_owner: 0 } })));
     await waitFor(() => expect(home.getByTestId("workload-empty")).toBeTruthy());
     expect(home.queryByText("Water leaking under sink")).toBeNull();
@@ -800,17 +802,17 @@ describe("tenant isolation", () => {
 });
 
 describe("accessibility and theming", () => {
-  it("caps text scaling, marks section titles as headers and keeps touch targets at 48dp or more", async () => {
+  it("allows generous text scaling, marks section titles as headers and keeps touch targets at 48dp or more", async () => {
     const home = renderHome();
     await ready(home);
     expect(home.getByText("home.chief.prioritiesTitle").props.accessibilityRole).toBe("header");
     expect(home.getByText("home.chief.workloadTitle").props.accessibilityRole).toBe("header");
-    expect(home.getByText("home.chief.prioritiesTitle").props.maxFontSizeMultiplier).toBe(1.4);
-    expect(home.getByText("Water leaking under sink").props.maxFontSizeMultiplier).toBe(1.4);
+    expect(home.getByText("home.chief.prioritiesTitle").props.maxFontSizeMultiplier).toBeGreaterThanOrEqual(1.6);
+    expect(home.getByText("Water leaking under sink").props.maxFontSizeMultiplier).toBeGreaterThanOrEqual(1.6);
     const minHeight = (id: string) => (StyleSheet.flatten(home.getByTestId(id).props.style) as { minHeight?: number }).minHeight ?? 0;
     expect(minHeight("quick-assign")).toBeGreaterThanOrEqual(48);
     expect(minHeight("oversight-rooms")).toBeGreaterThanOrEqual(48);
-    expect(minHeight("priority-assign-wo-emg")).toBeGreaterThanOrEqual(44);
+    expect(minHeight("priority-assign-wo-emg")).toBeGreaterThanOrEqual(48);
   });
 
   it("conveys urgency in words as well as colour", async () => {

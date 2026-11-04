@@ -138,6 +138,26 @@ describe("EngineerHome header", () => {
     expect(getByTestId("engineer-hotel").props.children).toBe("Fossil Creek Inn");
   });
 
+  it("keeps the profile and notification controls at 48dp or more", async () => {
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("engineer-bell")).toBeTruthy());
+    const box = (id: string) => require("react-native").StyleSheet.flatten(getByTestId(id).props.style) as { width?: number; height?: number; minWidth?: number; minHeight?: number };
+    expect(box("engineer-bell").width).toBeGreaterThanOrEqual(48);
+    expect(box("engineer-bell").height).toBeGreaterThanOrEqual(48);
+    expect(box("engineer-profile").minWidth).toBeGreaterThanOrEqual(48);
+    expect(box("engineer-profile").minHeight).toBeGreaterThanOrEqual(48);
+  });
+
+  it("shows a loading placeholder, not a zero, on the summary cards until the first read finishes", async () => {
+    mockActive.mockReturnValue(new Promise(() => undefined));
+    const { getByTestId, queryByText } = renderHome();
+    for (const id of ["summary-my-jobs", "summary-urgent"]) {
+      expect(getByTestId(id).props.accessibilityLabel).toContain("home.engineer.loadingCount");
+      expect(getByTestId(`${id}-loading`)).toBeTruthy();
+    }
+    expect(queryByText("0")).toBeNull();
+  });
+
   it("opens profile from the avatar", async () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("engineer-profile")).toBeTruthy());

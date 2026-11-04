@@ -11,7 +11,7 @@ import { HOME_MAX_FONT, HOME_MIN_TOUCH } from "./homeStyles";
 import { HomeConnectionStatus, type HomeConnection } from "./HomeConnectionStatus";
 
 function firstName(name?: string | null) {
-  return name?.trim().split(/\s+/)[0] || "there";
+  return name?.trim().split(/\s+/)[0] || "";
 }
 
 interface Props {
@@ -44,11 +44,11 @@ export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, ro
           <Avatar name={name} size={36} />
         </Pressable>
         <View style={styles.identity}>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" numberOfLines={1} style={[styles.title, { color: theme.shell.ink }]}>
-            {heading ?? t(greetingKey, { name: firstName(name) })}
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" numberOfLines={2} style={[styles.title, { color: theme.shell.ink }]}>
+            {heading ?? t(greetingKey, { name: firstName(name) || t("home.engineer.fallbackName") })}
           </Text>
           {hotelName ? (
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.sub, { color: theme.shell.ink2 }]} testID="engineer-hotel">
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[styles.sub, { color: theme.shell.ink2 }]} testID="engineer-hotel">
               {hotelName}
             </Text>
           ) : null}
@@ -63,7 +63,7 @@ export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, ro
           accessibilityLabel={unreadCount > 0 ? t("home.engineer.notificationsUnread", { count: unreadCount }) : t("tabs.notifications", { defaultValue: "Notifications" })}
           testID="engineer-bell"
         >
-          <Ionicons name="notifications-outline" size={18} color={theme.shell.ink2} />
+          <Ionicons name="notifications-outline" size={20} color={theme.shell.ink2} />
           {unreadCount > 0 ? (
             <View style={[styles.dot, { backgroundColor: theme.status.dirty }]}>
               <Text maxFontSizeMultiplier={1} style={styles.dotText}>
@@ -81,12 +81,12 @@ export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, ro
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 18, paddingBottom: 12, borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatarBtn: { minWidth: HOME_MIN_TOUCH - 4, minHeight: HOME_MIN_TOUCH - 4, alignItems: "center", justifyContent: "center" },
+  avatarBtn: { minWidth: HOME_MIN_TOUCH, minHeight: HOME_MIN_TOUCH, alignItems: "center", justifyContent: "center" },
   identity: { flex: 1, minWidth: 0 },
   title: { fontSize: 20, fontWeight: "700", lineHeight: 25 },
   sub: { fontSize: 13.5, fontWeight: "600", marginTop: 1 },
   role: { fontSize: 11.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, marginTop: 2 },
-  bell: { width: HOME_MIN_TOUCH - 4, height: HOME_MIN_TOUCH - 4, borderRadius: R.md, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  bell: { width: HOME_MIN_TOUCH, height: HOME_MIN_TOUCH, borderRadius: R.md, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   dot: { position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   dotText: { color: "#fff", fontSize: 10, fontWeight: "800" },
 });

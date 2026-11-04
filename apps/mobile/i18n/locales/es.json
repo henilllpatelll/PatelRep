@@ -204,6 +204,8 @@
       "quickPm": "Calendario de MP",
       "headerLabel": "Ingeniería · Hoy",
       "unavailable": "no disponible",
+      "loadingCount": "cargando",
+      "fallbackName": "equipo",
       "syncJustNow": "ahora mismo",
       "syncMinutes": "hace {{minutes}} min",
       "syncDone": "Sincronizado {{ago}}",

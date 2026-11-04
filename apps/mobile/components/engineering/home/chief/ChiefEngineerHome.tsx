@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -14,6 +14,7 @@ import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
 import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
 import { useWorkOrderRealtime } from "@/lib/engineering/useWorkOrderRealtime";
 import { useRefreshOnResume } from "@/lib/engineering/useRefreshOnResume";
+import { useHomeNavigate } from "@/lib/engineering/useHomeNavigate";
 import { formatMetric, readMetric } from "@/lib/engineering/homeContract";
 import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
 import { assignTargetFor, buildPriorities, chiefSummary, priorityRoute, technicianRoute, PRIORITIES_VIEW_ALL_ROUTE, type PriorityItem } from "@/lib/engineering/chiefHomeModel";
@@ -126,15 +127,14 @@ export function ChiefEngineerHome({ name }: { name: string }) {
 
   // A fresh token per tap: Work stays mounted, so identical params would otherwise be ignored the second time.
   const stamp = () => String(Date.now());
-  const go = useCallback((route: unknown) => {
-    if (route) router.push(route as never);
-  }, []);
+  const go = useHomeNavigate();
 
   // Server counts are exact for what the overview read; a cut-off read makes them lower bounds ("N+"); no answer is unknown.
   const cards: SummaryCardData[] = summary.map(({ key, value }) => ({
     key,
     label: t(SUMMARY_LABEL[key]),
     value: formatMetric(readMetric({ observed: value, complete: data?.truncated !== true, available: ready, stale: state.stale })),
+    loading: state.status === "loading",
     onPress: () => go(chiefSummaryRoute(key, stamp())),
     testID: SUMMARY_TEST_ID[key],
   }));

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
@@ -11,6 +11,7 @@ import { useEngineeringHome } from "@/lib/engineering/useEngineeringHome";
 import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
 import { useWorkOrderRealtime } from "@/lib/engineering/useWorkOrderRealtime";
 import { useRefreshOnResume } from "@/lib/engineering/useRefreshOnResume";
+import { useHomeNavigate } from "@/lib/engineering/useHomeNavigate";
 import { formatMetric, readMetric } from "@/lib/engineering/homeContract";
 import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
 import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
@@ -148,23 +149,22 @@ function TechnicianHome({ name }: { name: string }) {
 
   // A fresh token per tap: Work stays mounted, so identical params would otherwise be ignored the second time.
   const stamp = () => String(Date.now());
-  const go = useCallback((route: unknown) => {
-    if (route) router.push(route as never);
-  }, []);
+  const go = useHomeNavigate();
 
   const cards: SummaryCardData[] = [];
   if (hasMyJobs) {
-    cards.push({ key: "myJobs", label: t("home.engineer.cardMyJobs"), value: myJobsValue, onPress: () => go(myJobsRoute(role, stamp())), testID: "summary-my-jobs" });
+    cards.push({ key: "myJobs", label: t("home.engineer.cardMyJobs"), value: myJobsValue, loading: queueState.status === "loading", onPress: () => go(myJobsRoute(role, stamp())), testID: "summary-my-jobs" });
   }
   cards.push({
     key: "urgent",
     label: t("home.engineer.cardUrgent"),
     value: urgentValue,
+    loading: queueState.status === "loading",
     alert: queueReady && model.urgent > 0,
     onPress: () => go(urgentWorkRoute(stamp())),
     testID: "summary-urgent",
   });
-  cards.push({ key: "pmDue", label: t("home.engineer.cardPmDue"), value: pmValue, onPress: () => go(PM_LIST_ROUTE), testID: "summary-pm-due" });
+  cards.push({ key: "pmDue", label: t("home.engineer.cardPmDue"), value: pmValue, loading: data.loading && !data.hasPm && data.pmFailure == null, onPress: () => go(PM_LIST_ROUTE), testID: "summary-pm-due" });
 
   const retry = () => {
     void data.request("manual");

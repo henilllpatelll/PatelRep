@@ -204,6 +204,8 @@
       "quickPm": "PM Schedule",
       "headerLabel": "Engineering · Today",
       "unavailable": "unavailable",
+      "loadingCount": "loading",
+      "fallbackName": "there",
       "syncJustNow": "just now",
       "syncMinutes": "{{minutes}} min ago",
       "syncDone": "Synced {{ago}}",

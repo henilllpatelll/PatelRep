@@ -85,16 +85,16 @@ function Row({ item, canAssign, online, onOpen, onAssign }: { item: PriorityItem
         <View style={[styles.bar, { backgroundColor: tone }]} />
         <View style={styles.body}>
           <View style={styles.headRow}>
-            <Ionicons name={d.icon} size={14} color={tone} />
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.heading, { color: tone }]}>
+            <Ionicons name={d.icon} size={14} color={tone} accessibilityElementsHidden importantForAccessibility="no" />
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.heading, { color: tone }]}>
               {d.heading}
             </Text>
           </View>
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[styles.title, { color: theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.title, { color: theme.textPrimary }]}>
             {d.title}
           </Text>
           {d.meta ? (
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={2} style={[homeStyles.meta, { color: theme.textMuted }]}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[homeStyles.meta, { color: theme.textMuted }]}>
               {d.meta}
             </Text>
           ) : null}
@@ -202,5 +202,5 @@ const styles = StyleSheet.create({
   headRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   heading: { flexShrink: 1, fontSize: 11.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
   title: { fontSize: 15, fontWeight: "600", lineHeight: 20 },
-  assignBtn: { minHeight: HOME_MIN_TOUCH - 4, minWidth: 64, marginRight: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  assignBtn: { minHeight: HOME_MIN_TOUCH, minWidth: 64, marginRight: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 11, alignItems: "center", justifyContent: "center" },
 });

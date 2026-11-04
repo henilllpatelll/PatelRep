@@ -2,7 +2,11 @@ import { StyleSheet } from "react-native";
 import { R } from "@/components/shared/tokens";
 
 /** Shared sizing for the Technician Home pieces. */
-export const HOME_MAX_FONT = 1.4;
+/**
+ * Text-scaling ceiling for Home. Generous on purpose: layouts wrap and grow instead of clipping, so a person who has
+ * enlarged system text still reads everything (the ceiling only stops pathological sizes breaking a row).
+ */
+export const HOME_MAX_FONT = 2;
 export const HOME_MIN_TOUCH = 48;
 
 export const homeStyles = StyleSheet.create({
