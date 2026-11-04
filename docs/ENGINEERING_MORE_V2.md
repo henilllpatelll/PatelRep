@@ -77,7 +77,7 @@ Reused: `SettingsScreen`, `SettingsSection`, `SettingsRow`, `SignOutSheet`, `Con
 
 ## 8. Planned changes (Phases 2–8)
 
-2. New More screen: identity card, grouped rows from `getEngineeringMoreGroups`, bind actions.
+2. New More hub screen (done): header with bell + settings, identity card with live connection row, Management (chief only), Engineering tools, Account & support, Sign out. Layout comes from `getEngineeringMoreHub(role)` (catalog `hub` slots + `subtitleKey`); Security, notification settings, FAQ, report, my reports, diagnostics and Contact Supervisor are reached through Settings/Help and are not hub rows (`contactSupervisor` is still unbound).
 3. Account / security entry polish and sign-out confirmation flow.
 4. Live Sync Center summary + `sync` badge.
 5. Notifications entry and preferences surface.

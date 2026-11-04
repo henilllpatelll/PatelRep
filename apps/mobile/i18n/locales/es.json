@@ -11047,10 +11047,9 @@
     "rooms": "Habitaciones",
     "notifications": "Notificaciones",
     "profile": "Mi perfil",
-    "settings": "Configuración",
-    "help": "Ayuda",
+    "settings": "Configuración y preferencias",
+    "help": "Ayuda y soporte",
     "signOut": "Cerrar sesión",
-    "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo.",
     "security": "Seguridad",
     "sop": "SOP y procedimientos",
     "schedule": "Mi horario",
@@ -11064,7 +11063,24 @@
       "tools": "Herramientas de ingeniería",
       "alerts": "Notificaciones y sincronización",
       "support": "Ayuda y soporte"
-    }
+    },
+    "accountSupport": "Cuenta y soporte",
+    "sub": {
+      "rooms": "Habitaciones de la propiedad e historial de reparaciones",
+      "sop": "Instrucciones y referencias de mantenimiento",
+      "schedule": "Turnos, disponibilidad y tiempo libre",
+      "team": "Carga de trabajo y asignaciones de técnicos",
+      "settings": "Perfil, seguridad, notificaciones y apariencia",
+      "help": "Preguntas frecuentes, reportar un problema y contactar a soporte"
+    },
+    "roleLine": {
+      "engineer": "Técnico de mantenimiento",
+      "chief_engineer": "Jefe de ingeniería"
+    },
+    "viewProfile": "Ver mi perfil",
+    "syncStatus": "Estado de sincronización",
+    "notificationsA11y": "Notificaciones",
+    "settingsA11y": "Configuración"
   },
   "workQueue": {
     "title": "Órdenes de trabajo",

@@ -168,3 +168,43 @@ describe("role and tab protection", () => {
     expect(getTabsForRole("front_desk").some((t) => t.key === "more")).toBe(false);
   });
 });
+
+/* ── Phase 2: hub layout ─────────────────────────────────────────────────── */
+import { MORE_HUB_ORDER, getEngineeringMoreHub } from "@/lib/engineering/moreMenu";
+
+const hubKeys = (role: string) => Object.fromEntries(MORE_HUB_ORDER.map((slot) => [slot, getEngineeringMoreHub(role)[slot].map((i) => i.key)]));
+
+describe("Phase 2 hub", () => {
+  it("lays out header, identity, tools, account and sign out for an engineer (no management)", () => {
+    expect(hubKeys("engineer")).toEqual({
+      header: ["settings", "notifications"],
+      identity: ["profile", "sync"],
+      management: [],
+      tools: ["rooms", "sop", "schedule"],
+      account: ["settings", "help"],
+      signOut: ["signOut"],
+    });
+  });
+
+  it("adds only Team Overview, under management, for a chief engineer", () => {
+    expect({ ...hubKeys("chief_engineer"), management: [] }).toEqual(hubKeys("engineer"));
+    expect(hubKeys("chief_engineer").management).toEqual(["team"]);
+  });
+
+  it("is empty for every other role", () => {
+    for (const role of ["housekeeper", "gm", null, undefined]) {
+      for (const slot of MORE_HUB_ORDER) expect(getEngineeringMoreHub(role)[slot]).toEqual([]);
+    }
+  });
+
+  it("gives every list row a subtitle with English and Spanish copy", () => {
+    const hub = getEngineeringMoreHub("chief_engineer");
+    for (const item of [...hub.management, ...hub.tools, ...hub.account]) {
+      expect(item.subtitleKey).toBeTruthy();
+      for (const tree of [en, es]) expect(typeof lookup(tree, item.subtitleKey as string)).toBe("string");
+    }
+    for (const key of ["engineeringMore.accountSupport", "engineeringMore.viewProfile", "engineeringMore.syncStatus", "engineeringMore.roleLine.engineer", "engineeringMore.roleLine.chief_engineer", "engineeringMore.notificationsA11y", "engineeringMore.settingsA11y"]) {
+      for (const tree of [en, es]) expect({ key, t: typeof lookup(tree, key) }).toEqual({ key, t: "string" });
+    }
+  });
+});

@@ -11047,10 +11047,9 @@
     "rooms": "Rooms",
     "notifications": "Notifications",
     "profile": "My Profile",
-    "settings": "Settings",
-    "help": "Help",
+    "settings": "Settings & Preferences",
+    "help": "Help & Support",
     "signOut": "Sign out",
-    "hint": "Work orders, PM and assets are in the tabs below.",
     "security": "Security",
     "sop": "SOPs & Procedures",
     "schedule": "My Schedule",
@@ -11064,7 +11063,24 @@
       "tools": "Engineering tools",
       "alerts": "Notifications & sync",
       "support": "Help & support"
-    }
+    },
+    "accountSupport": "Account & support",
+    "sub": {
+      "rooms": "Property rooms and repair history",
+      "sop": "Maintenance instructions and references",
+      "schedule": "Shifts, availability and time off",
+      "team": "Technician workload and assignments",
+      "settings": "Profile, security, notifications and appearance",
+      "help": "FAQs, report a problem and contact support"
+    },
+    "roleLine": {
+      "engineer": "Maintenance Technician",
+      "chief_engineer": "Chief Engineer"
+    },
+    "viewProfile": "View my profile",
+    "syncStatus": "Sync status",
+    "notificationsA11y": "Notifications",
+    "settingsA11y": "Settings"
   },
   "workQueue": {
     "title": "Work Orders",
