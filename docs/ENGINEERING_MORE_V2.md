@@ -125,6 +125,30 @@ Not done: no emulator or device run; no GM entry in Engineering More (GM has its
 
 Remaining: Phases 6–8 per §8.
 
+## 8c. Phase 6 — Notifications, Settings, Profile & Security (done)
+
+Audit result: almost everything already existed and was reused unchanged. Confirmed gaps fixed are listed first.
+
+| Gap | Fix |
+|---|---|
+| **Schedule Updates hidden** — `profile/notifications.tsx` filtered server categories by an icon table that lacked `schedule`, although `notify.py` `CATEGORIES` lists it for all staff and en/es copy existed | Table moved to `lib/notifications/categories.ts` with `schedule` (calendar icon). `notificationCategories.test.ts` parses `notify.py` and fails if any backend category lacks an icon or en/es copy. Unknown future keys are still not shown as switches (their meaning is unknown) |
+| Inbox had no back control and was titled "Alerts" | Engineering roles only: back (`router.back()`, else `replace("/(app)/more")`) and title "Notifications" / "Notificaciones". Other roles render exactly as before |
+| Inbox overwrote the exact unread count with the length of one capped page (20) | A full page never lowers the stored exact count; header and chip use `max(stored, page)` when the page is full. Marking an already-read row no longer decrements |
+
+**Notification contract.** One inbox (`notifications/index.tsx`), one count (`appStore.unreadCount`, written by `useUnreadBadge` polling `/notifications/unread-count`; the More bell and Home read the same value, no second counter or request). The bell shows no badge at 0 and never prints a zero; it caps at `99+`; its label announces the count. Filters Unread / All and day grouping are unchanged. Actions: open, mark read, mark all read (all server-backed).
+
+**Deep links.** `resolveNotificationTarget` matches the payload `url` against a closed list (work order, Engineering room, schedule, task); ids must be UUIDs and the role must own the screen. Verified against producers: `wo_assignment`, `pm_due`, `pm_corrective_work_order`, `wo_verification_required` → `/(app)/work-orders/{id}`; `room_availability_changed` → `/(app)/room-status/{id}`; `schedule_*` → scheduling. `wo_reassigned` deliberately carries no link (the previous owner may no longer have access). No link → plain text, never Home. Destinations re-read the record as the signed-in person: work-order detail shows a forbidden/unavailable state with back, room detail shows "not found". Opening a notification never marks work done.
+
+**Preferences.** Server-backed (`GET/PUT /notifications/preferences`), optimistic with per-switch coalescing, rollback to the last confirmed value, Retry, cached list when offline, switches disabled offline. Phone permission is read from the OS (granted / quiet / not requested / denied / unavailable) and is explained separately from the account switches; Open Device Settings is offered only after a denial.
+
+**Settings / Profile / Security (audited, unchanged).** More → Settings opens `/(app)/profile`; the identity card opens `profile/personal` (photo via `PhotoActionsSheet`, display name via `EditFieldSheet`; name, email, role and property are hotel-managed and read-only; a confirmed save updates the store so More and Profile agree without restart). Security: biometric app lock (OS challenge before it shows enabled; same proof to disable), lock timeout (0/1/5/15/30 min, coerced on load), change password, Your devices. **Devices/sessions:** Supabase offers no per-user session list to the app, so the screen shows only this phone and the one real capability, "Sign out other devices" (confirm sheet, busy guard, offline disabled, error text, this phone stays signed in). No other devices are invented. Sign out from More still uses `SignOutSheet` + `UnsyncedChangesSheet`, unchanged.
+
+**Role/account safety.** No API, schema or permission change. Preferences, profile and sessions are scoped to the signed-in user server-side; chief_engineer and engineer see the same screens; other roles' Settings and inbox are unchanged (pinned by tests).
+
+Not done / deferred: no emulator, simulator or device run; no staging run of the preference API; `asset_risk_high` carries `asset_id` but no `url`, so it has no link (a new link kind would be a separate change); Settings back falls back to Profile (not More) on a cold start; the Settings notification screen keeps its existing "Notifications" title (no new subtitle); no per-device session list is possible with Supabase Auth.
+
+Remaining: Phases 7–8 per §8.
+
 ## 9. Intentionally excluded
 
 Fake destinations or mock APIs; a bottom-tab change; new database tables; a rewrite of notifications; redesign of Rooms, SOP or Scheduling; changes to deployment/staging configuration.

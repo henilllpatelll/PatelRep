@@ -185,3 +185,61 @@ describe("NotificationsScreen", () => {
     expect(router.push).toHaveBeenCalledWith({ pathname: "/(app)/tasks", params: { taskId: "3f2b9c1e-6a4d-4e8b-9c3a-1d2e3f4a5b6c" } });
   });
 });
+
+describe("NotificationsScreen for engineering roles", () => {
+  const { router } = jest.requireMock("expo-router") as { router: { push: jest.Mock; back: jest.Mock; replace?: jest.Mock; canGoBack?: jest.Mock } };
+
+  const asRole = (role: string) =>
+    useAppStore.setState({ user: { id: "u1", tenant_id: "h1", role, effective_role: undefined } as never });
+
+  afterEach(() => useAppStore.setState({ user: null }));
+
+  it("titles the inbox Notifications and goes back through history", async () => {
+    asRole("engineer");
+    router.canGoBack = jest.fn(() => true);
+    mockListNotifications.mockResolvedValue({ data: [message()] });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("Message from supervisor")).toBeTruthy());
+    expect(screen.getByText("Notifications")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("notifications-back"));
+    expect(router.back).toHaveBeenCalled();
+  });
+
+  it("falls back to More when there is no history (cold-start deep link)", async () => {
+    asRole("chief_engineer");
+    router.canGoBack = jest.fn(() => false);
+    router.replace = jest.fn();
+    mockListNotifications.mockResolvedValue({ data: [] });
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId("notifications-back")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("notifications-back"));
+    expect(router.replace).toHaveBeenCalledWith("/(app)/more");
+  });
+
+  it("leaves other roles' inbox exactly as it was: Alerts, no back control", async () => {
+    asRole("housekeeper");
+    mockListNotifications.mockResolvedValue({ data: [message()] });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("Message from supervisor")).toBeTruthy());
+    expect(screen.getByText("Alerts")).toBeTruthy();
+    expect(screen.queryByTestId("notifications-back")).toBeNull();
+  });
+
+  it("never lowers the exact unread count to the size of one capped page", async () => {
+    asRole("engineer");
+    useAppStore.setState({ unreadCount: 57 });
+    mockListNotifications.mockResolvedValue({ data: Array.from({ length: 20 }, (_, i) => message({ id: `n-${i}` })) });
+    renderScreen();
+    await waitFor(() => expect(screen.getAllByText("Message from supervisor").length).toBe(20));
+    expect(useAppStore.getState().unreadCount).toBe(57);
+    expect(screen.getByText("57 unread")).toBeTruthy();
+  });
+
+  it("uses the list as the exact count when it is a short page", async () => {
+    asRole("engineer");
+    useAppStore.setState({ unreadCount: 9 });
+    mockListNotifications.mockResolvedValue({ data: [message(), message({ id: "n-2" })] });
+    renderScreen();
+    await waitFor(() => expect(useAppStore.getState().unreadCount).toBe(2));
+  });
+});

@@ -8520,6 +8520,7 @@
     "unreadSuffix_one": "{{count}} sin leer",
     "unreadSuffix_other": "{{count}} sin leer",
     "title": "Alertas",
+    "inboxTitle": "Notificaciones",
     "unreadSuffix": "{{count}} sin leer",
     "unreadSuffix_plural": "{{count}} sin leer",
     "markAllRead": "Marcar todo como leído",
