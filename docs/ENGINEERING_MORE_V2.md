@@ -149,6 +149,34 @@ Not done / deferred: no emulator, simulator or device run; no staging run of the
 
 Remaining: Phases 7–8 per §8.
 
+## 8d. Phase 7 — Help & Support, problem reporting, diagnostics, drawers (done)
+
+Audit result: Help, FAQ, Report a Problem, My Reports, Contact Supervisor and Diagnostics were already shared, working and well-guarded (server-confirmed success, ref-guarded double submit, per-person draft kept on every failure, offline message, 429 handling, allowlisted diagnostics, hotel-managed contacts only). They were reused. Confirmed gaps fixed:
+
+| Gap | Fix |
+|---|---|
+| Engineering had only 2 role questions and a flat list | 21 dedicated questions in 5 topics (`ENGINEERING_FAQS`, `faqTopicsForRole`): Work Orders, Preventive Maintenance, Rooms & Assets, Offline & Sync, Account & Notifications. The two older questions and the general ones are kept and carry a topic. Other roles keep their one flat list unchanged |
+| Sync answers opened the Settings sync screen | `resolveFaqAction`: engineer / chief_engineer go to `/(app)/engineering-sync`; everyone else is unchanged |
+| Help had no topic entry | Engineering roles see Quick help (one row per topic that has questions, plus All questions), Get assistance (Report a Problem, Contact Supervisor), Your support (My Reports), Troubleshooting (Diagnostics). Other roles render the old layout |
+| Diagnostics had no recovery path | Open Sync Center (Offline & Sync for other roles), Check connection, Report a Problem |
+| Report a Problem could be mistaken for a maintenance ticket | Engineering roles see a note with a button to Report an Issue (`/(app)/work-orders/new`) |
+
+**Architecture.** `lib/support/faq.ts` is the single registry: `topic` is optional metadata used only for engineering roles; text lives in `help.faq.items.<id>`, `help.faq.topics.<topic>`. `profile/faq?topic=<topic>` shows one topic with an "All topics" button; an unknown topic shows every topic and says so. FAQ is expand/collapse in place (no per-question route; `accessibilityState.expanded`; one open at a time). There is no FAQ search and none was added. Tests assert that every question, topic and action label exists in en and es and that every action route is a real file.
+
+**Report a Problem / My Reports / Contact.** Unchanged contracts: `POST` problem report with `clientRequestId`, areas come from `areasForRole`, no attachment control (the endpoint takes none), diagnostics are opt-in and previewed, no offline queue exists (offline keeps the draft and says nothing was sent), the success screen shows the server id's first 8 characters and links to My Reports. My Reports shows the server `status` as words (unknown statuses are printed verbatim, none are invented) and rows open a detail sheet, so the chevron is truthful. Contact Supervisor lists the hotel's own staff and business line only; no personal numbers, none hardcoded, "none added" state when empty.
+
+**Diagnostics boundary.** Fields are the explicit allowlist `DIAGNOSTIC_KEYS` (app version, build, platform, OS, role, language, online, last confirmed sync, pending, failed, sync status). Never included: tokens, passwords, tenant or user ids, guest data, queue payloads. Nothing is collected until a support screen is open and nothing is sent unless the person previews and shares (or ticks the report box). Check connection only reads the phone's network state, changes no app state and sends nothing; it reports the phone's connection, not the server's. Tested.
+
+**Offline troubleshooting.** FAQ answers link only to the Sync Center, Work, PM, Assets, Rooms, Report an Issue, notification settings and profile. No answer tells anyone to clear data or reinstall while changes may be waiting (the sign-out answer says the opposite). They describe the refused / waiting / draft model the Sync Center already implements; no new queue or retry logic.
+
+**Final screen inventory (More tab, both roles).** More hub; Profile (`profile/personal`); Settings (`profile`); Security (`profile/security`, `profile/devices`); Notifications inbox and preferences; Sync Center (`engineering-sync`); Help (`profile/help`), FAQ, Report a Problem, My Reports, Diagnostics; Rooms, SOPs, My Schedule; Team Overview + technician detail (chief_engineer only).
+
+**Final bottom-sheet inventory (audited, all reused).** SignOutSheet + UnsyncedChangesSheet (sign out; says changes stay on the phone); SyncChangesSheet issue sheets (Keep Change / Discard Change, Keep Notice / Dismiss Notice, dismiss-all-claims, PM discard; Phase 3 wording intact) and sync result; RoomFilterSheet, RoomAvailabilitySheet, RoomReleaseSheet; SwapRequestSheet; AssignTechnicianSheet (also Reassign); PhotoActionsSheet (Remove photo has its own confirmation); EditFieldSheet (preferred name); LockTimeoutSheet; SimpleConfirmSheet (Sign out other devices); ContactSheet; DiagnosticsSheet (preview before share); report discard sheet and report detail sheet. Each uses the shared `BottomSheet`, which was not changed. Destructive wording stays distinct: Sign out (this phone), Sign out other devices (revokes sessions), Discard Change (deletes the saved local change), Dismiss Notice (hides a notice, work order unchanged), Remove photo, Discard draft. Added in Phase 7: none (a new sheet would have duplicated an existing one).
+
+**Not done / deferred.** No emulator, simulator or device run and no staging run (tests are Jest only; Spanish and dark mode are covered by string and theme-token tests, not by eye). No FAQ search. No attachment upload or report reply thread (backend has neither). `signOut.unsyncedTitle` still reads "change(s)" (shared string, pre-existing). Contact Supervisor shows the hotel's staff list, which may not name a Chief Engineer for every hotel. The shared `help.rows.contact` / sheet title say "Contact Your Supervisor" while the engineering row says "Contact Supervisor".
+
+**Phase 8 verification.** Full mobile jest + `tsc`; a device pass in English and Spanish, light and dark, with large text, over: More → Help → each topic → an action; Report a Problem failed / offline / success on a test tenant (not production); Diagnostics → Sync Center; Contact sheet; back-stack from every nested screen; unsynced-work protection on sign-out; the expo-router hidden-route bounce noted for other branches.
+
 ## 9. Intentionally excluded
 
 Fake destinations or mock APIs; a bottom-tab change; new database tables; a rewrite of notifications; redesign of Rooms, SOP or Scheduling; changes to deployment/staging configuration.

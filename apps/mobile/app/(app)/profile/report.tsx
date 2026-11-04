@@ -25,7 +25,7 @@ import {
   type DraftError,
   type ReportDraft,
 } from "@/lib/support/reportDraft";
-import { SUPPORT_ROUTES } from "@/lib/support/faq";
+import { isEngineeringRole, SUPPORT_ROUTES } from "@/lib/support/faq";
 import { useDiagnostics } from "@/lib/support/useDiagnostics";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
@@ -168,6 +168,18 @@ export default function ReportProblemScreen() {
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textMuted }]}>
         {t("help.report.intro")}
       </Text>
+
+      {isEngineeringRole(role) ? (
+        <View style={[styles.maintenance, { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle }]} testID="report-maintenance-note">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textPrimary }]}>
+            {t("help.report.maintenance.title")}
+          </Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary, paddingHorizontal: 0 }]}>
+            {t("help.report.maintenance.body")}
+          </Text>
+          <Button label={t("help.report.maintenance.action")} variant="secondary" size="md" onPress={() => router.push("/(app)/work-orders/new" as never)} testID="report-maintenance-action" />
+        </View>
+      ) : null}
 
       <View style={styles.field}>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textPrimary }]}>
@@ -316,6 +328,7 @@ function FieldError({ text }: { text: string }) {
 const styles = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20, paddingHorizontal: 4 },
   field: { gap: 8 },
+  maintenance: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8, alignItems: "flex-start" },
   label: { fontSize: 15, fontWeight: "700", paddingHorizontal: 4 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { minHeight: MIN_TOUCH, flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8 },
