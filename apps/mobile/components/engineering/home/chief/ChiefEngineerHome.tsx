@@ -13,6 +13,7 @@ import { useTeamOverview } from "@/lib/engineering/useTeamOverview";
 import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
 import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
 import { useWorkOrderRealtime } from "@/lib/engineering/useWorkOrderRealtime";
+import { useTechnicianPresence } from "@/lib/engineering/useTechnicianPresence";
 import { useRefreshOnResume } from "@/lib/engineering/useRefreshOnResume";
 import { useHomeNavigate } from "@/lib/engineering/useHomeNavigate";
 import { formatMetric, readMetric } from "@/lib/engineering/homeContract";
@@ -24,6 +25,8 @@ import {
   chiefQuickActionRoute,
   chiefSummaryRoute,
   ROOM_STATUS_ROUTE,
+  roomPath,
+  workOrderPath,
   ENGINEERING_SYNC_ROUTE,
   type ChiefQuickActionKey,
   type ChiefSummaryKey,
@@ -36,6 +39,7 @@ import { TechnicianQuickActions } from "../TechnicianQuickActions";
 import { HOME_MAX_FONT, homeStyles } from "../homeStyles";
 import { HomeLoadNotice } from "../HomeLoadNotice";
 import { PropertyPriorities } from "./PropertyPriorities";
+import { RoomsDownSheet } from "./RoomsDownSheet";
 import { TeamWorkloadPreview } from "./TeamWorkloadPreview";
 import { ChiefOversight } from "./ChiefOversight";
 
@@ -58,7 +62,7 @@ const SUMMARY_TEST_ID: Record<ChiefSummaryKey, string> = {
 };
 
 export function ChiefEngineerHome({ name }: { name: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
   const user = useAppStore((s) => s.user);
@@ -75,6 +79,10 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const [now, setNow] = useState(() => new Date());
   const [pulling, setPulling] = useState(false);
   const [target, setTarget] = useState<AssignTarget | null>(null);
+  const [impactOpen, setImpactOpen] = useState(false);
+  // Today's published schedule for the workload lines: its own read, so a failure only removes those lines.
+  const presence = useTechnicianPresence(canAssign);
+  const { reload: reloadPresence } = presence;
   const syncItems = usePmSyncItems();
   const sync = useEngineeringSyncSummary(syncItems);
   const { refresh: refreshSync } = sync;
@@ -141,12 +149,13 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const needsOwner = summary.find((s) => s.key === "needsOwner")?.value;
   const everyoneOwned = ready && needsOwner === 0 && !data?.truncated;
 
-  const onOpenPriority = (item: PriorityItem) => go(priorityRoute(item));
+  // Rooms down open the Room Impact drawer; everything else goes to the screen that owns it.
+  const onOpenPriority = (item: PriorityItem) => (item.kind === "rooms" ? setImpactOpen(true) : go(priorityRoute(item)));
   const onQuick = (key: ChiefQuickActionKey) => go(chiefQuickActionRoute(key, stamp()));
   const onPull = async () => {
     setPulling(true);
     try {
-      await request("manual");
+      await Promise.all([request("manual"), reloadPresence()]);
     } finally {
       setPulling(false);
     }
@@ -194,8 +203,8 @@ export function ChiefEngineerHome({ name }: { name: string }) {
                 onViewAll={() => go(PRIORITIES_VIEW_ALL_ROUTE)}
                 onRetry={() => void request("manual")}
               />
-              <TeamWorkloadPreview technicians={data.technicians} onOpenTechnician={(id) => go(technicianRoute(id))} onViewTeam={() => go(TEAM_OVERVIEW_ROUTE)} />
-              <ChiefOversight overview={data} onOpenRooms={() => go(ROOM_STATUS_ROUTE)} onOpenPmPlan={() => go(chiefQuickActionRoute("pm"))} />
+              <TeamWorkloadPreview technicians={data.technicians} presenceOf={presence.presenceOf} zone={presence.zone} language={i18n.language} onOpenTechnician={(id) => go(technicianRoute(id))} onViewTeam={() => go(TEAM_OVERVIEW_ROUTE)} />
+              <ChiefOversight overview={data} onOpenRooms={() => setImpactOpen(true)} onOpenPmPlan={() => go(chiefQuickActionRoute("pm"))} />
             </>
           ) : (
             <View testID={overview.failure ? "chief-load-error" : "chief-load-state"}>
@@ -206,6 +215,26 @@ export function ChiefEngineerHome({ name }: { name: string }) {
           <TechnicianQuickActions keys={chiefQuickActionKeys()} onOpen={onQuick} labelOverrides={{ pm: "home.chief.quickPm" }} />
         </View>
       </ScrollView>
+
+      <RoomsDownSheet
+        visible={impactOpen}
+        onClose={() => setImpactOpen(false)}
+        scope={scope}
+        online={isOnline}
+        locale={i18n.language}
+        onOpenRoom={(roomId) => {
+          setImpactOpen(false);
+          go(roomPath(roomId));
+        }}
+        onOpenWorkOrder={(id) => {
+          setImpactOpen(false);
+          go(workOrderPath(id));
+        }}
+        onViewAllRooms={() => {
+          setImpactOpen(false);
+          go(ROOM_STATUS_ROUTE);
+        }}
+      />
 
       <AssignTechnicianSheet
         visible={target != null}

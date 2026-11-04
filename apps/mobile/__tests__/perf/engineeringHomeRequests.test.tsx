@@ -15,7 +15,7 @@ jest.mock("expo-router", () => ({
     }, [cb]);
   },
 }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en" }, t: (k: string) => k }) }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
@@ -37,6 +37,8 @@ jest.mock("@/lib/supabase", () => ({
 }));
 jest.mock("@/lib/api/workOrders", () => ({ listActiveWorkOrders: jest.fn(), getWorkOrderSummary: jest.fn() }));
 jest.mock("@/lib/api/assets", () => ({ listPmSchedules: jest.fn() }));
+const mockSchedule = jest.fn();
+jest.mock("@/lib/api/schedulingTeam", () => ({ fetchTeamSchedule: (...args: unknown[]) => mockSchedule(...args) }));
 jest.mock("@/lib/api/engineeringTeam", () => ({
   fetchTeamOverview: jest.fn(),
   fetchTechnicians: jest.fn().mockResolvedValue([]),
@@ -116,6 +118,7 @@ beforeEach(() => {
   pm.mockReset().mockResolvedValue([]);
   summary.mockReset().mockResolvedValue({ urgent: 0, in_progress: 0, waiting: 0, total: 0 });
   overview.mockReset().mockResolvedValue(OVERVIEW);
+  mockSchedule.mockReset().mockRejectedValue(new Error("no schedule"));
 });
 afterEach(() => jest.useRealTimers());
 afterAll(() => {
@@ -218,6 +221,31 @@ describe.each([
     const view = mount();
     await flush();
     expect(mockChannels).toHaveLength(1);
+    view.unmount();
+  });
+});
+
+describe("chief_engineer schedule read (workload lines)", () => {
+  beforeEach(() => {
+    mockRole = "chief_engineer";
+  });
+
+  it("is one extra read on open, and realtime bursts and focus events never repeat it", async () => {
+    const view = mount();
+    await flush();
+    await waitFor(() => expect(overview.mock.calls.length).toBeGreaterThan(0));
+    expect(mockSchedule).toHaveBeenCalledTimes(1);
+    await burst(10);
+    await focus(3);
+    expect(mockSchedule).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  it("is not read at all for a technician", async () => {
+    mockRole = "engineer";
+    const view = mount();
+    await flush();
+    expect(mockSchedule).not.toHaveBeenCalled();
     view.unmount();
   });
 });

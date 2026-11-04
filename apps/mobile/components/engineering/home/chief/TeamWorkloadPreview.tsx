@@ -5,11 +5,17 @@ import { Card } from "@/components/ui/Card";
 import { R } from "@/components/shared/tokens";
 import { workloadPreview, type WorkloadRow } from "@/lib/engineering/chiefHomeModel";
 import type { Technician } from "@/lib/api/engineeringTeam";
+import type { Presence } from "@/lib/engineering/technicianPresence";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { useTheme } from "@/lib/theme/useTheme";
 import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "../homeStyles";
 
 interface Props {
   technicians: readonly Technician[];
+  /** Today's published-schedule answer per person; null = unknown (no line). Omitted = no schedule source. */
+  presenceOf?: (userId: string) => Presence | null;
+  zone?: string | null;
+  language?: string;
   onOpenTechnician: (userId: string) => void;
   onViewTeam: () => void;
 }
@@ -22,7 +28,34 @@ function detail(tech: Technician, t: (key: string, o?: Record<string, unknown>) 
   return parts.join(" · ");
 }
 
-function Row({ row, onOpen }: { row: WorkloadRow; onOpen: (userId: string) => void }) {
+type Translate = (key: string, o?: Record<string, unknown>) => string;
+
+/** One plain sentence about today's published shift. Never "available": the schedule says where someone is planned, not whether they are free. */
+export function presenceText(presence: Presence | null, zone: string | null | undefined, language: string | undefined, t: Translate): string | null {
+  if (!presence) return null;
+  switch (presence.kind) {
+    case "on_shift": {
+      const time = formatHotelTime(presence.endsAt, zone, language);
+      return time ? t("home.chief.presenceOnShiftUntil", { time }) : t("home.chief.presenceOnShift");
+    }
+    case "later": {
+      const time = formatHotelTime(presence.startsAt, zone, language);
+      return time ? t("home.chief.presenceStartsAt", { time }) : t("home.chief.presenceLater");
+    }
+    case "ended":
+      return t("home.chief.presenceEnded");
+    case "none":
+      return t("home.chief.presenceNone");
+  }
+}
+
+interface RowProps {
+  row: WorkloadRow;
+  presence: string | null;
+  onOpen: (userId: string) => void;
+}
+
+function Row({ row, presence, onOpen }: RowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const text = detail(row.tech, t as never);
@@ -30,7 +63,7 @@ function Row({ row, onOpen }: { row: WorkloadRow; onOpen: (userId: string) => vo
     <Pressable
       onPress={() => onOpen(row.tech.user_id)}
       accessibilityRole="button"
-      accessibilityLabel={`${row.name}. ${text}. ${t("engineeringTeam.viewWorkFor", { name: row.name })}`}
+      accessibilityLabel={`${row.name}. ${presence ? `${presence}. ` : ""}${text}. ${t("engineeringTeam.viewWorkFor", { name: row.name })}`}
       style={styles.row}
       testID={`workload-${row.tech.user_id}`}
     >
@@ -50,15 +83,21 @@ function Row({ row, onOpen }: { row: WorkloadRow; onOpen: (userId: string) => vo
       <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[homeStyles.meta, { color: row.tech.urgent > 0 || row.tech.overdue > 0 ? theme.status.dirty : theme.textMuted }]}>
         {text}
       </Text>
+      {presence ? (
+        <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[homeStyles.meta, { color: theme.textSecondary }]} testID={`presence-${row.tech.user_id}`}>
+          {presence}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
 
 /**
- * A short look at who is carrying what. Job counts only: no shift, clock-in or capacity data exists, so nothing here says
- * a person is free, busy or overloaded. Everyone is in Team Overview.
+ * A short look at who is carrying what: job counts, plus one line from today's published schedule when it could be read in
+ * full. The schedule is the plan, not attendance or capacity, so nothing here says a person is free, busy or overloaded.
+ * Everyone is in Team Overview.
  */
-export function TeamWorkloadPreview({ technicians, onOpenTechnician, onViewTeam }: Props) {
+export function TeamWorkloadPreview({ technicians, presenceOf, zone, language, onOpenTechnician, onViewTeam }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { rows, total } = workloadPreview(technicians, t("engineeringTeam.technician"));
@@ -80,7 +119,9 @@ export function TeamWorkloadPreview({ technicians, onOpenTechnician, onViewTeam 
             {t("engineeringTeam.noTechnicians")}
           </Text>
         ) : (
-          rows.map((row) => <Row key={row.tech.user_id} row={row} onOpen={onOpenTechnician} />)
+          rows.map((row) => (
+            <Row key={row.tech.user_id} row={row} presence={presenceText(presenceOf?.(row.tech.user_id) ?? null, zone, language, t as never)} onOpen={onOpenTechnician} />
+          ))
         )}
         {rows.length > 0 ? (
           <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[homeStyles.meta, { color: theme.textDisabled }]}>

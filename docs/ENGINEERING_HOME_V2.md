@@ -725,3 +725,45 @@ which does not lay out text or measure real pixels.
 - The navigation lock is 700 ms and lives in Home only; Work, PM and Assets screens do not share it.
 - Staging did not appear in the PR checks for this `feat/*` branch in earlier phases; re-check live before claiming
   readiness.
+
+## 15. Rooms down drawer and schedule lines (added after the Phase 8 audit)
+
+Two items that earlier sections list as "not built" or "no data exists" are now built. Sections 12.5 and 14 describe the
+state before this change.
+
+### 15.1 Rooms down drawer (chief Home)
+- Opens from the Rooms and PM row and from the "rooms down" priority row. Both used to open the Room Status list; that list is
+  now the drawer's "View all rooms" link.
+- Source: the existing `GET /room-unavailability?status=ACTIVE` (any signed-in role; the server withholds free-text details from
+  front desk and housekeeper only). No API, schema or RBAC change. Read only while the drawer is open, scoped to hotel + person.
+- A room appears only because the server has an ACTIVE out-of-order / out-of-service period for it. An open repair alone never
+  lists a room. Rows: room, floor, type, reason, expected return (past-due called out in words), linked repair.
+- Two cases are said in words because someone has to decide: a room with no repair linked, and a room whose repair is finished
+  but which has not been released. A finished repair never releases a room.
+- Order: past expected return, then soonest return, then no return time, then room number. A period without an id or room number
+  is counted ("N could not be shown"), never dropped silently. A failed read is an error with Retry, never an empty list.
+- Nothing is written here. The room and the repair open the existing screens, where release and return-time edits already live.
+- Files: `lib/engineering/roomsDown.ts` (pure), `useRoomsDown.ts`, `components/engineering/home/chief/RoomsDownSheet.tsx`,
+  `listActiveRoomPeriods` in `lib/api/engineeringRooms.ts`, `roomPath` in `homeNavigation.ts`.
+  (`roomImpact.ts` and `assets/RoomImpactSheet.tsx` are the older per-asset impact view and are untouched.)
+
+### 15.2 Schedule lines on Team workload (chief Home)
+- Each technician row can show one line from TODAY'S PUBLISHED SCHEDULE: "On shift until 3:00 PM", "Shift starts 3:00 PM",
+  "Shift ended", or "No shift scheduled today". Draft shifts are ignored.
+- The wording never says "available". The schedule records where someone is planned, not whether they are free, busy, on break
+  or have capacity; the workload note says so.
+- Source: `GET /schedules/team` for the hotel's current day with `role=engineer` (the existing team schedule, readable by
+  `chief_engineer` and `gm`; the server limits it to the departments that manager may see). Attendance is NOT requested because
+  its only source is the housekeeping shift log.
+- No line at all (never "not scheduled") when the schedule could not be read, was partial, had unreadable shifts, is stale, or
+  does not cover that person. A failed read removes only these lines; counts and workload are unaffected.
+- Read on open and on pull-to-refresh only (not on focus or realtime), and re-read when the hotel's day changes. Costs one extra
+  read of the schedule on open; pinned by `__tests__/perf/engineeringHomeRequests.test.tsx`.
+- Not covered: approved time off and weekly availability windows (`employee_availability`). They would explain a missing shift
+  but have no read this role may use here.
+- Files: `lib/engineering/technicianPresence.ts` (pure), `useTechnicianPresence.ts`, `TeamWorkloadPreview.tsx`.
+
+### 15.3 Verification
+`tsc --noEmit`, `eslint .` and `git diff --check` clean; full Jest 461 suites / 10,490 tests pass. NOT verified on screen or on a
+device: layout, sheet scrolling, long Spanish text, large font and Android back for the new drawer are untested.
+Not run against a live API.

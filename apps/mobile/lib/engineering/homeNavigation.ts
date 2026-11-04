@@ -25,6 +25,11 @@ export function workOrderPath(id: string | null | undefined): string {
   return isSafeRouteId(id) ? `${WORK_ROUTE}/${id}` : WORK_ROUTE;
 }
 
+/** One room's engineering screen. An id that is not a plain path segment opens the Room Status list instead. */
+export function roomPath(id: string | null | undefined): string {
+  return isSafeRouteId(id) ? `${ROOM_STATUS_ROUTE}/${id}` : ROOM_STATUS_ROUTE;
+}
+
 export interface WorkRoute {
   pathname: typeof WORK_ROUTE;
   params: { view: QueueView; filter?: "urgent" | "in_progress" | "actionable"; nav?: string };

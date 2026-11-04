@@ -20,6 +20,8 @@ const COUNTED = [
   "home.chief.roomsDownTitle",
   "home.chief.roomsPastReturn",
   "home.chief.repeatCount",
+  "home.chief.impactNeedsDecision",
+  "home.chief.impactUnreadable",
 ];
 
 describe.each(["en", "es"] as const)("engineering counted labels (%s)", (lng) => {

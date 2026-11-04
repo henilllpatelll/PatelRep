@@ -16,7 +16,7 @@ describe("home.chief strings", () => {
   it.each(["en", "es"] as const)("resolves every key to text in %s, with no raw key or unfilled placeholder", (lng) => {
     const t = i18n.getFixedT(lng);
     for (const key of Object.keys(enChief)) {
-      const text = t(`home.chief.${key}`, { count: 2, name: "Casey" });
+      const text = t(`home.chief.${key}`, { count: 2, name: "Casey", time: "7:00 AM", floor: 3 });
       expect(text).not.toBe(`home.chief.${key}`);
       expect(text).not.toMatch(/\{\{/);
     }

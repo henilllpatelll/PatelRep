@@ -63,8 +63,7 @@ OS font scaling, hardware back, camera/scanner or native bottom sheets. The Phas
 ## Known risks
 
 - P2 (unverified, not a known defect): on-device behavior of large text, small phones, keyboard, Android back and dark sheets.
-- P3: Room Impact drawer not built; only aggregate rooms-down is shown (documented design limit).
-- P3: workload bars are relative job counts; no availability/shift data exists, so no "available" label ships.
+- Update after this audit: the Rooms down drawer and the schedule lines on Team workload are now built (section 15 of ENGINEERING_HOME_V2.md). They were added after the reviewed commit, so the code evidence above does not cover them; their own checks are in that section. Time off and availability windows are still not shown.
 
 ## Deployment and rollback
 

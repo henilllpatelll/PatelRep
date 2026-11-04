@@ -92,6 +92,18 @@ export async function listRoomPeriods(roomId: string, signal?: AbortSignal): Pro
   return res.data ?? [];
 }
 
+/** A room that is down right now, with the room's number and the repair the period is linked to. */
+export interface ActiveRoomPeriod extends RoomPeriod {
+  room_id?: string | null;
+  rooms?: { room_number?: string | null; floor?: number | null } | null;
+}
+
+/** Every room currently out of order / service in this hotel (GET /room-unavailability?status=ACTIVE; not paged). */
+export async function listActiveRoomPeriods(signal?: AbortSignal): Promise<ActiveRoomPeriod[]> {
+  const res = await api.get<{ data: ActiveRoomPeriod[] }>(`/room-unavailability?${queryString({ status: "ACTIVE" })}`, { signal });
+  return res.data ?? [];
+}
+
 export async function getActiveRoomPeriod(roomId: string, signal?: AbortSignal): Promise<RoomPeriod | null> {
   const res = await api.get<{ data: RoomPeriod | null }>(`/room-unavailability/room/${encodeURIComponent(roomId)}/active`, { signal });
   return res.data ?? null;

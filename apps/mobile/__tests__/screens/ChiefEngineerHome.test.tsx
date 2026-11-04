@@ -13,6 +13,7 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
+    i18n: { language: "en" },
     t: (k: string, o?: Record<string, unknown>) =>
       o && Object.keys(o).length > 0 && !("defaultValue" in o) ? `${k}:${Object.entries(o).map(([key, v]) => `${key}=${v}`).join(",")}` : k,
   }),
@@ -48,6 +49,8 @@ jest.mock("@/lib/api/engineeringTeam", () => ({
   fetchTechnicians: jest.fn(),
   assignWorkOrder: jest.fn(),
 }));
+jest.mock("@/lib/api/engineeringRooms", () => ({ listActiveRoomPeriods: jest.fn() }));
+jest.mock("@/lib/api/schedulingTeam", () => ({ fetchTeamSchedule: jest.fn() }));
 jest.mock("@/lib/api/workOrders", () => ({ listActiveWorkOrders: jest.fn(), getWorkOrderSummary: jest.fn() }));
 jest.mock("@/lib/api/assets", () => ({ listPmSchedules: jest.fn() }));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({}) } }));
@@ -88,6 +91,8 @@ import { router } from "expo-router";
 import { assignWorkOrder, fetchTeamOverview, fetchTechnicians, type TeamOverview } from "@/lib/api/engineeringTeam";
 import { listActiveWorkOrders, getWorkOrderSummary } from "@/lib/api/workOrders";
 import { listPmSchedules } from "@/lib/api/assets";
+import { listActiveRoomPeriods } from "@/lib/api/engineeringRooms";
+import { fetchTeamSchedule } from "@/lib/api/schedulingTeam";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
 import { resetAsyncResourceCache } from "@/lib/engineering/useAsyncResource";
 import { darkTheme, lightTheme } from "@/components/shared/tokens";
@@ -154,6 +159,8 @@ beforeEach(async () => {
   (listActiveWorkOrders as jest.Mock).mockResolvedValue({ orders: [], truncated: false });
   (getWorkOrderSummary as jest.Mock).mockResolvedValue(null);
   (listPmSchedules as jest.Mock).mockResolvedValue([]);
+  (listActiveRoomPeriods as jest.Mock).mockReset().mockResolvedValue([]);
+  (fetchTeamSchedule as jest.Mock).mockReset().mockRejectedValue(new Error("no schedule"));
 });
 
 describe("role routing", () => {
@@ -317,8 +324,11 @@ describe("property priorities", () => {
     await ready(home);
     fireEvent.press(home.getByTestId("priority-wo:wo-emg"));
     expect(lastPush()).toEqual({ pathname: "/(app)/work-orders/[woId]", params: { woId: "wo-emg" } });
+    // The room figure opens the Rooms down drawer (which links on to the room screens), not a route of its own.
+    const pushes = (router.push as jest.Mock).mock.calls.length;
     fireEvent.press(home.getByTestId("priority-rooms-down"));
-    expect(lastPush()).toBe("/(app)/room-status");
+    expect((router.push as jest.Mock).mock.calls.length).toBe(pushes);
+    expect(home.getByTestId("sheet-open")).toBeTruthy();
   });
 
   it("reports the room aggregate as the server gave it and fabricates no individual rooms", async () => {
@@ -634,7 +644,7 @@ describe("oversight and shortcuts", () => {
     const home = renderHome();
     await ready(home);
     fireEvent.press(home.getByTestId("oversight-rooms"));
-    expect(lastPush()).toBe("/(app)/room-status");
+    expect(home.getByTestId("sheet-open")).toBeTruthy();
     fireEvent.press(home.getByTestId("oversight-pm"));
     expect(lastPush()).toEqual({ pathname: "/(app)/pm-schedules", params: { view: "plan" } });
   });
@@ -833,5 +843,196 @@ describe("accessibility and theming", () => {
     const dark = renderHome();
     await ready(dark);
     await waitFor(() => expect(flat(dark.getByText("Water leaking under sink").props.style).color).toBe(darkTheme.textPrimary));
+  });
+});
+
+
+/* ─── Rooms down drawer ─────────────────────────────────────────────────── */
+const period = (over: Record<string, unknown> = {}) => ({
+  id: "p1",
+  room_id: "r1",
+  type: "OUT_OF_ORDER",
+  reason_label: "Water leak",
+  started_at: "2026-11-02T10:00:00Z",
+  expected_return_at: "2026-11-04T16:00:00Z",
+  is_past_eta: false,
+  status: "ACTIVE",
+  rooms: { room_number: "415", floor: 4 },
+  work_orders: { id: "wo-emg", work_order_number: 1045, title: "Water leaking under sink", status: "in_progress", priority: "emergency", assigned_to: "t2" },
+  ...over,
+});
+
+describe("rooms down drawer", () => {
+  const open = async (home: ReturnType<typeof renderHome>) => {
+    await ready(home);
+    fireEvent.press(home.getByTestId("oversight-rooms"));
+    await waitFor(() => expect(home.queryByTestId("impact-view-all")).toBeTruthy());
+  };
+
+  it("does not read the rooms until the drawer is opened", async () => {
+    const home = renderHome();
+    await ready(home);
+    expect(listActiveRoomPeriods).not.toHaveBeenCalled();
+    fireEvent.press(home.getByTestId("oversight-rooms"));
+    await waitFor(() => expect(listActiveRoomPeriods).toHaveBeenCalledTimes(1));
+  });
+
+  it("lists each room that is down, past-due first", async () => {
+    (listActiveRoomPeriods as jest.Mock).mockResolvedValue([
+      period({ id: "p-later", room_id: "r2", rooms: { room_number: "202", floor: 2 }, expected_return_at: "2026-11-09T16:00:00Z" }),
+      period({ id: "p-late", room_id: "r3", rooms: { room_number: "310", floor: 3 }, is_past_eta: true, expected_return_at: "2026-11-01T16:00:00Z" }),
+    ]);
+    const home = renderHome();
+    await open(home);
+    await waitFor(() => expect(home.getByTestId("impact-p-late")).toBeTruthy());
+    const ids = home.getAllByTestId(/^impact-p-/).map((n) => n.props.testID);
+    expect(ids).toEqual(["impact-p-late", "impact-p-later"]);
+    expect(home.getByTestId("impact-summary").props.children.join("")).toContain("home.chief.roomsDownTitle:count=2");
+  });
+
+  it("opens the room and the linked repair, closing the drawer first", async () => {
+    (listActiveRoomPeriods as jest.Mock).mockResolvedValue([period()]);
+    const home = renderHome();
+    await open(home);
+    await waitFor(() => expect(home.getByTestId("impact-room-p1")).toBeTruthy());
+    fireEvent.press(home.getByTestId("impact-room-p1"));
+    expect(lastPush()).toBe("/(app)/room-status/r1");
+    expect(home.queryByTestId("sheet-open")).toBeNull();
+    fireEvent.press(home.getByTestId("oversight-rooms"));
+    await waitFor(() => expect(home.getByTestId("impact-repair-p1")).toBeTruthy());
+    fireEvent.press(home.getByTestId("impact-repair-p1"));
+    expect(lastPush()).toBe("/(app)/work-orders/wo-emg");
+  });
+
+  it("says in words when a room has no repair, or its repair is finished but the room is not released", async () => {
+    (listActiveRoomPeriods as jest.Mock).mockResolvedValue([
+      period({ id: "p-none", work_orders: null }),
+      period({ id: "p-done", room_id: "r9", rooms: { room_number: "118", floor: 1 }, work_orders: { id: "wo-d", work_order_number: 9, title: "Fixed", status: "completed" } }),
+      period({ id: "p-ok", room_id: "r8", rooms: { room_number: "119", floor: 1 } }),
+    ]);
+    const home = renderHome();
+    await open(home);
+    await waitFor(() => expect(home.getByTestId("impact-hint-p-none")).toBeTruthy());
+    expect(home.getByTestId("impact-hint-p-none").props.children).toBe("home.chief.impactNoRepairHint");
+    expect(home.getByTestId("impact-hint-p-done").props.children).toBe("home.chief.impactRepairClosedHint");
+    expect(home.queryByTestId("impact-hint-p-ok")).toBeNull();
+    expect(home.getByTestId("impact-summary").props.children.join("")).toContain("home.chief.impactNeedsDecision:count=2");
+  });
+
+  it("shows an error, never an empty list, when the rooms cannot be read", async () => {
+    (listActiveRoomPeriods as jest.Mock).mockRejectedValue(apiError(500));
+    const home = renderHome();
+    await ready(home);
+    fireEvent.press(home.getByTestId("oversight-rooms"));
+    await waitFor(() => expect(listActiveRoomPeriods).toHaveBeenCalled());
+    await waitFor(() => expect(home.queryByTestId("impact-view-all")).toBeTruthy());
+    expect(home.queryByTestId("impact-summary")).toBeNull();
+    expect(home.queryByText("home.chief.impactEmpty")).toBeNull();
+  });
+
+  it("says plainly that no rooms are down when the server confirms none", async () => {
+    const home = renderHome();
+    await open(home);
+    await waitFor(() => expect(home.getByText("home.chief.impactEmpty")).toBeTruthy());
+  });
+
+  it("links on to the full room list", async () => {
+    (listActiveRoomPeriods as jest.Mock).mockResolvedValue([period()]);
+    const home = renderHome();
+    await open(home);
+    fireEvent.press(home.getByTestId("impact-view-all"));
+    expect(lastPush()).toBe("/(app)/room-status");
+  });
+});
+
+/* ─── Schedule lines on the workload ────────────────────────────────────── */
+const HOUR = 3_600_000;
+const person = (userId: string) => ({ userId, name: userId, roles: ["engineer"], departmentId: "d", departmentCode: "ENG", scheduled: true, status: null });
+const shift = (userId: string, startOffset: number, endOffset: number, over: Record<string, unknown> = {}) => ({
+  id: `s-${userId}-${startOffset}`,
+  userId,
+  shiftId: null,
+  workDate: "2026-11-03",
+  name: "Day",
+  departmentId: "d",
+  startTime: null,
+  endTime: null,
+  startsAt: new Date(Date.now() + startOffset * HOUR).toISOString(),
+  endsAt: new Date(Date.now() + endOffset * HOUR).toISOString(),
+  publication: "published",
+  notes: null,
+  carriedFromPreviousDay: false,
+  status: null,
+  version: 1,
+  ...over,
+});
+const schedule = (over: Record<string, unknown> = {}) => ({
+  dateFrom: "2026-11-03",
+  dateTo: "2026-11-03",
+  hotelToday: "2026-11-03",
+  generatedAt: null,
+  people: [person("t1"), person("t2")],
+  shifts: [shift("t1", -2, 6)],
+  attendance: { requested: false, verified: false, asOf: null },
+  totalPeople: 2,
+  complete: true,
+  serverTruncated: false,
+  unreadableShifts: 0,
+  revision: null,
+  ...over,
+});
+
+describe("workload schedule lines", () => {
+  it("shows today's published shift for each person the schedule covers, and nothing for anyone it does not", async () => {
+    (fetchTeamSchedule as jest.Mock).mockResolvedValue(schedule());
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(home.getByTestId("presence-t1")).toBeTruthy());
+    expect(home.getByTestId("presence-t2").props.children).toBe("home.chief.presenceNone");
+    expect(home.queryByTestId("presence-t3")).toBeNull();
+  });
+
+  it("asks for engineers on the hotel's day and never reads attendance", async () => {
+    (fetchTeamSchedule as jest.Mock).mockResolvedValue(schedule());
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(fetchTeamSchedule).toHaveBeenCalledTimes(1));
+    expect((fetchTeamSchedule as jest.Mock).mock.calls[0][0]).toEqual({ dateFrom: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), role: "engineer" });
+  });
+
+  it("shows no schedule line when the schedule could not be read, and the workload still shows", async () => {
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(fetchTeamSchedule).toHaveBeenCalled());
+    expect(home.queryAllByTestId(/^presence-/)).toHaveLength(0);
+    expect(home.getByTestId("workload-t1")).toBeTruthy();
+  });
+
+  it("shows no line when the read was only partial", async () => {
+    (fetchTeamSchedule as jest.Mock).mockResolvedValue(schedule({ complete: false }));
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(fetchTeamSchedule).toHaveBeenCalled());
+    expect(home.queryAllByTestId(/^presence-/)).toHaveLength(0);
+  });
+
+  it("never calls anyone available", async () => {
+    (fetchTeamSchedule as jest.Mock).mockResolvedValue(schedule());
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(home.getByTestId("presence-t1")).toBeTruthy());
+    expect(home.queryByText(/available/i)).toBeNull();
+    for (const node of home.getAllByTestId(/^workload-t\d$/)) expect(String(node.props.accessibilityLabel)).not.toMatch(/available/i);
+  });
+
+  it("re-reads the schedule on pull-to-refresh together with the overview", async () => {
+    (fetchTeamSchedule as jest.Mock).mockResolvedValue(schedule());
+    const home = renderHome();
+    await ready(home);
+    await waitFor(() => expect(fetchTeamSchedule).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await home.UNSAFE_getByType(RefreshControl).props.onRefresh();
+    });
+    expect(fetchTeamSchedule).toHaveBeenCalledTimes(2);
   });
 });
