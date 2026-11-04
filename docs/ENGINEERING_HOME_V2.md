@@ -5,8 +5,9 @@ one draft PR, one commit per phase. The repository is the authority for behavior
 interactive prototype (`patelrep-engineering-home-interactive.html`, supplied separately and not committed) is a visual
 and interaction reference only. Its fictional hotel, people, counts, work orders and PM records are never shipped.
 
-Status: **Phases 1-3 of 8 are implemented** (Phase 1: foundation, navigation contract, role correctness; Phase 2: the
-complete Technician Home; Phase 3: the Chief Engineer command center). Phases 4-8 are scope, not code.
+Status: **Phases 1-4 of 8 are implemented** (Phase 1: foundation, navigation contract, role correctness; Phase 2: the
+complete Technician Home; Phase 3: the Chief Engineer command center; Phase 4: connected actions and drawers, section 12).
+Phases 5-8 are scope, not code.
 
 ## 1. Eight-phase scope
 
@@ -15,7 +16,7 @@ complete Technician Home; Phase 3: the Chief Engineer command center). Phases 4-
 | 1 | Foundation, architecture, correctness | Navigation contract, `all` Work view, scanner shortcut, role-correct Home actions, this document, tests |
 | 2 | Technician Home (**done**) | Compact header, three exact/honest counts, contextual primary card (continue / start next / resume PM / available / caught up), Needs Attention with an in-place full list, four shortcuts, single-request queue, tests |
 | 3 | Chief Engineer Home (**done**) | Management layout: Needs owner / In progress / On hold, Property Priorities with in-place Assign, team workload, room/PM oversight, four shortcuts, one overview read, tests |
-| 4 | Manager entry points | Assign Work, Team Overview, PM Planning, Assets entry points; room-down summary |
+| 4 | Connected actions and drawers (**done**) | Audit of every Home control against the existing screens and sheets, the gaps found closed (section 12), interaction matrix, tests |
 | 5 | Sync, connectivity, notifications | Deeper sync/offline/stale states, pending-action visibility, notification entry points beyond the Home header |
 | 6 | Prototype gap closure | Only the genuine gaps in section 6 that the owner approves |
 | 7 | Accessibility and i18n pass | Screen-reader and font-scale audit on device, i18n parity review |
@@ -341,3 +342,115 @@ API contracts and the existing sheet tests).
 
 Individual room rows for rooms down (needs a per-room read in the overview or a room-board query); the full drawer/sheet
 refinements for the Work, PM and Assets screens when entered from Home; a server-side exact urgent count; device QA of both roles.
+
+## 12. Phase 4 record: connected actions, drawers and workflows
+
+Phase 4 is an integration audit, not a rebuild. Every Home control was traced to the screen or sheet that already owns the
+behavior (PRs #190, #191, #195 and the Team Overview sheet) and was found to be connected; nothing was re-implemented. The
+audit did find five real gaps, and only those were changed.
+
+### 12.1 Gaps found and closed
+
+| Gap | Where | Fix |
+|-----|-------|-----|
+| Technician Home built work-order links from the raw id (`/(app)/work-orders/${id}`), unlike the chief Home which uses the safe builders. An id containing a slash, dot or query could change the route. | `homeNavigation.focusRoute`, `attentionRoute` | New `workOrderPath(id)`: a plain id opens that order, anything else opens the Work list. |
+| Chief Home ignored saved inspections that need a person (rejected, needs review, unknown outcome), and could show "no emergency, overdue, escalated or held work" while one sat unresolved. | `ChiefEngineerHome` | Reads the same `usePmSyncItems` source as the technician Home; a "N saved inspection(s) need you / Review" row opens Engineering Sync. |
+| Both Homes could show an all-clear while saved actions were still waiting to reach the server. | `ChiefEngineerHome`, `EngineerHome` | The calm state requires no blocked saves and no pending actions. Pending is not shown as a failure; the connection line already counts it. |
+| The work-order screen's Back did nothing when the order was opened by a link with no history (notification, cold start). | `work-orders/[woId]` | Back goes to the Work list when `router.canGoBack()` is false (the completion view already did this). |
+| Blocked-save counting was duplicated inline. | `pmSyncItems` | `countBlockedPmSync` shared by both Homes. |
+
+No API, schema, RBAC, migration, workflow or dependency change.
+
+### 12.2 Drawers and sheets (all reused, none new)
+
+| Sheet | Opened from | Notes |
+|-------|-------------|-------|
+| `HoldSheet` | Work order, Hold (roles that can act on work orders) | Reasons are the server's `HOLD_REASON_CODES`; confirm is disabled until one is chosen and while offline. The note is a local draft. A server refusal leaves the choice and note in place and shows the error; success is only a confirmed status transition followed by a re-read. The optional labor pause is a separate request sent first. |
+| `AssignTechnicianSheet` | Chief Home priority row, Team Overview, work-order screen | Sends `expected_assigned_to` (409 on a stale view), ref-guarded against double submit, offline blocks confirm. Technicians are listed by job count only; no "available" claim. |
+| Completion, Diagnosis, Evidence, Parts, Labor, Note, Escalation, Repair Assist | Work order screen | Unchanged. |
+| Room Impact drawer | not built | See 12.5. |
+
+All sit on the shared `BottomSheet`: modal with `onRequestClose` (Android hardware back), keyboard avoidance, safe-area bottom
+inset, a labelled close control, `accessibilityViewIsModal`, reduced-motion aware, `maxHeight` 88-94 percent so it fits a small
+phone. One sheet is open at a time (`sheet` state on the work-order screen). No global modal state, no new library.
+
+### 12.3 Journeys
+
+| Journey | Path | Outcome |
+|---------|------|---------|
+| Tech A | Home, Continue Repair, work order, Hold, confirm, back | Hold goes through the work-order status transition to `on_hold` with a reason code; Home re-reads on regaining focus and on the `work_orders` realtime event, and a held order is not `in_progress`, so the card no longer says Continue. |
+| Tech B | Home, Report Issue, submit, View | `useReportIssue` posts once (idempotent request id); "created" and the WO number come only from the server's answer, View opens the server id; an offline save is worded as not yet accepted. |
+| Tech C | Home, Scan Asset, asset, related work order | Existing scanner: manual entry, search, denied-permission recovery, retired/ambiguous/foreign outcomes; a web address in a QR is ignored. |
+| Tech D / E | Home, Resume Inspection or PM Due, inspection | Existing PM V2 inspection; the draft is restored from the local store, a completion is confirmed only by the server (or shown as queued), then Home re-reads PM. |
+| Chief A | Home, Needs owner (Available Work) or priority row, Assign, confirm | `emitAssignmentChanged` makes `useTeamOverview` re-read once. |
+| Chief B | Home, Team workload, technician, work order | `/(app)/team/<id>` then the order. |
+| Chief C | Home, rooms row, Room Status, room, related order | Aggregate only on Home (12.5). |
+| Chief D | Home, PM oversight, PM Plan or schedule | Existing PM screens and their role gates. |
+
+Back behavior: every destination is a stack push over the tab, so Back returns to the same Home, which re-reads on focus
+(not on first focus). Work-order links carry a per-tap token so a repeated tap re-applies the filter.
+
+### 12.4 Interaction matrix
+
+Status key: **R** reused from an existing screen and tested there; **H** tested on the Home; **N** navigation-only, destination
+covered by the route-existence contract (`homeRoutesExist.test.ts`); **U** unsupported (verified limitation).
+
+| Control | Role | Destination | Mutates | Status |
+|---------|------|-------------|---------|--------|
+| Avatar | both | profile | no | H, N |
+| Bell + unread | both | notifications (deep links to work orders and PM unchanged) | no | H, N, R (`NotificationDeepLink`) |
+| Connection line | both | Engineering Sync | no | H, N, R (`EngineeringSync`) |
+| My Jobs / Urgent / PM Due | tech | Work `mine` / `all`+urgent / PM list | no | H |
+| Needs owner / In progress / On hold | chief | Work `available` / `team`+in_progress / `waiting` | no | H |
+| Continue Repair, Open Job | tech | `work-orders/<id>` (safe path) | no | H, nav unit |
+| Resume Inspection | tech | `pm-schedules/inspect/<id>` | no | H, R (`PmInspection`: restore, blocked draft) |
+| View Available Work | tech | Work `available` | no | H |
+| Attention row (work order / PM / blocked save) | tech | order / schedule / Engineering Sync | no | H |
+| Attention "View all" | tech | expands in place | no | H |
+| Chief priority row | chief | order / Room Status / PM schedule / asset (safe builders, list fallback) | no | H |
+| Chief priority Assign | chief | `AssignTechnicianSheet` | assign (server) | H, R (`AssignTechnicianSheet`, `TeamOverview`) |
+| Blocked saved inspections (chief) | chief | Engineering Sync | no | H (new) |
+| Team workload row / View Team | chief | `team/<id>` / Team Overview | no | H |
+| Rooms oversight / PM oversight | chief | Room Status / PM Plan | no | H |
+| Report Issue | both | `work-orders/new` | create (server) | N, R (`ReportIssueScreen`: confirm, queue, photos, view) |
+| Scan Asset | both | `assets/scan` | no | N, R (`AssetScan`) |
+| Room Status | both | `room-status` | no | N, R (`RoomStatusList`, `RoomDetail`) |
+| Assign Work / Team Overview / PM Planning / Assets | chief | Available Work / Team / PM Plan / Assets | no | H, N |
+| Hold Repair | tech | `HoldSheet` on the order | hold (server) | R (`WorkOrderDetail`: reason required, note, labor pause, offline disabled) |
+| Claim / Start / Resume / Complete | tech | the order's action bar | server transitions | R (`WorkOrderDetail`); not offered to a chief (tested) |
+| Room Impact drawer | - | not built | - | U |
+| Dedicated Attention screen | - | in-place list | - | replaced (section 5) |
+
+### 12.5 Room impact
+
+Home holds only the server's aggregate `rooms_down`; no per-room source exists in the overview, so the Room Impact drawer from
+the prototype is **not shipped** and nothing is fabricated. The aggregate opens Room Status; a work order that names a room opens
+Room Detail by its canonical id (`wo-open-room`, already tested). Three facts stay separate and are never inferred from each
+other: a reported problem (work order), equipment downtime (asset), and the room's confirmed availability (Room Status). A
+faulty asset does not mark a room out of order and a completed repair does not release a room.
+
+### 12.6 Data refresh and reliability
+
+- Technician Home: three reads (queue, summary, PM) plus local drafts; re-read on regaining focus, pull-to-refresh and one trailing
+  read per 1.5 s `work_orders` realtime burst. Chief Home: the overview plus local saves, same triggers.
+- Confirmed mutations are reconciled by re-reading, never by an optimistic count. Late answers for an old scope are dropped; a
+  different person or property clears data first (tested).
+- Duplicate submits: `mutate`/`guarded` ref guard on the order screen, `useSheetSubmit` on sheets, a ref guard on assignment,
+  an idempotent request id on report creation, `isActionAlreadyQueued` for offline claim and completion.
+- Sync honesty: blocked saves raise an attention row on both Homes; pending saves are counted on the connection line and block
+  the all-clear; a destructive discard stays on the existing confirm flow in Engineering Sync.
+
+### 12.7 Tests added
+
+`homeNavigation.test.ts` (safe work-order paths, hostile ids fall back to the list), `homeRoutesExist.test.ts` (every Home
+destination resolves to a screen file, and a missing screen is detected), `ChiefEngineerHome.test.tsx` (blocked saved inspection
+row, opens Engineering Sync, withholds the all-clear; pending withholds it without a failure row), `EngineerHome.test.tsx`
+(no clear Needs Attention while saves are pending), `WorkOrderDetail.test.tsx` (Back with and without history).
+
+### 12.8 Not verified / handoff to Phase 5
+
+- No emulator or device run in this phase; the sheets, back gesture and keyboard behavior are verified by the existing jest
+  suites and by reading the shared `BottomSheet`, not on hardware.
+- The prototype's Room Impact drawer and per-room rows need a per-room read (overview or room board) before they can ship.
+- Journeys were checked at the unit and screen level with mocked API contracts; no live-API pass.
+- Phase 5 scope (deeper sync, offline and notification states) can build on `countBlockedPmSync` and the shared Home notice row.

@@ -154,6 +154,7 @@
       "cardInProgress": "En curso",
       "cardOnHold": "En espera",
       "allOwned": "Todo el trabajo activo tiene responsable.",
+      "syncReview": "Revisar",
       "prioritiesTitle": "Prioridades de la propiedad",
       "prioritiesEmpty": "Sin trabajo de emergencia, vencido, escalado o en espera, y sin habitaciones ni MP señalados.",
       "assignNeedsConnection": "Asignar requiere conexión.",

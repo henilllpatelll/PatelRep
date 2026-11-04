@@ -8,7 +8,7 @@
    - A list that shows only part of its items links to every kind of item it contains (work orders and PM).
    - What a role is offered follows apps/api guards (see roles.ts); the server still enforces every action. */
 
-import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE, pmInspectRoute, pmScheduleRoute } from "@/lib/engineering/routes";
+import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE, isSafeRouteId, pmInspectRoute, pmScheduleRoute } from "@/lib/engineering/routes";
 import { canActOnWorkOrders } from "@/lib/engineering/roles";
 import { defaultView } from "@/lib/engineering/workNavigation";
 import type { AttentionItem } from "@/lib/engineering/homeModel";
@@ -19,6 +19,11 @@ export const WORK_ROUTE = "/(app)/work-orders";
 export const REPORT_ISSUE_ROUTE = "/(app)/work-orders/new";
 export const ROOM_STATUS_ROUTE = "/(app)/room-status";
 export const ASSET_SCAN_ROUTE = "/(app)/assets/scan";
+
+/** One order's detail. An id that is not a plain path segment (slash, dot, query) opens the Work list instead, never another route. */
+export function workOrderPath(id: string | null | undefined): string {
+  return isSafeRouteId(id) ? `${WORK_ROUTE}/${id}` : WORK_ROUTE;
+}
 
 export interface WorkRoute {
   pathname: typeof WORK_ROUTE;
@@ -132,7 +137,7 @@ export function focusRoute(focus: FocusState, token?: string): WorkRoute | strin
   switch (focus.kind) {
     case "continue_repair":
     case "start_next":
-      return `${WORK_ROUTE}/${focus.wo.id}`;
+      return workOrderPath(focus.wo.id);
     case "resume_pm":
       return pmInspectRoute(focus.pm.draft.scheduleId);
     case "available_work":
@@ -148,7 +153,7 @@ export function focusRoute(focus: FocusState, token?: string): WorkRoute | strin
 export function attentionRoute(item: AttentionItem): string | null {
   switch (item.kind) {
     case "wo":
-      return `${WORK_ROUTE}/${item.wo.id}`;
+      return workOrderPath(item.wo.id);
     case "pm":
       return pmScheduleRoute(item.pm.id);
     case "sync":

@@ -8,6 +8,7 @@ import {
   quickActionRoute,
   showsMyJobs,
   urgentWorkRoute,
+  workOrderPath,
   workViewRoute,
 } from "@/lib/engineering/homeNavigation";
 import { buildHomeModel } from "@/lib/engineering/homeModel";
@@ -199,5 +200,26 @@ describe("primary card and attention destinations", () => {
       1,
     );
     expect(m.attention.map((item) => item.key)).toEqual(["wo:e1", "sync:pm", "wo:u1", "wo:late", "pm:p1"]);
+  });
+});
+
+describe("work-order links never leave the work-order route", () => {
+  it("builds the exact detail path for a plain id", () => {
+    expect(workOrderPath("wo-1_A")).toBe("/(app)/work-orders/wo-1_A");
+  });
+
+  it.each(["../team", "a/b", "x?y=1", "http://evil", "", " ", "a.b"])("falls back to the Work list for %p", (id) => {
+    expect(workOrderPath(id)).toBe("/(app)/work-orders");
+  });
+
+  it("falls back for a missing id", () => {
+    expect(workOrderPath(null)).toBe("/(app)/work-orders");
+    expect(workOrderPath(undefined)).toBe("/(app)/work-orders");
+  });
+
+  it("the primary card and attention rows use the same guard", () => {
+    const hostile = { kind: "continue_repair", wo: { id: "../x" }, moreActive: 0 } as never;
+    expect(focusRoute(hostile)).toBe("/(app)/work-orders");
+    expect(attentionRoute({ kind: "wo", key: "wo:../x", reason: "emergency", wo: { id: "../x" } } as never)).toBe("/(app)/work-orders");
   });
 });

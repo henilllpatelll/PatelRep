@@ -51,8 +51,10 @@ jest.mock("@/lib/api/engineeringTeam", () => ({
 jest.mock("@/lib/api/workOrders", () => ({ listActiveWorkOrders: jest.fn(), getWorkOrderSummary: jest.fn() }));
 jest.mock("@/lib/api/assets", () => ({ listPmSchedules: jest.fn() }));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({}) } }));
+let mockSyncRows: unknown[] = [];
+const mockRefreshSync = jest.fn();
 jest.mock("@/lib/engineering/usePmSyncItems", () => ({
-  usePmSyncItems: () => ({ rows: [], drafts: [], active: [], loaded: true, refresh: jest.fn() }),
+  usePmSyncItems: () => ({ rows: mockSyncRows, drafts: [], active: [], loaded: true, refresh: mockRefreshSync }),
 }));
 jest.mock("@/lib/settings/useSettingsIdentity", () => ({ useSettingsIdentity: () => ({ hotelName: "Fossil Creek Inn" }) }));
 const mockToast = { success: jest.fn(), info: jest.fn(), error: jest.fn() };
@@ -62,6 +64,7 @@ let mockRole = "chief_engineer";
 let mockTenant = "h1";
 let mockOnline = true;
 let mockUnread = 0;
+let mockPending = 0;
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
@@ -69,7 +72,7 @@ jest.mock("@/stores/appStore", () => {
       isOnline: mockOnline,
       hotelTimezone: "America/Chicago",
       unreadCount: mockUnread,
-      pendingActions: [],
+      pendingActions: Array.from({ length: mockPending }, (_, i) => ({ id: `a${i}` })),
       user: { id: "u1", role: mockRole, tenant_id: mockTenant, language_pref: "en" },
     })),
   };
@@ -132,6 +135,8 @@ beforeEach(async () => {
   resetAsyncResourceCache();
   await AsyncStorage.clear();
   mockRole = "chief_engineer";
+  mockSyncRows = [];
+  mockPending = 0;
   mockTenant = "h1";
   mockOnline = true;
   mockUnread = 0;
@@ -356,6 +361,35 @@ describe("property priorities", () => {
     await ready(home);
     expect(home.getByTestId("priority-empty")).toBeTruthy();
     expect(order(home)).toEqual([]);
+  });
+
+  const calm = () =>
+    base({
+      rooms_down: { total: 0, past_expected_return: 0 },
+      pm_oversight: { overdue: [], overdue_total: 0, repeat_defects: [], repeat_window_days: 90 },
+      attention_counts: { emergency_unassigned: 0, urgent_overdue: 0, escalated: 0, on_hold: 0 },
+      needs_attention: [],
+    });
+  const blockedRow = () => ({ rowId: 7, createdAt: new Date().toISOString(), attempts: 1, lastError: "conflict_completed", data: { phase: "queued", scheduleId: "pm1", scheduleName: "Boiler", evidence: [], confirmedAt: null } });
+
+  it("raises a blocked saved inspection, opens Engineering Sync, and withholds the all-clear", async () => {
+    mockOverview.mockResolvedValue(calm());
+    mockSyncRows = [blockedRow()];
+    const home = renderHome();
+    await ready(home);
+    expect(home.getByTestId("chief-sync-blocked")).toBeTruthy();
+    expect(home.queryByTestId("priority-empty")).toBeNull();
+    fireEvent.press(home.getByTestId("chief-sync-blocked"));
+    expect(lastPush()).toBe("/(app)/engineering-sync");
+  });
+
+  it("withholds the all-clear while saved actions are still waiting to sync, without calling them blocked", async () => {
+    mockOverview.mockResolvedValue(calm());
+    mockPending = 2;
+    const home = renderHome();
+    await ready(home);
+    expect(home.queryByTestId("priority-empty")).toBeNull();
+    expect(home.queryByTestId("chief-sync-blocked")).toBeNull();
   });
 
   it("keeps work orders and marks PM unavailable when PM could not be read, with no all-clear", async () => {

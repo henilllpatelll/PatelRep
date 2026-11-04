@@ -154,6 +154,7 @@
       "cardInProgress": "In progress",
       "cardOnHold": "On hold",
       "allOwned": "All active work has an owner.",
+      "syncReview": "Review",
       "prioritiesTitle": "Property priorities",
       "prioritiesEmpty": "No emergency, overdue, escalated or held work, and no rooms or PM flagged.",
       "assignNeedsConnection": "Assigning needs a connection.",

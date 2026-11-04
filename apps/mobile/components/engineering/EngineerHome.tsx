@@ -10,8 +10,7 @@ import { buildHomeModel, resolveSyncStatus, type AttentionItem } from "@/lib/eng
 import { pickDraft, type FocusState } from "@/lib/engineering/homeFocus";
 import { useEngineeringHome } from "@/lib/engineering/useEngineeringHome";
 import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
-import { buildPmQueuedItems } from "@/lib/engineering/pmSyncItems";
-import { needsPerson } from "@/lib/engineering/pmSyncState";
+import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { useHotelTimezone } from "@/lib/housekeeping/useHotelTimezone";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
@@ -112,10 +111,7 @@ function TechnicianHome({ name }: { name: string }) {
   }, [user?.tenant_id, reload]);
 
   const pmViews = useMemo(() => adaptPmSchedules(data.pmRows, hotelTimezone, now), [data.pmRows, hotelTimezone, now]);
-  const blockedSync = useMemo(
-    () => buildPmQueuedItems(syncItems.rows, syncItems.active, "").filter((item) => needsPerson(item.state)).length,
-    [syncItems.rows, syncItems.active],
-  );
+  const blockedSync = useMemo(() => countBlockedPmSync(syncItems.rows, syncItems.active), [syncItems.rows, syncItems.active]);
   const model = useMemo(
     () =>
       buildHomeModel(data.orders, pmViews, user?.id, now, {
@@ -236,7 +232,7 @@ function TechnicianHome({ name }: { name: string }) {
             <TechnicianAttentionSection
               items={model.attention}
               viewerId={user?.id}
-              trusted={queueReady && data.hasPm && syncItems.loaded}
+              trusted={queueReady && data.hasPm && syncItems.loaded && pendingCount === 0}
               onOpen={onOpenAttention}
             />
           ) : null}

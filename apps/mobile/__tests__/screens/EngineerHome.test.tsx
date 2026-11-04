@@ -364,6 +364,13 @@ describe("EngineerHome Needs Attention", () => {
     await waitFor(() => expect(getByTestId("attention-empty")).toBeTruthy());
   });
 
+  it("does not claim a clear Needs Attention while saved actions are still waiting to sync", async () => {
+    mockPending = 1;
+    const { queryByTestId, getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("engineer-caught-up")).toBeTruthy());
+    expect(queryByTestId("attention-empty")).toBeNull();
+  });
+
   it("does not claim all-clear when PM failed; it keeps the queue and offers Retry for PM", async () => {
     mockPm.mockRejectedValue(Object.assign(new Error("boom"), { status: 500 }));
     serve({ open: [wo({ id: "emg", title: "Leak", priority: "emergency" })] });

@@ -11,6 +11,8 @@ import { resolveLoadState } from "@/lib/engineering/loadState";
 import { resolveSyncStatus } from "@/lib/engineering/homeModel";
 import { canManageTeam, teamScope } from "@/lib/engineering/teamModel";
 import { useTeamOverview } from "@/lib/engineering/useTeamOverview";
+import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
+import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
 import { assignTargetFor, buildPriorities, chiefSummary, priorityRoute, technicianRoute, PRIORITIES_VIEW_ALL_ROUTE, type PriorityItem } from "@/lib/engineering/chiefHomeModel";
 import {
   TEAM_OVERVIEW_ROUTE,
@@ -18,6 +20,7 @@ import {
   chiefQuickActionRoute,
   chiefSummaryRoute,
   ROOM_STATUS_ROUTE,
+  ENGINEERING_SYNC_ROUTE,
   type ChiefQuickActionKey,
   type ChiefSummaryKey,
 } from "@/lib/engineering/homeNavigation";
@@ -27,6 +30,7 @@ import { TechnicianHomeHeader } from "../TechnicianHomeHeader";
 import { TechnicianSummaryCards, UNKNOWN_COUNT, type SummaryCardData } from "../TechnicianSummaryCards";
 import { TechnicianQuickActions } from "../TechnicianQuickActions";
 import { HOME_MAX_FONT, homeStyles } from "../homeStyles";
+import { HomeLoadNotice } from "../HomeLoadNotice";
 import { PropertyPriorities } from "./PropertyPriorities";
 import { TeamWorkloadPreview } from "./TeamWorkloadPreview";
 import { ChiefOversight } from "./ChiefOversight";
@@ -70,6 +74,9 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const [now, setNow] = useState(() => new Date());
   const [pulling, setPulling] = useState(false);
   const [target, setTarget] = useState<AssignTarget | null>(null);
+  const syncItems = usePmSyncItems();
+  const { refresh: refreshSyncItems } = syncItems;
+  const blockedSync = useMemo(() => countBlockedPmSync(syncItems.rows, syncItems.active), [syncItems.rows, syncItems.active]);
 
   // Minute tick keeps "synced 3 min ago" honest while the tab stays open.
   useEffect(() => {
@@ -81,9 +88,12 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const focusedOnce = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (focusedOnce.current) void reload();
+      if (focusedOnce.current) {
+        void reload();
+        void refreshSyncItems();
+      }
       focusedOnce.current = true;
-    }, [reload]),
+    }, [reload, refreshSyncItems]),
   );
 
   // Realtime edits arrive in bursts; one trailing read per burst. The overview is the only thing re-read.
@@ -105,7 +115,10 @@ export function ChiefEngineerHome({ name }: { name: string }) {
 
   const state = resolveLoadState({ loading: overview.loading, failure: overview.failure, count: data ? 1 : 0, offline: !isOnline });
   const ready = state.status === "ready" && data != null;
-  const priorities = useMemo(() => buildPriorities(data), [data]);
+  const basePriorities = useMemo(() => buildPriorities(data), [data]);
+  // Saved work that is blocked, or still waiting to reach the server, means this is not a true all-clear.
+  const unresolvedSync = blockedSync > 0 || pendingCount > 0;
+  const priorities = useMemo(() => (unresolvedSync ? { ...basePriorities, allClear: false } : basePriorities), [basePriorities, unresolvedSync]);
   const summary = useMemo(() => chiefSummary(data?.counts), [data]);
   const status = resolveSyncStatus({
     online: isOnline,
@@ -173,6 +186,9 @@ export function ChiefEngineerHome({ name }: { name: string }) {
           {ready && data ? (
             <>
               {state.stale ? <StaleBanner onRetry={() => void reload()} /> : null}
+              {blockedSync > 0 ? (
+                <HomeLoadNotice message={t("home.engineer.syncBlockedTitle", { count: blockedSync })} actionLabel={t("home.chief.syncReview")} onPress={() => go(ENGINEERING_SYNC_ROUTE)} testID="chief-sync-blocked" />
+              ) : null}
               <PropertyPriorities
                 priorities={priorities}
                 canAssign={canAssign}
