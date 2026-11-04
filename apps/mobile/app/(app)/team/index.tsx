@@ -10,6 +10,7 @@ import { EngineeringState, StaleBanner } from "@/components/engineering/Engineer
 import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineering/team/AssignTechnicianSheet";
 import { AttentionRow, SummaryTileView, TechnicianCard } from "@/components/engineering/team/TeamParts";
 import type { AttentionItem } from "@/lib/api/engineeringTeam";
+import { chiefSummaryRoute } from "@/lib/engineering/homeNavigation";
 import { resolveLoadState } from "@/lib/engineering/loadState";
 import { attentionRoute, canManageTeam, summaryTiles, teamScope, workOrderCode } from "@/lib/engineering/teamModel";
 import { useTeamOverview } from "@/lib/engineering/useTeamOverview";
@@ -104,6 +105,17 @@ export default function TeamOverviewScreen() {
               </View>
             )}
           </SettingsSection>
+          <Pressable
+            onPress={() => router.push(chiefSummaryRoute("needsOwner") as never)}
+            accessibilityRole="button"
+            accessibilityHint={t("engineeringTeam.unassignedHint")}
+            style={styles.moreLink}
+            testID="team-unassigned"
+          >
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.link, { color: theme.primaryAction }]}>
+              {t("engineeringTeam.unassignedLink")}
+            </Text>
+          </Pressable>
           {Object.values(data.attention_counts).reduce((a, b) => a + b, 0) > data.needs_attention.length ? (
             <Pressable
               onPress={() => router.push("/(app)/work-orders" as never)}

@@ -1,4 +1,4 @@
-import { canManageTeam, classifyAssignError, filterTechnicians, isAssignable, needsRefreshAfter, summaryTiles, teamScope } from "@/lib/engineering/teamModel";
+import { canManageTeam, classifyAssignError, filterTechnicians, isAssignable, isRetryable, needsRefreshAfter, summaryTiles, teamScope } from "@/lib/engineering/teamModel";
 import type { Technician } from "@/lib/api/engineeringTeam";
 
 const err = (status: number, message = "x") => Object.assign(new Error(message), { status });
@@ -28,6 +28,10 @@ describe("team model", () => {
     expect(classifyAssignError(err(500))).toBe("failed");
     expect(needsRefreshAfter("conflict")).toBe(true);
     expect(needsRefreshAfter("failed")).toBe(false);
+    expect(isRetryable("failed")).toBe(true);
+    expect(isRetryable("conflict")).toBe(true);
+    expect(isRetryable("not_allowed")).toBe(false);
+    expect(isRetryable("closed")).toBe(false);
   });
 
   it("shows optional tiles only when non-zero or unknown, and never turns unknown into zero", () => {

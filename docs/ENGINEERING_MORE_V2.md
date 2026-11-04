@@ -103,21 +103,27 @@ Back-stack: no screen hardcodes More; every back uses navigation history first. 
 
 Deferred / not done: My Schedule still uses built-in English weekday/month abbreviations (shared with all roles); no emulator or device run was performed; Engineer vs Chief Engineer share the same three tools (Team Overview is the only difference).
 
-## 8a. Phase 4 — Engineering Tools (done)
+## 8b. Phase 5 — Chief Engineer management (done)
 
-Audit result: Rooms (`EngineeringRoomBoard` + room detail), SOP library/detail and My Schedule (with availability, time off, requests, offers) already implemented search, server-driven filters, cached/offline notices, error-vs-empty states and role scoping. Nothing was rebuilt. Confirmed gaps fixed:
+Audit result: the management experience already existed and was reused, not rebuilt. More → **Management → Team Overview** (`team` row, `chief_engineer` only, hub slot after the identity card, before Engineering Tools) opens `/(app)/team`. Engineers get no Management section and `team/index.tsx` / `team/[userId].tsx` redirect any non-manager to More; the API (`engineering_team.py` `require_role(*TEAM_ROLES)`, `POST /work-orders/{id}/assign` chief_engineer + gm) refuses them independently.
 
-| Gap | Fix |
-|---|---|
-| Rooms board had no back control (opened from More/Home/notification) | Back button: `router.back()`, else `replace("/(app)/more")`. Title/subtitle now "Rooms" / "Property rooms and maintenance status" |
-| My Schedule had no back control or subtitle | Engineering roles only: back (same fallback to More) and "Your shifts and availability". Other roles render exactly as before |
-| SOP Library back fell back to Home; heading "Procedures" | Engineering roles: fallback More, heading "SOPs & Procedures". Other roles unchanged |
+**Team Overview** (`GET /engineering/team/overview`, tenant-scoped on the server; client cache scoped `tenant:user:team`): header "Team Overview" + back; count tiles (open, overdue, on hold, plus emergency / unassigned / PM overdue only when non-zero or unknown; an unknown figure shows "—", never 0); Needs attention (emergency-unassigned, urgent-overdue, escalated, on-hold rows → real work order, with Assign/Reassign); **Assign unassigned work** link; Team workload (one card per technician → `/(app)/team/[userId]`); PM and rooms (PM overdue + repeat-defect rows → PM schedule / asset, Rooms Out of order → Room Board). Truncation, stale-data banner, error-with-Retry and empty states are handled; nothing is sampled or invented.
 
-Reused unchanged: `RoomFilterSheet`, `RoomAvailabilitySheet`, `RoomReleaseSheet`, `SwapRequestSheet`, `ScreenFrame` (child screens already back to `/(app)/scheduling`), SOP cache banner and Ask-about-SOP (no hotel-level AI switch exists in the mobile app; behavior and voice gating are untouched). Bottom sheets: room filters, room availability (create/ETA), room release, swap request.
+**Workload definitions** (plain counts from the server, labelled as such): active = open/escalated/in-progress/on-hold orders assigned to the person; urgent, on hold, overdue are subsets of that. No shift, clock-in, availability, utilisation or "overloaded" labels exist because no such data exists for engineers. Tiles are not summed (they overlap). The Unassigned tile counts every unassigned active order; the new link opens **Available Work**, which is only open + escalated unassigned orders (the same route Home's Assign Work uses), so the two numbers can legitimately differ.
 
-Back-stack: no screen hardcodes More; every back uses navigation history first. Tabs are unchanged. Tests: `EngineeringTools.test.tsx`, extended `EngineeringRoomBoard.test.tsx`.
+**Technician detail**: reuses `team/[userId]` (that person's active orders via the work-order API, priority-sorted, each with Reassign and a link to the order). No personal contact data is shown.
 
-Deferred / not done: My Schedule still uses built-in English weekday/month abbreviations (shared with all roles); no emulator or device run was performed; Engineer and Chief Engineer share the same three tools (Team Overview is the only difference).
+**Assign Technician sheet** (`AssignTechnicianSheet`, shared by Team, Technician, Work queue, Work-order detail and Chief Home): lists only server-listed assignable engineers with open/urgent/on-hold counts, name search, radio rows (selected state in text/a11y, current assignee disabled), "Reassign" wording and optional note only when the order already has an owner; confirm is disabled offline, while sending (ref-guarded against double taps) and when the pick is the current assignee. Success is shown only after `POST /work-orders/{id}/assign` accepts, sending `expected_assigned_to`.
+
+Phase 5 fixes: (1) after a **409 conflict** the sheet now reads the order, shows the real current assignee, keeps the manager's pick (dropping it only if that person now owns the job) and retries against the fresh `expected_assigned_to` — previously it re-sent the stale value and could never succeed; (2) after **403 / closed / not found** Confirm stays disabled (no repeated forbidden mutation; `isRetryable`); (3) Team Overview gains the Assign-unassigned-work entry.
+
+**Offline**: assignment is online-only (no queue exists, none was invented). Offline shows "No connection. Assignment was not made."; nothing is queued, so the Sync Center is unaffected.
+
+**Navigation**: More → Team → technician → order, More → Team → attention row → order, Team → Assign/Reassign sheet (stays on Team), Team → Assign unassigned work → Work (Available), Team → PM schedule, Team → Room Board; back uses navigation history. Routes unchanged, so deep links are unchanged.
+
+Not done: no emulator or device run; no GM entry in Engineering More (GM has its own Home); an actionable count badge on the Management row was not added (the overview call is not cheap enough to run from More).
+
+Remaining: Phases 6–8 per §8.
 
 ## 9. Intentionally excluded
 

@@ -12088,6 +12088,8 @@
     "needsAttention": "Requiere atención",
     "attentionEmpty": "Nada requiere atención ahora.",
     "seeAllWork": "Ver todas las órdenes de trabajo",
+    "unassignedLink": "Asignar trabajo sin asignar",
+    "unassignedHint": "Abre las órdenes de trabajo abiertas y escaladas sin técnico",
     "workload": "Carga del equipo",
     "noTechnicians": "No se encontraron ingenieros activos.",
     "workloadNote": "Solo cuenta las órdenes asignadas. Aquí no se registran turnos ni disponibilidad.",

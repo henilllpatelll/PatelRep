@@ -12088,6 +12088,8 @@
     "needsAttention": "Needs attention",
     "attentionEmpty": "Nothing needs attention right now.",
     "seeAllWork": "See all work orders",
+    "unassignedLink": "Assign unassigned work",
+    "unassignedHint": "Opens open and escalated work orders that have no technician",
     "workload": "Team workload",
     "noTechnicians": "No active engineers found.",
     "workloadNote": "Counts of assigned work orders only. Shift and availability are not tracked here.",
