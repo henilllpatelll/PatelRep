@@ -3,6 +3,10 @@ import { render, fireEvent } from "@testing-library/react-native";
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
+  useFocusEffect: (cb: () => void) => {
+    const React = require("react");
+    React.useEffect(() => cb(), [cb]);
+  },
   Redirect: ({ href }: { href: string }) => {
     const { Text } = require("react-native");
     return <Text testID="redirect">{href}</Text>;
@@ -25,20 +29,20 @@ let mockRole: string | undefined = "engineer";
 let mockUnread = 0;
 let mockName = "Sam Rivera";
 let mockHotel: string | null = "Fossil Creek Inn";
-let mockOverviewStatus = "saved";
-let mockConnection = { text: "settings.connection.onlineSynced", color: "#0a0" };
+let mockOnline = true;
+const mockRefresh = jest.fn().mockResolvedValue(undefined);
+let mockSummary = { waiting: 0, attention: 0, verified: true, sending: false, refresh: mockRefresh };
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
-    useAppStore: makeAppStoreMock(() => ({ unreadCount: mockUnread, user: { id: "u1", role: mockRole } })),
+    useAppStore: makeAppStoreMock(() => ({ unreadCount: mockUnread, isOnline: mockOnline, user: { id: "u1", role: mockRole } })),
   };
 });
-jest.mock("@/lib/offline/useSyncOverview", () => ({
-  useSyncOverview: () => ({ overview: { status: mockOverviewStatus } }),
-}));
+jest.mock("@/lib/engineering/usePmSyncItems", () => ({ usePmSyncItems: () => ({ rows: [], drafts: [], active: [], loaded: true, refresh: jest.fn() }) }));
+jest.mock("@/lib/engineering/useEngineeringSyncSummary", () => ({ useEngineeringSyncSummary: () => mockSummary }));
 jest.mock("@/lib/settings/useOwnProfile", () => ({ useOwnProfile: () => ({ profile: null }) }));
 jest.mock("@/lib/settings/useSettingsIdentity", () => ({
-  useSettingsIdentity: () => ({ user: { id: "u1" }, name: mockName, hotelName: mockHotel, connection: mockConnection }),
+  useSettingsIdentity: () => ({ user: { id: "u1" }, name: mockName, hotelName: mockHotel, }),
 }));
 
 import { router } from "expo-router";
@@ -58,8 +62,8 @@ beforeEach(() => {
   mockUnread = 0;
   mockName = "Sam Rivera";
   mockHotel = "Fossil Creek Inn";
-  mockOverviewStatus = "saved";
-  mockConnection = { text: "settings.connection.onlineSynced", color: "#0a0" };
+  mockOnline = true;
+  mockSummary = { waiting: 0, attention: 0, verified: true, sending: false, refresh: mockRefresh };
 });
 
 describe("Engineering More screen: layout", () => {
@@ -170,12 +174,37 @@ describe("Engineering More screen: edge cases", () => {
     expect(getByTestId("more-hotel").props.numberOfLines).toBe(2);
   });
 
-  it("shows the real connection state, and a neutral label when it cannot be determined", () => {
-    mockConnection = { text: "settings.connection.offlinePending:3", color: "#c00" };
-    const offline = renderMore();
-    expect(offline.getByTestId("more-sync-text").props.children).toBe("settings.connection.offlinePending:3");
-    offline.unmount();
-    mockOverviewStatus = "unavailable";
-    expect(renderMore().getByTestId("more-sync-text").props.children).toBe("engineeringMore.syncStatus");
+  const syncText = () => renderMore().getByTestId("more-sync-text").props.children;
+
+  it("says all synced only when every queue was read and is empty", () => {
+    expect(syncText()).toBe("engineeringMore.syncState.synced:0");
+  });
+
+  it("never says synced when a queue could not be read", () => {
+    mockSummary = { ...mockSummary, verified: false };
+    expect(syncText()).toBe("engineeringMore.syncState.unavailable:0");
+  });
+
+  it("shows waiting, syncing, attention, and offline states with their counts", () => {
+    mockSummary = { ...mockSummary, waiting: 3 };
+    expect(syncText()).toBe("engineeringMore.syncState.waiting:3");
+    mockSummary = { ...mockSummary, sending: true };
+    expect(syncText()).toBe("engineeringMore.syncState.syncing:3");
+    mockSummary = { ...mockSummary, attention: 2 };
+    expect(syncText()).toBe("engineeringMore.syncState.attentionSyncing:2");
+    mockSummary = { waiting: 3, attention: 0, verified: true, sending: false, refresh: mockRefresh };
+    mockOnline = false;
+    expect(syncText()).toBe("engineeringMore.syncState.offlineSaved:3");
+  });
+
+  it("keeps attention visible while offline and caps nothing in the count itself", () => {
+    mockOnline = false;
+    mockSummary = { ...mockSummary, attention: 150 };
+    expect(syncText()).toBe("engineeringMore.syncState.attentionOffline:150");
+  });
+
+  it("re-reads the queues when More comes into view", () => {
+    renderMore();
+    expect(mockRefresh).toHaveBeenCalled();
   });
 });

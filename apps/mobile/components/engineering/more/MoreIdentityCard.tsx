@@ -1,3 +1,4 @@
+import type React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -10,8 +11,8 @@ interface Props {
   roleLabel: string | null;
   hotelName: string | null;
   avatarUri: string | null;
-  /** Real connection text and dot colour from the sync overview. */
-  connection: { text: string; color: string };
+  /** Real sync status from the engineering queues: words, an icon and a tone colour (never colour alone). */
+  connection: { text: string; color: string; icon: React.ComponentProps<typeof Ionicons>["name"]; hint: string };
   onProfile: () => void;
   onSync: () => void;
 }
@@ -56,13 +57,13 @@ export function MoreIdentityCard({ name, roleLabel, hotelName, avatarUri, connec
         onPress={onSync}
         accessibilityRole="button"
         accessibilityLabel={connection.text}
-        accessibilityHint={t("engineeringSync.openHint")}
+        accessibilityHint={connection.hint}
         accessibilityLiveRegion="polite"
         style={({ pressed }) => [styles.sync, { borderTopColor: theme.borderSubtle }, pressed && { backgroundColor: theme.surfaceMuted }]}
         testID="more-sync"
       >
-        <View style={[styles.dot, { backgroundColor: connection.color }]} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.syncText, { color: theme.textMuted }]} testID="more-sync-text">
+        <Ionicons name={connection.icon} size={18} color={connection.color} testID="more-sync-icon" />
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.syncText, { color: theme.textPrimary }]} testID="more-sync-text">
           {connection.text}
         </Text>
         <Ionicons name="chevron-forward" size={16} color={theme.textDisabled} />
@@ -81,6 +82,5 @@ const styles = StyleSheet.create({
   viewRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   view: { fontSize: 13, fontWeight: "600" },
   sync: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: MIN_TOUCH, paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  syncText: { flex: 1, fontSize: 13 },
+  syncText: { flex: 1, fontSize: 13.5, fontWeight: "600", paddingVertical: 4 },
 });

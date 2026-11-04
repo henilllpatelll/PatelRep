@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -16,9 +15,12 @@ interface Props {
   items: readonly PmQueuedItem[];
   drafts: readonly PmDraftSummary[];
   loaded: boolean;
+  /** Which half to render: the queued inspections, the unfinished drafts, or both (default). */
+  part?: "queue" | "drafts" | "both";
   onRetry: (rowId: number) => void;
   onSubmitAnyway: (rowId: number) => void;
-  onDiscard: (rowId: number) => void;
+  /** Asks the screen to confirm in its discard sheet; nothing is removed from here. */
+  onDiscard: (rowId: number, label: string) => void;
 }
 
 const inspectionRoute = (scheduleId: string) => `/(app)/pm-schedules/inspect/${scheduleId}` as never;
@@ -26,16 +28,16 @@ const inspectionRoute = (scheduleId: string) => `/(app)/pm-schedules/inspect/${s
 /**
  * Saved PM inspections and unfinished drafts, from the real queue and the real drafts. Every line says in words where the
  * work stands (waiting, syncing, needs review, could not sync) - none is ever shown as recorded, because a recorded
- * inspection leaves this list. Discarding is a deliberate second tap and only removes unsent work from this phone.
+ * inspection leaves this list. Discarding is confirmed in the Sync Center sheet and only removes unsent work from this phone.
  */
-export function PmSyncSection({ items, drafts, loaded, onRetry, onSubmitAnyway, onDiscard }: Props) {
+export function PmSyncSection({ items, drafts, loaded, part = "both", onRetry, onSubmitAnyway, onDiscard }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const ctx = useTextContext();
-  const [confirming, setConfirming] = useState<number | null>(null);
 
   return (
     <>
+      {part !== "drafts" ? (
       <SettingsSection title={t("engineeringSync.pm.title")} testID="esync-pm">
         {items.length === 0 ? (
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textMuted }]} testID="esync-pm-empty">
@@ -80,33 +82,17 @@ export function PmSyncSection({ items, drafts, loaded, onRetry, onSubmitAnyway, 
                     {item.canSubmitAnyway ? (
                       <Button label={t("engineeringSync.pm.submitAnyway")} variant="secondary" size="sm" onPress={() => onSubmitAnyway(item.rowId)} testID={`esync-pm-anyway-${item.rowId}`} />
                     ) : null}
-                    {confirming === item.rowId ? (
-                      <Button
-                        label={t("engineeringSync.pm.confirmDiscard")}
-                        variant="destructive"
-                        size="sm"
-                        onPress={() => {
-                          setConfirming(null);
-                          onDiscard(item.rowId);
-                        }}
-                        testID={`esync-pm-discard-confirm-${item.rowId}`}
-                      />
-                    ) : (
-                      <Button label={t("engineeringSync.pm.discard")} variant="ghost" size="sm" onPress={() => setConfirming(item.rowId)} testID={`esync-pm-discard-${item.rowId}`} />
-                    )}
+                    <Button label={t("engineeringSync.pm.discard")} variant="ghost" size="sm" onPress={() => onDiscard(item.rowId, item.label)} testID={`esync-pm-discard-${item.rowId}`} />
                   </View>
-                  {confirming === item.rowId ? (
-                    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]}>
-                      {t("engineeringSync.pm.discardWarning")}
-                    </Text>
-                  ) : null}
                 </View>
               );
             })}
           </View>
         )}
       </SettingsSection>
+      ) : null}
 
+      {part !== "queue" ? (
       <SettingsSection title={t("engineeringSync.pm.draftsTitle")} testID="esync-pm-drafts">
         {drafts.length === 0 ? (
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.empty, { color: theme.textMuted }]} testID="esync-pm-drafts-empty">
@@ -133,6 +119,7 @@ export function PmSyncSection({ items, drafts, loaded, onRetry, onSubmitAnyway, 
           </View>
         )}
       </SettingsSection>
+      ) : null}
     </>
   );
 }

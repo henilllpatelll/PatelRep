@@ -79,7 +79,7 @@ Reused: `SettingsScreen`, `SettingsSection`, `SettingsRow`, `SignOutSheet`, `Con
 
 2. New More hub screen (done): header with bell + settings, identity card with live connection row, Management (chief only), Engineering tools, Account & support, Sign out. Layout comes from `getEngineeringMoreHub(role)` (catalog `hub` slots + `subtitleKey`); Security, notification settings, FAQ, report, my reports, diagnostics and Contact Supervisor are reached through Settings/Help and are not hub rows (`contactSupervisor` is still unbound).
 3. Account / security entry polish and sign-out confirmation flow.
-4. Live Sync Center summary + `sync` badge.
+4. Live Sync Center summary + `sync` badge (Phase 3 done: status from `syncStatusModel.ts` over the engineering queues; Sync Center ordered Needs attention → Waiting → Drafts → Recent with issue and discard sheets).
 5. Notifications entry and preferences surface.
 6. Support: help, report, my reports, diagnostics, contact.
 7. Chief Engineer management entry polish.

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
@@ -11,7 +11,9 @@ import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { getEngineeringMoreHub, isMoreItemAvailable, type MoreItem } from "@/lib/engineering/moreMenu";
 import { isEngineeringRole } from "@/lib/engineering/roles";
-import { useSyncOverview } from "@/lib/offline/useSyncOverview";
+import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
+import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
+import { buildMoreSyncStatus, type SyncTone } from "@/lib/engineering/syncStatusModel";
 import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -23,11 +25,27 @@ export default function EngineeringMoreScreen() {
   const insets = useSafeAreaInsets();
   const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
   const unreadCount = useAppStore((s) => s.unreadCount);
-  const { overview } = useSyncOverview();
-  const { user, name, hotelName, connection } = useSettingsIdentity(overview);
+  const isOnline = useAppStore((s) => s.isOnline);
+  // The same engineering queues the Home header and the Sync Center read, so the three can never disagree.
+  const pm = usePmSyncItems();
+  const sync = useEngineeringSyncSummary(pm);
+  const { user, name, hotelName } = useSettingsIdentity();
   // Refreshes the short-lived photo URL; the screen never waits on it.
   const { profile } = useOwnProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
+
+  // Tabs stay mounted: re-read the queues each time More comes into view (no polling; hooks also react to connection/sync).
+  const { refresh: refreshSync } = sync;
+  useFocusEffect(
+    useCallback(() => {
+      void refreshSync();
+    }, [refreshSync]),
+  );
+  const status = useMemo(
+    () => buildMoreSyncStatus({ online: isOnline !== false, sending: sync.sending, counts: { waiting: sync.waiting, attention: sync.attention, verified: sync.verified } }),
+    [isOnline, sync.sending, sync.waiting, sync.attention, sync.verified],
+  );
+  const toneColor: Record<SyncTone, string> = { success: theme.status.ready, neutral: theme.textMuted, warning: theme.status.pickup, danger: theme.status.dirty };
 
   // The route exists for every role (tabs are declared once); only engineering roles have a More tab.
   if (!isEngineeringRole(role)) return <Redirect href="/(app)/home" />;
@@ -47,7 +65,7 @@ export default function EngineeringMoreScreen() {
     else if (item.href) router.push(item.href as never);
   }
 
-  const syncText = overview.status === "unavailable" ? t("engineeringMore.syncStatus") : connection.text;
+  const syncText = t(`engineeringMore.syncState.${status.textKey}`, { count: status.count, shown: status.shown });
 
   function renderRows(items: MoreItem[]) {
     return items.map((item, index) => (
@@ -73,7 +91,7 @@ export default function EngineeringMoreScreen() {
             roleLabel={t(`engineeringMore.roleLine.${role}`)}
             hotelName={hotelName}
             avatarUri={profile?.avatar_url ?? user?.avatar_url ?? null}
-            connection={{ text: syncText, color: connection.color }}
+            connection={{ text: syncText, color: toneColor[status.tone], icon: status.icon, hint: t(status.kind === "unavailable" ? "engineeringMore.syncState.hintUnavailable" : "engineeringSync.openHint") }}
             onProfile={() => go(profileItem)}
             onSync={() => go(syncItem)}
           />
