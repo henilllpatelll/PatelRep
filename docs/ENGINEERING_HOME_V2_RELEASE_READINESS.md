@@ -5,15 +5,21 @@ Reviewed code commit: `b948b53a4682322547ec09b125d2b4b8200855a8` (Phase 7). Main
 This document is added by a docs-only commit on top of the reviewed code commit; it changes no code, so the code reviewed
 and tested below is unchanged by it. CI evidence for the documentation commit is recorded in the PR, not here.
 
-## Recommendation: VERIFICATION INCOMPLETE
+## Recommendation (original Phase 8 audit, superseded by the status above): VERIFICATION INCOMPLETE
 
 No defect was found, but the one mandatory piece of evidence a mobile redesign needs - a run on a real device or emulator
 against a non-production backend - does not exist for any phase. Do not merge until that is done or the user explicitly
 accepts the risk. This is not a statement that the code is broken.
 
-## Final native QA pass (2026-11-03): BLOCKED
+## Device verification status (updated 2026-11-03)
 
-Native testing was attempted on head `ad5f61ed` and could not be completed: the emulator's installed dev client is stale and a fresh local build fails on Windows MAX_PATH (270-char CMake path, `LongPathsEnabled=0`). **No device row passed.** Staging API verified as staging at the head SHA; production not used. Details and exact steps for the owner to run locally: `ENGINEERING_HOME_V2_QA.md` section L. Verdict remains VERIFICATION INCOMPLETE; the Rooms down drawer and schedule lines are unverified on device.
+- **User-reported:** the repository owner states they personally tested the mobile app and everything works correctly. This is
+  the owner's own verification, not testing performed by the assistant; no device, build, backend or row-level detail was
+  supplied, so it is recorded as a statement, not as per-row evidence (see `ENGINEERING_HOME_V2_QA.md` section L.1).
+- **Assistant:** attempted a native run on an emulator and was blocked (stale dev client; local build failed on Windows MAX_PATH).
+  It ran no device rows (section L.2). Jest 461 suites / 10,490 tests and type-check pass; CI passes.
+- Recommendation: READY FOR HUMAN REVIEW on the strength of passing CI plus the owner's user-reported device test. Merge and any
+  release remain the owner's explicit decisions.
 
 ## Scope and branch state
 
