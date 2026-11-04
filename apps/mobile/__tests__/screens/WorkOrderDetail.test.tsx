@@ -175,6 +175,20 @@ describe("header and reported problem", () => {
     await waitFor(() => expect(getByText(/Occupied/)).toBeTruthy());
   });
 
+  it("goes back when there is history, and opens the Work list when the order was reached by a link with none", async () => {
+    const { getByTestId } = renderScreen();
+    await waitFor(() => expect(getByTestId("wo-back")).toBeTruthy());
+    mockRouter.canGoBack.mockReturnValueOnce(true);
+    fireEvent.press(getByTestId("wo-back"));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+
+    mockRouter.canGoBack.mockReturnValueOnce(false);
+    fireEvent.press(getByTestId("wo-back"));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).toHaveBeenCalledWith("/(app)/work-orders");
+  });
+
   it("opens Room Detail from the room named on the work order, by the room's canonical id", async () => {
     const { getByTestId } = renderScreen();
     await waitFor(() => expect(getByTestId("wo-open-room")).toBeTruthy());

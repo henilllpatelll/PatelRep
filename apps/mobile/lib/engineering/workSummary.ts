@@ -11,6 +11,8 @@ export interface WorkSummary {
   urgent: number;
   inProgress: number;
   waiting: number;
+  /** Every active order assigned to the caller, on-hold included. Absent from an older server. */
+  total?: number;
 }
 
 export const SUMMARY_KEYS = ["urgent", "inProgress", "waiting"] as const;
@@ -20,9 +22,11 @@ const isCount = (value: unknown): value is number => typeof value === "number" &
 
 /** Accepts only a well-formed answer; anything else is "unknown" (null), never zero. */
 export function parseWorkSummary(raw: unknown): WorkSummary | null {
-  const data = raw as { urgent?: unknown; in_progress?: unknown; waiting?: unknown } | null | undefined;
+  const data = raw as { urgent?: unknown; in_progress?: unknown; waiting?: unknown; total?: unknown } | null | undefined;
   if (!data || !isCount(data.urgent) || !isCount(data.in_progress) || !isCount(data.waiting)) return null;
-  return { urgent: data.urgent, inProgress: data.in_progress, waiting: data.waiting };
+  const summary: WorkSummary = { urgent: data.urgent, inProgress: data.in_progress, waiting: data.waiting };
+  if (isCount(data.total)) summary.total = data.total;
+  return summary;
 }
 
 /** The count a tile shows; null when unknown. */

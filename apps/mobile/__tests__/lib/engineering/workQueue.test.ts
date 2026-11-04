@@ -14,7 +14,6 @@ import {
   isTerminalClaimFailure,
   queueKey,
   startOfHotelDay,
-  urgentLandingView,
   viewStatuses,
   workOrderLabel,
 } from "@/lib/engineering/workQueue";
@@ -37,10 +36,10 @@ const wo = (over: Partial<WorkOrder> = {}): WorkOrder => ({
 
 describe("views per role", () => {
   it("shows Team only to roles the API lets read everyone's work", () => {
-    expect(availableViews("engineer")).toEqual(["mine", "available", "waiting", "done"]);
+    expect(availableViews("engineer")).toEqual(["mine", "available", "waiting", "done", "all"]);
     // A chief engineer manages but cannot claim and is never an assignee, so My Work would always be empty.
-    expect(availableViews("chief_engineer")).toEqual(["available", "team", "waiting", "done"]);
-    expect(availableViews("gm")).toEqual(["mine", "available", "team", "waiting", "done"]);
+    expect(availableViews("chief_engineer")).toEqual(["available", "team", "waiting", "done", "all"]);
+    expect(availableViews("gm")).toEqual(["mine", "available", "team", "waiting", "done", "all"]);
     expect(canViewTeamWork("housekeeper")).toBe(false);
     expect(canViewTeamWork(undefined)).toBe(false);
   });
@@ -294,12 +293,38 @@ describe("helpers", () => {
     expect(workOrderLabel({ work_order_number: null })).toBeNull();
   });
 
-  it("sends Home's Urgent card to my urgent work first, else the unclaimed urgent queue", () => {
-    const mine = wo({ priority: "emergency", assigned_to: ME, status: "in_progress" });
-    const open = wo({ priority: "urgent" });
-    expect(urgentLandingView([open, mine], ME)).toBe("mine");
-    expect(urgentLandingView([open], ME)).toBe("available");
-    expect(urgentLandingView([], ME)).toBe("mine");
+});
+
+describe("All active view (Home's Urgent destination)", () => {
+  const ctx = { role: "engineer", now: NOW, timeZone: "America/Chicago" };
+
+  it("asks for every active status with no ownership narrowing, so own, unclaimed and held work all appear", () => {
+    const params = buildListParams("all", EMPTY_FILTERS, "", ctx);
+    expect(params.statuses).toEqual(["open", "escalated", "in_progress", "on_hold"]);
+    expect(params.mine).toBeUndefined();
+    expect(params.unassigned).toBeUndefined();
+    expect(params.assigned_to_others).toBeUndefined();
+  });
+
+  it("with the urgent filter asks for emergency and urgent across those statuses", () => {
+    const params = buildListParams("all", { ...EMPTY_FILTERS, urgentOnly: true }, "", ctx);
+    expect(params.priorities).toEqual(["emergency", "urgent"]);
+    expect(params.statuses).toHaveLength(4);
+  });
+
+  it("holds every active order and never history", () => {
+    const viewer = { userId: ME, role: "engineer" };
+    for (const status of ["open", "escalated", "in_progress", "on_hold"] as const) {
+      expect(belongsToView(wo({ status, assigned_to: null }), "all", viewer)).toBe(true);
+      expect(belongsToView(wo({ status, assigned_to: ME }), "all", viewer)).toBe(true);
+      expect(belongsToView(wo({ status, assigned_to: OTHER }), "all", { userId: ME, role: "chief_engineer" })).toBe(true);
+    }
+    expect(belongsToView(wo({ status: "completed" }), "all", viewer)).toBe(false);
+    expect(belongsToView(wo({ status: "cancelled" }), "all", viewer)).toBe(false);
+  });
+
+  it("is reachable by every role that can reach Work", () => {
+    for (const role of ["engineer", "chief_engineer", "gm"]) expect(availableViews(role)).toContain("all");
   });
 });
 

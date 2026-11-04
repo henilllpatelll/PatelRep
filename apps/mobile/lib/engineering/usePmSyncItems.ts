@@ -12,6 +12,7 @@ import { discardQueued, retryQueued, submitAnyway, flushPmCompletions, usePmSync
  */
 export function usePmSyncItems() {
   const userId = useAppStore((s) => s.user?.id ?? null);
+  const tenantId = useAppStore((s) => s.user?.tenant_id ?? null);
   const isOnline = useAppStore((s) => s.isOnline);
   const lastSyncedAt = useAppStore((s) => s.lastSyncedAt);
   const syncing = useSyncActivity((s) => s.active);
@@ -39,7 +40,7 @@ export function usePmSyncItems() {
     setDrafts([]);
     setLoaded(false);
     void refresh();
-  }, [refresh, userId, isOnline, syncing, active.length, lastSyncedAt]);
+  }, [refresh, userId, tenantId, isOnline, syncing, active.length, lastSyncedAt]);
 
   const byId = (rowId: number) => rows.find((r) => r.rowId === rowId) ?? null;
   const retry = useCallback(

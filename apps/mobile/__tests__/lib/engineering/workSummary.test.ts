@@ -3,7 +3,10 @@ import { isSummaryActive, parseWorkSummary, summaryCount, summarySelection } fro
 
 describe("parseWorkSummary", () => {
   it("reads the server's counts", () => {
-    expect(parseWorkSummary({ urgent: 2, in_progress: 3, waiting: 4, total: 9 })).toEqual({ urgent: 2, inProgress: 3, waiting: 4 });
+    expect(parseWorkSummary({ urgent: 2, in_progress: 3, waiting: 4, total: 9 })).toEqual({ urgent: 2, inProgress: 3, waiting: 4, total: 9 });
+    // An older server omits the total, and a malformed total is dropped rather than trusted.
+    expect(parseWorkSummary({ urgent: 2, in_progress: 3, waiting: 4 })).toEqual({ urgent: 2, inProgress: 3, waiting: 4 });
+    expect(parseWorkSummary({ urgent: 2, in_progress: 3, waiting: 4, total: -1 })).toEqual({ urgent: 2, inProgress: 3, waiting: 4 });
     expect(parseWorkSummary({ urgent: 0, in_progress: 0, waiting: 0 })).toEqual({ urgent: 0, inProgress: 0, waiting: 0 });
   });
 

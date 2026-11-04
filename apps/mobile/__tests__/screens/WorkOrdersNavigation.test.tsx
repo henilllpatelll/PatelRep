@@ -245,6 +245,44 @@ describe("On hold and History", () => {
   });
 });
 
+describe("Home's Urgent link (all active work, narrowed to urgent)", () => {
+  it("asks the server for emergency and urgent across every active status and owner, for an engineer", async () => {
+    mockParams = { view: "all", filter: "urgent" };
+    server(() => [wo({ id: "u", title: "Leak", priority: "urgent", assigned_to: null })]);
+    renderScreen();
+    await screen.findByText("Leak");
+    const req = lastReq();
+    expect(req.priorities).toEqual(["emergency", "urgent"]);
+    expect(req.statuses).toEqual(["open", "escalated", "in_progress", "on_hold"]);
+    expect(req.mine).toBeUndefined();
+    expect(req.unassigned).toBeUndefined();
+    expect(req.assigned_to_others).toBeUndefined();
+    expect(screen.getByTestId("wo-title").props.children).toBe("workQueue.viewTitles.all");
+    expect(screen.getByTestId("wo-back")).toBeTruthy();
+    expect(screen.getByTestId("wo-chip-urgent")).toBeTruthy();
+  });
+
+  it("works the same for a chief engineer, and Back returns to their default Team view", async () => {
+    asRole("chief_engineer");
+    mockParams = { view: "all", filter: "urgent" };
+    server(() => [wo({ id: "u", title: "Leak", priority: "emergency", assigned_to: "someone-else" })]);
+    renderScreen();
+    await screen.findByText("Leak");
+    expect(lastReq().assigned_to_others).toBeUndefined();
+    fireEvent.press(screen.getByTestId("wo-back"));
+    await waitFor(() => expect(screen.getByTestId("wo-title").props.children).toBe("workQueue.viewTitles.team"));
+  });
+
+  it("ignores an unknown view or filter instead of opening something else", async () => {
+    mockParams = { view: "../admin", filter: "everything" };
+    server(() => []);
+    renderScreen();
+    await screen.findByTestId("wo-view-mine");
+    expect(screen.getByTestId("wo-title").props.children).toBe("workQueue.viewTitles.mine");
+    expect(reqs().every((r) => !r.priorities)).toBe(true);
+  });
+});
+
 describe("My Work summary", () => {
   it("shows the server's counts, not a count of the rows that happen to be loaded", async () => {
     // 30 of my orders, only 2 of them urgent in the first page of 25; the server knows the true figures.

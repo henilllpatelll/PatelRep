@@ -21,7 +21,9 @@ import {
 } from "@/lib/engineering/workOrders";
 import { hotelDateKey, resolveTimeZone } from "@/lib/housekeeping/hotelTime";
 
-export const QUEUE_VIEWS = ["mine", "available", "team", "waiting", "done"] as const;
+/** `all` is every active order this role can read (own, unclaimed and, for managers, everyone's). It backs links whose
+ *  count spans more than one of the other views (Home's Urgent), so the destination holds exactly what was counted. */
+export const QUEUE_VIEWS = ["mine", "available", "team", "waiting", "done", "all"] as const;
 export type QueueView = (typeof QUEUE_VIEWS)[number];
 
 /** Roles the API lets read other engineers' work orders (the `engineer` list is scoped to own + unclaimed). */
@@ -90,6 +92,7 @@ export function allowedStatuses(view: QueueView): readonly WorkOrderStatus[] {
   switch (view) {
     case "mine":
     case "team":
+    case "all":
       return ACTIVE_WORK_ORDER_STATUSES;
     case "available":
       return ["open", "escalated"];
@@ -291,6 +294,8 @@ export function belongsToView(wo: WorkOrder, view: QueueView, viewer: Viewer): b
       return wo.status === "on_hold";
     case "done":
       return wo.status === "completed" || wo.status === "cancelled";
+    case "all":
+      return active;
   }
 }
 
@@ -409,11 +414,4 @@ export function isTerminalClaimFailure(error: unknown): boolean {
 /** "WO-1042" — the order's number when it has one, else nothing (never an invented id). */
 export function workOrderLabel(wo: Pick<WorkOrder, "work_order_number">): string | null {
   return wo.work_order_number ? `WO-${String(wo.work_order_number).replace(/^WO-/i, "")}` : null;
-}
-
-/** Where Home's "Urgent" card should land: the viewer's own urgent work if any, else the unclaimed urgent queue. */
-export function urgentLandingView(orders: readonly WorkOrder[], viewerId: string | null | undefined): QueueView {
-  const urgent = orders.filter((wo) => isHighPriority(wo.priority) && ACTIVE_WORK_ORDER_STATUSES.includes(wo.status));
-  if (viewerId != null && urgent.some((wo) => wo.assigned_to === viewerId)) return "mine";
-  return urgent.some((wo) => (wo.assigned_to ?? null) == null) ? "available" : "mine";
 }

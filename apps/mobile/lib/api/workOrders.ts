@@ -1,5 +1,6 @@
 import { API_BASE, api, toApiError } from "@/lib/api/client";
 import { supabase } from "@/lib/supabase";
+import { ACTIVE_WORK_ORDER_STATUSES } from "@/lib/engineering/workOrders";
 import type {
   HoldReasonCode,
   WorkOrder,
@@ -9,6 +10,7 @@ import type {
 } from "@/lib/engineering/workOrders";
 import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
 import { parseWorkSummary, type WorkSummary } from "@/lib/engineering/workSummary";
+import { emitWorkOrderMutated } from "@/lib/engineering/teamEvents";
 import { parseChecklistResponse, parseChecklistUpdate, type ChecklistItem, type ChecklistSnapshot, type ChecklistSummary } from "@/lib/engineering/workOrderChecklist";
 import type {
   AuditEvent,
@@ -54,6 +56,7 @@ export interface CreateWorkOrderPayload {
 
 export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {
   const res = await api.post<{ data: { id?: string } | null }>("/work-orders", payload);
+  emitWorkOrderMutated();
   return res.data?.id ?? null;
 }
 
@@ -75,6 +78,7 @@ export async function createWorkOrderDetailed(payload: CreateWorkOrderPayload): 
     idempotent_replay?: boolean;
     room_marked_out_of_order?: boolean;
   }>("/work-orders", payload);
+  emitWorkOrderMutated();
   const wo = res.data;
   return {
     id: wo?.id ?? null,
@@ -158,6 +162,21 @@ export async function listAssetWorkOrderPage(
   return { orders, hasMore: res.meta?.has_more ?? orders.length >= ASSET_WORK_ORDER_PAGE_SIZE };
 }
 
+/**
+ * The whole active queue (open, escalated, in progress, on hold) in as few requests as the server allows: one call per
+ * page of 100 with every status together, instead of one call per status. `truncated` says there may be more than was
+ * read, so callers show "N+" rather than a false total.
+ */
+export async function listActiveWorkOrders(maxPages = 5): Promise<{ orders: WorkOrder[]; truncated: boolean }> {
+  const orders: WorkOrder[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const res = await listWorkOrderPage({ statuses: [...ACTIVE_WORK_ORDER_STATUSES] }, page, WORK_ORDER_PAGE_SIZE);
+    orders.push(...res.orders);
+    if (!res.hasMore) return { orders, truncated: false };
+  }
+  return { orders, truncated: true };
+}
+
 export async function listWorkOrders(status: WorkOrderStatus, page = 1): Promise<WorkOrder[]> {
   const res = await api.get<{ data: WorkOrder[] }>(
     `/work-orders?status=${status}&per_page=${WORK_ORDER_PAGE_SIZE}${page > 1 ? `&page=${page}` : ""}`
@@ -189,6 +208,7 @@ export async function getWorkOrder(woId: string): Promise<WorkOrder> {
 
 export async function claimWorkOrder(woId: string): Promise<WorkOrder | null> {
   const res = await api.post<{ data: WorkOrder | null }>(`/work-orders/${woId}/claim`, {});
+  emitWorkOrderMutated();
   return res.data;
 }
 
@@ -205,6 +225,7 @@ export async function completeWorkOrder(
   payload: CompleteWorkOrderPayload
 ): Promise<CompleteWorkOrderResult> {
   const res = await api.post<CompleteWorkOrderResult>(`/work-orders/${woId}/complete`, payload);
+  emitWorkOrderMutated();
   return res ?? {};
 }
 
@@ -221,6 +242,7 @@ export interface WorkOrderTransition {
  */
 export async function transitionWorkOrder(woId: string, transition: WorkOrderTransition): Promise<void> {
   await api.post(`/work-orders/${woId}/transition`, { ...transition, source: "mobile" });
+  emitWorkOrderMutated();
 }
 
 export async function addWorkOrderComment(

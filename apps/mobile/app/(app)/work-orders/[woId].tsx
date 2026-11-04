@@ -399,7 +399,7 @@ export default function WorkOrderDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <WorkOrderHeader wo={order} onBack={() => router.back()} onMore={closed || actions.block === "viewOnly" ? null : () => setSheet("more")} />
+      <WorkOrderHeader wo={order} onBack={() => (router.canGoBack() ? router.back() : router.replace("/(app)/work-orders" as never))} onMore={closed || actions.block === "viewOnly" ? null : () => setSheet("more")} />
 
       {!result ? (
         <View style={styles.tabs}>

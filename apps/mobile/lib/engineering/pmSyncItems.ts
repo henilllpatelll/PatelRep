@@ -5,7 +5,7 @@
 import { CAN_SUBMIT_ANYWAY } from "./pmSyncRunner";
 import type { PmDraftSummary } from "./pmDraftStore";
 import type { QueuedPmRow } from "./pmCompletionQueue";
-import { queuedState, type EngineeringSyncState } from "./pmSyncState";
+import { needsPerson, queuedState, type EngineeringSyncState } from "./pmSyncState";
 import { MAX_SYNC_ATTEMPTS } from "@/lib/housekeeping/syncDetails";
 
 export interface PmQueuedItem {
@@ -25,6 +25,11 @@ export interface PmQueuedItem {
   canRetry: boolean;
   canSubmitAnyway: boolean;
   canOpen: boolean;
+}
+
+/** Saved inspections that need a person (review, rejected, unknown outcome). Shared by both Engineering Homes. */
+export function countBlockedPmSync(rows: readonly QueuedPmRow[], activeRowIds: readonly number[]): number {
+  return buildPmQueuedItems(rows, activeRowIds, "").filter((item) => needsPerson(item.state)).length;
 }
 
 export function buildPmQueuedItems(rows: readonly QueuedPmRow[], activeRowIds: readonly number[], fallbackLabel: string): PmQueuedItem[] {
