@@ -74,6 +74,11 @@ export function EngineeringRoomBoard() {
 
   const openRoom = useCallback((roomId: string) => router.push({ pathname: "/(app)/room-status/[roomId]", params: { roomId } } as never), []);
   const report = useCallback(() => router.push("/(app)/work-orders/new" as never), []);
+  // Opened from More, Home or a notification: go back to wherever it was opened from, More when there is no history.
+  const back = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(app)/more" as never);
+  }, []);
   const clearAll = useCallback(() => {
     setFilters((f) => ({ ...EMPTY_ROOM_FILTERS, sort: f.sort }));
     setText("");
@@ -150,6 +155,12 @@ export function EngineeringRoomBoard() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]} testID="engineering-rooms-screen">
       <View style={[styles.hero, { paddingTop: insets.top + 12, backgroundColor: theme.shell.bg }]}>
+        <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t("common.back")} hitSlop={8} style={styles.back} testID="room-board-back">
+          <Ionicons name="chevron-back" size={24} color={theme.shell.ink} />
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.shell.ink, fontSize: 15 }}>
+            {t("common.back")}
+          </Text>
+        </Pressable>
         <View style={styles.heroRow}>
           <View style={styles.heroText}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heroTitle, { color: theme.shell.ink }]}>
@@ -250,6 +261,7 @@ function Separator() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: { paddingHorizontal: 18, paddingBottom: 16, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, gap: 14 },
+  back: { flexDirection: "row", alignItems: "center", minHeight: 44, alignSelf: "flex-start", marginBottom: -6 },
   heroRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   heroText: { flex: 1 },
   heroTitle: { fontSize: 27, lineHeight: 32, fontWeight: "600" },

@@ -73,7 +73,7 @@ Reused: `SettingsScreen`, `SettingsSection`, `SettingsRow`, `SignOutSheet`, `Con
 1. `contactSupervisor` is an action that Phase 2 binds to `ContactSheet` on the More screen; the current screen does not render V2 groups yet, so it is not user-visible.
 2. `sync` badge has no data source wired yet (Phase 4).
 3. No `.eslintrc` applies to `apps/mobile`, so `eslint` reports every file as ignored (pre-existing; not changed here).
-4. My Schedule is the all-employee `scheduling` screen; there is no engineering-specific schedule view.
+4. My Schedule is the all-employee `scheduling` screen; Phase 4 adds only an engineering back control and subtitle.
 
 ## 8. Planned changes (Phases 2–8)
 
@@ -86,6 +86,38 @@ Reused: `SettingsScreen`, `SettingsSection`, `SettingsRow`, `SignOutSheet`, `Con
 8. Accessibility, i18n sweep, dark mode, final regression.
 
 (Phase boundaries beyond Phase 1 are provisional and will be set by each phase's prompt.)
+
+## 8a. Phase 4 — Engineering Tools (done)
+
+Audit result: Rooms (`EngineeringRoomBoard` + room detail), SOP library/detail and My Schedule (with availability, time off, requests, offers) already implemented search, server-driven filters, cached/offline notices, error-vs-empty states and role scoping. Nothing was rebuilt. Confirmed gaps fixed:
+
+| Gap | Fix |
+|---|---|
+| Rooms board had no back control (opened from More/Home/notification) | Back button: `router.back()`, else `replace("/(app)/more")`. Title/subtitle now "Rooms" / "Property rooms and maintenance status" |
+| My Schedule had no back control or subtitle | Engineering roles only: back (same fallback to More) and "Your shifts and availability". Other roles render exactly as before |
+| SOP Library back fell back to Home; heading "Procedures" | Engineering roles: fallback More, heading "SOPs & Procedures". Other roles unchanged |
+
+Reused unchanged: `RoomFilterSheet`, `RoomAvailabilitySheet`, `RoomReleaseSheet`, `SwapRequestSheet`, `ScreenFrame` (child screens already back to `/(app)/scheduling`), SOP cache banner and Ask-about-SOP (no hotel-level AI switch exists in the mobile app; behavior and voice gating are untouched). Bottom sheets: room filters, room availability (create/ETA), room release, swap request.
+
+Back-stack: no screen hardcodes More; every back uses navigation history first. Tabs are unchanged. Tests: `EngineeringTools.test.tsx`, extended `EngineeringRoomBoard.test.tsx`.
+
+Deferred / not done: My Schedule still uses built-in English weekday/month abbreviations (shared with all roles); no emulator or device run was performed; Engineer vs Chief Engineer share the same three tools (Team Overview is the only difference).
+
+## 8a. Phase 4 — Engineering Tools (done)
+
+Audit result: Rooms (`EngineeringRoomBoard` + room detail), SOP library/detail and My Schedule (with availability, time off, requests, offers) already implemented search, server-driven filters, cached/offline notices, error-vs-empty states and role scoping. Nothing was rebuilt. Confirmed gaps fixed:
+
+| Gap | Fix |
+|---|---|
+| Rooms board had no back control (opened from More/Home/notification) | Back button: `router.back()`, else `replace("/(app)/more")`. Title/subtitle now "Rooms" / "Property rooms and maintenance status" |
+| My Schedule had no back control or subtitle | Engineering roles only: back (same fallback to More) and "Your shifts and availability". Other roles render exactly as before |
+| SOP Library back fell back to Home; heading "Procedures" | Engineering roles: fallback More, heading "SOPs & Procedures". Other roles unchanged |
+
+Reused unchanged: `RoomFilterSheet`, `RoomAvailabilitySheet`, `RoomReleaseSheet`, `SwapRequestSheet`, `ScreenFrame` (child screens already back to `/(app)/scheduling`), SOP cache banner and Ask-about-SOP (no hotel-level AI switch exists in the mobile app; behavior and voice gating are untouched). Bottom sheets: room filters, room availability (create/ETA), room release, swap request.
+
+Back-stack: no screen hardcodes More; every back uses navigation history first. Tabs are unchanged. Tests: `EngineeringTools.test.tsx`, extended `EngineeringRoomBoard.test.tsx`.
+
+Deferred / not done: My Schedule still uses built-in English weekday/month abbreviations (shared with all roles); no emulator or device run was performed; Engineer and Chief Engineer share the same three tools (Team Overview is the only difference).
 
 ## 9. Intentionally excluded
 

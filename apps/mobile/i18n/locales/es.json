@@ -8761,7 +8761,8 @@
         "declined": "No aprobado",
         "withdrawn": "Retiraste esta solicitud"
       }
-    }
+    },
+    "engineeringSubtitle": "Tus turnos y disponibilidad"
   },
   "sop": {
     "title": "Cómo hacerlo",
@@ -8871,7 +8872,8 @@
     "related": {
       "title": "Procedimientos que pueden ayudar",
       "open": "Abrir procedimiento: {{title}}"
-    }
+    },
+    "libraryTitle": "SOP y procedimientos"
   },
   "help": {
     "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",
@@ -11681,8 +11683,8 @@
     }
   },
   "engRooms": {
-    "title": "Habitaciones de ingeniería",
-    "subtitle": "Mantenimiento y disponibilidad de habitaciones",
+    "title": "Habitaciones",
+    "subtitle": "Habitaciones de la propiedad y estado de mantenimiento",
     "searchPlaceholder": "Buscar número de habitación o ubicación...",
     "clearSearch": "Borrar búsqueda",
     "roomKicker": "HABITACIÓN",

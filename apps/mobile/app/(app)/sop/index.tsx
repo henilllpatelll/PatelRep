@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
 import { isAssistantRole } from "@/lib/ai/fab";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { documentStatus, freshnessOf, searchDocuments, sortDocuments, suggestedQuestions } from "@/lib/sop/library";
 import { useAskAboutSop } from "@/lib/sop/useAskAboutSop";
 import { useSopLibrary } from "@/lib/sop/useSopLibrary";
@@ -57,7 +58,9 @@ export default function SopLibraryScreen() {
   const voiceEnabled = useVoiceCapability().enabled;
   const micVisible = !!assistant && isAssistantRole(role) && voiceEnabled;
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace("/(app)/home" as never));
+  const engineering = isEngineeringRole(role);
+  // Engineers open the library from More; with no history, return there instead of Home.
+  const back = () => (router.canGoBack() ? router.back() : router.replace((engineering ? "/(app)/more" : "/(app)/home") as never));
   const freshness = savedAt ? freshnessOf(savedAt) : null;
 
   return (
@@ -72,7 +75,7 @@ export default function SopLibraryScreen() {
           <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
         </Pressable>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
-          {t("sop.kicker")}
+          {engineering ? t("sop.libraryTitle") : t("sop.kicker")}
         </Text>
       </View>
 

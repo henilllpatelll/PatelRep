@@ -8761,7 +8761,8 @@
         "declined": "Not approved",
         "withdrawn": "You withdrew this request"
       }
-    }
+    },
+    "engineeringSubtitle": "Your shifts and availability"
   },
   "sop": {
     "title": "How-to",
@@ -8871,7 +8872,8 @@
     "related": {
       "title": "Procedures that may help",
       "open": "Open procedure: {{title}}"
-    }
+    },
+    "libraryTitle": "SOPs & Procedures"
   },
   "help": {
     "intro": "Need help? Find an answer or report a problem.",
@@ -11681,8 +11683,8 @@
     }
   },
   "engRooms": {
-    "title": "Engineering Rooms",
-    "subtitle": "Room maintenance and availability",
+    "title": "Rooms",
+    "subtitle": "Property rooms and maintenance status",
     "searchPlaceholder": "Find room number or location...",
     "clearSearch": "Clear search",
     "roomKicker": "ROOM",
