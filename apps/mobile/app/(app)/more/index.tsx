@@ -7,7 +7,7 @@ import { SignOutSheet } from "@/components/security/SignOutSheet";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
-import { getEngineeringMoreSections, type MoreItem } from "@/lib/engineering/moreMenu";
+import { getEngineeringMoreSections, isMoreItemAvailable, type MoreItem } from "@/lib/engineering/moreMenu";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -26,6 +26,8 @@ export default function EngineeringMoreScreen() {
   const sections = getEngineeringMoreSections(role);
 
   function press(item: MoreItem) {
+    // Re-check at press time: hiding a row is never the only guard (the API still enforces every permission).
+    if (!isMoreItemAvailable(role, item.key)) return;
     if (item.action === "signOut") setSignOutOpen(true);
     else if (item.href) router.push(item.href as never);
   }

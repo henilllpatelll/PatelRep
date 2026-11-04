@@ -11050,7 +11050,21 @@
     "settings": "Configuración",
     "help": "Ayuda",
     "signOut": "Cerrar sesión",
-    "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo."
+    "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo.",
+    "security": "Seguridad",
+    "sop": "SOP y procedimientos",
+    "schedule": "Mi horario",
+    "faq": "Preguntas frecuentes",
+    "report": "Reportar un problema",
+    "myReports": "Mis reportes",
+    "diagnostics": "Diagnóstico",
+    "contactSupervisor": "Contactar al supervisor",
+    "groups": {
+      "identity": "Cuenta",
+      "tools": "Herramientas de ingeniería",
+      "alerts": "Notificaciones y sincronización",
+      "support": "Ayuda y soporte"
+    }
   },
   "workQueue": {
     "title": "Órdenes de trabajo",

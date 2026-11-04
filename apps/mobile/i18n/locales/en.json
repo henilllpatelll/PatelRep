@@ -11050,7 +11050,21 @@
     "settings": "Settings",
     "help": "Help",
     "signOut": "Sign out",
-    "hint": "Work orders, PM and assets are in the tabs below."
+    "hint": "Work orders, PM and assets are in the tabs below.",
+    "security": "Security",
+    "sop": "SOPs & Procedures",
+    "schedule": "My Schedule",
+    "faq": "FAQs",
+    "report": "Report a Problem",
+    "myReports": "My Reports",
+    "diagnostics": "Diagnostics",
+    "contactSupervisor": "Contact Supervisor",
+    "groups": {
+      "identity": "Account",
+      "tools": "Engineering tools",
+      "alerts": "Notifications & sync",
+      "support": "Help & support"
+    }
   },
   "workQueue": {
     "title": "Work Orders",
