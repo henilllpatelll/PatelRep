@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { CATEGORY_ICONS, isKnownCategory } from "@/lib/notifications/categories";
 import { canReceivePush, type PushPermissionState } from "@/lib/notifications/permissions";
 import { useNotificationPreferences, type PreferenceItem } from "@/lib/notifications/useNotificationPreferences";
 import { usePushPermission } from "@/lib/notifications/usePushPermission";
@@ -15,13 +16,6 @@ import { MIN_TOUCH, SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/sett
 
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
-
-/** The categories this build knows how to label. A newer server may list more; they are not shown. */
-const CATEGORY_ICONS: Record<string, IconName> = {
-  room_assignments: "bed-outline",
-  work_orders: "construct-outline",
-  tasks: "checkmark-circle-outline",
-};
 
 function permissionSubtitleKey(state: PushPermissionState | null): string | null {
   switch (state) {
@@ -52,7 +46,7 @@ export default function NotificationSettingsScreen() {
   const permission = usePushPermission(user?.id);
   const prefs = useNotificationPreferences({ scope, role, online: isOnline !== false });
 
-  const items = prefs.items.filter((item) => item.key in CATEGORY_ICONS);
+  const items = prefs.items.filter((item) => isKnownCategory(item.key));
   const failed = items.filter((item) => item.failed);
   const saving = items.some((item) => item.saving);
   const offline = isOnline === false;

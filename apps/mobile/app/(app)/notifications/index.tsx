@@ -12,6 +12,7 @@ import { StateBlock } from "@/components/ui/StateBlock";
 import { SupervisorMessageSheet, type MarkReadError, type MessageDetails } from "@/components/home/SupervisorMessageSheet";
 import { useAssistantOptional } from "@/lib/ai/AssistantProvider";
 import { isAssistantRole } from "@/lib/ai/fab";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { listNotifications, markAllRead, markRead, type AppNotification } from "@/lib/api/notifications";
 import { formatHotelTime, hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { notificationLinkIssue, resolveNotificationLink, senderOf, type NotificationLink } from "@/lib/housekeeping/notificationLinks";
@@ -21,6 +22,8 @@ import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 
 const ALL_LIMIT = 50;
+/** The unread list is one server page (default 20): at that size it undercounts, so the exact store count wins. */
+const UNREAD_PAGE = 20;
 
 const ICON: Record<FeedKind, ComponentProps<typeof Ionicons>["name"]> = {
   priority: "alert-circle-outline",
@@ -50,6 +53,8 @@ export default function NotificationsScreen() {
   const hotelTimezone = useAppStore((state) => state.hotelTimezone) ?? null;
   const role = useAppStore((state) => state.user?.effective_role ?? state.user?.role);
   const setUnreadCount = useAppStore((state) => state.setUnreadCount);
+  const storedUnread = useAppStore((state) => state.unreadCount);
+  const engineering = isEngineeringRole(role);
   const assistant = useAssistantOptional();
   const [filter, setFilter] = useState<FeedFilter>("unread");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -70,8 +75,9 @@ export default function NotificationsScreen() {
       const res = await listNotifications(false);
       setUnreadRows(res.data);
       setLoadFailed(false);
-      // The unread list IS the unread count: set from what the server returned, never cleared by merely viewing.
-      setUnreadCount?.(res.data.length);
+      // A short list IS the unread count; a full page only proves "at least this many", so never lower the exact count.
+      const current = useAppStore.getState().unreadCount;
+      setUnreadCount?.(res.data.length >= UNREAD_PAGE && typeof current === "number" ? Math.max(current, res.data.length) : res.data.length);
     } catch {
       // A failed refresh keeps what was loaded before; it must never read as "all caught up".
       setLoadFailed(true);
@@ -161,7 +167,7 @@ export default function NotificationsScreen() {
       setUnreadRows((rows) => rows.filter((row) => row.id !== selected.id));
       setAllRows((rows) => (rows ? rows.map((row) => (row.id === selected.id ? { ...row, is_read: true } : row)) : rows));
       const count = useAppStore.getState().unreadCount;
-      if (typeof count === "number") setUnreadCount?.(Math.max(0, count - 1));
+      if (!selected.is_read && typeof count === "number") setUnreadCount?.(Math.max(0, count - 1));
       setSheetOpen(false);
     } catch {
       setMarkError(useAppStore.getState().isOnline === false ? "offline" : "failed");
@@ -203,15 +209,28 @@ export default function NotificationsScreen() {
     return `${label}, ${clock}`;
   };
 
-  const unreadTotal = unreadRows.length;
+  const unreadTotal = unreadRows.length >= UNREAD_PAGE && typeof storedUnread === "number" ? Math.max(storedUnread, unreadRows.length) : unreadRows.length;
+  const goBack = () => (router.canGoBack?.() ? router.back() : router.replace("/(app)/more" as never));
   const showFailureOnly = (filter === "unread" ? loadFailed && unreadRows.length === 0 : allFailed && allRows === null) && !loading;
   const listLoading = loading || (filter === "all" && allRows === null && !allFailed);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
+        {engineering ? (
+          <Pressable
+            onPress={goBack}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.back")}
+            hitSlop={8}
+            style={styles.back}
+            testID="notifications-back"
+          >
+            <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
+          </Pressable>
+        ) : null}
         <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("alertsScreen.unreadSuffix", { count: unreadTotal })}</Text>
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]}>{t("alertsScreen.title")}</Text>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]}>{t(engineering ? "alertsScreen.inboxTitle" : "alertsScreen.title")}</Text>
         <Button
           label={markingAll ? t("alertsScreen.clearing") : t("alertsScreen.markAllRead")}
           onPress={handleMarkAll}
@@ -332,6 +351,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18, borderBottomWidth: 1 },
+  back: { width: 44, height: 44, marginLeft: -10, marginBottom: 2, justifyContent: "center" },
   headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
   title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34, marginTop: 4 },
   markReadBtn: { position: "absolute", right: 6, bottom: 5 },

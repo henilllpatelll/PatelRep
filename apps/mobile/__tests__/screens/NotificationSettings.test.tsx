@@ -70,7 +70,7 @@ const ENGINEER = [
 const GM = [{ key: "tasks", enabled: true, has_critical: true }];
 
 const rowIds = (utils: ReturnType<typeof render>) =>
-  ["room_assignments", "work_orders", "tasks"].filter((key) => utils.queryByTestId(`row-notif-${key}`));
+  ["room_assignments", "work_orders", "tasks", "schedule"].filter((key) => utils.queryByTestId(`row-notif-${key}`));
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -116,6 +116,41 @@ describe("work notification categories", () => {
     const ui = render(<NotificationSettingsScreen />);
     await waitFor(() => expect(ui.getByTestId("row-notif-tasks")).toBeTruthy());
     expect(ui.queryByTestId("row-notif-brand_new_thing")).toBeNull();
+  });
+
+  it("shows the Schedule Updates category the server sends (it used to be hidden), with its saved value", async () => {
+    mockRole = "engineer";
+    mockGetPrefs.mockResolvedValue([...ENGINEER, { key: "schedule", enabled: false, has_critical: false }]);
+    const ui = render(<NotificationSettingsScreen />);
+    await waitFor(() => expect(ui.getByTestId("row-notif-schedule")).toBeTruthy());
+    expect(rowIds(ui)).toEqual(["work_orders", "tasks", "schedule"]);
+    expect(ui.getByText("Schedule Updates")).toBeTruthy();
+    expect(ui.getByTestId("row-notif-schedule").props.accessibilityState.checked).toBe(false);
+    expect(ui.getByTestId("icon-calendar-outline")).toBeTruthy();
+  });
+
+  it("saves the Schedule Updates switch and restores it if the save fails", async () => {
+    mockRole = "engineer";
+    mockGetPrefs.mockResolvedValue([...ENGINEER, { key: "schedule", enabled: true, has_critical: false }]);
+    const ui = render(<NotificationSettingsScreen />);
+    await waitFor(() => expect(ui.getByTestId("row-notif-schedule")).toBeTruthy());
+    fireEvent.press(ui.getByTestId("row-notif-schedule"));
+    expect(mockSetPref).toHaveBeenCalledWith("schedule", false);
+    await waitFor(() => expect(ui.getByText("Changes Saved")).toBeTruthy());
+    expect(ui.getByTestId("row-notif-schedule").props.accessibilityState.checked).toBe(false);
+
+    mockSetPref.mockRejectedValueOnce(new Error("500"));
+    fireEvent.press(ui.getByTestId("row-notif-schedule"));
+    await waitFor(() => expect(ui.getByText("Unable to save. The switch shows your last saved setting.")).toBeTruthy());
+    expect(ui.getByTestId("row-notif-schedule").props.accessibilityState.checked).toBe(false);
+  });
+
+  it("shows Schedule Updates in Spanish", async () => {
+    mockLanguage = "es";
+    mockGetPrefs.mockResolvedValue([{ key: "schedule", enabled: true, has_critical: false }]);
+    const ui = render(<NotificationSettingsScreen />);
+    await waitFor(() => expect(ui.getByTestId("row-notif-schedule")).toBeTruthy());
+    expect(ui.getByText("Cambios de horario")).toBeTruthy();
   });
 
   it("exposes each switch with its state, a spoken hint, and a 44pt-high row", async () => {

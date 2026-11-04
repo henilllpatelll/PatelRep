@@ -8520,6 +8520,7 @@
     "unreadSuffix_one": "{{count}} unread",
     "unreadSuffix_other": "{{count}} unread",
     "title": "Alerts",
+    "inboxTitle": "Notifications",
     "unreadSuffix": "{{count}} unread",
     "unreadSuffix_plural": "{{count}} unread",
     "markAllRead": "Mark all read",
@@ -8761,7 +8762,8 @@
         "declined": "Not approved",
         "withdrawn": "You withdrew this request"
       }
-    }
+    },
+    "engineeringSubtitle": "Your shifts and availability"
   },
   "sop": {
     "title": "How-to",
@@ -8871,7 +8873,8 @@
     "related": {
       "title": "Procedures that may help",
       "open": "Open procedure: {{title}}"
-    }
+    },
+    "libraryTitle": "SOPs & Procedures"
   },
   "help": {
     "intro": "Need help? Find an answer or report a problem.",
@@ -8910,7 +8913,14 @@
         "language": "Open Language",
         "appearance": "Open Appearance",
         "security": "Open Security & Sign-in",
-        "contact": "Contact Your Supervisor"
+        "contact": "Contact Your Supervisor",
+        "work": "Open Work",
+        "pm": "Open PM",
+        "assets": "Open Assets",
+        "rooms": "Open Rooms",
+        "reportIssue": "Report an Issue",
+        "notifications": "Open Notification Settings",
+        "profile": "Open Profile"
       },
       "items": {
         "assignmentsMissing": {
@@ -9004,8 +9014,117 @@
         "gmAdmin": {
           "q": "Where do I manage the property?",
           "a": "Property settings, staff and reports are in the PatelRep web app. The mobile app is built for day-to-day work."
+        },
+        "engFindWork": {
+          "q": "How do I find the work assigned to me?",
+          "a": "Open the Work tab. Your assigned work orders are listed there, and Available Work shows open jobs nobody has taken yet. Pull down to refresh. Offline, you see the last list saved on this phone."
+        },
+        "engUpdateWork": {
+          "q": "How do I update a work order?",
+          "a": "Open the work order and use the buttons on it, such as claiming it or completing the repair. Some updates are saved on your phone when you're offline and sent later; the work order says when one is still waiting."
+        },
+        "engExtraIssue": {
+          "q": "How do I report another problem I found?",
+          "a": "Use Report an Issue. It creates a new work order for the room or equipment. It is not the same as Report a Problem, which is only for problems with the app."
+        },
+        "engActionUnavailable": {
+          "q": "Why is a button missing or turned off?",
+          "a": "What you can do depends on your role and on the work order's current status. An action is also turned off while you're offline if it needs a connection, or while it is already waiting to send. Refresh the work order, then check Sync Center."
+        },
+        "engAssignRoles": {
+          "q": "Who can assign work to a technician?",
+          "a": "Chief Engineers can assign and reassign work orders from Team Overview. Engineers claim available work for themselves. If you need a job reassigned, ask your Chief Engineer."
+        },
+        "engPmFind": {
+          "q": "Where is my preventive maintenance work?",
+          "a": "Open the PM tab. It lists the schedules for your property, with overdue and due-soon work first. Pull down to refresh."
+        },
+        "engPmOpen": {
+          "q": "How do I start a PM inspection?",
+          "a": "Open the PM tab, choose a schedule, then start the inspection. Answer each step and add photos where asked, then submit."
+        },
+        "engPmDraft": {
+          "q": "What happens to a PM inspection I haven't finished?",
+          "a": "It is saved as a draft on this phone, only for you. A draft is not sent until you submit it. You can find unfinished inspections in Sync Center under Saved drafts."
+        },
+        "engPmFailed": {
+          "q": "My PM inspection didn't submit. What do I do?",
+          "a": "If you were offline, it waits on your phone and is sent when you reconnect. If the server refused it, Sync Center shows it under Needs attention. Your answers and photos stay saved until you retry or choose to discard them."
+        },
+        "engFindRoom": {
+          "q": "How do I find a room?",
+          "a": "Open Rooms from More. Search by room number, or use Filters to narrow the list. The list shows the last information saved if you're offline."
+        },
+        "engRoomDetails": {
+          "q": "Where do I see a room's maintenance details?",
+          "a": "Tap a room on the Rooms board. Its screen shows the room's maintenance status and related work orders."
+        },
+        "engScanAsset": {
+          "q": "How do I scan an equipment QR code?",
+          "a": "Open the Assets tab and tap Scan. Point the camera at the equipment label. If the label can't be read, search for the equipment by name instead."
+        },
+        "engEquipmentProblem": {
+          "q": "How do I report an equipment problem?",
+          "a": "Open the equipment in Assets, or use Report an Issue, and describe what's wrong. This creates a work order so the team can fix it."
+        },
+        "engOffline": {
+          "q": "What happens when my phone goes offline?",
+          "a": "You can keep working in the parts of the app that save changes on the phone, and see the last information saved. Some actions need a connection and say so. Nothing is marked as done on the server until it confirms."
+        },
+        "engLocalChanges": {
+          "q": "What stays saved on my phone?",
+          "a": "Work-order updates and claims, repair completions and PM inspections that you made offline are saved on this phone, under your account. Sync Center lists them. Not every action can be done offline."
+        },
+        "engRetrySync": {
+          "q": "How do I retry syncing?",
+          "a": "Open Sync Center. When you're connected, tap the main button to retry. Changes also send on their own when your phone reconnects."
+        },
+        "engConflict": {
+          "q": "What is a sync conflict?",
+          "a": "It means the work order changed on the server after you made your change, so the server did not accept it. Your change stays saved on this phone. Open the work order to see its current state, then redo the change if it is still needed, or discard it."
+        },
+        "engSignOutFirst": {
+          "q": "Should I sync before I sign out?",
+          "a": "Yes, when you can. Sign Out warns you if changes are still waiting. Waiting changes stay on this phone under your account and are sent after you sign in again. Don't delete or reinstall the app while changes are waiting."
+        },
+        "engNotifPrefs": {
+          "q": "How do I change which notifications I get?",
+          "a": "Open More, then Settings, then Notifications. Turn each kind of notification on or off. Your phone's own notification permission is shown there too."
+        },
+        "engPreferredName": {
+          "q": "How do I change the name shown for me?",
+          "a": "Open More, then your profile card. You can edit your display name and photo there. Your email, role and property are managed by your hotel and can't be changed in the app."
+        },
+        "engSecurity": {
+          "q": "How do I manage my account security?",
+          "a": "Open Security & Sign-in in Settings. You can turn on app lock, set when it locks, change your password, and sign out other devices."
         }
-      }
+      },
+      "topics": {
+        "workOrders": {
+          "title": "Work Orders",
+          "subtitle": "Find, update and assign work"
+        },
+        "pm": {
+          "title": "Preventive Maintenance",
+          "subtitle": "Schedules and inspections"
+        },
+        "roomsAssets": {
+          "title": "Rooms & Assets",
+          "subtitle": "Rooms, equipment and scanning"
+        },
+        "offlineSync": {
+          "title": "Offline & Sync",
+          "subtitle": "Saved changes and connection"
+        },
+        "account": {
+          "title": "Account & Notifications",
+          "subtitle": "Profile, security and alerts"
+        }
+      },
+      "allTopics": "All topics",
+      "topicHeading": "Topic: {{topic}}",
+      "unknownTopic": "That topic isn't available, so all questions are shown."
     },
     "report": {
       "title": "Report a Problem",
@@ -9054,6 +9173,11 @@
         "body": "What you wrote has not been sent.",
         "keep": "Keep Editing",
         "discard": "Discard Draft"
+      },
+      "maintenance": {
+        "title": "Is something broken at the hotel?",
+        "body": "This form is only for problems with the app. For a leak, a broken light or an out-of-order room, create a work order instead.",
+        "action": "Report an Issue"
       }
     },
     "contact": {
@@ -9118,6 +9242,44 @@
         "attention": "Needs attention",
         "offline": "Offline",
         "unavailable": "Unavailable"
+      },
+      "recovery": {
+        "title": "If something looks wrong",
+        "openSyncCenter": "Open Sync Center",
+        "openSyncCenterHint": "See saved changes and what needs attention",
+        "openSync": "Open Offline & Sync",
+        "checkConnection": "Check connection",
+        "checking": "Checking…",
+        "connected": "This phone has a connection.",
+        "disconnected": "This phone has no connection. Saved changes will send when it reconnects.",
+        "checkFailed": "Couldn't check the connection. Try again.",
+        "report": "Report a Problem"
+      }
+    },
+    "engineering": {
+      "intro": "Find answers or get assistance",
+      "sections": {
+        "quickHelp": "Quick help",
+        "assistance": "Get assistance",
+        "yourSupport": "Your support",
+        "troubleshooting": "Troubleshooting"
+      },
+      "allQuestions": {
+        "title": "All questions",
+        "subtitle": "Browse every topic"
+      },
+      "topicA11y": "{{title}}. {{subtitle}}",
+      "contact": {
+        "title": "Contact Supervisor",
+        "subtitle": "Reach your supervisor"
+      },
+      "reports": {
+        "title": "My Reports",
+        "subtitle": "View submitted problems and updates"
+      },
+      "diagnostics": {
+        "title": "Diagnostics",
+        "subtitle": "Connection and app information"
       }
     }
   },
@@ -11047,10 +11209,60 @@
     "rooms": "Rooms",
     "notifications": "Notifications",
     "profile": "My Profile",
-    "settings": "Settings",
-    "help": "Help",
+    "settings": "Settings & Preferences",
+    "help": "Help & Support",
     "signOut": "Sign out",
-    "hint": "Work orders, PM and assets are in the tabs below."
+    "security": "Security",
+    "sop": "SOPs & Procedures",
+    "schedule": "My Schedule",
+    "faq": "FAQs",
+    "report": "Report a Problem",
+    "myReports": "My Reports",
+    "diagnostics": "Diagnostics",
+    "contactSupervisor": "Contact Supervisor",
+    "groups": {
+      "identity": "Account",
+      "tools": "Engineering tools",
+      "alerts": "Notifications & sync",
+      "support": "Help & support"
+    },
+    "accountSupport": "Account & support",
+    "sub": {
+      "rooms": "Property rooms and repair history",
+      "sop": "Maintenance instructions and references",
+      "schedule": "Shifts, availability and time off",
+      "team": "Technician workload and assignments",
+      "settings": "Profile, security, notifications and appearance",
+      "help": "FAQs, report a problem and contact support"
+    },
+    "roleLine": {
+      "engineer": "Maintenance Technician",
+      "chief_engineer": "Chief Engineer"
+    },
+    "viewProfile": "View my profile",
+    "syncStatus": "Sync status",
+    "notificationsA11y": "Notifications",
+    "settingsA11y": "Settings",
+    "syncState": {
+      "synced": "All changes synced",
+      "waiting": "{{shown}} change waiting",
+      "waiting_plural": "{{shown}} changes waiting",
+      "syncing": "Syncing {{shown}} change",
+      "syncing_plural": "Syncing {{shown}} changes",
+      "syncingNoCount": "Syncing…",
+      "attention": "{{shown}} item needs attention",
+      "attention_plural": "{{shown}} items need attention",
+      "attentionOffline": "{{shown}} item needs attention · Offline",
+      "attentionOffline_plural": "{{shown}} items need attention · Offline",
+      "attentionSyncing": "{{shown}} item needs attention · Syncing",
+      "attentionSyncing_plural": "{{shown}} items need attention · Syncing",
+      "offlineSaved": "Offline — {{shown}} change saved on this device",
+      "offlineSaved_plural": "Offline — {{shown}} changes saved on this device",
+      "offlineNone": "Offline — no changes waiting",
+      "offline": "Offline",
+      "unavailable": "Sync status unavailable",
+      "hintUnavailable": "Opens the Sync Center so you can check again"
+    }
   },
   "workQueue": {
     "title": "Work Orders",
@@ -11631,8 +11843,8 @@
     }
   },
   "engRooms": {
-    "title": "Engineering Rooms",
-    "subtitle": "Room maintenance and availability",
+    "title": "Rooms",
+    "subtitle": "Property rooms and maintenance status",
     "searchPlaceholder": "Find room number or location...",
     "clearSearch": "Clear search",
     "roomKicker": "ROOM",
@@ -12036,6 +12248,8 @@
     "needsAttention": "Needs attention",
     "attentionEmpty": "Nothing needs attention right now.",
     "seeAllWork": "See all work orders",
+    "unassignedLink": "Assign unassigned work",
+    "unassignedHint": "Opens open and escalated work orders that have no technician",
     "workload": "Team workload",
     "noTechnicians": "No active engineers found.",
     "workloadNote": "Counts of assigned work orders only. Shift and availability are not tracked here.",
@@ -12111,7 +12325,7 @@
     }
   },
   "engineeringSync": {
-    "title": "Sync status",
+    "title": "Sync Center",
     "online": "Online",
     "offline": "Offline",
     "lastConfirmed": "Last fully synced at {{time}}",
@@ -12142,6 +12356,57 @@
     "dismissClaims": "Dismiss all refused claims",
     "fullDetails": "All saved changes",
     "openHint": "Opens sync status",
+    "subtitle": "Saved changes and connection status",
+    "summaryWaiting": "{{shown}} change waiting",
+    "summaryWaiting_plural": "{{shown}} changes waiting",
+    "summaryAttention": "{{shown}} item needs attention",
+    "summaryAttention_plural": "{{shown}} items need attention",
+    "primaryConnect": "Connect to sync",
+    "primaryRetry": "Retry failed changes",
+    "attentionTitle": "Needs attention",
+    "attentionNone": "Nothing needs your attention.",
+    "waitingTitle": "Waiting to sync",
+    "fullDetailsHint": "Rooms, tasks and everything else saved on this phone, not only engineering work. This screen lists engineering changes.",
+    "openIssueHint": "Opens what happened and your options",
+    "issueA11y": "{{title}}. Needs attention. {{what}}",
+    "close": "Close",
+    "keepChange": "Keep Change",
+    "reviewInspection": "Review Inspection",
+    "discardChange": "Discard Change",
+    "keepNotice": "Keep Notice",
+    "dismissNotice": "Dismiss Notice",
+    "dismissAllClaims": "Dismiss all refused claims",
+    "viewOrderA11y": "View work order {{label}}",
+    "sheet": {
+      "orderTitle": "Work order change not accepted",
+      "stuckTitle": "Change couldn't be sent",
+      "claimTitle": "Claim not accepted",
+      "reportTitle": "Report not accepted",
+      "pmTitle": "Inspection needs attention",
+      "what": "What happened",
+      "work": "Your work",
+      "next": "Next step",
+      "kept": "Your change is still saved on this phone. Nothing was lost.",
+      "keptPm": "Your answers and photos are still saved on this phone.",
+      "notKept": "Nothing is waiting to send. Only a notice of the refusal is kept here.",
+      "notReadable": "This saved record can't be read on this phone.",
+      "rejected": "The server did not accept this change.",
+      "nextViewOrder": "Open the work order to see its current state, then redo the change if it is still needed.",
+      "nextRetry": "Retry when you're connected. If it fails again, your change stays saved.",
+      "nextClaim": "Open the work order to see who has it now.",
+      "nextReport": "Check the details and send a new report if it is still needed.",
+      "nextInspection": "Review the inspection, then retry it or discard it."
+    },
+    "dismissSheet": {
+      "title": "Dismiss this notice?",
+      "titleAll": "Dismiss all refused claims?",
+      "body": "This only removes the notice from this list. The work order itself is not changed."
+    },
+    "discardSheet": {
+      "title": "Discard this change?",
+      "bodyPm": "This removes the saved inspection and its photos from this phone. It was never recorded on the server, and nothing the server confirmed changes."
+    },
+    "runTitle": "Sync result",
     "kind": {
       "claim": "Claim work order",
       "complete": "Repair completion",

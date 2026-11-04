@@ -128,6 +128,18 @@ describe("Engineering Rooms board", () => {
     expect(router.push).toHaveBeenLastCalledWith("/(app)/work-orders/new");
   });
 
+  it("goes back to where it was opened from, and to More when there is no history", async () => {
+    const screen = renderBoard();
+    await screen.findByTestId("room-card-312");
+    fireEvent.press(screen.getByTestId("room-board-back"));
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
+
+    (router.canGoBack as jest.Mock).mockReturnValueOnce(false);
+    fireEvent.press(screen.getByTestId("room-board-back"));
+    expect(router.replace).toHaveBeenCalledWith("/(app)/more");
+  });
+
   it("searches the server (the whole hotel), not just the rooms already loaded", async () => {
     const screen = renderBoard();
     await screen.findByTestId("room-card-312");

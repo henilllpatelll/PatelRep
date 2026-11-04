@@ -51,7 +51,7 @@ jest.mock("@/lib/api/engineeringTeam", () => ({
 }));
 jest.mock("@/lib/api/engineeringRooms", () => ({ listActiveRoomPeriods: jest.fn() }));
 jest.mock("@/lib/api/schedulingTeam", () => ({ fetchTeamSchedule: jest.fn() }));
-jest.mock("@/lib/api/workOrders", () => ({ listActiveWorkOrders: jest.fn(), getWorkOrderSummary: jest.fn() }));
+jest.mock("@/lib/api/workOrders", () => ({ listActiveWorkOrders: jest.fn(), getWorkOrderSummary: jest.fn(), getWorkOrder: jest.fn().mockRejectedValue(new Error("offline")) }));
 jest.mock("@/lib/api/assets", () => ({ listPmSchedules: jest.fn() }));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({}) } }));
 let mockSyncRows: unknown[] = [];

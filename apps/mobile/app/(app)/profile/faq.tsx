@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { ContactSheet } from "@/components/settings/ContactSheet";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { Button } from "@/components/ui/Button";
-import { faqsForRole } from "@/lib/support/faq";
+import { faqsForRole, faqTopicsForRole, isEngineeringRole, isEngineeringTopic, resolveFaqAction, type FaqItem } from "@/lib/support/faq";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
@@ -17,54 +17,79 @@ export default function FaqScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role ?? null);
+  const params = useLocalSearchParams<{ topic?: string | string[] }>();
+  const requested = Array.isArray(params.topic) ? params.topic[0] : params.topic;
+  const engineering = isEngineeringRole(role);
   const items = useMemo(() => faqsForRole(role), [role]);
+  const groups = useMemo(() => faqTopicsForRole(role), [role]);
+  // A topic is honoured only if it really has questions for this role; anything else shows every topic.
+  const topic = engineering && isEngineeringTopic(requested) && groups.some((g) => g.topic === requested) ? requested : null;
+  const unknownTopic = engineering && requested !== undefined && requested !== "" && topic === null;
+  const visibleGroups = topic ? groups.filter((g) => g.topic === topic) : groups;
   const [openId, setOpenId] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
+
+  const renderItem = (item: FaqItem, index: number) => {
+    const open = openId === item.id;
+    const question = t(`help.faq.items.${item.id}.q`);
+    const action = resolveFaqAction(item.action, role);
+    return (
+      <View key={item.id} style={index > 0 && { borderTopColor: theme.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth }}>
+        <Pressable
+          onPress={() => setOpenId(open ? null : item.id)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: open }}
+          accessibilityLabel={question}
+          style={({ pressed }) => [styles.question, pressed && { backgroundColor: theme.surfaceMuted }]}
+          testID={`faq-${item.id}`}
+        >
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.questionText, { color: theme.textPrimary }]}>
+            {question}
+          </Text>
+          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.textDisabled} />
+        </Pressable>
+        {open ? (
+          <View style={styles.answer} testID={`faq-${item.id}-answer`}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.answerText, { color: theme.textSecondary }]}>
+              {t(`help.faq.items.${item.id}.a`)}
+            </Text>
+            {action ? (
+              <Button
+                label={t(action.labelKey)}
+                variant="secondary"
+                size="md"
+                onPress={() => (action.kind === "contact" ? setContactOpen(true) : router.push(action.route as never))}
+                testID={`faq-${item.id}-action`}
+              />
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <SettingsScreen title={t("help.faq.title")} back>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.intro, { color: theme.textMuted }]}>
         {t("help.faq.intro")}
       </Text>
-      <SettingsSection testID="faq-list">
-        {items.map((item, index) => {
-          const open = openId === item.id;
-          const question = t(`help.faq.items.${item.id}.q`);
-          return (
-            <View key={item.id} style={index > 0 && { borderTopColor: theme.borderSubtle, borderTopWidth: StyleSheet.hairlineWidth }}>
-              <Pressable
-                onPress={() => setOpenId(open ? null : item.id)}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: open }}
-                accessibilityLabel={question}
-                style={({ pressed }) => [styles.question, pressed && { backgroundColor: theme.surfaceMuted }]}
-                testID={`faq-${item.id}`}
-              >
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.questionText, { color: theme.textPrimary }]}>
-                  {question}
-                </Text>
-                <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.textDisabled} />
-              </Pressable>
-              {open ? (
-                <View style={styles.answer} testID={`faq-${item.id}-answer`}>
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.answerText, { color: theme.textSecondary }]}>
-                    {t(`help.faq.items.${item.id}.a`)}
-                  </Text>
-                  {item.action ? (
-                    <Button
-                      label={t(item.action.labelKey)}
-                      variant="secondary"
-                      size="md"
-                      onPress={() => (item.action?.kind === "contact" ? setContactOpen(true) : item.action && router.push(item.action.route as never))}
-                      testID={`faq-${item.id}-action`}
-                    />
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-          );
-        })}
-      </SettingsSection>
+      {unknownTopic ? (
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.intro, { color: theme.textSecondary }]} testID="faq-unknown-topic">
+          {t("help.faq.unknownTopic")}
+        </Text>
+      ) : null}
+      {engineering ? (
+        <View style={styles.groups} testID="faq-list">
+          {visibleGroups.map((group) => (
+            <SettingsSection key={group.topic} title={t(`help.faq.topics.${group.topic}.title`)} testID={`faq-topic-${group.topic}`}>
+              {group.items.map(renderItem)}
+            </SettingsSection>
+          ))}
+          {topic ? <Button label={t("help.faq.allTopics")} variant="ghost" size="md" onPress={() => router.replace("/(app)/profile/faq" as never)} testID="faq-all-topics" /> : null}
+        </View>
+      ) : (
+        <SettingsSection testID="faq-list">{items.map(renderItem)}</SettingsSection>
+      )}
       <ContactSheet visible={contactOpen} onClose={() => setContactOpen(false)} />
     </SettingsScreen>
   );
@@ -72,6 +97,7 @@ export default function FaqScreen() {
 
 const styles = StyleSheet.create({
   intro: { fontSize: 14, lineHeight: 20, paddingHorizontal: 4 },
+  groups: { gap: 18 },
   question: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   questionText: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: "600" },
   answer: { paddingHorizontal: 14, paddingBottom: 14, gap: 10, alignItems: "flex-start" },

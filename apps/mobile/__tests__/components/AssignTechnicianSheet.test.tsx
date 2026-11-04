@@ -28,12 +28,15 @@ const mockTechs = {
 };
 jest.mock("@/lib/engineering/useTeamOverview", () => ({ useTechnicians: () => mockTechs }));
 jest.mock("@/lib/api/engineeringTeam", () => ({ assignWorkOrder: jest.fn() }));
+jest.mock("@/lib/api/workOrders", () => ({ getWorkOrder: jest.fn() }));
 
 import { assignWorkOrder } from "@/lib/api/engineeringTeam";
+import { getWorkOrder } from "@/lib/api/workOrders";
 import { AssignTechnicianSheet } from "@/components/engineering/team/AssignTechnicianSheet";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 const assign = assignWorkOrder as jest.Mock;
+const getWorkOrderMock = getWorkOrder as jest.Mock;
 const target = { id: "wo-1", code: "WO-1045", title: "Water leaking under sink", priority: "emergency", assignedTo: null as string | null, assignedToName: null as string | null };
 
 function renderSheet(over: Partial<React.ComponentProps<typeof AssignTechnicianSheet>> = {}) {
@@ -49,6 +52,8 @@ function renderSheet(over: Partial<React.ComponentProps<typeof AssignTechnicianS
 beforeEach(() => {
   jest.clearAllMocks();
   mockTechs.failure = null;
+  getWorkOrderMock.mockReset();
+  getWorkOrderMock.mockRejectedValue(new Error("offline"));
 });
 
 describe("Assign Technician sheet", () => {
@@ -94,6 +99,50 @@ describe("Assign Technician sheet", () => {
     expect(props.onAssigned).not.toHaveBeenCalled();
     expect(props.onClose).not.toHaveBeenCalled();
     expect(props.onNeedsRefresh).toHaveBeenCalled();
+  });
+
+  it("after a conflict shows the new assignee and retries against it, keeping the pick", async () => {
+    assign.mockRejectedValueOnce(Object.assign(new Error("This work order was assigned by someone else."), { status: 409 }));
+    getWorkOrderMock.mockResolvedValueOnce({ id: "wo-1", assigned_to: "t-bea", assigned_to_name: "Bea Chen" });
+    const { getByTestId, props } = renderSheet();
+    fireEvent.press(getByTestId("assign-tech-t-alex"));
+    await act(async () => {
+      fireEvent.press(getByTestId("assign-confirm"));
+    });
+    await waitFor(() => expect(getByTestId("assign-current")).toBeTruthy());
+    expect(getByTestId("assign-tech-t-bea").props.accessibilityState.disabled).toBe(true);
+    expect(getByTestId("assign-tech-t-alex").props.accessibilityState.selected).toBe(true);
+    assign.mockResolvedValueOnce({ changed: true, assignedTo: "t-alex" });
+    await act(async () => {
+      fireEvent.press(getByTestId("assign-confirm"));
+    });
+    expect(assign).toHaveBeenLastCalledWith(expect.objectContaining({ assignedTo: "t-alex", expectedAssignedTo: "t-bea" }));
+    await waitFor(() => expect(props.onAssigned).toHaveBeenCalled());
+  });
+
+  it("drops the pick when the person chosen now owns the job", async () => {
+    assign.mockRejectedValueOnce(Object.assign(new Error("assigned by someone else"), { status: 409 }));
+    getWorkOrderMock.mockResolvedValueOnce({ id: "wo-1", assigned_to: "t-alex", assigned_to_name: "Alex M." });
+    const { getByTestId } = renderSheet();
+    fireEvent.press(getByTestId("assign-tech-t-alex"));
+    await act(async () => {
+      fireEvent.press(getByTestId("assign-confirm"));
+    });
+    await waitFor(() => expect(getByTestId("assign-tech-t-alex").props.accessibilityState.disabled).toBe(true));
+    expect(getByTestId("assign-confirm").props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it("does not offer another try after the role is refused or the order is closed", async () => {
+    assign.mockRejectedValueOnce(Object.assign(new Error("Forbidden"), { status: 403 }));
+    const { getByTestId } = renderSheet();
+    fireEvent.press(getByTestId("assign-tech-t-alex"));
+    await act(async () => {
+      fireEvent.press(getByTestId("assign-confirm"));
+    });
+    await waitFor(() => expect(getByTestId("assign-error")).toBeTruthy());
+    expect(getByTestId("assign-confirm").props.accessibilityState?.disabled).toBe(true);
+    fireEvent.press(getByTestId("assign-confirm"));
+    expect(assign).toHaveBeenCalledTimes(1);
   });
 
   it("does not offer the current assignee, and asks for the reason only when reassigning", () => {

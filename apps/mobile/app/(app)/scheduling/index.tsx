@@ -13,6 +13,8 @@ import { fetchMyRequests } from "@/lib/api/schedulingRequests";
 import { ScheduleBanner } from "@/components/scheduling/ScheduleStates";
 import { addDays, groupByDate, localToday, resolveHighlight, validUuid, validYmd, weekOf } from "@/lib/scheduling/myWeek";
 import { useRemote } from "@/lib/scheduling/requestHooks";
+import { Ionicons } from "@expo/vector-icons";
+import { isEngineeringRole } from "@/lib/engineering/roles";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -35,6 +37,10 @@ export default function SchedulingScreen() {
   // Phase 7: shift offers waiting for an answer. An offer is a question, not a shift; no number is shown when the read failed.
   const myOffers = useRemote(fetchMyOffers, [], isOnline);
   const offersWaiting = (myOffers.data ?? []).filter((offer) => offer.status === "pending").length;
+  // Engineers open My Schedule from More (or a notification): give them a way back to where they came from.
+  const role = useAppStore((state) => state.user?.effective_role ?? state.user?.role);
+  const engineering = isEngineeringRole(role);
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/(app)/more" as never));
   const [swapSource, setSwapSource] = useState<SwapSource | null>(null);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,9 +100,16 @@ export default function SchedulingScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
     >
+      {engineering ? (
+        <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t("common.back")} hitSlop={8} style={styles.back} testID="my-schedule-back">
+          <Ionicons name="chevron-back" size={24} color={theme.textPrimary} />
+          <Text maxFontSizeMultiplier={1.6} style={[styles.backText, { color: theme.textPrimary }]}>{t("common.back")}</Text>
+        </Pressable>
+      ) : null}
       <View style={styles.header}>
         <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{rangeLabel}</Text>
         <Text style={[styles.title, { color: theme.textPrimary }]}>{t("scheduling.title")}</Text>
+        {engineering ? <Text maxFontSizeMultiplier={1.6} style={[styles.subtitle, { color: theme.textMuted }]} testID="my-schedule-subtitle">{t("scheduling.engineeringSubtitle")}</Text> : null}
       </View>
 
       <View style={styles.weekNav}>
@@ -221,6 +234,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 18, gap: 13, paddingBottom: 32 },
   header: { marginBottom: 2 },
+  back: { flexDirection: "row", alignItems: "center", minHeight: 44, alignSelf: "flex-start", marginLeft: -6 },
+  backText: { fontSize: 15 },
+  subtitle: { fontSize: 13, marginTop: 2 },
   center: { paddingTop: 40, alignItems: "center" },
   headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
   title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34 },

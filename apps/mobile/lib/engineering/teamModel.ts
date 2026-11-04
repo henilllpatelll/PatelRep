@@ -48,6 +48,11 @@ export function needsRefreshAfter(failure: AssignFailure): boolean {
   return failure === "conflict" || failure === "closed" || failure === "not_found";
 }
 
+/** Another press of Confirm cannot succeed after these: the role is refused, or the order is closed or gone. */
+export function isRetryable(failure: AssignFailure): boolean {
+  return failure !== "not_allowed" && failure !== "closed" && failure !== "not_found";
+}
+
 export interface SummaryTile {
   key: "open" | "overdue" | "on_hold" | "unassigned" | "emergency" | "pm_overdue";
   value: number | null;

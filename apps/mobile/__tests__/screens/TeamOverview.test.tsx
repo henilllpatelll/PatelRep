@@ -100,6 +100,12 @@ describe("Team Overview", () => {
     expect(router.push).toHaveBeenCalledWith("/(app)/team/t1");
   });
 
+  it("opens Available Work (open and escalated orders with no owner) from the unassigned shortcut", () => {
+    const { getByTestId } = renderScreen();
+    fireEvent.press(getByTestId("team-unassigned"));
+    expect(router.push).toHaveBeenCalledWith(expect.objectContaining({ params: expect.objectContaining({ view: "available" }) }));
+  });
+
   it("lists overdue inspections and repeat-defect equipment from the PM records, each opening the real record", () => {
     const { getByTestId } = renderScreen();
     fireEvent.press(getByTestId("team-pm-overdue-pm-1"));

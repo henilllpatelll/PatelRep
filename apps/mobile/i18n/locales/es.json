@@ -8520,6 +8520,7 @@
     "unreadSuffix_one": "{{count}} sin leer",
     "unreadSuffix_other": "{{count}} sin leer",
     "title": "Alertas",
+    "inboxTitle": "Notificaciones",
     "unreadSuffix": "{{count}} sin leer",
     "unreadSuffix_plural": "{{count}} sin leer",
     "markAllRead": "Marcar todo como leído",
@@ -8761,7 +8762,8 @@
         "declined": "No aprobado",
         "withdrawn": "Retiraste esta solicitud"
       }
-    }
+    },
+    "engineeringSubtitle": "Tus turnos y disponibilidad"
   },
   "sop": {
     "title": "Cómo hacerlo",
@@ -8871,7 +8873,8 @@
     "related": {
       "title": "Procedimientos que pueden ayudar",
       "open": "Abrir procedimiento: {{title}}"
-    }
+    },
+    "libraryTitle": "SOP y procedimientos"
   },
   "help": {
     "intro": "¿Necesitas ayuda? Encuentra una respuesta o reporta un problema.",
@@ -8910,7 +8913,14 @@
         "language": "Abrir Idioma",
         "appearance": "Abrir Apariencia",
         "security": "Abrir Seguridad e inicio de sesión",
-        "contact": "Contactar a tu supervisor"
+        "contact": "Contactar a tu supervisor",
+        "work": "Abrir Trabajo",
+        "pm": "Abrir PM",
+        "assets": "Abrir Activos",
+        "rooms": "Abrir Habitaciones",
+        "reportIssue": "Reportar incidencia",
+        "notifications": "Abrir ajustes de notificaciones",
+        "profile": "Abrir perfil"
       },
       "items": {
         "assignmentsMissing": {
@@ -9004,8 +9014,117 @@
         "gmAdmin": {
           "q": "¿Dónde administro la propiedad?",
           "a": "Los ajustes de la propiedad, el personal y los reportes están en la app web de PatelRep. La app móvil está pensada para el trabajo diario."
+        },
+        "engFindWork": {
+          "q": "¿Cómo encuentro el trabajo que me asignaron?",
+          "a": "Abre la pestaña Trabajo. Ahí aparecen tus órdenes de trabajo asignadas, y Trabajo disponible muestra trabajos abiertos que nadie ha tomado. Desliza hacia abajo para actualizar. Sin conexión, ves la última lista guardada en este teléfono."
+        },
+        "engUpdateWork": {
+          "q": "¿Cómo actualizo una orden de trabajo?",
+          "a": "Abre la orden de trabajo y usa sus botones, por ejemplo para tomarla o completar la reparación. Algunas actualizaciones se guardan en tu teléfono si no tienes conexión y se envían después; la orden indica cuándo una sigue en espera."
+        },
+        "engExtraIssue": {
+          "q": "¿Cómo reporto otro problema que encontré?",
+          "a": "Usa Reportar incidencia. Crea una nueva orden de trabajo para la habitación o el equipo. No es lo mismo que Reportar un problema, que es solo para fallas de la aplicación."
+        },
+        "engActionUnavailable": {
+          "q": "¿Por qué falta un botón o está desactivado?",
+          "a": "Lo que puedes hacer depende de tu rol y del estado actual de la orden de trabajo. Una acción también se desactiva sin conexión si la necesita, o mientras ya está en espera de envío. Actualiza la orden y revisa el Centro de sincronización."
+        },
+        "engAssignRoles": {
+          "q": "¿Quién puede asignar trabajo a un técnico?",
+          "a": "Los Jefes de Ingeniería pueden asignar y reasignar órdenes desde Resumen del equipo. Los ingenieros toman para sí el trabajo disponible. Si necesitas que reasignen un trabajo, pídeselo a tu Jefe de Ingeniería."
+        },
+        "engPmFind": {
+          "q": "¿Dónde está mi trabajo de mantenimiento preventivo?",
+          "a": "Abre la pestaña PM. Muestra los programas de tu propiedad, con el trabajo vencido o por vencer primero. Desliza hacia abajo para actualizar."
+        },
+        "engPmOpen": {
+          "q": "¿Cómo inicio una inspección de PM?",
+          "a": "Abre la pestaña PM, elige un programa e inicia la inspección. Responde cada paso y agrega fotos donde se pidan; luego envíala."
+        },
+        "engPmDraft": {
+          "q": "¿Qué pasa con una inspección de PM que no terminé?",
+          "a": "Se guarda como borrador en este teléfono, solo para ti. Un borrador no se envía hasta que lo envíes. Encuentras las inspecciones sin terminar en el Centro de sincronización, en Borradores guardados."
+        },
+        "engPmFailed": {
+          "q": "Mi inspección de PM no se envió. ¿Qué hago?",
+          "a": "Si no tenías conexión, queda en tu teléfono y se envía al reconectarte. Si el servidor la rechazó, el Centro de sincronización la muestra en Requiere atención. Tus respuestas y fotos siguen guardadas hasta que reintentes o decidas descartarlas."
+        },
+        "engFindRoom": {
+          "q": "¿Cómo encuentro una habitación?",
+          "a": "Abre Habitaciones desde Más. Busca por número de habitación o usa Filtros para reducir la lista. Sin conexión, la lista muestra la última información guardada."
+        },
+        "engRoomDetails": {
+          "q": "¿Dónde veo los detalles de mantenimiento de una habitación?",
+          "a": "Toca una habitación en el tablero de Habitaciones. Su pantalla muestra el estado de mantenimiento y las órdenes de trabajo relacionadas."
+        },
+        "engScanAsset": {
+          "q": "¿Cómo escaneo el código QR de un equipo?",
+          "a": "Abre la pestaña Activos y toca Escanear. Apunta la cámara a la etiqueta del equipo. Si no se puede leer, busca el equipo por nombre."
+        },
+        "engEquipmentProblem": {
+          "q": "¿Cómo reporto un problema de un equipo?",
+          "a": "Abre el equipo en Activos, o usa Reportar incidencia, y describe qué falla. Esto crea una orden de trabajo para que el equipo la repare."
+        },
+        "engOffline": {
+          "q": "¿Qué pasa cuando mi teléfono se queda sin conexión?",
+          "a": "Puedes seguir trabajando en las partes de la aplicación que guardan cambios en el teléfono y ver la última información guardada. Algunas acciones necesitan conexión y lo indican. Nada se marca como hecho en el servidor hasta que lo confirma."
+        },
+        "engLocalChanges": {
+          "q": "¿Qué queda guardado en mi teléfono?",
+          "a": "Las actualizaciones y tomas de órdenes de trabajo, las reparaciones completadas y las inspecciones de PM que hiciste sin conexión se guardan en este teléfono, bajo tu cuenta. El Centro de sincronización las enumera. No todas las acciones se pueden hacer sin conexión."
+        },
+        "engRetrySync": {
+          "q": "¿Cómo reintento la sincronización?",
+          "a": "Abre el Centro de sincronización. Cuando tengas conexión, toca el botón principal para reintentar. Los cambios también se envían solos cuando tu teléfono se reconecta."
+        },
+        "engConflict": {
+          "q": "¿Qué es un conflicto de sincronización?",
+          "a": "Significa que la orden de trabajo cambió en el servidor después de tu cambio, así que el servidor no lo aceptó. Tu cambio sigue guardado en este teléfono. Abre la orden para ver su estado actual y vuelve a hacer el cambio si aún hace falta, o descártalo."
+        },
+        "engSignOutFirst": {
+          "q": "¿Debo sincronizar antes de cerrar sesión?",
+          "a": "Sí, cuando puedas. Cerrar sesión te avisa si aún hay cambios en espera. Los cambios en espera quedan en este teléfono bajo tu cuenta y se envían cuando vuelvas a iniciar sesión. No borres ni reinstales la aplicación mientras haya cambios en espera."
+        },
+        "engNotifPrefs": {
+          "q": "¿Cómo cambio qué notificaciones recibo?",
+          "a": "Abre Más, luego Ajustes y Notificaciones. Activa o desactiva cada tipo de notificación. Ahí también se muestra el permiso de notificaciones de tu teléfono."
+        },
+        "engPreferredName": {
+          "q": "¿Cómo cambio el nombre que se muestra de mí?",
+          "a": "Abre Más y luego tu tarjeta de perfil. Ahí puedes editar tu nombre y tu foto. Tu correo, rol y propiedad los administra tu hotel y no se pueden cambiar en la aplicación."
+        },
+        "engSecurity": {
+          "q": "¿Cómo administro la seguridad de mi cuenta?",
+          "a": "Abre Seguridad e inicio de sesión en Ajustes. Puedes activar el bloqueo de la aplicación, elegir cuándo se bloquea, cambiar tu contraseña y cerrar sesión en otros dispositivos."
         }
-      }
+      },
+      "topics": {
+        "workOrders": {
+          "title": "Órdenes de trabajo",
+          "subtitle": "Encontrar, actualizar y asignar trabajo"
+        },
+        "pm": {
+          "title": "Mantenimiento preventivo",
+          "subtitle": "Programas e inspecciones"
+        },
+        "roomsAssets": {
+          "title": "Habitaciones y activos",
+          "subtitle": "Habitaciones, equipos y escaneo"
+        },
+        "offlineSync": {
+          "title": "Sin conexión y sincronización",
+          "subtitle": "Cambios guardados y conexión"
+        },
+        "account": {
+          "title": "Cuenta y notificaciones",
+          "subtitle": "Perfil, seguridad y alertas"
+        }
+      },
+      "allTopics": "Todos los temas",
+      "topicHeading": "Tema: {{topic}}",
+      "unknownTopic": "Ese tema no está disponible, así que se muestran todas las preguntas."
     },
     "report": {
       "title": "Reportar un problema",
@@ -9054,6 +9173,11 @@
         "body": "Lo que escribiste no se ha enviado.",
         "keep": "Seguir editando",
         "discard": "Descartar borrador"
+      },
+      "maintenance": {
+        "title": "¿Algo está descompuesto en el hotel?",
+        "body": "Este formulario es solo para problemas con la aplicación. Para una fuga, una luz dañada o una habitación fuera de servicio, crea una orden de trabajo.",
+        "action": "Reportar incidencia"
       }
     },
     "contact": {
@@ -9118,6 +9242,44 @@
         "attention": "Requiere atención",
         "offline": "Sin conexión",
         "unavailable": "No disponible"
+      },
+      "recovery": {
+        "title": "Si algo no se ve bien",
+        "openSyncCenter": "Abrir Centro de sincronización",
+        "openSyncCenterHint": "Ve los cambios guardados y lo que requiere atención",
+        "openSync": "Abrir Sin conexión y sincronización",
+        "checkConnection": "Revisar conexión",
+        "checking": "Revisando…",
+        "connected": "Este teléfono tiene conexión.",
+        "disconnected": "Este teléfono no tiene conexión. Los cambios guardados se enviarán al reconectarse.",
+        "checkFailed": "No se pudo revisar la conexión. Inténtalo de nuevo.",
+        "report": "Reportar un problema"
+      }
+    },
+    "engineering": {
+      "intro": "Encuentra respuestas u obtén ayuda",
+      "sections": {
+        "quickHelp": "Ayuda rápida",
+        "assistance": "Obtener ayuda",
+        "yourSupport": "Tu soporte",
+        "troubleshooting": "Solución de problemas"
+      },
+      "allQuestions": {
+        "title": "Todas las preguntas",
+        "subtitle": "Explora todos los temas"
+      },
+      "topicA11y": "{{title}}. {{subtitle}}",
+      "contact": {
+        "title": "Contactar a mi supervisor",
+        "subtitle": "Comunícate con tu supervisor"
+      },
+      "reports": {
+        "title": "Mis reportes",
+        "subtitle": "Ver problemas enviados y novedades"
+      },
+      "diagnostics": {
+        "title": "Diagnóstico",
+        "subtitle": "Información de conexión y de la aplicación"
       }
     }
   },
@@ -11047,10 +11209,60 @@
     "rooms": "Habitaciones",
     "notifications": "Notificaciones",
     "profile": "Mi perfil",
-    "settings": "Configuración",
-    "help": "Ayuda",
+    "settings": "Configuración y preferencias",
+    "help": "Ayuda y soporte",
     "signOut": "Cerrar sesión",
-    "hint": "Las órdenes, el MP y los equipos están en las pestañas de abajo."
+    "security": "Seguridad",
+    "sop": "SOP y procedimientos",
+    "schedule": "Mi horario",
+    "faq": "Preguntas frecuentes",
+    "report": "Reportar un problema",
+    "myReports": "Mis reportes",
+    "diagnostics": "Diagnóstico",
+    "contactSupervisor": "Contactar al supervisor",
+    "groups": {
+      "identity": "Cuenta",
+      "tools": "Herramientas de ingeniería",
+      "alerts": "Notificaciones y sincronización",
+      "support": "Ayuda y soporte"
+    },
+    "accountSupport": "Cuenta y soporte",
+    "sub": {
+      "rooms": "Habitaciones de la propiedad e historial de reparaciones",
+      "sop": "Instrucciones y referencias de mantenimiento",
+      "schedule": "Turnos, disponibilidad y tiempo libre",
+      "team": "Carga de trabajo y asignaciones de técnicos",
+      "settings": "Perfil, seguridad, notificaciones y apariencia",
+      "help": "Preguntas frecuentes, reportar un problema y contactar a soporte"
+    },
+    "roleLine": {
+      "engineer": "Técnico de mantenimiento",
+      "chief_engineer": "Jefe de ingeniería"
+    },
+    "viewProfile": "Ver mi perfil",
+    "syncStatus": "Estado de sincronización",
+    "notificationsA11y": "Notificaciones",
+    "settingsA11y": "Configuración",
+    "syncState": {
+      "synced": "Todo sincronizado",
+      "waiting": "{{shown}} cambio en espera",
+      "waiting_plural": "{{shown}} cambios en espera",
+      "syncing": "Sincronizando {{shown}} cambio",
+      "syncing_plural": "Sincronizando {{shown}} cambios",
+      "syncingNoCount": "Sincronizando…",
+      "attention": "{{shown}} elemento requiere atención",
+      "attention_plural": "{{shown}} elementos requieren atención",
+      "attentionOffline": "{{shown}} elemento requiere atención · Sin conexión",
+      "attentionOffline_plural": "{{shown}} elementos requieren atención · Sin conexión",
+      "attentionSyncing": "{{shown}} elemento requiere atención · Sincronizando",
+      "attentionSyncing_plural": "{{shown}} elementos requieren atención · Sincronizando",
+      "offlineSaved": "Sin conexión — {{shown}} cambio guardado en este dispositivo",
+      "offlineSaved_plural": "Sin conexión — {{shown}} cambios guardados en este dispositivo",
+      "offlineNone": "Sin conexión — no hay cambios en espera",
+      "offline": "Sin conexión",
+      "unavailable": "Estado de sincronización no disponible",
+      "hintUnavailable": "Abre el Centro de sincronización para volver a comprobar"
+    }
   },
   "workQueue": {
     "title": "Órdenes de trabajo",
@@ -11631,8 +11843,8 @@
     }
   },
   "engRooms": {
-    "title": "Habitaciones de ingeniería",
-    "subtitle": "Mantenimiento y disponibilidad de habitaciones",
+    "title": "Habitaciones",
+    "subtitle": "Habitaciones de la propiedad y estado de mantenimiento",
     "searchPlaceholder": "Buscar número de habitación o ubicación...",
     "clearSearch": "Borrar búsqueda",
     "roomKicker": "HABITACIÓN",
@@ -12036,6 +12248,8 @@
     "needsAttention": "Requiere atención",
     "attentionEmpty": "Nada requiere atención ahora.",
     "seeAllWork": "Ver todas las órdenes de trabajo",
+    "unassignedLink": "Asignar trabajo sin asignar",
+    "unassignedHint": "Abre las órdenes de trabajo abiertas y escaladas sin técnico",
     "workload": "Carga del equipo",
     "noTechnicians": "No se encontraron ingenieros activos.",
     "workloadNote": "Solo cuenta las órdenes asignadas. Aquí no se registran turnos ni disponibilidad.",
@@ -12111,7 +12325,7 @@
     }
   },
   "engineeringSync": {
-    "title": "Estado de sincronización",
+    "title": "Centro de sincronización",
     "online": "En línea",
     "offline": "Sin conexión",
     "lastConfirmed": "Última sincronización completa a las {{time}}",
@@ -12142,6 +12356,57 @@
     "dismissClaims": "Quitar todos los reclamos rechazados",
     "fullDetails": "Todos los cambios guardados",
     "openHint": "Abre el estado de sincronización",
+    "subtitle": "Cambios guardados y estado de la conexión",
+    "summaryWaiting": "{{shown}} cambio en espera",
+    "summaryWaiting_plural": "{{shown}} cambios en espera",
+    "summaryAttention": "{{shown}} elemento requiere atención",
+    "summaryAttention_plural": "{{shown}} elementos requieren atención",
+    "primaryConnect": "Conectar para sincronizar",
+    "primaryRetry": "Reintentar cambios fallidos",
+    "attentionTitle": "Requiere atención",
+    "attentionNone": "Nada requiere tu atención.",
+    "waitingTitle": "En espera de sincronizar",
+    "fullDetailsHint": "Habitaciones, tareas y todo lo demás guardado en este teléfono, no solo el trabajo de ingeniería. Esta pantalla lista los cambios de ingeniería.",
+    "openIssueHint": "Abre lo que pasó y tus opciones",
+    "issueA11y": "{{title}}. Requiere atención. {{what}}",
+    "close": "Cerrar",
+    "keepChange": "Conservar cambio",
+    "reviewInspection": "Revisar inspección",
+    "discardChange": "Descartar cambio",
+    "keepNotice": "Conservar aviso",
+    "dismissNotice": "Quitar aviso",
+    "dismissAllClaims": "Quitar todos los reclamos rechazados",
+    "viewOrderA11y": "Ver orden de trabajo {{label}}",
+    "sheet": {
+      "orderTitle": "Cambio de orden no aceptado",
+      "stuckTitle": "No se pudo enviar el cambio",
+      "claimTitle": "Reclamo no aceptado",
+      "reportTitle": "Reporte no aceptado",
+      "pmTitle": "Inspección requiere atención",
+      "what": "Qué pasó",
+      "work": "Tu trabajo",
+      "next": "Siguiente paso",
+      "kept": "Tu cambio sigue guardado en este teléfono. No se perdió nada.",
+      "keptPm": "Tus respuestas y fotos siguen guardadas en este teléfono.",
+      "notKept": "No hay nada en espera de enviarse. Aquí solo se conserva un aviso del rechazo.",
+      "notReadable": "Este registro guardado no se puede leer en este teléfono.",
+      "rejected": "El servidor no aceptó este cambio.",
+      "nextViewOrder": "Abre la orden de trabajo para ver su estado actual y vuelve a hacer el cambio si aún hace falta.",
+      "nextRetry": "Reintenta cuando tengas conexión. Si vuelve a fallar, tu cambio sigue guardado.",
+      "nextClaim": "Abre la orden de trabajo para ver quién la tiene ahora.",
+      "nextReport": "Revisa los detalles y envía un reporte nuevo si aún hace falta.",
+      "nextInspection": "Revisa la inspección y luego reintenta o descártala."
+    },
+    "dismissSheet": {
+      "title": "¿Quitar este aviso?",
+      "titleAll": "¿Quitar todos los reclamos rechazados?",
+      "body": "Esto solo quita el aviso de esta lista. La orden de trabajo no cambia."
+    },
+    "discardSheet": {
+      "title": "¿Descartar este cambio?",
+      "bodyPm": "Esto quita la inspección guardada y sus fotos de este teléfono. Nunca se registró en el servidor y nada de lo que el servidor confirmó cambia."
+    },
+    "runTitle": "Resultado de la sincronización",
     "kind": {
       "claim": "Reclamar orden de trabajo",
       "complete": "Cierre de reparación",

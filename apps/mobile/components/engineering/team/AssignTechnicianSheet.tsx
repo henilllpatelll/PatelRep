@@ -8,7 +8,8 @@ import { StateBlock } from "@/components/ui/StateBlock";
 import { FieldLabel, InlineError, LineInput, Note, sheetStyles } from "@/components/engineering/workorder/sheetKit";
 import type { Technician } from "@/lib/api/engineeringTeam";
 import { resolveLoadState } from "@/lib/engineering/loadState";
-import { filterTechnicians, needsRefreshAfter, technicianName } from "@/lib/engineering/teamModel";
+import { getWorkOrder } from "@/lib/api/workOrders";
+import { filterTechnicians, isRetryable, needsRefreshAfter, technicianName } from "@/lib/engineering/teamModel";
 import { useAssignTechnician } from "@/lib/engineering/useAssignTechnician";
 import { useTechnicians } from "@/lib/engineering/useTeamOverview";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -51,19 +52,25 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  // The assignee the server reports after a conflict. Until then the sheet trusts what the caller was looking at.
+  const [live, setLive] = useState<{ assignedTo: string | null; assignedToName: string | null } | null>(null);
 
   useEffect(() => {
     if (!visible) {
       setQuery("");
       setSelectedId(null);
       setNote("");
+      setLive(null);
       clearFailure();
     }
   }, [visible, target?.id, clearFailure]);
 
+  const currentAssignee = live ? live.assignedTo : (target?.assignedTo ?? null);
+  const currentAssigneeName = live ? live.assignedToName : (target?.assignedToName ?? null);
+
   const list = useMemo(() => filterTechnicians(techs.data ?? [], query), [techs.data, query]);
   const selected = (techs.data ?? []).find((tech) => tech.user_id === selectedId) ?? null;
-  const reassigning = target?.assignedTo != null;
+  const reassigning = currentAssignee != null;
   const state = resolveLoadState({ loading: techs.loading, failure: techs.failure, count: techs.data?.length ?? 0, offline: !online });
 
   async function confirm() {
@@ -71,7 +78,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
     const result = await assign.submit({
       workOrderId: target.id,
       assignedTo: selected.user_id,
-      expectedAssignedTo: target.assignedTo,
+      expectedAssignedTo: currentAssignee,
       note: reassigning ? note : undefined,
     });
     if (result) {
@@ -80,9 +87,24 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
     }
   }
 
-  // A stale view (someone else assigned it first, or it closed) needs a fresh read before another attempt.
+  // A stale view (someone else assigned it first, or it closed) needs a fresh read before another attempt. On a
+  // conflict the sheet also reads the order itself, so the next try is made against the real assignee (never a blind
+  // overwrite) and the manager's pick is kept unless that person now owns the job.
   useEffect(() => {
-    if (assign.failure && needsRefreshAfter(assign.failure)) onNeedsRefresh?.();
+    if (!assign.failure || !needsRefreshAfter(assign.failure)) return;
+    onNeedsRefresh?.();
+    if (assign.failure !== "conflict" || !target) return;
+    let cancelled = false;
+    getWorkOrder(target.id)
+      .then((wo) => {
+        if (cancelled) return;
+        setLive({ assignedTo: wo.assigned_to ?? null, assignedToName: wo.assigned_to_name ?? null });
+        setSelectedId((id) => (id && id === (wo.assigned_to ?? null) ? null : id));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [assign.failure]);
 
   const failureText = assign.failure ? t(`engineeringTeam.assign.failure.${assign.failure}`) : null;
@@ -99,7 +121,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
           label={reassigning ? t("engineeringTeam.assign.confirmReassign") : t("engineeringTeam.assign.confirm")}
           onPress={confirm}
           loading={assign.busy}
-          disabled={!online || !selected || assign.busy || selected.user_id === target?.assignedTo}
+          disabled={!online || !selected || assign.busy || selected.user_id === currentAssignee || (assign.failure != null && !isRetryable(assign.failure))}
           size="lg"
           testID="assign-confirm"
         />
@@ -116,7 +138,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
             </Text>
             {reassigning ? (
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.current, { color: theme.textSecondary }]} testID="assign-current">
-                {t("engineeringTeam.assign.currentlyWith", { name: target.assignedToName || t("workQueue.assignedUnknown") })}
+                {t("engineeringTeam.assign.currentlyWith", { name: currentAssigneeName || t("workQueue.assignedUnknown") })}
               </Text>
             ) : null}
           </View>
@@ -141,7 +163,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
             ) : (
               <View style={styles.list} accessibilityRole="radiogroup">
                 {list.map((tech) => {
-                  const isCurrent = tech.user_id === target.assignedTo;
+                  const isCurrent = tech.user_id === currentAssignee;
                   const isSelected = tech.user_id === selectedId;
                   const name = technicianName(tech, t("engineeringTeam.technician"));
                   const load = [
