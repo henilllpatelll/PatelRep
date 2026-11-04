@@ -11,6 +11,10 @@ No defect was found, but the one mandatory piece of evidence a mobile redesign n
 against a non-production backend - does not exist for any phase. Do not merge until that is done or the user explicitly
 accepts the risk. This is not a statement that the code is broken.
 
+## Final native QA pass (2026-11-03): BLOCKED
+
+Native testing was attempted on head `ad5f61ed` and could not be completed: the emulator's installed dev client is stale and a fresh local build fails on Windows MAX_PATH (270-char CMake path, `LongPathsEnabled=0`). **No device row passed.** Staging API verified as staging at the head SHA; production not used. Details and exact steps for the owner to run locally: `ENGINEERING_HOME_V2_QA.md` section L. Verdict remains VERIFICATION INCOMPLETE; the Rooms down drawer and schedule lines are unverified on device.
+
 ## Scope and branch state
 
 - 7 commits (Phases 1-7), 60 files, all under `apps/mobile/` (components, lib, i18n, tests) and `docs/`, plus two small route files.

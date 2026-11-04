@@ -180,3 +180,25 @@ results are not reused. Staging is non-destructive on this branch (`staging-cand
 
 **NOT READY - BLOCKERS REMAIN.** No defect is known; the blockers are verification the brief requires and this session
 could not perform. Not production approval.
+
+## L. Final native QA attempt (2026-11-03) - BLOCKED, nothing passed on device
+
+Head under test: `ad5f61ed` (Rooms down drawer + Team workload schedule lines). Result: **no native QA row was executed.**
+
+What was verified and what happened:
+- Backend: the staging API `/health` reported `environment: staging`, `supabase_host: vhxymynoutzamtfourop.supabase.co`, `release_sha: ad5f61ed` (the head). Production was not touched; `apps/api/.env` and the `development`/`preview`/`production` EAS profiles (all production Supabase) were not used.
+- Staging fixtures: the synthetic `staging-engineer@patelrep.test` and `staging-chief-engineer@patelrep.test` auth users had their passwords set to throwaway values (staging only). No staging data was reset, reseeded or otherwise mutated, and no app mutation was run.
+- Emulator: Pixel_8 AVD (Android 15) booted. The debug dev client already on it (installed 2026-10-23) is **stale**: loading this branch's JS fails with `Cannot find native module 'ExpoPrint'`, `RNCDatePicker could not be found` and a Worklets native/JS version mismatch (0.10.1 vs 0.13.0). It cannot run this branch.
+- Fresh native build: `expo prebuild` + `gradlew assembleDebug` (x86_64) ran 11m53s then **failed** in `:react-native-worklets:buildCMakeDebug[x86_64]` with `ninja: error: mkdir(...): No such file or directory`. Cause: Windows `LongPathsEnabled=0` and the CMake object path is 270 characters (> 260) because `node_modules` in this worktree is a link into `PatelRep-pmassets`. Environment problem, not a code defect. No product code was changed; build output was deleted.
+
+Static result of the pass: `tsc --noEmit` exit 0; full mobile Jest 461 suites / 10,490 tests passed.
+
+### Steps to run the native verification locally
+
+1. Make the build path short (either one): enable long paths once (admin PowerShell: `Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled 1`, then reboot), or clone the branch to a short path such as `C:\w\eh` and run `npm ci` there.
+2. In `apps/mobile`, set the staging env (never the production values in `eas.json`/`.env.local`): `EXPO_PUBLIC_API_URL=https://patelrep-api-staging-staging.up.railway.app/v1`, `EXPO_PUBLIC_SUPABASE_URL=https://vhxymynoutzamtfourop.supabase.co`, `EXPO_PUBLIC_SUPABASE_ANON_KEY=<staging anon key from the Supabase dashboard>`, `APP_ENV=staging`.
+3. `npx expo run:android --variant debug` (JDK 21, emulator Pixel_8 or a phone). Then `npx expo start --dev-client`.
+4. Sign in as `staging-engineer@patelrep.test`, then `staging-chief-engineer@patelrep.test`. The passwords were set by SQL to `QaEngHome-<first 10 hex of md5(user_id||'enghome198')>`; reset them from the Supabase dashboard if you prefer your own.
+5. Walk, for each role: Home counts vs Work tab filters; Continue Repair / Start Next Job; Assign (chief) and the assignee picker; PM Due and Resume PM; Report an Issue; asset scan (camera permission, scan a staging asset QR, manual-entry fallback); Rooms down drawer open/close, hardware Back closes the drawer first, then leaves Home; Team workload schedule lines.
+6. Repeat with Settings > Display > Font size set to the largest and Display size largest, a 360x640 AVD, dark mode, keyboard open in the assign/note fields (field must stay visible), airplane mode (stale label + pending sync), and rapid double-tap on every Home card (one navigation only).
+7. Do not run the Staging Candidate workflow's reset and do not use production credentials. Record any defect, fix it on this branch, push, and re-verify CI on the new head.
