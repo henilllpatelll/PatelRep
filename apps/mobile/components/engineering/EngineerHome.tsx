@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { adaptPmSchedules } from "@/lib/engineering/pmSchedules";
 import { canActOnWorkOrders } from "@/lib/engineering/roles";
 import { buildHomeModel, resolveSyncStatus, type AttentionItem } from "@/lib/engineering/homeModel";
 import { pickDraft, type FocusState } from "@/lib/engineering/homeFocus";
 import { useEngineeringHome } from "@/lib/engineering/useEngineeringHome";
+import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
+import { useWorkOrderRealtime } from "@/lib/engineering/useWorkOrderRealtime";
+import { useRefreshOnResume } from "@/lib/engineering/useRefreshOnResume";
+import { formatMetric, readMetric } from "@/lib/engineering/homeContract";
 import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
 import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
 import { resolveLoadState } from "@/lib/engineering/loadState";
@@ -32,7 +35,7 @@ import { PM_LIST_ROUTE } from "@/lib/engineering/routes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { ChiefEngineerHome } from "./home/chief/ChiefEngineerHome";
 import { TechnicianHomeHeader } from "./home/TechnicianHomeHeader";
-import { TechnicianSummaryCards, UNKNOWN_COUNT, type SummaryCardData } from "./home/TechnicianSummaryCards";
+import { TechnicianSummaryCards, type SummaryCardData } from "./home/TechnicianSummaryCards";
 import { TechnicianFocusCard } from "./home/TechnicianFocusCard";
 import { TechnicianAttentionSection } from "./home/TechnicianAttentionSection";
 import { TechnicianQuickActions } from "./home/TechnicianQuickActions";
@@ -43,8 +46,6 @@ import { HomeLoadNotice } from "./home/HomeLoadNotice";
    chief engineer has its own management Home (home/chief/ChiefEngineerHome); the dispatcher below picks by role, and the
    chief branches below stay only as a permission-safe fallback. Everything is live; a failed section reports its own error and is
    never rendered as "nothing to do". Opening this screen never changes a work order: every control only navigates. */
-
-const REALTIME_DEBOUNCE_MS = 1500;
 
 /** One Home per engineering role. The role is read live, so a role change swaps the whole screen (and drops its state). */
 export function EngineerHome({ name }: { name: string }) {
@@ -60,7 +61,6 @@ function TechnicianHome({ name }: { name: string }) {
   const isOnline = useAppStore((s) => s.isOnline);
   const hotelTimezone = useAppStore((s) => s.hotelTimezone);
   const unreadCount = useAppStore((s) => s.unreadCount);
-  const pendingCount = useAppStore((s) => s.pendingActions.length);
   const role = user?.effective_role ?? user?.role;
   const canAct = canActOnWorkOrders(role);
   const hasMyJobs = showsMyJobs(role);
@@ -68,9 +68,11 @@ function TechnicianHome({ name }: { name: string }) {
   const { hotelName } = useSettingsIdentity();
   useHotelTimezone();
 
-  const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}` : null;
-  const data = useEngineeringHome(scope);
+  // The role is part of the scope: a role change starts from a clean slate and never reuses another role's queue.
+  const scope = user?.id && user?.tenant_id ? `${user.tenant_id}:${user.id}:${role ?? "none"}` : null;
+  const data = useEngineeringHome(scope, role);
   const syncItems = usePmSyncItems();
+  const sync = useEngineeringSyncSummary(syncItems);
   const [now, setNow] = useState(() => new Date());
 
   // Minute tick keeps "synced 3 min ago" and overdue labels honest while the tab stays open.
@@ -80,35 +82,27 @@ function TechnicianHome({ name }: { name: string }) {
   }, []);
 
   // Tabs stay mounted: re-read when this one regains focus, but not on the very first focus (already loading).
+  // Every refresh trigger goes through the data hook's gate: a read already running is joined, never doubled.
   const focusedOnce = useRef(false);
-  const { reload } = data;
-  const { refresh: refreshSyncItems } = syncItems;
+  const { request } = data;
+  const { refresh: refreshSync } = sync;
   useFocusEffect(
     useCallback(() => {
       if (focusedOnce.current) {
-        void reload();
-        void refreshSyncItems();
+        void request("focus");
+        void refreshSync();
       }
       focusedOnce.current = true;
-    }, [reload, refreshSyncItems]),
+    }, [request, refreshSync]),
   );
 
-  // Realtime changes arrive in bursts (one edit can emit several events); one trailing read per burst.
-  useEffect(() => {
-    if (!user?.tenant_id) return undefined;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel("engineer-home-wo")
-      .on("postgres_changes", { event: "*", schema: "public", table: "work_orders", filter: `tenant_id=eq.${user.tenant_id}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => void reload(), REALTIME_DEBOUNCE_MS);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [user?.tenant_id, reload]);
+  // One hotel-scoped subscription; a burst of events becomes one trailing read.
+  useWorkOrderRealtime(user?.tenant_id, () => void request("realtime"));
+  // Back from the background, or the connection returned: read again (through the same gate).
+  useRefreshOnResume(isOnline, (reason) => {
+    void request(reason);
+    void refreshSync();
+  });
 
   const pmViews = useMemo(() => adaptPmSchedules(data.pmRows, hotelTimezone, now), [data.pmRows, hotelTimezone, now]);
   const blockedSync = useMemo(() => countBlockedPmSync(syncItems.rows, syncItems.active), [syncItems.rows, syncItems.active]);
@@ -124,7 +118,10 @@ function TechnicianHome({ name }: { name: string }) {
   );
   const status = resolveSyncStatus({
     online: isOnline,
-    pending: pendingCount,
+    pending: sync.waiting,
+    attention: sync.attention,
+    verified: sync.verified,
+    sending: sync.sending,
     failed: data.queueFailure != null,
     refreshing: data.refreshing,
     syncedAt: data.syncedAt,
@@ -138,12 +135,16 @@ function TechnicianHome({ name }: { name: string }) {
     offline: !isOnline && !data.hasQueue,
   });
   const queueReady = queueState.status === "ready";
-  const plus = data.truncated ? "+" : "";
-  const queueValue = (n: number) => (queueReady ? `${n}${plus}` : UNKNOWN_COUNT);
-  // Prefer the server's exact count of my active work (minus held work); otherwise the queue's, marked "N+" if cut off.
+  // Counting rules live in homeContract.ts: an exact server count wins; otherwise the queue's count, which is only a
+  // lower bound ("N+") when the read was cut off; with no answer at all the value is unknown, never zero.
+  const queueStale = data.queueFailure != null;
   const exactMine = data.summary?.total != null ? data.summary.total - data.summary.waiting : null;
-  const myJobsValue = exactMine != null && exactMine >= 0 ? String(exactMine) : queueValue(model.myJobs);
-  const pmValue = data.hasPm ? String(model.pmDue) : UNKNOWN_COUNT;
+  const myJobsValue = formatMetric(
+    readMetric({ exact: exactMine != null && exactMine >= 0 ? exactMine : null, observed: model.myJobs, complete: !data.truncated, available: queueReady, stale: queueStale }),
+  );
+  const urgentReading = readMetric({ observed: model.urgent, complete: !data.truncated, available: queueReady, stale: queueStale });
+  const urgentValue = formatMetric(urgentReading);
+  const pmValue = formatMetric(readMetric({ observed: model.pmDue, complete: true, available: data.hasPm, stale: data.pmFailure != null }));
 
   // A fresh token per tap: Work stays mounted, so identical params would otherwise be ignored the second time.
   const stamp = () => String(Date.now());
@@ -158,7 +159,7 @@ function TechnicianHome({ name }: { name: string }) {
   cards.push({
     key: "urgent",
     label: t("home.engineer.cardUrgent"),
-    value: queueValue(model.urgent),
+    value: urgentValue,
     alert: queueReady && model.urgent > 0,
     onPress: () => go(urgentWorkRoute(stamp())),
     testID: "summary-urgent",
@@ -166,8 +167,8 @@ function TechnicianHome({ name }: { name: string }) {
   cards.push({ key: "pmDue", label: t("home.engineer.cardPmDue"), value: pmValue, onPress: () => go(PM_LIST_ROUTE), testID: "summary-pm-due" });
 
   const retry = () => {
-    void data.reload();
-    void syncItems.refresh();
+    void data.request("manual");
+    void sync.refresh();
   };
 
   // Offline (or failed) with no queue: a real saved PM draft can still be resumed; nothing else is invented.
@@ -186,7 +187,7 @@ function TechnicianHome({ name }: { name: string }) {
       <ScrollView
         style={[styles.scroll, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={() => void Promise.all([data.refresh(), syncItems.refresh()])} tintColor={theme.primaryAction} />}
+        refreshControl={<RefreshControl refreshing={data.refreshing} onRefresh={() => void Promise.all([data.refresh(), sync.refresh()])} tintColor={theme.primaryAction} />}
       >
         <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
         <TechnicianHomeHeader
@@ -232,7 +233,7 @@ function TechnicianHome({ name }: { name: string }) {
             <TechnicianAttentionSection
               items={model.attention}
               viewerId={user?.id}
-              trusted={queueReady && data.hasPm && syncItems.loaded && pendingCount === 0}
+              trusted={queueReady && data.hasPm && !data.truncated && sync.verified && sync.waiting === 0 && sync.attention === 0}
               onOpen={onOpenAttention}
             />
           ) : null}

@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import { resetAssistantSession } from "@/lib/ai/session";
 import { clearRoomsCache } from "@/lib/offline/db";
 import { clearEngineeringCache } from "@/lib/engineering/workOrderCache";
+import { resetAsyncResourceCache } from "@/lib/engineering/useAsyncResource";
 import { writeRoomsCache } from "@/lib/housekeeping/roomsCache";
 import { acceptRoomsResult, fetchMyRooms } from "@/lib/housekeeping/roomsRequest";
 import { useRoomsStatus } from "@/stores/roomsStatusStore";
@@ -185,6 +186,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       // scope (never shown or replayed here); only the re-fetchable copy of server data is removed.
       const previousOwner = taskScope(previous);
       if (previousOwner) void clearEngineeringCache(previousOwner).catch(() => undefined);
+      // ...nor the last user's in-memory engineering reads (team overview, technicians, asset lookups).
+      resetAsyncResourceCache();
       // ...nor their open assistant conversation or shared briefing (saved history is scoped to its owner).
       resetAssistantSession();
       // ...and their unsent changes stay on disk for them, out of this person's view and out of any replay.

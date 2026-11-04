@@ -10,6 +10,7 @@ import type {
 } from "@/lib/engineering/workOrders";
 import type { WorkOrderListParams } from "@/lib/engineering/workQueue";
 import { parseWorkSummary, type WorkSummary } from "@/lib/engineering/workSummary";
+import { emitWorkOrderMutated } from "@/lib/engineering/teamEvents";
 import { parseChecklistResponse, parseChecklistUpdate, type ChecklistItem, type ChecklistSnapshot, type ChecklistSummary } from "@/lib/engineering/workOrderChecklist";
 import type {
   AuditEvent,
@@ -55,6 +56,7 @@ export interface CreateWorkOrderPayload {
 
 export async function createWorkOrder(payload: CreateWorkOrderPayload): Promise<string | null> {
   const res = await api.post<{ data: { id?: string } | null }>("/work-orders", payload);
+  emitWorkOrderMutated();
   return res.data?.id ?? null;
 }
 
@@ -76,6 +78,7 @@ export async function createWorkOrderDetailed(payload: CreateWorkOrderPayload): 
     idempotent_replay?: boolean;
     room_marked_out_of_order?: boolean;
   }>("/work-orders", payload);
+  emitWorkOrderMutated();
   const wo = res.data;
   return {
     id: wo?.id ?? null,
@@ -205,6 +208,7 @@ export async function getWorkOrder(woId: string): Promise<WorkOrder> {
 
 export async function claimWorkOrder(woId: string): Promise<WorkOrder | null> {
   const res = await api.post<{ data: WorkOrder | null }>(`/work-orders/${woId}/claim`, {});
+  emitWorkOrderMutated();
   return res.data;
 }
 
@@ -221,6 +225,7 @@ export async function completeWorkOrder(
   payload: CompleteWorkOrderPayload
 ): Promise<CompleteWorkOrderResult> {
   const res = await api.post<CompleteWorkOrderResult>(`/work-orders/${woId}/complete`, payload);
+  emitWorkOrderMutated();
   return res ?? {};
 }
 
@@ -237,6 +242,7 @@ export interface WorkOrderTransition {
  */
 export async function transitionWorkOrder(woId: string, transition: WorkOrderTransition): Promise<void> {
   await api.post(`/work-orders/${woId}/transition`, { ...transition, source: "mobile" });
+  emitWorkOrderMutated();
 }
 
 export async function addWorkOrderComment(

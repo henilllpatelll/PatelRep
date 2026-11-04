@@ -27,7 +27,7 @@ export function workOrderPath(id: string | null | undefined): string {
 
 export interface WorkRoute {
   pathname: typeof WORK_ROUTE;
-  params: { view: QueueView; filter?: "urgent" | "in_progress"; nav?: string };
+  params: { view: QueueView; filter?: "urgent" | "in_progress" | "actionable"; nav?: string };
 }
 
 /**
@@ -48,9 +48,14 @@ export function showsMyJobs(role: string | null | undefined): boolean {
   return canActOnWorkOrders(role);
 }
 
-/** My Jobs opens My Work. For a role without one, the role's own default Work view. */
+/**
+ * My Jobs opens My Work narrowed to what it counted: open, escalated and in-progress work. My Work alone also lists my
+ * on-hold orders, which the count deliberately leaves out, so without the narrowing the list would be longer than the
+ * number. For a role without a personal queue, the role's own default Work view.
+ */
 export function myJobsRoute(role: string | null | undefined, token?: string): WorkRoute {
-  return workViewRoute(showsMyJobs(role) ? "mine" : defaultView(role), token);
+  if (!showsMyJobs(role)) return workViewRoute(defaultView(role), token);
+  return { pathname: WORK_ROUTE, params: token ? { view: "mine", filter: "actionable", nav: token } : { view: "mine", filter: "actionable" } };
 }
 
 /** The open job's detail is the screen that offers (or withholds) every repair action; Home only ever links there. */

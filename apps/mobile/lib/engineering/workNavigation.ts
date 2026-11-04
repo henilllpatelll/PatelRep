@@ -6,6 +6,7 @@
    Primary tabs are the work a person acts on now. Waiting (on hold) and Done (history) stay one tap away as
    secondary shortcuts and are still reachable by deep link (`?view=waiting`, `?view=done`). */
 
+import { MY_JOBS_STATUSES } from "@/lib/engineering/homeContract";
 import { EMPTY_FILTERS, availableViews, type QueueFilters, type QueueView } from "@/lib/engineering/workQueue";
 
 export const SECONDARY_VIEWS: readonly QueueView[] = ["waiting", "done"];
@@ -77,6 +78,9 @@ export function resolveWorkLink(viewParam: unknown, filterParam: unknown, role: 
       ? { ...EMPTY_FILTERS, urgentOnly: true }
       : filter === "in_progress" && view === "team"
         ? { ...EMPTY_FILTERS, statuses: ["in_progress" as const] }
-        : null;
+        : // `actionable` is Home's My Jobs count: my open, escalated and in-progress work (on-hold work is waiting).
+          filter === "actionable" && view === "mine"
+          ? { ...EMPTY_FILTERS, statuses: [...MY_JOBS_STATUSES] }
+          : null;
   return { view, filters };
 }

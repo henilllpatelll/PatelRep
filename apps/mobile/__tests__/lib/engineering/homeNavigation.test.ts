@@ -131,7 +131,7 @@ describe("role-specific destinations", () => {
   });
 
   it("sends My Jobs to My Work for an engineer and to the role's own default view otherwise", () => {
-    expect(myJobsRoute("engineer")).toEqual(workViewRoute("mine"));
+    expect(myJobsRoute("engineer")).toEqual({ pathname: "/(app)/work-orders", params: { view: "mine", filter: "actionable" } });
     expect(myJobsRoute("chief_engineer")).toEqual(workViewRoute("team"));
   });
 

@@ -210,6 +210,8 @@
       "syncSyncing": "Sincronizando…",
       "syncFailed": "No se pudo actualizar — mostrando los últimos datos",
       "syncPending": "{{count}} pendientes de sincronizar",
+      "syncReview": "{{count}} requieren revisión en Sincronización",
+      "syncUnverified": "No se pudo comprobar el estado de sincronización",
       "syncNone": "Aún sin sincronizar",
       "syncOffline": "Sin conexión",
       "syncOfflineSince": "Sin conexión · última sincronización {{ago}}",

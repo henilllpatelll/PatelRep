@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
@@ -12,6 +11,10 @@ import { resolveSyncStatus } from "@/lib/engineering/homeModel";
 import { canManageTeam, teamScope } from "@/lib/engineering/teamModel";
 import { useTeamOverview } from "@/lib/engineering/useTeamOverview";
 import { usePmSyncItems } from "@/lib/engineering/usePmSyncItems";
+import { useEngineeringSyncSummary } from "@/lib/engineering/useEngineeringSyncSummary";
+import { useWorkOrderRealtime } from "@/lib/engineering/useWorkOrderRealtime";
+import { useRefreshOnResume } from "@/lib/engineering/useRefreshOnResume";
+import { formatMetric, readMetric } from "@/lib/engineering/homeContract";
 import { countBlockedPmSync } from "@/lib/engineering/pmSyncItems";
 import { assignTargetFor, buildPriorities, chiefSummary, priorityRoute, technicianRoute, PRIORITIES_VIEW_ALL_ROUTE, type PriorityItem } from "@/lib/engineering/chiefHomeModel";
 import {
@@ -27,7 +30,7 @@ import {
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineering/team/AssignTechnicianSheet";
 import { TechnicianHomeHeader } from "../TechnicianHomeHeader";
-import { TechnicianSummaryCards, UNKNOWN_COUNT, type SummaryCardData } from "../TechnicianSummaryCards";
+import { TechnicianSummaryCards, type SummaryCardData } from "../TechnicianSummaryCards";
 import { TechnicianQuickActions } from "../TechnicianQuickActions";
 import { HOME_MAX_FONT, homeStyles } from "../homeStyles";
 import { HomeLoadNotice } from "../HomeLoadNotice";
@@ -41,8 +44,6 @@ import { ChiefOversight } from "./ChiefOversight";
    priority list and the workload can never disagree. Nothing here claims, starts or completes a work order (the API gives
    those to engineers only); the one action is Assign, which reuses the Team Overview sheet and its server checks. A part
    the server could not read shows as unavailable, never as zero or all-clear. */
-
-const REALTIME_DEBOUNCE_MS = 1500;
 
 const SUMMARY_LABEL: Record<ChiefSummaryKey, string> = {
   needsOwner: "home.chief.cardNeedsOwner",
@@ -62,7 +63,6 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
   const unreadCount = useAppStore((s) => s.unreadCount);
-  const pendingCount = useAppStore((s) => s.pendingActions.length);
   const role = user?.effective_role ?? user?.role;
   const canAssign = canManageTeam(role);
   const { hotelName } = useSettingsIdentity();
@@ -70,12 +70,13 @@ export function ChiefEngineerHome({ name }: { name: string }) {
 
   const overview = useTeamOverview(scope, canAssign);
   const data = overview.data;
-  const { reload } = overview;
+  const { request } = overview;
   const [now, setNow] = useState(() => new Date());
   const [pulling, setPulling] = useState(false);
   const [target, setTarget] = useState<AssignTarget | null>(null);
   const syncItems = usePmSyncItems();
-  const { refresh: refreshSyncItems } = syncItems;
+  const sync = useEngineeringSyncSummary(syncItems);
+  const { refresh: refreshSync } = sync;
   const blockedSync = useMemo(() => countBlockedPmSync(syncItems.rows, syncItems.active), [syncItems.rows, syncItems.active]);
 
   // Minute tick keeps "synced 3 min ago" honest while the tab stays open.
@@ -89,40 +90,34 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   useFocusEffect(
     useCallback(() => {
       if (focusedOnce.current) {
-        void reload();
-        void refreshSyncItems();
+        void request("focus");
+        void refreshSync();
       }
       focusedOnce.current = true;
-    }, [reload, refreshSyncItems]),
+    }, [request, refreshSync]),
   );
 
-  // Realtime edits arrive in bursts; one trailing read per burst. The overview is the only thing re-read.
-  useEffect(() => {
-    if (!user?.tenant_id) return undefined;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const channel = supabase
-      .channel("chief-home-wo")
-      .on("postgres_changes", { event: "*", schema: "public", table: "work_orders", filter: `tenant_id=eq.${user.tenant_id}` }, () => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => void reload(), REALTIME_DEBOUNCE_MS);
-      })
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-  }, [user?.tenant_id, reload]);
+  // One hotel-scoped subscription; a burst of events becomes one trailing read of the overview (the only thing re-read).
+  useWorkOrderRealtime(user?.tenant_id, () => void request("realtime"));
+  // Back from the background, or the connection returned: read again (through the same gate).
+  useRefreshOnResume(isOnline, (reason) => {
+    void request(reason);
+    void refreshSync();
+  });
 
   const state = resolveLoadState({ loading: overview.loading, failure: overview.failure, count: data ? 1 : 0, offline: !isOnline });
   const ready = state.status === "ready" && data != null;
   const basePriorities = useMemo(() => buildPriorities(data), [data]);
   // Saved work that is blocked, or still waiting to reach the server, means this is not a true all-clear.
-  const unresolvedSync = blockedSync > 0 || pendingCount > 0;
+  const unresolvedSync = blockedSync > 0 || sync.waiting > 0 || sync.attention > 0 || !sync.verified;
   const priorities = useMemo(() => (unresolvedSync ? { ...basePriorities, allClear: false } : basePriorities), [basePriorities, unresolvedSync]);
   const summary = useMemo(() => chiefSummary(data?.counts), [data]);
   const status = resolveSyncStatus({
     online: isOnline,
-    pending: pendingCount,
+    pending: sync.waiting,
+    attention: sync.attention,
+    verified: sync.verified,
+    sending: sync.sending,
     failed: overview.failure != null,
     refreshing: overview.refreshing,
     syncedAt: overview.syncedAt,
@@ -135,11 +130,11 @@ export function ChiefEngineerHome({ name }: { name: string }) {
     if (route) router.push(route as never);
   }, []);
 
-  const plus = data?.truncated ? "+" : "";
+  // Server counts are exact for what the overview read; a cut-off read makes them lower bounds ("N+"); no answer is unknown.
   const cards: SummaryCardData[] = summary.map(({ key, value }) => ({
     key,
     label: t(SUMMARY_LABEL[key]),
-    value: ready && value != null ? `${value}${plus}` : UNKNOWN_COUNT,
+    value: formatMetric(readMetric({ observed: value, complete: data?.truncated !== true, available: ready, stale: state.stale })),
     onPress: () => go(chiefSummaryRoute(key, stamp())),
     testID: SUMMARY_TEST_ID[key],
   }));
@@ -151,7 +146,7 @@ export function ChiefEngineerHome({ name }: { name: string }) {
   const onPull = async () => {
     setPulling(true);
     try {
-      await reload();
+      await request("manual");
     } finally {
       setPulling(false);
     }
@@ -185,7 +180,7 @@ export function ChiefEngineerHome({ name }: { name: string }) {
 
           {ready && data ? (
             <>
-              {state.stale ? <StaleBanner onRetry={() => void reload()} /> : null}
+              {state.stale ? <StaleBanner onRetry={() => void request("manual")} /> : null}
               {blockedSync > 0 ? (
                 <HomeLoadNotice message={t("home.engineer.syncBlockedTitle", { count: blockedSync })} actionLabel={t("home.chief.syncReview")} onPress={() => go(ENGINEERING_SYNC_ROUTE)} testID="chief-sync-blocked" />
               ) : null}
@@ -197,14 +192,14 @@ export function ChiefEngineerHome({ name }: { name: string }) {
                 onOpen={onOpenPriority}
                 onAssign={(item) => setTarget(assignTargetFor(item.wo))}
                 onViewAll={() => go(PRIORITIES_VIEW_ALL_ROUTE)}
-                onRetry={() => void reload()}
+                onRetry={() => void request("manual")}
               />
               <TeamWorkloadPreview technicians={data.technicians} onOpenTechnician={(id) => go(technicianRoute(id))} onViewTeam={() => go(TEAM_OVERVIEW_ROUTE)} />
               <ChiefOversight overview={data} onOpenRooms={() => go(ROOM_STATUS_ROUTE)} onOpenPmPlan={() => go(chiefQuickActionRoute("pm"))} />
             </>
           ) : (
             <View testID={overview.failure ? "chief-load-error" : "chief-load-state"}>
-              <EngineeringState status={state.status} onRetry={() => void reload()} emptyTitle={t("engineeringTeam.empty")} style={styles.stateCard} />
+              <EngineeringState status={state.status} onRetry={() => void request("manual")} emptyTitle={t("engineeringTeam.empty")} style={styles.stateCard} />
             </View>
           )}
 
@@ -218,7 +213,7 @@ export function ChiefEngineerHome({ name }: { name: string }) {
         scope={scope}
         online={isOnline}
         onClose={() => setTarget(null)}
-        onNeedsRefresh={() => void reload()}
+        onNeedsRefresh={() => void request("manual")}
         onAssigned={(tech, changed) => toast.success(changed ? t("engineeringTeam.assign.done", { name: tech.name ?? t("engineeringTeam.technician") }) : t("engineeringTeam.assign.alreadyDone"))}
       />
     </View>

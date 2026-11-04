@@ -210,6 +210,8 @@
       "syncSyncing": "Syncing…",
       "syncFailed": "Couldn't refresh — showing last data",
       "syncPending": "{{count}} waiting to sync",
+      "syncReview": "{{count}} need review in Sync",
+      "syncUnverified": "Sync status couldn't be checked",
       "syncNone": "Not synced yet",
       "syncOffline": "Offline",
       "syncOfflineSince": "Offline · last synced {{ago}}",

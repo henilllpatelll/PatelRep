@@ -454,3 +454,171 @@ row, opens Engineering Sync, withholds the all-clear; pending withholds it witho
 - The prototype's Room Impact drawer and per-room rows need a per-room read (overview or room board) before they can ship.
 - Journeys were checked at the unit and screen level with mocked API contracts; no live-API pass.
 - Phase 5 scope (deeper sync, offline and notification states) can build on `countBlockedPmSync` and the shared Home notice row.
+
+## 13. Phase 5 record: data contract, prioritization, performance and offline reliability
+
+Phase 5 changed no screen layout. It made the numbers, ordering, refreshing and sync wording trustworthy. No backend
+endpoint, migration or workflow was added or changed.
+
+### 13.1 Defects found and fixed
+
+| # | Defect (found by audit) | Fix |
+|---|---|---|
+| 1 | **My Jobs count and destination disagreed.** The count (open + escalated + in progress) excluded my on-hold work, but it opened `Work > My Work`, which also lists on-hold orders, so the list could be longer than the number. | `myJobsRoute` now opens My Work with `filter=actionable` (statuses open, escalated, in progress). `resolveWorkLink` accepts `actionable` only on the `mine` view. Parity is tested against `belongsToView` + `viewStatuses`. |
+| 2 | **The Home sync line read the wrong store.** It counted `appStore.pendingActions` (the legacy list), not the SQLite sync queue that Engineering Sync shows, so queued claims, completions and reports, refused reports, claim conflicts and queued PM inspections were invisible on the line. | `useEngineeringSyncSummary` reads the same sources as Engineering Sync (`usePendingActions`, `usePmSyncItems`, `useClaimConflicts`, `useReportRecords`) and feeds `buildEngineeringSyncCounts`. |
+| 3 | The line could say "Synced" while a queue could not be read, and had no state for "needs review". | New states `review` and `unverified` (see 13.5). The all-clear also needs every queue to be readable. |
+| 4 | A kept exact summary could sit next to a newer queue after its own refresh failed. | A failed summary read now drops the exact count; My Jobs falls back to the queue and is a lower bound if the queue was cut off. |
+| 5 | Three focus events cost three full reads (nine requests on the technician Home); focus + realtime together cost two reads; each Home duplicated the realtime code. | One `refreshGate` and one `useWorkOrderRealtime` shared by both Homes (see 13.4). |
+| 6 | Equal-ranked records could swap places between refreshes (the server sorts attention by rank and due time only; ties kept DB order). | Explicit tie-breakers on both Homes (see 13.3). |
+| 7 | After a person or hotel change, the in-memory `useAsyncResource` cache (team overview, technicians, asset reads) was left in memory. | `setUser` now calls `resetAsyncResourceCache()` in the same branch that clears rooms, tasks and saved work orders. |
+| 8 | Nothing re-read when the app returned from the background or the connection came back while the Home tab stayed focused. | `useRefreshOnResume` (foreground = focus hint; offline to online = manual read), through the same gate. |
+
+### 13.2 Canonical metric contract (`lib/engineering/homeContract.ts`)
+
+`HOME_METRICS` is the typed registry of what each number means; `readMetric` / `formatMetric` turn a source answer into a
+reading. Rules, all tested: unknown is "-" and never 0; a cut-off or partial read is a lower bound shown as `N+`; a figure kept
+from before a failed refresh is flagged `stale`; malformed server counts (negative, fractional, NaN) are unknown.
+
+| Metric | Role | Exact scope | Source | Destination | Unknown / offline |
+|---|---|---|---|---|---|
+| My Jobs | technician | assigned to me, status open / escalated / in progress (on hold, completed, cancelled excluded) | `GET /work-orders/summary` (`total - waiting`, exact); else the active queue page (exact only when not truncated) | Work > My Work, `filter=actionable` | unknown until a source answers; offline: last read or saved queue as a stale lower bound |
+| Urgent | technician | emergency or urgent in any active status (open, escalated, in progress, on hold) that the person can read (own + unclaimed) | active queue page (the summary endpoint is own-work only, so it cannot supply this) | Work > All, `filter=urgent` | lower bound `N+` when cut off or saved |
+| PM Due | technician | active schedules overdue or due today on the hotel calendar | `GET /assets/pm-schedules` | PM list | unknown until read; stale after a failed refresh; unknown after restart offline |
+| Needs Owner | chief engineer | unassigned, open or escalated | `GET /engineering/team/overview` `counts.needs_owner` | Work > Available | `-` until the overview answers; `N+` when `truncated` |
+| In Progress | chief engineer | assigned and in progress, hotel-wide | overview `counts.in_progress` | Work > Team, `filter=in_progress` | same |
+| On Hold | chief engineer | on hold, assigned or not, hotel-wide | overview `counts.on_hold` | Work > Waiting | same |
+
+Known limit: Chief In Progress opens the Team view, which excludes the viewer's own assignments. A chief engineer cannot hold
+assignments in the current role model (no claim/start), so the two agree today. If that changes, add a `mine` leg first.
+
+Freshness: the connection line shows the time of the last successful work-order (or overview) read, labelled offline or
+stale when the latest read failed. The overview also carries `generated_at`.
+
+### 13.3 Prioritization (pure, deterministic, explainable)
+
+No LLM, no score, no invented signal. Guest impact, technician availability and "urgent unassigned" for the chief are NOT
+supplied by the backend, so none is shown or ranked on.
+
+Technician primary card (`homeFocus.ts`, unchanged order): continue repair, start next, resume PM draft, available work,
+caught up. An in-progress job stays primary even when another emergency appears; the emergency is still the first row in
+Needs Attention and nothing switches the active repair for the person.
+
+Needs Attention (`homeModel.buildHomeModel`): one row per work order or PM schedule, most severe reason wins
+(`emergency`, `sync_blocked`, `urgent_unassigned`, `past_due`, `pm_overdue`, `on_hold`). Inside a reason
+(`compareForAttention`): priority, earliest due time (none or malformed last), oldest created first, then id. Overdue PM:
+longest overdue first, then id. Identical for every input order (tested with 25 shuffles).
+
+Chief priorities (`chiefHomeModel.buildPriorities`): emergency needing an owner, urgent overdue, escalated, confirmed rooms
+down, on hold, overdue PM, repeated defects (the server's own attention kinds). Inside a kind (`comparePriorityItems`):
+work orders by priority, due time (none last), number, id; PM by due time then id; repeat defects by count then asset id.
+The server order is only the last resort. Duplicates are dropped by id. Every row's reason is its kind label; there is no
+numeric score on screen.
+
+### 13.4 Refresh, realtime and request budget
+
+Every trigger goes through `lib/engineering/refreshGate.ts`:
+
+- one read in flight; a caller that arrives meanwhile joins it;
+- `realtime` while a read runs means the data changed after it started, so exactly one trailing read follows;
+- `focus` is a hint: skipped while a read runs or when one started in the last 15 s (`FOCUS_FRESH_MS`);
+- `manual` (pull-to-refresh, Retry, connection returned) always reads unless one is running.
+
+`useWorkOrderRealtime` (shared) opens one channel `engineering-home-wo:<tenant>` filtered `tenant_id=eq.<tenant>`, coalesces a
+burst (1.5 s trailing), reads `onChange` through a ref (no re-subscribe), and tears down the channel and any pending timer on
+unmount or hotel change. A change this phone just had the server confirm (`emitWorkOrderMutated`, fired by
+`createWorkOrder*`, `claimWorkOrder`, `completeWorkOrder`, `transitionWorkOrder` after the server answered) feeds the SAME
+debounce, so the change and its realtime echo cost one read and the person sees their own change even if realtime lags.
+A new hotel or person gets a new gate (it can never join a read started for the previous scope).
+
+`useRefreshOnResume`: app foreground = `focus`; offline to online = `manual`. No polling anywhere.
+
+Mutation reconciliation: nothing is counted optimistically. Claim, start, hold, resume, complete, report and assignment
+re-read through the path above (assignment uses `onAssignmentChanged` into the same gate). A queued (offline) mutation shows
+as waiting on the connection line and withholds the all-clear until the server confirms it.
+
+### 13.5 Sync semantics on the Home line
+
+`buildEngineeringSyncCounts` sums only things the server has NOT confirmed, from the same sources as Engineering Sync:
+
+- waiting = queued work-order actions and reports (waiting / retrying) + PM inspections queued or being sent;
+- needs review = refused or stuck actions + claim conflicts + refused reports + PM inspections needing review or rejected;
+- saved drafts (work-order completion drafts, PM drafts) are unfinished work on the phone, not uploads, and are counted in
+  neither number.
+
+`resolveSyncStatus` order: Offline, Syncing (a read or a send is running), Needs review, read failure ("couldn't refresh"),
+Pending sync, Status unavailable (a queue could not be read), Not synced yet, Up to date. "Up to date" therefore means: online,
+a read succeeded, every queue was readable and empty, and nothing needs the person. Tapping the line opens Engineering Sync.
+Nothing here retries, discards or overwrites: refused changes are never auto-discarded and conflicts are never resolved by
+overwriting; those stay explicit actions in Engineering Sync.
+
+### 13.6 Offline Home
+
+- Technician Home, offline before anything was read: the last queue saved on this phone is shown (`homeSnapshotKey(role)`, saved
+  after every successful read, most urgent first, capped at 60 by the existing `workOrderCache`, 72 h, this person + hotel
+  only) as a stale lower bound (`N+`) with the "couldn't refresh" banner and "Offline, last synced X ago". It is never used
+  for a server error, never replaces a live queue, and a copy that arrives after the person or hotel changed is dropped.
+  The exact summary and PM are not cached, so they show unknown.
+- Saved PM drafts stay resumable offline (existing).
+- Chief Home: the in-session overview is kept and labelled; there is no persisted copy of management data, by design, so it is
+  never on disk for a former chief.
+- Offline-capable actions keep using the existing queue; actions that need the server are disabled by the existing screens.
+
+### 13.7 Isolation
+
+- Technician Home scope is `tenant:user:role`; a role change resets state. The saved queue key includes the role (what the
+  server lets a role read differs).
+- `setUser` clears rooms, tasks, saved work orders and now the in-memory engineering resource cache on a person or hotel change.
+- The realtime channel is hotel-scoped and replaced on a hotel change; late events from the old channel are ignored.
+- Manager data (team overview, technicians, assignment) is requested only when `canManageTeam`; the API enforces the same.
+  Home never trusts the client role alone: detail screens and every mutation still go through the server's guards.
+
+### 13.8 Partial failure
+
+Sections are independent: queue, PM, summary, overview parts (`rooms_down`, `pm_oversight` null = unavailable), sync queues.
+The all-clear needs queue read, PM read, drafts read, nothing truncated, every sync queue readable and empty. A failed section
+keeps its last good data (labelled) and reports its own failure with its own Retry.
+
+### 13.9 Performance measurement
+
+Tool: `__tests__/perf/engineeringHomeRequests.test.tsx` (counts API reads per scenario, mocked network, no timings, safe in CI;
+run `npx jest __tests__/perf/engineeringHomeRequests.test.tsx --runInBand` and read the table). Baseline was measured on this
+branch at Phase 4 (head 4f805d94) with the same scenarios before any Phase 5 code.
+
+| Scenario | Technician before (work/PM/summary) | Technician after | Chief before (overview) | Chief after |
+|---|---|---|---|---|
+| Initial open | 1 / 1 / 1 | 1 / 1 / 1 | 1 | 1 |
+| 10 realtime events in one burst | 1 / 1 / 1 | 1 / 1 / 1 | 1 | 1 |
+| 3 focus events within 1 s | 3 / 3 / 3 | 0 / 0 / 0 | 3 | 0 |
+| Focus + realtime together | 2 / 2 / 2 | 1 / 1 / 1 | 2 | 1 |
+| Local confirmed change + realtime echo | n/a (not coalesced) | 1 / 1 / 1 | n/a | 1 |
+
+"Work" is one `listActiveWorkOrders` call, which is itself one HTTP request per 100-row page (up to 5). Reads per initial open
+are unchanged by design: the technician Home still needs the active queue (Urgent covers unclaimed work, which no existing
+summary endpoint counts), PM and the own-work summary. A single aggregate Home endpoint was considered and NOT added: the
+demonstrated problem was duplicate reads, not the three parallel ones, and a new endpoint would be a second competing
+summary system.
+
+Not measured (no harness available here): payload bytes, time to meaningful data on a device, scroll frame rate, memory over
+repeated navigation. To measure on a device: open Home with the React Native performance monitor, reload 10 times with
+`Network inspector` on, and compare bytes/requests with this table; for memory use Android Studio / Xcode Instruments while
+switching tabs 50 times. No timing numbers are claimed.
+
+### 13.10 Tests added or changed
+
+`homeReliability.test.ts` (40: metric rules, count/destination parity for My Jobs, Urgent and the three chief counts, order
+determinism under shuffles, hotel midnight and DST in three device time zones, sync summary and status order, refresh gate),
+`useEngineeringHome.test.tsx` (scope switch, late answers, independent failures, summary drop, join + trailing read, focus
+freshness, offline saved queue, role-keyed copy, late saved copy dropped), `useWorkOrderRealtime.test.tsx` (one hotel-scoped
+channel, no re-subscribe, burst coalescing, unmount and hotel change, local change shares the debounce),
+`useRefreshOnResume.test.tsx`, `engineeringHomeRequests.test.tsx` (request budget), plus screen tests for review/unverified
+status, lower-bound and unknown cards and the chief equivalents. Updated: My Jobs route expectation, focus-freshness
+expectations, the pending-count mocks (now the sync summary).
+
+### 13.11 Not verified / Phase 6 handoff
+
+- No emulator or device run in this phase. Backend untouched, so API suites were not re-run for new behavior.
+- The Technician Home still reads three sources on open; an aggregate endpoint is the next lever only if a device
+  measurement shows it matters.
+- Chief In Progress / Team parity assumes a chief never holds assignments (13.2).
+- The Room Impact drawer still needs a per-room read (unchanged from Phase 4).
+- Remaining UI polish and accessibility passes (dynamic type, small screens, EN/ES long names) are Phase 6.

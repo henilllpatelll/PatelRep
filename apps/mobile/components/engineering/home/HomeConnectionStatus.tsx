@@ -28,8 +28,12 @@ export function HomeConnectionStatus({ connection, onPress }: { connection: Home
         return t("home.engineer.syncSyncing");
       case "failed":
         return hasQueue ? t("home.engineer.syncFailed") : t("home.engineer.syncFailedEmpty");
+      case "review":
+        return t("home.engineer.syncReview", { count: status.attention });
       case "pending":
         return t("home.engineer.syncPending", { count: status.pending });
+      case "unverified":
+        return t("home.engineer.syncUnverified");
       case "unsynced":
         return t("home.engineer.syncNone");
       default:

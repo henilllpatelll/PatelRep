@@ -17,6 +17,7 @@ import { managerSummaryCount, type ManagerSummaryKey } from "@/lib/engineering/m
 import { ROOM_STATUS_ROUTE, TEAM_OVERVIEW_ROUTE, WORK_ROUTE } from "@/lib/engineering/homeNavigation";
 import { ASSETS_LIST_ROUTE, PM_LIST_ROUTE, assetRoute, isSafeRouteId, pmScheduleRoute, workOrderRoute, type ParamRoute } from "@/lib/engineering/routes";
 import { technicianName, workOrderCode } from "@/lib/engineering/teamModel";
+import { priorityRank } from "@/lib/engineering/workOrders";
 
 /* ─── Summary ─────────────────────────────────────────────────────────────── */
 
@@ -90,6 +91,37 @@ function pmItems(pm: PmOversight): PriorityItem[] {
   return out;
 }
 
+const time = (iso: string | null | undefined): number => {
+  if (!iso) return Infinity;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? Infinity : t;
+};
+const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+/**
+ * Tie-break inside one severity. Work orders: priority, then earliest due time (none last), then number, then id. PM: the
+ * longest overdue first, then id. Repeated defects: the most repeats first, then asset id. Different kinds never meet here
+ * (rank already separated them).
+ */
+export function comparePriorityItems(a: PriorityItem, b: PriorityItem): number {
+  if (a.kind === "wo" && b.kind === "wo") {
+    const priority = priorityRank(a.wo.priority) - priorityRank(b.wo.priority);
+    if (priority !== 0) return priority;
+    const due = time(a.wo.due_at);
+    const otherDue = time(b.wo.due_at);
+    if (due !== otherDue) return due < otherDue ? -1 : 1;
+    return byText(String(a.wo.work_order_number ?? ""), String(b.wo.work_order_number ?? "")) || byText(a.wo.id, b.wo.id);
+  }
+  if (a.kind === "pm" && b.kind === "pm") {
+    const due = time(a.nextDueAt);
+    const otherDue = time(b.nextDueAt);
+    if (due !== otherDue) return due < otherDue ? -1 : 1;
+    return byText(a.id, b.id);
+  }
+  if (a.kind === "repeat" && b.kind === "repeat") return b.count - a.count || byText(a.assetId, b.assetId);
+  return 0;
+}
+
 export function buildPriorities(overview: TeamOverview | null | undefined): Priorities {
   if (!overview) return { items: [], hiddenWorkOrders: 0, roomsUnavailable: false, pmUnavailable: false, allClear: false };
   const items: PriorityItem[] = [];
@@ -107,10 +139,11 @@ export function buildPriorities(overview: TeamOverview | null | undefined): Prio
   }
   if (overview.pm_oversight) items.push(...pmItems(overview.pm_oversight));
 
-  // Stable: severity first, then the order each source already had.
+  // Severity first; inside one severity a fixed tie-break (below) so equal records never swap between refreshes; the
+  // server's own order is only the very last resort.
   const ordered = items
     .map((item, index) => ({ item, index }))
-    .sort((a, b) => a.item.rank - b.item.rank || a.index - b.index)
+    .sort((a, b) => a.item.rank - b.item.rank || comparePriorityItems(a.item, b.item) || a.index - b.index)
     .map(({ item }) => item);
 
   const flagged = Object.values(overview.attention_counts ?? {}).reduce((sum, n) => sum + (Number.isFinite(n) ? n : 0), 0);

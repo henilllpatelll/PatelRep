@@ -2,9 +2,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { monoFont, R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { UNKNOWN_DISPLAY } from "@/lib/engineering/homeContract";
 import { HOME_MAX_FONT } from "./homeStyles";
 
-export const UNKNOWN_COUNT = "—";
+export const UNKNOWN_COUNT = UNKNOWN_DISPLAY;
 
 export interface SummaryCardData {
   key: "myJobs" | "urgent" | "pmDue" | "needsOwner" | "inProgress" | "waiting";

@@ -49,6 +49,12 @@ let mockUserId = "u1";
 let mockOnline = true;
 let mockUnread = 0;
 let mockPending = 0;
+let mockAttention = 0;
+let mockVerified = true;
+const mockSyncRefresh = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/engineering/useEngineeringSyncSummary", () => ({
+  useEngineeringSyncSummary: () => ({ waiting: mockPending, attention: mockAttention, verified: mockVerified, sending: false, refresh: mockSyncRefresh }),
+}));
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
@@ -56,7 +62,7 @@ jest.mock("@/stores/appStore", () => {
       isOnline: mockOnline,
       hotelTimezone: "America/Chicago",
       unreadCount: mockUnread,
-      pendingActions: Array.from({ length: mockPending }, (_, i) => ({ id: `a${i}` })),
+      pendingActions: [],
       user: { id: mockUserId, role: mockRole, tenant_id: mockTenant, language_pref: "en" },
     })),
   };
@@ -116,6 +122,8 @@ beforeEach(() => {
   mockOnline = true;
   mockUnread = 0;
   mockPending = 0;
+  mockAttention = 0;
+  mockVerified = true;
   serve({});
   mockPm.mockResolvedValue([]);
   mockSummary.mockResolvedValue(null);
@@ -173,6 +181,46 @@ describe("EngineerHome header", () => {
   });
 });
 
+describe("EngineerHome sync honesty", () => {
+  it("asks for review (not 'synced') when a saved change was refused or is stuck", async () => {
+    mockAttention = 2;
+    const { getByText, queryByText } = renderHome();
+    await waitFor(() => expect(getByText("home.engineer.syncReview:count=2")).toBeTruthy());
+    expect(queryByText(/home\.engineer\.syncDone/)).toBeNull();
+  });
+
+  it("never says synced, and never claims an all-clear, when a queue could not be read", async () => {
+    mockVerified = false;
+    const { getByText, queryByText, queryByTestId, getByTestId } = renderHome();
+    await waitFor(() => expect(getByText("home.engineer.syncUnverified")).toBeTruthy());
+    expect(queryByText(/home\.engineer\.syncDone/)).toBeNull();
+    expect(queryByTestId("attention-empty")).toBeNull();
+    expect(getByTestId("engineer-sync")).toBeTruthy();
+  });
+
+  it("shows My Jobs as a lower bound when the queue was cut off and the exact count is unavailable", async () => {
+    serve({ open: [wo({ id: "m1", assigned_to: "u1" }), wo({ id: "m2", assigned_to: "u1" })] }, true);
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("summary-my-jobs").props.accessibilityLabel).toBe("home.engineer.cardMyJobs: 2+"));
+    expect(getByTestId("summary-urgent").props.accessibilityLabel).toBe("home.engineer.cardUrgent: 0+");
+  });
+
+  it("prefers the server's exact own-work count over the cut-off queue", async () => {
+    serve({ open: [wo({ id: "m1", assigned_to: "u1" })] }, true);
+    mockSummary.mockResolvedValue({ urgent: 0, in_progress: 0, waiting: 1, total: 6 });
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("summary-my-jobs").props.accessibilityLabel).toBe("home.engineer.cardMyJobs: 5"));
+  });
+
+  it("shows unknown, never 0, for every card when nothing could be read", async () => {
+    mockActive.mockRejectedValue(Object.assign(new Error("boom"), { status: 500 }));
+    mockPm.mockRejectedValue(Object.assign(new Error("boom"), { status: 500 }));
+    const { getByTestId } = renderHome();
+    await waitFor(() => expect(getByTestId("engineer-load-error")).toBeTruthy());
+    for (const id of ["summary-my-jobs", "summary-urgent", "summary-pm-due"]) expect(getByTestId(id).props.accessibilityLabel).toContain("home.engineer.unavailable");
+  });
+});
+
 describe("EngineerHome summary cards", () => {
   it("counts My Jobs, Urgent (emergency included) and PM Due from live data", async () => {
     serve({
@@ -222,7 +270,7 @@ describe("EngineerHome summary cards", () => {
     const { getByTestId } = renderHome();
     await waitFor(() => expect(getByTestId("summary-my-jobs").props.accessibilityLabel).toBe("home.engineer.cardMyJobs: 0"));
     fireEvent.press(getByTestId("summary-my-jobs"));
-    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine", nav: expect.any(String) } });
+    expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "mine", filter: "actionable", nav: expect.any(String) } });
     fireEvent.press(getByTestId("summary-urgent"));
     // Urgent spans own, unclaimed and held work, so it opens the all view narrowed to urgent (never a single queue).
     expect(router.push).toHaveBeenLastCalledWith({ pathname: "/(app)/work-orders", params: { view: "all", filter: "urgent", nav: expect.any(String) } });

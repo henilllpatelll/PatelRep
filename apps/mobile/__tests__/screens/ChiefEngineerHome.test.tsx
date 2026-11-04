@@ -65,6 +65,12 @@ let mockTenant = "h1";
 let mockOnline = true;
 let mockUnread = 0;
 let mockPending = 0;
+let mockAttention = 0;
+let mockVerified = true;
+const mockSyncRefresh = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/engineering/useEngineeringSyncSummary", () => ({
+  useEngineeringSyncSummary: () => ({ waiting: mockPending, attention: mockAttention, verified: mockVerified, sending: false, refresh: mockSyncRefresh }),
+}));
 jest.mock("@/stores/appStore", () => {
   const { makeAppStoreMock } = require("../helpers/appStoreMock");
   return {
@@ -72,7 +78,7 @@ jest.mock("@/stores/appStore", () => {
       isOnline: mockOnline,
       hotelTimezone: "America/Chicago",
       unreadCount: mockUnread,
-      pendingActions: Array.from({ length: mockPending }, (_, i) => ({ id: `a${i}` })),
+      pendingActions: [],
       user: { id: "u1", role: mockRole, tenant_id: mockTenant, language_pref: "en" },
     })),
   };
@@ -137,6 +143,8 @@ beforeEach(async () => {
   mockRole = "chief_engineer";
   mockSyncRows = [];
   mockPending = 0;
+  mockAttention = 0;
+  mockVerified = true;
   mockTenant = "h1";
   mockOnline = true;
   mockUnread = 0;
@@ -392,6 +400,31 @@ describe("property priorities", () => {
     expect(home.queryByTestId("chief-sync-blocked")).toBeNull();
   });
 
+  it("withholds the all-clear and asks for review when a saved change needs the person", async () => {
+    mockOverview.mockResolvedValue(calm());
+    mockAttention = 1;
+    const home = renderHome();
+    await ready(home);
+    expect(home.getByText("home.engineer.syncReview:count=1")).toBeTruthy();
+    expect(home.queryByTestId("priority-empty")).toBeNull();
+  });
+
+  it("withholds the all-clear when a queue could not be read", async () => {
+    mockOverview.mockResolvedValue(calm());
+    mockVerified = false;
+    const home = renderHome();
+    await ready(home);
+    expect(home.getByText("home.engineer.syncUnverified")).toBeTruthy();
+    expect(home.queryByTestId("priority-empty")).toBeNull();
+  });
+
+  it("shows the counts as lower bounds when the server read was cut off", async () => {
+    mockOverview.mockResolvedValue(base({ truncated: true }));
+    const home = renderHome();
+    await ready(home);
+    expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 3+");
+  });
+
   it("keeps work orders and marks PM unavailable when PM could not be read, with no all-clear", async () => {
     mockOverview.mockResolvedValue(base({ pm_oversight: null, needs_attention: [], attention_counts: { emergency_unassigned: 0, urgent_overdue: 0, escalated: 0, on_hold: 0 }, rooms_down: { total: 0, past_expected_return: 0 } }));
     const home = renderHome();
@@ -636,9 +669,11 @@ describe("loading, error, offline and refresh", () => {
     const home = renderHome();
     await ready(home);
     mockOverview.mockRejectedValueOnce(apiError(500));
+    const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now() + 60_000); // the overview is no longer fresh
     await act(async () => {
       mockFocusCb?.();
     });
+    clock.mockRestore();
     await waitFor(() => expect(home.getByText(/home\.engineer\.syncFailed/)).toBeTruthy());
     expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 3");
     expect(home.getByTestId("priority-wo:wo-emg")).toBeTruthy();
@@ -680,9 +715,16 @@ describe("loading, error, offline and refresh", () => {
     const home = renderHome();
     await ready(home);
     expect(mockOverview).toHaveBeenCalledTimes(1);
+    // Right after a read the overview is fresh: regaining focus does not fetch it again.
     await act(async () => {
       mockFocusCb?.();
     });
+    expect(mockOverview).toHaveBeenCalledTimes(1);
+    const clock = jest.spyOn(Date, "now").mockReturnValue(Date.now() + 60_000);
+    await act(async () => {
+      mockFocusCb?.();
+    });
+    clock.mockRestore();
     await waitFor(() => expect(mockOverview).toHaveBeenCalledTimes(2));
   });
 
@@ -714,13 +756,23 @@ describe("loading, error, offline and refresh", () => {
   it("ignores a slow older answer that arrives after a newer one", async () => {
     let releaseOld!: (v: TeamOverview) => void;
     mockOverview.mockReturnValueOnce(new Promise<TeamOverview>((r) => (releaseOld = r))).mockResolvedValueOnce(base({ counts: { ...base().counts, needs_owner: 9 } }));
-    const home = renderHome();
-    await act(async () => {
-      mockFocusCb?.();
-    });
-    await waitFor(() => expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 9"));
-    await act(async () => releaseOld(base({ counts: { ...base().counts, needs_owner: 1 } })));
-    expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 9");
+    jest.useFakeTimers();
+    try {
+      const home = renderHome();
+      await act(async () => {
+        await Promise.resolve();
+      });
+      // A realtime change arrives while the first (slow) read is still running: the newer read must win.
+      await act(async () => {
+        mockRealtime?.();
+        jest.advanceTimersByTime(1600);
+      });
+      await waitFor(() => expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 9"));
+      await act(async () => releaseOld(base({ counts: { ...base().counts, needs_owner: 1 } })));
+      expect(home.getByTestId("summary-needs-owner").props.accessibilityLabel).toBe("home.chief.cardNeedsOwner: 9");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 
