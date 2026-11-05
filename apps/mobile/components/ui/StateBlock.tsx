@@ -29,6 +29,14 @@ export type StateBlockProps =
       onRetry?: () => void;
       retryLabel?: string;
     } & StateBlockBase)
+  | ({
+      // Distinct from "error": the device is offline, so the data may be stale rather than broken.
+      status: "offline";
+      offlineTitle: string;
+      offlineBody?: string;
+      onRetry?: () => void;
+      retryLabel?: string;
+    } & StateBlockBase)
   | ({ status: "ready"; children: React.ReactNode } & StateBlockBase);
 
 export function StateBlock(props: StateBlockProps) {
@@ -65,6 +73,31 @@ export function StateBlock(props: StateBlockProps) {
         icon={props.errorIcon ?? "alert-circle-outline"}
         iconColor={theme.status.dirty}
         title={props.errorMessage}
+        style={style}
+        action={
+          props.onRetry ? (
+            <Button
+              label={props.retryLabel as string}
+              onPress={props.onRetry}
+              variant="secondary"
+              size="md"
+            />
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  if (status === "offline") {
+    if (props.onRetry && !props.retryLabel) {
+      throw new Error("StateBlock: retryLabel is required when onRetry is provided");
+    }
+    return (
+      <EmptyState
+        icon="cloud-offline-outline"
+        iconColor={theme.status.pickup}
+        title={props.offlineTitle}
+        body={props.offlineBody}
         style={style}
         action={
           props.onRetry ? (

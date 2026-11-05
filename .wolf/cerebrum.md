@@ -1115,3 +1115,10 @@
 ## Do-Not-Repeat (2026-11-02)
 - Bash tool heredocs containing apostrophes in the body (even with <<'EOF') failed with "unexpected EOF". Write the file with the Write tool (or a scratchpad .py/.json) and run it instead.
 - Do not read "queue returned []" as "nothing queued" in cleanup code: a failed/corrupt read must abort the sweep (see `sweepPmPhotos`; `listPmDraftLocalUris` returns null when unreadable).
+
+## Design System V2 Phase 1 (2026-11-04, one branch/PR for 8 phases: feat/patelrep-design-system-v2, worktree PatelRep-designv2)
+- V2 is isolated: mobile `useTheme()` returns V2 ONLY inside `<DesignV2Scope>` (inert unless `EXPO_PUBLIC_DESIGN_V2_PREVIEW=true`, never in production env). Web preview route `/design-v2-preview` is in PUBLIC_ROUTES and 404s itself without `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true`. globals.css/tailwind.config.ts are FROZEN: V2 web styling is a CSS module + inline `--dv2-*` vars from `lib/design/designV2Tokens.ts`.
+- Web tokens duplicate mobile `tokensV2.ts` (web Docker copies only apps/web); `designV2Tokens.test.ts` fails on drift. Add new V2 web test files to the `test:unit` script in package.json.
+- Brief colors that fail AA were adjusted (light pickup #B04F08, out-of-order #566379, dark ai soft 12%); `border` in V2 theme = strong 3:1 edge, `borderSubtle` = the brief's separator.
+- `next dev` with a dummy Supabase URL does not hydrate (HMR websocket goes through proxy.ts); verify web with `NEXT_DIST_DIR=.next-v2 next build && next start`, then revert tsconfig.json/next-env.d.ts/AGENTS.md that Next rewrites. Expo web needs temporary `web.output: single` plus a dummy `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- Bash heredocs with apostrophes fail in this shell: use the Write tool.

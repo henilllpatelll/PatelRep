@@ -11,8 +11,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
 import { R } from "@/components/shared/tokens";
+import { radiusV2 } from "@/components/shared/tokensV2";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+/** `tertiary` is the V2 name for the low-emphasis text button; it renders identically to `ghost`. */
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "tertiary" | "destructive";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps {
@@ -51,6 +54,7 @@ export function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const theme = useTheme();
+  const v2 = useIsDesignV2();
   const isDisabled = disabled || loading;
   const sizeStyle = SIZE_STYLES[size];
 
@@ -66,7 +70,7 @@ export function Button({
     fg = theme.textPrimary;
     borderColor = theme.border;
     borderWidth = 1;
-  } else if (variant === "ghost") {
+  } else if (variant === "ghost" || variant === "tertiary") {
     idleBg = "transparent";
     pressedBg = theme.primarySoft;
     fg = theme.primaryAction;
@@ -97,7 +101,7 @@ export function Button({
         {
           minHeight: sizeStyle.minHeight,
           paddingHorizontal: sizeStyle.paddingHorizontal,
-          borderRadius: R.md,
+          borderRadius: v2 ? radiusV2.control : R.md,
           backgroundColor: pressed && !isDisabled ? pressedBg : idleBg,
           borderWidth,
           borderColor,

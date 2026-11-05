@@ -118,3 +118,14 @@ test('allows non-mobile-only roles to reach the unified /tasks screen', () => {
     )
   }
 })
+
+test('the Design V2 preview route is public (it gates itself on its own flag), but nothing similar is', () => {
+  assert.deepEqual(
+    getRouteAccessDecision({ pathname: '/design-v2-preview', isAuthenticated: false, hasHotel: false, role: null }),
+    { type: 'allow' },
+  )
+  assert.equal(
+    getRouteAccessDecision({ pathname: '/design-v2-previews-admin', isAuthenticated: false, hasHotel: false, role: null }).type,
+    'redirect',
+  )
+})
