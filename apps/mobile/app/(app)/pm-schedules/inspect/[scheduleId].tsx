@@ -494,7 +494,6 @@ const styles = StyleSheet.create({
   pad: { padding: 16 },
   content: { padding: 16 },
   stack: { gap: 12 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
   hint: { fontSize: 13, lineHeight: 18 },
   configCard: { padding: 16, gap: 10 },
   configTitle: { fontSize: 15, fontWeight: "700" },

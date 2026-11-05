@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { issueKeepsWork, type SyncIssue } from "@/lib/engineering/syncStatusModel";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 type T = (key: string, options?: Record<string, unknown>) => string;
 
@@ -87,6 +88,7 @@ interface Props {
 export function SyncIssueSheet({ issue, onClose, onViewOrder, onOpenInspection, onRetryAction, onRetryPm, onSubmitAnyway, onDiscard, onDismiss }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const woId = issue ? issueWorkOrderId(issue) : null;
   const title = issue ? issueTitle(issue, t) : "";
 
@@ -138,7 +140,7 @@ export function SyncIssueSheet({ issue, onClose, onViewOrder, onOpenInspection, 
           </Text>
           {rows.map(([label, value], index) => (
             <View key={label} style={styles.block} testID={`esync-sheet-row-${index}`}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
                 {label}
               </Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>

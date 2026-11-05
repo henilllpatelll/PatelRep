@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type LayoutChangeEvent } 
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { PmDraft, PmDraftDefect, PmDraftPart } from "@/lib/engineering/pmChecklist";
 import { PmPhotoField } from "./PmPhotoField";
@@ -27,8 +28,9 @@ const SEVERITIES: ReadonlyArray<NonNullable<PmDraftDefect["severity"]>> = ["low"
 
 function Label({ children }: { children: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
       {children}
     </Text>
   );

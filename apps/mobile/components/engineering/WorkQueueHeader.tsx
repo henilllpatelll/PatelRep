@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { WorkViewTabs } from "@/components/engineering/work/WorkViewTabs";
 import type { QueueView } from "@/lib/engineering/workQueue";
 
@@ -51,6 +52,7 @@ export function WorkQueueHeader({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
 
   return (
@@ -58,7 +60,7 @@ export function WorkQueueHeader({
       <View style={[styles.hero, { paddingTop: insets.top + 10, backgroundColor: theme.shell.bg }]}>
         <View style={styles.titleRow}>
           <View style={styles.titleBlock}>
-            <Text style={[styles.eyebrow, { color: theme.shell.ink2 }]} maxFontSizeMultiplier={1.3}>
+            <Text style={[styles.eyebrow, x.label, { color: theme.shell.ink2 }]} maxFontSizeMultiplier={1.3}>
               {t("workQueue.eyebrow")}
             </Text>
             <Text style={[styles.title, { color: theme.shell.ink }]} accessibilityRole="header" maxFontSizeMultiplier={1.3} testID="wo-title">

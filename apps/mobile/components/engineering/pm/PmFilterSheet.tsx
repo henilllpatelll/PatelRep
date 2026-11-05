@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { DEFAULT_PM_FILTERS, activeFilterCount, type PmFilterState, type PmFrequency, type PmSort } from "@/lib/engineering/pmFilters";
 import type { PmDueState } from "@/lib/engineering/pmSchedules";
 
@@ -40,9 +41,10 @@ function Chip({ label, selected, onPress, testID }: { label: string; selected: b
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.group}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.groupTitle, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.groupTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {title}
       </Text>
       <View style={styles.chips}>{children}</View>

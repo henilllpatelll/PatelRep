@@ -8,6 +8,7 @@ import { FieldLabel, InlineError, LineInput, Note, TextArea, sheetStyles } from 
 import { MAX_NOTES_CHARS, MAX_QUESTION_CHARS, isUsableQuestion } from "@/lib/engineering/repairAssist";
 import { useRepairAssist } from "@/lib/engineering/useRepairAssist";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -30,6 +31,7 @@ interface Props {
 export function RepairAssistSheet({ visible, onClose, workOrderId, online, language, technicianNotes, onUseInCompletion, onSaveAsNote }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const assist = useRepairAssist(workOrderId, language);
   const { cancel } = assist;
   const [question, setQuestion] = useState("");
@@ -114,7 +116,7 @@ export function RepairAssistSheet({ visible, onClose, workOrderId, online, langu
         ) : null}
 
         {suggestion ? (
-          <View style={styles.block} testID="assist-suggestion">
+          <View style={[styles.block, x.active && { backgroundColor: theme.ai.soft, borderColor: theme.ai.line, borderWidth: 1, borderRadius: 12, padding: 12 }]} testID="assist-suggestion">
             <FieldLabel>{t("repairAssist.aiSuggestion")}</FieldLabel>
             {suggestion.summary ? (
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textPrimary }]}>
@@ -123,7 +125,7 @@ export function RepairAssistSheet({ visible, onClose, workOrderId, online, langu
             ) : null}
             {suggestion.checks.length > 0 ? (
               <>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textMuted }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, x.label, { color: theme.textMuted }]}>
                   {t("repairAssist.checks")}
                 </Text>
                 {suggestion.checks.map((check, index) => (
@@ -135,7 +137,7 @@ export function RepairAssistSheet({ visible, onClose, workOrderId, online, langu
             ) : null}
             {suggestion.needs_info.length > 0 ? (
               <>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textMuted }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, x.label, { color: theme.textMuted }]}>
                   {t("repairAssist.needsInfo")}
                 </Text>
                 {suggestion.needs_info.map((item, index) => (
@@ -167,7 +169,7 @@ export function RepairAssistSheet({ visible, onClose, workOrderId, online, langu
 
         {assist.turns.map((turn, index) => (
           <View key={`t${index}`} style={styles.turn} testID={`assist-turn-${index}`}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textMuted }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, x.label, { color: theme.textMuted }]}>
               {turn.role === "user" ? t("repairAssist.you") : t("repairAssist.aiAnswer")}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textPrimary }]}>

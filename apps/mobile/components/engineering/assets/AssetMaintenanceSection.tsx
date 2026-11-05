@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { dueLabel, frequencyLabel, useDueTone } from "@/components/engineering/pm/pmUi";
@@ -69,6 +70,7 @@ function ScheduleRow({ schedule, language, timezone }: { schedule: PmScheduleVie
 export function AssetMaintenanceSection({ active, completed, scoped, repeats90d, schedules, history, historyFailure, hasMoreHistory, onLoadHistory, language, timezone }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.stack} testID="asset-maintenance">
       <Panel testID="asset-work-orders">
@@ -137,7 +139,7 @@ export function AssetMaintenanceSection({ active, completed, scoped, repeats90d,
             {t("assets.maintenance.historyFailed")}
           </Text>
         ) : null}
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subhead, { color: theme.textMuted }]} accessibilityRole="header">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subhead, x.label, { color: theme.textMuted }]} accessibilityRole="header">
           {t("assets.maintenance.completedRepairs")}
         </Text>
         <WorkOrderList source={completed} language={language} timezone={timezone} emptyBody={t("assets.workOrders.noCompleted")} />

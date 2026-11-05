@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import type { PmEvidenceRef } from "@/lib/engineering/pmChecklist";
 import { PmPhotoField } from "./PmPhotoField";
 
@@ -32,6 +33,7 @@ interface Props {
 export function PmFailureSheet({ visible, equipmentName, stepLabel, note, evidence, uploading, online, onNote, onAddPhoto, onRemovePhoto, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [attempted, setAttempted] = useState(false);
   useEffect(() => {
     if (visible) setAttempted(false);
@@ -58,7 +60,7 @@ export function PmFailureSheet({ visible, equipmentName, stepLabel, note, eviden
       <View style={styles.stack}>
         {equipmentName ? (
           <View>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
               {t("pm.failure.equipment")}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>
@@ -67,7 +69,7 @@ export function PmFailureSheet({ visible, equipmentName, stepLabel, note, eviden
           </View>
         ) : null}
         <View>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
             {t("pm.failure.check")}
           </Text>
           <View style={styles.checkRow}>
@@ -86,7 +88,7 @@ export function PmFailureSheet({ visible, equipmentName, stepLabel, note, eviden
         </View>
 
         <View>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
             {t("pm.failure.what")}
           </Text>
           <TextInput
@@ -107,7 +109,7 @@ export function PmFailureSheet({ visible, equipmentName, stepLabel, note, eviden
         </View>
 
         <View>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
             {t("pm.failure.photo")}
           </Text>
           <PmPhotoField photos={evidence} uploading={uploading} online={online} onAdd={onAddPhoto} onRemove={onRemovePhoto} testID="pm-failure-photos" />

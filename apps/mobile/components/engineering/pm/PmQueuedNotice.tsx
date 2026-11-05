@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { needsPerson, stateLabelKey, type EngineeringSyncState } from "@/lib/engineering/pmSyncState";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   state: EngineeringSyncState;
@@ -21,6 +22,7 @@ interface Props {
 export function PmQueuedNotice({ state, onOpenSync, onBack }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const attention = needsPerson(state);
   const tone = attention ? theme.status.dirty : theme.status.pickup;
   return (
@@ -29,7 +31,7 @@ export function PmQueuedNotice({ state, onOpenSync, onBack }: Props) {
         <View style={styles.head} accessible accessibilityLiveRegion="polite" accessibilityLabel={`${t(stateLabelKey(state))}. ${t(attention ? "pm.queued.reviewTitle" : "pm.queued.title")}`}>
           <Ionicons name={attention ? "alert-circle-outline" : "cloud-upload-outline"} size={26} color={tone} />
           <View style={styles.flex}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.state, { color: tone }]} testID="pm-queued-state">
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.state, x.pill, { color: tone }]} testID="pm-queued-state">
               {t(stateLabelKey(state))}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]}>

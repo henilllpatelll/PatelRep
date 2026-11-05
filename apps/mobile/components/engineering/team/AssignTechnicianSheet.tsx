@@ -13,6 +13,7 @@ import { filterTechnicians, isRetryable, needsRefreshAfter, technicianName } fro
 import { useAssignTechnician } from "@/lib/engineering/useAssignTechnician";
 import { useTechnicians } from "@/lib/engineering/useTeamOverview";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 export interface AssignTarget {
   id: string;
@@ -46,6 +47,7 @@ interface Props {
 export function AssignTechnicianSheet({ visible, onClose, target, scope, online, onAssigned, onNeedsRefresh }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const techs = useTechnicians(scope, visible && online);
   const assign = useAssignTechnician(online);
   const { clearFailure } = assign;
@@ -130,7 +132,7 @@ export function AssignTechnicianSheet({ visible, onClose, target, scope, online,
       {target ? (
         <View style={sheetStyles.stack}>
           <View accessible accessibilityLabel={`${target.code ?? ""} ${target.title}`} style={styles.header}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.code, { color: theme.textMuted }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.code, x.label, { color: theme.textMuted }]}>
               {[target.code, target.priority ? t(`workQueue.priority.${target.priority}`) : null, target.location ? t("workQueue.roomLabel", { room: target.location }) : null].filter(Boolean).join(" · ")}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]} numberOfLines={3}>

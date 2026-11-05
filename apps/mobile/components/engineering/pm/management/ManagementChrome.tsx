@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /** Header shared by every PM management screen: back, title, optional subtitle. */
 export function ManagementHeader({ title, subtitle, testID }: { title: string; subtitle?: string; testID: string }) {
@@ -33,9 +34,10 @@ export function ManagementHeader({ title, subtitle, testID }: { title: string; s
 
 export function SectionTitle({ children, action }: { children: ReactNode; action?: { label: string; onPress: () => void; testID?: string } }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.sectionRow}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.section, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.section, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {children}
       </Text>
       {action ? (

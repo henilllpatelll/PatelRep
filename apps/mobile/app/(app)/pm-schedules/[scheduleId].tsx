@@ -27,6 +27,7 @@ import { formatDueDate } from "@/lib/engineering/pmSchedules";
 import { hotelDateKey } from "@/lib/housekeeping/hotelTime";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 function Row({ label, value }: { label: string; value: string | null | undefined }) {
   const theme = useTheme();
@@ -45,9 +46,10 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.section}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {title}
       </Text>
       <Card style={styles.card}>{children}</Card>

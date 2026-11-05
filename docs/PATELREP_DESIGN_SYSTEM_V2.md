@@ -615,3 +615,105 @@ EXPO_PUBLIC_DESIGN_V2_PREVIEW=1 npx expo start --dev-client
 Inspector: Home in each state, start/continue an inspection, save-and-exit, review and submit, history filters,
 record. Supervisor: Today, Room Board filter and detail, single and bulk assign, Smart Balance, midshift, Attention,
 schedule and coverage sheets, broadcast/DM/shift note/handoff. Check light, dark, Spanish, large text, offline.
+
+---
+
+# Phase 5 of 8: Engineer and Chief Engineer mobile redesign
+
+Status: implemented on the same branch/PR (#200, draft). Renders **only** for the `engineer` and
+`chief_engineer` roles (plus the Phase 3 and 4 roles) while the preview flag is on
+(`EXPO_PUBLIC_DESIGN_V2_PREVIEW`, off by default, ignored in production). No API, database, migration, RBAC,
+route, offline-engine or production-config change. Flag off = the legacy look, unchanged.
+
+## 40. How Phase 5 is scoped
+
+`isEngineeringV2Role` (`lib/design/housekeeperV2.ts`) widens `isV2SurfaceRole`, so
+`app/(app)/_layout.tsx` wraps the five tabs, every hidden route and every sheet an engineer can reach in
+`<DesignV2Scope>`. 136 of the 140 engineering screen/component files already read colors through `useTheme()`, so
+the scope recolors them to the V2 light/dark palette without per-file color edits. Front Desk and GM stay outside
+the scope and render exactly as before. Shared screens an engineer reaches through More (Settings, Notifications,
+SOP, Scheduling, Profile pages) are role-gated by the same wrapper, so other roles are unaffected.
+
+What Phase 5 changed beyond the gate:
+
+| Change | Where |
+|---|---|
+| Uppercase micro-labels become readable sentence case (`x.label` / `x.pill`; `x.caps()` for strings built in code) | 36 engineering files, 50+ call sites (queue headers, filter sheets, work-order sections, PM, assets, rooms, sync, team) |
+| Monospace figures become tabular system sans (`x.num`) | work-order number, labor timer, activity stamps, home summary values, card codes, Room Status figures |
+| Category chips follow dark mode: `useCategoryMeta()` returns the V2 live theme inside the scope and the unchanged static `CATEGORY_META` outside it | `WorkOrderCard.tsx`, `WorkOrderReportedIssue.tsx` |
+| Repair Assist suggestion is framed with the V2 violet AI surface (soft fill, violet edge); AI is still only requested by the explicit "Get suggestions" button | `RepairAssistSheet.tsx` |
+| Dead uppercase style removed | `pm-schedules/inspect/[scheduleId].tsx` |
+
+Not changed on purpose: the printed QR label (`assets/label/[assetId].tsx`) and `QrCode.tsx` stay fixed
+black-on-white, because they are a physical sticker and a scannable code, not UI.
+
+## 41. Migration matrix
+
+Legend: scoped = renders in the V2 scope (palette + typography); layout unchanged.
+
+| Destination | Roles | Status |
+|---|---|---|
+| Home: Engineer (`EngineerHome`, `home/Technician*`) | engineer | [x] scoped, labels/figures migrated |
+| Home: Chief Engineer (`ChiefEngineerHome`, `ChiefOversight`, `PropertyPriorities`, `TeamWorkloadPreview`) | chief | [x] scoped, labels migrated |
+| Rooms Down sheet, Assign Technician sheet | chief | [x] |
+| Work queue (`work-orders/index`, header, tabs, summary and manager tiles, card, filter sheet) | both | [x] |
+| Work-order detail (`[woId]`, header/summary, reported issue, asset context, PM source, progress, next action, checklist, repair tools, activity timeline, record card, sticky bar) | both | [x] |
+| Work-order sheets: more actions, labor, diagnosis, evidence, parts, hold, escalation, notes, completion, repair assist, technician assignment | both | [x] |
+| Report Issue (`components/engineering/report/**`) | both | [x] scoped |
+| PM overview (today, plan/week, calendar, history, filters, cards) | both | [x] |
+| PM detail, inspection/execution, review, failure sheet, queued notice, completion summary | both | [x] |
+| PM management (overview, programs, performance, schedule form, approvals, assignment, deferrals) | chief | [x] |
+| Assets list, filters, cards, scan entry | both | [x] |
+| Asset detail, maintenance section, readings, room impact, downtime, photos, registration/edit forms | both | [x] |
+| Asset QR scan; QR label | both | [x] scan scoped; label intentionally fixed (print) |
+| More (identity card, `MORE_CATALOG` rows, notifications, sync, settings, sign-out) | both | [x] |
+| Engineering Room Board, room availability, release and recovery sheets | both | [x] |
+| Room Status (`room-status/index`) | engineering and others | [x] figures follow the scope; other roles unchanged |
+| Team management (`team/**`, `TeamParts`) | chief | [x] |
+| Engineering Sync screen and issue sheet | both | [x] |
+| Settings, Notifications, SOP, Scheduling, Profile/Help/FAQ/Report/My Reports/Diagnostics | both | [x] via the scope (Settings keeps its own Phase 2 scope) |
+
+## 42. Behavior preserved
+
+Queue state, query keys, tab state, scroll restoration, filters and claim-conflict handling; work-order
+authorization and routing; checklist, labor, repair-status and completion contracts (evidence requirements,
+submission guards, no duplicate submits); Report Issue validation, idempotency and queued submission; PM
+recurrence, completion eligibility, drafts and offline evidence; asset permissions, validation, scanning and offline
+cache; room-availability safety (cleanliness, occupancy and availability remain separate; no presentation-only
+release); Engineering Sync ordering, retry and "queued is not confirmed" wording; Chief-only management actions
+(RBAC and effective role untouched); AI capability flags, consent, credit accounting and human confirmation. Only
+`style` props, text-transform and color sources changed; no handler, query, store or string was edited.
+
+## 43. Verification
+
+Mobile `tsc` and ESLint (`--max-warnings=0`) are clean. Full mobile Jest: 479 suites, 10,811 tests pass.
+New: `EngineeringV2.test.tsx` (role gate and earlier-phase gates, `useCategoryMeta` on/off/flag-off, scope-on
+sentence case vs flag-off uppercase 10.5 px, and a source guard that fails if an engineering file adds an
+uppercase style or `toUpperCase()` without the V2 text helper). The Phase 4 gate test was updated deliberately
+(engineering roles now belong to the migrated surface). No test was deleted or weakened.
+
+## 44. Known limitations (be honest about what was not done)
+
+- Layouts were **not restructured**. Phase 5 delivers the V2 palette, typography, status wording and AI surface
+  across the whole engineering surface; it does not redesign card arrangements, the Chief Engineer command-center
+  hierarchy, or add progressive-disclosure rework. Treat that as a follow-up if wanted.
+- No native-device, screen-reader, dynamic-type, Spanish-expansion or safe-area run; no committed screenshots.
+  Light/dark are covered by token tests and the contrast suite, not visual review. Offline/sync behavior is
+  unchanged code and covered by the existing engineering tests, not re-verified on device.
+- Remaining legacy: Front Desk, GM, and shared legacy primitives outside the scope; `monoFont`/`SectionHeader`
+  legacy fallbacks stay until the final cleanup phase.
+
+## 45. Previewing Phase 5
+
+```bash
+# Mobile (Expo dev build); sign in as an Engineer or a Chief Engineer
+EXPO_PUBLIC_DESIGN_V2_PREVIEW=1 npx expo start --dev-client
+# Flag off (default): every role looks exactly as before.
+```
+
+## 46. Manual QA (flag on, Engineer and Chief Engineer accounts)
+
+Engineer: Home states, claim and start a work order, labor, diagnosis, evidence, parts, hold, complete; Report
+Issue; PM inspection through completion; asset detail, readings, QR scan; More and nested screens; Sync queue.
+Chief: Home command view, assign technician, rooms down, PM management, team. Check light, dark, Spanish, large
+text, offline, keyboard-open forms.

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { dayMarkers, monthGrid, schedulesOnDay, shiftMonth } from "@/lib/engineering/pmCalendar";
 import { formatDueDate, type PmScheduleView } from "@/lib/engineering/pmSchedules";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { PmScheduleCard } from "./PmScheduleCard";
 import type { PmListProps } from "./PmTodayView";
@@ -19,6 +20,7 @@ const WEEKDAY_KEYS = ["mo", "tu", "we", "th", "fr", "sa", "su"] as const;
 export function PmCalendarView({ schedules, today, ...rest }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
   const grid = useMemo(() => monthGrid(month), [month]);
@@ -109,8 +111,8 @@ export function PmCalendarView({ schedules, today, ...rest }: Props) {
       ))}
 
       <View style={styles.agenda} testID="pm-cal-agenda">
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.agendaTitle, { color: theme.textMuted }]}>
-          {`${formatDueDate(selected, rest.language)} · ${t("pm.inspectionsCount", { count: agenda.length })}`.toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.agendaTitle, x.label, { color: theme.textMuted }]}>
+          {x.caps(`${formatDueDate(selected, rest.language)} · ${t("pm.inspectionsCount", { count: agenda.length })}`)}
         </Text>
         {agenda.length === 0 ? <Text style={[styles.empty, { color: theme.textMuted }]}>{t("pm.nothingScheduledDay")}</Text> : null}
         {agenda.map((s: PmScheduleView) => (

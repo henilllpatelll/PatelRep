@@ -2,14 +2,16 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 
 /* Small form pieces the repair-workspace sheets share. Presentation only: no requests, no rules. */
 
 export function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, x.label, { color: theme.textMuted }]}>
       {children}
       {required ? <Text style={{ color: theme.status.dirty }}> *</Text> : null}
     </Text>

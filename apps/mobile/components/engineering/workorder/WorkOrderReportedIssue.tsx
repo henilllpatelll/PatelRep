@@ -3,9 +3,10 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
-import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
+import { CATEGORY_META, useCategoryMeta } from "@/components/engineering/WorkOrderCard";
 import { SectionHeader } from "@/components/shared/evening";
 import { workOrderLocation, type WorkOrder } from "@/lib/engineering/workOrders";
 
@@ -29,9 +30,11 @@ function when(iso: string | null | undefined, locale: string): string | null {
 export function WorkOrderReportedIssue({ wo, locale, occupancy, availability = null, technicianName }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
+  const categoryMeta = useCategoryMeta();
   const { room, text: locationText } = workOrderLocation(wo);
   const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
-  const category = CATEGORY_META[categoryKey];
+  const category = categoryMeta[categoryKey];
   const rows: { label: string; value: string; roomId?: string }[] = [];
   if (room) rows.push({ roomId: wo.room_id ?? undefined, label: t("workOrders.location"), value: `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}${occupancy ? `  ·  ${t(`workOrders.roomOccupancy.${occupancy}`)}` : ""}` });
   else if (locationText) rows.push({ label: t("workOrders.location"), value: locationText });
@@ -71,12 +74,12 @@ export function WorkOrderReportedIssue({ wo, locale, occupancy, availability = n
               style={[styles.row, { borderTopColor: theme.borderSubtle, minHeight: 44, alignItems: "center" }]}
               testID="wo-open-room"
             >
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>{row.label}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, x.label, { color: theme.textMuted }]}>{row.label}</Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.primaryAction, textDecorationLine: "underline" }]}>{row.value}</Text>
             </Pressable>
           ) : (
             <View key={`${row.label}-${row.value}`} style={[styles.row, { borderTopColor: theme.borderSubtle }]}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>{row.label}</Text>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, x.label, { color: theme.textMuted }]}>{row.label}</Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.textPrimary }]}>{row.value}</Text>
             </View>
           ),

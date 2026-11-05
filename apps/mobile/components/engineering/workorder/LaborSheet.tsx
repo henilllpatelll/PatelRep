@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { formatDuration, formatClock } from "@/lib/engineering/workOrders";
 import { formatStopwatch, type LaborSession, type LaborSummary } from "@/lib/engineering/repairWorkspace";
 import { monoFont } from "@/components/shared/tokens";
@@ -33,6 +34,7 @@ interface Props {
 export function LaborSheet({ visible, onClose, online, locale, userId, sessions, summary, canStart, canPause, startVerb, failedToLoad, onStart, onPause }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { busy, error, run } = useSheetSubmit();
   const newestFirst = [...sessions].sort((a, b) => b.started_at.localeCompare(a.started_at));
 
@@ -41,10 +43,10 @@ export function LaborSheet({ visible, onClose, online, locale, userId, sessions,
       <View style={sheetStyles.stack}>
         {summary.active ? (
           <View style={{ gap: 2 }}>
-            <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }}>
+            <Text style={[{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }, x.label]}>
               {summary.activeIsMine ? t("workOrders.repair.labor.activeMine") : t("workOrders.repair.labor.activeOther")}
             </Text>
-            <Text accessibilityRole="timer" style={{ color: theme.textPrimary, fontSize: 34, fontWeight: "700", fontFamily: monoFont }} testID="wo-labor-active">
+            <Text accessibilityRole="timer" style={[{ color: theme.textPrimary, fontSize: 34, fontWeight: "700", fontFamily: monoFont }, x.num]} testID="wo-labor-active">
               {formatStopwatch(summary.activeSeconds)}
             </Text>
           </View>
@@ -70,7 +72,7 @@ export function LaborSheet({ visible, onClose, online, locale, userId, sessions,
         {error ? <InlineError>{error}</InlineError> : null}
         {failedToLoad ? <InlineError>{t("workOrders.repair.labor.loadFailed")}</InlineError> : null}
 
-        <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 8 }}>
+        <Text style={[{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 8 }, x.label]}>
           {t("workOrders.repair.labor.sessions")}
         </Text>
         {newestFirst.length === 0 ? (
@@ -82,11 +84,11 @@ export function LaborSheet({ visible, onClose, online, locale, userId, sessions,
                 <Text style={{ color: theme.textPrimary, fontSize: 14 }}>
                   {session.staff_user_id === userId ? t("workOrders.repair.labor.you") : t("workOrders.repair.labor.technician")}
                 </Text>
-                <Text style={{ color: theme.textMuted, fontSize: 12.5, fontFamily: monoFont }}>
+                <Text style={[{ color: theme.textMuted, fontSize: 12.5, fontFamily: monoFont }, x.num]}>
                   {formatClock(session.started_at, locale) ?? "—"} → {session.ended_at ? formatClock(session.ended_at, locale) ?? "—" : t("workOrders.repair.labor.running")}
                 </Text>
               </View>
-              <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: "700", fontFamily: monoFont }}>
+              <Text style={[{ color: theme.textPrimary, fontSize: 14, fontWeight: "700", fontFamily: monoFont }, x.num]}>
                 {session.ended_at ? formatDuration(Math.round(Number(session.duration_minutes ?? 0))) : t("workOrders.repair.labor.running")}
               </Text>
             </View>

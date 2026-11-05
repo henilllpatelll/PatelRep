@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import type { AttentionItem, Technician } from "@/lib/api/engineeringTeam";
 import { technicianName, workOrderCode, type SummaryTile } from "@/lib/engineering/teamModel";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const FONT_CAP = 1.5;
 
@@ -47,6 +48,7 @@ export function SummaryTileView({ tile, onPress }: { tile: SummaryTile; onPress?
 export function AttentionRow({ item, onOpen, onAssign }: { item: AttentionItem; onOpen: () => void; onAssign?: () => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const code = workOrderCode(item);
   const reason = t(`engineeringTeam.attention.${item.kind}`);
   const detail =
@@ -69,7 +71,7 @@ export function AttentionRow({ item, onOpen, onAssign }: { item: AttentionItem; 
       >
         <View style={styles.attentionTop}>
           <Ionicons name={urgent ? "alert-circle" : "pause-circle-outline"} size={16} color={urgent ? theme.status.dirty : theme.status.pickup} />
-          <Text maxFontSizeMultiplier={FONT_CAP} style={[styles.reason, { color: urgent ? theme.status.dirty : theme.status.pickup }]}>
+          <Text maxFontSizeMultiplier={FONT_CAP} style={[styles.reason, x.pill, { color: urgent ? theme.status.dirty : theme.status.pickup }]}>
             {reason}
           </Text>
         </View>

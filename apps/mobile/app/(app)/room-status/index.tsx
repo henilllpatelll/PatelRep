@@ -20,6 +20,7 @@ import { useAppStore } from "@/stores/appStore";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { EngineeringRoomBoard } from "@/components/engineering/rooms/EngineeringRoomBoard";
@@ -117,6 +118,7 @@ function PropertyRoomStatusScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const x = useV2Text();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline } = useAppStore();
   const [rooms, setRooms] = useState<RoomRow[]>([]);
@@ -211,7 +213,7 @@ function PropertyRoomStatusScreen() {
         <View>
           <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
           <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-            <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomStatus.kicker")}</Text>
+            <Text style={[styles.heroKicker, x.label, { color: theme.shell.ink3 }]}>{t("roomStatus.kicker")}</Text>
             <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomStatus")}</Text>
             <View style={styles.heroStats}>
               <View
@@ -220,7 +222,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{vacantCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.readyLine }]}>{vacantCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statVacant")}
                 </Text>
@@ -231,7 +233,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.dirtyLine }]}>{occupiedCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.dirtyLine }]}>{occupiedCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statOccupied")}
                 </Text>
@@ -242,7 +244,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{readyCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.readyLine }]}>{readyCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statReady")}
                 </Text>
@@ -370,7 +372,7 @@ function PropertyRoomStatusScreen() {
                               </Text>
                             </View>
                           </View>
-                          <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>
+                          <Text style={[styles.roomNumber, x.num, { color: theme.textPrimary }]}>
                             {room.room_number}
                           </Text>
                           {hasMetaRow ? (
@@ -384,7 +386,7 @@ function PropertyRoomStatusScreen() {
                                 </Text>
                               ) : null}
                               {room.checkout_time ? (
-                                <Text style={[styles.checkoutText, { color: theme.status.pickup }]}>
+                                <Text style={[styles.checkoutText, x.num, { color: theme.status.pickup }]}>
                                   {t("roomStatus.checkout", { time: room.checkout_time })}
                                 </Text>
                               ) : null}

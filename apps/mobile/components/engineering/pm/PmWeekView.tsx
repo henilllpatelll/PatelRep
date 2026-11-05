@@ -6,6 +6,7 @@ import { addDaysToYmd } from "@/lib/housekeeping/hotelTime";
 import { planWeek, weekStartOf } from "@/lib/engineering/pmCalendar";
 import { formatDueDate, type PmScheduleView } from "@/lib/engineering/pmSchedules";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { PmScheduleCard } from "./PmScheduleCard";
 import type { PmListProps } from "./PmTodayView";
@@ -18,6 +19,7 @@ interface Props extends PmListProps {
 export function PmWeekView({ schedules, today, ...rest }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [weekStart, setWeekStart] = useState(() => weekStartOf(today));
   const plan = useMemo(() => planWeek(schedules, weekStart, today), [schedules, weekStart, today]);
   const range = `${formatDueDate(plan.weekStart, rest.language)} – ${formatDueDate(plan.weekEnd, rest.language)}`;
@@ -58,8 +60,8 @@ export function PmWeekView({ schedules, today, ...rest }: Props) {
 
       {plan.carriedOverdue.length > 0 ? (
         <View style={styles.day} testID="pm-week-carried">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.dayTitle, { color: theme.status.dirty }]}>
-            {t("pm.earlierOverdue", { count: plan.carriedOverdue.length }).toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.dayTitle, x.label, { color: theme.status.dirty }]}>
+            {x.caps(t("pm.earlierOverdue", { count: plan.carriedOverdue.length }))}
           </Text>
           {plan.carriedOverdue.map(card)}
         </View>
@@ -68,8 +70,8 @@ export function PmWeekView({ schedules, today, ...rest }: Props) {
       {plan.days.map((day) =>
         day.schedules.length === 0 ? null : (
           <View key={day.dateKey} style={styles.day} testID={`pm-week-day-${day.dateKey}`}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.dayTitle, { color: day.isToday ? theme.primaryAction : theme.textMuted }]}>
-              {`${weekday(day.dateKey)} ${formatDueDate(day.dateKey, rest.language)} · ${t("pm.inspectionsCount", { count: day.schedules.length })}`.toUpperCase()}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.dayTitle, x.label, { color: day.isToday ? theme.primaryAction : theme.textMuted }]}>
+              {x.caps(`${weekday(day.dateKey)} ${formatDueDate(day.dateKey, rest.language)} · ${t("pm.inspectionsCount", { count: day.schedules.length })}`)}
             </Text>
             {day.schedules.map(card)}
           </View>

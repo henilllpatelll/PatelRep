@@ -1,9 +1,11 @@
-import { memo, type ComponentProps } from "react";
+import { memo, useMemo, type ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { lightTheme, monoFont } from "@/components/shared/tokens";
+import { lightTheme, monoFont, type ThemeTokens } from "@/components/shared/tokens";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
@@ -34,62 +36,73 @@ import { workOrderLabel, type QueueView } from "@/lib/engineering/workQueue";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
-/** CATEGORY_META is consumed as a plain object (no hook) by [woId].tsx and
- * EngineerHome.tsx — both out of this plan's scope — so it stays sourced
- * from the static `lightTheme` export (identical values to the app's only
- * active theme this milestone) rather than the reactive `useTheme()` hook. */
-export const CATEGORY_META: Record<string, { icon: IconName; fg: string; bg: string }> = {
-  plumbing: {
-    icon: "water-outline",
-    fg: lightTheme.status.clean,
-    bg: lightTheme.status.cleanSoft,
-  },
-  electrical: {
-    icon: "flash-outline",
-    fg: lightTheme.status.pickup,
-    bg: lightTheme.status.pickupSoft,
-  },
-  hvac: {
-    icon: "thermometer-outline",
-    fg: lightTheme.primary,
-    bg: lightTheme.primarySoft,
-  },
-  furniture: {
-    icon: "bed-outline",
-    fg: lightTheme.accentBrass,
-    bg: lightTheme.accentBrassSoft,
-  },
-  appliance: {
-    icon: "tv-outline",
-    fg: lightTheme.status.clean,
-    bg: lightTheme.status.cleanSoft,
-  },
-  structural: {
-    icon: "business-outline",
-    fg: lightTheme.textSecondary,
-    bg: lightTheme.surfaceMuted,
-  },
-  safety: {
-    icon: "warning-outline",
-    fg: lightTheme.status.dirty,
-    bg: lightTheme.status.dirtySoft,
-  },
-  doors_locks: {
-    icon: "key-outline",
-    fg: lightTheme.textSecondary,
-    bg: lightTheme.surfaceMuted,
-  },
-  painting: {
-    icon: "color-fill-outline",
-    fg: lightTheme.accentBrass,
-    bg: lightTheme.accentBrassSoft,
-  },
-  general: {
-    icon: "construct-outline",
-    fg: lightTheme.textSecondary,
-    bg: lightTheme.surfaceMuted,
-  },
-};
+type CategoryMeta = Record<string, { icon: IconName; fg: string; bg: string }>;
+
+function buildCategoryMeta(src: ThemeTokens): CategoryMeta {
+  return {
+    plumbing: {
+      icon: "water-outline",
+      fg: src.status.clean,
+      bg: src.status.cleanSoft,
+    },
+    electrical: {
+      icon: "flash-outline",
+      fg: src.status.pickup,
+      bg: src.status.pickupSoft,
+    },
+    hvac: {
+      icon: "thermometer-outline",
+      fg: src.primary,
+      bg: src.primarySoft,
+    },
+    furniture: {
+      icon: "bed-outline",
+      fg: src.accentBrass,
+      bg: src.accentBrassSoft,
+    },
+    appliance: {
+      icon: "tv-outline",
+      fg: src.status.clean,
+      bg: src.status.cleanSoft,
+    },
+    structural: {
+      icon: "business-outline",
+      fg: src.textSecondary,
+      bg: src.surfaceMuted,
+    },
+    safety: {
+      icon: "warning-outline",
+      fg: src.status.dirty,
+      bg: src.status.dirtySoft,
+    },
+    doors_locks: {
+      icon: "key-outline",
+      fg: src.textSecondary,
+      bg: src.surfaceMuted,
+    },
+    painting: {
+      icon: "color-fill-outline",
+      fg: src.accentBrass,
+      bg: src.accentBrassSoft,
+    },
+    general: {
+      icon: "construct-outline",
+      fg: src.textSecondary,
+      bg: src.surfaceMuted,
+    },
+  };
+}
+
+/** CATEGORY_META is consumed as a plain object (no hook) by legacy call sites, so it stays sourced from the
+ * static `lightTheme` export. Inside a V2 scope, `useCategoryMeta()` returns the same map built from the live
+ * theme so the chips follow dark mode; outside it, it returns this exact legacy map. */
+export const CATEGORY_META: CategoryMeta = buildCategoryMeta(lightTheme as unknown as ThemeTokens);
+
+export function useCategoryMeta(): CategoryMeta {
+  const v2 = useIsDesignV2();
+  const theme = useTheme();
+  return useMemo(() => (v2 ? buildCategoryMeta(theme) : CATEGORY_META), [v2, theme]);
+}
 
 export interface WorkOrderCardProps {
   wo: WorkOrder;
@@ -169,6 +182,7 @@ function WorkOrderCardView({
 }: WorkOrderCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
 
   const { room, text } = workOrderLocation(wo);
   const number = workOrderLabel(wo);
@@ -249,7 +263,7 @@ function WorkOrderCardView({
         style={styles.info}
       >
         <View style={styles.topRow}>
-          <Text style={[styles.code, { color: theme.textMuted }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+          <Text style={[styles.code, x.label, x.num, { color: theme.textMuted }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
             {codeLine || t(`workOrders.category.${wo.category && CATEGORY_META[wo.category] ? wo.category : "general"}`)}
           </Text>
           <View
@@ -271,7 +285,7 @@ function WorkOrderCardView({
               />
             ) : null}
             <Text
-              style={[styles.priorityText, { color: emergency ? theme.surface : priorityColor }]}
+              style={[styles.priorityText, x.pill, { color: emergency ? theme.surface : priorityColor }]}
               maxFontSizeMultiplier={1.4}
               testID={`wo-priority-${wo.id}`}
             >
