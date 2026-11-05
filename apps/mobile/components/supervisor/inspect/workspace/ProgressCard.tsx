@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -23,10 +24,11 @@ export function ProgressCard({
   t: Translate;
   onNext: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View
-      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}
       testID="workspace-progress"
       accessible
       accessibilityRole="progressbar"

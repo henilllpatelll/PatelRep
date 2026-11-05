@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -187,11 +188,12 @@ function ContextBody({
 }
 
 function Block({ title, testID, children }: { title: string; testID: string; children: ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.block} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.blockTitle, { color: theme.textMuted }]}>
-        {title.toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.blockTitle, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(title)}
       </Text>
       {children}
     </View>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta } from "@/components/shared/evening";
@@ -26,13 +27,14 @@ import { useTheme } from "@/lib/theme/useTheme";
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 export function Section({ title, children, testID }: { title: string; children: ReactNode; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.section} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
         {title}
       </Text>
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>{children}</View>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>{children}</View>
     </View>
   );
 }

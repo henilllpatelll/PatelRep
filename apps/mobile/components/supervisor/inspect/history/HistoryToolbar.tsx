@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -45,6 +46,7 @@ export function HistoryToolbar({
   onRemoveChip: (chip: FilterChip) => void;
   onClearAll: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const chips = filterChips(filters);
   const filtered = activeCount > 0;
@@ -52,8 +54,8 @@ export function HistoryToolbar({
     <View style={styles.wrap} testID="history-toolbar">
       <View style={styles.titleRow}>
         <View style={styles.titleText}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
-            {t("inspect.history.title").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("inspect.history.title"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.period, { color: theme.textPrimary }]} testID="history-period">
             {periodText}
@@ -133,10 +135,11 @@ export function HistoryToolbar({
 }
 
 function Stat({ label, value, atLeast, t, testID }: { label: string; value: number; atLeast: boolean; t: Translate; testID: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const shown = atLeast ? t("inspect.history.insights.atLeast", { count: value }) : String(value);
   return (
-    <View style={[styles.stat, { backgroundColor: theme.surface, borderColor: theme.border }]} accessible accessibilityLabel={`${label}: ${shown}`} testID={testID}>
+    <View style={[styles.stat, { backgroundColor: theme.surface, borderColor: v2t.edge }]} accessible accessibilityLabel={`${label}: ${shown}`} testID={testID}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.statValue, { color: theme.textPrimary }]}>
         {shown}
       </Text>

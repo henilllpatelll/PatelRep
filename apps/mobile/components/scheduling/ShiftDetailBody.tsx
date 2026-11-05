@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -42,6 +43,7 @@ interface Props {
 
 /** Everything the schedule and the server know about one shift. Missing facts are named as missing, never zero. */
 export function ShiftDetailBody({ shift, roles, state, zone, language, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const detail: ShiftDetail | null = state.status === "ready" ? state.detail : null;
   const timeline = detail ? buildTimeline(detail, shift.startLabel, zone, language) : null;
@@ -60,8 +62,8 @@ export function ShiftDetailBody({ shift, roles, state, zone, language, t }: Prop
         {shift.notes ? <Row label={t("teamSchedule.manage.detail.notes")} value={shift.notes} testID="shift-detail-notes" /> : null}
       </View>
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-        {t("teamSchedule.manage.detail.timeline").toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(t("teamSchedule.manage.detail.timeline"))}
       </Text>
       {state.status === "loading" ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textMuted }]} testID="shift-detail-loading">
@@ -93,8 +95,8 @@ export function ShiftDetailBody({ shift, roles, state, zone, language, t }: Prop
 
       {detail?.rooms.applicable ? (
         <>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-            {t("teamSchedule.manage.detail.rooms").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("teamSchedule.manage.detail.rooms"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.note, { color: theme.textPrimary }]} testID="shift-detail-rooms">
             {detail.rooms.available && detail.rooms.count !== null ? t("teamSchedule.manage.detail.roomsCount", { count: detail.rooms.count }) : t("teamSchedule.manage.detail.roomsUnavailable")}

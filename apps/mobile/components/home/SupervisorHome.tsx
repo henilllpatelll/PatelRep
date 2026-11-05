@@ -11,6 +11,7 @@ import { QuickActions, type QuickActionKey } from "@/components/supervisor/today
 import { ReadinessCard } from "@/components/supervisor/today/ReadinessCard";
 import { TeamPulseCard } from "@/components/supervisor/today/TeamPulseCard";
 import { TodayHeader } from "@/components/supervisor/today/TodayHeader";
+import { RoleHomeHeader, type HeaderStatus } from "@/components/home/RoleHomeHeader";
 import BroadcastModal from "@/components/supervisor/BroadcastModal";
 import DirectMessageModal from "@/components/supervisor/DirectMessageModal";
 import ShiftNoteModal from "@/components/supervisor/ShiftNoteModal";
@@ -23,6 +24,8 @@ import { availabilityKey, roleKey, type StaffQuickView } from "@/lib/housekeepin
 import { describeFreshness, freshnessLabel, greetingPart } from "@/lib/housekeeping/supervisorTodayView";
 import { subscribeSupervisorRealtime } from "@/lib/housekeeping/supervisorRealtime";
 import { useSupervisorToday } from "@/lib/housekeeping/useSupervisorToday";
+import { useHotelName } from "@/lib/housekeeping/useHotelName";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { openSupervisorHref } from "@/lib/navigation/openSupervisorHref";
 import { assignmentsHref, supervisorHref, teamScheduleHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -61,6 +64,9 @@ export function SupervisorHome({ name }: { name: string }) {
   const tenantId = user?.tenant_id ?? null;
   const userId = user?.id ?? null;
   const language = user?.language_pref ?? "en";
+  // Design System V2 (Phase 4): inside the scope Today gets the shared role-home header (property, date, freshness).
+  const v2 = useIsDesignV2();
+  const hotelName = useHotelName(v2);
 
   const { today, refresh } = useSupervisorToday({
     viewerId: userId,
@@ -120,6 +126,14 @@ export function SupervisorHome({ name }: { name: string }) {
     () => freshnessLabel(describeFreshness(today.sources.board, now), t, zone, language),
     [today.sources.board, now, t, zone, language],
   );
+
+  // One honest line about how current the board is. Offline is already said by the banner below, so no second chip.
+  const freshnessStatus: HeaderStatus | null =
+    v2 && isOnline && freshness
+      ? today.readiness.status === "stale"
+        ? { text: freshness, tone: "warn", icon: "time-outline" }
+        : { text: freshness, tone: "muted", icon: "checkmark-circle-outline" }
+      : null;
 
   const onQuickAction = useCallback(
     (key: QuickActionKey) => {
@@ -205,16 +219,33 @@ export function SupervisorHome({ name }: { name: string }) {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={pulling} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
       >
-        <TodayHeader
-          greeting={greeting}
-          dateLine={dateLine}
-          name={name.trim() || "?"}
-          unreadCount={unreadCount}
-          topInset={insets.top}
-          t={t}
-          onOpenNotifications={() => go("notifications")}
-          onOpenProfile={() => router.push("/(app)/profile" as never)}
-        />
+        {v2 ? (
+          <RoleHomeHeader
+            prefix="today"
+            hotelName={hotelName}
+            greeting={greeting}
+            dateLine={dateLine}
+            unreadCount={unreadCount}
+            topInset={insets.top}
+            t={t}
+            status={freshnessStatus}
+            profileName={name.trim() || "?"}
+            profileLabel={t("supervisorToday.header.profile")}
+            onOpenProfile={() => router.push("/(app)/profile" as never)}
+            onOpenNotifications={() => go("notifications")}
+          />
+        ) : (
+          <TodayHeader
+            greeting={greeting}
+            dateLine={dateLine}
+            name={name.trim() || "?"}
+            unreadCount={unreadCount}
+            topInset={insets.top}
+            t={t}
+            onOpenNotifications={() => go("notifications")}
+            onOpenProfile={() => router.push("/(app)/profile" as never)}
+          />
+        )}
 
         {!isOnline ? (
           <Text

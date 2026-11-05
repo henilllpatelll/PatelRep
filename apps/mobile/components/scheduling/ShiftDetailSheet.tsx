@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { SheetActionRow, SheetNotice } from "@/components/home/sheetParts";
@@ -58,6 +59,7 @@ interface Props {
  * only explains up front why an action is unavailable.
  */
 export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, language, isOnline, onChanged, stage = false, onEdit, onCopy, onMessage, onOpenAssignments, coverageFor, onCallOut, onFindCoverage, onClose, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const visible = person !== null;
@@ -178,8 +180,8 @@ export function ShiftDetailSheet({ person, roster, rows, initialShiftId, zone, l
                 </Text>
               )}
 
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-                {t("teamSchedule.detail.shifts").toUpperCase()}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+                {v2t.caps(t("teamSchedule.detail.shifts"))}
               </Text>
               {person.shifts.length === 0 ? (
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]} testID="team-schedule-detail-unscheduled">

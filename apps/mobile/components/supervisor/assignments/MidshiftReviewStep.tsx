@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -76,6 +77,7 @@ function MovePicker({ midshift, t }: { midshift: MidshiftController; t: Translat
 }
 
 export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftController; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { source, plan, editing } = midshift;
   if (!source || !plan) return null;
@@ -114,7 +116,7 @@ export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftControll
         {missing ? <Body tone="muted" testID="midshift-missing">{t("assignments.v2.midshift.review.missing")}</Body> : null}
 
         {sourceReview ? (
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="midshift-source-card">
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="midshift-source-card">
             <SectionLabel>{t("assignments.v2.midshift.review.sourceHeading")}</SectionLabel>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.name, { color: theme.textPrimary }]}>
               {sourceName}
@@ -134,7 +136,7 @@ export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftControll
           const name = nameOrFallback(employee.name, t);
           const note = missingText(employee.proposed.minutes, t);
           return (
-            <View key={employee.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`midshift-receiver-${employee.userId}`}>
+            <View key={employee.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`midshift-receiver-${employee.userId}`}>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.name, { color: theme.textPrimary }]}>
                 {name}
               </Text>
@@ -149,7 +151,7 @@ export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftControll
               {employee.acks.length > 0 ? <Body tone="muted" testID={`midshift-confirm-later-${employee.userId}`}>{t("assignments.v2.midshift.destination.confirmLater")}</Body> : null}
               {employee.added.map((item) => (
                 <View key={item.roomId} style={styles.itemRow} testID={`midshift-item-${item.roomNumber}`}>
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]}>
                     {item.roomNumber}
                   </Text>
                   <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.itemDetail, { color: theme.textSecondary }]}>

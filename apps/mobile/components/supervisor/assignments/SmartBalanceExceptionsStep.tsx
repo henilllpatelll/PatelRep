@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
@@ -17,6 +18,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    it (the supervisor decides on that room alone). */
 
 export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }: { smart: SmartBalanceController; onViewRoom: (roomId: string) => void; onViewStaff: (userId: string) => void; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { plan, preview } = smart;
   if (!plan || !preview) return null;
@@ -35,8 +37,8 @@ export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }
             {rooms.map((room) => {
               const text = roomExclusionText(room.exclusion, t);
               return (
-                <View key={room.roomId} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`smart-excluded-${room.roomNumber}`}>
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityLabel={t("assignments.v2.smart.exceptions.roomLabel", { room: room.roomNumber })} style={[styles.number, { color: theme.textPrimary }]}>
+                <View key={room.roomId} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`smart-excluded-${room.roomNumber}`}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityLabel={t("assignments.v2.smart.exceptions.roomLabel", { room: room.roomNumber })} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
                     {room.roomNumber}
                   </Text>
                   <Body strong>{text.title}</Body>
@@ -56,8 +58,8 @@ export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }
           <>
             <SectionLabel>{t("assignments.v2.smart.exceptions.unallocatedTitle")}</SectionLabel>
             {preview.leftOut.map((item) => (
-              <View key={item.roomId} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`smart-leftout-${item.roomNumber}`}>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }]}>
+              <View key={item.roomId} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`smart-leftout-${item.roomNumber}`}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
                   {item.roomNumber}
                 </Text>
                 <Body strong>{leftOutText(item.reason, t)}</Body>
@@ -77,7 +79,7 @@ export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }
           <>
             <SectionLabel>{t("assignments.v2.smart.exceptions.staffTitle")}</SectionLabel>
             {plan.excludedStaff.map((person) => (
-              <View key={person.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`smart-excluded-staff-${person.userId}`}>
+              <View key={person.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`smart-excluded-staff-${person.userId}`}>
                 <Body strong>{person.name ?? t("assignments.v2.smart.detail.unnamed")}</Body>
                 <Body tone="secondary">{staffExclusionText(person.reason, t)}</Body>
                 <Pressable onPress={() => onViewStaff(person.userId)} accessibilityRole="button" accessibilityLabel={`${t("assignments.v2.smart.exceptions.viewStaff")} ${person.name ?? ""}`} style={styles.action}>

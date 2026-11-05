@@ -8,7 +8,10 @@ import { ActionConfirmPanel } from "@/components/ai/ActionConfirmPanel";
 import { AssistantComposer } from "@/components/ai/AssistantComposer";
 import { AssistantMessageView } from "@/components/ai/AssistantMessageView";
 import { ContextChip } from "@/components/ai/ContextChip";
-import { usePalette } from "@/components/ai/palette";
+import { AssistantPaletteContext } from "@/components/ai/palette";
+import { darkTheme } from "@/components/shared/tokens";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { useTheme } from "@/lib/theme/useTheme";
 import { RoomPickerPanel } from "@/components/ai/RoomPickerPanel";
 import { RoomQuestionList } from "@/components/ai/RoomQuestionList";
 import { VoiceCapturePanel } from "@/components/voice/VoiceCapturePanel";
@@ -33,7 +36,9 @@ const RECENT_MESSAGES = 6;
  */
 export function AssistantSheet() {
   const { t } = useTranslation();
-  const theme = usePalette();
+  const scopedTheme = useTheme();
+  const v2 = useIsDesignV2();
+  const theme = v2 ? scopedTheme : darkTheme;
   const assistant = useAssistant();
   const {
     conversation,
@@ -147,6 +152,7 @@ export function AssistantSheet() {
     ) : undefined;
 
   return (
+    <AssistantPaletteContext.Provider value={theme}>
     <BottomSheet
       visible={sheetOpen}
       title={title}
@@ -271,6 +277,7 @@ export function AssistantSheet() {
         </View>
       )}
     </BottomSheet>
+    </AssistantPaletteContext.Provider>
   );
 }
 

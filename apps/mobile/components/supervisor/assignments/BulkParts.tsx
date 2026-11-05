@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -20,10 +21,11 @@ export function Body({ children, tone = "primary", style, testID, strong }: { ch
 }
 
 export function SectionLabel({ children, testID }: { children: string; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textMuted }]} testID={testID}>
-      {children.toUpperCase()}
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textMuted }, v2t.label]} testID={testID}>
+      {v2t.caps(children)}
     </Text>
   );
 }

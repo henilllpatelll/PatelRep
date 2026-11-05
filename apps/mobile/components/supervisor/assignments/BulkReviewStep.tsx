@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -43,11 +44,12 @@ function ValidationRow({ validation, t }: { validation: ReviewValidation; t: Tra
 }
 
 function EmployeeBlock({ employee, bulk, t }: { employee: EmployeeReview; bulk: BulkAssignmentController; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const name = employee.name ?? t("assignments.v2.assign.unnamed");
   const missing = missingText(employee.proposed.minutes, t);
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`bulk-review-employee-${employee.userId}`}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`bulk-review-employee-${employee.userId}`}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.cardTitle, { color: theme.textPrimary }]}>
         {name}
       </Text>
@@ -98,6 +100,7 @@ function EmployeeBlock({ employee, bulk, t }: { employee: EmployeeReview; bulk: 
 }
 
 export function BulkReviewStep({ bulk, t, midshiftNote }: { bulk: BulkAssignmentController; t: Translate; midshiftNote?: MidshiftNote | null }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const review = bulk.draft.review;
   if (!review) return null;
@@ -124,7 +127,7 @@ export function BulkReviewStep({ bulk, t, midshiftNote }: { bulk: BulkAssignment
         </Notice>
 
         {midshiftNote ? (
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="bulk-review-midshift">
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="bulk-review-midshift">
             <Body strong>{noteText(midshiftNote, t).title}</Body>
             {noteText(midshiftNote, t).reason ? <Body tone="secondary">{noteText(midshiftNote, t).reason}</Body> : null}
           </View>
@@ -136,7 +139,7 @@ export function BulkReviewStep({ bulk, t, midshiftNote }: { bulk: BulkAssignment
           </Notice>
         ) : null}
 
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="bulk-review-summary">
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="bulk-review-summary">
           <SectionLabel>{t("assignments.v2.bulk.review.summary")}</SectionLabel>
           <Body strong>{t("assignments.v2.bulk.review.rooms", { count: review.changeCount })}</Body>
           <Body>{t("assignments.v2.bulk.review.people", { count: review.employeeCount })}</Body>

@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { SheetFact, SheetGone, SheetNotice, SheetSection } from "@/components/home/sheetParts";
@@ -29,6 +30,7 @@ interface Props {
  * action on it. It explains and navigates; it never changes a room, a task or an assignment.
  */
 export function SupervisorAttentionSheet({ visible, view, isOnline, zone, language, t, onClose, onPrimary, onAsk }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
 
   if (view.state === "gone") {
@@ -80,12 +82,12 @@ export function SupervisorAttentionSheet({ visible, view, isOnline, zone, langua
       }
     >
       <View style={styles.badges}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]} testID="attention-sheet-category">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]} testID="attention-sheet-category">
           {t(`supervisorAttention.category.${view.category}`)}
         </Text>
         <Text
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={[styles.kicker, { color: view.severity === "critical" ? theme.status.dirty : view.severity === "high" ? theme.status.pickup : theme.textMuted }]}
+          style={[styles.kicker, { color: view.severity === "critical" ? theme.status.dirty : view.severity === "high" ? theme.status.pickup : theme.textMuted }, v2t.label]}
           testID="attention-sheet-severity"
         >
           {`· ${severity}`}

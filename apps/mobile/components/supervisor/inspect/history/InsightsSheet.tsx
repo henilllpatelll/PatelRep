@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -178,11 +179,12 @@ export function InsightsSheet({
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={[styles.section, { borderColor: theme.border }]}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
-        {title.toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(title)}
       </Text>
       {children}
     </View>
@@ -204,6 +206,7 @@ function Line({ label, value }: { label: string; value: number }) {
 }
 
 function Drill({ label, sub, value, a11y, onPress, disabled, testID }: { label: string; sub?: string; value: string; a11y: string; onPress: () => void; disabled?: boolean; testID: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <Pressable
@@ -212,7 +215,7 @@ function Drill({ label, sub, value, a11y, onPress, disabled, testID }: { label: 
       accessibilityRole="button"
       accessibilityLabel={a11y}
       testID={testID}
-      style={({ pressed }) => [styles.drill, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.85 : 1 }]}
+      style={({ pressed }) => [styles.drill, { backgroundColor: theme.surface, borderColor: v2t.edge, opacity: pressed ? 0.85 : 1 }]}
     >
       <View style={styles.drillText}>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.drillLabel, { color: theme.textPrimary }]}>

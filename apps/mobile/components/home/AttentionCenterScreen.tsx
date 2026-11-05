@@ -43,6 +43,7 @@ const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
  * every tap goes to the existing room workflow or one of the Home drawers.
  */
 export function AttentionCenterScreen() {
+  const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -239,7 +240,7 @@ export function AttentionCenterScreen() {
               <Text
                 maxFontSizeMultiplier={MAX_FONT_SCALE}
                 accessibilityRole="header"
-                style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}
+                style={[styles.sectionTitle, { color: theme.textMuted }, x.label, v2t.label]}
                 testID={`attention-section-${row.group}`}
               >
                 {t(`home.attentionCenter.section.${row.group}`)}
@@ -294,6 +295,7 @@ interface CardProps {
 }
 
 function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: CardProps) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const x = useV2Text();
   const copy = describeAttentionRow(row, note, t, ctx);
@@ -321,7 +323,7 @@ function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: 
             {copy.title}
           </Text>
           {priority ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.priority, { color: tone[row.group] }, x.label]} testID={`attention-priority-${row.item.id}`}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.priority, { color: tone[row.group] }, x.label, v2t.label]} testID={`attention-priority-${row.item.id}`}>
               {priority}
             </Text>
           ) : null}

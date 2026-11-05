@@ -10748,6 +10748,45 @@
       "confirmEmployees_plural": "{{count}} employees"
     }
   },
+  "inspectorHome": {
+    "next": {
+      "kicker": "Next inspection",
+      "waitingRoom": "Room {{room}}",
+      "typeFloor": "{{type}} · {{where}}"
+    },
+    "overview": {
+      "title": "Today's inspections",
+      "awaiting": "Awaiting inspection",
+      "completed": "Completed",
+      "failed": "Failed",
+      "reinspection": "Reinspection work",
+      "a11y": "{{label}}: {{value}}. Opens inspections."
+    },
+    "priority": {
+      "title": "Needs attention first",
+      "a11y": "{{room}}, {{reason}}. Start inspection."
+    },
+    "recent": {
+      "title": "Recent results",
+      "viewAll": "View all",
+      "empty": "Nothing inspected yet today."
+    },
+    "state": {
+      "loading": "Checking your inspections…",
+      "unavailableTitle": "Can't load your inspections",
+      "unavailableBody": "Check your connection and try again. Nothing is shown as done until it's confirmed.",
+      "restrictedTitle": "Inspections aren't available to this account",
+      "restrictedBody": "If you should be inspecting rooms, ask a manager to check your role.",
+      "emptyTitle": "No rooms are waiting for inspection",
+      "emptyBody": "Rooms appear here as soon as housekeeping marks them clean.",
+      "allDoneTitle": "All inspections complete",
+      "allDoneBody": "Every room that was ready has been inspected. New rooms appear here when they're cleaned.",
+      "offlineNote": "You're offline. Starting an inspection needs a connection."
+    },
+    "status": {
+      "refresh": "Refresh inspections"
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Good morning",

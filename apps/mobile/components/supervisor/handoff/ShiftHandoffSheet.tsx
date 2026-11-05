@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -49,6 +50,7 @@ function formatDay(date: string | null, language: string): string {
 }
 
 function HandoffSheet({ today, refresh, scope, isOnline, supervisorName, language, onClose }: Omit<Props, "visible">) {
+  const v2t = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
   const flow = useShiftHandoff({ today, refresh, scope, isOnline });
@@ -263,12 +265,12 @@ function HandoffSheet({ today, refresh, scope, isOnline, supervisorName, languag
             <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.savedTitle, { color: theme.textPrimary }]}>
               {t("supervisorHandoff.saved.title")}
             </Text>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.savedBody, { color: theme.textSecondary }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.savedBody, { color: theme.textSecondary }, v2t.label]}>
               {saved.replay ? t("supervisorHandoff.saved.previously") : t("supervisorHandoff.saved.body")}
             </Text>
           </View>
           <View style={[styles.meta, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}>
-            <MetaRow testID="handoff-saved-ref" label={t("supervisorHandoff.saved.reference")} value={`#${saved.id.slice(0, 8).toUpperCase()}`} />
+            <MetaRow testID="handoff-saved-ref" label={t("supervisorHandoff.saved.reference")} value={`#${v2t.caps(saved.id.slice(0, 8))}`} />
             <MetaRow label={t("supervisorHandoff.saved.savedAt")} value={timeOf(saved.createdAt) ?? "—"} />
             <MetaRow label={t("supervisorHandoff.saved.date")} value={formatDay(saved.reportDate, language)} />
           </View>

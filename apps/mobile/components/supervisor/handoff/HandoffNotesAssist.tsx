@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useTranslation } from "react-i18next";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +49,7 @@ export function mergeNotes(existing: string, draft: string, max: number = HANDOF
 }
 
 export function HandoffNotesAssist({ today, notes, setNotes, disabled, language }: Props) {
+  const v2t = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
   const user = useAppStore((state) => state.user);
@@ -141,7 +143,7 @@ export function HandoffNotesAssist({ today, notes, setNotes, disabled, language 
 
       {phase.status === "draft" ? (
         <View style={styles.draft} testID="handoff-ai-draft">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heading, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heading, { color: theme.textMuted }, v2t.label]}>
             {t("supervisorCopilot.handoff.heading")}
           </Text>
           <TextInput

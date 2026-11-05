@@ -10748,6 +10748,45 @@
       "confirmEmployees_plural": "{{count}} empleados"
     }
   },
+  "inspectorHome": {
+    "next": {
+      "kicker": "Próxima inspección",
+      "waitingRoom": "Habitación {{room}}",
+      "typeFloor": "{{type}} · {{where}}"
+    },
+    "overview": {
+      "title": "Inspecciones de hoy",
+      "awaiting": "Esperando inspección",
+      "completed": "Completadas",
+      "failed": "Reprobadas",
+      "reinspection": "Trabajo de reinspección",
+      "a11y": "{{label}}: {{value}}. Abre las inspecciones."
+    },
+    "priority": {
+      "title": "Atender primero",
+      "a11y": "{{room}}, {{reason}}. Iniciar inspección."
+    },
+    "recent": {
+      "title": "Resultados recientes",
+      "viewAll": "Ver todo",
+      "empty": "Todavía no se ha inspeccionado nada hoy."
+    },
+    "state": {
+      "loading": "Revisando sus inspecciones…",
+      "unavailableTitle": "No se pueden cargar sus inspecciones",
+      "unavailableBody": "Revise su conexión e inténtelo de nuevo. Nada se muestra como terminado hasta que se confirme.",
+      "restrictedTitle": "Las inspecciones no están disponibles para esta cuenta",
+      "restrictedBody": "Si debería inspeccionar habitaciones, pida a un gerente que revise su rol.",
+      "emptyTitle": "No hay habitaciones esperando inspección",
+      "emptyBody": "Las habitaciones aparecen aquí en cuanto limpieza las marca como limpias.",
+      "allDoneTitle": "Todas las inspecciones completadas",
+      "allDoneBody": "Se inspeccionó cada habitación que estaba lista. Las nuevas aparecerán aquí cuando se limpien.",
+      "offlineNote": "Está sin conexión. Iniciar una inspección requiere conexión."
+    },
+    "status": {
+      "refresh": "Actualizar inspecciones"
+    }
+  },
   "supervisorToday": {
     "greeting": {
       "morning": "Buenos días",

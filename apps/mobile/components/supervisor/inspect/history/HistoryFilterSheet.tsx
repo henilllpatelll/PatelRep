@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -231,10 +232,11 @@ export function HistoryFilterSheet({
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.section}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
         {title}
       </Text>
       {children}

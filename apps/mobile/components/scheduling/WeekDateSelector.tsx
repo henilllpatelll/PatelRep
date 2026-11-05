@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -28,6 +29,7 @@ interface Props {
 
 /** Previous / next week, the range label, a way back to today, and the seven days as 44pt+ touch targets. */
 export function WeekDateSelector({ days, selected, today, summaries, uncovered, forecast, language, onSelect, onPrevWeek, onNextWeek, onToday, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const showingThisWeek = days.includes(today);
   return (
@@ -88,7 +90,7 @@ export function WeekDateSelector({ days, selected, today, summaries, uncovered, 
                 pressed && { opacity: 0.8 },
               ]}
             >
-              <Text maxFontSizeMultiplier={1.3} style={[styles.dow, { color: isSelected ? theme.onPrimary : theme.textMuted }]} numberOfLines={1}>
+              <Text maxFontSizeMultiplier={1.3} style={[styles.dow, { color: isSelected ? theme.onPrimary : theme.textMuted }, v2t.label]} numberOfLines={1}>
                 {formatWeekdayShort(date, language)}
               </Text>
               <Text maxFontSizeMultiplier={1.3} style={[styles.dom, { color: isSelected ? theme.onPrimary : theme.textPrimary }]}>

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export function AssignmentRoomSheet({ entry, context, assignment, outOfView = false, onClose, onOpenBoard }: Props) {
+  const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -101,7 +103,7 @@ export function AssignmentRoomSheet({ entry, context, assignment, outOfView = fa
             <>
               <View style={styles.header}>
                 <View style={styles.headerBody} accessible accessibilityLabel={detail.accessibilityLabel} testID="assignment-sheet-header">
-                  <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="assignment-sheet-number">
+                  <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]} testID="assignment-sheet-number">
                     {detail.roomNumber}
                   </Text>
                   {subtitle ? (

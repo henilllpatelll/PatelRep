@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
+import { radiusV2 } from "@/components/shared/tokensV2";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { SectionHeader } from "@/components/supervisor/today/TodayBlocks";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -26,13 +28,15 @@ const ACTIONS: Array<{ key: QuickActionKey; icon: IconName; tone: "clean" | "pic
 /** Four always-visible actions. Each one does something real; availability problems are explained on tap, never hidden. */
 export function QuickActions({ t, onAction }: Props) {
   const theme = useTheme();
+  const v2 = useIsDesignV2();
   return (
     <View style={styles.wrap} testID="today-actions">
       <SectionHeader title={t("supervisorToday.actions.title")} />
       <View style={styles.grid}>
         {ACTIONS.map((action) => {
           const label = t(`supervisorToday.actions.${action.key}`);
-          const color = theme.status[action.tone];
+          // V2: one calm surface and the one brand blue for every action, instead of four status colours.
+          const color = v2 ? theme.primaryAction : theme.status[action.tone];
           return (
             <Pressable
               key={action.key}
@@ -42,7 +46,9 @@ export function QuickActions({ t, onAction }: Props) {
               accessibilityLabel={label}
               style={({ pressed }) => [
                 styles.tile,
-                { backgroundColor: theme.status[`${action.tone}Soft` as const], borderColor: theme.status[`${action.tone}Line` as const] },
+                v2
+                  ? { backgroundColor: theme.surface, borderColor: theme.borderSubtle, borderRadius: radiusV2.card }
+                  : { backgroundColor: theme.status[`${action.tone}Soft` as const], borderColor: theme.status[`${action.tone}Line` as const] },
                 pressed && { opacity: 0.75 },
               ]}
             >

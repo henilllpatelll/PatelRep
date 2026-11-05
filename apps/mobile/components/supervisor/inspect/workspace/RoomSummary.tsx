@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
 import type { RoomFacts } from "@/lib/inspections/workspaceText";
@@ -7,18 +8,19 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 /* The room being inspected, compactly: number, status, and only the facts that are actually recorded. */
 export function RoomSummary({ facts, t }: { facts: RoomFacts; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const tone = facts.reinspection
     ? { fg: theme.status.pickup, bg: theme.status.pickupSoft, line: theme.status.pickupLine }
     : { fg: theme.status.clean, bg: theme.status.cleanSoft, line: theme.status.cleanLine };
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="workspace-room">
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="workspace-room">
       <View style={styles.top}>
         <View style={styles.numberCol}>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
             {t("inspect.workspace.roomKicker")}
           </Text>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }]} testID="workspace-room-number">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }, v2t.num]} testID="workspace-room-number">
             {facts.room}
           </Text>
         </View>

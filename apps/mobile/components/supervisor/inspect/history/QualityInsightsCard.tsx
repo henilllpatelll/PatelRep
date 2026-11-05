@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -30,13 +31,14 @@ export function QualityInsightsCard({
   onRetry: () => void;
   onOpenDetails: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const view = state.status === "ready" ? buildInsightsView(state.data) : null;
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="quality-insights">
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="quality-insights">
       <View style={styles.head}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
-          {t("inspect.history.insights.title").toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+          {v2t.caps(t("inspect.history.insights.title"))}
         </Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.period, { color: theme.textMuted }]} numberOfLines={1}>
           {periodLabel}

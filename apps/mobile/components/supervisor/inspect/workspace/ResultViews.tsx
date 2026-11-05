@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -17,20 +18,22 @@ import { useTheme } from "@/lib/theme/useTheme";
 type Language = "en" | "es";
 
 function Card({ children, testID }: { children: ReactNode; testID: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={testID}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={testID}>
       {children}
     </View>
   );
 }
 
 function Fact({ label, value, testID }: { label: string; value: string; testID: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.fact} accessible accessibilityLabel={`${label}: ${value}`}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.factLabel, { color: theme.textMuted }]}>
-        {label.toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.factLabel, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(label)}
       </Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.factValue, { color: theme.textPrimary }]} testID={testID}>
         {value}

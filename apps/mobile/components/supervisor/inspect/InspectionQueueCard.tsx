@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -25,6 +26,7 @@ interface Props {
  * pass / fail shortcut: an outcome is only ever chosen inside the inspection itself.
  */
 function InspectionQueueCardView({ item, now, timeZone, language, showBuilding, blockedReason, t, onPress }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const text = cardText(item, { now, timeZone }, language, showBuilding, t);
   const blocked = blockedReason !== null;
@@ -53,7 +55,7 @@ function InspectionQueueCardView({ item, now, timeZone, language, showBuilding, 
       <View style={[styles.rail, { backgroundColor: rail }]} />
       <View style={styles.body}>
         <View style={styles.topRow}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }]} testID={`queue-card-number-${item.roomId}`}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }, v2t.num]} testID={`queue-card-number-${item.roomId}`}>
             {item.roomNumber}
           </Text>
           {text.badge ? (

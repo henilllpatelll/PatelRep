@@ -1,13 +1,16 @@
 import { darkTheme, type getThemeTokens } from "@/components/shared/tokens";
+import { createContext, useContext } from "react";
 
 /** The colours an assistant surface draws with. */
 export type Palette = ReturnType<typeof getThemeTokens>;
 
 /**
- * Assistant content is deliberately always dark, like the rest of the Copilot (protected design decision D-11,
- * see ThemeSourceAudit): a fixed, recognisable surface that does not follow the light/dark switch. Callers may pin
- * a different palette, but none does today.
+ * The legacy assistant stays dark (design decision D-11). The compact sheet supplies its scoped
+ * palette to nested controls; explicit overrides win.
  */
+export const AssistantPaletteContext = createContext<Palette | undefined>(undefined);
+
 export function usePalette(override?: Palette): Palette {
-  return override ?? darkTheme;
+  const scoped = useContext(AssistantPaletteContext);
+  return override ?? scoped ?? darkTheme;
 }

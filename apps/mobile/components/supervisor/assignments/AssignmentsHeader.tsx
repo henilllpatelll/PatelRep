@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -33,6 +34,7 @@ interface Props {
 
 /** Compact operational header: title, an honest freshness pill, the date, three metrics and the Rooms/Team switch. */
 export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset, dateLabel, metrics, teamMetrics, tab, onTab, onRefresh, onShowBlocked, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const live = status.kind === "live";
   const busy = status.kind === "updating" || status.kind === "loading";
@@ -44,8 +46,8 @@ export function AssignmentsHeader({ status, verifiedClock, refreshing, topInset,
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]} testID="assignments-header">
       <View style={styles.titleRow}>
         <View style={styles.titleText}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]} numberOfLines={1}>
-            {t("assignments.v2.header.kicker").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]} numberOfLines={1}>
+            {v2t.caps(t("assignments.v2.header.kicker"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
             {t("assignments.title")}

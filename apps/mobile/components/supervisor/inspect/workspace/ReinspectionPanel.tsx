@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +37,7 @@ export function ReinspectionPanel({
   onGoToItem: (itemId: string) => void;
   onViewPhoto: (uri: string, label: string) => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const [detail, setDetail] = useState<InspectionDetail | null>(null);
   const failureId = context.failureInspectionId;
@@ -71,8 +73,8 @@ export function ReinspectionPanel({
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.status.pickupLine }]} testID="reinspection-panel">
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.status.pickup }]}>
-        {t("inspect.reinspect.kicker").toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.status.pickup }, v2t.label]}>
+        {v2t.caps(t("inspect.reinspect.kicker"))}
       </Text>
       {submitted ? (
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sub, { color: theme.textSecondary }]} testID="reinspection-submitted">

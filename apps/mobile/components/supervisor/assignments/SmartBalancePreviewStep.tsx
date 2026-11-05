@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -19,6 +20,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    is live: "Add to draft" only stages proposed changes for the Phase 5 review, which is where publishing happens. */
 
 export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t }: { smart: SmartBalanceController; dateLabel: string | null; nameOf: (userId: string) => string; onRefresh: () => void; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { plan, preview, stale, paused } = smart;
   if (!plan || !preview) return null;
@@ -86,7 +88,7 @@ export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t
               const name = person.name ?? t("assignments.v2.smart.detail.unnamed");
               const incomplete = missingText(person.after.minutes, t) ?? missingText(person.before.minutes, t);
               return (
-                <View key={person.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`smart-workload-${person.userId}`}>
+                <View key={person.userId} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`smart-workload-${person.userId}`}>
                   <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.name, { color: theme.textPrimary }]}>
                     {name}
                   </Text>
@@ -115,7 +117,7 @@ export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t
                   accessibilityRole="button"
                   accessibilityLabel={`${name}. ${counts2}. ${person.gains.join(", ")}`}
                   accessibilityHint={t("assignments.v2.smart.preview.distribution.open", { name })}
-                  style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.85 }]}
+                  style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.85 }]}
                   testID={`smart-distribution-${person.userId}`}
                 >
                   <View style={styles.rowTop}>
@@ -127,7 +129,7 @@ export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t
                   </View>
                   <View style={styles.chips}>
                     {person.gains.map((number) => (
-                      <Text key={number} maxFontSizeMultiplier={1.3} style={[styles.chip, { color: theme.textPrimary, borderColor: theme.border }]}>
+                      <Text key={number} maxFontSizeMultiplier={1.3} style={[styles.chip, { color: theme.textPrimary, borderColor: theme.border }, v2t.num]}>
                         {number}
                       </Text>
                     ))}

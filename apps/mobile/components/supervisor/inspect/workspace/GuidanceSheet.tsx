@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +15,7 @@ import { useTheme } from "@/lib/theme/useTheme";
  * read-only: opening and closing it never touches an answer.
  */
 export function GuidanceSheet({ item, policy, t, onClose }: { item: ChecklistItem | null; policy: RequiredNaPolicy; t: Translate; onClose: () => void }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <WorkspaceSheet
@@ -27,8 +29,8 @@ export function GuidanceSheet({ item, policy, t, onClose }: { item: ChecklistIte
     >
       {item ? (
         <View style={styles.body}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.section, { color: theme.textMuted }]} testID="workspace-guidance-section">
-            {item.section.toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.section, { color: theme.textMuted }, v2t.label]} testID="workspace-guidance-section">
+            {v2t.caps(item.section)}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textSecondary }]}>
             {t("inspect.workspace.guidance.standard")}

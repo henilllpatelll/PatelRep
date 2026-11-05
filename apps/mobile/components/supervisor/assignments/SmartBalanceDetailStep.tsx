@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MIN_TARGET } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
 import { WarningLines } from "@/components/supervisor/assignments/AssignWorkloadParts";
@@ -25,6 +26,7 @@ const ADDABLE_SHOWN = 40;
    another person) restored. Every tap changes the LOCAL proposal and the numbers update at once; nothing is sent. */
 
 export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { smart: SmartBalanceController; model: AssignmentsModel; nameOf: (userId: string) => string; toast: (message: string) => void; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { detail, plan, picker } = smart;
   if (!detail || !plan) return null;
@@ -82,7 +84,7 @@ export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { sma
               style={({ pressed }) => [styles.person, { borderColor: theme.border, backgroundColor: theme.surface }, pressed && { opacity: 0.85 }]}
               testID={`smart-add-room-${entry.room.roomNumber}`}
             >
-              <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }]}>
+              <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
                 {entry.room.roomNumber}
               </Text>
               <Body tone="secondary">
@@ -102,7 +104,7 @@ export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { sma
     <>
       <SheetHeader title={name} onBack={smart.back} backLabel={t("assignments.v2.smart.preview.back")} testID="smart-detail" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} testID="smart-detail-scroll">
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
           <Body tone="secondary">{attendanceLabel(detail.attendance, t)}</Body>
           {after ? (
             <Body strong testID="smart-detail-remaining">
@@ -117,7 +119,7 @@ export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { sma
         {detail.existing.length === 0 ? <Body tone="muted">{t("assignments.v2.smart.detail.noneExisting")}</Body> : null}
         {detail.existing.map((row) => (
           <View key={row.roomId} style={[styles.existing, { borderColor: theme.border }]} testID={`smart-existing-${row.roomNumber}`}>
-            <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }]}>
+            <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
               {row.roomNumber}
             </Text>
             <Body tone="secondary" style={styles.grow}>
@@ -145,13 +147,14 @@ export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { sma
 }
 
 function ProposedCard({ row, nameOf, smart, t }: { row: ProposedRow; nameOf: (userId: string) => string; smart: SmartBalanceController; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const why = explainText(explain(row, nameOf), t);
   const restoring = row.kind === "moved" && row.fromUserId !== null;
   return (
     <View style={[styles.room, { backgroundColor: theme.surface, borderColor: row.origin === "edited" ? theme.primaryAction : theme.border }]} testID={`smart-proposed-${row.roomNumber}`}>
       <View style={styles.roomTop}>
-        <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }]}>
+        <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
           {row.roomNumber}
         </Text>
         <Body tone="secondary" style={styles.grow}>

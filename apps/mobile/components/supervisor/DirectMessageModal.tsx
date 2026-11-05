@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
@@ -44,6 +45,7 @@ export default function DirectMessageModal({ visible, recipientId, recipientName
 }
 
 function DirectMessageSheet({ recipientId, recipientName, recipientMeta, isOnline, onClose }: Omit<Props, "visible">) {
+  const v2t = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -102,7 +104,7 @@ function DirectMessageSheet({ recipientId, recipientName, recipientMeta, isOnlin
           >
             <Avatar name={name ?? "?"} size={42} />
             <View style={styles.recipientText}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
                 {t("supervisorComms.dm.to")}
               </Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.name, { color: theme.textPrimary }]} numberOfLines={1} testID="dm-recipient-name">

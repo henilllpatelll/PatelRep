@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -64,6 +65,7 @@ export function CleaningHistoryPanel({
   onOpenSession: (sessionId: string) => void;
   t: Translate;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const [visible, setVisible] = useState(HISTORY_PAGE_SIZE);
   const sessions = useRoomResource(tab === "cleans" ? `sessions:${roomId}` : null, () => fetchCleanSessions(roomId));
@@ -90,9 +92,9 @@ export function CleaningHistoryPanel({
           <>
             {history.groups.map((group) => (
               <View key={group.dayKey} style={styles.group}>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{group.label}</Text>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{group.label}</Text>
                 {group.rows.map((row) => (
-                  <View key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`clean-session-${row.id}`}>
+                  <View key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`clean-session-${row.id}`}>
                     <View style={styles.cardTop}>
                       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardTitle, { color: theme.textPrimary }]}>{row.typeLabel ?? t("roomBoard.panel.cleaning.typeUnknown")}</Text>
                       {row.state !== "completed" ? (
@@ -131,7 +133,7 @@ export function CleaningHistoryPanel({
       ) : entries ? (
         <>
           {entries.map((entry) => (
-            <View key={entry.key} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`activity-${entry.kind}`}>
+            <View key={entry.key} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`activity-${entry.kind}`}>
               <View style={styles.cardTop}>
                 <Pill
                   label={t(`roomBoard.panel.activity.kind.${entry.kind}`)}
@@ -175,6 +177,7 @@ function PhotoTile({ url, label, onOpen, onFail, failed, t }: { url: string | nu
 }
 
 export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: HistoryContext; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const res = useRoomResource(`session:${sessionId}`, () => fetchCleanSessionDetail(sessionId));
   const [failed, setFailed] = useState<Record<string, boolean>>({});
@@ -205,7 +208,7 @@ export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: Hi
 
   return (
     <View style={styles.stack} testID="clean-session-panel">
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
         <View style={styles.cardTop}>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardTitle, { color: theme.textPrimary }]}>{detail.row.typeLabel ?? t("roomBoard.panel.cleaning.typeUnknown")}</Text>
           <Pill label={detail.row.stateLabel} color={detail.row.state === "completed" ? theme.status.ready : theme.status.pickup} bg={detail.row.state === "completed" ? theme.status.readySoft : theme.status.pickupSoft} line={detail.row.state === "completed" ? theme.status.readyLine : theme.status.pickupLine} />
@@ -217,11 +220,11 @@ export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: Hi
         {detail.row.note ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textPrimary }]}>{detail.row.note}</Text> : null}
       </View>
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{t("roomBoard.panel.session.checklist")}</Text>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{t("roomBoard.panel.session.checklist")}</Text>
       {detail.checklist.length === 0 ? (
         <EmptyBlock title={t("roomBoard.panel.session.noChecklist")} />
       ) : (
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="clean-session-checklist">
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="clean-session-checklist">
           {detail.checklist.map((item) => (
             <View key={item.key} style={styles.checkRow}>
               <Ionicons name={item.checked ? "checkbox-outline" : "square-outline"} size={18} color={item.checked ? theme.status.ready : theme.textMuted} />
@@ -237,7 +240,7 @@ export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: Hi
         </View>
       )}
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{t("roomBoard.panel.session.photos")}</Text>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{t("roomBoard.panel.session.photos")}</Text>
       {detail.photos.length === 0 ? (
         <EmptyBlock title={t("roomBoard.panel.session.noPhotos")} />
       ) : (
@@ -277,6 +280,7 @@ export function SessionPanel({ sessionId, ctx, t }: { sessionId: string; ctx: Hi
 /* ─── Inspection history ──────────────────────────────────────────────────── */
 
 export function InspectionHistoryPanel({ roomId, ctx, t, onOpenInspection }: { roomId: string; ctx: HistoryContext; t: Translate; onOpenInspection?: (inspectionId: string) => void }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const [days, setDays] = useState<InspectionRangeDays>(DEFAULT_INSPECTION_RANGE);
   const window = useMemo(() => inspectionWindow(days, ctx.now, ctx.timeZone), [days, ctx.now, ctx.timeZone]);
@@ -310,7 +314,7 @@ export function InspectionHistoryPanel({ roomId, ctx, t, onOpenInspection }: { r
               }
             : {};
           return (
-            <Wrapper key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`inspection-${row.id}`} {...wrapperProps}>
+            <Wrapper key={row.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`inspection-${row.id}`} {...wrapperProps}>
               <View style={styles.cardTop}>
                 <Pill label={row.resultLabel} color={c.color} bg={c.bg} line={c.line} />
                 {row.at ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textMuted }]}>{row.at}</Text> : null}
@@ -346,6 +350,7 @@ export function WorkOrderPanel({
   ctx: HistoryContext;
   t: Translate;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const res = useRoomResource(`wo:${workOrderId}`, () => fetchWorkOrderDetail(workOrderId));
   const view = useMemo(
@@ -366,7 +371,7 @@ export function WorkOrderPanel({
   return (
     <View style={styles.stack} testID="work-order-panel">
       <View style={styles.stack}>
-        {d.number ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.groupTitle, { color: theme.textMuted }]}>{t("roomBoard.detail.workOrder.number", { number: d.number })}</Text> : null}
+        {d.number ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{t("roomBoard.detail.workOrder.number", { number: d.number })}</Text> : null}
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.woTitle, { color: theme.textPrimary }]} testID="work-order-title">{d.title}</Text>
         <View style={styles.badges}>
           {d.statusLabel ? <Pill label={d.statusLabel} color={d.closed ? theme.textSecondary : theme.status.pickup} bg={d.closed ? theme.surfaceSubtle : theme.status.pickupSoft} line={d.closed ? theme.borderSubtle : theme.status.pickupLine} /> : null}
@@ -378,18 +383,18 @@ export function WorkOrderPanel({
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="alert" style={[styles.meta, { color: theme.textPrimary }]}>{t("roomBoard.panel.workOrder.closedSince")}</Text>
         </InfoCard>
       ) : null}
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
         {d.rows.map((row) => (
           <Row key={row.key} label={row.label} value={row.value} />
         ))}
       </View>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{t("roomBoard.panel.workOrder.description")}</Text>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{t("roomBoard.panel.workOrder.description")}</Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: d.description ? theme.textPrimary : theme.textMuted }]} testID="work-order-description">
         {d.description ?? t("roomBoard.panel.workOrder.noDescription")}
       </Text>
       {d.resolution ? (
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="work-order-resolution">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{t("roomBoard.panel.workOrder.resolution")}</Text>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="work-order-resolution">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>{t("roomBoard.panel.workOrder.resolution")}</Text>
           {d.resolution.notes ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textPrimary }]}>{d.resolution.notes}</Text> : null}
           {d.resolution.parts ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textSecondary }]}>{t("roomBoard.panel.workOrder.parts", { parts: d.resolution.parts })}</Text> : null}
         </View>

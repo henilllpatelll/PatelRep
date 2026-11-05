@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
@@ -18,6 +19,7 @@ interface Props {
 }
 
 function RoomListRowView({ model, onSelect }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
   const unavailable = model.stage === "unavailable";
@@ -39,7 +41,7 @@ function RoomListRowView({ model, onSelect }: Props) {
       <StatusRail status={model.rawStatus} />
       <View style={styles.body}>
         <View style={styles.numberCol}>
-          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: theme.textPrimary }]} testID={`board-result-number-${model.roomNumber}`}>
+          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: theme.textPrimary }, v2t.num]} testID={`board-result-number-${model.roomNumber}`}>
             {model.roomNumber}
           </Text>
           <View style={styles.flags} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -52,7 +54,7 @@ function RoomListRowView({ model, onSelect }: Props) {
           <View style={styles.statusLine}>
             <View style={[styles.pill, { backgroundColor: meta.bg, borderColor: meta.border }]} testID={`board-result-status-${model.roomNumber}`}>
               <Ionicons name={model.icon} size={12} color={meta.fg} />
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.pillText, { color: meta.fg }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.pillText, { color: meta.fg }, v2t.pill]}>
                 {model.statusLabel}
               </Text>
             </View>

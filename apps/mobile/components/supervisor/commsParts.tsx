@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { classifySendFailure, draftLength, type SendFailureKind } from "@/lib/housekeeping/supervisorComms";
@@ -59,12 +60,13 @@ interface FieldProps {
 
 /** A labelled multiline field with a live character count. The count appears only near the limit. */
 export function DraftField({ label, value, onChangeText, placeholder, max, counterText, minHeight = 120, editable = true, autoFocus = false, testID }: FieldProps) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const length = draftLength(value);
   const nearLimit = length >= max * 0.85;
   return (
     <View style={styles.field}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
         {label}
       </Text>
       <TextInput

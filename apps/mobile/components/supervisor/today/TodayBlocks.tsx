@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
+import { radiusV2 } from "@/components/shared/tokensV2";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
 
 /* Shared building blocks for the Supervisor Today sections. */
@@ -17,10 +19,11 @@ export function SectionCard({
   testID?: string;
 }) {
   const theme = useTheme();
+  const v2 = useIsDesignV2();
   return (
     <View
       testID={testID}
-      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }, style]}
+      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }, v2 && { borderRadius: radiusV2.card }, style]}
     >
       {children}
     </View>

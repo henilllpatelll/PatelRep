@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -7,10 +8,11 @@ import { useTheme } from "@/lib/theme/useTheme";
 /* Small building blocks shared by the shift form, the template form and the detail sheet. */
 
 export function FieldLabel({ children }: { children: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textMuted }]}>
-      {children.toUpperCase()}
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+      {v2t.caps(children)}
     </Text>
   );
 }

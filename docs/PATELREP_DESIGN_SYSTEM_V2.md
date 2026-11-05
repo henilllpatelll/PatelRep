@@ -520,3 +520,98 @@ other roles are unchanged and the flag-off app looks as before.
 - Assistant sheet: not restyled (see section 30).
 - Flag behavior: `EXPO_PUBLIC_DESIGN_V2_PREVIEW` off (default) or a non-Housekeeper role renders exactly the
   legacy look; the flag is ignored in production builds.
+
+---
+
+# Phase 4 of 8: Inspector and Housekeeping Supervisor mobile redesign
+
+Status: implemented on the same branch/PR (#200, draft). Renders **only** for the `inspector` and
+`housekeeping_supervisor` roles (plus the Housekeeper from Phase 3) while the preview flag is on
+(`EXPO_PUBLIC_DESIGN_V2_PREVIEW`, off by default, ignored in production). No API, database, migration,
+RBAC, route or production-config change. Flag off = the legacy look, unchanged.
+
+## 32. How Phase 4 is scoped
+
+`isInspectorSupervisorV2Role` / `isV2SurfaceRole` (`lib/design/housekeeperV2.ts`) widen the Phase 3 gate.
+`app/(app)/_layout.tsx` wraps the tabs, hidden routes and assistant in
+`<DesignV2Scope enabled={isV2SurfaceRole(effectiveRole)}>`. Engineering, Front Desk and GM stay outside the
+scope and render exactly as before. `useV2Text()` gained `pill` (readable 12 px sentence-case status text) and
+`caps(text)` (uppercase outside the scope, the translated sentence case inside). Shared supervisor/inspection
+components therefore need no role branches: every override is `null` or legacy outside the scope.
+
+## 33. Inspector
+
+| Surface | Migrated |
+|---|---|
+| Inspector Home (new, `components/home/InspectorHome.tsx`; replaces the Housekeeper fallback **only inside the scope**) | yes |
+| Home: header (property, date, bell, status), Next inspection hero, Today's inspections overview, Needs attention first, Recent results | yes |
+| Home states: loading, offline note, stale banner, unavailable (retry), restricted account, empty, all complete | yes |
+| Inspections queue (`inspect/index`): header, summary, segments, search, filter sheet, cards, correction cards, done rows | yes |
+| Active inspection workspace: room summary, progress, section headers, review view, reinspection panel, result views, state views | yes |
+| Workspace sheets: context, guidance, issue sheets | yes |
+| History: toolbar, filter sheet, quality insights card/sheet, result badge | yes |
+| Inspection record (`inspect/record/[id]`) parts | yes |
+| Correction card, summary and detail sheet | yes |
+
+The Home reads the existing inspection queue hooks through `lib/inspections/inspectorHome.ts` (a pure view-model
+over the existing queue model). It adds no endpoint, no parallel store, and invents no assignments, ETAs or records.
+The primary action opens the existing workspace; a room that is not startable shows its real blocking reason.
+
+## 34. Housekeeping Supervisor
+
+| Surface | Migrated |
+|---|---|
+| Today (`SupervisorHome`): shared `RoleHomeHeader` (property, date, data freshness, bell, profile), readiness, exceptions, Team Pulse, quick actions | yes |
+| Quick actions: one calm surface for all actions (legacy keeps four status tints); every action and label kept | yes |
+| Room Board: header, readiness card, filter sheet, list rows, tiles, room detail sheet | yes |
+| Assignments: header, room card/rows, room sheet and chooser, workload parts, team staff card, staff detail sheet | yes |
+| Bulk assign/edit/review, Smart Balance entry/preview/detail/exceptions, midshift select/review/parts, remove step, outcome step | yes |
+| Attention Center screen and detail sheet | yes |
+| Team scheduling: header, week selector, staffing summary, shift detail sheet/body, call-out, find coverage, forecast day sheet, request and form parts | yes (tokens/labels) |
+| Communications: broadcast, direct message, shift note, shared comms parts | yes |
+| Shift handoff panels and staff quick view | yes |
+| Assistant sheet (`ai/palette.ts`, `AssistantSheet`) | Inside the scope the compact sheet and its nested controls use the scoped V2 palette (new `AssistantPaletteContext`); outside it the assistant stays pinned dark (D-11). Capability flags and credit boundaries untouched |
+
+Room cleanliness, inspection state, occupancy and availability stay separate dimensions with their own words and
+icons; the redesign changes color and type only, never the status model, filters, realtime subscriptions or deep links.
+
+## 35. Behavior preserved
+
+- Assignment eligibility, workload math, Smart Balance, midshift handling, draft restore, duplicate-submit guards and
+  server-confirmed outcomes are untouched (only style props changed in those files).
+- Inspection submit-once, required evidence, draft persistence and the "conditional never releases a room" rule are untouched.
+- Messages are never sent or re-addressed by the redesign; sent, failed and pending states keep their separate treatments.
+- All test IDs, accessibility roles and handlers are kept. Added strings (EN/ES): `inspectorHome.*`,
+  `supervisorToday.header.*`.
+
+## 36. Verification
+
+Mobile `tsc` and ESLint (`--max-warnings=0`) are clean. New focused tests: `InspectorSupervisorV2.test.tsx`,
+`InspectorHomeV2.test.tsx`, `inspectorHome.test.ts`, `AssistantPaletteV2.test.tsx` (role gate, Home routing flag on/off,
+text helpers, shared pieces following the scope, header, quick actions, uppercase-kicker guard, Inspector Home states).
+The full Jest suite result is recorded in the PR. No native device or screen-reader run, and no committed screenshots.
+
+## 37. Migration coverage and known limitations
+
+- Scheduling and the Attention Center take V2 colors and sentence-case labels; their layouts are unchanged
+  (progressive-disclosure rework was not attempted).
+- Phase 4 fixes no layout of screens that already worked; dynamic type, Spanish expansion and safe areas rely on the
+  existing layouts and are unverified on device.
+- Light/dark: both are exercised by token-based rendering and the contrast tests; not visually reviewed on a device.
+- Remaining legacy (other roles): Engineering, Front Desk, GM, and shared uses of legacy primitives outside the scope.
+- Cleanup once every role is migrated: legacy `serifFont`/`monoFont` call sites, uppercase `headerMeta`, the
+  `evening`/`mobileHandoff` primitives.
+
+## 38. Previewing Phase 4
+
+```bash
+# Mobile (Expo dev build); sign in as an Inspector or a Housekeeping Supervisor
+EXPO_PUBLIC_DESIGN_V2_PREVIEW=1 npx expo start --dev-client
+# Flag off (default): every role looks exactly as before.
+```
+
+## 39. Manual QA (flag on, Inspector and Supervisor accounts)
+
+Inspector: Home in each state, start/continue an inspection, save-and-exit, review and submit, history filters,
+record. Supervisor: Today, Room Board filter and detail, single and bulk assign, Smart Balance, midshift, Attention,
+schedule and coverage sheets, broadcast/DM/shift note/handoff. Check light, dark, Spanish, large text, offline.

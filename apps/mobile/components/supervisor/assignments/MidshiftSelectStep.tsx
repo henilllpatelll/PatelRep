@@ -1,4 +1,5 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
@@ -17,6 +18,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    "Select all" is `selectAllMovable`: a protected, held-back or out-of-service room can never be in it. */
 
 export function MidshiftSelectStep({ midshift, t, onOpenBoard }: { midshift: MidshiftController; t: Translate; onOpenBoard: (roomId: string) => void }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { source, summary } = midshift;
   if (!source || !summary) return null;
@@ -35,7 +37,7 @@ export function MidshiftSelectStep({ midshift, t, onOpenBoard }: { midshift: Mid
           {attention}
         </Notice>
       ) : null}
-      <View style={[styles.stats, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="midshift-current-work">
+      <View style={[styles.stats, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="midshift-current-work">
         <SectionLabel>{t("assignments.v2.midshift.select.currentWork")}</SectionLabel>
         <Body strong>{t("assignments.v2.midshift.select.stats", { completed: counts.completed, inProgress: counts.inProgress, notStarted: counts.notStarted })}</Body>
       </View>

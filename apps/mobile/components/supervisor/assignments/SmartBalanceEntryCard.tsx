@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -12,6 +13,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    it still opens (the sheet then explains what to do). With a plan in progress it offers to resume it. */
 
 export function SmartBalanceEntryCard({ onPress, paused, proposedChanges, t }: { onPress: () => void; paused: "offline" | "not_live" | null; proposedChanges: number | null; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const resuming = proposedChanges !== null;
   const title = resuming ? t("assignments.v2.smart.entry.resume") : t("assignments.v2.smart.entry.title");
@@ -24,7 +26,7 @@ export function SmartBalanceEntryCard({ onPress, paused, proposedChanges, t }: {
         accessibilityRole="button"
         accessibilityLabel={[title, body, note].filter(Boolean).join(". ")}
         accessibilityHint={t("assignments.v2.smart.entry.hint")}
-        style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.88 }]}
+        style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.88 }]}
         testID="smart-entry"
       >
         <View style={[styles.badge, { backgroundColor: theme.surfaceSubtle }]}>

@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
@@ -201,6 +202,7 @@ function ReviewStep({
   bottomInset: number;
   t: Translate;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { flow, review, room, busy } = controller;
   if (!flow || !review || !room) return null;
@@ -219,7 +221,7 @@ function ReviewStep({
     <>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" testID="assign-review-scroll">
         {banner ? <Banner kind={banner} t={t} testID="assign-banner" /> : null}
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
           <Fact label={t("roomBoard.assign.review.room")} value={review.roomNumber} testID="review-room" />
           {reassign ? <Fact label={t("roomBoard.assign.review.from")} value={review.previousName ?? unnamed} testID="review-from" /> : null}
           <Fact label={reassign ? t("roomBoard.assign.review.to") : t("roomBoard.assign.review.employee")} value={employee} testID="review-employee" />
@@ -227,7 +229,7 @@ function ReviewStep({
           {review.cleanTypeLabel ? <Fact label={t("roomBoard.assign.review.cleanType")} value={review.cleanTypeLabel} testID="review-clean-type" /> : null}
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="review-workload">
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="review-workload">
           {review.projection ? (
             <>
               <Fact label={t("roomBoard.assign.review.currentWorkload")} value={minutes(review.projection.currentMinutes)} testID="review-current" />

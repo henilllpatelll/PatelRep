@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -12,11 +13,12 @@ import { useTheme } from "@/lib/theme/useTheme";
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.field}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.fieldLabel, { color: theme.textMuted }]}>
-        {label.toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.fieldLabel, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(label)}
       </Text>
       {children}
     </View>
@@ -44,6 +46,7 @@ function AckRow({ ack, name, checked, onToggle, t }: { ack: AssignReview["requir
 }
 
 export function AssignReviewStep({ controller, banner, paused, t }: { controller: AssignmentFlowController; banner: React.ReactNode; paused: string | null; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { flow, review, busy } = controller;
   if (!flow || !review) return null;
@@ -60,8 +63,8 @@ export function AssignReviewStep({ controller, banner, paused, t }: { controller
         {banner}
 
         <Field label={t("assignments.v2.assign.review.room")}>
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text maxFontSizeMultiplier={1.3} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="assign-review-room">
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
+            <Text maxFontSizeMultiplier={1.3} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]} testID="assign-review-room">
               {review.roomNumber}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.line, { color: theme.textSecondary }]} testID="assign-review-room-line">

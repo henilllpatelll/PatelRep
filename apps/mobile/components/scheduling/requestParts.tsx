@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { SheetNotice } from "@/components/home/sheetParts";
@@ -131,10 +132,11 @@ export function Fact({ label, children, testID }: { label: string; children: Rea
 }
 
 export function SectionTitle({ children }: { children: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
-      {children.toUpperCase()}
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
+      {v2t.caps(children)}
     </Text>
   );
 }

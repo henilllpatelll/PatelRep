@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
@@ -76,9 +77,10 @@ export function LoadingBlock({ label, testID = "panel-loading" }: { label: strin
 }
 
 export function ErrorBlock({ error, onRetry, t, testID = "panel-error" }: { error: PanelLoadError; onRetry: () => void; t: Translate; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="alert" testID={testID}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} accessibilityRole="alert" testID={testID}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardTitle, { color: theme.textPrimary }]}>{t(`roomBoard.panel.error.${error}.title`)}</Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>{t(`roomBoard.panel.error.${error}.body`)}</Text>
       {error !== "unauthorized" && error !== "not_found" ? (
@@ -89,9 +91,10 @@ export function ErrorBlock({ error, onRetry, t, testID = "panel-error" }: { erro
 }
 
 export function EmptyBlock({ title, body, testID = "panel-empty" }: { title: string; body?: string; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={testID}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={testID}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardTitle, { color: theme.textPrimary }]}>{title}</Text>
       {body ? <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textSecondary }]}>{body}</Text> : null}
     </View>

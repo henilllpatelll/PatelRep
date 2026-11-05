@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -12,10 +13,11 @@ import { useTheme } from "@/lib/theme/useTheme";
    checklist changed. Each names what happened and what is safe to do; none of them changes a room or loses a draft. */
 
 function Panel({ icon, tone, title, body, testID, children }: { icon: "alert-circle-outline" | "swap-horizontal-outline" | "lock-closed-outline" | "cloud-offline-outline"; tone: "problem" | "info"; title: string; body: string; testID: string; children?: ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const color = tone === "problem" ? theme.status.dirty : theme.status.clean;
   return (
-    <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="alert" testID={testID}>
+    <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: v2t.edge }]} accessibilityRole="alert" testID={testID}>
       <Ionicons name={icon} size={30} color={color} />
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]} testID={`${testID}-title`}>
         {title}

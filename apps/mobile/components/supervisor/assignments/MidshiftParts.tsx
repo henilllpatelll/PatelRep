@@ -1,3 +1,4 @@
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
@@ -41,6 +42,7 @@ export function ChangesNotice({ midshift, t }: { midshift: MidshiftController; t
 
 /** A room that cannot move, with the reason in words. A started room offers the Room Board to verify its real status. */
 export function ProtectedRoomRow({ room, name, onOpenBoard, t }: { room: MidshiftRoom; name: string; onOpenBoard?: (roomId: string) => void; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const why = protectedWhy(room, name, t);
   return (
@@ -52,7 +54,7 @@ export function ProtectedRoomRow({ room, name, onOpenBoard, t }: { room: Midshif
     >
       <View style={styles.protectedHead}>
         <Ionicons name="lock-closed-outline" size={16} color={theme.textSecondary} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]}>
           {room.roomNumber}
         </Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.tag, { color: theme.textSecondary, borderColor: theme.border }]}>
@@ -81,6 +83,7 @@ export function ProtectedRoomRow({ room, name, onOpenBoard, t }: { room: Midshif
 
 /** A movable room: a large checkbox row. */
 export function MovableRoomRow({ room, selected, onToggle, t }: { room: MidshiftRoom; selected: boolean; onToggle: (roomId: string) => void; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { entry } = room;
   const parts = [
@@ -100,7 +103,7 @@ export function MovableRoomRow({ room, selected, onToggle, t }: { room: Midshift
       testID={`midshift-room-${room.roomNumber}`}
     >
       <Mark checked={selected} />
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]}>
         {room.roomNumber}
       </Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.detail, { color: theme.textSecondary }]} numberOfLines={2}>

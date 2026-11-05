@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
@@ -18,6 +19,7 @@ interface TileProps {
 }
 
 function RoomTileView({ model, onSelect }: TileProps) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
   const unavailable = model.stage === "unavailable";
@@ -42,7 +44,7 @@ function RoomTileView({ model, onSelect }: TileProps) {
           <Text
             maxFontSizeMultiplier={1.3}
             numberOfLines={1}
-            style={[styles.number, { color: theme.textPrimary }]}
+            style={[styles.number, { color: theme.textPrimary }, v2t.num]}
             testID={`board-tile-number-${model.roomNumber}`}
           >
             {model.roomNumber}
@@ -60,7 +62,7 @@ function RoomTileView({ model, onSelect }: TileProps) {
           testID={`board-tile-status-${model.roomNumber}`}
         >
           <Ionicons name={model.icon} size={12} color={meta.fg} />
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.pillText, { color: meta.fg }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.pillText, { color: meta.fg }, v2t.pill]}>
             {model.statusLabel}
           </Text>
         </View>

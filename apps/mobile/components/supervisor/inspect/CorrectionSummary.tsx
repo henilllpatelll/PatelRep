@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import type { CorrectionGroups } from "@/lib/inspections/lists";
@@ -7,6 +8,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 /** Needs attention · With housekeepers · Ready to reinspect. A count is shown only for a verified list; "at least" when truncated. */
 export function CorrectionSummary({ groups, atLeast, t }: { groups: CorrectionGroups; atLeast: boolean; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const tiles = [
     { key: "needsAttention", value: groups.needsAttention, color: groups.needsAttention > 0 ? theme.status.dirty : theme.textPrimary },
@@ -20,7 +22,7 @@ export function CorrectionSummary({ groups, atLeast, t }: { groups: CorrectionGr
         return (
           <View
             key={tile.key}
-            style={[styles.tile, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.tile, { backgroundColor: theme.surface, borderColor: v2t.edge }]}
             accessible
             accessibilityLabel={t(`inspect.correctionsSummary.${tile.key}A11y`, { count: tile.value })}
             testID={`correction-summary-${tile.key}`}
