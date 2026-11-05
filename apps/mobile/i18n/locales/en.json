@@ -463,6 +463,13 @@
       "elapsedA11y": "{{time}} elapsed",
       "checklist": "Cleaning checklist: {{done}} of {{total}}",
       "savedOnPhone": "Saved on this phone",
+      "title": "Right now",
+      "titleNext": "Recommended next",
+      "badgeInProgress": "In progress",
+      "badgeMissing": "Needs recovery",
+      "badgeConflict": "Needs review",
+      "remaining": "{{count}} checklist step left before you can mark this room clean.",
+      "remaining_plural": "{{count}} checklist steps left before you can mark this room clean.",
       "continue": "Continue cleaning",
       "openRoom": "Open room",
       "openRoomShort": "Open room",
@@ -531,7 +538,9 @@
     "briefing": {
       "show": "Show shift briefing",
       "hide": "Hide shift briefing",
-      "open": "Shift briefing"
+      "open": "Shift briefing",
+      "aiChip": "AI",
+      "v2Provenance": "Planned on this phone from your assignments. AI writes a new version only when you ask."
     },
     "message": {
       "markRead": "Mark as read",

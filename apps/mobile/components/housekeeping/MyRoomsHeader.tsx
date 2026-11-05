@@ -4,6 +4,11 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import { monoFont } from "@/components/shared/tokens";
 import { ProgressBar } from "@/components/shared/evening";
+import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
+import { AppText } from "@/components/ui/AppText";
+import { Card } from "@/components/ui/Card";
+import { LinearProgress } from "@/components/ui/LinearProgress";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import type { DashboardProgress, DashboardTab } from "@/lib/housekeeping/myRoomsDashboard";
 
 const MAX_FONT_SCALE = 1.5;
@@ -25,7 +30,135 @@ interface MyRoomsHeaderProps {
   topInset: number;
 }
 
-export function MyRoomsHeader({ dateLabel, progress, indicators, tab, onTabChange, topInset }: MyRoomsHeaderProps) {
+export function MyRoomsHeader(props: MyRoomsHeaderProps) {
+  return useIsDesignV2() ? <MyRoomsHeaderV2 {...props} /> : <MyRoomsHeaderLegacy {...props} />;
+}
+
+/** Design System V2: a light page header (title, date), honest sync chips, one progress card and a segmented list switch. */
+function MyRoomsHeaderV2({ dateLabel, progress, indicators, tab, onTabChange, topInset }: MyRoomsHeaderProps) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const summaryLabel =
+    progress.serviceable > 0
+      ? t("rooms.dash.progressA11y", { completed: progress.completed, total: progress.serviceable, percent: progress.percent })
+      : t("rooms.dash.progressNone");
+  return (
+    <View style={[styles.headerV2, { backgroundColor: theme.background, paddingTop: topInset + spaceV2.sm }]}>
+      <View>
+        <AppText variant="title" accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          {t("rooms.title")}
+        </AppText>
+        <AppText variant="caption" tone="secondary" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          {dateLabel}
+        </AppText>
+      </View>
+
+      {indicators.length > 0 ? (
+        <View style={styles.indicatorsV2} accessibilityLiveRegion="polite">
+          {indicators.map((item) => {
+            const warn = item.tone === "warn";
+            const fg = warn ? theme.status.pickup : theme.status.ready;
+            return (
+              <View
+                key={item.key}
+                style={[
+                  styles.indicatorChipV2,
+                  {
+                    backgroundColor: warn ? theme.status.pickupSoft : theme.status.readySoft,
+                    borderColor: warn ? theme.status.pickupLine : theme.status.readyLine,
+                  },
+                ]}
+              >
+                <Ionicons name={item.icon} size={14} color={fg} />
+                <AppText variant="caption" maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.indicatorTextV2}>
+                  {item.text}
+                </AppText>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      <Card style={styles.summaryV2} testID="my-rooms-summary">
+        <View accessible accessibilityLabel={summaryLabel} style={styles.summaryInnerV2}>
+          <View style={styles.summaryTop}>
+            <AppText variant="label" tone="secondary" accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              {t("rooms.dash.progressTitle")}
+            </AppText>
+            {progress.serviceable > 0 ? (
+              <AppText variant="label" tone="secondary" numeric maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                {progress.percent}%
+              </AppText>
+            ) : null}
+          </View>
+          <AppText variant="headline" numeric maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            {progress.serviceable > 0
+              ? t("rooms.dash.progressOf", { completed: progress.completed, total: progress.serviceable })
+              : t("rooms.dash.progressNone")}
+          </AppText>
+          {progress.serviceable > 0 ? (
+            <LinearProgress value={progress.completed} total={progress.serviceable} tone="ready" accessibilityLabel={summaryLabel} />
+          ) : null}
+        </View>
+        <View style={styles.countsV2}>
+          <CountV2 label={t("rooms.dash.chips.toClean")} value={progress.workable} />
+          <CountV2 label={t("rooms.dash.chips.attention")} value={progress.attention} emphasize={progress.attention > 0} />
+          <CountV2 label={t("rooms.dash.chips.completed")} value={progress.completed} />
+          {progress.unavailable > 0 ? <CountV2 label={t("rooms.dash.chips.unavailable")} value={progress.unavailable} /> : null}
+        </View>
+      </Card>
+
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={t("rooms.dash.tabs.label")}
+        style={[styles.segmentedV2, { backgroundColor: theme.surfaceSubtle }]}
+      >
+        {TABS.map((key) => {
+          const active = tab === key;
+          const label = t(`rooms.dash.tabs.${key}`);
+          return (
+            <Pressable
+              key={key}
+              onPress={() => onTabChange(key)}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: active }}
+              testID={`my-rooms-tab-${key}`}
+              style={[
+                styles.segmentV2,
+                active && { backgroundColor: theme.surface, borderColor: theme.borderSubtle, borderWidth: 1 },
+              ]}
+            >
+              <AppText
+                variant="label"
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                style={{ color: active ? theme.textPrimary : theme.textSecondary, fontWeight: active ? "700" : "600" }}
+              >
+                {label}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function CountV2({ label, value, emphasize }: { label: string; value: number; emphasize?: boolean }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.countV2} accessible accessibilityLabel={`${label} ${value}`}>
+      <AppText variant="headline" numeric maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: emphasize ? theme.status.pickup : theme.textPrimary }}>
+        {value}
+      </AppText>
+      <AppText variant="caption" tone="secondary" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+function MyRoomsHeaderLegacy({ dateLabel, progress, indicators, tab, onTabChange, topInset }: MyRoomsHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -158,6 +291,26 @@ function Count({ label, value, emphasize }: { label: string; value: number; emph
 }
 
 const styles = StyleSheet.create({
+  headerV2: { paddingHorizontal: spaceV2.page, paddingBottom: spaceV2.md, gap: spaceV2.md },
+  indicatorsV2: { flexDirection: "row", flexWrap: "wrap", gap: spaceV2.sm },
+  indicatorChipV2: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: radiusV2.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  indicatorTextV2: { flexShrink: 1 },
+  summaryV2: { padding: spaceV2.lg, gap: spaceV2.md },
+  summaryInnerV2: { gap: 6 },
+  summaryTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spaceV2.sm },
+  countsV2: { flexDirection: "row", flexWrap: "wrap", columnGap: spaceV2.xl, rowGap: spaceV2.sm },
+  countV2: { minWidth: 64 },
+  segmentedV2: { flexDirection: "row", gap: 4, borderRadius: radiusV2.control, padding: 4 },
+  segmentV2: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, borderRadius: radiusV2.input, borderWidth: 1, borderColor: "transparent" },
   header: { borderBottomWidth: 1, paddingHorizontal: 18, paddingBottom: 14, gap: 10 },
   titleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 12 },
   titleBlock: { flex: 1, minWidth: 0 },

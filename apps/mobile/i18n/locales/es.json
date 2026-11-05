@@ -463,6 +463,13 @@
       "elapsedA11y": "{{time}} transcurridos",
       "checklist": "Lista de limpieza: {{done}} de {{total}}",
       "savedOnPhone": "Guardado en este teléfono",
+      "title": "Ahora mismo",
+      "titleNext": "Recomendada para empezar",
+      "badgeInProgress": "En curso",
+      "badgeMissing": "Necesita recuperación",
+      "badgeConflict": "Necesita revisión",
+      "remaining": "Falta {{count}} paso de la lista antes de poder marcar esta habitación como limpia.",
+      "remaining_plural": "Faltan {{count}} pasos de la lista antes de poder marcar esta habitación como limpia.",
       "continue": "Continuar limpieza",
       "openRoom": "Abrir cuarto",
       "openRoomShort": "Abrir cuarto",
@@ -531,7 +538,9 @@
     "briefing": {
       "show": "Mostrar resumen del turno",
       "hide": "Ocultar resumen del turno",
-      "open": "Resumen del turno"
+      "open": "Resumen del turno",
+      "aiChip": "IA",
+      "v2Provenance": "Planeado en este teléfono con tus asignaciones. La IA solo escribe una versión nueva cuando tú lo pides."
     },
     "message": {
       "markRead": "Marcar como leído",

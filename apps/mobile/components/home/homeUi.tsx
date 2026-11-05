@@ -2,6 +2,8 @@ import { forwardRef, type ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, type View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
+import { radiusV2 } from "@/components/shared/tokensV2";
 import type { ViewInstance } from "react-native";
 
 /** Larger system text scales the layout up to here, then stops (it must still fit a small phone). */
@@ -12,11 +14,12 @@ export const MIN_TARGET = 48;
 /** Small uppercase section label ("YOUR PROGRESS"). */
 export function Kicker({ children, color }: { children: string; color?: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <Text
       maxFontSizeMultiplier={MAX_FONT_SCALE}
       accessibilityRole="header"
-      style={[styles.kicker, { color: color ?? theme.textMuted }]}
+      style={[styles.kicker, { color: color ?? theme.textMuted }, x.label]}
     >
       {children}
     </Text>
@@ -39,6 +42,7 @@ export const LinkButton = forwardRef<ViewInstance, LinkButtonProps>(function Lin
   ref,
 ) {
   const theme = useTheme();
+  const x = useV2Text();
   const color = disabled ? theme.textDisabled : theme.primary;
   return (
     <Pressable
@@ -52,7 +56,7 @@ export const LinkButton = forwardRef<ViewInstance, LinkButtonProps>(function Lin
       testID={testID}
       style={({ pressed }) => [styles.link, pressed && { opacity: 0.6 }]}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.linkText, { color }, x.active && { fontWeight: "600" }]}>
         {label}
       </Text>
       {icon ? <Ionicons name={icon} size={16} color={color} /> : null}
@@ -70,6 +74,7 @@ interface MoreButtonProps {
 /** "More" for a room card: opens that room's actions drawer. A full-size target that never competes with the primary action. */
 export const MoreButton = forwardRef<ViewInstance, MoreButtonProps>(function MoreButton({ label, accessibilityLabel, onPress, testID }, ref) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <Pressable
       ref={ref}
@@ -77,7 +82,12 @@ export const MoreButton = forwardRef<ViewInstance, MoreButtonProps>(function Mor
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       testID={testID}
-      style={({ pressed }) => [styles.more, { borderColor: theme.border, backgroundColor: theme.surfaceSubtle }, pressed && { opacity: 0.65 }]}
+      style={({ pressed }) => [
+        styles.more,
+        { borderColor: theme.border, backgroundColor: theme.surfaceSubtle },
+        x.active && { borderRadius: radiusV2.control, backgroundColor: theme.surface },
+        pressed && { opacity: 0.65 },
+      ]}
     >
       <Ionicons name="ellipsis-horizontal" size={18} color={theme.textSecondary} />
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.moreText, { color: theme.textPrimary }]}>

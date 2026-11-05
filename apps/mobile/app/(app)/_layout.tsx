@@ -28,6 +28,7 @@ import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useChromeTheme, useTheme } from "@/lib/theme/useTheme";
 import { isDesignV2Enabled } from "@/lib/design/designV2";
 import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
+import { isHousekeeperV2Role } from "@/lib/design/housekeeperV2";
 import { TabIconV2 } from "@/components/shared/TabIconV2";
 import { CROWDED_TAB_COUNT, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
@@ -250,6 +251,10 @@ export default function AppLayout() {
         <DesignV2Scope>
           <ToastViewport topOffset={insets.top + bannerHeight} />
         </DesignV2Scope>
+        {/* Phase 3: the Housekeeper's whole surface (tab screens, hidden routes, assistant) is V2 while the preview
+            flag is on. Every other role renders outside the scope, so its appearance is untouched. Chrome that
+            sits outside (tab bar, banner, toasts) already follows V2 through useChromeTheme / its own scope. */}
+        <DesignV2Scope enabled={isHousekeeperV2Role(effectiveRole)}>
         <Tabs
           backBehavior="history"
           screenOptions={{
@@ -367,6 +372,7 @@ export default function AppLayout() {
             )}
           </Animated.View>
         ) : null}
+        </DesignV2Scope>
       </View>
       </AssistantProvider>
       </AppLockGate>

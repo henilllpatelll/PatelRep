@@ -10,6 +10,8 @@ import {
   type ThemeTokens,
 } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
+import { radiusV2 } from "@/components/shared/tokensV2";
 import { Card } from "@/components/ui/Card";
 import type { Room } from "@/stores/appStore";
 import {
@@ -81,11 +83,12 @@ function getStatusLabelKey(status: string): string {
 export function StatusPill({ status, label }: { status: string; label?: string }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const meta = getStatusMeta(status, theme);
   return (
-    <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.border }]}>
+    <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.border }, x.active && styles.statusPillV2]}>
       <View style={[styles.statusDot, { backgroundColor: meta.fg }]} />
-      <Text style={[styles.statusPillText, { color: meta.fg }]}>
+      <Text style={[styles.statusPillText, { color: meta.fg }, x.active && styles.statusPillTextV2]}>
         {label ?? t(getStatusLabelKey(status), { status: meta.label })}
       </Text>
     </View>
@@ -123,14 +126,15 @@ export function StatusRail({ status }: { status: string }) {
 
 export function SectionHeader({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeaderLeft}>
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>
+        <Text accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label, x.active && { color: theme.textSecondary }]}>
           {title}
         </Text>
         {hint ? (
-          <Text style={[styles.sectionHint, { color: theme.textDisabled }]}>
+          <Text style={[styles.sectionHint, { color: theme.textDisabled }, x.num]}>
             {hint}
           </Text>
         ) : null}
@@ -142,12 +146,17 @@ export function SectionHeader({ title, hint, action }: { title: string; hint?: s
 
 export function ProgressBar({ value, total, color }: { value: number; total: number; color?: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
   return (
     <View
+      accessible={x.active}
+      accessibilityRole={x.active ? "progressbar" : undefined}
+      accessibilityValue={x.active ? { min: 0, max: Math.max(total, 1), now: Math.min(Math.max(value, 0), Math.max(total, 1)) } : undefined}
       style={[
         styles.progressTrack,
         { backgroundColor: theme.surfaceMuted },
+        x.active && styles.progressTrackV2,
       ]}
     >
       <View
@@ -157,6 +166,7 @@ export function ProgressBar({ value, total, color }: { value: number; total: num
             width: `${pct}%`,
             backgroundColor: color ?? theme.status.ready,
           },
+          x.active && styles.progressFillV2,
         ]}
       />
     </View>
@@ -173,6 +183,7 @@ export function Chip({
   tone?: "neutral" | "alert" | "caution" | "ai" | "shell";
 }) {
   const theme = useTheme();
+  const x = useV2Text();
   const palette = {
     neutral: {
       bg: theme.surfaceSubtle,
@@ -201,9 +212,9 @@ export function Chip({
     },
   }[tone];
   return (
-    <View style={[styles.chip, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      {icon ? <Ionicons name={icon} size={11} color={palette.fg} /> : null}
-      <Text style={[styles.chipText, { color: palette.fg }]}>{children}</Text>
+    <View style={[styles.chip, { backgroundColor: palette.bg, borderColor: palette.border }, x.active && styles.chipV2]}>
+      {icon ? <Ionicons name={icon} size={x.active ? 13 : 11} color={palette.fg} /> : null}
+      <Text style={[styles.chipText, { color: palette.fg }, x.active && styles.chipTextV2]}>{children}</Text>
     </View>
   );
 }
@@ -238,6 +249,7 @@ function getCleanTypeDisplayKey(room: Room): string | null {
 function CleanTypeTag({ room }: { room: Room }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const displayKey = getCleanTypeDisplayKey(room);
   if (!displayKey) return null;
   const display = t(displayKey);
@@ -250,7 +262,7 @@ function CleanTypeTag({ room }: { room: Room }) {
   return (
     <View accessible accessibilityLabel={t("rooms.card.cleanTypeAccessibility", { type: display })} style={styles.cleanTypeRow}>
       {room.clean_type === "DEP" ? <Ionicons name="log-out-outline" size={10} color={color} /> : null}
-      <Text style={[styles.cleanTypeText, { color }]}>{display}</Text>
+      <Text style={[styles.cleanTypeText, { color }, x.active && styles.cleanTypeTextV2]}>{display}</Text>
     </View>
   );
 }
@@ -289,6 +301,7 @@ interface RoomQueueCardProps {
 export function RoomQueueCard({ room, onPress, position, estimateMinutes, actionLabel, dimmed }: RoomQueueCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const timing = getPrimaryTimingLine(room);
   const badges = getRoomBadges(room);
   const roomType = room.room_type_code ?? room.rooms?.room_types?.code ?? null;
@@ -308,7 +321,7 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
           </View>
 
           <View style={styles.cardTitleRow}>
-            <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>{room.room_number}</Text>
+            <Text style={[styles.roomNumber, { color: theme.textPrimary }, x.display, x.active && { fontSize: 26 }]}>{room.room_number}</Text>
             {roomType ? (
               <Text style={[styles.roomType, { color: theme.textMuted }]} numberOfLines={1}>
                 {roomType}
@@ -321,7 +334,7 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
               {timing ? (
                 <View style={styles.timingRow}>
                   <Ionicons name="time-outline" size={12} color={theme.textMuted} />
-                  <Text style={[styles.timingText, { color: theme.textSecondary }]}>
+                  <Text style={[styles.timingText, { color: theme.textSecondary }, x.num, x.active && { fontSize: 13 }]}>
                     {t(getTimingLabelKey(timing.label), { label: timing.label })}: {timing.value}
                   </Text>
                 </View>
@@ -339,8 +352,8 @@ export function RoomQueueCard({ room, onPress, position, estimateMinutes, action
                       : { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle };
                   const badgeTextColor = loud ? theme.status.dirty : brass ? theme.accentBrass : theme.textSecondary;
                   return (
-                    <View key={badge.key} style={[styles.badge, badgeColors]}>
-                      <Text style={[styles.badgeText, { color: badgeTextColor }]}>
+                    <View key={badge.key} style={[styles.badge, badgeColors, x.active && { borderRadius: radiusV2.chip, paddingVertical: 3, paddingHorizontal: 8 }]}>
+                      <Text style={[styles.badgeText, { color: badgeTextColor }, x.active && { fontSize: 12, fontWeight: "600" }]}>
                         {t(getBadgeLabelKey(badge.key), { label: badge.label })}
                       </Text>
                     </View>
@@ -372,7 +385,16 @@ interface AIBriefingCardProps {
 }
 
 export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, footNote, loading, children }: AIBriefingCardProps) {
-  const theme = useTheme();
+  const base = useTheme();
+  const x = useV2Text();
+  // V2: the soft-violet AI treatment (light surface in light mode) instead of the dark shell block, so AI
+  // content reads as AI without dominating the screen. Legacy keeps its dark shell untouched.
+  const theme = x.active
+    ? {
+        ...base,
+        shell: { ...base.shell, bg: base.ai.soft, line: base.ai.line, ink: base.textPrimary, ink2: base.textSecondary, ink3: base.textSecondary, raised: base.surface },
+      }
+    : base;
   return (
     <View
       style={[
@@ -381,12 +403,13 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
           backgroundColor: theme.shell.bg,
           borderColor: theme.shell.line,
         },
+        x.active && { borderRadius: radiusV2.card, padding: 16 },
       ]}
       testID="ai-briefing-card"
     >
       <View style={styles.aiKickerRow}>
         <Ionicons name="sparkles" size={13} color={theme.ai.primary} />
-        <Text style={[styles.aiKicker, { color: theme.ai.primary }]}>
+        <Text style={[styles.aiKicker, { color: theme.ai.primary }, x.label]}>
           {kicker}
         </Text>
         {loading ? (
@@ -395,13 +418,13 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
           />
         ) : null}
       </View>
-      <Text style={[styles.aiHeadline, { color: theme.shell.ink }]}>
+      <Text style={[styles.aiHeadline, { color: theme.shell.ink }, x.active && { fontSize: 16, lineHeight: 23, fontWeight: "600" }]}>
         {headline}
       </Text>
       {plan && plan.length > 0 ? (
         <View style={styles.aiPlanRow}>
           {planLabel ? (
-            <Text style={[styles.aiPlanLabel, { color: theme.shell.ink3 }]}>
+            <Text style={[styles.aiPlanLabel, { color: theme.shell.ink3 }, x.label]}>
               {planLabel}
             </Text>
           ) : null}
@@ -415,6 +438,7 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
                       color: theme.shell.ink,
                       backgroundColor: theme.shell.raised,
                     },
+                    x.num,
                   ]}
                 >
                   {roomNumber}
@@ -455,7 +479,7 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
       ) : null}
       {children}
       {footNote ? (
-        <Text style={[styles.aiFootNote, { color: theme.shell.ink3 }]}>
+        <Text style={[styles.aiFootNote, { color: theme.shell.ink3 }, x.num, x.active && { fontSize: 12 }]}>
           {footNote}
         </Text>
       ) : null}
@@ -476,6 +500,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   statusDot: { width: 5, height: 5, borderRadius: 3 },
+  statusPillV2: { paddingHorizontal: 10, paddingVertical: 4 },
+  statusPillTextV2: { fontSize: 12, fontWeight: "600", textTransform: "none", letterSpacing: 0 },
   statusPillText: { fontSize: 10.5, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 },
 
   rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 4, justifyContent: "space-evenly" },
@@ -488,6 +514,8 @@ const styles = StyleSheet.create({
 
   progressTrack: { height: 7, borderRadius: 999, overflow: "hidden" },
   progressFill: { height: 7, borderRadius: 999 },
+  progressTrackV2: { height: 8 },
+  progressFillV2: { height: 8 },
 
   chip: {
     flexDirection: "row",
@@ -499,6 +527,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   chipText: { fontSize: 11, fontWeight: "800" },
+  chipV2: { paddingHorizontal: 10, paddingVertical: 5 },
+  chipTextV2: { fontSize: 12, fontWeight: "600" },
 
   cardLayoutOverrides: {
     position: "relative",
@@ -526,6 +556,7 @@ const styles = StyleSheet.create({
 
   cleanTypeRow: { flexDirection: "row", alignItems: "center", gap: 3 },
   cleanTypeText: { fontSize: 10, fontWeight: "800" },
+  cleanTypeTextV2: { fontSize: 12, fontWeight: "600" },
 
   aiCard: {
     borderWidth: 1,

@@ -9,6 +9,7 @@ import type { RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
 import { describeUpNext, roomContext } from "@/lib/housekeeping/homeText";
 import type { TextContext } from "@/lib/housekeeping/myRoomsText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -25,6 +26,7 @@ interface Props {
 /** One upcoming room from the shared cleaning order. The full list lives in My Rooms. */
 export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }: Props) {
   const theme = useTheme();
+  const x = useV2Text();
   const whyRef = useRef<ViewInstance>(null);
   const room = entry.room;
   const detail = describeUpNext(entry, t, ctx);
@@ -41,7 +43,7 @@ export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }:
         testID="up-next-room"
       >
         <View style={styles.text}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.textPrimary }, x.display, x.active && { fontSize: 22, lineHeight: 28 }]}>
             {t("rooms.dash.card.room", { room: room.room_number })}
           </Text>
           {context ? (

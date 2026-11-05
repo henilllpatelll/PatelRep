@@ -46,11 +46,16 @@ export function firstNameOf(name?: string | null): string | null {
 
 /** "WEDNESDAY, OCT 14 · MORNING" */
 export function headerMeta(model: HomeModel, language: string, part: DayPart, t: Translate): string {
+  return headerMetaPlain(model, language, part, t).toUpperCase();
+}
+
+/** "Wednesday, Oct 14 · Morning": the same line in sentence case (Design System V2 has no shouting labels). */
+export function headerMetaPlain(model: HomeModel, language: string, part: DayPart, t: Translate): string {
   const date = formatShiftDate(model.shiftDate, language);
   // Long month names crowd small phones; the meta line abbreviates by locale rules.
   const short = date ? shortDate(model.shiftDate, language) : null;
   const label = t(`home.header.part.${part}`);
-  return [short, label].filter(Boolean).join(" · ").toUpperCase();
+  return [short, label].filter(Boolean).join(" · ");
 }
 
 function shortDate(ymd: string, language: string): string | null {

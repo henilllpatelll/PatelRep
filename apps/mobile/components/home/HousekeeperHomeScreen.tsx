@@ -39,7 +39,7 @@ import {
   type AttentionPreviewItem,
   type HomeDestinations,
 } from "@/lib/housekeeping/homeState";
-import { dayPartOf, describeSync, firstNameOf, headerMeta, shiftStatusLine } from "@/lib/housekeeping/homeText";
+import { dayPartOf, describeSync, firstNameOf, headerMeta, headerMetaPlain, shiftStatusLine } from "@/lib/housekeeping/homeText";
 import { displayNameFor } from "@/lib/settings/displayName";
 import { formatClock } from "@/lib/housekeeping/myRoomsText";
 import { setLastTab } from "@/lib/housekeeping/myRoomsDashboard";
@@ -54,6 +54,9 @@ import { buildShiftSummary } from "@/lib/housekeeping/shiftSummary";
 import { useShiftRecap } from "@/lib/housekeeping/useShiftRecap";
 import { useSyncRun } from "@/lib/housekeeping/useSyncRun";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { HomeBriefingEntry } from "@/components/home/HomeBriefingEntry";
+import { useHotelName } from "@/lib/housekeeping/useHotelName";
 import { useToast } from "@/lib/theme/useToast";
 
 const WORK_KINDS = new Set(["cleaning", "idle", "submitted", "attention"]);
@@ -76,6 +79,8 @@ interface Props {
 export function HousekeeperHome({ enabled, destinations }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const v2 = useIsDesignV2();
+  const hotelName = useHotelName(v2);
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const { user, isOnline, setMyRooms, refreshRooms } = useAppStore();
@@ -319,6 +324,8 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
       >
         <HomeHeader
           meta={headerMeta(model, language, dayPart, t)}
+          metaPlain={headerMetaPlain(model, language, dayPart, t)}
+          hotelName={hotelName}
           greeting={t(greetingKey, { name })}
           status={shiftStatusLine(lifecycle.state, t)}
           sync={describeSync(model, t, ctx)}
@@ -329,7 +336,7 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
           onOpenSync={openSync}
         />
 
-        <View style={styles.body}>
+        <View style={v2 ? styles.bodyV2 : styles.body}>
           {view.notice ? <ConnectionNoticeBanner notice={view.notice} t={t} ctx={ctx} onOpenSync={openSync} /> : null}
 
           {view.kind === "unavailable" ? (
@@ -432,7 +439,14 @@ export function HousekeeperHome({ enabled, destinations }: Props) {
           ) : null}
 
           {/* A quiet, optional extra: the plan lives in a drawer, never in competition with the room to clean. */}
-          {showWork && !view.allDone && rooms.length > 0 ? (
+          {showWork && !view.allDone && rooms.length > 0 && v2 ? (
+            <HomeBriefingEntry
+              headline={buildBriefingFromModel(model, t).headline}
+              t={t}
+              onOpen={() => sheets.open({ kind: "briefing" })}
+            />
+          ) : null}
+          {showWork && !view.allDone && rooms.length > 0 && !v2 ? (
             <LinkButton
               label={t("home.briefing.open")}
               icon="sparkles-outline"
@@ -488,4 +502,5 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { flexGrow: 1 },
   body: { paddingHorizontal: 18, paddingTop: 10, gap: 14 },
+  bodyV2: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
 });
