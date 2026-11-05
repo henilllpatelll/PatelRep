@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { isDesignV2PreviewEnabled, resolveDesignV2Preview } from './designV2'
 import { aiV2, designV2CssVars, paletteV2, shellV2, statusV2, type ModeV2 } from './designV2Tokens'
-import * as mobile from '../../../mobile/components/shared/tokensV2'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 type Rgba = [number, number, number, number]
 
@@ -56,7 +58,14 @@ test('preview flag is disabled by default and never on in production', () => {
   assert.equal(resolveDesignV2Preview('true', ' Production '), false)
 })
 
-test('web V2 tokens match mobile V2 tokens value-for-value (no drift)', () => {
+// The mobile file is loaded dynamically (non-literal specifier) because the web Docker build copies
+// only apps/web: a static import would break `next build`'s type-check there. In a full checkout
+// (CI, local) the file exists and the drift check runs; in the web-only context it is skipped.
+const MOBILE_TOKENS = path.resolve(__dirname, '../../../mobile/components/shared/tokensV2.ts')
+
+test('web V2 tokens match mobile V2 tokens value-for-value (no drift)', async (t) => {
+  if (!existsSync(MOBILE_TOKENS)) return t.skip('apps/mobile is not present in this checkout')
+  const mobile = await import(pathToFileURL(MOBILE_TOKENS).href)
   assert.deepEqual(paletteV2, mobile.paletteV2)
   assert.deepEqual(statusV2, mobile.statusV2)
   for (const mode of MODES) {
