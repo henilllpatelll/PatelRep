@@ -9,6 +9,7 @@ import { addTaskComment, TASK_NOTE_MAX, type Task } from "@/lib/api/tasks";
 import { canAddNote, type Viewer } from "@/lib/tasks/taskActions";
 import { shortPlace } from "@/lib/tasks/taskDisplay";
 import { useTaskActivity } from "@/lib/tasks/useTaskActivity";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -35,6 +36,7 @@ function httpStatus(error: unknown): number | null {
 export function ActivityNotesSheet({ visible, task, viewer, zone, language, now, offline, onClose, onTaskRefreshed }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const taskId = visible && task ? task.id : null;
   const activity = useTaskActivity(taskId);
   const [draft, setDraft] = useState("");
@@ -95,7 +97,7 @@ export function ActivityNotesSheet({ visible, task, viewer, zone, language, now,
 
   const footer = writable ? (
     <View style={styles.composer}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, x.label]}>
         {t("tasks.hk.sheet.notes.addLabel")}
       </Text>
       <TextInput

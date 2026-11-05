@@ -26,6 +26,7 @@ import type { TextContext, Translate } from "@/lib/housekeeping/myRoomsText";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
 import { useHomeBridge } from "@/stores/homeBridgeStore";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
   critical: "alert-circle",
@@ -44,6 +45,7 @@ const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
 export function AttentionCenterScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const { user, isOnline } = useAppStore();
   const scope = user ? `${user.tenant_id}:${user.id}` : null;
@@ -237,7 +239,7 @@ export function AttentionCenterScreen() {
               <Text
                 maxFontSizeMultiplier={MAX_FONT_SCALE}
                 accessibilityRole="header"
-                style={[styles.sectionTitle, { color: theme.textMuted }]}
+                style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}
                 testID={`attention-section-${row.group}`}
               >
                 {t(`home.attentionCenter.section.${row.group}`)}
@@ -293,6 +295,7 @@ interface CardProps {
 
 function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: CardProps) {
   const theme = useTheme();
+  const x = useV2Text();
   const copy = describeAttentionRow(row, note, t, ctx);
   const spec = attentionAction(row.item);
   const tone: Record<AttentionGroup, string> = {
@@ -307,7 +310,7 @@ function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: 
 
   return (
     <View
-      style={[styles.card, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+      style={[styles.card, { backgroundColor: theme.surfaceElevated, borderColor: x.edge }]}
       accessible={false}
       testID={`attention-card-${row.item.id}`}
     >
@@ -318,7 +321,7 @@ function AttentionCard({ row, why, note, ctx, t, onPrimary, onDetails, onAsk }: 
             {copy.title}
           </Text>
           {priority ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.priority, { color: tone[row.group] }]} testID={`attention-priority-${row.item.id}`}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.priority, { color: tone[row.group] }, x.label]} testID={`attention-priority-${row.item.id}`}>
               {priority}
             </Text>
           ) : null}

@@ -4,11 +4,13 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /** Out of order / out of service. Informational: a housekeeper cannot override it. */
 export function UnavailableRoomView({ room }: { room: Room }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const number = room.open_work_order_number ? ` #${room.open_work_order_number}` : "";
   const workOrder = room.open_work_order_title
     ? `${room.open_work_order_title}${number}`
@@ -31,8 +33,8 @@ export function UnavailableRoomView({ room }: { room: Room }) {
         </Text>
       </View>
       {workOrder ? (
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="unavailable-work-order">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }]}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]} testID="unavailable-work-order">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }, x.label]}>
             {t("rooms.work.unavailable.workOrder")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.workOrder, { color: theme.textPrimary }]}>

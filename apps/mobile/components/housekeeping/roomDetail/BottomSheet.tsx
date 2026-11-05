@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { radiusV2 } from "@/components/shared/tokensV2";
 import type { TextInstance, ScrollViewInstance } from "react-native";
 
 export const MAX_FONT_SCALE = 1.6;
@@ -47,6 +49,9 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
   const { t } = useTranslation();
   const appTheme = useTheme();
   const theme = palette ?? appTheme;
+  // V2 sheet conventions: 24 radius, always a grab handle, a tinted 44 close control, a ruled footer. The pinned palette
+  // (the assistant's always-dark sheets) keeps its own colours; only the geometry changes.
+  const v2 = useIsDesignV2();
   const insets = useSafeAreaInsets();
   const titleRef = useRef<TextInstance>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -115,25 +120,26 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
           style={[
             styles.sheet,
             tall && styles.sheetTall,
-            { backgroundColor: theme.surface, borderColor: theme.border, paddingBottom: insets.bottom + 12 },
+            { backgroundColor: theme.surface, borderColor: v2 ? theme.borderSubtle : theme.border, paddingBottom: insets.bottom + 12 },
+            v2 && styles.sheetV2,
             dragToDismiss ? { transform: [{ translateY: dragY }] } : null,
           ]}
         >
           <View {...(pan?.panHandlers ?? {})}>
-          {grabber ? <View style={[styles.grabber, { backgroundColor: theme.border }]} /> : null}
+          {grabber || v2 ? <View style={[styles.grabber, { backgroundColor: theme.border }, v2 && styles.grabberV2]} /> : null}
           <View style={styles.header}>
             <Text
               ref={titleRef}
               accessibilityRole="header"
               maxFontSizeMultiplier={MAX_FONT_SCALE}
-              style={[styles.title, { color: theme.textPrimary }]}
+              style={[styles.title, { color: theme.textPrimary }, v2 && styles.titleV2]}
             >
               {title}
             </Text>
             <Pressable
               onPress={onClose}
               hitSlop={8}
-              style={styles.close}
+              style={[styles.close, v2 && [styles.closeV2, { backgroundColor: theme.surfaceSubtle }]]}
               accessibilityRole="button"
               accessibilityLabel={t("common.close")}
             >
@@ -149,7 +155,7 @@ export function BottomSheet({ visible, title, onClose, children, footer, scrollK
           >
             {children}
           </ScrollView>
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
+          {footer ? <View style={[styles.footer, v2 && [styles.footerV2, { borderTopColor: theme.borderSubtle }]]}>{footer}</View> : null}
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
@@ -169,6 +175,11 @@ const styles = StyleSheet.create({
   },
   sheetTall: { maxHeight: "94%", minHeight: "60%" },
   grabber: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, marginBottom: 2 },
+  sheetV2: { borderTopLeftRadius: radiusV2.sheet, borderTopRightRadius: radiusV2.sheet },
+  grabberV2: { width: 36, height: 5, borderRadius: 3, marginBottom: 4 },
+  titleV2: { fontSize: 18, fontWeight: "700", letterSpacing: -0.1 },
+  closeV2: { width: 40, height: 40, borderRadius: 20, marginRight: -4 },
+  footerV2: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 4, paddingTop: 12 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, minHeight: 52 },
   title: { flex: 1, fontSize: 18, fontWeight: "900", letterSpacing: -0.2 },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: -10 },

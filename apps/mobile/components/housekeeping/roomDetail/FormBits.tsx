@@ -3,13 +3,15 @@ import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } fro
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /** Small building blocks shared by the Report / More forms so they look and read the same. */
 
 export function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
-    <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+    <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, x.label]}>
       {children}
       {required ? <Text style={{ color: theme.status.dirty }}> *</Text> : null}
     </Text>

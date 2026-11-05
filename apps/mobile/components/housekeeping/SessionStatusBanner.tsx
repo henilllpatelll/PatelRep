@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getPhase, hasPendingSync, pendingChangeCount, type LocalCleanSession } from "@/lib/housekeeping/cleanSession";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   session: LocalCleanSession;
@@ -20,6 +21,7 @@ interface Props {
 export default function SessionStatusBanner({ session, onRetry, onDiscard, isOnline = true }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const phase = getPhase(session);
 
   if (phase === "conflict" && session.conflict) {
@@ -105,7 +107,7 @@ export default function SessionStatusBanner({ session, onRetry, onDiscard, isOnl
     const count = pendingChangeCount(session);
     return (
       <View
-        style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+        style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: x.edge }]}
         testID="session-offline-banner"
         accessibilityRole="alert"
       >
@@ -123,7 +125,7 @@ export default function SessionStatusBanner({ session, onRetry, onDiscard, isOnl
   if (hasPendingSync(session)) {
     return (
       <View
-        style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+        style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: x.edge }]}
         testID="session-pending-banner"
       >
         <View style={styles.row}>

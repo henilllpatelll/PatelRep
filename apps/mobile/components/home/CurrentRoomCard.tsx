@@ -78,9 +78,9 @@ export function CurrentRoomCard({ active, recommendation, canMarkClean, t, ctx, 
 
 /** The hero card: status badge, a large sans room number, real elapsed time, checklist progress and exactly one
  *  primary action. Same data, same handlers and same test IDs as the legacy card; only the presentation changed. */
-function HeroFrame({ accent, children, testID }: { accent: string; children: React.ReactNode; testID: string }) {
+function HeroFrame({ children, testID }: { children: React.ReactNode; testID: string }) {
   return (
-    <Card style={[styles.heroV2, { borderTopColor: accent }]} testID={testID}>
+    <Card style={styles.heroV2} testID={testID}>
       {children}
     </Card>
   );
@@ -124,7 +124,6 @@ function ActiveCardV2({
   const context = roomContext(active.room, t);
   const recovery = active.sessionState === "missing" || active.sessionState === "conflict";
   const primaryLabel = recovery ? t("home.current.openRoom") : t("home.current.continue");
-  const accent = recovery ? theme.status.pickup : theme.status.inProgress;
   const stepsLeft = Math.max(0, active.checklistTotal - active.checklistDone);
   // The quick Mark clean button only exists when the existing rules allow it. When it does not, say what remains
   // instead of showing a disabled or missing control with no explanation.
@@ -132,7 +131,7 @@ function ActiveCardV2({
     running && !canMarkClean && stepsLeft > 0 ? t("home.current.remaining", { count: stepsLeft }) : null;
 
   return (
-    <HeroFrame accent={accent} testID="focus-card">
+    <HeroFrame testID="focus-card">
       <View style={styles.betweenV2}>
         <AppText variant="label" tone="secondary" accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
           {t("home.current.title")}
@@ -247,7 +246,7 @@ function RecommendedCardV2({
   const room = recommendation.room;
 
   return (
-    <HeroFrame accent={theme.primaryAction} testID="focus-card">
+    <HeroFrame testID="focus-card">
       <View style={styles.betweenV2}>
         <AppText variant="label" tone="secondary" accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
           {t("home.current.titleNext")}
@@ -503,7 +502,7 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
 
   // V2
-  heroV2: { borderRadius: radiusV2.hero, borderTopWidth: 3, padding: spaceV2.lg, gap: spaceV2.md },
+  heroV2: { borderRadius: radiusV2.hero, padding: spaceV2.lg, gap: spaceV2.md },
   betweenV2: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spaceV2.sm },
   headingV2: { flexDirection: "row", alignItems: "flex-end", flexWrap: "wrap", columnGap: spaceV2.md, rowGap: 2 },
   roomNumberV2: { fontSize: 44, lineHeight: 50 },

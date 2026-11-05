@@ -232,7 +232,7 @@ export function MarkCleanConfirmationSheet({ visible, roomId, model, isOnline, t
                   <Animated.View
                     style={[styles.holdFill, { backgroundColor: accent.bg, width: fill.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] }) }]}
                   />
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.holdText, { color: theme.onPrimary }]}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.holdText, { color: "fg" in accent ? accent.fg : theme.onPrimary }]}>
                     {t("home.markClean.holdCta")}
                   </Text>
                 </Pressable>

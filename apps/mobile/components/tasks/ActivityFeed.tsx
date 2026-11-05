@@ -6,6 +6,7 @@ import { formatHotelTime, formatShiftDate } from "@/lib/housekeeping/hotelTime";
 import type { TaskActivityEvent } from "@/lib/api/tasks";
 import { actorLabel, groupByDay } from "@/lib/tasks/taskDisplay";
 import type { Viewer } from "@/lib/tasks/taskActions";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MAX_FONT_SCALE = 1.5;
 
@@ -22,6 +23,7 @@ interface Props {
 function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent; viewer: Viewer; zone: string | null; language: string }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const time = formatHotelTime(event.at, zone, language) ?? "";
   const actor = actorLabel(event, viewer, t);
   const isNote = event.kind === "comment";
@@ -41,7 +43,7 @@ function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent;
 
   return (
     <View style={styles.row} accessible accessibilityLabel={a11y} testID={`activity-${event.id}`}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.time, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.time, { color: theme.textMuted }, x.num]}>
         {time}
       </Text>
       <View style={styles.main}>
@@ -76,6 +78,7 @@ function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent;
 export function ActivityFeed({ events, viewer, zone, language, now, grouped = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
 
   if (!grouped) {
     return (
@@ -94,7 +97,7 @@ export function ActivityFeed({ events, viewer, zone, language, now, grouped = fa
           <Text
             accessibilityRole="header"
             maxFontSizeMultiplier={MAX_FONT_SCALE}
-            style={[styles.day, { color: theme.textMuted }]}
+            style={[styles.day, { color: theme.textMuted }, x.label]}
           >
             {group.bucket === "today"
               ? t("tasks.hk.sheet.notes.today")

@@ -1,6 +1,6 @@
 # PatelRep Design System V2 — "Precision Slate + Electric Blue"
 
-Status: **Phase 2 of 8 (shell, navigation, auth and headers; see section 14 onward).** Phase 1 was the
+Status: **Phase 3 of 8 (Housekeeper mobile; see section 26 onward).** Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
 foundation + reference previews. V2 is disabled by default; production
 still renders the legacy "Evening Lobby" look everywhere. Branch `feat/patelrep-design-system-v2`,
 one draft PR for all eight phases.
@@ -428,3 +428,71 @@ Role home headers -> `HomeHeader`/`ScreenHeader`; each role's tab roots and deta
 web page bodies, `PageHeader`, notifications panel, command palette, Tweaks and `MobileFloorNav`;
 web `/auth/*` recovery pages; removal of the legacy `Sidebar` and the per-hotel `shell` redesign
 flag once V2 is the default.
+
+---
+
+# Phase 3 of 8: Housekeeper mobile redesign
+
+Status: implemented on the same branch/PR. Renders **only** for the Housekeeper role while the Phase 1
+preview flag is on (`EXPO_PUBLIC_DESIGN_V2_PREVIEW`, off by default, ignored in production). No API,
+database, migration, RBAC, route or production-config change. Flag off = the legacy look, unchanged.
+
+## 26. How Phase 3 is scoped
+
+`DesignV2Scope` gained an `enabled` prop. `app/(app)/_layout.tsx` wraps the tab screens, hidden routes
+and the assistant in `<DesignV2Scope enabled={isHousekeeperV2Role(effectiveRole)}>`, so every screen a
+housekeeper can reach (including Notifications, SOP, Lost & Found, Profile) takes V2 colors, and every
+other role renders outside the scope. Shared components branch on `useIsDesignV2()` / `useV2Text()`
+(`lib/design/housekeeperV2.ts`): label (sentence case), num/display (system sans, tabular digits),
+title, and `edge` (separator edge for card-like surfaces; controls and inputs keep the strong edge).
+Outside the scope every override is `null` and `edge` is the old `theme.border`.
+
+## 27. Migration checklist
+
+| Area | Migrated |
+|---|---|
+| Home header (hotel line via read-only `GET /hotels/:id`, sentence-case date, shift status, bell, sync chip) | yes |
+| Home hero card (active, recovery, recommended), Up next, Needs attention, Today's progress, supervisor note (Kicker/Card), AI briefing entry | yes |
+| Home states (before shift, break, clocked out, no assignments, unavailable, submitted, all handled) | via Kicker/Card/Button/Chip tokens; layouts unchanged |
+| My Rooms header, summary card, segments, search, floor groups, route cards, compact rows, current/recovery card | yes |
+| Room Detail (header, timer, checklist, before/active/submitted/ready/attention/unavailable views, sticky actions, restriction/reclean/rush panels) | yes (tokens + label/num/edge overrides) |
+| Sheets: one `roomDetail/BottomSheet` carries all of them: Room information, actions/more, completion, notes, issue, supplies, service exception, damage/photo, flags, linen, sync details, found item, mark clean, finish shift, shift progress, briefing, supervisor message, recommendation, issue details, sync status, task sheets | yes (V2 radius 24, handle, tinted 44 close, ruled footer) |
+| Guest knock / entry guidance (full-screen) | recolors with the V2 slate shell tokens |
+| Tasks header, summary, segments, task cards, history, detail/add/complete/unable/activity sheets | yes |
+| Housekeeper assistant sheet | geometry only; keeps its pinned dark palette |
+
+## 28. Behavior preserved and deliberate choices
+
+- Primary action on the hero card still only opens the existing room workflow. Quick "Mark clean"
+  appears only when `canQuickMarkClean` allows it; otherwise V2 shows "N checklist steps left before
+  you can mark this room clean" (derived from real checklist counts).
+- Elapsed time shows only from a real session start; no invented ETAs.
+- AI: the briefing entry shows the deterministic on-phone headline and a provenance line; opening Home
+  or refreshing makes no AI call. A written briefing is still requested only inside the drawer.
+- The terracotta housekeeper accent is retired in V2 (hold-to-confirm uses slate track + blue fill).
+- All test IDs, accessibility roles and handlers are kept. The only new network read is the hotel name,
+  and only while V2 is on.
+- Added strings (EN/ES): `home.current.{title,titleNext,badge*,remaining}`, `home.briefing.{aiChip,v2Provenance}`.
+
+## 29. Verification
+
+Mobile `tsc`, ESLint and the full Jest suite pass (see the PR for the final run), including
+`__tests__/components/HousekeeperV2.test.tsx` (role gate, flag-off contract, hero guard, header, tabs,
+sheets, copy). A temporary browser harness (not committed) rendered Home, My Rooms, Room Detail, Tasks
+and a sheet in light, dark and Spanish at 390 px with no console errors. No native device run.
+
+## 30. Known limitations and cleanup
+
+- No iPhone/Android device or screen-reader run; run the manual QA below.
+- Screens reachable by a housekeeper that still use static `C.*` tokens or shared legacy components
+  (parts of Notifications, SOP, Lost & Found) look partly legacy until their own phases.
+- `StaffTasksScreen`, `SupervisorHome` and other-role uses of shared primitives stay legacy.
+- Cleanup once every role is migrated: legacy `serifFont`/`monoFont` call sites, `housekeeperAccent`,
+  the `evening`/`mobileHandoff` primitives, uppercase `headerMeta`.
+
+## 31. Manual QA (flag on, Housekeeper account)
+
+Light/dark, EN/ES, 320 dp and large phones, largest text: Home in each shift state; start/resume/
+complete a room (hold-to-confirm, offline queue); My Rooms tabs, search, floor collapse, "Why next?";
+every room sheet with keyboard open; Tasks claim/start/complete/unable, add task, offline sync; confirm
+other roles are unchanged and the flag-off app looks as before.

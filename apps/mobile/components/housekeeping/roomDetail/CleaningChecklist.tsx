@@ -6,6 +6,7 @@ import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getProgress, groupBySection, itemKey, type ChecklistItem } from "@/lib/housekeeping/cleanSession";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const LOST_FOUND_LABEL = /lost\s*(&|and)?\s*found/i;
 
@@ -68,6 +69,7 @@ function AnimatedBox({ checked }: { checked: boolean }) {
 export function CleaningChecklist({ title, items, pendingKeys, locked, placeholder, notes, onToggle, onReportFoundItem }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const progress = getProgress(items);
   const groups = groupBySection(items);
   const grouped = groups.length > 1;
@@ -87,7 +89,7 @@ export function CleaningChecklist({ title, items, pendingKeys, locked, placehold
   const isOpen = (section: string) => chosen[section] ?? (!grouped || autoOpened.has(section) || section === firstOpen);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="cleaning-checklist">
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]} testID="cleaning-checklist">
       <View style={styles.header}>
         <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]}>
           {title}
@@ -95,7 +97,7 @@ export function CleaningChecklist({ title, items, pendingKeys, locked, placehold
         {items.length > 0 ? (
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}
-            style={[styles.count, { color: theme.textSecondary }]}
+            style={[styles.count, { color: theme.textSecondary }, x.num]}
             accessibilityLabel={t("rooms.work.checklist.progressA11y", { done: progress.done, total: progress.total })}
             testID="checklist-count"
           >
@@ -148,11 +150,11 @@ export function CleaningChecklist({ title, items, pendingKeys, locked, placehold
                 accessibilityState={{ expanded: open }}
                 testID={`checklist-toggle-${group.section}`}
               >
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textSecondary }, x.label]}>
                   {group.section}
                 </Text>
                 <View style={styles.sectionRight}>
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionCount, { color: done === group.items.length ? theme.status.ready : theme.textMuted }]}>
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionCount, { color: done === group.items.length ? theme.status.ready : theme.textMuted }, x.num]}>
                     {done} / {group.items.length}
                   </Text>
                   <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.textMuted} />

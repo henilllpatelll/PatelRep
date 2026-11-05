@@ -17,6 +17,7 @@ import { isOverdue } from "@/lib/tasks/workQueue";
 import { useTaskActivity } from "@/lib/tasks/useTaskActivity";
 import { canRetryConflict, type OutboxEntry } from "@/lib/tasks/offline/outboxPolicy";
 import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const PREVIEW_EVENTS = 3;
 /** Instructions longer than this fold behind "Show more" so the actions stay reachable. */
@@ -89,6 +90,7 @@ export function TaskDetailSheet({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [expanded, setExpanded] = useState(false);
   // Offline there is nothing to fetch: the saved copy is shown and activity waits for a connection.
   const activity = useTaskActivity(visible && task && !offline ? task.id : null);
@@ -259,7 +261,7 @@ export function TaskDetailSheet({
               size={15}
               color={theme.textSecondary}
             />
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.place, { color: theme.textSecondary }]} numberOfLines={1}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.place, { color: theme.textSecondary }, x.num]} numberOfLines={1}>
               {shortPlace(task, t) ?? typeLabel}
             </Text>
           </View>
@@ -390,7 +392,7 @@ export function TaskDetailSheet({
 
       {task.description ? (
         <View style={styles.section}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
             {t("tasks.hk.sheet.instructions")}
           </Text>
           <Text
@@ -419,7 +421,7 @@ export function TaskDetailSheet({
 
       {rows.length > 0 ? (
         <View style={styles.section}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
             {t("tasks.hk.sheet.details")}
           </Text>
           <View style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
@@ -463,7 +465,7 @@ export function TaskDetailSheet({
       {/* Offline there is nothing to fetch, so an empty Activity heading would say nothing. */}
       {offline && !activity.data ? null : (
         <View style={styles.section}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
             {t("tasks.hk.sheet.activity")}
           </Text>
           {activity.status === "loading" ? (

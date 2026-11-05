@@ -5,6 +5,7 @@ import type { Room } from "@/stores/appStore";
 import type { LocalCleanSession } from "@/lib/housekeeping/cleanSession";
 import { cleanTypeLabel, formatClock, locationLabel, statusLabel, type TextContext, type Translate } from "@/lib/housekeeping/myRoomsText";
 import { BottomSheet, MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -81,10 +82,11 @@ export function RoomInformationSheet({ visible, room, session, lastAction, ctx, 
   }
 
   function Section({ title, rows }: { title: string; rows: Row[] }) {
+  const x = useV2Text();
     if (rows.length === 0) return null;
     return (
       <View style={[styles.section, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]}>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
           {title}
         </Text>
         {rows.map((row, index) => (

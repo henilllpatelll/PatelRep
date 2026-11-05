@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import { ADD_TASK_LIMITS, validateDraft, type DraftErrors, type TaskDraft } from "@/lib/tasks/addTask/draft";
 import { summarizeBatch, type BatchHalt, type BatchItem, type BatchProblem } from "@/lib/tasks/addTask/batch";
 import type { Task } from "@/lib/api/tasks";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* Review of several suggested tasks. Every suggestion is its own card the person can include, leave out or
    edit; nothing exists until "Create" is pressed, and afterwards each card says exactly what the server did
@@ -55,6 +56,7 @@ const PROBLEM_KEY: Record<BatchProblem, string> = {
 export function BatchBody({ items, originalText, zone, language, now, busy, revealProblems, halted, onToggle, onEdit, onView }: BodyProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const summary = summarizeBatch(items);
   const anyCreated = summary.created > 0;
   const total = items.length;
@@ -129,7 +131,7 @@ export function BatchBody({ items, originalText, zone, language, now, busy, reve
             testID={`batch-card-${index}`}
           >
             <View style={styles.cardHead}>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.eyebrow, { color: theme.textMuted }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.eyebrow, { color: theme.textMuted }, x.label]}>
                 {t("tasks.hk.add.batch.taskN", { n: index + 1 })}
               </Text>
               {!created && item.status !== "creating" ? (

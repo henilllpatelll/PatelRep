@@ -7,6 +7,7 @@ import type { RoomClassification } from "@/lib/housekeeping/needsAttention";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
 import { resolveReturnTime } from "@/lib/housekeeping/hotelTime";
 import type { AttemptResult } from "@/lib/housekeeping/serviceAttempts";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MAX_FONT_SCALE = 1.6;
 const TIME_PRESETS = ["11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM"];
@@ -272,6 +273,7 @@ function ActionButton({
   testID?: string;
 }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <Pressable
       onPress={onPress}
@@ -285,7 +287,7 @@ function ActionButton({
         compact && styles.buttonCompact,
         primary
           ? { backgroundColor: theme.primaryAction, borderColor: theme.primaryAction }
-          : { backgroundColor: theme.surface, borderColor: theme.border },
+          : { backgroundColor: theme.surface, borderColor: x.edge },
         disabled && { opacity: 0.5 },
       ]}
     >

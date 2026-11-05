@@ -8,6 +8,7 @@ import type { MaintenanceDraft } from "@/lib/housekeeping/maintenanceReport";
 import type { DescriptionSuggestion, PhotoSuggestion, ReportField, YesNo } from "@/lib/housekeeping/reportDraft";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 import { Chip, FieldLabel, StatusText } from "./FormBits";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* The two optional AI helpers on the Report Issue form. Both only ever propose: every value they show is applied
    by an explicit press, is editable afterwards, and is labelled as a suggestion. Neither is needed to report. */
@@ -56,6 +57,7 @@ interface DescriptionAssistProps {
 export function DescriptionAssist({ online, locked, canAsk, status, failure, suggestion, stale, draft, kept, onSuggest, onUseAll, onUseField, onDismiss }: DescriptionAssistProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const loading = status === "loading";
 
   const rows: Array<{ field: ReportField; label: string; value: string; same: boolean }> = [];
@@ -98,7 +100,7 @@ export function DescriptionAssist({ online, locked, canAsk, status, failure, sug
           {rows.map((row) => (
             <View key={row.field} style={styles.row} testID={`issue-ai-row-${row.field}`}>
               <View style={styles.rowText}>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }, x.label]}>
                   {row.label}
                 </Text>
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowValue, { color: theme.textPrimary }]}>

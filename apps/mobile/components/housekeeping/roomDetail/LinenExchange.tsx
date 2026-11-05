@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { LINEN_MAX, clampLinen, type LinenState } from "@/lib/housekeeping/cleanSession";
 import { BottomSheet, MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 type Counts = { dirtyOut: number; cleanIn: number };
 
 function Stepper({ label, value, onChange, disabled }: { label: string; value: number; onChange: (n: number) => void; disabled: boolean }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.stepperRow}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.stepperLabel, { color: theme.textPrimary }]}>
@@ -30,7 +32,7 @@ function Stepper({ label, value, onChange, disabled }: { label: string; value: n
           <Text style={[styles.stepGlyph, { color: theme.textPrimary }]}>−</Text>
         </Pressable>
         <Text
-          style={[styles.count, { color: theme.textPrimary }]}
+          style={[styles.count, { color: theme.textPrimary }, x.num]}
           accessibilityRole="adjustable"
           accessibilityLabel={label}
           accessibilityValue={{ min: 0, max: LINEN_MAX, now: value }}
@@ -58,6 +60,7 @@ function Stepper({ label, value, onChange, disabled }: { label: string; value: n
 export function LinenExchangeRow({ linen, onOpen }: { linen: LinenState | undefined; onOpen: () => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
 
   const summary = linen ? t("rooms.work.linen.summary", { out: linen.dirtyOut, in: linen.cleanIn }) : t("rooms.work.linen.notRecorded");
   const status = !linen ? null : linen.failed ? "failed" : linen.pending ? "pending" : "saved";
@@ -66,7 +69,7 @@ export function LinenExchangeRow({ linen, onOpen }: { linen: LinenState | undefi
   return (
     <Pressable
       onPress={onOpen}
-      style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
+      style={[styles.row, { backgroundColor: theme.surface, borderColor: x.edge }]}
       accessibilityRole="button"
       accessibilityLabel={`${t("rooms.work.linen.title")}. ${summary}${status ? `. ${t(`rooms.work.linen.status.${status}`)}` : ""}`}
       testID="linen-row"

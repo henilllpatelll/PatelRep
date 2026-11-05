@@ -14,6 +14,7 @@ import {
   type TaskBucket,
   type TaskQueueEntry,
 } from "@/lib/ai/tasks";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* ─── Task card — Evening Lobby work card for the Tasks tab ─────────────────
    Mirrors the room-card language: left urgency rail, identity tile, big
@@ -74,6 +75,7 @@ export function TaskCard({
 }: TaskCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { task, bucket, overdueMinutes } = entry;
 
   const rawType = (task.task_type ?? "general").toLowerCase();
@@ -137,7 +139,7 @@ export function TaskCard({
               {room ? (
                 <View style={styles.roomChip}>
                   <Ionicons name="bed-outline" size={10} color={theme.textSecondary} />
-                  <Text style={[styles.roomChipText, { color: theme.textSecondary }]}>{room}</Text>
+                  <Text style={[styles.roomChipText, { color: theme.textSecondary }, x.num]}>{room}</Text>
                 </View>
               ) : null}
               {!room && location ? (
@@ -165,7 +167,7 @@ export function TaskCard({
               ) : dueLabel ? (
                 <View style={styles.dueRow}>
                   <Ionicons name="time-outline" size={11} color={theme.textMuted} />
-                  <Text style={[styles.dueText, { color: theme.textMuted }]}>{t("tasks.dueAt", { time: dueLabel })}</Text>
+                  <Text style={[styles.dueText, { color: theme.textMuted }, x.num]}>{t("tasks.dueAt", { time: dueLabel })}</Text>
                 </View>
               ) : null}
             </View>

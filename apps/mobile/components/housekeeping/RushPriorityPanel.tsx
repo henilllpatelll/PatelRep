@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import type { RoomClassification } from "@/lib/housekeeping/needsAttention";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MAX_FONT_SCALE = 1.6;
 const RUSH_REASONS = new Set(["early_arrival", "vip", "guest_waiting", "front_desk_request", "operational_priority", "other"]);
@@ -17,6 +18,7 @@ const RUSH_REASONS = new Set(["early_arrival", "vip", "guest_waiting", "front_de
 export function RushPriorityPanel({ room, classification, ctx }: { room: Room; classification: RoomClassification; ctx: TextContext }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const rush = classification.rush;
   if (!rush) return null;
 
@@ -48,7 +50,7 @@ export function RushPriorityPanel({ room, classification, ctx }: { room: Room; c
       ) : null}
       {rush.note ? (
         <View style={styles.note}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noteLabel, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.noteLabel, { color: theme.textMuted }, x.label]}>
             {t("rooms.dash.rush.noteLabel")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.line, { color: theme.textPrimary }]}>

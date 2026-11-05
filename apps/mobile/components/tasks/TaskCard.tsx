@@ -9,6 +9,7 @@ import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import type { Task } from "@/lib/api/tasks";
 import { minutesSince, overdueMinutes } from "@/lib/tasks/workQueue";
 import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* ─── Task card ──────────────────────────────────────────────────────────────
    Hierarchy: location -> title -> urgency/status -> type -> time context -> ONE action.
@@ -74,6 +75,7 @@ export function TaskCard({
 }: TaskCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const hero = variant === "hero";
 
   const late = overdueMinutes(task, now);
@@ -114,7 +116,7 @@ export function TaskCard({
         ? { label: t("tasks.hk.action.claim"), a11y: t("tasks.hk.action.claimA11y", { title: task.title }), icon: "hand-left-outline" as IconName }
         : { label: t("tasks.hk.action.start"), a11y: t("tasks.hk.action.startA11y", { title: task.title }), icon: "play" as IconName };
 
-  const railColor = needsReview ? theme.status.dirty : late !== null ? theme.status.dirty : urgent || blocker || pending ? theme.status.pickup : theme.border;
+  const railColor = needsReview ? theme.status.dirty : late !== null ? theme.status.dirty : urgent || blocker || pending ? theme.status.pickup : x.edge;
   const lateText = late !== null ? durationLabel(t, late, "tasks.hk.card.overdueBy", "tasks.hk.card.overdueByHours") : null;
   const mutedColor = theme.textMuted;
 
@@ -126,8 +128,9 @@ export function TaskCard({
         hero && styles.cardHero,
         {
           backgroundColor: hero ? theme.surfaceElevated : theme.surface,
-          borderColor: hero ? theme.primaryLine : late !== null ? theme.status.dirtyLine : theme.border,
+          borderColor: hero ? theme.primaryLine : late !== null ? theme.status.dirtyLine : x.edge,
         },
+        x.active && styles.cardV2,
       ]}
     >
       <View style={[styles.rail, { backgroundColor: railColor }]} />
@@ -150,12 +153,12 @@ export function TaskCard({
                 <Text
                   maxFontSizeMultiplier={MAX_FONT_SCALE}
                   numberOfLines={1}
-                  style={[styles.location, { color: theme.textSecondary }]}
+                  style={[styles.location, { color: theme.textSecondary }, x.num]}
                 >
                   {locationText}
                 </Text>
               ) : (
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.location, { color: theme.textSecondary }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.location, { color: theme.textSecondary }, x.num]}>
                   {typeLabel}
                 </Text>
               )}
@@ -173,7 +176,7 @@ export function TaskCard({
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}
             numberOfLines={2}
-            style={[styles.title, hero && styles.titleHero, { color: theme.textPrimary }]}
+            style={[styles.title, hero && styles.titleHero, { color: theme.textPrimary }, x.active && { fontWeight: "600" }]}
           >
             {task.title}
           </Text>
@@ -232,7 +235,7 @@ export function TaskCard({
           <View style={styles.metaRow}>
             {urgent ? (
               <View style={[styles.urgentBadge, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.urgentText, { color: theme.status.pickup }]}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.urgentText, { color: theme.status.pickup }, x.active && { fontSize: 12, fontWeight: "600", letterSpacing: 0 }]}>
                   {t("tasks.hk.card.urgent")}
                 </Text>
               </View>
@@ -277,6 +280,7 @@ export function TaskCard({
 const styles = StyleSheet.create({
   card: { flexDirection: "row", borderWidth: 1, borderRadius: R.lg, overflow: "hidden" },
   cardHero: { borderWidth: 1.5 },
+  cardV2: { borderRadius: 16 },
   rail: { width: 5 },
   content: { flex: 1, minWidth: 0 },
   body: { paddingHorizontal: 14, paddingTop: 13, paddingBottom: 6, gap: 6, minHeight: 44 },

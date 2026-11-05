@@ -9,6 +9,7 @@ import { formatBlockerTimeInput, type RoomBlocker } from "@/lib/housekeeping/roo
 import type { useRoomReports } from "@/lib/housekeeping/useRoomReports";
 import { BottomSheet, MAX_FONT_SCALE } from "./BottomSheet";
 import { Chip, FieldLabel, StatusText } from "./FormBits";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -28,6 +29,7 @@ interface Props {
 export function RoomFlagsSheet({ visible, room, flags, isOnline, reports, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [timeKey, setTimeKey] = useState<string | null>(null);
   const [timeText, setTimeText] = useState("");
   const [done, setDone] = useState(false);
@@ -83,7 +85,7 @@ export function RoomFlagsSheet({ visible, room, flags, isOnline, reports, onClos
       ))}
 
       {active ? (
-        <View style={[styles.form, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} testID="flags-time-entry">
+        <View style={[styles.form, { backgroundColor: theme.surfaceSubtle, borderColor: x.edge }]} testID="flags-time-entry">
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.timeLabel, { color: theme.textSecondary }]}>
             {t("blockers.timePrompt")}
           </Text>

@@ -2,7 +2,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import type { StickyAction, StickyActionId, StickyActions } from "@/lib/housekeeping/roomDetailState";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 
@@ -22,6 +24,7 @@ interface Props {
 export function RoomStickyActions({ actions, busy, onAction, onMore }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const { primary, secondary, more } = actions;
   if (!primary && !secondary && !more) return null;
@@ -35,17 +38,20 @@ export function RoomStickyActions({ actions, busy, onAction, onMore }: Props) {
   return (
     <View
       testID="room-sticky-actions"
-      style={[styles.root, { paddingBottom: insets.bottom + 12, backgroundColor: theme.surface, borderTopColor: theme.border }]}
+      style={[styles.root, { paddingBottom: insets.bottom + 12, backgroundColor: theme.surface, borderTopColor: x.edge }]}
     >
       {reason ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={[styles.reason, { color: theme.textSecondary }]}
-          testID="sticky-disabled-reason"
-        >
-          {reason}
-        </Text>
+        <View style={x.active ? styles.reasonRowV2 : undefined}>
+          {x.active ? <Ionicons name="information-circle-outline" size={18} color={theme.textSecondary} /> : null}
+          <Text
+            accessibilityLiveRegion="polite"
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={[styles.reason, { color: theme.textSecondary }, x.active && styles.reasonV2]}
+            testID="sticky-disabled-reason"
+          >
+            {reason}
+          </Text>
+        </View>
       ) : null}
       {primary ? (
         <Button
@@ -77,4 +83,6 @@ export function RoomStickyActions({ actions, busy, onAction, onMore }: Props) {
 const styles = StyleSheet.create({
   root: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: 1 },
   reason: { fontSize: 13, lineHeight: 18, fontWeight: "600", textAlign: "center" },
+  reasonRowV2: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  reasonV2: { flex: 1, textAlign: "left", fontWeight: "500" },
 });

@@ -10,6 +10,7 @@ import type { Viewer } from "@/lib/tasks/taskActions";
 import { explainSentences } from "@/lib/tasks/explainTask";
 import { ProcedureLinks } from "@/components/sop/ProcedureLinks";
 import { useRelatedProcedures } from "@/lib/sop/useRelatedProcedures";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* "Need help?" on the task detail: two optional, clearly separate things. Explain reads the task back in plain
    words from its own stored fields (no AI call, no cost, nothing invented). Ask Assistant opens the assistant
@@ -34,6 +35,7 @@ interface Props {
 export function TaskHelpCard({ task, viewer, zone, language, now, offline, onAskAssistant, onFindProcedure, onOpenProcedure }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [open, setOpen] = useState(false);
   // Only the hotel's own procedures that match this task, from the list already on the phone; no model, no cost.
   const related = useRelatedProcedures([task.title, task.description, task.task_type], !!onOpenProcedure);
@@ -47,7 +49,7 @@ export function TaskHelpCard({ task, viewer, zone, language, now, offline, onAsk
     <View style={styles.section} testID="task-help">
       <View style={styles.titleRow}>
         <Ionicons name="sparkles-outline" size={14} color={theme.textMuted} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textMuted }, x.label]}>
           {t("tasks.hk.help.title")}
         </Text>
       </View>

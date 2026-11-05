@@ -37,5 +37,10 @@ export function useChromeTheme(): ThemeTokens {
 
 export function useHousekeeperAccent() {
   const mode = useThemeMode();
+  const theme = useTheme();
+  const v2 = useDesignV2Scope().active;
+  // Design System V2 retires the Housekeeper-only terracotta: the confirm control uses the one primary blue.
+  // Dark slate track + blue fill keeps the hold progress clearly visible; `fg` is the label colour that reads on both.
+  if (v2) return { bg: theme.primary, bgPressed: theme.shell.bg, soft: theme.primarySoft, softLine: theme.primaryLine, fg: theme.shell.ink };
   return mode === "dark" ? darkHousekeeperAccent : housekeeperAccent;
 }
