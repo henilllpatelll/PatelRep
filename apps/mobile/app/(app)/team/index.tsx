@@ -54,7 +54,7 @@ export default function TeamOverviewScreen() {
   }
 
   return (
-    <SettingsScreen title={t("engineeringTeam.title")} back>
+    <SettingsScreen title={t("engineeringTeam.title")} back v2Chrome={false}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subtitle, { color: theme.textSecondary }]}>
         {t("engineeringTeam.subtitle")}
       </Text>

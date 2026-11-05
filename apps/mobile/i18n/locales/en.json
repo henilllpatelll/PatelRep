@@ -12753,6 +12753,15 @@
       "unknown_outcome": "Server confirmation pending"
     }
   },
+  "headerV2": {
+    "back": "Back",
+    "close": "Close",
+    "notifications": "Notifications",
+    "account": "Account: {{name}}",
+    "online": "Online",
+    "offline": "Offline",
+    "pending": "Waiting to send: {{count}}"
+  },
   "designV2Preview": {
     "banner": "Design V2 preview",
     "bannerBody": "Sample data only. Nothing here is read from, or saved to, PatelRep.",

@@ -25,7 +25,11 @@ import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
-import { useTheme } from "@/lib/theme/useTheme";
+import { useChromeTheme, useTheme } from "@/lib/theme/useTheme";
+import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
+import { TabIconV2 } from "@/components/shared/TabIconV2";
+import { CROWDED_TAB_COUNT, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
@@ -41,6 +45,9 @@ export default function AppLayout() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  // Shared chrome sits outside any DesignV2Scope; this is V2 tokens only while the preview flag is on.
+  const chrome = useChromeTheme();
+  const designV2 = isDesignV2Enabled();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
@@ -236,28 +243,36 @@ export default function AppLayout() {
       <AssistantProvider>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
-          <OfflineBanner />
+          <DesignV2Scope>
+            <OfflineBanner />
+          </DesignV2Scope>
         </View>
-        <ToastViewport topOffset={insets.top + bannerHeight} />
+        <DesignV2Scope>
+          <ToastViewport topOffset={insets.top + bannerHeight} />
+        </DesignV2Scope>
         <Tabs
           backBehavior="history"
           screenOptions={{
-            tabBarActiveTintColor: theme.shell.ink,
-            tabBarInactiveTintColor: theme.shell.ink3,
-            tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-            tabBarStyle: {
-              backgroundColor: theme.shell.bg,
-              borderTopColor: theme.shell.line,
-              borderTopWidth: 1,
-              height: 76,
-              paddingTop: 8,
-              paddingBottom: 12,
-              shadowColor: theme.shell.bg,
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: -4 },
-              elevation: 10,
-            },
+            ...(designV2
+              ? buildTabScreenOptionsV2(chrome, insets.bottom, visibleTabs.length)
+              : {
+                  tabBarActiveTintColor: theme.shell.ink,
+                  tabBarInactiveTintColor: theme.shell.ink3,
+                  tabBarLabelStyle: { fontSize: 11, fontWeight: "600" as const },
+                  tabBarStyle: {
+                    backgroundColor: theme.shell.bg,
+                    borderTopColor: theme.shell.line,
+                    borderTopWidth: 1,
+                    height: 76,
+                    paddingTop: 8,
+                    paddingBottom: 12,
+                    shadowColor: theme.shell.bg,
+                    shadowOpacity: 0.25,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: -4 },
+                    elevation: 10,
+                  },
+                }),
             headerStyle: { backgroundColor: theme.shell.surface },
             headerTintColor: theme.shell.ink,
             headerTitleStyle: { fontWeight: "600", color: theme.shell.ink },
@@ -272,9 +287,18 @@ export default function AppLayout() {
                 title: t(tab.titleKey),
                 headerShown: false,
                 tabBarAccessibilityLabel: t(tab.titleKey),
-                tabBarIcon: ({ color, size }) => (
-                  <Ionicons name={tab.icon} size={size} color={color as string} />
-                ),
+                tabBarIcon: ({ color, size, focused }) =>
+                  designV2 ? (
+                    <TabIconV2
+                      name={getTabIconV2(tab, focused)}
+                      color={color as string}
+                      focused={focused}
+                      activeFill={chrome.shell.raised}
+                      compact={visibleTabs.length >= CROWDED_TAB_COUNT}
+                    />
+                  ) : (
+                    <Ionicons name={tab.icon} size={size} color={color as string} />
+                  ),
               }}
             />
           ))}

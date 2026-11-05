@@ -1122,3 +1122,10 @@
 - Brief colors that fail AA were adjusted (light pickup #B04F08, out-of-order #566379, dark ai soft 12%); `border` in V2 theme = strong 3:1 edge, `borderSubtle` = the brief's separator.
 - `next dev` with a dummy Supabase URL does not hydrate (HMR websocket goes through proxy.ts); verify web with `NEXT_DIST_DIR=.next-v2 next build && next start`, then revert tsconfig.json/next-env.d.ts/AGENTS.md that Next rewrites. Expo web needs temporary `web.output: single` plus a dummy `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 - Bash heredocs with apostrophes fail in this shell: use the Write tool.
+
+## Design System V2 Phase 2 (2026-11-04, same branch/PR #200)
+- Isolation rule for chrome: `useChromeTheme()` (V2 tokens by flag, outside any scope) for the tab bar; `DesignV2Scope` only around FULLY migrated areas ((auth) stack, OfflineBanner, ToastViewport, SettingsScreen); web remaps legacy token names (`--paper`, `--ink`...) only on chrome subtrees (`.chromeLight`, auth `.page`), never on `<main>` (a test enforces it).
+- Python on Windows: `open(p, "w")` rewrites LF files as CRLF and can mangle UTF-8. Use `open(..., encoding="utf-8", newline="")` (helper in the session scratchpad) or the Edit tool; check `git diff --stat` for a huge diff.
+- `next dev` DOES hydrate when you browse `http://localhost:PORT` (not `127.0.0.1`, which Next 16 blocks for dev resources). Hermetic web preview: `node e2e/hermetic/mock-backend.mjs` (port 4010) + `next dev` with NEXT_PUBLIC_SUPABASE_URL/API_URL=http://127.0.0.1:4010; sign in as gm@hermetic.invalid with the fixture password in the mock backend. Next dev/build rewrites apps/web/AGENTS.md and next-env.d.ts: `git checkout` them.
+- React Navigation tab bar: item area = height - paddingTop - paddingBottom; below ~56 dp the label is clipped (seen in the Expo web render). Mobile jest test helper `makeTranslator` does not resolve i18next plural suffixes; use non-plural keys for new strings.
+- Legacy web global CSS sets `button { min-height: 44px }` on narrow widths, which stretches fixed-height icon buttons (bell was 32x44).

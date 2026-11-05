@@ -18,6 +18,8 @@ import { supabase } from "@/lib/supabase";
 import { AuthTextField } from "@/components/auth/AuthTextField";
 import { classifyAuthError, isValidEmail, normalizeEmail, type AuthFailure } from "@/lib/auth/authErrors";
 import { displayFont } from "@/components/shared/tokens";
+import { NAV_ACTIVE_V2 } from "@/lib/navigation/tabChromeV2";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppLockStore } from "@/stores/appLockStore";
 import type { TextInputInstance } from "react-native";
@@ -28,6 +30,7 @@ type FieldError = "emailRequired" | "emailInvalid" | "passwordRequired";
 export default function LoginScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const v2 = useIsDesignV2();
   // One email value survives switching between password and email-link sign-in.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,19 +94,28 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <View style={styles.logoRow}>
-          <View style={[styles.logoMark, { backgroundColor: theme.shell.bg }]} testID="login-logo-mark">
-            <Ionicons name="home-outline" size={17} color={theme.shell.ink} />
+          <View
+            style={[styles.logoMark, v2 && styles.logoMarkV2, { backgroundColor: theme.shell.bg }]}
+            testID="login-logo-mark"
+          >
+            <Ionicons name={v2 ? "home" : "home-outline"} size={v2 ? 22 : 17} color={v2 ? NAV_ACTIVE_V2 : theme.shell.ink} />
           </View>
           <View style={styles.logoCopy}>
-            <Text style={[styles.logoText, { color: theme.textPrimary }]}>PatelRep</Text>
-            <Text style={[styles.logoSub, { color: theme.textMuted }]}>{t("auth.staffSignIn")}</Text>
+            <Text style={[styles.logoText, v2 && styles.logoTextV2, { color: theme.textPrimary }]}>PatelRep</Text>
+            <Text style={[styles.logoSub, v2 && styles.logoSubV2, { color: theme.textMuted }]}>{t("auth.staffSignIn")}</Text>
           </View>
         </View>
 
         <View style={styles.copy}>
-          <Text style={[styles.eyebrow, { color: theme.primaryAction }]}>{t("auth.signInEyebrow")}</Text>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>{t("auth.welcomeBack")}</Text>
-          <Text style={[styles.body, { color: theme.textSecondary }]}>
+          {v2 ? null : <Text style={[styles.eyebrow, { color: theme.primaryAction }]}>{t("auth.signInEyebrow")}</Text>}
+          <Text
+            accessibilityRole={v2 ? "header" : undefined}
+            maxFontSizeMultiplier={v2 ? 1.5 : undefined}
+            style={[styles.title, v2 && styles.titleV2, { color: theme.textPrimary }]}
+          >
+            {t("auth.welcomeBack")}
+          </Text>
+          <Text style={[styles.body, v2 && styles.bodyV2, { color: theme.textSecondary }]}>
             {t(mode === "password" ? "auth.startShift" : "auth.magicLinkIntro")}
           </Text>
         </View>
@@ -168,7 +180,7 @@ export default function LoginScreen() {
         ) : null}
 
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primaryAction }]}
+          style={[styles.primaryButton, v2 && styles.buttonV2, { backgroundColor: theme.primaryAction }]}
           onPress={() => void handleLogin()}
           disabled={loading}
           accessibilityRole="button"
@@ -180,7 +192,7 @@ export default function LoginScreen() {
             <ActivityIndicator color={theme.onPrimary} testID="login-loading" />
           ) : (
             <>
-              <Text style={[styles.primaryText, { color: theme.onPrimary }]}>
+              <Text style={[styles.primaryText, v2 && styles.buttonTextV2, { color: theme.onPrimary }]}>
                 {mode === "password" ? t("auth.login") : t("auth.magicLink")}
               </Text>
               <Ionicons name="arrow-forward" size={17} color={theme.onPrimary} />
@@ -196,12 +208,12 @@ export default function LoginScreen() {
             style={styles.linkPress}
             testID="login-forgot"
           >
-            <Text style={[styles.link, { color: theme.primaryAction }]}>{t("auth.forgotPassword")}</Text>
+            <Text style={[styles.link, v2 && styles.linkV2, { color: theme.primaryAction }]}>{t("auth.forgotPassword")}</Text>
           </Pressable>
         ) : null}
 
         <TouchableOpacity
-          style={[styles.secondaryButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          style={[styles.secondaryButton, v2 && styles.buttonV2, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => {
             setMode(mode === "password" ? "magic" : "password");
             setFieldError(null);
@@ -213,7 +225,7 @@ export default function LoginScreen() {
           testID="login-mode-toggle"
         >
           <Ionicons name={mode === "password" ? "mail-outline" : "key-outline"} size={17} color={theme.textPrimary} />
-          <Text style={[styles.secondaryText, { color: theme.textPrimary }]}>
+          <Text style={[styles.secondaryText, v2 && styles.buttonTextV2, { color: theme.textPrimary }]}>
             {mode === "password" ? t("auth.signInWithEmailLink") : t("auth.signInWithPassword")}
           </Text>
         </TouchableOpacity>
@@ -246,5 +258,13 @@ const styles = StyleSheet.create({
   link: { fontSize: 14.5, fontWeight: "700" },
   secondaryButton: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   secondaryText: { flexShrink: 1, textAlign: "center", fontSize: 15, fontWeight: "700" },
+  logoMarkV2: { width: 44, height: 44, borderRadius: 12 },
+  logoTextV2: { fontSize: 18, lineHeight: 24 },
+  logoSubV2: { fontSize: 13, lineHeight: 18 },
+  titleV2: { fontFamily: undefined, fontSize: 30, lineHeight: 36, fontWeight: "700", letterSpacing: -0.4 },
+  bodyV2: { fontSize: 16, lineHeight: 24 },
+  buttonV2: { minHeight: 52, borderRadius: 14 },
+  buttonTextV2: { fontSize: 16, fontWeight: "600" },
+  linkV2: { fontSize: 15, fontWeight: "600" },
   invite: { flexShrink: 1, marginTop: "auto", textAlign: "center", fontSize: 12.5, lineHeight: 18 },
 });

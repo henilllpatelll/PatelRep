@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { useAppStore } from "@/stores/appStore";
 import { useRecoveryStore } from "@/lib/auth/recoveryStore";
+import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 
 export default function AuthLayout() {
   const { isAuthenticated, isLoading } = useAppStore(
@@ -17,5 +18,11 @@ export default function AuthLayout() {
     }
   }, [isAuthenticated, isLoading, recoveryPending]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Every signed-out screen is fully migrated, so the whole stack takes the V2 theme when the
+  // preview flag is on. With the flag off DesignV2Scope is a pass-through.
+  return (
+    <DesignV2Scope>
+      <Stack screenOptions={{ headerShown: false }} />
+    </DesignV2Scope>
+  );
 }

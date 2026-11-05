@@ -1,6 +1,7 @@
 # PatelRep Design System V2 — "Precision Slate + Electric Blue"
 
-Status: **Phase 1 of 8 (foundation + reference previews).** V2 is disabled by default; production
+Status: **Phase 2 of 8 (shell, navigation, auth and headers; see section 14 onward).** Phase 1 was the
+foundation + reference previews. V2 is disabled by default; production
 still renders the legacy "Evening Lobby" look everywhere. Branch `feat/patelrep-design-system-v2`,
 one draft PR for all eight phases.
 
@@ -214,3 +215,216 @@ i18n parity, protected room-status values, and every existing navigation route a
 - Light-mode nav is the same dark slate as dark mode (per the brief), not a tinted light rail.
 - "Pickup" and "Out of order" light hues are slightly darker for contrast (see §2).
 - Sample figures differ from any screenshot; they are invented and labeled as such.
+
+---
+
+# Phase 2 of 8: shared app shell, navigation, authentication and headers
+
+Status: implemented on the same branch/PR as Phase 1. Everything below renders **only while the
+Phase 1 preview flags are on** (`EXPO_PUBLIC_DESIGN_V2_PREVIEW` / `NEXT_PUBLIC_DESIGN_V2_PREVIEW`,
+off by default, ignored when the app environment is `production`). With a flag off, the platform
+renders exactly what it rendered before Phase 2. No backend, database, migration, RBAC, route or
+authentication-logic change is part of this phase.
+
+## 14. How Phase 2 stays isolated (the rule for every later phase)
+
+The Phase 1 `DesignV2Scope` recolors everything inside it, so putting it at the app root would
+recolor ~100 unmigrated screens. Phase 2 therefore uses three narrow mechanisms:
+
+| Mechanism | Where | What it affects |
+|---|---|---|
+| `useChromeTheme()` (`lib/theme/useTheme.ts`) | mobile tab bar (outside any scope) | V2 tokens only for layout-level chrome while the flag is on; screens keep `useTheme()` |
+| `<DesignV2Scope>` around a *fully migrated* area | mobile `(auth)` stack, `OfflineBanner`, `ToastViewport`, Settings screens | everything inside is V2 when the flag is on; inert pass-through otherwise |
+| Remap of legacy CSS token names on a *chrome subtree* | web header (`.chromeLight`), web sign-in (`.page`) | the existing component keeps its logic; only its colors change. Page bodies in `<main>` are never inside a remap scope (a test enforces this) |
+
+Screens that reuse a migrated frame for non-matching content opt out explicitly:
+`SettingsScreen v2Chrome={false}` is used by Team, Team member and Engineering Sync.
+
+## 15. Mobile bottom navigation
+
+Source: `lib/navigation/tabChromeV2.ts` (pure, tested) and `components/shared/TabIconV2.tsx`;
+applied in `app/(app)/_layout.tsx` only when the flag is on.
+
+- **Surface:** the dark-slate `shell` tokens, dark in both light and dark app mode (Phase 1 contract).
+- **Selected tab:** electric blue (`NAV_ACTIVE_V2` = the dark-mode primary `#60A5FA`, the blue that
+  clears 4.5:1 on the slate; the light-mode blue does not), a filled glyph and a raised pill behind
+  the icon. Selection is therefore shape + weight + color, never color alone.
+- **Idle tab:** `shell.ink2`, 4.5:1 or better on the bar.
+- **Geometry:** 64 dp bar + the device inset (minimum 8 dp, so 72 dp on a phone without a home indicator), instead of the legacy fixed 76. Items
+  keep a 44 dp minimum. 12 sp labels (11 sp when five or more tabs). No shadow/elevation.
+- **Badge:** destructive fill, 18 dp pill, nudged onto the icon corner (`tabBarBadgeStyle`).
+- **No flicker/remount:** the glyph pill is static; tab screens are unchanged `Tabs.Screen`s.
+- **Icons:** Home is now a house; Room Board keeps the grid (they were both a grid in the legacy
+  set). Idle = outline, focused = filled. Routes, `HIDDEN_APP_ROUTES`, `ALL_ROLE_TAB_ROUTES` and
+  role tab sets are untouched, and the hidden-route workaround (`tabBarItemStyle: display none`,
+  never `href: null`) is preserved.
+
+| Role | Tabs (unchanged) |
+|---|---|
+| Housekeeper | Home, My Rooms, Tasks, Profile |
+| Inspector | Home, Inspect, Tasks, Profile |
+| Engineer / Chief Engineer | Home, Work, PM, Assets, More |
+| Housekeeping Supervisor | Home, Room Board, Assign, Inspect, Profile |
+| Front Desk | Home, Requests, Rooms, Logbook, Lost & Found, Profile (six; unchanged for now) |
+| General Manager | Home, Alerts, Staff, Profile |
+
+## 16. Mobile header contract
+
+Source: `components/shared/HeadersV2.tsx`. Presentation only: no fetching, navigation or
+permission decisions. Colors via `useTheme()`, so a header is V2 inside a `DesignV2Scope`.
+
+| Component | Use | Contract |
+|---|---|---|
+| `HomeHeader` | role home screens | title, optional subtitle, **hotel context line**, `ConnectionIndicator`, `NotificationBell`, optional `AvatarButton` |
+| `ScreenHeader` | tab roots | title, optional subtitle, trailing slot (max two controls) |
+| `DetailHeader` | pushed screens | 44 dp back at the leading edge, wrapping title, optional trailing action |
+| `SheetHeader` | modals/sheets | title + named Close; the sheet owns the handle and inset |
+| `AccountHeader` | Profile and Settings | same grammar as Detail; keeps the legacy `settings-back` / `settings-title` test IDs |
+
+Shared rules: the header applies the safe-area top inset itself; titles wrap (never one-line
+truncate) and cap font scaling at 1.5x; every icon-only control has a spoken name; the unread count
+is text and part of the accessible label (`Notifications, 3`); a connection chip always pairs an
+icon with text. `useConnectionState()` reports only what the app store knows: **offline**, **N
+changes waiting to send**, or **online** (hidden when online). Strings: `headerV2.*` (EN/ES).
+
+**Migrated:** `AccountHeader` is live in all Settings/Profile screens via `SettingsScreen`.
+**Not migrated (documented for the role phases):** the role-specific home headers
+(`components/home/HomeHeader`, `supervisor/today/TodayHeader`, `engineering/home/TechnicianHomeHeader`,
+`engineering/more/MoreHeader`) have role-specific layout (shift status, sync drawer, serif greeting).
+They keep their own look and will adopt `HomeHeader`/`ScreenHeader` in their phases; the preview
+screen has its own header. No screen was forced onto these components in this phase.
+
+## 17. Mobile authentication
+
+The `(auth)` stack is wrapped in `DesignV2Scope`, so Login, Forgot password, Reset password and the
+callback states take V2 colors together. Behavior is untouched (Supabase password and email-link
+sign-in, `classifyAuthError`, rate-limit/offline messages, `shouldCreateUser:false`, recovery store,
+redirects, app-lock hand-off): only presentation changed, and only with the flag on.
+
+- Login: dark-slate logo tile with a blue glyph, "Welcome back." as a 30 sp system-bold heading (no
+  serif, no uppercase eyebrow), **visible field labels** above the fields, 52 dp controls with 14 dp
+  radius, a 1.5 dp field edge that turns blue on focus, red + text for errors, named show/hide
+  password toggle, secondary email-link button, forgot-password link.
+- Forgot/Reset use `AuthFrame` (V2: tinted 44 dp back button, 28 sp title) and `Button`/`AuthTextField`.
+- Existing test IDs are unchanged.
+
+## 18. Mobile shared chrome
+
+- Offline banner: adds a cloud-off icon in V2 (inside `DesignV2Scope`); same role/alert semantics.
+- Toasts: render inside `DesignV2Scope` (V2 toast tokens); position math unchanged.
+- Tab bar, Settings frame and section groups (sentence-case section labels, subtle card edge) as above.
+
+## 19. Web management shell
+
+Source: `components/design-v2/shell/` (`ShellV2`, `SidebarV2`, `HeaderLeadingV2`, `shellV2.module.css`)
+and `lib/design/shellNav.ts`. `DashboardShell` returns `ShellV2` only when
+`isDesignV2PreviewEnabled()`; the legacy markup below it is unchanged.
+
+```
++-----------+---------------------------------------------------------------+
+| sidebar   | header: [menu<1024] property | route trail | search(Ctrl K)  |
+| 248 / 72  |         language, notifications, account (existing Header)     |
+| dark slate+---------------------------------------------------------------+
+| brand     | main#main-content  (max-width 1440, 24 px gutter, V2 background)|
+| Overview  |   page bodies are still legacy until their phase                |
+| Operations|                                                                 |
+| Records   |                                                                 |
+| prefs/    |                                                                 |
+| settings  |                                                                 |
+| collapse  |                                                                 |
+| identity  |                                                                 |
++-----------+---------------------------------------------------------------+
+```
+
+- **Navigation data:** `buildShellNavGroups` re-buckets `getAllowedNavItems`, the same single source
+  of truth the legacy sidebar, command palette and breadcrumbs use. A test proves the V2 sidebar
+  shows exactly the legacy set for every base role, custom-role modules and hotel front-desk
+  modules. No second permission list exists. Settings stays `canAccessSettings`-gated (GM).
+- **Active destination:** raised tile + 4 px blue bar + bold weight + `aria-current="page"`.
+- **Collapse:** an explicit toggle (persisted in the existing `uiPreferencesStore.sidebarCollapsed`)
+  collapses to a 72 px icon rail. Between 1024 and 1279 px the rail is forced (the toggle is hidden).
+  Collapsed items keep a visually-hidden label (accessible name) and show a Radix tooltip on hover
+  *and* keyboard focus.
+- **Header:** the existing `Header` (notifications panel, language toggle, account menu with
+  focus management, sign-out, environment badge) with a V2 leading area: menu button (< 1024 px),
+  property chip (the signed-in property, read-only; PatelRep has no multi-property switcher), a
+  Section / Page trail from the same nav tables, and a search button that opens the **existing**
+  command palette (`command-palette:open`, also Ctrl/Cmd K). No new search backend.
+- **Small screens (< 1024 px):** the sidebar becomes a left Radix Dialog drawer: focus trap, Esc,
+  overlay click, scroll lock; route change and link clicks close it; focus returns to the menu
+  button; growing past 1024 closes it. Reduced motion removes the slide.
+- **Skip link** to `#main-content`; `main` is focusable; sidebar and trail are labelled landmarks.
+- **Not touched:** `AICopilotBubble`, `FeedbackButton`, `TweaksPanel`, `Toaster`, `CommandPalette`,
+  `MobileFloorNav` render as before; page bodies keep legacy styling.
+
+## 20. Web authentication
+
+`app/(auth)/login/page.tsx` has one flag-guarded V2 branch that reuses the page's state and handlers
+verbatim (password, magic link, `MOBILE_ONLY_ROLES` sign-out, redirect rules, service-health
+probe). V2: centered 440 px card, slate logo tile, "Welcome back" heading in system bold, segmented
+sign-in method, labelled 48 px fields (16 px text, 3:1 edge), a 44 px named show/hide toggle with
+`aria-pressed`, 52 px primary button with a spinner state, `role="alert"` errors, no marketing hero or
+invented figures. The legacy two-pane layout is untouched when the flag is off. The separate
+`/auth/reset-password` and `/auth/callback` pages are not restyled in this phase.
+
+## 21. Responsive behavior (web)
+
+| Width | Sidebar | Header |
+|---|---|---|
+| >= 1280 | 248 px (or 72 px rail if the user collapsed it) | full |
+| 1024-1279 | 72 px rail (forced) | full |
+| 721-1023 | left drawer from the menu button | menu, property, trail, search, account |
+| <= 720 | drawer | search collapses to an icon, property and trail text hide |
+
+Content: `max-width 1440`, gutters 24 px (16 px under 1024).
+
+## 22. Previewing Phase 2
+
+```bash
+# Web (use dummy or staging NEXT_PUBLIC_* values; sign in, or use the hermetic mock below)
+NEXT_PUBLIC_DESIGN_V2_PREVIEW=true npm run dev:web      # shell on every dashboard route, V2 sign-in at /login
+
+# Mobile
+cd apps/mobile && EXPO_PUBLIC_DESIGN_V2_PREVIEW=true npx expo start   # tab bar, auth, Settings, banner/toasts
+```
+
+A credential-free web preview: run `node e2e/hermetic/mock-backend.mjs` and start the app with
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_API_URL` set to `http://127.0.0.1:4010`, then sign in as
+`gm@hermetic.invalid` with the fixture password in `e2e/hermetic/mock-backend.mjs`.
+
+## 23. Known limitations
+
+- Role home screens, Tasks, My Rooms, Work Orders, etc. keep legacy colors and headers under the V2
+  tab bar (intentional mix until their phases); the dark nav is therefore next to warm legacy
+  screens in preview.
+- Web page bodies, the Tweaks panel, notifications dropdown internals and the command palette keep
+  legacy styling (the dropdown picks up V2 colors because it lives inside the remapped header).
+- Web `/auth/reset-password` and `/auth/callback` are not restyled.
+- The web property chip is read-only; the legacy user-menu items remain the account entry points.
+- The Tweaks panel still offers accent/density; V2 ignores accent in chrome (primary is fixed).
+- Six-tab bars (Front Desk) on a 320 dp phone truncate the longest labels ("Requests", "Logbook", "Lost & Found") with an ellipsis, as the legacy bar did; the Front Desk destination review is a later phase.
+- The mobile offline banner sits at the very top and does not add the top inset (pre-existing).
+- No native-device run: iPhone/Android safe-area, keyboard and screen-reader behavior are verified
+  by unit tests and structure only. Mobile web rendering was checked in a browser where noted below.
+
+## 24. Manual QA checklist (before promoting beyond preview)
+
+Mobile (flag on, light + dark, EN + ES, large text): each role's tab set and order; selected pill and
+label contrast; badge placement; bar height on notch and no-notch phones; a 5-6 tab bar at 320 dp;
+hidden routes (open Profile > Language, Notifications, a detail screen) do not bounce to Home;
+login/forgot/reset/callback with keyboard open; offline banner; toast position; Settings headers
+and back; legacy appearance with the flag off is pixel-identical.
+
+Web (flag on): each base role's sidebar vs the legacy list; collapse/expand and reload persistence;
+tooltips on hover and keyboard focus; drawer open, Tab cycling, Esc, overlay click, focus return,
+route change; resize across 1280 / 1024 / 720; no horizontal scroll at 390 px; skip link; Ctrl K;
+notifications, language and account menu; sign-in with error, magic link, show/hide password,
+mobile-only redirect; flag off is the legacy shell.
+
+## 25. Outstanding migrations (later phases)
+
+Role home headers -> `HomeHeader`/`ScreenHeader`; each role's tab roots and detail screens ->
+`DetailHeader`; sheets -> `SheetHeader`/`BottomSheet`; Front Desk destination review (six tabs);
+web page bodies, `PageHeader`, notifications panel, command palette, Tweaks and `MobileFloorNav`;
+web `/auth/*` recovery pages; removal of the legacy `Sidebar` and the per-hotel `shell` redesign
+flag once V2 is the default.

@@ -64,7 +64,7 @@ export default function TechnicianWorkScreen() {
   const name = tech ? technicianName(tech, t("engineeringTeam.technician")) : t("engineeringTeam.technician");
 
   return (
-    <SettingsScreen title={name} back>
+    <SettingsScreen title={name} back v2Chrome={false}>
       {tech ? (
         <Text style={[styles.summary, { color: theme.textSecondary }]} testID="tech-summary">
           {[

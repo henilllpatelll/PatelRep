@@ -12753,6 +12753,15 @@
       "unknown_outcome": "Confirmación del servidor pendiente"
     }
   },
+  "headerV2": {
+    "back": "Atrás",
+    "close": "Cerrar",
+    "notifications": "Notificaciones",
+    "account": "Cuenta: {{name}}",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "pending": "Pendiente de enviar: {{count}}"
+  },
   "designV2Preview": {
     "banner": "Vista previa de Diseño V2",
     "bannerBody": "Solo datos de muestra. Nada aquí se lee ni se guarda en PatelRep.",

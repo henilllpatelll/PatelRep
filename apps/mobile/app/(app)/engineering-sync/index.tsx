@@ -145,7 +145,7 @@ export default function EngineeringSyncScreen() {
     });
 
   return (
-    <SettingsScreen title={t("engineeringSync.title")} back>
+    <SettingsScreen title={t("engineeringSync.title")} back v2Chrome={false}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subtitle, { color: theme.textSecondary }]} testID="esync-subtitle">
         {t("engineeringSync.subtitle")}
       </Text>
