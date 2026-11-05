@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { listItems, createLostFoundItem, listRooms, type LostFoundItem, type SimpleRoom } from "@/lib/api/lostFound";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useToast } from "@/lib/theme/useToast";
 
 type Tab = "all" | "unclaimed" | "claimed";
@@ -29,6 +30,7 @@ function timeSince(iso: string): string {
 export default function LostFoundScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const v2 = useV2Text();
   const toast = useToast();
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +132,7 @@ export default function LostFoundScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
-        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("lostFound.itemsHeld", { count: items.length })}</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }, v2.label]}>{t("lostFound.itemsHeld", { count: items.length })}</Text>
         <Text style={[styles.title, { color: theme.textPrimary }]}>{t("lostFound.title")}</Text>
       </View>
 
@@ -157,7 +159,7 @@ export default function LostFoundScreen() {
                 errorMessage="Could not load found items."
                 onRetry={() => void load()}
                 retryLabel="Try again"
-                style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
               />
             ) : items.length === 0 ? (
               <StateBlock
@@ -165,7 +167,7 @@ export default function LostFoundScreen() {
                 emptyIcon="cube-outline"
                 emptyTitle="No items found"
                 emptyBody="Log a found item using the button below."
-                style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
               />
             ) : (
               items.map((item) => (
@@ -206,7 +208,7 @@ export default function LostFoundScreen() {
               </Pressable>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>{t("lostFound.descriptionLabel")}</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textMuted }, v2.label]}>{t("lostFound.descriptionLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. iPhone charger, reading glasses..."
@@ -216,7 +218,7 @@ export default function LostFoundScreen() {
               maxLength={200}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>{t("lostFound.roomOptionalLabel")}</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }, v2.label]}>{t("lostFound.roomOptionalLabel")}</Text>
             {selectedRoom ? (
               <View style={[styles.roomChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons name="bed-outline" size={14} color={theme.textMuted} />
@@ -257,7 +259,7 @@ export default function LostFoundScreen() {
               </View>
             )}
 
-            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }]}>{t("lostFound.locationFoundLabel")}</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }, v2.label]}>{t("lostFound.locationFoundLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
               placeholder="e.g. lobby, pool area, hallway..."

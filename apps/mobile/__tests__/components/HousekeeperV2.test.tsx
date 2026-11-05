@@ -45,6 +45,7 @@ import { Kicker } from "@/components/home/homeUi";
 import { MyRoomsHeader } from "@/components/housekeeping/MyRoomsHeader";
 import { TasksHeader } from "@/components/tasks/TasksHeader";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
+import KnockModal from "@/components/housekeeping/KnockModal";
 import type { ActiveRoomView } from "@/lib/housekeeping/homeModel";
 
 const t = mockMakeTranslator(() => mockLanguage);
@@ -335,6 +336,25 @@ describe("Sheets", () => {
     expect(view.getByText("Footer action")).toBeTruthy();
     fireEvent.press(view.getAllByLabelText("Close").slice(-1)[0]);
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("Guest knock guidance", () => {
+  const knock = () => <KnockModal visible roomNumber="204" statusLabel="Vacant" onConfirm={jest.fn()} onCancel={jest.fn()} onCannotEnter={jest.fn()} />;
+
+  it("V2 keeps every step, the disabled confirm and the exits, with the system-sans title", () => {
+    const view = gated(true, knock());
+    expect(view.getByTestId("knock-step-1")).toBeTruthy();
+    expect(view.getByTestId("knock-disabled-reason")).toBeTruthy();
+    expect(view.getByTestId("knock-cant-enter")).toBeTruthy();
+    expect(view.getByTestId("knock-cancel")).toBeTruthy();
+    const title = view.getAllByRole("header")[0];
+    expect(flat(title).fontWeight).toBe("700");
+  });
+
+  it("legacy keeps the heavy title", () => {
+    const view = gated(false, knock());
+    expect(flat(view.getAllByRole("header")[0]).fontWeight).toBe("900");
   });
 });
 

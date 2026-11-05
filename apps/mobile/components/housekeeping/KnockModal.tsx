@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Button } from "@/components/ui/Button";
 
 const KNOCK_STEPS = [
@@ -43,6 +44,7 @@ interface Props {
 export default function KnockModal({ visible, roomNumber, statusLabel, restricted = false, onConfirm, onCancel, onCannotEnter }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const v2 = useV2Text();
   const insets = useSafeAreaInsets();
   const [done, setDone] = useState<boolean[]>(() => KNOCK_STEPS.map(() => false));
 
@@ -66,7 +68,7 @@ export default function KnockModal({ visible, roomNumber, statusLabel, restricte
           <View style={[styles.iconCircle, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}>
             <Ionicons name="hand-left-outline" size={36} color={theme.status.pickup} />
           </View>
-          <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.shell.ink }]}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.shell.ink }, v2.title]}>
             {t("rooms.work.knock.title")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.status, { color: theme.shell.ink2 }]} testID="knock-room-line">
@@ -104,7 +106,7 @@ export default function KnockModal({ visible, roomNumber, statusLabel, restricte
                 accessibilityState={{ checked, disabled: restricted }}
                 style={[
                   styles.step,
-                  { backgroundColor: theme.shell.raised, borderColor: checked ? theme.status.ready : theme.shell.line },
+                  { backgroundColor: theme.shell.raised, borderColor: checked ? theme.status.ready : v2.active ? v2.edge : theme.shell.line },
                 ]}
                 testID={`knock-step-${index + 1}`}
               >

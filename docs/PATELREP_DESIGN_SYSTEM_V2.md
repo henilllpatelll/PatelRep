@@ -484,8 +484,14 @@ and a sheet in light, dark and Spanish at 390 px with no console errors. No nati
 ## 30. Known limitations and cleanup
 
 - No iPhone/Android device or screen-reader run; run the manual QA below.
-- Screens reachable by a housekeeper that still use static `C.*` tokens or shared legacy components
-  (parts of Notifications, SOP, Lost & Found) look partly legacy until their own phases.
+- Notifications, SOP (list and detail), Lost & Found and the Guest knock screen use theme tokens, so they
+  take the V2 colors, and (verification pass) now also take the sentence-case labels, separator edge on
+  cards and the system-sans title. Their layouts are unchanged and other roles that share them (Engineering
+  SOP, every role's Notifications) are unaffected, because every override is `null` outside the scope.
+- The Housekeeper assistant sheet keeps its pinned dark palette (decision D-11); a V2 violet restyle is
+  not part of this phase's commits.
+- No screenshots are committed: the browser harness used for the 390 px light/dark/Spanish checks was
+  temporary. Visual evidence is therefore the test suite plus the manual QA below.
 - `StaffTasksScreen`, `SupervisorHome` and other-role uses of shared primitives stay legacy.
 - Cleanup once every role is migrated: legacy `serifFont`/`monoFont` call sites, `housekeeperAccent`,
   the `evening`/`mobileHandoff` primitives, uppercase `headerMeta`.
@@ -496,3 +502,21 @@ Light/dark, EN/ES, 320 dp and large phones, largest text: Home in each shift sta
 complete a room (hold-to-confirm, offline queue); My Rooms tabs, search, floor collapse, "Why next?";
 every room sheet with keyboard open; Tasks claim/start/complete/unable, add task, offline sync; confirm
 other roles are unchanged and the flag-off app looks as before.
+
+## 32. Sheet and drawer inventory (all render through `roomDetail/BottomSheet` or the full-screen knock view)
+
+| Group | Surfaces |
+|---|---|
+| Home sheets | Shift progress, Finish shift review, Completed shift summary, Supervisor message, Recommendation ("Why next?"), Issue details, Mark clean confirmation, Room quick actions, AI briefing, Sync status, service sheets |
+| Room sheets | Room information, Report more, Complete cleaning, Room note, Service exception, Room flags, Sync details, linen exchange |
+| Room modals and panels | Report issue, Supply request, Found item, Room restriction, Reclean corrections, Rush priority |
+| Tasks sheets | Add task, Task detail, Complete task, Unable to complete, Activity notes, Task sync |
+| Full-screen | Guest knock guidance (V2 title and step edge; the all-steps-required confirm and exits are unchanged) |
+
+## 33. Design deviations and flag behavior
+
+- The terracotta housekeeper accent is retired inside V2 only (hold-to-confirm: slate track, blue fill).
+- Kicker, header-meta and field labels lose their capitals inside V2; the text itself is the translated string.
+- Assistant sheet: not restyled (see section 30).
+- Flag behavior: `EXPO_PUBLIC_DESIGN_V2_PREVIEW` off (default) or a non-Housekeeper role renders exactly the
+  legacy look; the flag is ignored in production builds.

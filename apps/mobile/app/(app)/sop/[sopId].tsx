@@ -15,6 +15,7 @@ import { openOriginalDocument, type OpenOriginalResult } from "@/lib/sop/openOri
 import { useAskAboutSop } from "@/lib/sop/useAskAboutSop";
 import { useSopDocument } from "@/lib/sop/useSopDocument";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useAppStore } from "@/stores/appStore";
 
 const MAX_FONT_SCALE = 1.6;
@@ -25,6 +26,7 @@ type OpenState = "idle" | "opening" | Exclude<OpenOriginalResult, "opened">;
 export default function SopDetailScreen() {
   const { sopId, page: pageParam } = useLocalSearchParams<{ sopId: string; page?: string }>();
   const theme = useTheme();
+  const v2 = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const isOnline = useAppStore((state) => state.isOnline);
@@ -41,7 +43,7 @@ export default function SopDetailScreen() {
       <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t("sop.backToList")} style={styles.backButton} testID="sop-detail-back">
         <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
       </Pressable>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2.label]}>
         {t("sop.kicker")}
       </Text>
     </View>
@@ -100,7 +102,7 @@ export default function SopDetailScreen() {
 
       <View style={styles.body}>
         <View>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headerMeta, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headerMeta, { color: theme.textMuted }, v2.label]}>
             {doc.category ?? t("sop.general")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]} testID="sop-detail-title">
@@ -206,7 +208,7 @@ export default function SopDetailScreen() {
                   onPress={() => ask({ documentId: doc.id, title: doc.title, text: question.text })}
                   accessibilityRole="button"
                   accessibilityLabel={question.text}
-                  style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                  style={[styles.chip, { borderColor: v2.edge, backgroundColor: theme.surface }]}
                   testID={`sop-question-${question.key}`}
                 >
                   <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.chipText, { color: theme.textPrimary }]}>
