@@ -433,3 +433,10 @@ Everything else added in this pass is behind the V2 flag or is test infrastructu
 wrote new ones (deleted, not committed). The flag-off Housekeeping filters, summary and Attention card are the original markup behind
 `isDesignV2PreviewEnabled()` (diff vs Phase 8 shows only additions plus wrapper ternaries that reduce to the original class strings when the
 flag is off), and CI's gate is the check of record. Playwright E2E suites other than that gate, staging sessions, devices and assistive technology were not run.
+
+## Phase 10 addendum
+
+See design doc sections 72 and 73. Summary: the data-driven review found nine real defects (four are production bugs independent of V2: the
+breadcrumb object-key text, the missing Readings label, duplicated overdue PM rows, "Hvac"), all fixed with regression tests where they can be pinned.
+The production-reaching (ungated) list grows by those bug fixes, the singular/plural Team Plan summary and the phone-width week navigation. Merge and
+activation decisions are unchanged (NOT READY); device checks remain **DEFERRED BY OWNER**.

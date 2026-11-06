@@ -1097,3 +1097,63 @@ empty state, Guest Operations drawers, Scheduling and 12 settings screens were n
 Flags `EXPO_PUBLIC_DESIGN_V2_PREVIEW` / `NEXT_PUBLIC_DESIGN_V2_PREVIEW` stay build-time and hard-off in production. No database migration, no
 backend change, no production activation. The tenant-level rollout (Option A in the final audit) is **not** implemented here and is still
 required before any user can see V2. Rollback of a future activation depends on that mechanism existing.
+
+---
+
+# Phase 10: screen-by-screen review with data (PR #200)
+
+Method: the hermetic mock now serves representative data (`HERMETIC_RICH_DATA=1`: assignments and a late checkout on the board; fixtures for
+assets, work orders, PM schedules, vendors, lost & found items, guest requests, tasks, reports) and the redesigned section variants
+(`HERMETIC_REDESIGN_SECTIONS=all`, what production tenants see). Each area below was opened in a real browser, then fixed where the review found a defect.
+**Finding:** most screens Phase 9 called "color-only" are not color-only. They already have a redesigned structure (master/detail workspaces,
+sectioned settings with a shared nav and action footer, tabbed drawers). The V2 skin was the missing part there, not the layout. The review
+instead surfaced real defects, listed here, and they were fixed.
+
+## 72. Defects found by the review and fixed
+
+| Area | Defect | Fix | Gated |
+|---|---|---|---|
+| Breadcrumb (legacy and V2), e.g. `/engineering/vendors` | printed `key 'vendors (en)' returned an object instead of string` | `routeSegmentLabel`: nav label, then `<segment>.title`, then a humanized segment | no (bug) |
+| Asset detail tabs | raw key `engineering.assetsPage.tabReadings` shown as the tab label | key added in EN and ES | no (bug) |
+| Preventive maintenance, Today | overdue schedules listed in Today and again in the Overdue group | the Overdue group lists only schedules Today does not | no (bug) |
+| Vendors | trade "Hvac" | "HVAC" | no (bug) |
+| Housekeeping Team Plan | "1 rooms"; narrow stops truncated to "De..."; oversized empty Attention card | plural keys; one-letter clean-type chip + tooltip on narrow stops; one-line Attention row | summary plural: no; chip and Attention: V2 only |
+| Assignment workspace | clean-type switch was three unlabeled 10px letters | labelled segmented group, 24px targets, `aria-label` per option | V2 only |
+| Guest request drawer | no state, urgency, deadline or guest in the header | summary strip (status, urgent, due, guest) | V2 only |
+| Scheduling (phone) | fixed 200px week label pushed "Next" to the edge | flexible label under 640px | no (layout bug) |
+| Engineering assets | zero counts shown in warning red; empty inventory shown as a list beside "Select an asset" | neutral zeros; one empty panel | V2 only |
+
+## 73. Revised migration matrix (supersedes section 69 where they differ)
+
+"Reviewed" means opened in a real browser with fixture data in light and dark. "Route clean" means the route loads at 1440 and 390 px in light and
+dark with zero horizontal overflow and no console errors other than the mock's missing realtime socket; the screen's structure was not assessed.
+
+| Area | Screen / drawer | Status | Evidence |
+|---|---|---|---|
+| Housekeeping | Room Board (filters, summary, Attention) | Partially redesigned in V2 (toolbar, one-line Attention) | reviewed |
+| Housekeeping | Team Plan | Redesigned structure (earlier initiative) + V2 fixes above | reviewed |
+| Housekeeping | Assignment workspace | Redesigned structure + V2 clean-type control | reviewed |
+| Housekeeping | Room detail drawer | Redesigned structure (status bar, blockers, activity, sticky action) | reviewed |
+| Housekeeping | Inspection drawer, Out-of-order page | Not reviewed individually; out-of-order dialogs have focus management | route clean |
+| Engineering | Work-order queue and record | Redesigned structure (queue + record, tabs) | reviewed |
+| Engineering | Assets list and detail | Redesigned structure + V2 empty state and neutral zeros; Readings label fixed | reviewed |
+| Engineering | PM schedules (Today) | Redesigned structure; duplicate fixed | reviewed |
+| Engineering | Vendors | Redesigned structure; breadcrumb and HVAC fixed | reviewed |
+| Engineering | Create work order drawer | Redesigned + V2 unsaved-changes protection | reviewed, interaction-tested |
+| Engineering | Insights, predictions, vendor engagement drawer, PM completion, create asset, readings | Insights reviewed (loads with fixture); the rest not reviewed | route clean |
+| Guest operations | Guest request drawer | Redesigned structure + V2 summary strip | reviewed |
+| Guest operations | Lost & found item drawer, tabs | Redesigned structure (tabs, grouped cards, retention state) | reviewed |
+| Guest operations | Claims, returns, disposition drawers | Not reviewed | route clean |
+| Guest operations | Logbook page, add-handoff drawer | Redesigned structure + V2 unsaved-changes protection | reviewed, interaction-tested |
+| Guest operations | Logbook entry detail drawer | Not reviewed | none |
+| Tasks | Board, create drawer, detail | Redesigned structure + one selected state + V2 unsaved-changes protection | reviewed, interaction-tested |
+| Scheduling / People | Schedule grid, week navigation (390 px), roster | Redesigned structure (stacked days on phones); week nav fixed | reviewed |
+| Scheduling / People | Coverage view, time-off, templates, availability | Not reviewed | none |
+| Settings | General, Housekeeping, Integrations, Roles & Access | Redesigned structure (shared nav, sectioned cards, action footer) | reviewed |
+| Settings | Rooms, Inspections, Service SLAs, Activity, Feedback, Billing | Same shared workspace; not reviewed one by one | route clean |
+| Settings | Departments, Programs, SOP | Redirect to People, Programs, SOP | route clean |
+| Other | Safety, Programs, Evidence, SOP, AI, Billing page, Onboarding, Preferences, Management ROI | Not reviewed one by one | route clean |
+| Reports | all six views | Redesigned, rendered with data (Phase 9) | reviewed |
+
+**Not complete.** Roughly a third of the individual drawers and sub-views above were not opened. Do not read the table as certification of
+every screen; read "Not reviewed" literally.
