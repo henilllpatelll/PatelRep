@@ -104,3 +104,52 @@ test('content remap: raw gray utilities are re-pointed to V2 tokens without touc
   assert.equal(/(^|[\s,])\.bg-white\s*[{,]/.test(css), false, 'bare .bg-white must not be overridden (switch thumb)')
   assert.equal(/stone-900|bg-black/.test(css), false, 'backdrops are not overridden')
 })
+
+test('phase 8: micro-labels are sentence case only for the uppercase + tracking pair, never for bare uppercase', () => {
+  const css = strip(read(REMAP))
+  assert.match(css, /\.uppercase\[class\*="tracking-"\]\s*\{[^}]*text-transform:\s*none/)
+  assert.equal(/(^|[\s,])\.uppercase\s*\{/.test(css), false, 'bare .uppercase must not be overridden')
+})
+
+test('phase 8: the route error boundary retry button takes the V2 primary, scoped to its data hook', () => {
+  const css = strip(read(REMAP))
+  assert.match(css, /\[data-error-retry\]\s*\{[^}]*var\(--dv2-primary\)/)
+  assert.match(read('app/(dashboard)/error.tsx'), /data-error-retry/)
+})
+
+test('phase 8: the dashboard room-list drawer is a labelled modal dialog with a focus trap', () => {
+  const src = read('components/dashboard/SimplifiedDashboard.tsx')
+  const drawer = src.slice(src.indexOf('function RoomListDrawer('), src.indexOf('function RoomListDrawer(') + 2600)
+  assert.match(drawer, /useModalFocusTrap\(panelRef, true, onClose\)/)
+  assert.match(drawer, /role="dialog"/)
+  assert.match(drawer, /aria-modal="true"/)
+  assert.match(drawer, /aria-labelledby=\{titleId\}/)
+})
+
+test('phase 8: dialogs that declare aria-modal restore focus to their opener', () => {
+  const hook = read('lib/hooks/useModalFocusTrap.ts')
+  // opener tracking is a passive focusin listener (no render-phase ref writes) and close restores only a connected node
+  assert.match(hook, /addEventListener\('focusin'/)
+  assert.match(hook, /export function getFocusReturnTarget/)
+  assert.match(hook, /previouslyFocused\?\.isConnected/)
+  for (const file of [
+    'app/(dashboard)/sop/page.tsx',
+    'components/engineering/BulkArchiveModal.tsx',
+    'components/engineering/AssetDetailModal.tsx',
+    'components/engineering/CreateWorkOrderDrawer.tsx',
+    'components/ai/SOPQueryModal.tsx',
+    'components/dashboard/SimplifiedDashboard.tsx',
+  ]) {
+    assert.match(read(file), /useModalFocusTrap\(/, `${file} must use the shared focus trap`)
+  }
+  // the command palette is a Radix dialog with no Trigger, so it must hand focus back itself
+  const palette = read('components/shared/CommandPalette.tsx')
+  assert.match(palette, /onCloseAutoFocus/)
+  assert.match(palette, /getFocusReturnTarget\(\)/)
+})
+
+test('phase 8: the legacy serif-italic headline accent renders upright in V2 (only the exact class pair)', () => {
+  const css = strip(read(REMAP))
+  assert.match(css, /\.font-display\.italic\s*\{[^}]*font-style:\s*normal/)
+  assert.equal(/(^|[\s,])\.italic\s*\{/.test(css), false, 'bare .italic must not be overridden')
+})

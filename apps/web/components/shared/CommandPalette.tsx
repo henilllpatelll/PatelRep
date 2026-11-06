@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { getFocusReturnTarget } from '@/lib/hooks/useModalFocusTrap'
 import { useRole } from '@/lib/hooks/useRole'
 import { useAuthStore } from '@/stores/authStore'
 import { useHotelStore } from '@/stores/hotelStore'
@@ -215,6 +216,14 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
             redesigned ? 'z-modal' : 'z-[81]',
           )}
           aria-describedby={undefined}
+          onCloseAutoFocus={(event) => {
+            // No <Dialog.Trigger> here (opens from Ctrl+K / a custom event), so Radix would drop focus on <body>.
+            const opener = getFocusReturnTarget()
+            if (opener) {
+              event.preventDefault()
+              opener.focus()
+            }
+          }}
         >
           <Dialog.Title className="sr-only">{t('header.commandPalette')}</Dialog.Title>
           <div className="flex items-center gap-2 border-b border-line px-4 py-3">

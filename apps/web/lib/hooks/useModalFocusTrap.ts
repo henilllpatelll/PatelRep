@@ -2,6 +2,26 @@
 
 import { useEffect, useRef, type RefObject } from 'react'
 
+/* Opener tracking. Restoring focus on close needs the control that opened the modal, but by the time any effect
+   runs, React may already have run child effects / autofocus that moved focus into the panel, and Radix dialogs that
+   open without a <Trigger> (Ctrl+K, custom events) have nothing to return to. So remember the last element focused
+   OUTSIDE any dialog: it is, by construction, whatever the user was on when the dialog opened. A single passive
+   document listener; nothing is written during render. */
+let lastFocusedOutsideDialog: HTMLElement | null = null
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) return
+    if (target.closest('[role="dialog"], [aria-modal="true"]')) return
+    lastFocusedOutsideDialog = target
+  })
+}
+
+/** The element to hand focus back to when a dialog closes (null when there is none or it left the page). */
+export function getFocusReturnTarget(): HTMLElement | null {
+  return lastFocusedOutsideDialog?.isConnected ? lastFocusedOutsideDialog : null
+}
+
 const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
@@ -29,9 +49,11 @@ export function useModalFocusTrap(
     if (!modalElement) return
     const modal = modalElement as HTMLElement
 
-    const previouslyFocused = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null
+    // Focus has not moved yet -> the active element is the opener; otherwise use the tracked one.
+    const current = document.activeElement
+    const previouslyFocused = current instanceof HTMLElement && current !== document.body && !modal.contains(current)
+      ? current
+      : lastFocusedOutsideDialog
     const focusable = Array.from(
       modal.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
     )
@@ -73,7 +95,7 @@ export function useModalFocusTrap(
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      previouslyFocused?.focus()
+      if (previouslyFocused?.isConnected) previouslyFocused.focus()
     }
   }, [active, ref])
 }

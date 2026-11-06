@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 import { RepairCodePicker } from '@/components/engineering/RepairCodePicker'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface Props {
   isOpen: boolean
@@ -187,6 +188,10 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
     if (isOpen) document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
+
+  // Tab trap + focus return to the opener on close (Escape is handled above). Declared before the focus effect so the
+  // panel itself still receives focus on open.
+  useModalFocusTrap(drawerRef, isOpen)
 
   useEffect(() => {
     if (isOpen && drawerRef.current) drawerRef.current.focus()

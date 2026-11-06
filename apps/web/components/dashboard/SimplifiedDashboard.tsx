@@ -31,6 +31,7 @@ import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
 import { cn } from '@/lib/utils'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useTranslation } from 'react-i18next'
 import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { buildExceptions, buildReadiness, buildTeamPulse, classifyOccupancy, formatPartialCount } from '@/lib/design/dashboardV2Model'
@@ -468,15 +469,26 @@ function RoomListDrawer({
 }) {
   const visible = filter === 'all' ? rooms : rooms.filter((r) => classifyOccupancy(r) === filter)
   const title = OCCUPANCY_TILE_LABEL[filter]
+  const panelRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  // Dialog semantics + Escape + Tab cycling + focus return (shared hook used by the other drawers).
+  useModalFocusTrap(panelRef, true, onClose)
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/35 z-drawer" onClick={onClose} />
-      <aside className="fixed top-0 right-0 bottom-0 w-full max-w-[380px] bg-surface border-l border-line shadow-pop z-drawer flex flex-col">
+      <div className="fixed inset-0 bg-black/35 z-drawer" onClick={onClose} aria-hidden="true" />
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="fixed top-0 right-0 bottom-0 w-full max-w-[380px] bg-surface border-l border-line shadow-pop z-drawer flex flex-col outline-none"
+      >
         <div className="px-5 pt-5 pb-3.5 flex items-start gap-3 border-b border-line-2">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{visible.length} rooms</p>
-            <p className="font-display text-[26px] leading-tight text-ink">{title}</p>
+            <p id={titleId} className="font-display text-[26px] leading-tight text-ink">{title}</p>
           </div>
           <IconButton variant="outline" size="sm" aria-label="Close" onClick={onClose}><X size={15} /></IconButton>
         </div>

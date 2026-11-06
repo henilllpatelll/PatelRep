@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useHotelStore } from '@/stores/hotelStore'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 
 const CATEGORIES = ['All', 'Housekeeping', 'Engineering', 'HR', 'Emergency', 'General'] as const
@@ -190,6 +191,9 @@ function DocumentCard({ doc, onDeleteRequest, onOpen, deleting, isSelected, refe
 function ConfirmDeleteDialog({ doc, loading, onCancel, onConfirm }: {
   doc: SOPDocument; loading: boolean; onCancel: () => void; onConfirm: () => void
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  // Focus management only (trap, initial focus, return to opener); Escape is handled just below.
+  useModalFocusTrap(dialogRef, true)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onCancel() }
     window.addEventListener('keydown', onKeyDown)
@@ -198,7 +202,7 @@ function ConfirmDeleteDialog({ doc, loading, onCancel, onConfirm }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/20 backdrop-blur-sm" onClick={!loading ? onCancel : undefined} />
-      <div role="dialog" aria-modal="true" aria-labelledby="delete-sop-title" className="relative w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface/90 p-6 shadow-[var(--shadow-pop)] backdrop-blur-2xl">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="delete-sop-title" className="relative w-full max-w-md rounded-[var(--r-lg)] border border-line bg-surface/90 p-6 shadow-[var(--shadow-pop)] backdrop-blur-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="delete-sop-title" className="text-base font-semibold text-ink">Delete SOP?</h2>
@@ -220,6 +224,8 @@ function ConfirmDeleteDialog({ doc, loading, onCancel, onConfirm }: {
 }
 
 function NoticeDialog({ title, message, onClose }: { title: string; message: string; onClose: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, true)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKeyDown)
@@ -228,7 +234,7 @@ function NoticeDialog({ title, message, onClose }: { title: string; message: str
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/20 backdrop-blur-sm" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-labelledby="sop-notice-title" className="relative w-full max-w-sm rounded-[var(--r-lg)] border border-line bg-surface/90 p-6 shadow-[var(--shadow-pop)] backdrop-blur-2xl">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="sop-notice-title" className="relative w-full max-w-sm rounded-[var(--r-lg)] border border-line bg-surface/90 p-6 shadow-[var(--shadow-pop)] backdrop-blur-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="sop-notice-title" className="text-base font-semibold text-ink">{title}</h2>
@@ -255,6 +261,8 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, isOpen)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) { if (e.key === 'Escape' && !uploading) onClose() }
@@ -298,7 +306,7 @@ function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     <>
       <div className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-50" onClick={!uploading ? onClose : undefined} aria-hidden="true" />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div role="dialog" aria-modal="true" aria-label="Upload SOP document"
+        <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Upload SOP document"
           className="bg-surface/90 backdrop-blur-2xl border border-line rounded-[var(--r-lg)] shadow-[var(--shadow-pop)] w-full max-w-lg p-6"
           onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-5">

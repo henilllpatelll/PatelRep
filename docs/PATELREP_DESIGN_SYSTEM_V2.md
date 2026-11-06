@@ -1010,3 +1010,12 @@ with the Phase 1 preview; a Playwright E2E for the V2 flows. Treat all of these 
 - Legacy serif headings become sans under V2 via `--font-display`; italic briefing copy therefore renders as sans italic.
 - Phase 8: remove the legacy shell/dashboard branches and the per-file raw-gray overrides once V2 is the only look; migrate the ~13 files that use raw
   palette classes to tokens; per-screen redesigns of Reports, Settings, Engineering and Housekeeping tables/drawers if wanted.
+
+---
+
+# Phase 8 of 8: final audit
+
+The evidence-based coverage report, the production activation analysis and the merge / activation decisions are in
+[`PATELREP_DESIGN_V2_FINAL_AUDIT.md`](./PATELREP_DESIGN_V2_FINAL_AUDIT.md). Phase 8 changed the mobile production guard (`eas.json`), the
+bundle-time legacy font tokens, web dialog focus handling, and added V2-scoped remap rules (sentence-case micro-labels, upright headings,
+error-boundary primary). Everything else in this document stands as written.

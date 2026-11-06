@@ -98,3 +98,20 @@ body[data-dv2-content][data-dv2-mode] :is(.bg-gray-100, .bg-gray-200, .hover\:bg
 body[data-dv2-content][data-dv2-mode] :is(.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-300, .hover\:border-gray-300:hover, .divide-gray-50 > :not([hidden]) ~ :not([hidden])) { border-color: var(--dv2-border); }
 /* KebabMenu: a white popover surface that must follow the theme (the switch thumb is also bg-white and must not). */
 body[data-dv2-content][data-dv2-mode] .bg-white.border-gray-200 { background-color: var(--dv2-surface); }
+/* Phase 8: the remaining stray raw utilities (each used once or twice). Placeholders matter most: the legacy
+   stone/gray placeholder tones fall below 4.5:1 on the dark surface. */
+body[data-dv2-content][data-dv2-mode] :is(.placeholder-stone-400, .placeholder-gray-400)::placeholder { color: var(--dv2-text-3); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-stone-100, .hover\:bg-gray-200:hover, .bg-gray-300) { background-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.hover\:text-gray-500:hover) { color: var(--dv2-text-2); }
+body[data-dv2-content][data-dv2-mode] .hover\:border-gray-400:hover { border-color: var(--dv2-border-strong, var(--dv2-border)); }
+/* Route error boundary: its Retry button hardcodes amber in the legacy look (kept for the flag-off contract). */
+body[data-dv2-content][data-dv2-mode] [data-error-retry] { background-color: var(--dv2-primary); color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] [data-error-retry]:hover { background-color: var(--dv2-primary-pressed); }
+/* Phase 8: the V2 design contract retires shouting uppercase micro-labels (docs section 11). Every one in the legacy
+   code is the pair `uppercase` + a `tracking-*` utility, so this targets exactly that pair and nothing else
+   (bare `uppercase` used for e.g. abbreviations is untouched). The source strings are already sentence case.
+   Size is lifted to 12px so the lowercase form stays legible. */
+body[data-dv2-content][data-dv2-mode] .uppercase[class*="tracking-"] { text-transform: none; letter-spacing: 0; font-size: 12px; }
+/* Phase 8: the legacy headline accent was Instrument Serif *italic*. V2 maps the serif to the sans stack, which would
+   otherwise leave sans italic headings. Only the exact `font-display` + `italic` pair is normalized. */
+body[data-dv2-content][data-dv2-mode] .font-display.italic { font-style: normal; }

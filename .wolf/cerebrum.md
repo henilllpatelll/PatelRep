@@ -1129,3 +1129,16 @@
 - `next dev` DOES hydrate when you browse `http://localhost:PORT` (not `127.0.0.1`, which Next 16 blocks for dev resources). Hermetic web preview: `node e2e/hermetic/mock-backend.mjs` (port 4010) + `next dev` with NEXT_PUBLIC_SUPABASE_URL/API_URL=http://127.0.0.1:4010; sign in as gm@hermetic.invalid with the fixture password in the mock backend. Next dev/build rewrites apps/web/AGENTS.md and next-env.d.ts: `git checkout` them.
 - React Navigation tab bar: item area = height - paddingTop - paddingBottom; below ~56 dp the label is clipped (seen in the Expo web render). Mobile jest test helper `makeTranslator` does not resolve i18next plural suffixes; use non-plural keys for new strings.
 - Legacy web global CSS sets `button { min-height: 44px }` on narrow widths, which stretches fixed-height icon buttons (bell was 32x44).
+
+## Design System V2 Phase 8 (2026-11-05, same branch/PR #200)
+- V2 WEB DARK MODE IS THE APP PREFERENCE, NOT THE OS: `ShellV2` reads `useUIPreferencesStore().theme` (localStorage key `patelrep-ui-prefs`, `{state:{theme:"dark"},version:0}`). Playwright `colorScheme:"dark"` does nothing; set the key with `addInitScript` and assert `body[data-dv2-mode="dark"]`. My first "dark" probe pass was silently light.
+- The mobile production guard only works if the build sets `EXPO_PUBLIC_APP_ENV=production`; no EAS profile did until Phase 8. EAS Update (`eas update`) does NOT read eas.json build-profile env, so an OTA can still bypass it. Guard fails open on unset env (a test pins that).
+- `useModalFocusTrap` captured the opener inside an effect, after child effects/autofocus could move focus; and Radix `Dialog` with no `Dialog.Trigger` (the command palette) drops focus on body. Fix = module-level `focusin` tracker (`getFocusReturnTarget`). Render-phase ref writes are rejected by `react-hooks/refs` lint: do not use them.
+- Static `monoFont`/`serifFont`/`textTransform:"uppercase"` StyleSheets bypass `useV2Text`; `monoFont`/`serifFont` now switch on the bundle-time flag in `tokens.ts`. 17 mobile files still keep uppercase labels under V2 (see docs/PATELREP_DESIGN_V2_FINAL_AUDIT.md A.1).
+- Web V2 content remap: use `[data-error-retry]`-style data hooks to re-color a hardcoded legacy class without changing the flag-off look. `.uppercase[class*="tracking-"]` is the exact micro-label pattern.
+- Engineer/Front Desk/GM auto-POST a paid AI briefing on app-layout mount (`useCopilotBrief`); pre-existing, not V2.
+- Hermetic mock answers most endpoints with `[]`; /tasks and /guest-requests render with Playwright `page.route` fixtures, /reports needs the large `views/overview` payload and still does not.
+
+## Do-Not-Repeat (2026-11-05)
+- I re-hit the Python text-mode CRLF rewrite on Windows (Phase 2 already recorded it): always `open(p, encoding="utf-8", newline="")` for read AND write, then check `git diff --stat` for a whole-file diff before moving on.
+- Do not run `cd ../web` inside a backgrounded `cd mobile && (...) &` list; the web chain silently never started. Launch each package chain from its own absolute `cd`.

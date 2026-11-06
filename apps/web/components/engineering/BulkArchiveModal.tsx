@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { X, Loader2, Archive, AlertCircle } from 'lucide-react'
 import { engineeringApi, WorkOrder } from '@/lib/api/engineering'
 import { ApiClientError } from '@/lib/api/client'
@@ -52,6 +53,10 @@ export function BulkArchiveModal({ isOpen, onClose, onArchived }: Props) {
     if (isOpen) document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
+
+  // Tab trap + focus return to the opener (Escape is handled above).
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, isOpen)
 
   const archiveSelectedMutation = useMutation({
     mutationFn: () => engineeringApi.bulkArchiveWorkOrders({ work_order_ids: [...selected] }),
@@ -106,10 +111,12 @@ export function BulkArchiveModal({ isOpen, onClose, onArchived }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-label={t('engineering.workOrdersPage.archiveModalTitle')}
-          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col outline-none"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

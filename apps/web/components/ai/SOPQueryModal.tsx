@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { X, BookOpen, Loader2, AlertCircle, Lightbulb, FileText } from 'lucide-react'
 import { sopApi, SOPQueryResult, SOPSource, SuggestedTask } from '@/lib/api/sop'
 import { Button, IconButton } from '@/components/ui/Button'
@@ -146,6 +147,10 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
+  // Tab trap + focus return to the opener (Escape is handled above; the textarea still takes focus after 50 ms).
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, isOpen)
+
   if (!isOpen) return null
 
   async function handleAsk() {
@@ -195,6 +200,8 @@ export function SOPQueryModal({ isOpen, onClose }: SOPQueryModalProps) {
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 pb-6 overflow-y-auto">
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-label="Ask AI about SOPs"

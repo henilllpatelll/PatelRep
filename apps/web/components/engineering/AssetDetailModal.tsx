@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { Package, AlertTriangle, X, Loader2 } from 'lucide-react'
 import { engineeringApi, type Asset, type PMSchedule } from '@/lib/api/engineering'
 import { getRiskBadge, getWarrantyLabel } from '@/lib/utils/engineering'
@@ -66,6 +67,10 @@ export function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModal
     return () => document.removeEventListener('keydown', onKey)
   }, [saving, onClose])
 
+  // Mounted only while open: Tab trap + focus return to the opener (Escape is handled above).
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(dialogRef, true)
+
   function startEdit() {
     if (!data) return
     setEditFields({
@@ -111,9 +116,11 @@ export function AssetDetailModal({ assetId, onClose, canEdit }: AssetDetailModal
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
-          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-surface/[0.88] backdrop-blur-2xl border border-white/[0.95] rounded-[var(--r-lg)] shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto outline-none"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
