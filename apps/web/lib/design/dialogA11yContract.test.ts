@@ -54,8 +54,7 @@ for (const [file, needles] of GUARDED) {
     const src = read(file)
     for (const needle of needles) assert.ok(src.includes(needle), `${file} must contain ${needle}`)
     // Saving is not discarding: the success path must not go through the guard (it would prompt after a save).
-    assert.equal(/onSuccess:[^
-]*guard\.requestClose/.test(src), false)
+    assert.equal(/onSuccess:[^\n]*guard\.requestClose/.test(src), false)
   })
 }
 
