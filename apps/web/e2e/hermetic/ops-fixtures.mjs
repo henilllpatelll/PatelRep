@@ -62,6 +62,11 @@ const VENDORS = [
   { id: 'v-2', name: 'Hermetic Plumbing', trades: ['plumbing'], contact_name: 'Sam Vendor', phone: '555-0150', offers_24h_service: false, is_active: true, performance: { jobs: 2, spend: 800 } },
 ]
 
+const LF_ITEMS = [
+  { id: 'lf-1', description: 'Black leather wallet', location_found: 'Room 214', storage_location: 'Shelf A', category: 'wallet', classification: 'standard', found_at: '2019-12-30T15:00:00.000Z', retention_due_at: '2020-03-30T15:00:00.000Z', status: 'unclaimed', found_by: USER, created_at: '2019-12-30T15:00:00.000Z', tag_identifier: 'LF-0001', room_id: 'room-214' },
+  { id: 'lf-2', description: 'Blue phone charger', location_found: 'Lobby', storage_location: 'Shelf B', category: 'electronics', classification: 'standard', found_at: '2019-12-28T10:00:00.000Z', retention_due_at: '2020-01-02T10:00:00.000Z', status: 'unclaimed', found_by: USER, created_at: '2019-12-28T10:00:00.000Z', tag_identifier: 'LF-0002' },
+]
+
 /** Returns a response body, or null when the path is not one of these routes. */
 export function opsRoute(api, query = new URLSearchParams()) {
   if (api === '/tasks/workspace') {
@@ -91,6 +96,9 @@ export function opsRoute(api, query = new URLSearchParams()) {
   if (api === '/work-orders/stats') return { data: { open: 3, overdue: 3, unassigned: 2, on_hold: 1, in_progress: 1, completed_today: 1 } }
   if (api === '/engineering/vendors') return { data: VENDORS }
   if (api === '/engineering/insights') return { data: ENGINEERING_INSIGHTS }
+  if (api === '/lost-found') return { data: LF_ITEMS, meta: { page: 1, per_page: 100, total: LF_ITEMS.length } }
+  const lfItem = api.match(/^\/lost-found\/(lf-\d+)$/)
+  if (lfItem) return { data: LF_ITEMS.find((item) => item.id === lfItem[1]) }
   if (api === '/lost-found/claims/summary') return { data: { open: 2, matched: 1, possible_matches: 3 } }
   if (api === '/lost-found/returns/summary') return { data: { awaiting_return: 2, ready_for_pickup: 1, shipping: 0, completed_this_month: 5 } }
   if (api === '/lost-found/disposition/summary') return { data: { due_now: 1, due_soon: 2, completed: 4 } }

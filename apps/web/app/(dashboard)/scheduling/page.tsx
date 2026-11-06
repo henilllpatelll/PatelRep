@@ -1365,12 +1365,12 @@ export default function SchedulingPage() {
       </div>
 
       {/* â”€â”€ Week navigation */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3">
         <Button variant="outline" onClick={prevWeek} className="gap-1.5">
           <ChevronLeft size={15} />
           Prev
         </Button>
-        <span className="text-sm font-semibold text-gray-800 min-w-[200px] text-center">
+        <span className="text-sm font-semibold text-gray-800 min-w-0 flex-1 text-center sm:min-w-[200px] sm:flex-none">
           Week of {weekLabel}
         </span>
         <Button variant="outline" onClick={nextWeek} className="gap-1.5">

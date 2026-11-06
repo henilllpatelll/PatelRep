@@ -14,6 +14,7 @@ import {
 import { getCategories } from '@/components/engineering/CreateWorkOrderDrawer'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { useRole } from '@/lib/hooks/useRole'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
@@ -194,6 +195,20 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
             <X size={18} />
           </IconButton>
         </div>
+
+        {/* V2: the facts a lead needs before reading anything else (state, urgency, deadline, who asked). */}
+        {isDesignV2PreviewEnabled() && (
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface-2 px-5 py-2.5" data-testid="guest-request-summary">
+            <Pill tone={request.status === 'resolved' || request.status === 'verified' ? 'ready' : request.status === 'cancelled' ? 'neutral' : 'info'} size="sm">
+              {t(`guestRequests.drawerStatus.${request.status}`, { defaultValue: request.status })}
+            </Pill>
+            {request.priority === 'urgent' && <Pill tone="alert" size="sm">{t('guestRequests.priorityUrgent')}</Pill>}
+            {request.due_at && !isResolved && (
+              <span className="inline-flex items-center gap-1 text-[12px] text-ink2"><Clock size={12} aria-hidden="true" />{t('guestRequests.dueAt', { time: format(new Date(request.due_at), 'MMM d, h:mm a') })}</span>
+            )}
+            {request.guest_name && <span className="text-[12px] text-ink2">{t('guestRequests.guestName', { name: request.guest_name })}</span>}
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">

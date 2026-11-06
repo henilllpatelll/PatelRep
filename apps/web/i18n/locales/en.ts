@@ -3241,6 +3241,9 @@ const en = {
       "Hello from the front desk — your request for Room {{room}} has been completed. Please reply here if anything still needs attention.",
   },
   guestRequests: {
+    drawerStatus: { open: "Open", acknowledged: "Acknowledged", dispatched: "Dispatched", arrived: "Arrived", guest_contacted: "Guest contacted", resolved: "Resolved", verified: "Verified", cancelled: "Cancelled" },
+    dueAt: "Due {{time}}",
+    guestName: "Guest: {{name}}",
     newRequest: "New Guest Request",
     roomNumber: "Room Number",
     roomPlaceholder: "Type or select room...",

@@ -3287,6 +3287,9 @@ const es = {
       "Le escribimos de recepcion — su solicitud para el cuarto {{room}} ha sido completada. Responda a este mensaje si algo aun necesita atencion.",
   },
   guestRequests: {
+    drawerStatus: { open: "Abierta", acknowledged: "Reconocida", dispatched: "Despachada", arrived: "Llegó", guest_contacted: "Huésped contactado", resolved: "Resuelta", verified: "Verificada", cancelled: "Cancelada" },
+    dueAt: "Vence {{time}}",
+    guestName: "Huésped: {{name}}",
     newRequest: "Nueva Solicitud de Huesped",
     roomNumber: "Numero de Cuarto",
     roomPlaceholder: "Escriba o seleccione un cuarto...",
