@@ -53,8 +53,9 @@ for (const [file, needles] of GUARDED) {
   test(`create drawer asks before discarding input: ${file}`, () => {
     const src = read(file)
     for (const needle of needles) assert.ok(src.includes(needle), `${file} must contain ${needle}`)
-    // Saving is not discarding: the success path still uses the raw onClose.
-    assert.match(src, /onClose\(\)/)
+    // Saving is not discarding: the success path must not go through the guard (it would prompt after a save).
+    assert.equal(/onSuccess:[^
+]*guard\.requestClose/.test(src), false)
   })
 }
 
