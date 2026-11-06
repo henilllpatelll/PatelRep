@@ -51,3 +51,17 @@ test('definitions, schedules and delivery status are well formed', () => {
   assert.equal(get('/reports/schedules').json.data[0].frequency, 'weekly')
   assert.equal(get('/reports/delivery-status').json.data.configured, true)
 })
+
+test('tasks workspace, programs and safety fixtures are object-shaped (these pages threw on the generic `[]` fallback)', () => {
+  const ws = get('/tasks/workspace').json.data
+  assert.ok(Array.isArray(ws.active.tasks) && ws.active.tasks.length >= 3)
+  assert.ok(Array.isArray(ws.active.guest_requests) && ws.active.guest_requests.length >= 1)
+  assert.ok(Array.isArray(ws.history.tasks))
+  const programs = get('/programs/overview').json.data
+  for (const key of ['templates', 'deep_clean_schedules', 'public_areas', 'supply_pars', 'supply_alerts', 'inspection_sampling_rules']) assert.ok(Array.isArray(programs[key]), key)
+  assert.ok(Array.isArray(get('/programs/inspection-sample').json.data.rooms))
+  const quality = get('/programs/inspection-quality').json.data
+  for (const key of ['by_result', 'by_item', 'by_room_type', 'by_employee']) assert.ok(Array.isArray(quality[key]), key)
+  const info = get('/safety/safety-information').json.data
+  assert.ok(Array.isArray(info.chemicals) && Array.isArray(info.procedures))
+})

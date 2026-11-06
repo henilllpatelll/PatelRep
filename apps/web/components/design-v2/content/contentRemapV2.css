@@ -118,23 +118,23 @@ body[data-dv2-content][data-dv2-mode] .font-display.italic { font-style: normal;
 
 /* ==== Phase 9: component-level structure hooks (still one scope, no global rules) ====================== */
 
-/* One selected-state language. Before this, one form mixed black (Room / Property area), blue outline
-   (category chips) and dark outline (Normal). Every legacy toggle marks "selected" with the same pair of
-   utilities (`bg-ink text-paper`, usually with `border-ink`), or with `data-[selected=true]:border-ink` for the
-   priority pills. All of them now read as primary-tinted with a primary edge and a semibold label. The solid dark
-   button variant is excluded: it carries a shadow utility and is a button, not a choice. */
+/* One selected-state language: SOLID PRIMARY. The redesigned drawers already select their category chips with a solid
+   primary fill, but the same forms mixed in black toggles (Room / Property area), neutral grey-outlined pills
+   (priority "Normal") and a dark outline. Every legacy toggle marks "selected" with one of three utility
+   combinations, and all of them now read the same way: primary fill, primary edge, on-primary label.
+     1. `bg-ink text-paper` (usually with `border-ink`)
+     2. `bg-surface-3 border-ink3 text-ink` on a pressed button (the neutral "Normal" priority)
+     3. `data-[selected=true]:border-ink` (the engineering priority pills)
+   Urgent/alert selections keep their semantic alert tint. The dark button variant is excluded: it carries a shadow
+   utility and is a button, not a choice. */
 body[data-dv2-content][data-dv2-mode] :is(button, a, [role='tab'], [role='radio']).bg-ink.text-paper:not([class*='shadow']),
 body[data-dv2-content][data-dv2-mode] button.bg-ink.text-paper.border-ink,
+body[data-dv2-content][data-dv2-mode] button[aria-pressed='true'].bg-surface-3.border-ink3,
 body[data-dv2-content][data-dv2-mode] [data-selected='true'][class*='data-[selected=true]:border-ink'] {
-  background-color: var(--dv2-primary-soft);
+  background-color: var(--dv2-primary);
   border-color: var(--dv2-primary);
-  color: var(--dv2-primary-pressed);
+  color: var(--dv2-on-primary);
   font-weight: 600;
-}
-body[data-dv2-content][data-dv2-mode='dark'] :is(button, a, [role='tab'], [role='radio']).bg-ink.text-paper:not([class*='shadow']),
-body[data-dv2-content][data-dv2-mode='dark'] button.bg-ink.text-paper.border-ink,
-body[data-dv2-content][data-dv2-mode='dark'] [data-selected='true'][class*='data-[selected=true]:border-ink'] {
-  color: var(--dv2-primary);
 }
 
 /* The legacy brand accent was amber. It survives in a few raw utilities (Logbook, Scheduling, Onboarding, the work

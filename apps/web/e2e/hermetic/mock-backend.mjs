@@ -14,13 +14,18 @@ import { createServer } from 'node:http'
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { reportsRoute } from './reports-fixtures.mjs'
+import { opsRoute } from './ops-fixtures.mjs'
 
 export const HERMETIC_PASSWORD = 'hermetic-fixture-not-a-secret'
 export const HERMETIC_USERS = {
   'gm@hermetic.invalid': { id: '00000000-0000-4000-8000-0000000000a1', role: 'gm', full_name: 'Hermetic GM' },
   'supervisor@hermetic.invalid': { id: '00000000-0000-4000-8000-0000000000a2', role: 'housekeeping_supervisor', full_name: 'Hermetic Supervisor' },
 }
-const HOTEL = { id: 'a0000000-0000-4000-a000-000000000001', name: 'Hermetic Fixture Hotel', timezone: 'America/Chicago', room_count: 7, enabled_features: [] }
+/** Production tenants have every section flipped on (migration 098). The Room-Board visual baseline was captured
+ *  with the legacy variants, so the default stays empty; browser QA of the redesigned screens sets
+ *  HERMETIC_REDESIGN_SECTIONS=all to mirror production. */
+export const REDESIGN_SECTIONS = ['shell', 'dashboard', 'tasks', 'evidence', 'engineering', 'reports', 'managementRoi', 'aiCopilot', 'logbook', 'staff', 'lostFound', 'programs', 'sop', 'scheduling', 'safety', 'guestRequests', 'billing', 'settings', 'guestFeedback', 'integrations', 'housekeeping']
+const HOTEL = { id: 'a0000000-0000-4000-a000-000000000001', name: 'Hermetic Fixture Hotel', timezone: 'America/Chicago', room_count: 7, enabled_features: [], web_redesign_sections: process.env.HERMETIC_REDESIGN_SECTIONS === 'all' ? REDESIGN_SECTIONS : [] }
 const ROOM_TYPE = { name: 'Standard', code: 'STD', base_clean_minutes: 30 }
 const FIXTURE_ROOMS = [
   ['101', 'DIRTY', false], ['102', 'CLEAN', false], ['103', 'INSPECTED', true], ['104', 'IN_PROGRESS', false],
@@ -98,6 +103,8 @@ export function route({ method, path, query, body, email }) {
   }
   const reports = reportsRoute(api, query)
   if (reports) return { status: 200, json: reports }
+  const ops = opsRoute(api)
+  if (ops) return { status: 200, json: ops }
   if (api === '/housekeeping/board') return { status: 200, json: { data: boardRows() } }
   if (api === '/staff') return { status: 200, json: { data: { staff: STAFF, total: STAFF.length } } }
   if (api.startsWith('/clean-sessions/hotel-avg-clean-time')) return { status: 200, json: { data: { today_avg_minutes: null, seven_day_avg_minutes: null, delta_minutes: null, today_count: 0 } } }
