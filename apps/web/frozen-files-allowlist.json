@@ -193,6 +193,12 @@
       "new_hash": "d4584c58e30bd67550dfcee5830b506a3330659f3b9e4959843c1ac8990bb9a4",
       "reason": "Bugfix: clicking a status filter chip or KPI tile (Needs action/Dirty/Cleaning/etc., including the 'In progress' summary tile) could make the board flicker between the filtered and unfiltered view, most reliably on a literal double-click or clicking the same bubble twice in a row. Root cause: the two effects that keep board filters in sync with the URL query string both had the local filter state variables (statusFilter/buildingFilter/floorFilter/assigneeFilter/selectedDate) AND `searchParams` in their own dependency arrays, so each effect re-ran in response to changes it or its sibling effect had just caused, occasionally reading a stale/mid-flight URL or racing its own prior router.replace() call and stomping the just-clicked filter back to the old value. Fixed by having each effect read the state it isn't the source of truth for (the URL-to-store hydration effect reads current filter state; the store-to-URL push effect reads the current search params) through a ref that's kept fresh in a plain (dependency-less) useEffect rather than as a reactive dependency, so each effect now fires only in response to its own true trigger, never its sibling's writes. (The ref itself is updated inside a useEffect, not during render, per the react-hooks/refs lint rule.) No filtering logic, room-status token values, or the Props/query-key contract changed -- purely a re-render/URL-sync fix.",
       "approved": true
+    },
+    {
+      "file": "apps/web/components/housekeeping/RoomStatusBoard.tsx",
+      "new_hash": "3d0a5dbecdb729ab8c3a2c09385bd6d61a628ca700d3d8700d9f6a5e4c1149ee",
+      "reason": "Accessibility fix requested in the Design System V2 completion pass (PR #200): the 'assign clean type' confirm dialog declared aria-modal=\"true\" but had no focus management. It now uses the shared useModalFocusTrap hook (ref + tabIndex on the dialog container, hook call after the cleanTypePrompt state) so Tab is trapped, Escape closes it and focus returns to the opener. No change to the room status contract, statuses, colors, markup structure, data flow or the visual output, so the Room Board visual baseline is unaffected. Verified by lib/design/dialogA11yContract.test.ts.",
+      "approved": true
     }
   ]
 }

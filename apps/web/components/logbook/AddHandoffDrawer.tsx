@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { AlertCircle, ChevronDown, Paperclip, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -95,7 +96,7 @@ export function AddHandoffDrawer({
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const dirty = Boolean(content.trim() || relatedItem || attachments.length > 0 || assignedTo)
-  const guard = useDiscardGuard(dirty, onClose)
+  const guard = useDiscardGuard(isDesignV2PreviewEnabled() && dirty, onClose)
   useModalFocusTrap(ref, isOpen, guard.requestClose)
 
   // Reset every time the drawer opens — never leaks stale values from a previous

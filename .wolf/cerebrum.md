@@ -1142,3 +1142,7 @@
 ## Do-Not-Repeat (2026-11-05)
 - I re-hit the Python text-mode CRLF rewrite on Windows (Phase 2 already recorded it): always `open(p, encoding="utf-8", newline="")` for read AND write, then check `git diff --stat` for a whole-file diff before moving on.
 - Do not run `cd ../web` inside a backgrounded `cd mobile && (...) &` list; the web chain silently never started. Launch each package chain from its own absolute `cd`.
+
+- [2026-11-06] Do-Not-Repeat: hermetic browser QA must set `HERMETIC_REDESIGN_SECTIONS=all` (production tenants have every `web_redesign_sections` entry on, migration 098). Without it you review the LEGACY page variants, which production never shows. Keep it off for the Room-Board visual baseline run.
+- [2026-11-06] Learning: a page that crashes into its error boundary under the hermetic mock is usually the mock's generic `{ data: [] }` fallback for an object-shaped endpoint (reports capabilities, tasks workspace, programs overview, lost-found summaries). Add a fixture in `e2e/hermetic/*-fixtures.mjs` plus a shape test; do not touch app code.
+- [2026-11-06] Learning: Room-Board visual baselines are Linux-only; a Windows run writes `*-win32.png` files that must be deleted, not committed. Flag-off layout changes to Room Board components must stay behind `isDesignV2PreviewEnabled()`.

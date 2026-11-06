@@ -360,3 +360,76 @@ point (`0 behind, 10 ahead`); mergeability was `CLEAN`.
 **Not run:** Playwright E2E suites (`phase1`, `phase4`, `reports`, `i18n`, `staging`, `regression`), the Room-Board visual gates locally (CI runs them),
 any staging session, any device or emulator, any assistive technology.
 
+
+---
+
+# Phase 9 addendum: completion pass
+
+Evidence tiers are the same as above (T1 automated, T2 real browser against the hermetic mock, T3 code inspection, None). Device,
+emulator and assistive-technology runs are **DEFERRED BY OWNER**; nothing below claims them.
+
+## Correction to section B
+
+Section B's "Remap" status described the **legacy** page variants. Production tenants have all redesigned sections on (migration 098), and the
+mock did not. See design doc section 68 for the full explanation and section 69 for the current per-screen matrix.
+
+## Blocker status after Phase 9
+
+| ID | Was | Now | Evidence |
+|---|---|---|---|
+| B1 | No runtime activation mechanism | **Unchanged, still open.** Out of scope for this pass by the owner's instruction | none |
+| B2 | No device/emulator/AT run | **DEFERRED BY OWNER.** Still no device evidence | none |
+| B3 | `/reports` unverified with data | **Closed for rendering.** Fixtures give every Reports view representative data; rendered light/dark, 1440/390, 0 overflow, 0 errors. Data-rich drawers and exports not exercised | T2 + T1 shape tests |
+| B4 | Engineer, Front Desk, GM auto-fire a paid briefing | **Closed (client).** Tap-to-load, own commit `3c570baf`, regression tests for mount/re-render/remount/account switch. API and credit accounting untouched | T1 |
+| B5 | Six web dialogs without focus management | **Closed.** All six handled; contract test pins them | T1 (T2 for the discard drawers) |
+| B6 | 17 mobile files with uppercase labels | **Closed for 16.** The 17th is the asset print label, intentionally unchanged. No device view of the result | T1 |
+| B7 | Inconsistent selected states | **Closed** in the toggles that use the three legacy patterns; one solid-primary language. Components that style selection another way were not found by grep and may remain | T2 on Tasks, Logbook, Work Order, Scheduling |
+| B8 | Production-reaching a11y fixes ride in a design PR | **Larger now:** Phase 8's five plus this pass's six (see below). The owner decides whether to accept or split them | disclosure |
+
+### Production-reaching changes (not behind the flag)
+
+1. Phase 8: `useModalFocusTrap` opener tracking, `CommandPalette` focus return, SOP/Create-WO/Bulk-archive/Asset-detail/SOP-query dialogs,
+   dashboard room-list drawer, `eas.json` production env.
+2. Phase 9 web a11y: asset deactivate confirm, Room Board clean-type prompt (frozen file, hash bumped with a reasoned entry), Assignment Workspace
+   clean-type prompt, Out-of-order create and detail dialogs; AI Copilot and Feedback launchers (non-modal, Escape, focus return).
+3. Phase 9 mobile AI: tap-to-load briefings for Engineer, Front Desk, GM (explicit owner approval; this changes behavior for production users after release).
+
+Everything else added in this pass is behind the V2 flag or is test infrastructure.
+
+## New findings made while verifying
+
+- Dark mode: the floating **Feedback** button was unreadable (near-white text on a near-white pill). Fixed.
+- The Lost & Found **Returns** tab showed `NaN` against the old mock. That was a fixture gap (the summary endpoint returns a counts object);
+  with fixtures it shows the counts. Not an app defect.
+- Dev-server hydration warnings on the Work Orders page appeared only after adding new i18n keys without restarting the dev server (stale
+  server-side locale); the production build is the check of record.
+
+## Still not done (explicit)
+
+- Structural redesign of Housekeeping Team Plan/Assignments/Room detail, Engineering assets/PM/vendors/WO record, Guest Operations drawers, Scheduling,
+  12 settings screens and the remaining pages listed as Color-only in section 69.
+- Production activation, tenant rollout, device and assistive-technology QA, performance measurement.
+
+**Decisions are unchanged: merge NOT READY, production activation NOT READY.** The device checklist (K.3) remains the activation gate.
+
+## Phase 9 local verification (not a substitute for CI on the pushed SHA)
+
+| Suite | Result |
+|---|---|
+| Mobile `tsc --noEmit` | clean |
+| Mobile ESLint | clean |
+| Mobile Jest (full) | **482 / 482 suites, 10,894 / 10,894 tests** (was 481 / 10,870) |
+| Web `tsc --noEmit` | clean |
+| Web ESLint (`--quiet`) | 0 errors |
+| Web `test:unit` | **507 / 507** (was 485): dialog a11y + discard-guard contracts, fixture shape tests |
+| Web `check:frozen-files` | OK (one reasoned allowlist entry: `RoomStatusBoard.tsx`, focus trap only) |
+| Web `check:i18n-parity` | OK (3,733 keys) |
+| Web `check:contrast` | OK, all enforced pairings AA in both modes |
+| Web production build, V2 flag **off** | succeeded (the hermetic runner builds it) |
+| Browser, V2 on, redesigned sections on | 38 routes x {1440, 390} x {light, dark}: **0 horizontal overflow**; `body[data-dv2-mode]` asserted; routes with errors were fixture gaps, all fixed and re-run clean except Housekeeping's realtime WebSocket (the mock has no realtime) |
+| Browser, real drawers | Create Task, Add Handoff, Create Work Order, Invite person opened; discard-guard flow exercised (clean close, dirty prompt, Escape keeps editing, Discard returns focus) in all three create drawers |
+
+**Not verified locally:** the Room-Board visual gate. The committed baselines are Linux; a Windows run has no `win32` baseline to compare, so it
+wrote new ones (deleted, not committed). The flag-off Housekeeping filters, summary and Attention card are the original markup behind
+`isDesignV2PreviewEnabled()` (diff vs Phase 8 shows only additions plus wrapper ternaries that reduce to the original class strings when the
+flag is off), and CI's gate is the check of record. Playwright E2E suites other than that gate, staging sessions, devices and assistive technology were not run.

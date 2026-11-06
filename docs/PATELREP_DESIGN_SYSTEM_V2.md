@@ -1019,3 +1019,81 @@ The evidence-based coverage report, the production activation analysis and the m
 [`PATELREP_DESIGN_V2_FINAL_AUDIT.md`](./PATELREP_DESIGN_V2_FINAL_AUDIT.md). Phase 8 changed the mobile production guard (`eas.json`), the
 bundle-time legacy font tokens, web dialog focus handling, and added V2-scoped remap rules (sentence-case micro-labels, upright headings,
 error-boundary primary). Everything else in this document stands as written.
+
+---
+
+# Phase 9: completion pass (PR #200)
+
+This pass finished the concrete, testable items from the Phase 8 audit and corrected a wrong assumption in that audit. It did **not**
+finish "every web screen redesigned"; the honest per-screen status is in section 69. Device verification is **DEFERRED BY OWNER**.
+
+## 68. A correction to the Phase 8 web coverage table
+
+Production tenants have every redesigned section switched on (`tenants.web_redesign_sections`, migration 098). Many pages choose between a
+**legacy** and a **redesigned** variant with `isSectionRedesigned(...)` (logbook, scheduling, tasks, staff, SOP, evidence, safety, programs,
+housekeeping, engineering and others). The hermetic mock never set that field, so every browser check in Phase 7 and Phase 8 rendered the
+**legacy** variants, which production tenants do not see. Consequences:
+
+- Phase 8's "Remap" label for those pages described the legacy variant. The redesigned variants already have real structure (headers, KPI
+  strips, filter bars, drawers with sticky footers); V2 themes them through the content remap.
+- The mock now takes `HERMETIC_REDESIGN_SECTIONS=all`, which mirrors production. It is **off by default** because the Room-Board visual
+  baseline was captured with the legacy variants and has to stay stable. Browser QA in this pass ran with it **on**.
+
+## 69. Migration matrix (what each screen actually is)
+
+Categories: **Fully redesigned** = redesigned structure and V2 skin, opened in a real browser with fixture data in this pass. **Partially
+redesigned** = structure improved in this pass for part of the screen. **Color-only** = V2 palette/type through the remap; structure not
+changed and not reviewed screen by screen. **Intentionally unchanged** = left alone on purpose.
+
+| Area | Screen | Status | Evidence |
+|---|---|---|---|
+| Dashboard | Manager dashboard | Fully redesigned (Phase 7) | browser + model tests |
+| Reports | Overview, Guest, Housekeeping, Maintenance, Team, Management, filters, KPI drawer, schedules | Fully redesigned (own redesigned views) + V2 skin | **Rendered with representative data for the first time** (fixtures), light/dark, 1440/390, 0 overflow, 0 errors |
+| Tasks | Board, list, filters, create drawer | Fully redesigned (redesigned variant) + one selected-state language | browser, light/dark, drawer opened |
+| Guest requests | Request drawer (inside Tasks) | Color-only | drawer not opened this pass |
+| Logbook | Page, add-handoff drawer | Fully redesigned (redesigned variant) | browser, dark drawer opened |
+| Housekeeping | Room Board filters, Attention, summary | **Partially redesigned (this pass, V2 only)**: grouped filter toolbar with Clear, one-line Attention row, out-of-order link folded into the summary | browser |
+| Housekeeping | Team Plan, Assignments workspace, Room detail drawer, Inspections | Color-only | not reviewed in a redesigned pass |
+| Engineering | Work-order queue | **Partially redesigned (this pass, V2 only)**: single centered empty state | browser |
+| Engineering | Create work order drawer | Fully redesigned drawer + unsaved-changes protection (V2 only) | browser |
+| Engineering | Assets, PM schedules, vendors, predictions, WO record, PM completion | Color-only | route loads clean (0 overflow, 0 errors); structure not reviewed |
+| Engineering | Insights | Color-only; renders with fixture data | browser |
+| Lost & Found | Inventory, claims, returns, disposition | Color-only (renders with fixture counts) | browser; drawers not opened |
+| People | Directory, invite drawer, profile | Fully redesigned (redesigned variant) | browser, invite drawer opened |
+| Scheduling | Schedule grid | Partially redesigned: legacy amber accent retired | browser |
+| Settings | General, Integrations | Color-only | browser |
+| Settings | the other 12 sections | Color-only | route loads clean; structure not reviewed |
+| Safety, Programs | Pages | Color-only; render with fixture data | browser |
+| SOP, Evidence, Billing, Management ROI, AI, Onboarding, Preferences | Pages | Color-only | route loads clean at 4 configs |
+| Auth recovery | reset-password, callback | Intentionally unchanged (Phase 2 scope) | none |
+| Mobile | 7 roles | V2 skin + the 16 files that kept uppercase labels now sentence case | Jest only |
+| Mobile | Asset print label | Intentionally unchanged (QR/print) | test pins it |
+
+**Not achieved:** "every in-scope screen fully redesigned". Housekeeping beyond the board filters, Engineering beyond the create drawer and
+empty state, Guest Operations drawers, Scheduling and 12 settings screens were not restructured. Do not read the table as certification.
+
+## 70. What changed in this pass
+
+- **Selected state.** One language across all legacy toggles: solid primary (3 utility patterns mapped; urgent keeps its alert tint).
+- **Amber retired.** The legacy brand accent (amber) in soft tints, fills, borders, text and focus rings maps to the primary family.
+- **Figures.** `font-mono` data becomes tabular sans (kbd/code/pre keep mono).
+- **Dark mode.** The floating Feedback launcher (`bg-ink text-white`) was unreadable in V2 dark; fixed.
+- **Housekeeping board, Engineering queue empty state, unsaved-changes protection.** V2 only: the legacy markup is kept for the flag-off path.
+- **Drawers.** Create Task, Add Handoff and Create Work Order ask before discarding typed input (Escape, backdrop, X, Cancel); Escape on the
+  prompt keeps editing; focus returns to the opener. Verified in a real browser. Gated by `isDesignV2PreviewEnabled()`.
+- **Web a11y (not gated, production-reaching).** Asset deactivate confirm, Room Board clean-type prompt, Assignment Workspace clean-type
+  prompt and Out-of-order create/detail dialogs now trap focus, close on Escape and return focus; AI Copilot and Feedback are non-modal
+  dialogs (no `aria-modal`, Escape closes, focus returns to the launcher). `RoomStatusBoard.tsx` is a frozen file: its hash was bumped with a
+  reasoned allowlist entry; the change adds no markup or visual difference.
+- **Mobile.** `lib/design/microLabel.ts` resolves case, tracking and size from the bundle-time flag for static styles; 16 files migrated.
+- **AI cost (own commit, approved by the owner).** Engineer, Front Desk and GM briefings are tap-to-load. Nothing is requested on mount,
+  re-render, remount or a different person signing in. The corner card shows a "Get my briefing" button. Credit accounting and the API are untouched.
+- **Test infrastructure.** Hermetic fixtures for Reports, Tasks, Programs, Safety, Engineering insights and Lost & Found summaries. Root cause of
+  "`/reports` shows only its error boundary": the mock returned `[]` for `/reports/capabilities`, so `capabilities.views` was `undefined`. A fixture
+  gap, not an app defect; report calculations are unchanged. Shape tests pin each fixture.
+
+## 71. Rollout and rollback (unchanged)
+
+Flags `EXPO_PUBLIC_DESIGN_V2_PREVIEW` / `NEXT_PUBLIC_DESIGN_V2_PREVIEW` stay build-time and hard-off in production. No database migration, no
+backend change, no production activation. The tenant-level rollout (Option A in the final audit) is **not** implemented here and is still
+required before any user can see V2. Rollback of a future activation depends on that mechanism existing.

@@ -5,7 +5,7 @@
     "apps/web/components/ui/primitives.tsx": "2c9538afd8b553b64b22f6786af90b6a1a3098ac4130de8f7e40e5ac1a8c64ef",
     "apps/web/components/housekeeping/RoomCard.tsx": "524d1b0c63c296ffd211f5b4af2c99781e56770e53f7ff69631950cedd40b5f7",
     "apps/web/components/shared/LogFoundItemModal.tsx": "649c9516cb9961483fa0e6cebf1b783cce3a8e5670f26b801ed9ef26130a656c",
-    "apps/web/components/housekeeping/RoomStatusBoard.tsx": "d4584c58e30bd67550dfcee5830b506a3330659f3b9e4959843c1ac8990bb9a4",
+    "apps/web/components/housekeeping/RoomStatusBoard.tsx": "3d0a5dbecdb729ab8c3a2c09385bd6d61a628ca700d3d8700d9f6a5e4c1149ee",
     "apps/web/components/housekeeping/RoomDetailDrawer.tsx": "b9a2f3ef68f789e7fac72a55bd5de55ac159738a2529af53c17a604c8e891d61",
     "apps/web/components/engineering/EngineeringRoomBoard.tsx": "2aae579f3ffe18850b19969cd09039f20e34914ca2bcf88bfcb10b444208c0a9"
   },
