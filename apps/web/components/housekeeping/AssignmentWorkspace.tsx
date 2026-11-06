@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Sparkles } from 'lucide-react'
@@ -75,6 +76,8 @@ export function AssignmentWorkspace() {
 
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string; staffId: string } | null>(null)
+  const cleanTypeDialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(cleanTypeDialogRef, cleanTypePrompt !== null, () => setCleanTypePrompt(null))
   const [showAutoBalance, setShowAutoBalance] = useState(false)
   const [showStagedChanges, setShowStagedChanges] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -476,7 +479,7 @@ export function AssignmentWorkspace() {
       />
 
       {cleanTypePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 px-4" role="dialog" aria-modal="true" aria-labelledby="assign-workspace-clean-type-title">
+        <div ref={cleanTypeDialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 px-4" role="dialog" aria-modal="true" aria-labelledby="assign-workspace-clean-type-title">
           <div className="w-full max-w-sm rounded-[var(--r-lg)] border border-line bg-surface p-4 shadow-xl">
             <h2 id="assign-workspace-clean-type-title" className="text-sm font-semibold text-ink">
               {t('housekeeping.roomStatus.cleanTypePrompt.title', { roomNumber: cleanTypePrompt.roomNumber })}

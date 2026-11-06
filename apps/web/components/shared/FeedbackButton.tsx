@@ -11,9 +11,18 @@ export function FeedbackButton() {
   const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      if (wasOpenRef.current) {
+        wasOpenRef.current = false
+        launcherRef.current?.focus()
+      }
+      return
+    }
+    wasOpenRef.current = true
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
@@ -59,7 +68,6 @@ export function FeedbackButton() {
       {open && (
         <div
           role="dialog"
-          aria-modal="true"
           aria-label="Send feedback"
           className="absolute bottom-14 left-0 flex max-h-[min(520px,calc(100vh-7rem))] w-[calc(100vw-2rem)] max-w-[360px] flex-col overflow-hidden rounded-[var(--r-xl)] border border-line bg-surface shadow-[var(--shadow-pop)]"
         >
@@ -124,7 +132,9 @@ export function FeedbackButton() {
       )}
 
       <button
+        ref={launcherRef}
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
         aria-label={open ? 'Close feedback' : 'Open feedback'}
         className="flex items-center gap-2 rounded-full bg-ink px-3.5 py-2.5 text-white shadow-[var(--shadow-pop)] transition-opacity hover:opacity-90"
