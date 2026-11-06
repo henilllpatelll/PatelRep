@@ -67,8 +67,8 @@ async def test_failed_summaries_record_failure_not_success(monkeypatch, recorded
         raise RuntimeError("connect timeout")
     monkeypatch.setattr(summary, "generate_or_get_shift_summary", fail)
     result = await internal.generate_shift_summaries("x")
-    assert result["status"] == "error" and result["errors"] == 2
-    assert len(recorded) == 1 and recorded[0][1] and "2 shift summary failure(s)" in recorded[0][1]
+    assert result["status"] == "failed" and result["errors"] == 2 and result["summaries_generated"] == 0
+    assert len(recorded) == 1 and recorded[0][1].startswith("failed: 2 shift summary failure(s)")
 
 
 @pytest.mark.asyncio
@@ -82,8 +82,8 @@ async def test_partial_failure_is_still_a_failure(monkeypatch, recorded):
         return {"was_generated": True}
     monkeypatch.setattr(summary, "generate_or_get_shift_summary", flaky)
     result = await internal.generate_shift_summaries("x")
-    assert (result["status"], result["summaries_generated"], result["errors"]) == ("error", 1, 1)
-    assert recorded[0][1] is not None
+    assert (result["status"], result["summaries_generated"], result["errors"]) == ("partial", 1, 1)
+    assert recorded[0][1].startswith("partial:")
 
 
 @pytest.mark.asyncio
@@ -92,7 +92,7 @@ async def test_shift_lookup_failure_is_recorded_and_raised(monkeypatch, recorded
     monkeypatch.setattr(internal, "supabase", _Shifts(exc=RuntimeError("supabase timeout")))
     with pytest.raises(RuntimeError):
         await internal.generate_shift_summaries("x")
-    assert recorded and "shift lookup failed" in recorded[0][1]
+    assert recorded and recorded[0][1].startswith("failed: shift lookup failed")
 
 
 @pytest.mark.asyncio
@@ -104,5 +104,68 @@ async def test_clean_run_records_success(monkeypatch, recorded):
         return {"was_generated": False}
     monkeypatch.setattr(summary, "generate_or_get_shift_summary", ok)
     result = await internal.generate_shift_summaries("x")
-    assert result["status"] == "ok"
+    assert result["status"] == "ok" and result["already_present"] == 2 and result["summaries_generated"] == 0
     assert recorded == [("logbook.shift-summary", None)]
+
+
+@pytest.mark.asyncio
+async def test_all_generated_is_ok_and_counts_generation(monkeypatch, recorded):
+    _configured(monkeypatch)
+    monkeypatch.setattr(internal, "supabase", _Shifts(ROWS))
+
+    async def gen(*_a):
+        return {"was_generated": True}
+    monkeypatch.setattr(summary, "generate_or_get_shift_summary", gen)
+    result = await internal.generate_shift_summaries("x")
+    assert (result["status"], result["summaries_generated"]) == ("ok", 2)
+
+
+@pytest.mark.asyncio
+async def test_skipped_run_never_counts_as_generation(monkeypatch, recorded):
+    monkeypatch.setattr(providers, "get_anthropic_client",
+                        lambda: (_ for _ in ()).throw(providers.AIProviderConfigurationError("x")))
+    monkeypatch.setattr(internal, "supabase", _Shifts(ROWS))
+    result = await internal.generate_shift_summaries("x")
+    assert result["status"] == "skipped" and result["summaries_generated"] == 0
+
+
+class _Health:
+    """Minimal cron_health fake capturing the upserted row."""
+
+    def __init__(self):
+        self.row = None
+
+    def table(self, name):
+        assert name == "cron_health"
+        return self
+
+    def select(self, *_a, **_k):
+        return self
+
+    def eq(self, *_a, **_k):
+        return self
+
+    def maybe_single(self):
+        return self
+
+    def upsert(self, row, **_k):
+        self.row = row
+        return self
+
+    def execute(self):
+        return type("R", (), {"data": {"run_count": 3}})()
+
+
+def test_cron_health_failure_does_not_refresh_last_success(monkeypatch):
+    db = _Health()
+    monkeypatch.setattr(internal, "supabase", db)
+    internal._record_cron_run("logbook.shift-summary", error="failed: boom")
+    assert "last_success_at" not in db.row
+    assert db.row["last_error"] == "failed: boom" and db.row["last_failure_at"] and db.row["run_count"] == 4
+
+
+def test_cron_health_success_sets_last_success_and_clears_error(monkeypatch):
+    db = _Health()
+    monkeypatch.setattr(internal, "supabase", db)
+    internal._record_cron_run("logbook.shift-summary")
+    assert db.row["last_success_at"] and db.row["last_error"] is None

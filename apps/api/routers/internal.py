@@ -363,7 +363,7 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
         logger.error("Shift summary cron skipped: AI provider is not configured")
         _record_cron_run("logbook.shift-summary", error="skipped: AI provider is not configured")
         return {"status": "skipped", "reason": "ai_provider_not_configured",
-                "summaries_generated": 0, "errors": 0}
+                "summaries_generated": 0, "already_present": 0, "errors": 0}
 
     # Find shifts that ended ~2 hours ago (give staff time to log entries)
     # Archived templates (what DELETE /schedules/shifts/{id} does since migration 225) are removed shifts: they
@@ -374,10 +374,11 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
             .is_("archived_at", "null")\
             .execute()
     except Exception as exc:
-        _record_cron_run("logbook.shift-summary", error=f"shift lookup failed: {exc}")
+        _record_cron_run("logbook.shift-summary", error=f"failed: shift lookup failed: {exc}")
         raise
 
     generated = 0
+    already_present = 0
     errors = 0
     last_error: str | None = None
     for shift in (shifts_result.data or []):
@@ -391,20 +392,24 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
             result = await generate_or_get_shift_summary(shift["tenant_id"], shift["id"], shift_date)
             if result.get("was_generated"):
                 generated += 1
+            else:
+                already_present += 1
         except Exception as e:
             logger.error("Shift summary failed for tenant=%s shift=%s: %s",
                          shift["tenant_id"], shift["id"], e, exc_info=True)
             errors += 1
             last_error = str(getattr(e, "detail", None) or e)
 
+    counts = {"summaries_generated": generated, "already_present": already_present, "errors": errors}
     if errors:
-        # Partial/total failure must not refresh last_success_at.
+        # Any failure (partial included) must not refresh last_success_at.
+        status = "partial" if (generated or already_present) else "failed"
         _record_cron_run("logbook.shift-summary",
-                         error=f"{errors} shift summary failure(s); last: {last_error}")
-        return {"status": "error", "summaries_generated": generated, "errors": errors}
+                         error=f"{status}: {errors} shift summary failure(s); last: {last_error}")
+        return {"status": status, **counts}
 
     _record_cron_run("logbook.shift-summary")
-    return {"status": "ok", "summaries_generated": generated, "errors": errors}
+    return {"status": "ok", **counts}
 
 
 @router.post("/reports/daily-summary-email")
