@@ -695,7 +695,8 @@ async def test_shift_summary_cron_skips_archived_templates(db, monkeypatch):
     db.rows["shifts"][0]["archived_at"] = "2029-01-01T00:00:00+00:00"  # Morning is archived
     monkeypatch.setattr(internal, "supabase", db)
     monkeypatch.setattr(internal, "verify_cron", lambda secret: None)
-    monkeypatch.setattr(internal, "_record_cron_run", lambda name: None)
+    monkeypatch.setattr(internal, "_record_cron_run", lambda name, **kw: None)
+    monkeypatch.setattr("services.ai.providers.get_anthropic_client", lambda: object())
     monkeypatch.setattr(summary, "generate_or_get_shift_summary", fake_generate)
     monkeypatch.setattr(summary, "hotel_today", lambda tenant_id: DAY)
     await internal.generate_shift_summaries("secret")
