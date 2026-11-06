@@ -1,6 +1,6 @@
 # PatelRep Design System V2 — "Precision Slate + Electric Blue"
 
-Status: **Phase 3 of 8 (Housekeeper mobile; see section 26 onward).** Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
+Status: **Phase 6 of 8 (Front Desk and GM mobile; see section 47 onward).** Phase 3 was Housekeeper (section 26), Phase 4 Inspector and Supervisor, Phase 5 Engineering. Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
 foundation + reference previews. V2 is disabled by default; production
 still renders the legacy "Evening Lobby" look everywhere. Branch `feat/patelrep-design-system-v2`,
 one draft PR for all eight phases.
@@ -717,3 +717,179 @@ Engineer: Home states, claim and start a work order, labor, diagnosis, evidence,
 Issue; PM inspection through completion; asset detail, readings, QR scan; More and nested screens; Sync queue.
 Chief: Home command view, assign technician, rooms down, PM management, team. Check light, dark, Spanish, large
 text, offline, keyboard-open forms.
+
+---
+
+# Phase 6 of 8: Front Desk and General Manager mobile redesign
+
+Status: implemented on the same branch/PR (#200, draft). Renders **only** for the `front_desk` and `gm` roles (plus the
+earlier phases' roles) while the preview flag is on (`EXPO_PUBLIC_DESIGN_V2_PREVIEW`, off by default, ignored in
+production). No API, database, migration, RBAC, route or production-config change. Flag off = the legacy look, unchanged.
+
+## 47. How Phase 6 is scoped
+
+`isFrontDeskGmV2Role` (`lib/design/housekeeperV2.ts`) widens `isV2SurfaceRole`, so `app/(app)/_layout.tsx` wraps every
+tab, hidden route and sheet a Front Desk or GM user can reach in `<DesignV2Scope>`. Shared screens (Notifications, Profile,
+Settings) are role-gated by the same wrapper, so no other role changes. Screens that were restructured branch at their
+route file (`useIsDesignV2() ? <XV2 /> : <Legacy />`), so with the flag off the original component renders untouched.
+
+## 48. Contract findings that shaped the work (pre-existing; decided with the owner: "wire to the real API")
+
+Before redesigning, the mobile screens were compared with the real API. Four mismatches existed on `main`:
+
+| Screen | Mobile expected | API actually does | Phase 6 handling |
+|---|---|---|---|
+| Guest Request detail | `GET /guest-requests/{id}` | no such endpoint | detail is found in the newest list page; "not found" is stated honestly |
+| Status / assign / notes | `PATCH` with `status`, `assigned_to`, `resolution_notes` | `PATCH` ignores them; status moves only through `POST /{id}/transition` (strict lifecycle, role-checked) | changes use `POST /transition`; only server-allowed steps are offered; **no assign control** (the API has no assignee) |
+| Guest Request list | statuses `new`/`escalated`, flat `room_number`, `request_type`, `assigned_to_name` | nine statuses (`open` ... `reopened`), `title`, nested `rooms.room_number`, no assignee | `normalizeGuestRequest` reads the real shape and still accepts the legacy one |
+| GM Alerts | array of alerts with `severity` | `GET /ai/risk-alerts` returns an object of six lists and no severity; `alerts.filter` would throw | `adaptRiskAlerts` reads the real shape (and the legacy array); nothing is scored |
+
+Also found: the legacy Home asked `/work-orders?per_page=200`, but the API caps `per_page` at 100, so that call fails
+validation and the GM tiles never filled. Both new Homes use exact sources instead (section 51). The legacy Guest
+Requests list also wrote the *new-request count* over the notification unread badge; V2 does not.
+
+## 49. Screen and state inventory
+
+Reachable Front Desk screens: Home, Guest Requests (list, detail), Room Status (list), Logbook (list, new entry, saved
+report), Lost & Found (list, found-item form), More (new), Notifications, Profile and its pages, Settings, SOP,
+Scheduling. GM: Home, Alerts, Staff, Profile and its pages, Notifications, plus Room Status, Work Orders, Guest Requests
+and Logbook through the Home links (existing screens).
+
+| Destination | Roles | Phase 6 status |
+|---|---|---|
+| Front Desk Home | front desk | **rebuilt** (V2 only): guest requests, room readiness, attention, quick actions |
+| GM Home | GM | **rebuilt** (V2 only): overview, exceptions, progress, links |
+| Guest Requests list | front desk, GM | **rebuilt** (V2): summary, segments, search, cards, honest states |
+| Guest Request detail | front desk, GM | **rewritten** on the real contract (one implementation; theme tokens, V2 inside the scope) |
+| Room Status list | front desk, GM | palette + typography + freshness line + honest failure state (V2); shared occupancy rule; layout kept |
+| Logbook list | front desk, GM | V2 header, hotel-local day grouping and times, sentence-case figures, failure state |
+| Logbook new entry | front desk, GM | V2 palette and sentence-case labels; double-submit guard (both modes) |
+| Logbook saved report | front desk, GM | scope only (already hotel-time aware) |
+| Lost & Found | front desk, GM | V2 header, segments, translated strings, sheet conventions (section 52) |
+| GM Alerts | GM | **rebuilt** (V2): grouped by the server's own rules; legacy screen adapted to the real shape |
+| GM Staff | GM | **rebuilt** (V2): searchable directory that says it is not attendance |
+| Front Desk More | front desk (V2) | **new**: Lost & Found, Notifications, Profile and settings, Help, Sign out |
+| Notifications, Profile pages, Settings, SOP, Scheduling | all | via the scope only |
+
+## 50. Navigation decisions
+
+- Front Desk under V2 has **five tabs**: Home, Requests, Rooms, Logbook, More (`getTabsForRole(role, { v2: true })`).
+  Lost & Found and Profile moved under More. With V2 off, `getTabsForRole("front_desk")` is the original six, unchanged.
+- No route URL changed. `lost-found/index`, `profile/index` and `more/index` stay registered tab routes; the ones not in the
+  visible bar are hidden with `display: none` (not `href: null`), so the Expo Router 58 hidden-route bounce is not reintroduced.
+  Deep links, notification destinations and back history are untouched (`backBehavior="history"`).
+- The More tab stays the selected one while Lost & Found, Profile or Notifications is open (`isFrontDeskMoreChild`).
+- The More route renders the Front Desk hub only for `front_desk` **and** V2 on; Engineering keeps its hub; every other role
+  is still sent Home.
+- GM keeps four tabs (Home, Alerts, Staff, Profile). The Home links reach Work Orders, Room Status, Guest Requests and
+  Logbook through the existing routes.
+- The layout's pinned line `const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];` is unchanged; the V2
+  Front Desk set is a separate additive line.
+
+## 51. KPI data provenance (nothing is invented, nothing is a complete total unless it is)
+
+| Figure | Source | Honesty rule |
+|---|---|---|
+| Guest requests (open, in progress, urgent, resolved today) | `GET /guest-requests?per_page=100` (newest page; the API returns no total) | when 100 rows come back every count shows as `N+` and the screen says "latest 100"; "resolved today" uses the hotel's calendar day |
+| Urgent requests | `priority` of `urgent` (or legacy `emergency`) on a request that is open or in progress | no urgency is derived from age or text |
+| Room readiness | `GET /housekeeping/board?date=<hotel date>` (one row per room, not paginated) | condition (inspected/clean/dirty), occupancy and out-of-order are counted separately and never added |
+| Active work orders, overdue, urgent, completed today | `GET /work-orders/stats` (exact tenant counts) | replaces the legacy `per_page=200` page count |
+| Alerts | `GET /ai/risk-alerts` (deterministic, no AI credit) | tier = the server's own selection rule; asset and guest lists are server-capped (5, 10) and the screen says so |
+| Staff | `GET /staff` | a directory; **no attendance or coverage figure is shown** |
+
+Every dashboard source is a read-only GET, loaded once on mount and on pull-to-refresh. A failed source keeps its last good
+data marked stale, or shows "Couldn't load"; it never becomes `0` or "all clear". A late answer from an older request cannot
+overwrite a newer one. Offline with nothing loaded says so.
+
+## 52. Drawers, forms and confirmations migrated
+
+| Surface | Result |
+|---|---|
+| Lost & Found "Log a found item" | stays a React Native `Modal` (its lifecycle and keyboard handling are reliable); in V2 it gains the 24 px sheet radius, grab handle, 44 px close target, bottom safe-area spacer, Android back (`onRequestClose`, both modes), translated labels and placeholders. Entered text is only cleared by an explicit close or a successful save. |
+| Guest request cancel | inline two-step confirmation (not a system dialog); only offered to management roles |
+| Guest request status steps | single in-flight lock, disabled while saving or offline, outcome via toast |
+| Logbook new entry | unchanged form and handlers; sentence-case labels; submit ignored while saving |
+| Sign out (More) | existing `SignOutSheet` |
+
+## 53. Light/dark, status colors, AI
+
+All new surfaces read colors through `useTheme()` (the V2 light/dark palette inside the scope) and the shared primitives
+(`Card`, `MetricCard`, `StatusBadge`, `SegmentedControl`, `ScreenHeader`, `RoleHomeHeader`); a source-guard test fails if a
+new file adds an uppercase style, monospace font or a hex color. Status is always icon + words. Alerts use the real model:
+"needs attention" is amber, "keep an eye on" is neutral; red appears only for an older payload that actually carries
+`severity: critical`. No Phase 6 screen invokes AI on mount. The Guest Request detail keeps an explicit "Ask the assistant"
+entry and the list keeps the "+" that opens the assistant to create a request. The old hard-coded "AI triage" and "AI recovery"
+cards were static English text with no AI behind them and are not part of the V2 screens.
+
+## 54. Functional preservation
+
+Preserved: tab destinations and URLs, role gating, offline handling, the realtime subscription on guest requests (the V2 list
+uses the `tenant_id` column, which is the real one; the legacy list's `hotel_id` filter never matched), Lost & Found
+create/validate/room-select behavior, claimed/unclaimed semantics, Logbook creation and saved-report access, AI capability
+flags and credit accounting (untouched). Changed on purpose: the Guest Request detail and the Guest Request list and GM Alerts
+data layers (section 48). The honest failure states on Guest Requests, Alerts and Logbook apply in both modes; Room Status's
+applies in V2 only (a legacy test pins its empty state); Lost & Found's translated strings are V2-only (legacy tests pin the
+English strings).
+
+## 55. Verification
+
+- Mobile `tsc --noEmit` clean; ESLint clean on every file the repo config covers (it skips paths outside its configured scopes).
+- Full mobile Jest, final run: see the PR description for exact counts. New: `__tests__/lib/frontDeskGmV2.test.ts` (nav, gate,
+  real-contract adapters, honest counting, copy/style hygiene, EN/ES key parity) and `__tests__/screens/FrontDeskGmV2.test.tsx`
+  (both Homes, list, detail, Alerts, Staff, More: read-only on mount, `N+` lower bounds, failures never shown as zero or
+  all-clear, server-allowed steps only, double-tap sends once, cancel needs confirmation, offline does not write).
+- Three earlier tests pinned facts Phase 6 changes on purpose and were **updated, not weakened**: two role-gate tests (Front Desk and
+  GM are now in the migrated surface, as Phase 5 did for Phase 4) and one layout source pin (`navTabs.map`).
+- Browser check (Expo web, seeded data, no backend, 390 px light and dark, 320 px light, Chromium; temporary harness, not committed):
+  Front Desk Home, GM Home, Guest Requests, detail, Alerts (data and failure), Staff, More, Lost & Found, Logbook rendered in the V2
+  palette with no console errors. It caught a real bug the mocked tests could not: `lostFound.itemsHeld` showed as a raw key because
+  the locale files use `_one`/`_other` plurals and this app's i18next reads `_plural`; fixed by adding the keys it reads (also fixes
+  the legacy header). A scan of rendered text found no other raw keys.
+- **Not verified:** a physical iPhone or Android device; a screen reader; dynamic type beyond the browser; Spanish rendered in the
+  browser (Spanish is covered by key-parity and string tests only); a signed-in real Front Desk or GM account (no real credentials
+  were used); the Room Status and Logbook screens beyond a render check.
+
+## 56. Accessibility findings
+
+Every interactive row, tile and card has a spoken label composed from visible text; icon-only controls (bell, new request) have names;
+status is icon + words; metric cards read as "label, value, caption"; titles wrap and cap font scaling; touch targets are at least
+44 dp; no animation was added (reduced motion is not a concern); Notices are announced politely. Contrast comes from the shared V2
+tokens (already covered by the contrast suite). Layout holds at 320 dp in the browser. Not checked on a device or with a screen reader.
+
+## 57. Known limitations and screens not fully migrated
+
+- Room Status keeps its existing layout (dark hero, floor groups); V2 changes its palette, figure/label typography, adds a freshness
+  line and an honest failure state. Its cards are not tappable for Front Desk (unchanged); the engineering room detail is not shown to them.
+- Logbook entry cards and the new-entry form keep their layout; V2 changes palette, header, labels and date handling.
+- Guest request detail loads from the newest 100 requests because the API has no single read; an older request shows "not found".
+- The API has no assignee for guest requests, so assignment is not offered anywhere.
+- Lost & Found's form is still a React Native `Modal`, not the shared bottom sheet; there is no claim or hand-over flow in the API or
+  app and none was invented.
+- Notifications, Settings, SOP, Scheduling and Profile pages are scope-only.
+- The GM has no Staff coverage figure and no operational-report links (the app has no mobile reports screen).
+- Legacy screens (flag off) keep their old data bugs where a legacy test pins them: for example Room Status shows an empty state when the
+  board request fails, and Lost & Found keeps its English-only strings.
+
+## 58. Previewing Phase 6
+
+```bash
+# Mobile (Expo); sign in as a Front Desk or GM account in a development or staging build
+EXPO_PUBLIC_DESIGN_V2_PREVIEW=true npx expo start --dev-client
+# The flag must be exactly "true" (1 does nothing). It is ignored when EXPO_PUBLIC_APP_ENV=production.
+# Flag off (default): every role, including Front Desk's six tabs, looks exactly as before.
+```
+
+## 59. Manual QA (flag on, Front Desk and GM accounts)
+
+Front Desk: five-tab bar at 320 dp and with large text; Home with real requests and board; open the next request; Requests list segments,
+search, pull to refresh; open a request, add a note, take each allowed step (a second device or the API to confirm the server state),
+reopen; More rows (Lost & Found, Notifications, Profile, Help, Sign out) and that More stays selected inside them; Room Status; Logbook
+create and read; log a found item with the keyboard open. GM: Home figures against the web dashboard; each exception row; Alerts groups;
+Staff search. Both: light, dark, Spanish, offline (airplane mode), a failing API, large text, the iPhone safe area and Android back button.
+
+## 60. Outstanding cleanup (wait for Phase 8)
+
+Legacy `FrontDeskHomeScreen` / `GMHomeScreen` in `app/(app)/home/index.tsx`, the legacy Guest Requests list, Alerts and Staff screens,
+the six-tab Front Desk set, `monoFont`/`displayFont` on Room Status and Lost & Found (legacy branch), and the English-only Lost & Found
+strings can go once V2 is the only look. Backend contract follow-ups for the owner: a `GET /guest-requests/{id}`, an assignee on guest
+requests, and a total on the list response.

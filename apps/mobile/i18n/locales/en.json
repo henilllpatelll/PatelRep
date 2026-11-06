@@ -8429,7 +8429,8 @@
     "markUrgentSub": "Will be highlighted for incoming shift",
     "offlineWarning": "You're offline. Connect to save this entry.",
     "saveError": "Could not save entry. Try again.",
-    "save": "Save Entry"
+    "save": "Save Entry",
+    "loadFailed": "Couldn't load log entries."
   },
   "ai": {
     "briefing": {
@@ -8523,7 +8524,31 @@
     "roomChip": "Room {{room}}",
     "roomOption": "Room {{room}}",
     "floorOption": "Floor {{floor}}",
-    "locationFoundLabel": "Location found"
+    "locationFoundLabel": "Location found",
+    "all": "All",
+    "unclaimed": "Unclaimed",
+    "claimed": "Claimed",
+    "segmentsA11y": "Item status",
+    "loadFailed": "Could not load found items.",
+    "retry": "Try again",
+    "emptyTitle": "No items found",
+    "emptyBody": "Log a found item using the button below.",
+    "locationUnknown": "Location unknown",
+    "logButton": "Log a found item",
+    "logSubmit": "Log item",
+    "close": "Close",
+    "clearRoom": "Clear room",
+    "descriptionPlaceholder": "e.g. iPhone charger, reading glasses...",
+    "roomSearchPlaceholder": "Search room number…",
+    "locationPlaceholder": "e.g. lobby, pool area, hallway...",
+    "submitFailed": "Could not log item. Try again.",
+    "ago": {
+      "minutes": "{{count}}m ago",
+      "hours": "{{count}}h ago",
+      "days": "{{count}}d ago"
+    },
+    "itemsHeld": "{{count}} item held",
+    "itemsHeld_plural": "{{count}} items held"
   },
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} unread",
@@ -12848,5 +12873,297 @@
     "aiProvenance": "Sample text. Not generated from real data.",
     "sampleRoomType": "King Suite",
     "sampleNextType": "Double Queen"
+  },
+  "managementHome": {
+    "status": {
+      "live": "Updated {{time}}",
+      "loading": "Loading",
+      "stale": "Earlier data {{time}}",
+      "partial": "Some figures unavailable",
+      "failed": "Couldn't load",
+      "offline": "Offline, as of {{time}}",
+      "offlineEmpty": "Offline, nothing loaded",
+      "refresh": "Refresh"
+    },
+    "notice": {
+      "offline": "You're offline. These figures are from the last time this screen loaded and may be out of date.",
+      "offlineEmpty": "You're offline and nothing has loaded yet. Reconnect to see current figures.",
+      "partial": "Some figures couldn't be loaded, so they are left out rather than shown as zero. Pull down to try again.",
+      "failed": "Nothing could be loaded right now. Pull down to try again.",
+      "stale": "The last refresh failed. You're seeing earlier figures."
+    },
+    "unloaded": {
+      "loading": "Loading",
+      "waiting": "Not loaded yet",
+      "body": "This section will appear once it loads."
+    }
+  },
+  "frontDeskHome": {
+    "requests": {
+      "title": "Guest requests",
+      "openAll": "Open all",
+      "open": "Open",
+      "inProgress": "In progress",
+      "urgent": "Urgent",
+      "resolvedToday": "Resolved today",
+      "loadedHint": "Based on {{count}} loaded requests",
+      "partial": "Showing the latest {{count}} requests. Counts marked + may be higher.",
+      "next": "Next to handle",
+      "openNext": "Open request",
+      "noneActive": "No active guest requests",
+      "noneActiveBody": "Nothing is open or in progress in the loaded requests.",
+      "noneActivePartial": "Nothing is open or in progress in the latest {{count}} requests.",
+      "failed": "Couldn't load guest requests."
+    },
+    "rooms": {
+      "title": "Room readiness",
+      "openAll": "Room status",
+      "condition": "Housekeeping condition",
+      "ready": "Inspected and ready",
+      "clean": "Clean, not yet inspected",
+      "dirty": "Dirty",
+      "stay": "Occupancy and availability",
+      "occupied": "Occupied",
+      "vacant": "Vacant",
+      "outOfOrder": "Out of order",
+      "separate": "{{total}} rooms. Condition, occupancy and availability are counted separately.",
+      "a11y": "{{label}}: {{count}} of {{total}} rooms",
+      "empty": "No rooms on the board yet.",
+      "failed": "Couldn't load room status."
+    },
+    "attention": {
+      "title": "Needs attention",
+      "urgent": "Urgent requests: {{shown}}",
+      "urgentSub": "Open or in progress",
+      "ooo": "Out-of-order rooms: {{count}}",
+      "oooSub": "Maintenance has these rooms",
+      "none": "No urgent items",
+      "noneBody": "No urgent requests or out-of-order rooms in the loaded data.",
+      "reviewRequests": "Review guest requests",
+      "unavailable": "Some data didn't load, so urgent items can't be confirmed here."
+    },
+    "quick": {
+      "title": "Quick actions"
+    }
+  },
+  "gmHome": {
+    "overview": {
+      "title": "Property overview",
+      "rooms": "Rooms ready",
+      "roomsCaption": "{{ready}} of {{total}} inspected",
+      "workOrders": "Active work orders",
+      "woCaption": "{{count}} overdue",
+      "guest": "Active guest requests",
+      "guestCaption": "{{count}} urgent",
+      "guestPartial": "Latest 100 only",
+      "alerts": "Active alerts",
+      "alertsCaption": "{{count}} need attention",
+      "unavailable": "Unavailable",
+      "notLoaded": "Not loaded"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "viewAlerts": "All alerts",
+      "overdue": "Overdue work orders: {{count}}",
+      "overdueSub": "Past their due time",
+      "urgentWo": "Urgent work orders: {{count}}",
+      "urgentWoSub": "Active and marked urgent",
+      "urgentGuest": "Urgent guest requests: {{shown}}",
+      "urgentGuestSub": "Open or in progress",
+      "ooo": "Out-of-order rooms: {{count}}",
+      "oooSub": "Maintenance has these rooms",
+      "alerts": "Alerts needing attention: {{count}}",
+      "alertsSub": "Overdue work orders and rooms predicted at high risk",
+      "none": "Nothing urgent in the loaded data",
+      "noneBody": "No overdue or urgent work orders, urgent guest requests, out-of-order rooms or alerts were returned.",
+      "incomplete": "Some figures didn't load",
+      "incompleteBody": "Open Alerts to check for exceptions."
+    },
+    "progress": {
+      "title": "Operational progress",
+      "ready": "Inspected and ready",
+      "clean": "Clean, not yet inspected",
+      "toClean": "Still to clean",
+      "completedToday": "Work orders completed today: {{count}}"
+    },
+    "quick": {
+      "title": "Go to"
+    }
+  },
+  "frontDeskMore": {
+    "selected": "selected",
+    "role": "Front Desk",
+    "tools": "Tools",
+    "account": "Account and support",
+    "lostSub": "Log and find guest items",
+    "notifications": "Notifications",
+    "notificationsSub": "Alerts and updates",
+    "unread": "{{count}} unread",
+    "profile": "Profile and settings",
+    "profileSub": "Account, language and appearance",
+    "help": "Help",
+    "helpSub": "Guides and support",
+    "signOut": "Sign out"
+  },
+  "guestRequestsV2": {
+    "untitled": "Untitled request",
+    "summary": {
+      "loaded": "{{count}} requests loaded",
+      "partial": "Showing the latest {{count}} requests. Older ones aren't counted.",
+      "open": "Open",
+      "inProgress": "In progress",
+      "urgent": "Urgent"
+    },
+    "segments": {
+      "active": "Active",
+      "resolved": "Resolved",
+      "all": "All",
+      "a11y": "Request status"
+    },
+    "search": "Search room, guest or request",
+    "status": {
+      "open": "Open",
+      "acknowledged": "Acknowledged",
+      "dispatched": "Dispatched",
+      "arrived": "Arrived",
+      "guest_contacted": "Guest contacted",
+      "resolved": "Resolved",
+      "verified": "Verified",
+      "reopened": "Reopened",
+      "cancelled": "Cancelled",
+      "unknown": "Unknown"
+    },
+    "urgent": "Urgent",
+    "linkedWo": "Work order linked",
+    "due": "Due {{time}}",
+    "age": {
+      "now": "Just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}} h ago",
+      "days": "{{count}} d ago"
+    },
+    "empty": {
+      "activeTitle": "No active requests",
+      "activeBody": "Nothing is open or in progress.",
+      "resolvedTitle": "No resolved requests",
+      "resolvedBody": "No resolved requests in the loaded list.",
+      "allTitle": "No guest requests",
+      "allBody": "No guest requests were returned.",
+      "noMatchTitle": "No matches",
+      "noMatchBody": "Try a different search or status."
+    },
+    "error": {
+      "title": "Couldn't load guest requests",
+      "body": "Your list wasn't changed. Check your connection and try again."
+    },
+    "offline": {
+      "title": "You're offline",
+      "body": "Reconnect to load guest requests."
+    },
+    "detail": {
+      "title": "Guest request",
+      "notFound": "Request not found",
+      "notFoundBody": "It may be older than the latest {{count}} requests, or it was removed.",
+      "back": "Back",
+      "need": "What the guest needs",
+      "noDescription": "No description was added.",
+      "room": "Room",
+      "guest": "Guest",
+      "created": "Created",
+      "due": "Due",
+      "resolvedAt": "Resolved",
+      "next": "Next step",
+      "noActions": "No further steps from this status.",
+      "note": "Note (optional)",
+      "notePlaceholder": "Add a short note for the record",
+      "confirmCancelTitle": "Cancel this request?",
+      "confirmCancelBody": "A cancelled request can't be reopened.",
+      "keep": "Keep request",
+      "confirmCancel": "Cancel request",
+      "action": {
+        "acknowledged": "Acknowledge",
+        "dispatched": "Mark dispatched",
+        "arrived": "Mark arrived",
+        "guest_contacted": "Guest contacted",
+        "resolved": "Mark resolved",
+        "verified": "Verify resolution",
+        "reopened": "Reopen",
+        "cancelled": "Cancel request"
+      },
+      "done": "Updated to {{status}}",
+      "failed": "Couldn't update. Nothing was changed.",
+      "invalid": "That step isn't allowed from the current status. The request was refreshed.",
+      "forbidden": "You don't have permission for that step.",
+      "offline": "Reconnect to update this request.",
+      "saving": "Saving"
+    },
+    "new": "New request",
+    "newHint": "Opens the assistant to create a request",
+    "ask": "Ask the assistant"
+  },
+  "alertsV2": {
+    "subtitle": "Live exceptions from your property data",
+    "summary": {
+      "attention": "Need attention",
+      "watch": "To watch"
+    },
+    "groups": {
+      "attention": "Needs attention",
+      "watch": "Keep an eye on"
+    },
+    "kinds": {
+      "sla_breach": "Overdue work order",
+      "room_risk": "Room at risk",
+      "asset_risk": "Equipment at risk",
+      "low_stock": "Low stock",
+      "guest_issue": "Open guest request",
+      "recurring": "Recurring problem",
+      "legacy": "Alert"
+    },
+    "facts": {
+      "due": "Due {{time}}",
+      "wo": "Work order {{number}}",
+      "failureRisk": "{{score}}% failure risk",
+      "stock": "{{onHand}} on hand, minimum {{minimum}}",
+      "recurring": "{{count}} work orders in {{days}} days",
+      "checkin": "Check-in in {{minutes}} min",
+      "factors": "Contributing: {{list}}",
+      "room": "Room {{room}}"
+    },
+    "capped": "Equipment and guest lists are capped by the server, so more may exist.",
+    "source": "Room risks come from the readiness prediction. Everything else is calculated from live records, with no AI credit used.",
+    "view": "View",
+    "empty": {
+      "title": "No alerts right now",
+      "body": "No overdue work orders, high-risk rooms, equipment risks, low stock or open guest issues were returned."
+    },
+    "error": {
+      "title": "Couldn't load alerts",
+      "body": "Nothing is being shown as clear. Check your connection and try again."
+    },
+    "offline": {
+      "title": "You're offline",
+      "body": "Reconnect to load alerts. Nothing is shown as clear."
+    }
+  },
+  "staffV2": {
+    "summary": "{{count}} active staff",
+    "note": "A directory of active staff. It doesn't show who is on shift.",
+    "search": "Search by name or email",
+    "noMatch": "No staff match",
+    "noMatchBody": "Try a different name.",
+    "today": "{{count}} today",
+    "error": {
+      "title": "Couldn't load staff",
+      "body": "Check your connection and try again."
+    },
+    "offline": {
+      "title": "You're offline",
+      "body": "Reconnect to load the staff directory."
+    }
+  },
+  "roomStatusV2": {
+    "updated": "Updated {{time}}",
+    "refreshFailed": "Couldn't refresh. Showing the rooms loaded earlier."
   }
 }

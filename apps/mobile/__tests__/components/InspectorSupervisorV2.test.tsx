@@ -84,9 +84,9 @@ describe("role gate", () => {
     }
   });
 
-  it("the migrated surface is housekeeper + inspector + supervisor + engineering (Phase 5), and nobody else", () => {
-    for (const role of ["housekeeper", "inspector", "housekeeping_supervisor", "engineer", "chief_engineer"]) expect(isV2SurfaceRole(role)).toBe(true);
-    for (const role of ["front_desk", "gm", "", null, undefined]) expect(isV2SurfaceRole(role as string)).toBe(false);
+  it("the migrated surface is every role through Phase 6 (front desk and GM added deliberately), and nobody else", () => {
+    for (const role of ["housekeeper", "inspector", "housekeeping_supervisor", "engineer", "chief_engineer", "front_desk", "gm"]) expect(isV2SurfaceRole(role)).toBe(true);
+    for (const role of ["", null, undefined, "unknown"]) expect(isV2SurfaceRole(role as string)).toBe(false);
   });
 
   it("Phase 3's own gate is unchanged", () => {

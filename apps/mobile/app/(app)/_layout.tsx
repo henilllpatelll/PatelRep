@@ -30,12 +30,13 @@ import { isDesignV2Enabled } from "@/lib/design/designV2";
 import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 import { isV2SurfaceRole } from "@/lib/design/housekeeperV2";
 import { TabIconV2 } from "@/components/shared/TabIconV2";
-import { CROWDED_TAB_COUNT, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
+import { CROWDED_TAB_COUNT, NAV_ACTIVE_V2, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 import { usePmForegroundSync } from "@/lib/engineering/usePmForegroundSync";
+import { isFrontDeskMoreChild } from "@/lib/frontDesk/moreMenu";
 
 // Secondary screens (profile/*, detail pages, role-hidden tab roots) are declared as tabs but never shown in the bar.
 // Do not hide them with the href-null shortcut: expo-router 58 turns that into `hidden: true`, and a focused hidden tab is
@@ -72,7 +73,11 @@ export default function AppLayout() {
   // The housekeeping supervisor keeps this same corner card; its body is the Supervisor Copilot.
   const supervisorCopilot = isSupervisorCopilotRole(effectiveRole);
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
-  const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
+  // Phase 6: with the preview flag on, Front Desk gets five tabs (Lost & Found and Profile move under More).
+  const navTabs = designV2 && effectiveRole === "front_desk" ? getTabsForRole(effectiveRole, { v2: true }) : visibleTabs;
+  // While a More destination (Lost & Found, Profile, Notifications) is open, the More tab stays the selected one.
+  const moreSelected = designV2 && effectiveRole === "front_desk" && isFrontDeskMoreChild(pathname);
+  const visibleNames = new Set(navTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
   usePmForegroundSync();
 
@@ -260,7 +265,7 @@ export default function AppLayout() {
           backBehavior="history"
           screenOptions={{
             ...(designV2
-              ? buildTabScreenOptionsV2(chrome, insets.bottom, visibleTabs.length)
+              ? buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length)
               : {
                   tabBarActiveTintColor: theme.shell.ink,
                   tabBarInactiveTintColor: theme.shell.ink3,
@@ -285,7 +290,7 @@ export default function AppLayout() {
             headerShadowVisible: false,
           }}
         >
-          {visibleTabs.map((tab) => (
+          {navTabs.map((tab) => (
             <Tabs.Screen
               key={tab.name}
               name={tab.name}
@@ -293,14 +298,15 @@ export default function AppLayout() {
                 title: t(tab.titleKey),
                 headerShown: false,
                 tabBarAccessibilityLabel: t(tab.titleKey),
+                ...(moreSelected && tab.key === "more" ? { tabBarInactiveTintColor: NAV_ACTIVE_V2, tabBarAccessibilityLabel: `${t(tab.titleKey)}, ${t("frontDeskMore.selected")}` } : {}),
                 tabBarIcon: ({ color, size, focused }) =>
                   designV2 ? (
                     <TabIconV2
-                      name={getTabIconV2(tab, focused)}
+                      name={getTabIconV2(tab, focused || (moreSelected && tab.key === "more"))}
                       color={color as string}
-                      focused={focused}
+                      focused={focused || (moreSelected && tab.key === "more")}
                       activeFill={chrome.shell.raised}
-                      compact={visibleTabs.length >= CROWDED_TAB_COUNT}
+                      compact={navTabs.length >= CROWDED_TAB_COUNT}
                     />
                   ) : (
                     <Ionicons name={tab.icon} size={size} color={color as string} />

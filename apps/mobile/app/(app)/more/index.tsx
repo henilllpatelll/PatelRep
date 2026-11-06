@@ -4,6 +4,8 @@ import { Redirect, router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
+import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { FrontDeskMore } from "@/components/frontDesk/FrontDeskMore";
 import { MoreHeader } from "@/components/engineering/more/MoreHeader";
 import { MoreIdentityCard } from "@/components/engineering/more/MoreIdentityCard";
 import { SignOutSheet } from "@/components/security/SignOutSheet";
@@ -18,8 +20,16 @@ import { useOwnProfile } from "@/lib/settings/useOwnProfile";
 import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useTheme } from "@/lib/theme/useTheme";
 
+/** The More tab. Engineering roles keep their hub; Front Desk (V2 five-tab layout) gets its own. Any other role
+ *  has no More tab and is sent Home. */
+export default function MoreScreen() {
+  const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
+  if (role === "front_desk" && isDesignV2Enabled()) return <FrontDeskMore />;
+  return <EngineeringMoreScreen />;
+}
+
 /** Engineering More hub: identity + sync, then the secondary tools, account/support and sign out. */
-export default function EngineeringMoreScreen() {
+function EngineeringMoreScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();

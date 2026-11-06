@@ -70,6 +70,16 @@ const FRONT_DESK_TABS: RoleTabDef[] = [
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
+/** Phase 6 (preview flag on): five destinations instead of six so every label fits a 320 dp phone. Lost & Found and
+ *  Profile move under More; every route URL is unchanged (they are hidden tab routes, see HIDDEN handling in the layout). */
+const FRONT_DESK_TABS_V2: RoleTabDef[] = [
+  { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
+  { key: "requests", name: "guest-requests/index", titleKey: "tabs.guestRequests", icon: "chatbubble-ellipses-outline" },
+  { key: "room-status", name: "room-status/index", titleKey: "tabs.roomStatus", icon: "bed-outline" },
+  { key: "logbook", name: "logbook/index", titleKey: "tabs.logbook", icon: "book-outline" },
+  { key: "more", name: "more/index", titleKey: "tabs.more", icon: "ellipsis-horizontal-circle-outline" },
+];
+
 const GM_TABS: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },
   { key: "alerts", name: "alerts/index", titleKey: "tabs.alerts", icon: "warning-outline" },
@@ -84,6 +94,7 @@ const ALL_TAB_ARRAYS = [
   ...SUPERVISOR_TABS,
   ...FRONT_DESK_TABS,
   ...GM_TABS,
+  ...FRONT_DESK_TABS_V2,
 ];
 
 export const ALL_ROLE_TAB_ROUTES = Array.from(new Set(ALL_TAB_ARRAYS.map((tab) => tab.name)));
@@ -147,7 +158,7 @@ export const HIDDEN_APP_ROUTES = [
   "profile/licenses",
 ];
 
-export function getTabsForRole(role: UserRole): RoleTabDef[] {
+export function getTabsForRole(role: UserRole, options?: { v2?: boolean }): RoleTabDef[] {
   switch (role) {
     case "inspector":
       return INSPECTOR_TABS;
@@ -157,7 +168,7 @@ export function getTabsForRole(role: UserRole): RoleTabDef[] {
     case "housekeeping_supervisor":
       return SUPERVISOR_TABS;
     case "front_desk":
-      return FRONT_DESK_TABS;
+      return options?.v2 ? FRONT_DESK_TABS_V2 : FRONT_DESK_TABS;
     case "gm":
       return GM_TABS;
     default:

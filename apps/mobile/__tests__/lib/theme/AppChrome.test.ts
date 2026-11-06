@@ -81,7 +81,7 @@ describe("protected navigation chrome", () => {
       "const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];",
     );
     expect(protectedLayoutSource).toContain(
-      "{visibleTabs.map((tab) => (",
+      "{navTabs.map((tab) => (",
     );
     expect(protectedLayoutSource).toContain(
       "{ALL_ROLE_TAB_ROUTES.filter((name) => !visibleNames.has(name)).map((name) => (",

@@ -1,324 +1,260 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
-import { api } from "@/lib/api/client";
-import { useAppStore } from "@/stores/appStore";
-import { R, monoFont } from "@/components/shared/tokens";
-import { AIInsightCard, Pill, HeroButton } from "@/components/shared/mobileHandoff";
-import { useTheme } from "@/lib/theme/useTheme";
+import { Notice } from "@/components/management/HomeParts";
+import { DetailHeader } from "@/components/shared/HeadersV2";
+import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
+import { AppText } from "@/components/ui/AppText";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
-import type { GuestRequest } from "./index";
+import { ApiError } from "@/lib/api/client";
+import { GUEST_REQUEST_PAGE_SIZE, allowedTransitions, type GuestRequestView } from "@/lib/frontDesk/guestRequests";
+import { fetchGuestRequest, transitionGuestRequest } from "@/lib/frontDesk/guestRequestsApi";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { useTheme } from "@/lib/theme/useTheme";
+import { useToast } from "@/lib/theme/useToast";
+import { useAppStore } from "@/stores/appStore";
 
-type StaffMember = { id: string; full_name: string };
+/* ─── Guest request detail ────────────────────────────────────────────────────
+   Loads the request from the newest page of the list (the API has no single-request read) and offers ONLY the next
+   steps the server's lifecycle allows from its current status (`allowedTransitions`, mirrored read-only). Every
+   change goes through `POST /guest-requests/:id/transition`, the one supported route; the server validates the
+   lifecycle and role again and answers 422 / 403 otherwise, and both are reported plainly. There is no assignee in
+   the API, so there is no assign control. Cancelling asks for a second tap. A single in-flight lock stops a double tap
+   from sending two changes. */
 
-const STATUS_OPTIONS = ["new", "in_progress", "resolved"] as const;
-type StatusOption = typeof STATUS_OPTIONS[number];
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  in_progress: "In Progress",
-  resolved: "Resolved",
-  escalated: "Escalated",
-};
-
-type ToneType = "alert" | "caution" | "ready" | "info" | "neutral" | "progress";
-
-const STATUS_TONES: Record<string, ToneType> = {
-  new: "info",
-  in_progress: "progress",
-  resolved: "ready",
-  escalated: "alert",
-};
-
-const REQUEST_STATUS_BADGE_KEYS: Partial<Record<GuestRequest["status"], StatusKey>> = {
-  in_progress: "inProgress",
+const STATUS_BADGE: Record<string, StatusKey> = {
+  open: "pickup",
+  reopened: "pickup",
+  acknowledged: "inProgress",
+  dispatched: "inProgress",
+  arrived: "inProgress",
+  guest_contacted: "inProgress",
   resolved: "completed",
+  verified: "completed",
 };
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 export default function GuestRequestDetailScreen() {
-  const { t } = useTranslation();
-  const { requestId } = useLocalSearchParams<{ requestId: string }>();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const { isOnline } = useAppStore();
-  const [request, setRequest] = useState<GuestRequest | null>(null);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [resolutionNotes, setResolutionNotes] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<StatusOption>("new");
-  const [showStaffPicker, setShowStaffPicker] = useState(false);
+  const toast = useToast();
+  const { requestId } = useLocalSearchParams<{ requestId: string }>();
+  const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
+  const isOnline = useAppStore((s) => s.isOnline);
+  const zone = useAppStore((s) => s.hotelTimezone);
+  const language = i18n.resolvedLanguage?.startsWith("es") ? "es" : "en";
 
-  const loadRequest = useCallback(async () => {
-    if (!isOnline) { setLoading(false); return; }
+  const [request, setRequest] = useState<GuestRequestView | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const inFlight = useRef(false);
+  const seq = useRef(0);
+
+  const load = useCallback(async () => {
+    if (!requestId) return;
+    if (!isOnline) {
+      setState((s) => (s === "loading" ? "error" : s));
+      return;
+    }
+    const mine = ++seq.current;
     try {
-      const [reqRes, staffRes] = await Promise.all([
-        api.get<{ data: GuestRequest }>(`/guest-requests/${requestId}`),
-        api.get<{ data: StaffMember[] }>("/staff?role=front_desk,housekeeping_supervisor,gm"),
-      ]);
-      setRequest(reqRes.data);
-      setSelectedStatus((reqRes.data?.status as StatusOption) ?? "new");
-      setStaff(staffRes.data ?? []);
+      const found = await fetchGuestRequest(requestId);
+      if (mine !== seq.current) return;
+      setRequest(found);
+      setState(found ? "ready" : "missing");
     } catch {
-      setRequest(null);
-    } finally {
-      setLoading(false);
+      if (mine !== seq.current) return;
+      setState((s) => (s === "ready" ? s : "error"));
     }
   }, [isOnline, requestId]);
 
-  useEffect(() => { loadRequest(); }, [loadRequest]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const saveUpdate = async (overrideStatus?: StatusOption, assignedTo?: string) => {
-    if (!request) return;
-    setSaving(true);
-    try {
-      await api.patch(`/guest-requests/${request.id}`, {
-        status: overrideStatus ?? selectedStatus,
-        ...(resolutionNotes ? { resolution_notes: resolutionNotes } : {}),
-        ...(assignedTo ? { assigned_to: assignedTo } : {}),
-      });
-      await loadRequest();
-    } catch {
-      // show nothing — reload handles it
-    } finally {
-      setSaving(false);
-    }
-  };
+  const submit = useCallback(
+    async (next: string) => {
+      if (!request || inFlight.current) return;
+      if (!isOnline) {
+        toast.error(t("guestRequestsV2.detail.offline"));
+        return;
+      }
+      inFlight.current = true;
+      setSaving(next);
+      try {
+        await transitionGuestRequest(request.id, next, note);
+        setNote("");
+        setConfirmCancel(false);
+        toast.success(t("guestRequestsV2.detail.done", { status: t(`guestRequestsV2.status.${next}`) }));
+        await load();
+      } catch (err) {
+        const status = err instanceof ApiError ? err.status : 0;
+        toast.error(status === 403 ? t("guestRequestsV2.detail.forbidden") : status === 422 ? t("guestRequestsV2.detail.invalid") : t("guestRequestsV2.detail.failed"));
+        // A refused step usually means the status moved on; show the truth.
+        if (status === 422 || status === 403) await load();
+      } finally {
+        inFlight.current = false;
+        setSaving(null);
+      }
+    },
+    [request, isOnline, note, toast, t, load],
+  );
 
-  if (loading) {
-    return <StateBlock status="loading" style={[styles.center, { backgroundColor: theme.background }]} />;
-  }
+  const back = () => router.back();
+  const header = (title: string) => <DetailHeader title={title} onBack={back} backLabel={t("guestRequestsV2.detail.back")} testID="request-detail-header" />;
 
-  if (!request) {
+  if (state === "loading") {
     return (
-      <StateBlock
-        status="error"
-        errorIcon="alert-circle-outline"
-        errorMessage="Request not found"
-        onRetry={() => router.back()}
-        retryLabel="Go back"
-        style={[styles.center, { backgroundColor: theme.background }]}
-      />
+      <View style={[styles.root, { backgroundColor: theme.background }]}>
+        {header(t("guestRequestsV2.detail.title"))}
+        <StateBlock status="loading" style={styles.center} />
+      </View>
+    );
+  }
+  if (state === "error" || state === "missing" || !request) {
+    return (
+      <View style={[styles.root, { backgroundColor: theme.background }]}>
+        {header(t("guestRequestsV2.detail.title"))}
+        {state === "missing" ? (
+          <StateBlock status="empty" emptyIcon="search-outline" emptyTitle={t("guestRequestsV2.detail.notFound")} emptyBody={t("guestRequestsV2.detail.notFoundBody", { count: GUEST_REQUEST_PAGE_SIZE })} style={styles.center} />
+        ) : (
+          <StateBlock status="error" errorMessage={`${t("guestRequestsV2.error.title")}. ${t("guestRequestsV2.error.body")}`} onRetry={() => void load()} retryLabel={t("common.retry")} style={styles.center} />
+        )}
+      </View>
     );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[
-          styles.topBar,
-          { backgroundColor: theme.background, borderBottomColor: theme.borderSubtle },
-        ]}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <Ionicons name="chevron-back" size={22} color={theme.primaryAction} />
-        </TouchableOpacity>
-        <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>{t("guestRequests.detailTitle")}</Text>
-        {REQUEST_STATUS_BADGE_KEYS[request.status] ? (
-          <StatusBadge
-            statusKey={REQUEST_STATUS_BADGE_KEYS[request.status]!}
-            label={STATUS_LABELS[request.status] ?? request.status}
-          />
-        ) : (
-          <Pill tone={STATUS_TONES[request.status] ?? "neutral"}>
-            {STATUS_LABELS[request.status] ?? request.status}
-          </Pill>
-        )}
-      </View>
+  const actions = allowedTransitions(request.status, role);
+  const statusKey = request.status in STATUS_BADGE || request.status === "cancelled" ? request.status : "unknown";
+  const badge = STATUS_BADGE[request.status];
+  const stamp = (iso: string | null) => (iso ? formatHotelTime(new Date(iso), zone, language) : null);
+  const created = stamp(request.createdAt);
+  const due = request.stage !== "resolved" ? stamp(request.dueAt) : null;
+  const resolved = stamp(request.resolvedAt);
+  const busy = saving !== null;
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Card style={styles.cardLayoutOverrides}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.roomLabel, { color: theme.textPrimary }]}>{t("guestRequests.roomLabel", { room: request.room_number })}</Text>
-            {request.guest_name ? (
-              <Text style={[styles.guestName, { color: theme.textMuted }]}>
-                {request.guest_name}
-              </Text>
-            ) : null}
+  return (
+    <KeyboardAvoidingView style={[styles.root, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      {header(request.roomNumber ? t("guestRequests.roomLabel", { room: request.roomNumber }) : t("guestRequestsV2.detail.title"))}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" testID="request-detail">
+        {!isOnline ? <Notice testID="request-detail-offline" text={t("guestRequestsV2.detail.offline")} /> : null}
+
+        <Card style={styles.card}>
+          <View style={styles.badges}>
+            {badge ? <StatusBadge statusKey={badge} label={t(`guestRequestsV2.status.${statusKey}`)} /> : <AppText variant="label">{t(`guestRequestsV2.status.${statusKey}`)}</AppText>}
+            {request.urgent && request.stage !== "resolved" ? <StatusBadge statusKey="urgent" label={t("guestRequestsV2.urgent")} /> : null}
           </View>
-          <Text style={[styles.requestType, { color: theme.textPrimary }]}>{request.request_type}</Text>
-          <Text style={[styles.description, { color: theme.textSecondary }]}>{request.description}</Text>
-          <View style={styles.meta}>
-            <Text style={[styles.metaText, { color: theme.textDisabled }]}>{timeAgo(request.created_at)}</Text>
-            {request.assigned_to_name ? (
-              <Text style={[styles.metaText, { color: theme.textDisabled }]}>
-                {t("guestRequests.assignedTo", { name: request.assigned_to_name })}
-              </Text>
-            ) : null}
-          </View>
+          <AppText variant="title" testID="request-detail-title">
+            {request.title || t("guestRequestsV2.untitled")}
+          </AppText>
+          <AppText variant="caption" tone="secondary">
+            {t("guestRequestsV2.detail.need")}
+          </AppText>
+          <AppText variant="body" testID="request-detail-description">
+            {request.description || t("guestRequestsV2.detail.noDescription")}
+          </AppText>
         </Card>
 
-        <AIInsightCard
-          title="AI recovery"
-          compact
-          actions={
-            <HeroButton onDark={false} onPress={() => router.push("/(app)/copilot")}>
-              Ask AI
-            </HeroButton>
-          }
-        >
-          {request.status === "escalated"
-            ? "Assign ownership first, then update the guest before closing the loop."
-            : "Fastest path: assign a clear owner and keep the resolution note short."}
-        </AIInsightCard>
+        <Card style={styles.card}>
+          <Fact label={t("guestRequestsV2.detail.room")} value={request.roomNumber} />
+          <Fact label={t("guestRequestsV2.detail.guest")} value={request.guestName} />
+          <Fact label={t("guestRequestsV2.detail.created")} value={created} />
+          <Fact label={t("guestRequestsV2.detail.due")} value={due} />
+          <Fact label={t("guestRequestsV2.detail.resolvedAt")} value={resolved} />
+        </Card>
 
-        {request.status !== "resolved" ? (
-          <>
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.updateStatus")}</Text>
-            <View style={styles.statusRow}>
-              {STATUS_OPTIONS.map((s) => (
-                <Button
-                  key={s}
-                  label={STATUS_LABELS[s]}
-                  style={styles.statusBtn}
-                  onPress={() => setSelectedStatus(s)}
-                  variant={selectedStatus === s ? "primary" : "secondary"}
-                  size="sm"
+        <Button testID="request-ask-assistant" label={t("guestRequestsV2.ask")} icon="sparkles-outline" variant="tertiary" size="md" onPress={() => router.push("/(app)/copilot" as never)} />
+
+        <Card style={styles.card} testID="request-detail-actions">
+          <AppText variant="headline">{t("guestRequestsV2.detail.next")}</AppText>
+          {actions.length === 0 ? (
+            <AppText variant="caption" tone="secondary">
+              {t("guestRequestsV2.detail.noActions")}
+            </AppText>
+          ) : (
+            <>
+              <View>
+                <AppText variant="label" tone="secondary" style={styles.noteLabel}>
+                  {t("guestRequestsV2.detail.note")}
+                </AppText>
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder={t("guestRequestsV2.detail.notePlaceholder")}
+                  placeholderTextColor={theme.textMuted}
+                  accessibilityLabel={t("guestRequestsV2.detail.note")}
+                  multiline
+                  maxLength={2000}
+                  editable={!busy}
+                  style={[styles.note, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                  testID="request-detail-note"
                 />
-              ))}
-            </View>
-
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.assignTo")}</Text>
-            <Button
-              label={request.assigned_to_name ?? "Select staff member"}
-              style={styles.assignButton}
-              onPress={() => setShowStaffPicker(!showStaffPicker)}
-              variant="secondary"
-              size="sm"
-              icon={showStaffPicker ? "chevron-up" : "chevron-down"}
-            />
-            {showStaffPicker ? (
-              <View style={[styles.staffList, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                {staff.map((member) => (
+              </View>
+              {actions
+                .filter((a) => a !== "cancelled")
+                .map((a, index) => (
                   <Button
-                    key={member.id}
-                    label={member.full_name}
-                    style={[styles.staffItem, { borderBottomColor: theme.border }]}
-                    onPress={() => {
-                      setShowStaffPicker(false);
-                      saveUpdate(undefined, member.id);
-                    }}
-                    variant="ghost"
-                    size="sm"
+                    key={a}
+                    testID={`request-action-${a}`}
+                    label={saving === a ? t("guestRequestsV2.detail.saving") : t(`guestRequestsV2.detail.action.${a}`)}
+                    variant={index === 0 ? "primary" : "secondary"}
+                    size="md"
+                    loading={saving === a}
+                    disabled={busy || !isOnline}
+                    onPress={() => void submit(a)}
                   />
                 ))}
-              </View>
-            ) : null}
-
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t("guestRequests.resolutionNotes")}</Text>
-            <TextInput
-              style={[
-                styles.notesInput,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  color: theme.textPrimary,
-                },
-              ]}
-              value={resolutionNotes}
-              onChangeText={setResolutionNotes}
-              placeholder="Describe what was done..."
-              placeholderTextColor={theme.textDisabled}
-              multiline
-              numberOfLines={3}
-            />
-
-            <Button label="Save Update" onPress={() => saveUpdate()} loading={saving} size="md" />
-          </>
-        ) : (
-          <Card
-            style={[
-              styles.cardLayoutOverrides,
-              {
-                backgroundColor: theme.status.readySoft,
-                borderColor: theme.status.readyLine,
-              },
-            ]}
-          >
-            <Ionicons name="checkmark-circle" size={20} color={theme.status.ready} />
-            <Text style={[styles.requestType, { color: theme.status.ready }]}>{t("guestRequests.resolved")}</Text>
-          </Card>
-        )}
+              {actions.includes("cancelled") ? (
+                confirmCancel ? (
+                  <View style={[styles.confirm, { borderColor: theme.status.dirtyLine, backgroundColor: theme.status.dirtySoft }]} testID="request-cancel-confirm">
+                    <AppText variant="bodyStrong">{t("guestRequestsV2.detail.confirmCancelTitle")}</AppText>
+                    <AppText variant="caption" tone="secondary">
+                      {t("guestRequestsV2.detail.confirmCancelBody")}
+                    </AppText>
+                    <Button testID="request-cancel-confirm-yes" label={t("guestRequestsV2.detail.confirmCancel")} variant="destructive" size="md" disabled={busy || !isOnline} loading={saving === "cancelled"} onPress={() => void submit("cancelled")} />
+                    <Button testID="request-cancel-confirm-no" label={t("guestRequestsV2.detail.keep")} variant="ghost" size="md" disabled={busy} onPress={() => setConfirmCancel(false)} />
+                  </View>
+                ) : (
+                  <Button testID="request-action-cancelled" label={t("guestRequestsV2.detail.action.cancelled")} variant="ghost" size="md" disabled={busy || !isOnline} onPress={() => setConfirmCancel(true)} />
+                )
+              ) : null}
+            </>
+          )}
+        </Card>
       </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <View style={styles.fact} accessible accessibilityLabel={`${label}, ${value}`}>
+      <AppText variant="caption" tone="secondary" style={styles.factLabel}>
+        {label}
+      </AppText>
+      <AppText variant="bodyStrong" numeric style={styles.factValue}>
+        {value}
+      </AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    gap: 10,
-  },
-  backBtn: { padding: 2 },
-  topBarTitle: { flex: 1, fontSize: 16, fontWeight: "700" },
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 32, gap: 14 },
-  cardLayoutOverrides: {
-    padding: 14,
-    gap: 6,
-  },
-  cardHeader: { gap: 2 },
-  roomLabel: { fontSize: 15, fontWeight: "700" },
-  guestName: { fontSize: 12 },
-  requestType: { fontSize: 15, fontWeight: "600" },
-  description: { fontSize: 13, lineHeight: 19 },
-  meta: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  metaText: { fontSize: 11, fontFamily: monoFont },
-  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-  statusRow: { flexDirection: "row", gap: 8 },
-  statusBtn: {
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  assignButton: {
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-  },
-  staffList: {
-    borderWidth: 1,
-    borderRadius: R.md,
-    overflow: "hidden",
-  },
-  staffItem: {
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    justifyContent: "flex-start",
-  },
-  notesInput: {
-    borderWidth: 1,
-    borderRadius: R.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
+  content: { padding: spaceV2.page, gap: spaceV2.md, paddingBottom: 40 },
+  card: { padding: spaceV2.lg, gap: spaceV2.sm },
+  badges: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  fact: { flexDirection: "row", gap: spaceV2.md, alignItems: "flex-start" },
+  factLabel: { width: 96 },
+  factValue: { flex: 1 },
+  noteLabel: { marginBottom: 4 },
+  note: { borderWidth: 1, borderRadius: radiusV2.input, padding: spaceV2.md, minHeight: 80, fontSize: 16, textAlignVertical: "top" },
+  confirm: { borderWidth: 1, borderRadius: radiusV2.control, padding: spaceV2.md, gap: spaceV2.sm },
 });

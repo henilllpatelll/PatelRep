@@ -12,6 +12,8 @@ import { SupervisorHome } from "@/components/home/SupervisorHome";
 import { InspectorHome } from "@/components/home/InspectorHome";
 import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
+import { FrontDeskHome } from "@/components/home/FrontDeskHome";
+import { GMHome } from "@/components/home/GMHome";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -36,6 +38,13 @@ export default function HousekeeperHomeScreen() {
   }
   if (effectiveRole === "inspector" && v2) {
     return <InspectorHome name={displayNameFor(user)} />;
+  }
+  // Phase 6: inside the scope Front Desk and GM get the operational dashboards; flag off keeps the legacy Home below.
+  if (effectiveRole === "front_desk" && v2) {
+    return <FrontDeskHome name={displayNameFor(user)} />;
+  }
+  if (effectiveRole === "gm" && v2) {
+    return <GMHome name={displayNameFor(user)} />;
   }
   if (effectiveRole === "front_desk") {
     return <FrontDeskHomeScreen name={displayNameFor(user) || "Front Desk"} />;

@@ -8437,7 +8437,8 @@
     "markUrgentSub": "Se destacará para el turno entrante",
     "offlineWarning": "Sin conexión. Conéctate para guardar esta entrada.",
     "saveError": "No se pudo guardar la entrada. Intenta de nuevo.",
-    "save": "Guardar Entrada"
+    "save": "Guardar Entrada",
+    "loadFailed": "No se pudieron cargar las entradas del registro."
   },
   "ai": {
     "briefing": {
@@ -8523,7 +8524,31 @@
     "roomChip": "Habitación {{room}}",
     "roomOption": "Habitación {{room}}",
     "floorOption": "Piso {{floor}}",
-    "locationFoundLabel": "Lugar donde se encontró"
+    "locationFoundLabel": "Lugar donde se encontró",
+    "all": "Todos",
+    "unclaimed": "Sin reclamar",
+    "claimed": "Reclamados",
+    "segmentsA11y": "Estado del objeto",
+    "loadFailed": "No se pudieron cargar los objetos encontrados.",
+    "retry": "Reintentar",
+    "emptyTitle": "No hay objetos",
+    "emptyBody": "Registra un objeto encontrado con el botón de abajo.",
+    "locationUnknown": "Ubicación desconocida",
+    "logButton": "Registrar un objeto encontrado",
+    "logSubmit": "Registrar objeto",
+    "close": "Cerrar",
+    "clearRoom": "Quitar habitación",
+    "descriptionPlaceholder": "p. ej. cargador de iPhone, lentes de lectura...",
+    "roomSearchPlaceholder": "Buscar número de habitación…",
+    "locationPlaceholder": "p. ej. lobby, área de la alberca, pasillo...",
+    "submitFailed": "No se pudo registrar el objeto. Inténtalo de nuevo.",
+    "ago": {
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{count}} h",
+      "days": "hace {{count}} d"
+    },
+    "itemsHeld": "{{count}} objeto guardado",
+    "itemsHeld_plural": "{{count}} objetos guardados"
   },
   "alertsScreen": {
     "unreadSuffix_one": "{{count}} sin leer",
@@ -12848,5 +12873,297 @@
     "aiProvenance": "Texto de muestra. No se generó con datos reales.",
     "sampleRoomType": "Suite King",
     "sampleNextType": "Doble Queen"
+  },
+  "managementHome": {
+    "status": {
+      "live": "Actualizado {{time}}",
+      "loading": "Cargando",
+      "stale": "Datos anteriores {{time}}",
+      "partial": "Faltan algunas cifras",
+      "failed": "No se pudo cargar",
+      "offline": "Sin conexión, a las {{time}}",
+      "offlineEmpty": "Sin conexión, nada cargado",
+      "refresh": "Actualizar"
+    },
+    "notice": {
+      "offline": "Estás sin conexión. Estas cifras son de la última vez que se cargó esta pantalla y pueden estar desactualizadas.",
+      "offlineEmpty": "Estás sin conexión y aún no se ha cargado nada. Reconéctate para ver las cifras actuales.",
+      "partial": "No se pudieron cargar algunas cifras, así que se omiten en lugar de mostrarse como cero. Desliza hacia abajo para reintentar.",
+      "failed": "No se pudo cargar nada por ahora. Desliza hacia abajo para reintentar.",
+      "stale": "Falló la última actualización. Estás viendo cifras anteriores."
+    },
+    "unloaded": {
+      "loading": "Cargando",
+      "waiting": "Aún no cargado",
+      "body": "Esta sección aparecerá cuando se cargue."
+    }
+  },
+  "frontDeskHome": {
+    "requests": {
+      "title": "Solicitudes de huéspedes",
+      "openAll": "Ver todas",
+      "open": "Abiertas",
+      "inProgress": "En curso",
+      "urgent": "Urgentes",
+      "resolvedToday": "Resueltas hoy",
+      "loadedHint": "Según {{count}} solicitudes cargadas",
+      "partial": "Se muestran las últimas {{count}} solicitudes. Las cifras con + pueden ser mayores.",
+      "next": "Siguiente por atender",
+      "openNext": "Abrir solicitud",
+      "noneActive": "No hay solicitudes activas",
+      "noneActiveBody": "No hay nada abierto ni en curso en las solicitudes cargadas.",
+      "noneActivePartial": "No hay nada abierto ni en curso en las últimas {{count}} solicitudes.",
+      "failed": "No se pudieron cargar las solicitudes."
+    },
+    "rooms": {
+      "title": "Habitaciones listas",
+      "openAll": "Estado de habitaciones",
+      "condition": "Condición de limpieza",
+      "ready": "Inspeccionadas y listas",
+      "clean": "Limpias, sin inspeccionar",
+      "dirty": "Sucias",
+      "stay": "Ocupación y disponibilidad",
+      "occupied": "Ocupadas",
+      "vacant": "Vacías",
+      "outOfOrder": "Fuera de servicio",
+      "separate": "{{total}} habitaciones. La condición, la ocupación y la disponibilidad se cuentan por separado.",
+      "a11y": "{{label}}: {{count}} de {{total}} habitaciones",
+      "empty": "Aún no hay habitaciones en el tablero.",
+      "failed": "No se pudo cargar el estado de habitaciones."
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "urgent": "Solicitudes urgentes: {{shown}}",
+      "urgentSub": "Abiertas o en curso",
+      "ooo": "Habitaciones fuera de servicio: {{count}}",
+      "oooSub": "Mantenimiento tiene estas habitaciones",
+      "none": "Nada urgente",
+      "noneBody": "No hay solicitudes urgentes ni habitaciones fuera de servicio en los datos cargados.",
+      "reviewRequests": "Revisar solicitudes",
+      "unavailable": "Algunos datos no se cargaron, así que aquí no se pueden confirmar los asuntos urgentes."
+    },
+    "quick": {
+      "title": "Acciones rápidas"
+    }
+  },
+  "gmHome": {
+    "overview": {
+      "title": "Resumen de la propiedad",
+      "rooms": "Habitaciones listas",
+      "roomsCaption": "{{ready}} de {{total}} inspeccionadas",
+      "workOrders": "Órdenes de trabajo activas",
+      "woCaption": "{{count}} vencidas",
+      "guest": "Solicitudes activas",
+      "guestCaption": "{{count}} urgentes",
+      "guestPartial": "Solo las últimas 100",
+      "alerts": "Alertas activas",
+      "alertsCaption": "{{count}} requieren atención",
+      "unavailable": "No disponible",
+      "notLoaded": "No cargado"
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "viewAlerts": "Todas las alertas",
+      "overdue": "Órdenes de trabajo vencidas: {{count}}",
+      "overdueSub": "Pasaron su hora límite",
+      "urgentWo": "Órdenes de trabajo urgentes: {{count}}",
+      "urgentWoSub": "Activas y marcadas como urgentes",
+      "urgentGuest": "Solicitudes urgentes de huéspedes: {{shown}}",
+      "urgentGuestSub": "Abiertas o en curso",
+      "ooo": "Habitaciones fuera de servicio: {{count}}",
+      "oooSub": "Mantenimiento tiene estas habitaciones",
+      "alerts": "Alertas que requieren atención: {{count}}",
+      "alertsSub": "Órdenes vencidas y habitaciones con riesgo alto previsto",
+      "none": "Nada urgente en los datos cargados",
+      "noneBody": "No se devolvieron órdenes vencidas o urgentes, solicitudes urgentes, habitaciones fuera de servicio ni alertas.",
+      "incomplete": "Algunas cifras no se cargaron",
+      "incompleteBody": "Abre Alertas para buscar excepciones."
+    },
+    "progress": {
+      "title": "Avance operativo",
+      "ready": "Inspeccionadas y listas",
+      "clean": "Limpias, sin inspeccionar",
+      "toClean": "Por limpiar",
+      "completedToday": "Órdenes de trabajo completadas hoy: {{count}}"
+    },
+    "quick": {
+      "title": "Ir a"
+    }
+  },
+  "frontDeskMore": {
+    "selected": "seleccionado",
+    "role": "Recepción",
+    "tools": "Herramientas",
+    "account": "Cuenta y soporte",
+    "lostSub": "Registrar y buscar objetos de huéspedes",
+    "notifications": "Notificaciones",
+    "notificationsSub": "Avisos y novedades",
+    "unread": "{{count}} sin leer",
+    "profile": "Perfil y ajustes",
+    "profileSub": "Cuenta, idioma y apariencia",
+    "help": "Ayuda",
+    "helpSub": "Guías y soporte",
+    "signOut": "Cerrar sesión"
+  },
+  "guestRequestsV2": {
+    "untitled": "Solicitud sin título",
+    "summary": {
+      "loaded": "{{count}} solicitudes cargadas",
+      "partial": "Se muestran las últimas {{count}} solicitudes. Las anteriores no se cuentan.",
+      "open": "Abiertas",
+      "inProgress": "En curso",
+      "urgent": "Urgentes"
+    },
+    "segments": {
+      "active": "Activas",
+      "resolved": "Resueltas",
+      "all": "Todas",
+      "a11y": "Estado de la solicitud"
+    },
+    "search": "Buscar habitación, huésped o solicitud",
+    "status": {
+      "open": "Abierta",
+      "acknowledged": "Recibida",
+      "dispatched": "Enviada",
+      "arrived": "Llegó",
+      "guest_contacted": "Huésped contactado",
+      "resolved": "Resuelta",
+      "verified": "Verificada",
+      "reopened": "Reabierta",
+      "cancelled": "Cancelada",
+      "unknown": "Desconocido"
+    },
+    "urgent": "Urgente",
+    "linkedWo": "Orden de trabajo vinculada",
+    "due": "Vence {{time}}",
+    "age": {
+      "now": "Justo ahora",
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{count}} h",
+      "days": "hace {{count}} d"
+    },
+    "empty": {
+      "activeTitle": "No hay solicitudes activas",
+      "activeBody": "No hay nada abierto ni en curso.",
+      "resolvedTitle": "No hay solicitudes resueltas",
+      "resolvedBody": "No hay solicitudes resueltas en la lista cargada.",
+      "allTitle": "No hay solicitudes",
+      "allBody": "No se devolvió ninguna solicitud.",
+      "noMatchTitle": "Sin coincidencias",
+      "noMatchBody": "Prueba otra búsqueda o estado."
+    },
+    "error": {
+      "title": "No se pudieron cargar las solicitudes",
+      "body": "Tu lista no cambió. Revisa tu conexión e inténtalo de nuevo."
+    },
+    "offline": {
+      "title": "Sin conexión",
+      "body": "Reconéctate para cargar las solicitudes."
+    },
+    "detail": {
+      "title": "Solicitud de huésped",
+      "notFound": "Solicitud no encontrada",
+      "notFoundBody": "Puede ser anterior a las últimas {{count}} solicitudes o haberse eliminado.",
+      "back": "Volver",
+      "need": "Lo que necesita el huésped",
+      "noDescription": "No se agregó descripción.",
+      "room": "Habitación",
+      "guest": "Huésped",
+      "created": "Creada",
+      "due": "Vence",
+      "resolvedAt": "Resuelta",
+      "next": "Siguiente paso",
+      "noActions": "No hay más pasos desde este estado.",
+      "note": "Nota (opcional)",
+      "notePlaceholder": "Agrega una nota breve para el registro",
+      "confirmCancelTitle": "¿Cancelar esta solicitud?",
+      "confirmCancelBody": "Una solicitud cancelada no se puede reabrir.",
+      "keep": "Mantener solicitud",
+      "confirmCancel": "Cancelar solicitud",
+      "action": {
+        "acknowledged": "Recibir",
+        "dispatched": "Marcar como enviada",
+        "arrived": "Marcar como llegada",
+        "guest_contacted": "Huésped contactado",
+        "resolved": "Marcar como resuelta",
+        "verified": "Verificar resolución",
+        "reopened": "Reabrir",
+        "cancelled": "Cancelar solicitud"
+      },
+      "done": "Actualizada a {{status}}",
+      "failed": "No se pudo actualizar. No se cambió nada.",
+      "invalid": "Ese paso no está permitido desde el estado actual. Se actualizó la solicitud.",
+      "forbidden": "No tienes permiso para ese paso.",
+      "offline": "Reconéctate para actualizar esta solicitud.",
+      "saving": "Guardando"
+    },
+    "new": "Nueva solicitud",
+    "newHint": "Abre el asistente para crear una solicitud",
+    "ask": "Preguntar al asistente"
+  },
+  "alertsV2": {
+    "subtitle": "Excepciones en vivo de los datos de tu propiedad",
+    "summary": {
+      "attention": "Requieren atención",
+      "watch": "Por vigilar"
+    },
+    "groups": {
+      "attention": "Requiere atención",
+      "watch": "Para vigilar"
+    },
+    "kinds": {
+      "sla_breach": "Orden de trabajo vencida",
+      "room_risk": "Habitación en riesgo",
+      "asset_risk": "Equipo en riesgo",
+      "low_stock": "Poco inventario",
+      "guest_issue": "Solicitud abierta de huésped",
+      "recurring": "Problema recurrente",
+      "legacy": "Alerta"
+    },
+    "facts": {
+      "due": "Vence {{time}}",
+      "wo": "Orden de trabajo {{number}}",
+      "failureRisk": "{{score}}% de riesgo de falla",
+      "stock": "{{onHand}} en existencia, mínimo {{minimum}}",
+      "recurring": "{{count}} órdenes de trabajo en {{days}} días",
+      "checkin": "Llegada en {{minutes}} min",
+      "factors": "Factores: {{list}}",
+      "room": "Habitación {{room}}"
+    },
+    "capped": "El servidor limita las listas de equipos y huéspedes, así que puede haber más.",
+    "source": "El riesgo de habitaciones viene de la predicción de disponibilidad. Todo lo demás se calcula con registros en vivo, sin usar créditos de IA.",
+    "view": "Ver",
+    "empty": {
+      "title": "No hay alertas ahora",
+      "body": "No se devolvieron órdenes vencidas, habitaciones de alto riesgo, riesgos de equipos, poco inventario ni asuntos abiertos de huéspedes."
+    },
+    "error": {
+      "title": "No se pudieron cargar las alertas",
+      "body": "No se muestra nada como despejado. Revisa tu conexión e inténtalo de nuevo."
+    },
+    "offline": {
+      "title": "Sin conexión",
+      "body": "Reconéctate para cargar las alertas. No se muestra nada como despejado."
+    }
+  },
+  "staffV2": {
+    "summary": "{{count}} empleados activos",
+    "note": "Un directorio del personal activo. No muestra quién está de turno.",
+    "search": "Buscar por nombre o correo",
+    "noMatch": "Ningún empleado coincide",
+    "noMatchBody": "Prueba con otro nombre.",
+    "today": "{{count}} hoy",
+    "error": {
+      "title": "No se pudo cargar el personal",
+      "body": "Revisa tu conexión e inténtalo de nuevo."
+    },
+    "offline": {
+      "title": "Sin conexión",
+      "body": "Reconéctate para cargar el directorio de personal."
+    }
+  },
+  "roomStatusV2": {
+    "updated": "Actualizado {{time}}",
+    "refreshFailed": "No se pudo actualizar. Se muestran las habitaciones cargadas antes."
   }
 }

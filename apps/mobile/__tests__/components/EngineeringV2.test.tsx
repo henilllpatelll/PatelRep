@@ -48,7 +48,9 @@ describe("role gate", () => {
     for (const role of ["front_desk", "gm", "housekeeper", "inspector", "housekeeping_supervisor", "", null, undefined]) {
       expect(isEngineeringV2Role(role as string)).toBe(false);
     }
-    for (const role of ["front_desk", "gm", "", null, undefined]) expect(isV2SurfaceRole(role as string)).toBe(false);
+    // Phase 6 deliberately moved Front Desk and GM into the migrated surface.
+    for (const role of ["front_desk", "gm"]) expect(isV2SurfaceRole(role)).toBe(true);
+    for (const role of ["", null, undefined]) expect(isV2SurfaceRole(role as string)).toBe(false);
   });
 
   it("earlier phase gates are unchanged", () => {

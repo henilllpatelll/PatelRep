@@ -64,8 +64,12 @@ export function isEngineeringV2Role(role: string | null | undefined): boolean {
   return role === "engineer" || role === "chief_engineer";
 }
 
-/** Every role whose whole surface is inside `<DesignV2Scope>` while the preview flag is on (Phases 3 + 4 + 5).
- *  Front Desk and GM stay outside until their own phases. */
+/** Phase 6: Front Desk and General Manager. Their whole surface (tabs, hidden routes, sheets) is scoped like the others. */
+export function isFrontDeskGmV2Role(role: string | null | undefined): boolean {
+  return role === "front_desk" || role === "gm";
+}
+
+/** Every role whose whole surface is inside `<DesignV2Scope>` while the preview flag is on (Phases 3 to 6). */
 export function isV2SurfaceRole(role: string | null | undefined): boolean {
-  return isHousekeeperV2Role(role) || isInspectorSupervisorV2Role(role) || isEngineeringV2Role(role);
+  return isHousekeeperV2Role(role) || isInspectorSupervisorV2Role(role) || isEngineeringV2Role(role) || isFrontDeskGmV2Role(role);
 }

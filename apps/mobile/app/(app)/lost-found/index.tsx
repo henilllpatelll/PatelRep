@@ -10,6 +10,15 @@ import { StateBlock } from "@/components/ui/StateBlock";
 import { listItems, createLostFoundItem, listRooms, type LostFoundItem, type SimpleRoom } from "@/lib/api/lostFound";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { ScreenHeader } from "@/components/shared/HeadersV2";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+/** Bottom safe-area spacer for the V2 sheet; a component so the hook only runs inside V2. */
+function SheetSafeArea() {
+  const insets = useSafeAreaInsets();
+  return <View style={{ height: Math.max(insets.bottom, 0) }} />;
+}
 import { useToast } from "@/lib/theme/useToast";
 
 type Tab = "all" | "unclaimed" | "claimed";
@@ -20,11 +29,11 @@ const TAB_STATUS: Record<Tab, string | undefined> = {
   claimed: "claimed",
 };
 
-function timeSince(iso: string): string {
+function timeSince(iso: string, t?: (key: string, o?: Record<string, unknown>) => string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff < 60) return `${diff}m ago`;
-  if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
-  return `${Math.floor(diff / 1440)}d ago`;
+  if (diff < 60) return t ? t("lostFound.ago.minutes", { count: Math.max(0, diff) }) : `${diff}m ago`;
+  if (diff < 1440) return t ? t("lostFound.ago.hours", { count: Math.floor(diff / 60) }) : `${Math.floor(diff / 60)}h ago`;
+  return t ? t("lostFound.ago.days", { count: Math.floor(diff / 1440) }) : `${Math.floor(diff / 1440)}d ago`;
 }
 
 export default function LostFoundScreen() {
@@ -32,6 +41,8 @@ export default function LostFoundScreen() {
   const theme = useTheme();
   const v2 = useV2Text();
   const toast = useToast();
+  // The legacy screen keeps its original English strings (its tests pin them); V2 reads the translated ones.
+  const L = (key: string, legacy: string) => (v2.active ? t(key) : legacy);
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -116,7 +127,7 @@ export default function LostFoundScreen() {
       closeModal();
       load();
     } catch {
-      toast.error("Could not log item. Try again.");
+      toast.error(L("lostFound.submitFailed", "Could not log item. Try again."));
     } finally {
       setSubmitting(false);
     }
@@ -131,10 +142,14 @@ export default function LostFoundScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
-        <Text style={[styles.headerMeta, { color: theme.textMuted }, v2.label]}>{t("lostFound.itemsHeld", { count: items.length })}</Text>
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("lostFound.title")}</Text>
-      </View>
+      {v2.active ? (
+        <ScreenHeader title={t("lostFound.title")} subtitle={loadError ? undefined : t("lostFound.itemsHeld", { count: items.length })} />
+      ) : (
+        <View style={[styles.header, { borderBottomColor: theme.borderSubtle }]}>
+          <Text style={[styles.headerMeta, { color: theme.textMuted }, v2.label]}>{t("lostFound.itemsHeld", { count: items.length })}</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{t("lostFound.title")}</Text>
+        </View>
+      )}
 
       {loading ? (
         <StateBlock status="loading" style={styles.center} />
@@ -143,30 +158,44 @@ export default function LostFoundScreen() {
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primaryAction} />}
         >
-          <Segmented
-            items={[
-              { label: "All", count: items.length, active: activeTab === "all", onPress: () => handleTabChange("all") },
-              { label: "Unclaimed", count: unclaimed, active: activeTab === "unclaimed", onPress: () => handleTabChange("unclaimed") },
-              { label: "Claimed", count: claimed, active: activeTab === "claimed", onPress: () => handleTabChange("claimed") },
-            ]}
-          />
+          {v2.active ? (
+            <SegmentedControl
+              options={[
+                { key: "all" as const, label: t("lostFound.all") },
+                { key: "unclaimed" as const, label: t("lostFound.unclaimed") },
+                { key: "claimed" as const, label: t("lostFound.claimed") },
+              ]}
+              value={activeTab}
+              onChange={handleTabChange}
+              accessibilityLabel={t("lostFound.segmentsA11y")}
+              testID="lostfound-segments"
+            />
+          ) : (
+            <Segmented
+              items={[
+                { label: "All", count: items.length, active: activeTab === "all", onPress: () => handleTabChange("all") },
+                { label: "Unclaimed", count: unclaimed, active: activeTab === "unclaimed", onPress: () => handleTabChange("unclaimed") },
+                { label: "Claimed", count: claimed, active: activeTab === "claimed", onPress: () => handleTabChange("claimed") },
+              ]}
+            />
+          )}
 
           <View style={styles.rows}>
             {loadError ? (
               <StateBlock
                 status="error"
                 errorIcon="cloud-offline-outline"
-                errorMessage="Could not load found items."
+                errorMessage={L("lostFound.loadFailed", "Could not load found items.")}
                 onRetry={() => void load()}
-                retryLabel="Try again"
+                retryLabel={L("lostFound.retry", "Try again")}
                 style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
               />
             ) : items.length === 0 ? (
               <StateBlock
                 status="empty"
                 emptyIcon="cube-outline"
-                emptyTitle="No items found"
-                emptyBody="Log a found item using the button below."
+                emptyTitle={L("lostFound.emptyTitle", "No items found")}
+                emptyBody={L("lostFound.emptyBody", "Log a found item using the button below.")}
                 style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
               />
             ) : (
@@ -180,7 +209,7 @@ export default function LostFoundScreen() {
                   <View style={styles.rowBody}>
                     <Text style={[styles.rowTitle, { color: theme.textPrimary }]}>{item.description}</Text>
                     <Text style={[styles.rowSub, { color: theme.textMuted }]}>
-                      {item.location_found ?? item.rooms?.room_number ?? "Location unknown"} — {timeSince(item.created_at)}
+                      {item.location_found ?? item.rooms?.room_number ?? L("lostFound.locationUnknown", "Location unknown")} — {timeSince(item.created_at, v2.active ? t : undefined)}
                     </Text>
                     {item.claimed_by_name ? (
                       <Text style={[styles.claimedBy, { color: theme.status.ready }]}>{t("lostFound.claimedBy", { name: item.claimed_by_name })}</Text>
@@ -195,15 +224,16 @@ export default function LostFoundScreen() {
       )}
 
       <View style={[styles.footer, { backgroundColor: theme.background }]}>
-        <Button label="Log a found item" onPress={() => void openModal()} icon="camera-outline" />
+        <Button label={L("lostFound.logButton", "Log a found item")} onPress={() => void openModal()} icon="camera-outline" />
       </View>
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalSheet, { backgroundColor: theme.background }, v2.active && { borderTopLeftRadius: 24, borderTopRightRadius: 24 }]}>
+            {v2.active ? <View style={[styles.handle, { backgroundColor: theme.border }]} accessible={false} /> : null}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t("lostFound.logItemTitle")}</Text>
-              <Pressable onPress={closeModal} accessibilityRole="button" accessibilityLabel="Close">
+              <Pressable onPress={closeModal} accessibilityRole="button" accessibilityLabel={L("lostFound.close", "Close")} hitSlop={v2.active ? 12 : undefined} style={v2.active ? styles.closeBtn : undefined}>
                 <Ionicons name="close" size={22} color={theme.textPrimary} />
               </Pressable>
             </View>
@@ -211,7 +241,7 @@ export default function LostFoundScreen() {
             <Text style={[styles.fieldLabel, { color: theme.textMuted }, v2.label]}>{t("lostFound.descriptionLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-              placeholder="e.g. iPhone charger, reading glasses..."
+              placeholder={L("lostFound.descriptionPlaceholder", "e.g. iPhone charger, reading glasses...")}
               placeholderTextColor={theme.textDisabled}
               value={description}
               onChangeText={setDescription}
@@ -223,7 +253,7 @@ export default function LostFoundScreen() {
               <View style={[styles.roomChip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons name="bed-outline" size={14} color={theme.textMuted} />
                 <Text style={[styles.roomChipText, { color: theme.textPrimary }]}>{t("lostFound.roomChip", { room: selectedRoom.room_number })}</Text>
-                <Pressable onPress={() => { setSelectedRoom(null); setRoomQuery(""); }} accessibilityRole="button" accessibilityLabel="Clear room">
+                <Pressable onPress={() => { setSelectedRoom(null); setRoomQuery(""); }} accessibilityRole="button" accessibilityLabel={L("lostFound.clearRoom", "Clear room")}>
                   <Ionicons name="close-circle" size={16} color={theme.textMuted} />
                 </Pressable>
               </View>
@@ -231,7 +261,7 @@ export default function LostFoundScreen() {
               <View>
                 <TextInput
                   style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                  placeholder="Search room number…"
+                  placeholder={L("lostFound.roomSearchPlaceholder", "Search room number…")}
                   placeholderTextColor={theme.textDisabled}
                   value={roomQuery}
                   onChangeText={setRoomQuery}
@@ -246,7 +276,7 @@ export default function LostFoundScreen() {
                         style={[styles.roomOption, { borderBottomColor: theme.borderSubtle }]}
                         onPress={() => { setSelectedRoom(r); setRoomQuery(""); }}
                         accessibilityRole="button"
-                        accessibilityLabel={`Room ${r.room_number}`}
+                        accessibilityLabel={v2.active ? t("lostFound.roomOption", { room: r.room_number }) : `Room ${r.room_number}`}
                       >
                         <Text style={[styles.roomOptionNum, { color: theme.textPrimary }]}>{t("lostFound.roomOption", { room: r.room_number })}</Text>
                         {r.floor != null && (
@@ -262,7 +292,7 @@ export default function LostFoundScreen() {
             <Text style={[styles.fieldLabel, { marginTop: 12, color: theme.textMuted }, v2.label]}>{t("lostFound.locationFoundLabel")}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-              placeholder="e.g. lobby, pool area, hallway..."
+              placeholder={L("lostFound.locationPlaceholder", "e.g. lobby, pool area, hallway...")}
               placeholderTextColor={theme.textDisabled}
               value={locationFound}
               onChangeText={setLocationFound}
@@ -270,12 +300,13 @@ export default function LostFoundScreen() {
             />
 
             <Button
-              label="Log item"
+              label={L("lostFound.logSubmit", "Log item")}
               onPress={() => void handleSubmit()}
               loading={submitting}
               disabled={!description.trim()}
               style={styles.submitBtn}
             />
+            {v2.active ? <SheetSafeArea /> : null}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -311,4 +342,6 @@ const styles = StyleSheet.create({
   roomOptionNum: { fontSize: 14, fontWeight: "600" },
   roomOptionFloor: { fontSize: 12 },
   submitBtn: { marginTop: 20 },
+  handle: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, marginBottom: 12, marginTop: -8 },
+  closeBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: -10 },
 });
