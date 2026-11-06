@@ -87,7 +87,25 @@ All rollout changes go through `.github/workflows/feature-rollout.yml` (`workflo
 3. Upserts `tenant_feature_flags` and inserts a `feature_flag_events` row via the Supabase service-role client (no raw SQL).
 4. If turning a flag ON, runs a read-only post-enable verification (API health + web reachability).
 
-**Environment isolation**: the job declares `environment: ${{ inputs.environment }}`, selecting between the `staging` and `production` GitHub Environments. Each Environment has its own `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`EXPECTED_SUPABASE_HOST`/`OTHER_ENV_SUPABASE_HOST`/`API_URL`/`WEB_URL`. A run targeting `staging` cannot see `production`'s secrets — that's GitHub's own Environment secret scoping. `apps/web/scripts/apply-feature-flag.mjs` additionally checks the resolved Supabase host against the expected/other-environment allowlist as defense in depth, mirroring `scripts/staging-target-guard.mjs`.
+**Environment isolation**: the job declares `environment: ${{ inputs.environment }}`, selecting between the `staging` and `production` GitHub Environments. The two Environments name their settings differently, so the first write-capable step is `apps/web/scripts/resolve-rollout-config.mjs`. It reads only the selected environment's own names, maps them onto the names the scripts use, masks the service-role key, and exports the result to later steps. The table shows what each environment must provide:
+
+| Script name | `staging` Environment | `production` Environment |
+|---|---|---|
+| `SUPABASE_URL` | `STAGING_SUPABASE_URL` | `SUPABASE_URL` (alias `PRODUCTION_SUPABASE_URL`) |
+| `SUPABASE_SERVICE_ROLE_KEY` (secret) | `STAGING_SUPABASE_SERVICE_ROLE_KEY` | `SUPABASE_SERVICE_ROLE_KEY` (alias `PRODUCTION_SUPABASE_SERVICE_ROLE_KEY`) |
+| `EXPECTED_SUPABASE_HOST` | `STAGING_EXPECTED_SUPABASE_HOST` | `EXPECTED_SUPABASE_HOST` (alias `PRODUCTION_SUPABASE_HOST`) |
+| `OTHER_ENV_SUPABASE_HOST` | `OTHER_ENV_SUPABASE_HOST` (alias `PRODUCTION_SUPABASE_HOST`) | `OTHER_ENV_SUPABASE_HOST` (alias `STAGING_SUPABASE_HOST`) |
+| `API_URL` | `STAGING_API_URL` | `API_URL` (alias `PRODUCTION_API_URL`) |
+| `WEB_URL` | `STAGING_WEB_URL` | `WEB_URL` (alias `PRODUCTION_WEB_URL`) |
+
+Rules the resolver enforces, all before any database write:
+
+- A missing value fails the run and names every missing variable. It never falls back to the other environment's names, and no workflow expression uses `||` to choose between sources.
+- If an environment sets two names for the same value they must agree, otherwise the run fails.
+- Values are never printed. Only variable names appear in diagnostics.
+- Every value above is required, including `OTHER_ENV_SUPABASE_HOST`, so the cross-environment host guard can never be silently empty.
+
+`apps/web/scripts/apply-feature-flag.mjs` then still checks the resolved Supabase host against the expected and other-environment hosts as defense in depth, mirroring `scripts/staging-target-guard.mjs`. GitHub's Environment secret scoping remains the primary isolation; the resolver and host check are additional layers.
 
 **Admin-only**: dispatching the workflow requires repo write access; the `production` Environment scopes production secrets and no longer requires a reviewer approval. Rollout remains a deliberate operator action (repo write access to dispatch), not self-service.
 
@@ -138,13 +156,11 @@ Background jobs and externally-triggered endpoints must honor the same tenant fl
 - A feature-off backend route always fails closed (`403`), regardless of what the frontend shows.
 - Service-role credentials never reach the browser, and no flag secret exists in a `NEXT_PUBLIC_*` variable. Feature keys themselves are not secrets.
 
-## One-time GitHub setup (manual)
+## GitHub setup (manual, one time per environment)
 
-This system depends on a `production` GitHub Environment that does not exist yet (only `staging` does today). A repository admin must:
+Both the `staging` and `production` Environments must exist, each pointed at its own Supabase project and app URLs, using the names in the table under "Rollout" above. Only trusted admins should have repo write access, because the `production` Environment has no Required Reviewer and dispatch permission is the rollout gate.
 
-1. Create the `production` Environment (Settings → Environments).
-2. Ensure only trusted admins have repo write access (the `production` Environment has no Required Reviewer, so dispatch permission is the rollout gate).
-3. Add `SUPABASE_URL`, `EXPECTED_SUPABASE_HOST`, `OTHER_ENV_SUPABASE_HOST`, `API_URL`, `WEB_URL` (variables) and `SUPABASE_SERVICE_ROLE_KEY` (secret) to **both** the `staging` and `production` Environments, each pointed at its own Supabase project and app URLs (staging's `OTHER_ENV_SUPABASE_HOST` is production's host, and vice versa).
+`OTHER_ENV_SUPABASE_HOST` must hold the *other* environment's Supabase host, for example the staging project's host in `production` and the production project's host in `staging`. It is a plain (non-secret) variable. If it is absent the rollout fails closed before writing.
 
 ## Deferred / explicitly out of scope
 
