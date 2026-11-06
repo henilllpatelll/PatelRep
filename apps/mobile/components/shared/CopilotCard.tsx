@@ -21,12 +21,14 @@ export interface CopilotCardProps {
   brief: CopilotCardBrief | null;
   loading: boolean;
   error: boolean;
+  /** A credit-charged briefing that has not been requested yet: show a button, never fetch on open. */
+  idle?: boolean;
   reload: () => void;
   /** Present only for the housekeeping supervisor: the overview replaces the generic brief, in this same card. */
   supervisor?: SupervisorCopilotController;
 }
 
-export function CopilotCard({ onClose, insetsBottom, brief, loading, error, reload, supervisor }: CopilotCardProps) {
+export function CopilotCard({ onClose, insetsBottom, brief, loading, error, idle = false, reload, supervisor }: CopilotCardProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const inputRef = useRef<TextInputInstance>(null);
@@ -246,6 +248,13 @@ export function CopilotCard({ onClose, insetsBottom, brief, loading, error, relo
               </View>
             ) : null}
           </>
+        ) : idle ? (
+          <View style={styles.unavailableBlock} testID="copilot-card-idle">
+            <Text style={styles.unavailableText}>{t("copilot.card.getBriefingHint")}</Text>
+            <Pressable accessibilityRole="button" onPress={reload} testID="copilot-card-get-briefing">
+              <Text style={styles.retryText}>{t("copilot.card.getBriefing")}</Text>
+            </Pressable>
+          </View>
         ) : error ? (
           <View style={styles.unavailableBlock}>
             <Text style={styles.unavailableText}>{t("copilot.card.unavailable")}</Text>

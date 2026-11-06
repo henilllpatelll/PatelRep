@@ -5884,6 +5884,8 @@
       "permission": "Tu rol no puede usar esa acción del asistente.",
       "credit_limit": "Este hotel agotó sus créditos de IA del mes. Consulta con tu gerente.",
       "rate_limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "getBriefing": "Obtener mi resumen",
+      "getBriefingHint": "Usa créditos de IA. Solo se ejecuta cuando lo tocas.",
       "unavailable": "El asistente no está disponible ahora. Inténtalo pronto.",
       "not_found": "No se encontró ese registro.",
       "invalid_request": "El asistente no pudo procesar esa solicitud.",

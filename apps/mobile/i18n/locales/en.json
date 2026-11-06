@@ -5884,6 +5884,8 @@
       "permission": "Your role can't use that assistant action.",
       "credit_limit": "This hotel has used its AI credits for the month. Ask your manager.",
       "rate_limited": "Too many requests. Wait a moment and try again.",
+      "getBriefing": "Get my briefing",
+      "getBriefingHint": "Uses AI credits. It only runs when you tap.",
       "unavailable": "The assistant isn't available right now. Try again soon.",
       "not_found": "That record couldn't be found.",
       "invalid_request": "The assistant couldn't process that request.",

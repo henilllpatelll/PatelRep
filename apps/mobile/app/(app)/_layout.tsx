@@ -78,7 +78,7 @@ export default function AppLayout() {
   // While a More destination (Lost & Found, Profile, Notifications) is open, the More tab stays the selected one.
   const moreSelected = designV2 && effectiveRole === "front_desk" && isFrontDeskMoreChild(pathname);
   const visibleNames = new Set(navTabs.map((tab) => tab.name));
-  const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
+  const { brief, loading: briefLoading, error: briefError, idle: briefIdle, reload: reloadBrief } = useCopilotBrief();
   usePmForegroundSync();
 
   useEffect(() => {
@@ -365,6 +365,7 @@ export default function AppLayout() {
                 brief={brief}
                 loading={briefLoading}
                 error={briefError}
+                idle={briefIdle}
                 reload={reloadBrief}
               />
             ) : (
@@ -374,6 +375,7 @@ export default function AppLayout() {
                 brief={brief}
                 loading={briefLoading}
                 error={briefError}
+                idle={briefIdle}
                 reload={reloadBrief}
               />
             )}

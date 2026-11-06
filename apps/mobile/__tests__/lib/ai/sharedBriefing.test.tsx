@@ -197,3 +197,56 @@ describe("the floating assistant never buys a briefing", () => {
     expect(result.current.brief).toBeNull();
   });
 });
+
+describe("paid role briefings are tap-to-load (no AI request on mount)", () => {
+  const signIn = (role: string) =>
+    act(() => {
+      useAppStore.getState().setUser({ id: "pat", tenant_id: "hotel-a", role, effective_role: role } as unknown as UserProfile);
+    });
+  const briefing = {
+    data: { headline: "Two overdue PMs.", confidence: 80, sources: ["PM plan"], primary_action: "Open PM", secondary_action: "", chips: [] },
+  };
+
+  it.each(["engineer", "front_desk", "gm"])("%s: mounting, re-rendering and remounting never request a briefing", (role) => {
+    signIn(role);
+    const first = renderHook(() => useCopilotBrief());
+    expect(first.result.current.idle).toBe(true);
+    expect(first.result.current.brief).toBeNull();
+    expect(first.result.current.loading).toBe(false);
+    first.rerender({});
+    first.unmount();
+    renderHook(() => useCopilotBrief()).rerender({});
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it("gm: reload (the tap) requests exactly one briefing and then is no longer idle", async () => {
+    signIn("gm");
+    mockGet.mockResolvedValue(briefing);
+    const { result } = renderHook(() => useCopilotBrief());
+    expect(mockGet).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(result.current.brief?.brief).toBe("Two overdue PMs.");
+    expect(result.current.idle).toBe(false);
+  });
+
+  it("a different person on the same device returns to idle and shows nothing from before", async () => {
+    signIn("gm");
+    mockGet.mockResolvedValue(briefing);
+    const { result } = renderHook(() => useCopilotBrief());
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(result.current.brief).not.toBeNull();
+    act(() => {
+      useAppStore.getState().setUser({ id: "sam", tenant_id: "hotel-a", role: "gm", effective_role: "gm" } as unknown as UserProfile);
+    });
+    expect(result.current.brief).toBeNull();
+    expect(result.current.idle).toBe(true);
+    expect(mockGet).toHaveBeenCalledTimes(1);
+  });
+});

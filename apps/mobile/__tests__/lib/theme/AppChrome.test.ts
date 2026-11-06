@@ -142,10 +142,10 @@ describe("protected navigation chrome", () => {
 
   it("feeds the corner card its brief data from the lifted useCopilotBrief hook, not its own fetch", () => {
     expect(protectedLayoutSource).toContain(
-      "const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();",
+      "const { brief, loading: briefLoading, error: briefError, idle: briefIdle, reload: reloadBrief } = useCopilotBrief();",
     );
     expect(protectedLayoutSource).toMatch(
-      /<CopilotCard[\s\S]*brief=\{brief\}[\s\S]*loading=\{briefLoading\}[\s\S]*error=\{briefError\}[\s\S]*reload=\{reloadBrief\}/,
+      /<CopilotCard[\s\S]*brief=\{brief\}[\s\S]*loading=\{briefLoading\}[\s\S]*error=\{briefError\}[\s\S]*idle=\{briefIdle\}[\s\S]*reload=\{reloadBrief\}/,
     );
   });
 });
