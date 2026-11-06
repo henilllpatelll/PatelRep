@@ -1224,7 +1224,7 @@ Legend: **FRV** fully redesigned and verified; **ESV** existing redesigned struc
 | Settings | Departments, Programs, SOP | redirect to People, Programs, SOP | route clean |
 | Safety, Programs, Evidence, SOP | pages | route clean | no overlay opened beyond what the opener sweep found (none flagged a defect) |
 | AI, Billing, Preferences | pages | route clean | **NV** beyond load; the billing portal was not exercised |
-| Onboarding | Setup wizard | **PR / RI** | Tip card contrast fixed. **RI:** the wizard still hard-codes legacy amber accents (step indicator, AI panel, send button) across about 1,900 lines; not migrated to the V2 accent. Steps 2 to 6 were not walked |
+| Onboarding | Setup wizard | **PR / V** | Phase 12: all six steps walked in light and dark with intercepted writes; legacy amber/orange migrated to the V2 primary (scoped remap, scan finds none), fields and dark contrast fixed. **Open (pre-existing, not V2):** manual room entry never saves; see the Phase 12 addendum in the final audit |
 | Management ROI | page | ESV | redirects to Reports, Management; rendered in dark |
 | Reports | six views, Scheduled reports modal | ESV | modal margin fix at 390 |
 

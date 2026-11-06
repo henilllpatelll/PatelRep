@@ -161,3 +161,34 @@ body[data-dv2-content][data-dv2-mode] :is(button, a)[aria-pressed] { min-height:
    near-white pill (unreadable). The label follows the page background instead, which is the correct inverse in
    both modes. */
 body[data-dv2-content][data-dv2-mode] button.bg-ink.text-white:not([aria-pressed]) { color: var(--dv2-bg); }
+
+/* ==== Phase 12: Setup wizard (/onboarding), all six steps =============================================
+   The wizard hand-rolled its own Button/Input/stepper around `var(--caution)` (amber in the legacy look). Under V2 that
+   token resolves to the `pickup` STATUS colour (burnt orange / amber), so buttons, the step indicator, the AI panel and
+   the selected step label stayed orange. Re-point the three caution tokens to the primary family for the wizard subtree
+   only; every other consumer of --caution (real caution/pickup states elsewhere) is untouched, and the legacy look is
+   unchanged because none of this applies without the V2 body scope. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] {
+  --caution: var(--dv2-primary);
+  --caution-soft: var(--dv2-primary-soft);
+  --caution-line: var(--dv2-primary-line);
+}
+/* Solid primary fills carry white text/icons in the legacy markup. V2 dark primary is light blue (on-primary is dark
+   navy), so white would fall to ~2.5:1: force the on-primary colour on the fill and on its white icon. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is([class*='bg-[var(--caution)]'], .bg-amber-400) {
+  background-color: var(--dv2-primary);
+  color: var(--dv2-on-primary);
+}
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is([class*='bg-[var(--caution)]'], .bg-amber-400) .text-white { color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] button[class*='bg-[var(--caution)]']:hover:not(:disabled) { background-color: var(--dv2-primary-pressed); }
+/* Completed / skipped step dots: white on the legacy green-400 is ~1.9:1. Use the V2 ready token with a readable ink. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] .bg-green-400.text-white { background-color: var(--dv2-ready); color: var(--dv2-bg); }
+/* Hairlines written as border-amber-100/50 (exact-match rules above miss the opacity form). */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] [class*='border-amber-100/'] { border-color: var(--dv2-border); }
+/* The shared primary button (and ~30 other `bg-accent text-white` elements) hard-codes white text. --accent is the V2 primary,
+   which is light blue in dark mode, where white text is only ~2.5:1. Same-element pairs only; light is unchanged because
+   on-primary is white there. */
+body[data-dv2-content][data-dv2-mode='dark'] .bg-accent.text-white { color: var(--dv2-on-primary); }
+/* The wizard's text inputs set no background, so Chromium paints its own dark default (a neutral grey, rgb 59,59,59) on the
+   navy card. Give them the V2 field surface. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is(input:not([type='checkbox'], [type='radio'], [type='file']), textarea) { background-color: var(--dv2-surface-2); }

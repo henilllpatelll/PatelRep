@@ -456,3 +456,46 @@ when its title block would drop below 14 rem), and the `common.*` / `logbook.vie
 **Decisions are unchanged: merge NOT READY, production activation NOT READY.** The status matrix in design doc section 75 states exactly which
 screens were verified, which were only route-checked, and which remain (Onboarding amber accents; every mutation path; Readings with data).
 Device and assistive-technology testing remain **DEFERRED BY OWNER**.
+
+
+## Phase 12 addendum: final implementation fixes
+
+Device, emulator and screen-reader testing remain **DEFERRED BY OWNER** and were not attempted. Everything below is automated or browser-on-localhost.
+
+**Onboarding V2: done for presentation, with one pre-existing functional defect left as is.**
+All six wizard steps now render in Precision Slate + Electric Blue in light and dark. The wizard's own button, stepper, AI panel and selected step label
+all hung off `var(--caution)`, which V2 maps to the `pickup` status colour (burnt orange / amber), so a scoped block in `contentRemapV2.css`
+(`[data-onboarding-v2]`) re-points the three caution tokens to the primary family for the wizard subtree only. Also fixed there: white text on solid
+primary fills in dark, completed-step dots (white on green-400, about 1.9:1), `border-amber-100/50` hairlines, and the text inputs, which set no
+background and so showed Chromium's grey `rgb(59,59,59)` on the navy card. Nothing applies without the V2 body scope, so the legacy look is unchanged.
+A browser test scans every rendered element of all six steps for orange/amber hues (zero found in both modes) and checks contrast of each step's primary action.
+
+**Shared defect found while doing this (V2 dark only):** the shared primary button and about 30 other `bg-accent text-white` elements put white text on
+the dark-mode primary (`#60A5FA`), 2.5:1. One V2-dark-scoped rule gives them the on-primary ink. No effect with V2 off.
+
+**Not fixed, needs a product decision (production, independent of V2):** the manual-entry tab's "Save Rooms & Continue" calls `onComplete()` directly and sends
+nothing, so typed rooms are never saved (since the initial commit). `POST /rooms/import` is not a drop-in: it requires `room_type_code` (the tab collects none),
+is GM/supervisor only, and resets the status of rooms that already exist to DIRTY. A `test.fail()` browser test records the correct behaviour and will flag the day it is fixed.
+
+**Automated workflow verification (isolated fixtures, no production or shared-staging writes).**
+`lib/api/operationalWorkflows.test.ts` (21 cases, in the CI `test:unit` list) drives the real typed clients and the real transport against a stubbed `fetch`:
+inspection submit (JSON and multipart with photos), required-answer and photo gating, release refused with 409, reclean; meter readings and work-order
+completion with structured parts; PM completion and vendor engagement; Lost & Found claims, pickup and shipping returns, disposition and void; logbook
+create, resolve, archive, carry-forward, acknowledge, delete; plus 403 guards, 409 conflicts, 422 field messages, 5xx leaks, network loss, 204 and Retry-After.
+`e2e/workflows-hermetic.spec.ts` (`npm run test:e2e:workflows`) walks the wizard in a real browser with intercepted writes: field validation sends nothing, the typed
+profile is the exact payload, a server rejection keeps the user on step 1, then CSV import, invites (partial failure reported), Opera connect (unverified stays put) and SOP upload.
+**Not wired into CI:** a separate workflow job would be a control-plane change, which was out of scope. The unit test runs in CI; the browser spec runs locally.
+Not covered: browser-level drives of the Lost & Found, Logbook and Engineering drawers (their request contracts and error paths are covered at the client layer;
+their permission-driven action visibility comes from API capabilities and was reviewed in Phases 10 and 11, not re-driven here).
+
+**Real defect fixed (production-reaching, independent of V2):** `toFriendlyError` in `lib/api/client.ts` replaced any server message containing the substring
+`code` with "Something went wrong", so validation messages such as `[body.postal_code] Field required`, `[body.problem_code_id] ...` (the work-order completion form)
+or "ZIP code does not match" never reached the form. It now treats only the raw database shape (`code: 23505`, `"code": ...`) as unreadable.
+
+**Mobile Jest.** The failing check was a clock-dependent test, not an infrastructure problem. Attempt 1 of the Phase 11 run started at 05:57 UTC, which is
+23:57 in Chicago; `TaskHistory.test.tsx` builds its "completed today" fixtures from the real `Date.now()` (one and two minutes ago) and the screen groups by hotel day, so
+they crossed midnight and landed in "yesterday" (3 failures in 1 of 482 suites; attempt 2 passed minutes later). The test now pins the clock with the existing `pinMidweekClock` helper.
+The other seven files using the same `NOW = Date.now()` pattern were run with the system clock forced to 00:00:30 Chicago: all pass. No test was weakened, skipped or retried to get green.
+
+**Production-reaching changes in this pass (not behind the V2 flag):** the `toFriendlyError` fix above, and the inert `data-onboarding-v2` attribute on the wizard roots.
+Everything else is V2-scoped CSS or test code.

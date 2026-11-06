@@ -1766,7 +1766,7 @@ function OnboardingPageInner() {
 
   if (standalone) {
     return (
-      <div className="min-h-full">
+      <div className="min-h-full" data-onboarding-v2="">
         <div className="max-w-3xl mx-auto">
           <div className="bg-surface/[0.88] backdrop-blur-2xl rounded-[var(--r-lg)] shadow-xl border border-white/[0.95] overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-4 border-b border-amber-100/50">
@@ -1792,7 +1792,7 @@ function OnboardingPageInner() {
   }
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full" data-onboarding-v2="">
       {/* Glass wizard card */}
       <div className="max-w-5xl mx-auto">
         <div className="bg-surface/[0.88] backdrop-blur-2xl rounded-[var(--r-lg)] shadow-xl border border-white/[0.95] overflow-hidden">
