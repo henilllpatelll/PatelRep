@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import type { CleanType } from '@/lib/utils/cleanType'
@@ -67,8 +67,8 @@ export function HousekeepingSummary({
   }
 
   return (
-    <div className="space-y-2">
-      <section aria-label={t('housekeeping.boardV2.summary.label')} className="grid grid-cols-2 overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface sm:grid-cols-5">
+    <div className="overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface">
+      <section aria-label={t('housekeeping.boardV2.summary.label')} className="grid grid-cols-2 sm:grid-cols-5">
         {KPI_CONFIG.map(({ key, status, label }) => {
         const selected = activeStatus === status
         return (
@@ -86,7 +86,11 @@ export function HousekeepingSummary({
         )
         })}
       </section>
-      {kpis.outOfOrder > 0 && <Link href="/housekeeping/out-of-order" className="inline-flex text-xs font-medium text-accent underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.boardV2.summary.manageOutOfOrder')}</Link>}
+      {kpis.outOfOrder > 0 && (
+        <div className="flex justify-end border-t border-line bg-surface-2 px-3 py-1.5">
+          <Link href="/housekeeping/out-of-order" className="inline-flex items-center gap-1 rounded-[var(--r-sm)] px-1.5 py-0.5 text-xs font-medium text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.boardV2.summary.manageOutOfOrder')} <span aria-hidden="true">&rarr;</span></Link>
+        </div>
+      )}
     </div>
   )
 }
@@ -129,6 +133,16 @@ export function HousekeepingAttention({
     })
     return byGroup
   }, [summary])
+
+  if (summary.length === 0) {
+    return (
+      <section id="housekeeping-attention" aria-labelledby="housekeeping-attention-title" className="flex items-center gap-2 rounded-[var(--r-lg)] border border-line bg-surface px-4 py-2.5 sm:px-5">
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ready)]" aria-hidden="true" />
+        <h2 id="housekeeping-attention-title" className="text-sm font-semibold text-ink">{t('housekeeping.boardV2.attention.title')}</h2>
+        <p className="text-sm text-ink3">{t('housekeeping.boardV2.attention.empty')}</p>
+      </section>
+    )
+  }
 
   return (
     <section id="housekeeping-attention" aria-labelledby="housekeeping-attention-title" className="rounded-[var(--r-lg)] border border-line bg-surface px-4 py-3 sm:px-5">
@@ -239,9 +253,30 @@ const STATUS_FILTERS: Array<{ key: BoardStatusFilter; label: string }> = [
 export function HousekeepingBoardFilters(props: BoardFiltersProps) {
   const { t } = useTranslation()
   const selectClass = 'h-9 min-w-0 rounded-[var(--r-md)] border border-line bg-surface px-2 text-sm text-ink outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]'
+  const activeCount = ([props.status, props.building, props.floor, props.assigneeId, props.cleanTypes.length > 0 ? 'c' : null, props.attention, props.unassignedOnly ? 'u' : null] as Array<string | number | null>).filter((value) => value !== null).length
+  const clearAll = () => {
+    props.onStatusChange(null)
+    props.onBuildingChange(null)
+    props.onFloorChange(null)
+    props.onAssigneeChange(null)
+    props.onCleanTypesChange([])
+    props.onAttentionChange(null)
+    props.onUnassignedChange(false)
+  }
+  const flag = (checked: boolean, label: string, onToggle: () => void) => (
+    <button type="button" aria-pressed={checked} onClick={onToggle} className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${checked ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2 hover:bg-surface-2'}`}>{label}</button>
+  )
   return (
-    <section aria-label={t('housekeeping.boardV2.filters.label')} className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
+    <section aria-label={t('housekeeping.boardV2.filters.label')} className="rounded-[var(--r-lg)] border border-line bg-surface p-3 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-medium text-ink3">{t('housekeeping.boardV2.filters.groupStatus')}</p>
+        {activeCount > 0 && (
+          <button type="button" onClick={clearAll} className="inline-flex items-center gap-1 rounded-[var(--r-sm)] px-2 py-1 text-xs font-medium text-accent hover:bg-[var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+            {t('housekeeping.boardV2.filters.clear')} <span className="tabular-nums text-ink3">· {t('housekeeping.boardV2.filters.activeCount', { count: activeCount })}</span>
+          </button>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {STATUS_FILTERS.map((filter) => {
           const active = props.status === filter.key
           return (
@@ -257,7 +292,7 @@ export function HousekeepingBoardFilters(props: BoardFiltersProps) {
           )
         })}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
         {props.buildings.length > 1 && <select aria-label={t('housekeeping.boardV2.filters.building')} className={selectClass} value={props.building ?? ''} onChange={(event) => props.onBuildingChange(event.target.value || null)}>
           <option value="">{t('housekeeping.boardV2.filters.allBuildings')}</option>
           {props.buildings.map((building) => <option key={building} value={building}>{building}</option>)}
@@ -277,10 +312,10 @@ export function HousekeepingBoardFilters(props: BoardFiltersProps) {
           <option value="LIGHT">{t('housekeeping.roomStatus.filters.light')}</option>
         </select>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-ink2">
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.attention === 'service_issue'} onChange={(event) => props.onAttentionChange(event.target.checked ? 'service_issue' : null)} />{t('housekeeping.boardV2.filters.serviceIssues')}</label>
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.attention === 'arrival_risk'} onChange={(event) => props.onAttentionChange(event.target.checked ? 'arrival_risk' : null)} />{t('housekeeping.boardV2.filters.arrivalRisk')}</label>
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.unassignedOnly} onChange={(event) => props.onUnassignedChange(event.target.checked)} />{t('housekeeping.boardV2.filters.unassigned')}</label>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {flag(props.attention === 'service_issue', t('housekeeping.boardV2.filters.serviceIssues'), () => props.onAttentionChange(props.attention === 'service_issue' ? null : 'service_issue'))}
+        {flag(props.attention === 'arrival_risk', t('housekeeping.boardV2.filters.arrivalRisk'), () => props.onAttentionChange(props.attention === 'arrival_risk' ? null : 'arrival_risk'))}
+        {flag(props.unassignedOnly, t('housekeeping.boardV2.filters.unassigned'), () => props.onUnassignedChange(!props.unassignedOnly))}
       </div>
     </section>
   )

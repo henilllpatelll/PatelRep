@@ -1444,7 +1444,7 @@ const en = {
       },
       filters: {
         label: "Room board filters", status: { needsAction: "Needs action", dirty: "Dirty", cleaning: "Cleaning", inspect: "Inspect", ready: "Ready", ooo: "OOO" },
-        building: "Building", allBuildings: "All buildings", floor: "Floor", allFloors: "All floors", floorOption: "Floor {{floor}}", assignee: "Assignee", allAssignees: "All assignees", cleanType: "Clean type", allCleanTypes: "All clean types", serviceIssues: "DND / service", arrivalRisk: "Arrival risk", unassigned: "Unassigned",
+        building: "Building", allBuildings: "All buildings", floor: "Floor", allFloors: "All floors", floorOption: "Floor {{floor}}", assignee: "Assignee", allAssignees: "All assignees", cleanType: "Clean type", allCleanTypes: "All clean types", serviceIssues: "DND / service", arrivalRisk: "Arrival risk", unassigned: "Unassigned", clear: "Clear filters", activeCount: "{{count}} filters on", groupStatus: "Status", groupLocation: "Where", groupFlags: "Flags",
       },
       empty: { noRooms: "No housekeeping rooms are scheduled for this date.", noMatch: "No rooms match these filters.", noSearch: "No room matches \"{{query}}\"." },
     },
@@ -2643,6 +2643,8 @@ const en = {
       openDetails: "Open full details",
       selectWorkOrder: "Select a work order",
       selectWorkOrderHint: "Choose a row to review its next step.",
+      queueEmptyTitle: "No work orders to show",
+      queueEmptyHint: "Nothing matches the current filters. Clear them, or create a new work order.",
       roomOutOfOrder: "Out of order",
       viewOoo: "View out-of-order details",
       archiveAction: "Archive...",

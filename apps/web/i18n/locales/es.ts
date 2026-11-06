@@ -1457,7 +1457,7 @@ const es = {
       },
       filters: {
         label: "Filtros del tablero de habitaciones", status: { needsAction: "Necesita acción", dirty: "Sucia", cleaning: "Limpiando", inspect: "Inspeccionar", ready: "Lista", ooo: "F/O" },
-        building: "Edificio", allBuildings: "Todos los edificios", floor: "Piso", allFloors: "Todos los pisos", floorOption: "Piso {{floor}}", assignee: "Asignado a", allAssignees: "Todo el personal", cleanType: "Tipo de limpieza", allCleanTypes: "Todos los tipos", serviceIssues: "No molestar / servicio", arrivalRisk: "Riesgo de llegada", unassigned: "Sin asignar",
+        building: "Edificio", allBuildings: "Todos los edificios", floor: "Piso", allFloors: "Todos los pisos", floorOption: "Piso {{floor}}", assignee: "Asignado a", allAssignees: "Todo el personal", cleanType: "Tipo de limpieza", allCleanTypes: "Todos los tipos", serviceIssues: "No molestar / servicio", arrivalRisk: "Riesgo de llegada", unassigned: "Sin asignar", clear: "Borrar filtros", activeCount: "{{count}} filtros activos", groupStatus: "Estado", groupLocation: "Dónde", groupFlags: "Indicadores",
       },
       empty: { noRooms: "No hay habitaciones de limpieza programadas para esta fecha.", noMatch: "Ninguna habitación coincide con estos filtros.", noSearch: "Ninguna habitación coincide con \"{{query}}\"." },
     },
@@ -2678,6 +2678,8 @@ const es = {
       openDetails: "Abrir detalles completos",
       selectWorkOrder: "Seleccione una orden de trabajo",
       selectWorkOrderHint: "Elija una fila para revisar el siguiente paso.",
+      queueEmptyTitle: "No hay órdenes de trabajo",
+      queueEmptyHint: "Nada coincide con los filtros actuales. Bórrelos o cree una nueva orden de trabajo.",
       roomOutOfOrder: "Fuera de servicio",
       viewOoo: "Ver detalles de fuera de servicio",
       archiveAction: "Archivar...",

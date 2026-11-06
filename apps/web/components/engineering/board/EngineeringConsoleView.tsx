@@ -74,6 +74,13 @@ const groupLabelKeys = {
 export function EngineeringConsoleView({ workOrders, groups, isLoading, isError, onRetry, selected, onSelect, onUpdate, roomUnavailability, staffNames, completedExpanded, onCompletedExpandedChange }: EngineeringConsoleViewProps) {
   const { t } = useTranslation()
 
+  // Nothing to review: one centered panel instead of an empty list beside an empty detail pane.
+  if (!isLoading && !isError && groups.length === 0) {
+    return <div className="rounded-[var(--r-lg)] border border-line bg-surface px-6 py-14" aria-label={t('engineering.workOrdersPage.queueTitle')} role="region">
+      <StateBlock status="empty" empty={{ title: t('engineering.workOrdersPage.queueEmptyTitle'), body: t('engineering.workOrdersPage.queueEmptyHint') }} />
+    </div>
+  }
+
   return <div className="grid min-h-[440px] overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface lg:h-[calc(100vh-248px)] lg:grid-cols-[minmax(20rem,40%)_minmax(0,1fr)]">
     <section className="flex min-h-0 flex-col border-b border-line lg:border-b-0 lg:border-r" aria-label={t('engineering.workOrdersPage.queueTitle')}>
       <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-2.5"><span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink3">{t('engineering.workOrdersPage.queueTitle')}</span><span className="font-mono text-[11px] text-ink3">{workOrders.length}</span></div>

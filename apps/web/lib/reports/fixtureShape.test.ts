@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-// @ts-expect-error plain .mjs fixture module shared with the hermetic mock backend
 import { route } from '../../e2e/hermetic/mock-backend.mjs'
 import { REPORT_VIEWS } from './filters'
 
 /** Regression for the "/reports renders only its error boundary under hermetic fixtures" finding:
  *  the mock answered /reports/capabilities with an array (`{data: []}`), so `capabilities.views` was undefined. */
-const get = (path: string, q = '') => route({ method: 'GET', path: `/v1${path}`, query: new URLSearchParams(q), email: 'gm@hermetic.invalid' })
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const get = (path: string, q = ''): any => route({ method: 'GET', path: `/v1${path}`, query: new URLSearchParams(q), body: null, email: 'gm@hermetic.invalid' })
 
 test('capabilities is an object whose views cover every report tab (not an array)', () => {
   const body = get('/reports/capabilities').json.data

@@ -115,3 +115,44 @@ body[data-dv2-content][data-dv2-mode] .uppercase[class*="tracking-"] { text-tran
 /* Phase 8: the legacy headline accent was Instrument Serif *italic*. V2 maps the serif to the sans stack, which would
    otherwise leave sans italic headings. Only the exact `font-display` + `italic` pair is normalized. */
 body[data-dv2-content][data-dv2-mode] .font-display.italic { font-style: normal; }
+
+/* ==== Phase 9: component-level structure hooks (still one scope, no global rules) ====================== */
+
+/* One selected-state language. Before this, one form mixed black (Room / Property area), blue outline
+   (category chips) and dark outline (Normal). Every legacy toggle marks "selected" with the same pair of
+   utilities (`bg-ink text-paper`, usually with `border-ink`), or with `data-[selected=true]:border-ink` for the
+   priority pills. All of them now read as primary-tinted with a primary edge and a semibold label. The solid dark
+   button variant is excluded: it carries a shadow utility and is a button, not a choice. */
+body[data-dv2-content][data-dv2-mode] :is(button, a, [role='tab'], [role='radio']).bg-ink.text-paper:not([class*='shadow']),
+body[data-dv2-content][data-dv2-mode] button.bg-ink.text-paper.border-ink,
+body[data-dv2-content][data-dv2-mode] [data-selected='true'][class*='data-[selected=true]:border-ink'] {
+  background-color: var(--dv2-primary-soft);
+  border-color: var(--dv2-primary);
+  color: var(--dv2-primary-pressed);
+  font-weight: 600;
+}
+body[data-dv2-content][data-dv2-mode='dark'] :is(button, a, [role='tab'], [role='radio']).bg-ink.text-paper:not([class*='shadow']),
+body[data-dv2-content][data-dv2-mode='dark'] button.bg-ink.text-paper.border-ink,
+body[data-dv2-content][data-dv2-mode='dark'] [data-selected='true'][class*='data-[selected=true]:border-ink'] {
+  color: var(--dv2-primary);
+}
+
+/* The legacy brand accent was amber. It survives in a few raw utilities (Logbook, Scheduling, Onboarding, the work
+   order record). Soft tints and borders become the primary family, solid fills become the primary, and amber focus
+   rings become the V2 focus ring, so no screen shows a second brand color. */
+body[data-dv2-content][data-dv2-mode] :is(.bg-amber-50, .bg-amber-100, [class*='bg-amber-100/'], [class*='bg-amber-400/']) { background-color: var(--dv2-primary-soft); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-amber-400, .bg-amber-500, .bg-amber-600) { background-color: var(--dv2-primary); color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] :is(.hover\:bg-amber-600:hover, .hover\:bg-amber-700:hover) { background-color: var(--dv2-primary-pressed); }
+body[data-dv2-content][data-dv2-mode] :is(.border-amber-100, .border-amber-200, .border-amber-400, .border-amber-500, [class*='border-amber-500/'], .hover\:border-amber-400:hover) { border-color: var(--dv2-primary-line); }
+body[data-dv2-content][data-dv2-mode] .divide-amber-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.text-amber-700, .text-amber-800, .text-amber-900, .hover\:text-amber-800:hover, .hover\:text-amber-900:hover) { color: var(--dv2-primary-pressed); }
+body[data-dv2-content][data-dv2-mode='dark'] :is(.text-amber-700, .text-amber-800, .text-amber-900, .hover\:text-amber-800:hover, .hover\:text-amber-900:hover) { color: var(--dv2-primary); }
+body[data-dv2-content][data-dv2-mode] .text-amber-400 { color: var(--dv2-primary); }
+body[data-dv2-content][data-dv2-mode] :is([class*='ring-amber-']):focus,
+body[data-dv2-content][data-dv2-mode] :is([class*='ring-amber-']):focus-visible { --tw-ring-color: var(--focus-ring); }
+
+/* Figures. The legacy mono face is retired for data in V2 (docs section 11): system sans, tabular digits. */
+body[data-dv2-content][data-dv2-mode] .font-mono:not(kbd):not(code):not(pre) { font-family: var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* Segmented controls and chips share one 36px minimum height on the manager web. */
+body[data-dv2-content][data-dv2-mode] :is(button, a)[aria-pressed] { min-height: 32px; }
