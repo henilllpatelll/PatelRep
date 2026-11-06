@@ -1157,3 +1157,76 @@ dark with zero horizontal overflow and no console errors other than the mock's m
 
 **Not complete.** Roughly a third of the individual drawers and sub-views above were not opened. Do not read the table as certification of
 every screen; read "Not reviewed" literally.
+
+---
+
+# Phase 11: final screen and drawer completion (PR #200)
+
+Method: the hermetic mock was extended (opt-in, `HERMETIC_RICH_DATA=1`; the Room-Board baseline is unaffected) with fixtures for Lost & Found
+claims/returns/disposition, out-of-order periods, logbook entries, inspection templates (room 102 is a sampled inspection), failure predictions
+and housekeeping settings. A reusable probe opened each overlay and asserted: a `role=dialog` exists, focus moved inside, Escape closed it,
+the panel fits the viewport, and no fixed overlay root carries an inherited margin. It ran on every drawer I changed or reviewed at 1440 light,
+1440 dark and 390 dark, plus a whole-route sweep (33 routes at 1440 dark; 30 routes at 390 light) for overflow, error boundaries and console errors.
+
+## 74. Defects found by the review and fixed
+
+All were reproduced in a real browser before the fix and re-checked after it. "Gated" means behind `isDesignV2PreviewEnabled()`.
+
+| Area | Defect | Fix | Gated |
+|---|---|---|---|
+| Engineering drawers (Add vendor, Add asset, Add PM, vendor engagement, readings, room-down) | rendered as a **full-width page** (1440 px): the width class was interpolated (`sm:w-[min(${..},92vw)]`), which Tailwind never generates | literal class names | no (bug) |
+| Create WO, Add Handoff, Logbook detail, PM completion, Out-of-order create and detail, Scheduled reports (phone), shared `EngineeringDrawer` | inline (not portaled) overlays inside a `space-y-*` page wrapper inherited its sibling margin: the panel sat 12 to 24 px down and **its bottom action row was clipped** | `!mt-0` on each overlay root (no global CSS) | no (bug) |
+| Lost & Found Returns drawer | focus trap attached while the "Loading return" shell was mounted (ref null): **no focus move, Escape ignored** | activate the trap when the row has loaded | no (bug) |
+| Logbook entry drawer | same defect: trap keyed to a prop, dialog mounted a render later | key on the loaded entry | no (bug) |
+| Claim drawer, Lost & Found | date-only `stay_start/stay_end` shown **one day early** in every US timezone (`new Date('2019-12-28')` is UTC midnight) | format date-only values in UTC; test in four timezones | no (bug) |
+| Vendor engagement drawer, Occupancy import, Add handoff, Logbook comments, Engineering insights | five `common.*` i18n keys rendered as **raw keys** (`common.notes` etc.) | keys added in EN and ES | no (bug) |
+| Shift handoff, Logbook | `logbook.viewAll` rendered as a raw key when more than four tasks were completed | plural keys added | no (bug) |
+| Engineering insights | rendered "no access" to a GM before the auth store hydrated (flash plus a hydration mismatch) | loading state until the role resolves | no (bug) |
+| Lost & Found (and any header with two action buttons) at 390 px | title wrapped one word per line (actions are `shrink-0`) | `PageHeader` row wraps below a 14 rem title minimum; desktop unchanged | no (layout bug) |
+| Work order record | Trade "Hvac", category chip "hvac", reporter "Unknown reporter(Guest)" | `formatTradeLabel`, spacing | no (bug) |
+| Asset form | field beside Category labelled just "Asset" | "Asset tag" / "Etiqueta del activo" | no (copy) |
+| Vendors | positive "24/7" chip in alert red; stats row misaligned | info tone; `items-center` | no |
+| Predictions tab | selected filters and links in legacy amber (`--caution`) | solid-primary selected state and accent links | **yes** |
+| Onboarding | white text on a bright amber Tip card (dark-mode contrast) | surface + ink text, amber only on the label | no (bug) |
+
+Regression tests: `dialogA11yContract.test.ts` (trap activation, `!mt-0` roots, literal widths), `lostFoundInventory.test.ts` (date-only value in four
+timezones), `tradeLabel.test.ts`, and **`i18nKeysResolve.test.ts`**, which fails the build if any literal `t('...')` key is missing from EN or ES
+(the parity gate compares the two files only with each other, so it could not see keys that neither file defined).
+
+## 75. Status matrix (supersedes section 73)
+
+Legend: **FRV** fully redesigned and verified; **ESV** existing redesigned structure verified; **PR** partially redesigned; **NV** not verified;
+**RI** remaining issue. "Verified" means opened with fixture data, with focus, Escape and viewport fit asserted for overlays, in light and dark.
+
+| Area | Screen / overlay | Status | Evidence and what was NOT done |
+|---|---|---|---|
+| Housekeeping | Room Board | PR (V2 toolbar, Phase 9) | route clean at 1440 dark and 390 light |
+| Housekeeping | Room detail drawer | ESV | 5 states (dirty, inspect, pickup, occupied, out of order) at 1440 light; dirty state also at 1440 and 390 dark |
+| Housekeeping | Inspection checklist | ESV | opened; Fail reveals the correction note and required-photo row; Escape closes only the top layer. **NV:** submit, photo upload, reclean corrections list |
+| Housekeeping | Out-of-order list, detail, create | ESV + 2 fixes | opened in light and dark. **NV:** release, ETA change |
+| Housekeeping | Team Plan, Assignment workspace | ESV (Phase 10) | assign mode opened (toolbar, Auto-balance, staged-changes bar visible). **NV:** Auto-balance dialog, staged-changes panel, clean-type prompt in this pass |
+| Engineering | Work-order queue and record | ESV + fixes | opened; trade and reporter text fixed |
+| Engineering | Create work order drawer | ESV + fix | 1440 light and dark, 390 dark |
+| Engineering | Vendors list | ESV + fixes | opened |
+| Engineering | Vendor engagement drawer | **FRV** | opened from a work order; 1440 light and dark, 390 dark. **NV:** submit |
+| Engineering | PM completion | **FRV** (layout) | opened and viewed in dark; margin fix. **NV:** submit, checklist-template variants, vendor certificate upload |
+| Engineering | Add asset, Add vendor, Add PM | **FRV** | width fix verified at three configurations. **NV:** submit, validation messages |
+| Engineering | Asset detail and Readings tab | ESV | Readings opened (empty state). **NV:** readings with meter data, Add meter form, Record reading form (disabled without meters) |
+| Engineering | Predictions | **FRV** (V2) | rendered with data in light and dark; selected state fixed. **NV:** acknowledge, authorize AI action, create work order from a prediction |
+| Engineering | Insights | ESV | renders with fixtures; hydration fix |
+| Guest operations | Guest request detail | ESV + Phase 10 strip | 1440 light, 1440 and 390 dark |
+| Guest operations | Lost & Found claim, return, disposition drawers | ESV + fixes | 1440 light and dark. **NV:** every form action (match, cancel, complete pickup, ship, approve disposition, void) and the custody timeline with real events. Authorization gating and validation were not changed |
+| Guest operations | Logbook entry detail, Add handoff | ESV + fixes | 1440 light and dark, 390 dark |
+| Tasks | Task detail | ESV | 1440 light and dark, 390 dark |
+| Scheduling | Schedule grid, Assign shift, Create shift | ESV | 1440 light; Assign shift opened |
+| Scheduling | Coverage, availability, time-off, templates | no web screen exists (mobile Team Scheduling, PR #185) | n/a |
+| Settings | General, Housekeeping (all three tabs), Rooms, Inspections, Roles, Integrations, Billing, Activity, Feedback | ESV | route clean at 1440 dark and 390 light; the Housekeeping Workload tab needed a settings fixture (mock gap) and now renders |
+| Settings | Departments, Programs, SOP | redirect to People, Programs, SOP | route clean |
+| Safety, Programs, Evidence, SOP | pages | route clean | no overlay opened beyond what the opener sweep found (none flagged a defect) |
+| AI, Billing, Preferences | pages | route clean | **NV** beyond load; the billing portal was not exercised |
+| Onboarding | Setup wizard | **PR / RI** | Tip card contrast fixed. **RI:** the wizard still hard-codes legacy amber accents (step indicator, AI panel, send button) across about 1,900 lines; not migrated to the V2 accent. Steps 2 to 6 were not walked |
+| Management ROI | page | ESV | redirects to Reports, Management; rendered in dark |
+| Reports | six views, Scheduled reports modal | ESV | modal margin fix at 390 |
+
+**Not complete.** Anything marked NV or RI above is exactly that. Mutations were not exercised anywhere (the mock accepts every write, so a
+"success" there proves nothing). Device and screen-reader testing remain **DEFERRED BY OWNER**.

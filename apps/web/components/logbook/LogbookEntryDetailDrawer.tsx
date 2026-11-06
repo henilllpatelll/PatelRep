@@ -117,7 +117,6 @@ export function LogbookEntryDetailDrawer({ entry, onClose, onChanged, onDelete, 
   const toast = useToast()
   const queryClient = useQueryClient()
   const ref = useRef<HTMLDivElement>(null!)
-  useModalFocusTrap(ref, !!entry, onClose)
 
   const [activeEntryId, setActiveEntryId] = useState<string | null>(entry?.id ?? null)
   const [tab, setTab] = useState<DrawerTab>('details')
@@ -148,6 +147,9 @@ export function LogbookEntryDetailDrawer({ entry, onClose, onChanged, onDelete, 
     select: (res) => res.data,
   })
   const active = entryQuery.data ?? null
+  // Keyed on `active`, not `entry`: the dialog only exists once `active` is set (activeEntryId is synced after the first render),
+  // and a trap that activates while ref.current is still null never attaches (no focus move, Escape ignored).
+  useModalFocusTrap(ref, !!active, onClose)
 
   const continuityQuery = useQuery({
     queryKey: ['logbook-entry-continuity', activeEntryId],
@@ -281,7 +283,7 @@ export function LogbookEntryDetailDrawer({ entry, onClose, onChanged, onDelete, 
   return (
     <>
       <div className="fixed inset-0 z-drawer bg-stone-900/10 backdrop-blur-sm" onClick={onClose} />
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={t('logbook.detailAria')} className="fixed right-0 top-0 bottom-0 z-drawer flex h-full w-full max-w-[620px] flex-col border-l border-line bg-surface shadow-2xl">
+      <div ref={ref} role="dialog" aria-modal="true" aria-label={t('logbook.detailAria')} className="!mt-0 fixed right-0 top-0 bottom-0 z-drawer flex h-full w-full max-w-[620px] flex-col border-l border-line bg-surface shadow-2xl">
         <div className="shrink-0 border-b border-line px-5 py-4">
           <div className="flex items-start justify-between gap-2">
             <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug text-ink">{titleFromContent(active.content) || t('logbook.entryTitleFallback')}</h2>

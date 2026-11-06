@@ -1,3 +1,5 @@
+import { workflowRoute } from './workflow-fixtures.mjs'
+
 /**
  * Deterministic fixtures for Tasks, Programs and Safety (hermetic mock backend).
  *
@@ -73,12 +75,17 @@ const LF_ITEMS = [
 const RICH_ONLY = [/^\/assets(\/|$)/, /^\/work-orders(\/|$)/, /^\/engineering\/vendors$/, /^\/lost-found$/, /^\/lost-found\/lf-\d+$/]
 
 export function opsRoute(api, query = new URLSearchParams()) {
+  if (process.env.HERMETIC_RICH_DATA === '1') {
+    const extra = workflowRoute(api)
+    if (extra) return extra
+  }
   if (process.env.HERMETIC_RICH_DATA !== '1' && RICH_ONLY.some((pattern) => pattern.test(api))) return null
   if (api === '/tasks/workspace') {
     return { data: { active: { tasks: ACTIVE_TASKS, guest_requests: GUEST_REQUESTS }, history: { tasks: HISTORY_TASKS, guest_requests: [] } }, meta: { history_page: 1, history_per_page: 25 } }
   }
   if (api === '/programs/overview') return { data: PROGRAMS }
   if (api === '/assets') return { data: ASSETS }
+  if (api === '/assets/failure-predictions' || api === '/assets/failure-predictions/history') return { data: FAILURE_PREDICTIONS }
   const assetDetail = api.match(/^\/assets\/(asset-\d+)$/)
   if (assetDetail) return { data: ASSETS.find((item) => item.id === assetDetail[1]) }
   if (api === '/assets/pm-schedules') return { data: PM }
@@ -136,3 +143,11 @@ export const ENGINEERING_INSIGHTS = {
   costs: { labor: 14150, parts: 8200, vendors: 5400, total: 27750, coverage: COV(40, 58) },
   vendors: { jobs: 6, spend: 5400, median_response_minutes: 95, median_arrival_minutes: 180, median_service_minutes: 140, awaiting: 1, top: [{ vendor_id: 'v-1', name: 'Hermetic HVAC Co.', jobs: 4, spend: 4200 }] },
 }
+
+/** Failure predictions (rich data only; exported for the shape test). */
+export const FAILURE_PREDICTIONS = [
+  { id: 'fp-1', asset_id: 'asset-1', risk_score: 82, predicted_failure_window: 'Within 2 weeks', failure_indicators: ['Three repairs in 90 days', 'Vibration reading above warning'], estimated_repair_cost: 1800, estimated_replace_cost: 9500,
+    recommendation: 'Schedule a compressor inspection this week.', ai_reasoning: 'Repeat repairs and rising vibration readings point to bearing wear.', generated_at: T0, is_acknowledged: false, assets: ASSETS[0] },
+  { id: 'fp-2', asset_id: 'asset-2', risk_score: 55, predicted_failure_window: 'Within 2 months', failure_indicators: ['Overdue sanitation PM'], estimated_repair_cost: 400,
+    recommendation: 'Complete the overdue sanitation PM.', generated_at: T0, is_acknowledged: true, acknowledged_at: T0, assets: ASSETS[1] },
+]

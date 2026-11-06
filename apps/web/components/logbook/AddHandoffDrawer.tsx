@@ -216,7 +216,7 @@ export function AddHandoffDrawer({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-drawer flex justify-end">
+    <div className="!mt-0 fixed inset-0 z-drawer flex justify-end">
       <button aria-label={t('common.close')} className="absolute inset-0 bg-black/30" onClick={guard.requestClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="add-handoff-title" className="relative flex h-full w-full max-w-[580px] flex-col border-l border-line bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">

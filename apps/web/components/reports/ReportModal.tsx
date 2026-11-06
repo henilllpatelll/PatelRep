@@ -27,7 +27,7 @@ export function ReportModal({
   useModalFocusTrap(ref, true, onClose)
 
   return (
-    <div className="fixed inset-0 z-modal flex items-end justify-center sm:items-center print:hidden" role="presentation">
+    <div className="!mt-0 fixed inset-0 z-modal flex items-end justify-center sm:items-center print:hidden" role="presentation">
       <div className="absolute inset-0 bg-ink/35" onClick={onClose} aria-hidden="true" />
       <div
         ref={ref}

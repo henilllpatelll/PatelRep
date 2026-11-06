@@ -440,3 +440,19 @@ See design doc sections 72 and 73. Summary: the data-driven review found nine re
 breadcrumb object-key text, the missing Readings label, duplicated overdue PM rows, "Hvac"), all fixed with regression tests where they can be pinned.
 The production-reaching (ungated) list grows by those bug fixes, the singular/plural Team Plan summary and the phone-width week navigation. Merge and
 activation decisions are unchanged (NOT READY); device checks remain **DEFERRED BY OWNER**.
+
+
+## Phase 11 addendum
+
+See design doc sections 74 and 75. Summary: the browser review opened the remaining drawers and sub-views with fixture data and found real
+defects, **all production-reaching and independent of V2**: full-width Engineering drawers (a Tailwind class that was never generated), eight
+overlays whose action row was clipped by an inherited `space-y` margin, two drawers that never trapped focus or closed on Escape, claim stay dates
+shown a day early, six raw i18n keys, a "no access" flash for GMs, and a squeezed Lost & Found title on phones. Only the Predictions selected state is
+gated by the V2 flag. Each fix has a regression test, and a new `i18nKeysResolve` test fails the build when any literal `t()` key is undefined.
+
+**Production-reaching list (now larger).** Add to the Phase 8, 9 and 10 lists: the items above, `PageHeader` wrapping (affects every page header only
+when its title block would drop below 14 rem), and the `common.*` / `logbook.viewAll` keys.
+
+**Decisions are unchanged: merge NOT READY, production activation NOT READY.** The status matrix in design doc section 75 states exactly which
+screens were verified, which were only route-checked, and which remain (Onboarding amber accents; every mutation path; Readings with data).
+Device and assistive-technology testing remain **DEFERRED BY OWNER**.

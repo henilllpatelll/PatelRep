@@ -294,7 +294,7 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
         role="dialog"
         aria-modal="true"
         aria-label={t('engineering.createWorkOrder.ariaLabel')}
-        className="fixed right-0 top-0 h-full w-[560px] max-w-full border-l border-line bg-paper shadow-[var(--shadow-pop)] z-drawer flex flex-col outline-none"
+        className="!mt-0 fixed right-0 top-0 h-full w-[560px] max-w-full border-l border-line bg-paper shadow-[var(--shadow-pop)] z-drawer flex flex-col outline-none"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 220ms cubic-bezier(.2,.7,.3,1)' }}
       >
         {/* Header */}

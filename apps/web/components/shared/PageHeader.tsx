@@ -39,8 +39,8 @@ export function PageHeader({ eyebrow, title, subtitle, meta, actions, tabs, clas
 
   return (
     <div className={cn('pb-0', className)} data-testid="page-header">
-      <div className="flex justify-between items-end gap-6">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap justify-between items-end gap-x-6 gap-y-3">
+        <div className="flex-1 min-w-[14rem]">
           {isSubRoute ? (
             <div className="mb-2">
               <Breadcrumbs />

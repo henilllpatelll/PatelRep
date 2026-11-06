@@ -50,6 +50,7 @@ import { Pill, AILabel, SectionLabel } from '@/components/ui/primitives'
 import { RepairCodePicker } from '@/components/engineering/RepairCodePicker'
 import { formatReliabilityDuration } from '@/lib/utils/assetReliability'
 import { VendorEngagementDrawer } from '@/components/engineering/VendorEngagementDrawer'
+import { formatTradeLabel } from '@/lib/utils/tradeLabel'
 
 interface Props {
   wo: WorkOrder
@@ -672,7 +673,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pb-0.5 text-[12px] text-ink3">
             {locationShort && <span className="font-mono">{locationShort}</span>}
             {locationShort && <span>·</span>}
-            {zone ? <span>{zone}</span> : <span>{CATEGORY_ICONS[fullWo.category]} {fullWo.category}</span>}
+            {zone ? <span>{zone}</span> : <span>{CATEGORY_ICONS[fullWo.category]} {formatTradeLabel(fullWo.category)}</span>}
             {openedAgo && <><span>·</span><span>{t('engineering.workOrderDetail.openedAgo', { time: openedAgo })}</span></>}
             {isSnoozed && <><span>·</span><span className="inline-flex items-center gap-1 text-[var(--caution)]"><Moon className="h-3 w-3" />{t('engineering.workOrderDetail.snoozedUntil', { time: formatTs(fullWo.snoozed_until, t) })}</span></>}
           </div>
@@ -728,7 +729,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                   className="rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 >
                   {['plumbing', 'electrical', 'hvac', 'furniture', 'appliance', 'structural', 'safety', 'general'].map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>{formatTradeLabel(c)}</option>
                   ))}
                 </select>
                 <select
@@ -864,7 +865,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                   <dt className="text-ink3">{t('engineering.workOrderDetail.reporterLabel')}</dt>
                   <dd className="text-ink">
                     {reporterName}
-                    {fullWo.guest_reported && <span className="text-ink3">({t('engineering.commandCenter.guest')})</span>}
+                    {fullWo.guest_reported && <span className="ml-1 text-ink3">({t('engineering.commandCenter.guest')})</span>}
                   </dd>
                   <dt className="text-ink3">{t('engineering.workOrderDetail.assigneeLabel')}</dt>
                   <dd className="text-ink">
@@ -882,7 +883,7 @@ export function WorkOrderRecord({ wo, onClose, onUpdate, startInEditMode, autoAc
                     </>
                   )}
                   <dt className="text-ink3">{t('engineering.workOrderDetail.tradeLabel')}</dt>
-                  <dd className="capitalize text-ink">{fullWo.category}</dd>
+                  <dd className="text-ink">{formatTradeLabel(fullWo.category)}</dd>
                   {fullWo.status === 'completed' && fullWo.total_cost != null && (
                     <>
                       <dt className="text-ink3">{t('engineering.workOrderDetail.costLabel')}</dt>

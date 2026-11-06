@@ -134,7 +134,10 @@ export function formatItemAge(createdAt: string, now: Date = new Date()): string
 
 export function formatLostFoundDate(value?: string): string {
   if (!value) return 'Not recorded'
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  // A date-only value (claim stay_start/stay_end, "YYYY-MM-DD") is a calendar day, not an instant. new Date() reads it as UTC
+  // midnight, which every US timezone then shows as the PREVIOUS day, so format it in UTC to keep the stored day.
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', ...(dateOnly ? { timeZone: 'UTC' } : {}) }).format(new Date(value))
 }
 
 export function formatLostFoundDateTime(value?: string): string {

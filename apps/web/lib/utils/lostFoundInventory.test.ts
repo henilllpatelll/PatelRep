@@ -5,6 +5,7 @@ import {
   canDispositionItem,
   canReleaseItem,
   formatItemAge,
+  formatLostFoundDate,
   formatTimeUntil,
   itemFinderName,
   itemFoundLocation,
@@ -44,4 +45,17 @@ test('matched or actively-returning items never expose the ad-hoc quick release/
   assert.equal(canReleaseItem({ ...item, has_active_return: true }, true), false)
   assert.equal(canDispositionItem({ ...item, has_confirmed_match: true }, true), false)
   assert.equal(canDispositionItem({ ...item, has_active_return: true }, true), false)
+})
+
+test('a date-only stay date keeps its calendar day in every timezone (it is not an instant)', () => {
+  const original = process.env.TZ
+  try {
+    for (const tz of ['America/Chicago', 'America/Los_Angeles', 'Pacific/Auckland', 'UTC']) {
+      process.env.TZ = tz
+      assert.match(formatLostFoundDate('2019-12-28'), /Dec 28, 2019/, tz)
+    }
+  } finally {
+    if (original === undefined) delete process.env.TZ
+    else process.env.TZ = original
+  }
 })

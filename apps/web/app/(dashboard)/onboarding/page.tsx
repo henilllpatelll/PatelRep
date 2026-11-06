@@ -323,8 +323,8 @@ function AISidebar({ tip, currentStep, hotelName, completedStepIds }: AISidebarP
 
         {/* Static tip from AI_TIPS while no conversation */}
         {messages.length === 0 && (
-          <div className="bg-[var(--caution)] rounded-xl p-4 text-white">
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-75 mb-1">
+          <div className="rounded-xl border border-[var(--caution-line)] bg-surface p-4 text-ink">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--caution)]">
               Tip
             </p>
             <p className="text-sm leading-relaxed">{tip}</p>

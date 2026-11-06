@@ -68,6 +68,7 @@ const boardRows = () => FIXTURE_ROOMS.map(([number, status, vip], index) => ({
   rooms: { id: `00000000-0000-4000-8000-00000000010${index}`, room_number: number, floor: 1, building: null, room_types: ROOM_TYPE },
   assignment_id: null, assignment_date: null, assignment_shift_id: null, clean_type: null, clean_type_label: null, prediction: null,
   inspection_required: false,
+  ...(RICH && index === 1 ? { inspection_required: true } : {}),
   ...(RICH && RICH_ASSIGN[index] ? { assigned_to: RICH_ASSIGN[index][0], assignment_id: RICH_ASSIGN[index][0] ? `assign-${index}` : null, assignment_date: '2020-01-01', clean_type: RICH_ASSIGN[index][1], clean_type_label: RICH_ASSIGN[index][1], checkout_time: index === 0 ? '2020-01-01T11:00:00.000Z' : null } : {}),
 }))
 
