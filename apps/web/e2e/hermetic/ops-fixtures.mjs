@@ -68,7 +68,12 @@ const LF_ITEMS = [
 ]
 
 /** Returns a response body, or null when the path is not one of these routes. */
+/** Data-rich fixtures (assets, work orders, PM, vendors, lost & found items) are OPT-IN. The Room-Board visual baseline is captured
+ *  against the plain mock, and the board derives attention from work orders, so serving them by default changed its pixels. */
+const RICH_ONLY = [/^\/assets(\/|$)/, /^\/work-orders(\/|$)/, /^\/engineering\/vendors$/, /^\/lost-found$/, /^\/lost-found\/lf-\d+$/]
+
 export function opsRoute(api, query = new URLSearchParams()) {
+  if (process.env.HERMETIC_RICH_DATA !== '1' && RICH_ONLY.some((pattern) => pattern.test(api))) return null
   if (api === '/tasks/workspace') {
     return { data: { active: { tasks: ACTIVE_TASKS, guest_requests: GUEST_REQUESTS }, history: { tasks: HISTORY_TASKS, guest_requests: [] } }, meta: { history_page: 1, history_per_page: 25 } }
   }
