@@ -65,3 +65,21 @@ test('tasks workspace, programs and safety fixtures are object-shaped (these pag
   const info = get('/safety/safety-information').json.data
   assert.ok(Array.isArray(info.chemicals) && Array.isArray(info.procedures))
 })
+
+test('engineering insights fixture matches the EngineeringInsights shape the page reads', () => {
+  const data = get('/engineering/insights').json.data
+  for (const key of ['work_orders', 'rooms', 'assets', 'preventive', 'condition', 'costs', 'vendors']) assert.ok(data[key], key)
+  assert.equal(typeof data.work_orders.completed, 'number')
+  assert.ok(Array.isArray(data.assets.attention) && Array.isArray(data.vendors.top))
+})
+
+test('lost & found summaries are numeric count objects (a `[]` made the Returns tab render NaN)', () => {
+  for (const [path, keys] of [
+    ['/lost-found/claims/summary', ['open', 'matched', 'possible_matches']],
+    ['/lost-found/returns/summary', ['awaiting_return', 'ready_for_pickup', 'shipping', 'completed_this_month']],
+    ['/lost-found/disposition/summary', ['due_now', 'due_soon', 'completed']],
+  ] as Array<[string, string[]]>) {
+    const data = get(path).json.data
+    for (const key of keys) assert.equal(typeof data[key], 'number', `${path}.${key}`)
+  }
+})
