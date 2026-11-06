@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { CheckCircle2, ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -53,7 +53,7 @@ export function HousekeepingSummary({
   onStatusChange: (status: BoardStatusFilter | null) => void
 }) {
   const { t } = useTranslation()
-  const v2 = isDesignV2PreviewEnabled()
+  const v2 = isDesignV2Enabled()
   const supportingCopy: Record<string, string | null> = {
     needsCleaning: kpis.needsCleaningCredits > 0
       ? t('housekeeping.boardV2.summary.credits', { count: kpis.needsCleaningCredits })
@@ -138,7 +138,7 @@ export function HousekeepingAttention({
     return byGroup
   }, [summary])
 
-  if (summary.length === 0 && isDesignV2PreviewEnabled()) {
+  if (summary.length === 0 && isDesignV2Enabled()) {
     return (
       <section id="housekeeping-attention" aria-labelledby="housekeeping-attention-title" className="flex items-center gap-2 rounded-[var(--r-lg)] border border-line bg-surface px-4 py-2.5 sm:px-5">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ready)]" aria-hidden="true" />
@@ -377,5 +377,5 @@ function LegacyBoardFilters(props: BoardFiltersProps) {
 
 /** V2 groups the filters into one toolbar with Clear; flag off keeps the original layout byte for byte. */
 export function HousekeepingBoardFilters(props: BoardFiltersProps) {
-  return isDesignV2PreviewEnabled() ? <V2BoardFilters {...props} /> : <LegacyBoardFilters {...props} />
+  return isDesignV2Enabled() ? <V2BoardFilters {...props} /> : <LegacyBoardFilters {...props} />
 }

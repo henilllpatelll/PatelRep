@@ -8,13 +8,20 @@ describe("Design V2 preview flag", () => {
   });
 
   it("requires the literal string 'true'", () => {
-    expect(resolveDesignV2Preview(undefined, undefined)).toBe(false);
-    expect(resolveDesignV2Preview("", undefined)).toBe(false);
-    expect(resolveDesignV2Preview("1", undefined)).toBe(false);
-    expect(resolveDesignV2Preview("yes", undefined)).toBe(false);
-    expect(resolveDesignV2Preview("false", undefined)).toBe(false);
-    expect(resolveDesignV2Preview("true", undefined)).toBe(true);
+    expect(resolveDesignV2Preview(undefined, "development")).toBe(false);
+    expect(resolveDesignV2Preview("", "development")).toBe(false);
+    expect(resolveDesignV2Preview("1", "development")).toBe(false);
+    expect(resolveDesignV2Preview("yes", "development")).toBe(false);
+    expect(resolveDesignV2Preview("false", "development")).toBe(false);
+    expect(resolveDesignV2Preview("true", "development")).toBe(true);
     expect(resolveDesignV2Preview(" TRUE ", "development")).toBe(true);
+  });
+
+  it("fails CLOSED: an unset or unknown environment is production (the old guard failed open)", () => {
+    expect(resolveDesignV2Preview("true", undefined)).toBe(false);
+    expect(resolveDesignV2Preview("true", "")).toBe(false);
+    expect(resolveDesignV2Preview("true", "prod")).toBe(false);
+    expect(resolveDesignV2Preview("true", "anything")).toBe(false);
   });
 
   it("can never be enabled in a production environment", () => {

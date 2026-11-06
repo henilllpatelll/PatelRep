@@ -1,14 +1,9 @@
 import type { ReactNode } from "react";
 import type { ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import {
-  R,
-  lightTheme,
-  monoFont,
-  type ThemeTokens,
-} from "@/components/shared/tokens";
+import { R, lightTheme, type ThemeTokens } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { radiusV2 } from "@/components/shared/tokensV2";
@@ -18,6 +13,7 @@ import {
   getPrimaryTimingLine,
   getRoomBadges,
 } from "@/lib/housekeeping/roomWorkflow";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Status presentation (protected color contract, centralized) ─────────── */
 
@@ -81,6 +77,7 @@ function getStatusLabelKey(status: string): string {
 }
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -97,6 +94,7 @@ export function StatusPill({ status, label }: { status: string; label?: string }
 
 /** Striped rail for OCCUPIED, solid status color otherwise. */
 export function StatusRail({ status }: { status: string }) {
+  const styles = useStyles();
   const theme = useTheme();
   const meta = getStatusMeta(status, theme);
   if (status === "OCCUPIED") {
@@ -125,6 +123,7 @@ export function StatusRail({ status }: { status: string }) {
 /* ─── Generic atoms ───────────────────────────────────────────────────────── */
 
 export function SectionHeader({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   return (
@@ -145,6 +144,7 @@ export function SectionHeader({ title, hint, action }: { title: string; hint?: s
 }
 
 export function ProgressBar({ value, total, color }: { value: number; total: number; color?: string }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
@@ -182,6 +182,7 @@ export function Chip({
   icon?: ComponentProps<typeof Ionicons>["name"];
   tone?: "neutral" | "alert" | "caution" | "ai" | "shell";
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   const palette = {
@@ -247,6 +248,7 @@ function getCleanTypeDisplayKey(room: Room): string | null {
 }
 
 function CleanTypeTag({ room }: { room: Room }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -299,6 +301,7 @@ interface RoomQueueCardProps {
 }
 
 export function RoomQueueCard({ room, onPress, position, estimateMinutes, actionLabel, dimmed }: RoomQueueCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -385,6 +388,7 @@ interface AIBriefingCardProps {
 }
 
 export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, footNote, loading, children }: AIBriefingCardProps) {
+  const styles = useStyles();
   const base = useTheme();
   const x = useV2Text();
   // V2: the soft-violet AI treatment (light surface in light mode) instead of the dark shell block, so AI
@@ -489,7 +493,7 @@ export function AIBriefingCard({ kicker, headline, planLabel, plan, watchouts, f
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -510,7 +514,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 10 },
   sectionHeaderLeft: { flexDirection: "row", alignItems: "baseline", gap: 8, flex: 1, minWidth: 0 },
   sectionTitle: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  sectionHint: { fontFamily: monoFont, fontSize: 11, fontWeight: "700" },
+  sectionHint: { fontFamily: t.mono, fontSize: 11, fontWeight: "700" },
 
   progressTrack: { height: 7, borderRadius: 999, overflow: "hidden" },
   progressFill: { height: 7, borderRadius: 999 },
@@ -542,13 +546,13 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 14, gap: 8 },
   cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   cardTitleRow: { flexDirection: "row", alignItems: "baseline", gap: 8, minWidth: 0 },
-  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800" },
+  roomNumber: { fontFamily: t.mono, fontSize: 28, lineHeight: 32, fontWeight: "800" },
   roomType: { flex: 1, fontSize: 12.5, minWidth: 0 },
-  etaText: { fontFamily: monoFont, fontSize: 12, fontWeight: "700" },
-  positionText: { marginLeft: "auto", fontFamily: monoFont, fontSize: 11, fontWeight: "800" },
+  etaText: { fontFamily: t.mono, fontSize: 12, fontWeight: "700" },
+  positionText: { marginLeft: "auto", fontFamily: t.mono, fontSize: 11, fontWeight: "800" },
   cardMetaRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
   timingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  timingText: { fontFamily: monoFont, fontSize: 11.5 },
+  timingText: { fontFamily: t.mono, fontSize: 11.5 },
   badge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { fontSize: 10, fontWeight: "800" },
   cardRight: { alignItems: "flex-end", gap: 4, paddingLeft: 10 },
@@ -573,7 +577,7 @@ const styles = StyleSheet.create({
   aiPlanChips: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 4 },
   aiPlanChip: { flexDirection: "row", alignItems: "center", gap: 4 },
   aiPlanChipText: {
-    fontFamily: monoFont,
+    fontFamily: t.mono,
     fontSize: 13,
     fontWeight: "800",
     borderRadius: 7,
@@ -585,5 +589,5 @@ const styles = StyleSheet.create({
   aiWatchouts: { gap: 5 },
   aiWatchoutRow: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
   aiWatchoutText: { flex: 1, fontSize: 12.5, lineHeight: 17 },
-  aiFootNote: { fontSize: 10.5, fontFamily: monoFont },
-});
+  aiFootNote: { fontSize: 10.5, fontFamily: t.mono },
+}));

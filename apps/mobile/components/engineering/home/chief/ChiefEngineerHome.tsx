@@ -36,7 +36,7 @@ import { AssignTechnicianSheet, type AssignTarget } from "@/components/engineeri
 import { TechnicianHomeHeader } from "../TechnicianHomeHeader";
 import { TechnicianSummaryCards, type SummaryCardData } from "../TechnicianSummaryCards";
 import { TechnicianQuickActions } from "../TechnicianQuickActions";
-import { HOME_MAX_FONT, homeStyles } from "../homeStyles";
+import { HOME_MAX_FONT, useHomeStyles } from "../homeStyles";
 import { HomeLoadNotice } from "../HomeLoadNotice";
 import { PropertyPriorities } from "./PropertyPriorities";
 import { RoomsDownSheet } from "./RoomsDownSheet";
@@ -62,6 +62,7 @@ const SUMMARY_TEST_ID: Record<ChiefSummaryKey, string> = {
 };
 
 export function ChiefEngineerHome({ name }: { name: string }) {
+  const homeStyles = useHomeStyles();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const toast = useToast();

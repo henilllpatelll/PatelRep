@@ -4,7 +4,6 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
-import { monoFont } from "@/components/shared/tokens";
 import { SettingsDetailRow } from "@/components/settings/SettingsDetailRow";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
@@ -15,12 +14,14 @@ import { findReleaseNotes } from "@/lib/app/releaseNotes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const appIcon = require("../../../assets/icon.png");
 
 type LinkKey = "privacy" | "terms";
 
 export default function AboutScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const online = useAppStore((s) => s.isOnline);
@@ -157,14 +158,14 @@ export default function AboutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   identity: { alignItems: "center", gap: 4, paddingVertical: 8 },
   icon: { width: 72, height: 72, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginBottom: 8 },
   name: { fontSize: 22, fontWeight: "700" },
   tagline: { fontSize: 14.5, textAlign: "center" },
-  versionLine: { fontFamily: monoFont, fontSize: 12.5, marginTop: 2 },
+  versionLine: { fontFamily: t.mono, fontSize: 12.5, marginTop: 2 },
   notice: { flexDirection: "row", gap: 12, borderWidth: 1, borderRadius: 14, padding: 14, alignItems: "flex-start" },
   noticeBody: { flex: 1, gap: 10, alignItems: "flex-start" },
   noticeText: { fontSize: 14, lineHeight: 20 },
-  footer: { textAlign: "center", fontFamily: monoFont, fontSize: 11 },
-});
+  footer: { textAlign: "center", fontFamily: t.mono, fontSize: 11 },
+}));

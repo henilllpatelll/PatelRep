@@ -155,12 +155,12 @@ test('legacy token names are remapped only on chrome scopes, never globally', ()
 
 /* -- Flag isolation / legacy preserved -------------------------------------------------------- */
 
-test('DashboardShell swaps in the V2 shell only through the preview flag; legacy markup is intact', () => {
+test('DashboardShell swaps in the V2 shell only through the tenant-aware useDesignV2() decision; legacy markup is intact', () => {
   const src = read('components/shared/DashboardShell.tsx')
-  assert.match(src, /if \(isDesignV2PreviewEnabled\(\)\) \{\s*return \(\s*<ShellV2/)
+  assert.match(src, /if \(designV2\) \{\s*return \(\s*<ShellV2/)
   assert.match(src, /className=\{`flex h-screen bg-paper \$\{themeClasses\.join\(' '\)\}`\}/)
   assert.match(src, /<Sidebar redesigned=\{shellV2\}/)
-  assert.equal(/process\.env/.test(src), false, 'the flag must only be read through designV2.ts (production guard)')
+  assert.equal(/process\.env/.test(src), false, 'the shell must not read the environment; the decision lives in designV2.ts')
   for (const file of ['components/design-v2/shell/ShellV2.tsx', 'components/design-v2/shell/SidebarV2.tsx', 'components/design-v2/shell/HeaderLeadingV2.tsx', 'components/design-v2/shell/AuthV2Scope.tsx']) {
     assert.equal(/process\.env/.test(read(file)), false, `${file} must not read env`)
   }

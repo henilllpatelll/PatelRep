@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { correctionAction, type CorrectionAction, type CorrectionItem } from "@/lib/inspections/lists";
 import { correctionText, type Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   item: CorrectionItem;
@@ -33,6 +34,7 @@ const ACTION_LABEL: Record<CorrectionAction, string> = {
  * only when the room really is back in the queue).
  */
 function CorrectionCardView({ item, now, roomAwaitingInspection, t, onOpen, onAction }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const text = correctionText(item, now, t);
@@ -99,15 +101,15 @@ function CorrectionCardView({ item, now, roomAwaitingInspection, t, onOpen, onAc
 
 export const CorrectionCard = memo(CorrectionCardView);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 12, gap: 8 },
   body: { gap: 3 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  room: { fontFamily: monoFont, fontSize: 24, lineHeight: 28, fontWeight: "800" },
+  room: { fontFamily: t.mono, fontSize: 24, lineHeight: 28, fontWeight: "800" },
   badge: { flexShrink: 1, borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { fontSize: 11.5, fontWeight: "800" },
   detail: { fontSize: 14, fontWeight: "700" },
   line: { fontSize: 13, fontWeight: "600" },
   action: { minHeight: 48, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   actionText: { fontSize: 15, fontWeight: "800" },
-});
+}));

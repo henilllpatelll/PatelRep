@@ -1,14 +1,15 @@
 import { useV2Text } from "@/lib/design/housekeeperV2";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Body, Mark, Notice } from "@/components/supervisor/assignments/BulkParts";
 import { Button } from "@/components/ui/Button";
 import type { MidshiftRoom } from "@/lib/housekeeping/assignmentMidshift";
 import { changeText, destinationChangeText, nameOrFallback, protectedWhy, offersRoomBoard } from "@/lib/housekeeping/assignmentMidshiftText";
 import type { MidshiftController } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -17,6 +18,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /** What moved under the supervisor, and the one way forward: refresh and look at the recalculated plan. */
 export function ChangesNotice({ midshift, t }: { midshift: MidshiftController; t: Translate }) {
+  const styles = useStyles();
   const changes = midshift.changes;
   if (!changes) return null;
   const nameOf = (userId: string) => nameOrFallback(midshift.destinations.find((candidate) => candidate.userId === userId)?.name ?? null, t);
@@ -42,6 +44,7 @@ export function ChangesNotice({ midshift, t }: { midshift: MidshiftController; t
 
 /** A room that cannot move, with the reason in words. A started room offers the Room Board to verify its real status. */
 export function ProtectedRoomRow({ room, name, onOpenBoard, t }: { room: MidshiftRoom; name: string; onOpenBoard?: (roomId: string) => void; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const why = protectedWhy(room, name, t);
@@ -83,6 +86,7 @@ export function ProtectedRoomRow({ room, name, onOpenBoard, t }: { room: Midshif
 
 /** A movable room: a large checkbox row. */
 export function MovableRoomRow({ room, selected, onToggle, t }: { room: MidshiftRoom; selected: boolean; onToggle: (roomId: string) => void; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { entry } = room;
@@ -113,13 +117,13 @@ export function MovableRoomRow({ room, selected, onToggle, t }: { room: Midshift
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   changes: { gap: 8 },
   protectedRow: { borderWidth: 1, borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
   protectedHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   tag: { fontSize: 12, fontWeight: "800", borderWidth: 1, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, overflow: "hidden" },
   link: { minHeight: MIN_TARGET, justifyContent: "center", alignSelf: "flex-start" },
   movableRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: MIN_TARGET + 12, borderWidth: 1.5, borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 8 },
-  roomNumber: { fontFamily: monoFont, fontSize: 19, fontWeight: "800", minWidth: 52 },
+  roomNumber: { fontFamily: t.mono, fontSize: 19, fontWeight: "800", minWidth: 52 },
   detail: { flex: 1, fontSize: 13.5, lineHeight: 19 },
-});
+}));

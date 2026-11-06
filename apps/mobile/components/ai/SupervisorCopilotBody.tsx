@@ -14,7 +14,7 @@ import {
 import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* The supervisor Copilot's overview, inside the existing floating card (no second assistant, no extra button).
    Facts come from the verified Today snapshot and say where they came from; the optional AI wording is labelled
@@ -40,6 +40,7 @@ const QUICK: Array<{ id: string; screen: SupervisorScreen | "task"; icon: React.
 ];
 
 export function SupervisorCopilotBody({ controller, conversation, onClose, onPrepareTask }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const { height } = useWindowDimensions();
   const { model, room, language, zone } = controller;
@@ -224,6 +225,7 @@ function suggestionLabel(suggestion: CopilotSuggestion, t: (key: string, options
 }
 
 function Heading({ text }: { text: string }) {
+  const styles = useStyles();
   return (
     <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={styles.heading}>
       {text}
@@ -234,6 +236,7 @@ function Heading({ text }: { text: string }) {
 /* ─── Optional AI wording ─────────────────────────────────────────────────── */
 
 function AiBlock({ controller }: { controller: SupervisorCopilotController }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const { summary, language, zone } = controller;
   if (summary.status === "disabled") {
@@ -335,15 +338,15 @@ function canRetry(failure: string): boolean {
   return failure !== "disabled" && failure !== "credit_limit";
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   content: { paddingHorizontal: 13, paddingTop: 10, paddingBottom: 8, gap: 2 },
   heading: {
     marginTop: 12,
     marginBottom: 4,
-    fontSize: microLabelSize(10.5),
+    fontSize: t.labelSize(10.5),
     fontWeight: "700",
-    letterSpacing: microLabelTracking(0.9),
-    textTransform: microLabelCase(),
+    letterSpacing: t.tracking(0.9),
+    textTransform: t.labelCase,
     color: "rgba(247,244,238,0.45)",
   },
   overview: { fontSize: 14, lineHeight: 20, color: darkTheme.textPrimary },
@@ -419,4 +422,4 @@ const styles = StyleSheet.create({
     borderColor: darkTheme.ai.primary,
   },
   aiButtonText: { fontSize: 13, fontWeight: "700", color: darkTheme.ai.primary },
-});
+}));

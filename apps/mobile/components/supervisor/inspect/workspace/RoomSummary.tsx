@@ -1,13 +1,15 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { RoomFacts } from "@/lib/inspections/workspaceText";
 import type { Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* The room being inspected, compactly: number, status, and only the facts that are actually recorded. */
 export function RoomSummary({ facts, t }: { facts: RoomFacts; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const tone = facts.reinspection
@@ -54,14 +56,14 @@ export function RoomSummary({ facts, t }: { facts: RoomFacts; t: Translate }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 12, gap: 3 },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   numberCol: { flexShrink: 1 },
   kicker: { fontSize: 11, fontWeight: "800", letterSpacing: 1 },
-  number: { fontFamily: monoFont, fontSize: 30, lineHeight: 34, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 30, lineHeight: 34, fontWeight: "800" },
   chip: { flexShrink: 1, borderWidth: 1, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5 },
   chipText: { fontSize: 12, fontWeight: "800" },
   line: { fontSize: 15, lineHeight: 21, fontWeight: "700" },
   sub: { fontSize: 13, lineHeight: 18, fontWeight: "600" },
-});
+}));

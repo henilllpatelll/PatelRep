@@ -1,12 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { serifFont } from "@/components/shared/tokens";
 import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
 import { AppText } from "@/components/ui/AppText";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import type { SyncIndicator, SyncTone } from "@/lib/housekeeping/homeText";
 import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -41,6 +41,7 @@ export function HomeHeader(props: Props) {
 
 /** Design System V2: hotel context, plain-sans greeting, shift status, bell and a sync chip. */
 function HomeHeaderV2({ meta, metaPlain, hotelName, greeting, status, sync, unreadCount, topInset, t, onOpenNotifications, onOpenSync }: Props) {
+  const styles = useStyles();
   const theme = useTheme();
   const tone: Record<SyncTone, { fg: string; bg: string; line: string }> = {
     ok: { fg: theme.status.ready, bg: theme.status.readySoft, line: theme.status.readyLine },
@@ -119,6 +120,7 @@ function HomeHeaderV2({ meta, metaPlain, hotelName, greeting, status, sync, unre
 }
 
 function HomeHeaderLegacy({ meta, greeting, status, sync, unreadCount, topInset, t, onOpenNotifications, onOpenSync }: Props) {
+  const styles = useStyles();
   const theme = useTheme();
   const toneColor: Record<SyncTone, string> = {
     ok: theme.status.ready,
@@ -186,13 +188,13 @@ function HomeHeaderLegacy({ meta, greeting, status, sync, unreadCount, topInset,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   wrap: { paddingHorizontal: 18, paddingBottom: 6, gap: 8 },
   wrapV2: { paddingHorizontal: spaceV2.page, paddingBottom: spaceV2.sm, gap: spaceV2.sm },
   row: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   text: { flex: 1, minWidth: 0, gap: 2 },
   meta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  greeting: { fontFamily: serifFont, fontSize: 30, lineHeight: 35 },
+  greeting: { fontFamily: t.serif, fontSize: 30, lineHeight: 35 },
   status: { fontSize: 14, lineHeight: 19 },
   statusRow: { flexDirection: "row", alignItems: "center" },
   statusText: { flexShrink: 1 },
@@ -229,4 +231,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   syncChipText: { flex: 1, minWidth: 0 },
-});
+}));

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { X, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -145,7 +145,7 @@ export function CreateTaskDrawer({
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const dirty = Boolean(title.trim() || description.trim() || guestName.trim() || locationText.trim() || roomId || guestRoomId || assignedTo || guestAssignedTo)
-  const guard = useDiscardGuard(isDesignV2PreviewEnabled() && dirty, onClose)
+  const guard = useDiscardGuard(isDesignV2Enabled() && dirty, onClose)
   useModalFocusTrap(ref, isOpen, guard.requestClose)
 
   // Reset (and apply any prefill) every time the drawer opens — never leaks

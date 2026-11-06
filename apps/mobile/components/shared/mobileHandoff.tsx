@@ -1,25 +1,9 @@
 import React from "react";
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
+import { Image, Pressable, Text, TouchableOpacity, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  R,
-  darkTheme,
-  lightTheme,
-  monoFont,
-  type ThemeTokens,
-} from "@/components/shared/tokens";
+import { R, darkTheme, lightTheme, type ThemeTokens } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 export type Tone =
   | "neutral"
@@ -135,11 +119,13 @@ export function getRoomTone(status?: string): Tone {
 }
 
 export function Mono({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
+  const styles = useStyles();
   return <Text style={[styles.mono, style]}>{children}</Text>;
 }
 
 /** Initials circle; shows `uri` (a profile photo) when it loads, and falls back to initials if it cannot. */
 export function Avatar({ name, size = 34, uri }: { name: string; size?: number; uri?: string | null }) {
+  const styles = useStyles();
   const theme = useTheme();
   const [failedUri, setFailedUri] = React.useState<string | null>(null);
   const showPhoto = !!uri && failedUri !== uri;
@@ -210,6 +196,7 @@ export function IconButton({
   onPress?: () => void;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const colors = getToneColors(tone, theme);
   const targetSize = Math.max(size, 44);
@@ -269,6 +256,7 @@ export function Pill({
   tone?: Tone;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const colors = getToneColors(tone, theme);
 
@@ -281,6 +269,7 @@ export function Pill({
 }
 
 export function AILabel({ children = "AI", confidence }: { children?: string; confidence?: number }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -309,6 +298,7 @@ export function AIChip({
   children: React.ReactNode;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -336,6 +326,7 @@ export function AIInsightCard({
   actions?: React.ReactNode;
   compact?: boolean;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -376,6 +367,7 @@ export function SectionLabel({
   hint?: string;
   action?: React.ReactNode;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View style={styles.sectionLabel}>
@@ -411,6 +403,7 @@ export function HeroButton({
   accessibilityLabel?: string;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const palette = onDark ? darkTheme : theme;
   const backgroundColor = primary
@@ -460,6 +453,7 @@ export function FloatingAIButton({
   accessibilityLabel?: string;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <TouchableOpacity
@@ -498,6 +492,7 @@ export function Segmented({
   }>;
   accessibilityLabel?: string;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -580,6 +575,7 @@ export function CopilotHero({
   foot?: React.ReactNode;
   tone?: "dark" | "violet";
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const dark = tone === "dark";
   const presentation = dark ? darkTheme : theme;
@@ -677,6 +673,7 @@ export function RoomNumberTile({
   status: string;
   size?: number;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   const tone = getRoomTone(status);
   const colors = getToneColors(tone, theme);
@@ -714,6 +711,7 @@ export function ProgressRing({
   value: number;
   total: number;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -756,6 +754,7 @@ export function HandoffRow({
   onPress?: () => void;
   testID?: string;
 }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <Pressable
@@ -785,9 +784,9 @@ export function HandoffRow({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   mono: {
-    fontFamily: monoFont,
+    fontFamily: t.mono,
     fontVariant: ["tabular-nums"],
   },
   avatar: {
@@ -817,9 +816,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   pillText: {
-    fontSize: microLabelSize(11),
+    fontSize: t.labelSize(11),
     fontWeight: "700",
-    textTransform: microLabelCase(),
+    textTransform: t.labelCase,
   },
   aiLabel: {
     alignSelf: "flex-start",
@@ -832,10 +831,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiLabelText: {
-    fontSize: microLabelSize(10),
+    fontSize: t.labelSize(10),
     fontWeight: "700",
-    letterSpacing: microLabelTracking(0.5),
-    textTransform: microLabelCase(),
+    letterSpacing: t.tracking(0.5),
+    textTransform: t.labelCase,
   },
   aiConfidence: {
     fontSize: 10,
@@ -853,9 +852,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiChipText: {
-    fontSize: microLabelSize(10.5),
+    fontSize: t.labelSize(10.5),
     fontWeight: "700",
-    textTransform: microLabelCase(),
+    textTransform: t.labelCase,
   },
   aiInsightCard: {
     borderRadius: R.lg,
@@ -897,8 +896,8 @@ const styles = StyleSheet.create({
   sectionText: {
     fontSize: 12,
     fontWeight: "700",
-    textTransform: microLabelCase(),
-    letterSpacing: microLabelTracking(1.1),
+    textTransform: t.labelCase,
+    letterSpacing: t.tracking(1.1),
   },
   sectionHint: {
     fontSize: 11,
@@ -931,10 +930,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   copilotKicker: {
-    fontSize: microLabelSize(10.5),
+    fontSize: t.labelSize(10.5),
     fontWeight: "700",
-    letterSpacing: microLabelTracking(1.2),
-    textTransform: microLabelCase(),
+    letterSpacing: t.tracking(1.2),
+    textTransform: t.labelCase,
   },
   confidence: {
     marginLeft: "auto",
@@ -1089,4 +1088,4 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.8 },
-});
+}));

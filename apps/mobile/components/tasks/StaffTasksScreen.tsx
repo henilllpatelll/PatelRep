@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { AIBriefingCard, SectionHeader } from "@/components/shared/evening";
@@ -33,7 +21,7 @@ import {
   type TaskPreview,
   type TaskQueueEntry,
 } from "@/lib/ai/tasks";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const BUCKET_TITLES: Record<TaskBucket, string> = {
   overdue: "tasks.groupOverdue",
@@ -52,6 +40,7 @@ function dayLabel(locale: string) {
 }
 
 export function StaffTasksScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -424,7 +413,7 @@ export function StaffTasksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
@@ -440,9 +429,9 @@ const styles = StyleSheet.create({
   shellTitle: { fontSize: 28, fontWeight: "700", lineHeight: 33 },
   shellDate: { fontSize: 12.5, marginTop: 2 },
   shellCountBlock: { alignItems: "flex-end" },
-  shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800" },
-  shellCountLabel: { fontSize: microLabelSize(10.5), fontWeight: "800", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase() },
-  shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, marginTop: 2 },
+  shellCountValue: { fontFamily: t.mono, fontSize: 24, fontWeight: "800" },
+  shellCountLabel: { fontSize: t.labelSize(10.5), fontWeight: "800", letterSpacing: t.tracking(0.8), textTransform: t.labelCase },
+  shellDoneLabel: { fontFamily: t.mono, fontSize: 10.5, marginTop: 2 },
   claimMessage: { fontSize: 12, marginTop: 8 },
 
   section: { gap: 9 },
@@ -486,11 +475,11 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
-  previewLabel: { fontSize: microLabelSize(10), fontWeight: "800", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase() },
+  previewLabel: { fontSize: t.labelSize(10), fontWeight: "800", letterSpacing: t.tracking(0.8), textTransform: t.labelCase },
   previewItem: { gap: 4 },
   previewTitle: { fontSize: 14.5, fontWeight: "700" },
   previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  previewMeta: { fontSize: 11.5, fontFamily: monoFont },
+  previewMeta: { fontSize: 11.5, fontFamily: t.mono },
   previewActions: { flexDirection: "row", gap: 8, marginTop: 2 },
   previewCreateBtn: {
     flex: 1,
@@ -509,4 +498,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   previewDismissText: { fontSize: 13, fontWeight: "700" },
-});
+}));

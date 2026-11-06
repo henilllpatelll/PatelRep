@@ -4,10 +4,11 @@ import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { monoFont, R } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import type { PanelLoadError } from "@/lib/housekeeping/roomPanelErrors";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* Shared pieces of the Room Board drawers' inner views: header, honest loading / error states, small cards.
    Everything draws what it is given; no fetching and no rules live here. */
@@ -152,12 +153,12 @@ export function SegmentTabs<K extends string>({
   );
 }
 
-export const panelStyles = StyleSheet.create({
+export const usePanelStyles = createTypographyStyles((t) => ({
   scroll: { flexGrow: 0, marginTop: 10 },
   content: { gap: 12, paddingBottom: 12 },
   footer: { gap: 8, paddingTop: 8 },
-  mono: { fontFamily: monoFont },
-});
+  mono: { fontFamily: t.mono },
+}));
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 10 },

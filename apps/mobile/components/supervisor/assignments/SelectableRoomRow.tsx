@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Mark } from "@/components/supervisor/assignments/BulkParts";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { SelectionRowModel } from "@/lib/housekeeping/assignmentBulkView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── One room in selection mode ────────────────────────────────────────────
    The whole row is ONE checkbox: tapping anywhere toggles it, it is at least 48 dp tall, and its state is spoken
@@ -19,6 +20,7 @@ interface Props {
 }
 
 function SelectableRoomRowView({ model, onToggle }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   return (
@@ -72,14 +74,14 @@ function SelectableRoomRowView({ model, onToggle }: Props) {
 /** Re-renders only when something the row draws changed (its `signature`), so a long list stays smooth. */
 export const SelectableRoomRow = memo(SelectableRoomRowView, (prev, next) => prev.model.signature === next.model.signature && prev.onToggle === next.onToggle);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { flexDirection: "row", alignItems: "flex-start", gap: 12, minHeight: MIN_TARGET + 8, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1.5, borderRadius: R.lg },
   body: { flex: 1, minWidth: 0, gap: 3 },
   top: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
-  number: { fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 22, lineHeight: 26, fontWeight: "800" },
   chip: { fontSize: 12, fontWeight: "700", borderWidth: 1, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, overflow: "hidden" },
   meta: { fontSize: 13.5, lineHeight: 19 },
   reason: { flexDirection: "row", alignItems: "flex-start", gap: 5 },
   reasonText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "600" },
   inDraft: { fontSize: 12.5, fontWeight: "700" },
-});
+}));

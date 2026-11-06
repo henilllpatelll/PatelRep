@@ -68,4 +68,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
     owner: 'mobile-engineering',
     created: '2026-10-31',
   },
+  design_v2: {
+    key: 'design_v2',
+    description:
+      'PatelRep Design System V2 presentation for this hotel: the manager web app and all seven mobile roles. Off (the default for every hotel): the legacy design. Visual only; it grants no permission and unlocks no capability, so nothing on the backend checks it. Observed through GET /auth/me (hotel.enabled_features) on the next authenticated context refresh, not instantly.',
+    type: 'release',
+    backendEnforced: false,
+    owner: 'design-system',
+    created: '2026-11-06',
+  },
 }

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { R } from "@/components/shared/tokens";
 import type { QuickActionKey } from "@/lib/engineering/homeNavigation";
 import { useTheme } from "@/lib/theme/useTheme";
-import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "./homeStyles";
+import { HOME_MAX_FONT, HOME_MIN_TOUCH, useHomeStyles } from "./homeStyles";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -41,6 +41,7 @@ export function TechnicianQuickActions<K extends QuickActionKey>({
   /** i18n keys that replace a shortcut's default label (the chief's "pm" reads "PM Planning"). */
   labelOverrides?: Partial<Record<QuickActionKey, string>>;
 }) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   return (

@@ -1,11 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont, R } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { UNKNOWN_DISPLAY } from "@/lib/engineering/homeContract";
 import { HOME_MAX_FONT } from "./homeStyles";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 export const UNKNOWN_COUNT = UNKNOWN_DISPLAY;
 
@@ -22,6 +23,7 @@ export interface SummaryCardData {
 }
 
 function SummaryCard({ card }: { card: SummaryCardData }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   const { t } = useTranslation();
@@ -56,6 +58,7 @@ function SummaryCard({ card }: { card: SummaryCardData }) {
 
 /** Tappable counts. Each destination holds exactly what the number counted (see homeNavigation.ts). */
 export function TechnicianSummaryCards({ cards }: { cards: SummaryCardData[] }) {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       {cards.map((card) => (
@@ -65,12 +68,12 @@ export function TechnicianSummaryCards({ cards }: { cards: SummaryCardData[] }) 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { flexDirection: "row", gap: 10 },
   card: { flex: 1, minHeight: 72, borderWidth: 1, borderRadius: R.lg, paddingVertical: 10, paddingHorizontal: 8, alignItems: "center", justifyContent: "center", gap: 2 },
   valueRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  value: { fontSize: 26, fontWeight: "700", fontFamily: monoFont },
+  value: { fontSize: 26, fontWeight: "700", fontFamily: t.mono },
   // Same footprint as a one-digit value, so the card does not jump when the number arrives.
   placeholder: { width: 28, height: 26, borderRadius: R.sm },
   label: { fontSize: 12, fontWeight: "700", textAlign: "center" },
-});
+}));

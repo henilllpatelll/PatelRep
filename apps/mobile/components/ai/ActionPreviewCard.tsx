@@ -13,7 +13,7 @@ import {
   validatePreview,
   type DraftPatch,
 } from "@/lib/ai/drafts";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 interface Props {
   item: ActionItem;
@@ -74,7 +74,8 @@ function Chips<T extends string>({
 export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact, hideActions, palette }: Props) {
   const { t } = useTranslation();
   const theme = usePalette(palette);
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const typo = useTypography();
+  const styles = useMemo(() => makeStyles(theme, typo), [theme, typo]);
   const { preview, status } = item;
   const { draft } = preview;
   const locked = status === "confirming" || status === "confirmed";
@@ -247,7 +248,7 @@ export function ActionPreviewCard({ item, onEdit, onConfirm, onDismiss, compact,
   );
 }
 
-const makeStyles = (theme: Palette) => StyleSheet.create({
+const makeStyles = (theme: Palette, t: TypographyMode) => StyleSheet.create({
   card: {
     marginTop: 4,
     marginBottom: 10,
@@ -259,7 +260,7 @@ const makeStyles = (theme: Palette) => StyleSheet.create({
     alignSelf: "stretch",
   },
   cardCompact: { padding: 10 },
-  kicker: { fontSize: microLabelSize(11), color: theme.ai.primary, fontWeight: "700", textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.6) },
+  kicker: { fontSize: t.labelSize(11), color: theme.ai.primary, fontWeight: "700", textTransform: t.labelCase, letterSpacing: t.tracking(0.6) },
   hint: { fontSize: 12, color: theme.textMuted, marginTop: 2, marginBottom: 6 },
   label: { fontSize: 11, color: theme.textMuted, fontWeight: "600", marginTop: 8, marginBottom: 4 },
   input: {

@@ -5,13 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Avatar } from "@/components/shared/mobileHandoff";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { AttendanceChip, CapacityMeter, NoteLine } from "@/components/supervisor/assignments/TeamParts";
 import type { RecoveryPanel } from "@/lib/housekeeping/assignmentMidshiftText";
 import type { StaffDetailModel, StaffDetailRoom, StaffRoomPhase } from "@/lib/housekeeping/assignmentTeamView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -53,6 +54,7 @@ export function StaffDetailSheet({
   /** Starts "Reassign remaining work". Shown with `recovery`; enabled only when `recovery.enabled`. */
   onReassignRemaining?: () => void;
 }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const listRef = useRef<FlatList<StaffDetailRoom>>(null);
@@ -231,10 +233,11 @@ export function StaffDetailSheet({
 }
 
 function Separator() {
+  const styles = useStyles();
   return <View style={styles.separator} />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.45)" },
   sheet: { height: "92%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8 },
@@ -259,11 +262,11 @@ const styles = StyleSheet.create({
   assignMore: { gap: 4 },
   recovery: { gap: 8 },
   room: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 14, paddingVertical: 8 },
-  roomNumber: { width: 56, fontFamily: monoFont, fontSize: 20, fontWeight: "800" },
+  roomNumber: { width: 56, fontFamily: t.mono, fontSize: 20, fontWeight: "800" },
   roomBody: { flex: 1, minWidth: 0, gap: 2 },
   roomStatus: { flexDirection: "row", alignItems: "center", gap: 6 },
   roomStatusText: { fontSize: 14, fontWeight: "800" },
   roomMeta: { fontSize: 12.5 },
   separator: { height: 8 },
   empty: { fontSize: 14, paddingVertical: 12 },
-});
+}));

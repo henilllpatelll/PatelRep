@@ -33,7 +33,7 @@ import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderD
 import { cn } from '@/lib/utils'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useTranslation } from 'react-i18next'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { buildExceptions, buildReadiness, buildTeamPulse, classifyOccupancy, formatPartialCount } from '@/lib/design/dashboardV2Model'
 import { AIInsightsCard, DashboardV2Header, DashboardV2Kpis, ExceptionsCard, ReadinessCard, TeamPulseCard, type KpiTile } from './DashboardV2Sections'
 
@@ -826,7 +826,7 @@ export function SimplifiedDashboard() {
     </>
   )
 
-  if (isDesignV2PreviewEnabled()) {
+  if (isDesignV2Enabled()) {
     const readiness = buildReadiness(rooms)
     const exceptions = buildExceptions({
       workOrders,

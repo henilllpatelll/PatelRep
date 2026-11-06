@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 
 interface EditFieldSheetProps {
@@ -40,6 +40,7 @@ export function EditFieldSheet({
   onClose,
   testID = "edit-field",
 }: EditFieldSheetProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const [draft, setDraft] = useState(value);
@@ -161,12 +162,12 @@ export function EditFieldSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  label: { fontSize: 12, fontWeight: "700", textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.5) },
+const useStyles = createTypographyStyles((t) => ({
+  label: { fontSize: 12, fontWeight: "700", textTransform: t.labelCase, letterSpacing: t.tracking(0.5) },
   input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   meta: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   helper: { flex: 1, fontSize: 12.5, lineHeight: 17 },
   count: { fontSize: 12.5 },
   error: { fontSize: 13.5, lineHeight: 19, fontWeight: "600" },
   actions: { gap: 8 },
-});
+}));

@@ -1,14 +1,15 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { outcomeLabel, ResultBadge } from "@/components/supervisor/inspect/history/ResultBadge";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import type { DoneItem } from "@/lib/inspections/lists";
 import type { Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   item: DoneItem;
@@ -29,6 +30,7 @@ export function locationText(item: Pick<DoneItem, "floor" | "building">, showBui
 }
 
 function DoneRowView({ item, timeZone, language, t, showBuilding = false, onPress }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const inspector = item.inspectorName ?? t("inspect.done.inspectorUnknown");
@@ -65,10 +67,10 @@ function DoneRowView({ item, timeZone, language, t, showBuilding = false, onPres
 
 export const DoneRow = memo(DoneRowView);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 11 },
-  room: { fontFamily: monoFont, fontSize: 20, fontWeight: "800", minWidth: 52 },
+  room: { fontFamily: t.mono, fontSize: 20, fontWeight: "800", minWidth: 52 },
   body: { flex: 1, minWidth: 0, gap: 1 },
   inspector: { fontSize: 13, fontWeight: "700" },
   time: { fontSize: 12 },
-});
+}));

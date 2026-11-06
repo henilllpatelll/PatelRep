@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import {
   AssignmentCard,
@@ -36,6 +35,7 @@ import { useRoomWellness } from "@/lib/housekeeping/useRoomWellness";
 import { inspectionHref, recordHref } from "@/lib/inspections/route";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 
 /* ─── Room detail drawer — what the supervisor needs before acting ─────────
@@ -78,6 +78,7 @@ export function RoomDetailSheet({
   deps: RoomDetailDeps;
   onClose: () => void;
 }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -404,6 +405,7 @@ export function RoomDetailSheet({
 }
 
 function CloseButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <Pressable
@@ -419,14 +421,14 @@ function CloseButton({ label, onPress }: { label: string; onPress: () => void })
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   keyboard: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 10, maxHeight: "92%" },
   grabber: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, marginBottom: 10 },
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerBody: { flex: 1, minWidth: 0 },
-  roomNumber: { fontFamily: monoFont, fontSize: 34, lineHeight: 40, fontWeight: "800" },
+  roomNumber: { fontFamily: t.mono, fontSize: 34, lineHeight: 40, fontWeight: "800" },
   subtitle: { fontSize: 13.5, fontWeight: "600" },
   actionsTitle: { flex: 1, fontSize: 15, fontWeight: "800", letterSpacing: 0.4 },
   iconButton: { minWidth: 44, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
@@ -436,4 +438,4 @@ const styles = StyleSheet.create({
   scrollContent: { gap: 14, paddingBottom: 12 },
   badges: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
   footer: { gap: 8, paddingTop: 8 },
-});
+}));

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { getProgress, groupBySection, itemKey, type ChecklistItem } from "@/lib/housekeeping/cleanSession";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const LOST_FOUND_LABEL = /lost\s*(&|and)?\s*found/i;
 
@@ -26,6 +26,7 @@ interface Props {
 }
 
 function AnimatedBox({ checked }: { checked: boolean }) {
+  const styles = useStyles();
   const theme = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
   const first = useRef(true);
@@ -67,6 +68,7 @@ function AnimatedBox({ checked }: { checked: boolean }) {
  * background syncs (the list is never re-fetched per tick).
  */
 export function CleaningChecklist({ title, items, pendingKeys, locked, placeholder, notes, onToggle, onReportFoundItem }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -241,11 +243,11 @@ export function CleaningChecklist({ title, items, pendingKeys, locked, placehold
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 10 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   title: { flex: 1, fontSize: 16, fontWeight: "900" },
-  count: { fontFamily: monoFont, fontSize: 15, fontWeight: "800" },
+  count: { fontFamily: t.mono, fontSize: 15, fontWeight: "800" },
   track: { height: 8, borderRadius: 4, overflow: "hidden" },
   fill: { height: 8, borderRadius: 4 },
   requiredSummary: { fontSize: 13, fontWeight: "700" },
@@ -260,7 +262,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { flex: 1, fontSize: 12, fontWeight: "900", letterSpacing: 0.7, textTransform: "uppercase" },
   sectionRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sectionCount: { fontFamily: monoFont, fontSize: 13, fontWeight: "800" },
+  sectionCount: { fontFamily: t.mono, fontSize: 13, fontWeight: "800" },
   row: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
   box: { width: 28, height: 28, borderRadius: 8, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   rowCopy: { flex: 1, gap: 2 },
@@ -280,4 +282,4 @@ const styles = StyleSheet.create({
   optional: { fontSize: 11, fontWeight: "700" },
   lostFound: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 40 },
   lostFoundText: { fontSize: 13, fontWeight: "800", textDecorationLine: "underline" },
-});
+}));

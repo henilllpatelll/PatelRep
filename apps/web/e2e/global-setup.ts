@@ -14,7 +14,7 @@
 import { chromium, type FullConfig } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { createLoginDiagnostics, safeDiagnosticUrl } from './regression-login-diagnostics'
+import { createLoginDiagnostics, probeAuthBackend, safeDiagnosticUrl } from './regression-login-diagnostics'
 
 // This project has no "type": "module" in package.json, so Playwright's TS
 // loader transpiles this file to CommonJS — `__dirname` is the Node global,
@@ -68,7 +68,16 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
       const page = await context.newPage()
       const diagnostics = createLoginDiagnostics(role.key, baseURL)
       page.on('response', (response) => diagnostics.recordAuthResponse(response))
-      page.on('request', (request) => diagnostics.recordAuthRequest(request))
+      // Held in memory only, to ask the auth backend whether it answers at all if login stalls. Never logged.
+      const authBackend: { origin?: string; anonKey?: string } = {}
+      page.on('request', (request) => {
+        diagnostics.recordAuthRequest(request)
+        const anonKey = request.headers()['apikey']
+        if (!authBackend.anonKey && anonKey && new URL(request.url()).pathname.startsWith('/auth/v1/')) {
+          authBackend.origin = new URL(request.url()).origin
+          authBackend.anonKey = anonKey
+        }
+      })
       page.on('requestfailed', (request) => diagnostics.recordAuthRequestFailure(request))
       page.on('pageerror', (error) => diagnostics.recordPageError(error))
       try {
@@ -103,6 +112,16 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
           console.error(
             `REGRESSION_LOGIN_DIAGNOSTICS ${JSON.stringify(diagnostics.snapshot(page.url(), visibleLoginErrors))}`,
           )
+          const unanswered = diagnostics.unansweredAuthRequests()
+          const probe =
+            authBackend.origin && authBackend.anonKey ? await probeAuthBackend(authBackend.origin, authBackend.anonKey) : null
+          console.error(`REGRESSION_AUTH_BACKEND ${JSON.stringify({ unanswered, probe })}`)
+          if (probe && probe.outcome === 'timeout') {
+            console.error(
+              'REGRESSION_AUTH_BACKEND_VERDICT the auth service did not answer a credential-free settings request ' +
+                'from this runner: an auth/environment outage, not a login-form, credential or screenshot failure.',
+            )
+          }
           throw error
         }
 

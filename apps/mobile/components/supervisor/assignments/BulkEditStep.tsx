@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { ValueLine, WarningLines } from "@/components/supervisor/assignments/AssignWorkloadParts";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { Button } from "@/components/ui/Button";
 import { minutesText, missingText } from "@/lib/housekeeping/assignmentFlowText";
 import type { BulkAssignmentController } from "@/lib/housekeeping/useBulkAssignment";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -21,6 +22,7 @@ const ADDABLE_SHOWN = 40;
    Nothing here touches a live assignment; "Save draft edits" just returns to the review. */
 
 export function BulkEditStep({ bulk, t }: { bulk: BulkAssignmentController; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const userId = bulk.editUserId;
@@ -133,7 +135,7 @@ export function BulkEditStep({ bulk, t }: { bulk: BulkAssignmentController; t: T
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   header: { flexDirection: "row", alignItems: "center", gap: 8 },
   icon: { minWidth: MIN_TARGET, minHeight: MIN_TARGET, borderRadius: MIN_TARGET / 2, alignItems: "center", justifyContent: "center" },
   title: { flex: 1, fontSize: 18, fontWeight: "800" },
@@ -142,11 +144,11 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 10 },
   room: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 8 },
   roomTop: { flexDirection: "row", alignItems: "baseline", gap: 10 },
-  number: { fontFamily: monoFont, fontSize: 22, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 22, fontWeight: "800" },
   roomMeta: { flex: 1 },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
   action: { minHeight: MIN_TARGET, justifyContent: "center", paddingHorizontal: 10 },
   pick: { gap: 6 },
   person: { minHeight: MIN_TARGET, justifyContent: "center", paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderRadius: R.md },
   footer: { paddingTop: 8 },
-});
+}));

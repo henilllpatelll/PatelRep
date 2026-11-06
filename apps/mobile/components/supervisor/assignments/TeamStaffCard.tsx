@@ -1,13 +1,14 @@
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { AttendanceChip, CapacityMeter, NoteLine } from "@/components/supervisor/assignments/TeamParts";
 import type { StaffRoomPhase, TeamCardModel } from "@/lib/housekeeping/assignmentTeamView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -25,6 +26,7 @@ const PHASE_ICON: Record<StaffRoomPhase, string> = {
  * have left. Compact on purpose — a preview of a few room numbers, never every room (the drawer has those).
  */
 function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCardModel; onOpen: (userId: string) => void; t: Translate; /** What this person would have if the unpublished draft were published; the live figures above stay live. */ proposedText?: string }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const phaseColor = (phase: StaffRoomPhase) => (phase === "completed" ? theme.status.ready : phase === "in_progress" ? theme.status.pickup : theme.textSecondary);
@@ -109,7 +111,7 @@ function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCard
 
 export const TeamStaffCard = memo(TeamStaffCardView);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { borderWidth: 1, borderRadius: R.lg, padding: 14, gap: 9 },
   top: { flexDirection: "row", alignItems: "center", gap: 11 },
   identity: { flex: 1, minWidth: 0, gap: 2 },
@@ -122,8 +124,8 @@ const styles = StyleSheet.create({
   coverage: { fontSize: 12.5, fontWeight: "600" },
   rooms: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 },
   room: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  roomText: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "800" },
+  roomText: { fontFamily: t.mono, fontSize: 12.5, fontWeight: "800" },
   more: { fontSize: 12.5, fontWeight: "700" },
   proposed: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderStyle: "dashed", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
   proposedText: { flex: 1, fontSize: 13, fontWeight: "700" },
-});
+}));

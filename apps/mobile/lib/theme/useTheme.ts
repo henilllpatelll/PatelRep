@@ -7,7 +7,7 @@ import {
 } from "@/components/shared/tokens";
 import { getThemeTokensV2 } from "@/components/shared/tokensV2";
 import { useDesignV2Scope } from "@/lib/design/DesignV2Scope";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
 import { useThemeMode } from "./ThemeProvider";
 
 export function useTheme(): ThemeTokens {
@@ -23,15 +23,16 @@ export function useTheme(): ThemeTokens {
 }
 
 /** Theme for SHARED CHROME that sits outside any `<DesignV2Scope>` (the tab bar and layout-level
- *  affordances). Returns V2 tokens whenever the preview flag is on, following the app's
+ *  affordances). Returns V2 tokens whenever Design V2 is active (hotel flag or development preview), following the app's
  *  system/light/dark preference, and the untouched legacy tokens otherwise. Screens must keep
  *  using `useTheme()`: this hook exists so chrome can modernize without recoloring unmigrated
  *  screens. */
 export function useChromeTheme(): ThemeTokens {
   const appMode = useThemeMode();
+  const designV2 = useDesignV2Active();
   return useMemo(
-    () => (isDesignV2Enabled() ? (getThemeTokensV2(appMode) as unknown as ThemeTokens) : getThemeTokens(appMode)),
-    [appMode],
+    () => (designV2 ? (getThemeTokensV2(appMode) as unknown as ThemeTokens) : getThemeTokens(appMode)),
+    [appMode, designV2],
   );
 }
 

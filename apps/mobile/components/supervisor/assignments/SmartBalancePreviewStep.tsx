@@ -1,8 +1,8 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { ValueLine, WarningLines } from "@/components/supervisor/assignments/AssignWorkloadParts";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { SheetHeader, Stat } from "@/components/supervisor/assignments/SmartBalanceParts";
@@ -11,6 +11,7 @@ import { attendanceLabel, minutesText, missingText } from "@/lib/housekeeping/as
 import { noteLines, partialLine, staleText, statusLine } from "@/lib/housekeeping/smartBalanceText";
 import type { SmartBalanceController } from "@/lib/housekeeping/useSmartBalance";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -20,6 +21,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    is live: "Add to draft" only stages proposed changes for the Phase 5 review, which is where publishing happens. */
 
 export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t }: { smart: SmartBalanceController; dateLabel: string | null; nameOf: (userId: string) => string; onRefresh: () => void; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { plan, preview, stale, paused } = smart;
@@ -179,7 +181,7 @@ export function SmartBalancePreviewStep({ smart, dateLabel, nameOf, onRefresh, t
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scroll: { flexGrow: 0, marginTop: 8 },
   content: { gap: 10, paddingBottom: 12 },
   heading: { fontSize: 22, fontWeight: "800" },
@@ -190,11 +192,11 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "800", flexShrink: 1 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 6 },
-  chip: { fontFamily: monoFont, fontSize: 15, fontWeight: "700", borderWidth: 1, borderRadius: R.sm, paddingHorizontal: 8, paddingVertical: 3 },
+  chip: { fontFamily: t.mono, fontSize: 15, fontWeight: "700", borderWidth: 1, borderRadius: R.sm, paddingHorizontal: 8, paddingVertical: 3 },
   notes: { gap: 4 },
   link: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: MIN_TARGET },
   footer: { paddingTop: 8, gap: 6 },
   secondary: { flexDirection: "row", gap: 8 },
   half: { flex: 1 },
   undo: { minHeight: MIN_TARGET, alignItems: "center", justifyContent: "center" },
-});
+}));

@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { CheckSquare, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -84,7 +84,7 @@ export function AssignmentRoomRow({ room, selected, onToggleSelect, onOpenDetail
             <span
               role="group"
               aria-label={t('housekeeping.roomStatus.filters.cleanTypeGroup', { defaultValue: 'Clean type' })}
-              className={isDesignV2PreviewEnabled() ? 'inline-flex items-center gap-0.5 rounded-[var(--r-md)] border border-line bg-surface-2 p-0.5' : 'inline-flex items-center gap-0.5'}
+              className={isDesignV2Enabled() ? 'inline-flex items-center gap-0.5 rounded-[var(--r-md)] border border-line bg-surface-2 p-0.5' : 'inline-flex items-center gap-0.5'}
             >
               {CLEAN_TYPE_OPTIONS.map((option) => (
                 <button
@@ -95,7 +95,7 @@ export function AssignmentRoomRow({ room, selected, onToggleSelect, onOpenDetail
                   onClick={() => onChangeCleanType?.(room.roomId, option.value)}
                   title={option.label}
                   className={cn(
-                    isDesignV2PreviewEnabled() ? 'min-h-6 min-w-6 rounded-[5px] px-1.5 text-[11px] font-semibold' : 'rounded px-1 text-[10px] font-semibold uppercase',
+                    isDesignV2Enabled() ? 'min-h-6 min-w-6 rounded-[5px] px-1.5 text-[11px] font-semibold' : 'rounded px-1 text-[10px] font-semibold uppercase',
                     room.cleanType === option.value ? 'bg-ink text-paper' : 'text-ink4 hover:text-ink2',
                   )}
                 >

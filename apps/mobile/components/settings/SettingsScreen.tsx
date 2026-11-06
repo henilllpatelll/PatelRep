@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountHeader } from "@/components/shared/HeadersV2";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
 import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 import { MIN_TOUCH } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
@@ -28,7 +28,8 @@ function goBack() {
  *  With the Design V2 preview on, Settings screens render the V2 account header inside a scoped V2
  *  theme; with it off this is exactly the legacy chrome. */
 export function SettingsScreen(props: SettingsScreenProps) {
-  if (isDesignV2Enabled() && props.v2Chrome !== false) {
+  const designV2 = useDesignV2Active();
+  if (designV2 && props.v2Chrome !== false) {
     return (
       <DesignV2Scope>
         <SettingsScreenV2 {...props} />

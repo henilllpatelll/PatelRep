@@ -4,7 +4,7 @@ import { Redirect, router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
 import { FrontDeskMore } from "@/components/frontDesk/FrontDeskMore";
 import { MoreHeader } from "@/components/engineering/more/MoreHeader";
 import { MoreIdentityCard } from "@/components/engineering/more/MoreIdentityCard";
@@ -24,7 +24,8 @@ import { useTheme } from "@/lib/theme/useTheme";
  *  has no More tab and is sent Home. */
 export default function MoreScreen() {
   const role = useAppStore((s) => s.user?.effective_role ?? s.user?.role);
-  if (role === "front_desk" && isDesignV2Enabled()) return <FrontDeskMore />;
+  const designV2 = useDesignV2Active();
+  if (role === "front_desk" && designV2) return <FrontDeskMore />;
   return <EngineeringMoreScreen />;
 }
 

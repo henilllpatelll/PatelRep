@@ -1,8 +1,7 @@
 import { useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { ViewInstance } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { serifFont } from "@/components/shared/tokens";
 import { Card } from "@/components/ui/Card";
 import { Kicker, LinkButton, MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import type { RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
@@ -10,6 +9,7 @@ import { describeUpNext, roomContext } from "@/lib/housekeeping/homeText";
 import type { TextContext } from "@/lib/housekeeping/myRoomsText";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -25,6 +25,7 @@ interface Props {
 
 /** One upcoming room from the shared cleaning order. The full list lives in My Rooms. */
 export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }: Props) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   const whyRef = useRef<ViewInstance>(null);
@@ -74,10 +75,10 @@ export function UpNextPreview({ entry, t, ctx, onOpenRoom, onViewRoute, onWhy }:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { gap: 4 },
   row: { minHeight: MIN_TARGET, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  number: { fontFamily: serifFont, fontSize: 26, lineHeight: 32 },
+  number: { fontFamily: t.serif, fontSize: 26, lineHeight: 32 },
   context: { fontSize: 14, lineHeight: 19 },
-});
+}));

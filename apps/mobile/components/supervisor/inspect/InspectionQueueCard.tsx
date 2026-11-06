@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { QueueItem } from "@/lib/inspections/queue";
 import { cardText, type Translate } from "@/lib/inspections/viewText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   item: QueueItem;
@@ -26,6 +27,7 @@ interface Props {
  * pass / fail shortcut: an outcome is only ever chosen inside the inspection itself.
  */
 function InspectionQueueCardView({ item, now, timeZone, language, showBuilding, blockedReason, t, onPress }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const text = cardText(item, { now, timeZone }, language, showBuilding, t);
@@ -107,7 +109,7 @@ function InspectionQueueCardView({ item, now, timeZone, language, showBuilding, 
 
 export const InspectionQueueCard = memo(InspectionQueueCardView);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: {
     overflow: "hidden",
     flexDirection: "row",
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
   rail: { width: 5 },
   body: { flex: 1, minWidth: 0, gap: 3, paddingHorizontal: 14, paddingVertical: 12 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  room: { fontFamily: monoFont, fontSize: 26, lineHeight: 30, fontWeight: "800" },
+  room: { fontFamily: t.mono, fontSize: 26, lineHeight: 30, fontWeight: "800" },
   badge: { flexShrink: 1, borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText: { fontSize: 11.5, fontWeight: "800" },
   line: { fontSize: 13, fontWeight: "600" },
@@ -137,4 +139,4 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   actionText: { fontSize: 15, fontWeight: "800" },
-});
+}));

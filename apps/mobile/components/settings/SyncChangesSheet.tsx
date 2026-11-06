@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { SheetNotice } from "@/components/home/sheetParts";
@@ -11,7 +11,7 @@ import { type CategoryKey, type OverviewCategory } from "@/lib/offline/syncOverv
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 
 interface Props {
@@ -34,6 +34,7 @@ interface Props {
  * server refused is fixed where the work happens, not replayed from here.
  */
 export function SyncChangesSheet({ visible, category, categories, online, syncing, lastRun, onRetry, onOpenRoom, onOpenTasks, onClose }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const shown = categories.filter((c) => c.rows.length > 0 && (category === null || c.key === category));
@@ -104,6 +105,7 @@ function reasonText(code: string, state: string, t: (key: string) => string): st
 }
 
 function ChangeRow({ row, onOpenRoom, onOpenTasks }: { row: SyncRow; onOpenRoom: (roomId: string) => void; onOpenTasks: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const ctx = useTextContext();
@@ -157,14 +159,14 @@ function ChangeRow({ row, onOpenRoom, onOpenTasks }: { row: SyncRow; onOpenRoom:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   empty: { fontSize: 14, lineHeight: 20 },
   intro: { fontSize: 14, lineHeight: 20 },
   group: { gap: 8 },
-  groupTitle: { fontSize: 12, fontWeight: "700", letterSpacing: microLabelTracking(0.6), textTransform: microLabelCase() },
+  groupTitle: { fontSize: 12, fontWeight: "700", letterSpacing: t.tracking(0.6), textTransform: t.labelCase },
   row: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 4 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: "700" },
   rowState: { fontSize: 12, fontWeight: "800" },
   rowMeta: { fontSize: 12, lineHeight: 17 },
-});
+}));

@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont, R } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Button } from "@/components/ui/Button";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
@@ -10,6 +10,7 @@ import type { Task } from "@/lib/api/tasks";
 import { minutesSince, overdueMinutes } from "@/lib/tasks/workQueue";
 import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Task card ──────────────────────────────────────────────────────────────
    Hierarchy: location -> title -> urgency/status -> type -> time context -> ONE action.
@@ -73,6 +74,7 @@ export function TaskCard({
   onPrimary,
   pending = null,
 }: TaskCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -277,7 +279,7 @@ export function TaskCard({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { flexDirection: "row", borderWidth: 1, borderRadius: R.lg, overflow: "hidden" },
   cardHero: { borderWidth: 1.5 },
   cardV2: { borderRadius: 16 },
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 5, flexShrink: 1 },
-  location: { fontFamily: monoFont, fontSize: 12.5, fontWeight: "700", letterSpacing: 0.3, flexShrink: 1 },
+  location: { fontFamily: t.mono, fontSize: 12.5, fontWeight: "700", letterSpacing: 0.3, flexShrink: 1 },
   lateRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   late: { fontSize: 12.5, fontWeight: "700" },
   title: { fontSize: 16, fontWeight: "700", lineHeight: 21 },
@@ -300,4 +302,4 @@ const styles = StyleSheet.create({
   urgentBadge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   urgentText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   actionRow: { flexDirection: "row", paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4 },
-});
+}));

@@ -26,6 +26,11 @@ export const HERMETIC_USERS = {
  *  HERMETIC_REDESIGN_SECTIONS=all to mirror production. */
 export const REDESIGN_SECTIONS = ['shell', 'dashboard', 'tasks', 'evidence', 'engineering', 'reports', 'managementRoi', 'aiCopilot', 'logbook', 'staff', 'lostFound', 'programs', 'sop', 'scheduling', 'safety', 'guestRequests', 'billing', 'settings', 'guestFeedback', 'integrations', 'housekeeping']
 const HOTEL = { id: 'a0000000-0000-4000-a000-000000000001', name: 'Hermetic Fixture Hotel', timezone: 'America/Chicago', room_count: 7, enabled_features: [], web_redesign_sections: process.env.HERMETIC_REDESIGN_SECTIONS === 'all' ? REDESIGN_SECTIONS : [] }
+/** Mock-only control channel (POST /__hermetic/hotel): lets a browser spec change the signed-in hotel's id and
+ *  enabled_features the way Feature Rollout / a hotel switch would, then watch the app react to the next /auth/me.
+ *  It exists only in this test double; the real API has no such route. */
+let hotelOverride = {}
+const currentHotel = () => ({ ...HOTEL, ...hotelOverride })
 const ROOM_TYPE = { name: 'Standard', code: 'STD', base_clean_minutes: 30 }
 const FIXTURE_ROOMS = [
   ['101', 'DIRTY', false], ['102', 'CLEAN', false], ['103', 'INSPECTED', true], ['104', 'IN_PROGRESS', false],
@@ -96,12 +101,16 @@ export function route({ method, path, query, body, email }) {
   }
   if (path === '/auth/v1/user') return email && HERMETIC_USERS[email] ? { status: 200, json: supabaseUser(email) } : { status: 401, json: { message: 'invalid JWT' } }
   if (path === '/auth/v1/logout') return { status: 204, json: null }
+  if (method === 'POST' && path === '/__hermetic/hotel') {
+    hotelOverride = body && typeof body === 'object' && !Array.isArray(body) ? body : {}
+    return { status: 200, json: { data: currentHotel() } }
+  }
   if (!path.startsWith('/v1/')) return null
   const api = path.slice(3)
   if (method !== 'GET') return { status: 200, json: { data: {} } }
   if (api === '/auth/me') {
     const u = userFor(email ?? 'gm@hermetic.invalid')
-    return { status: 200, json: { user: { id: u.id, email: u.email, role: u.role, full_name: u.full_name }, hotel: HOTEL, hotels: [HOTEL], subscription: { plan_status: 'active', credits_included: 0 } } }
+    return { status: 200, json: { user: { id: u.id, email: u.email, role: u.role, full_name: u.full_name }, hotel: currentHotel(), hotels: [currentHotel()], subscription: { plan_status: 'active', credits_included: 0 } } }
   }
   if (api === '/staff/me/effective-role') {
     const u = userFor(email ?? 'gm@hermetic.invalid')

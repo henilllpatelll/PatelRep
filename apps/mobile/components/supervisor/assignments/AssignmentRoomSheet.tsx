@@ -1,11 +1,10 @@
 import { useMemo } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { AssignmentFlowPanel } from "@/components/supervisor/assignments/AssignmentFlowPanel";
 import { ExceptionBlock, FactRows, FlagChips, NoteCard, Section, StatusBadgeLarge, WorkOrderCard } from "@/components/supervisor/detail/RoomDetailParts";
@@ -15,6 +14,7 @@ import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { buildRoomDetail, type DetailRow, type RoomDetailContext } from "@/lib/housekeeping/roomDetailView";
 import type { AssignmentFlowController } from "@/lib/housekeeping/useAssignmentFlow";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Assignment room sheet ─────────────────────────────────────────────────
    The assignment-focused view of ONE room: who has it, how long it should take, why it matters and what is in
@@ -40,6 +40,7 @@ interface Props {
 }
 
 export function AssignmentRoomSheet({ entry, context, assignment, outOfView = false, onClose, onOpenBoard }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -192,14 +193,14 @@ export function AssignmentRoomSheet({ entry, context, assignment, outOfView = fa
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   keyboard: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: { borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 16, paddingTop: 10, maxHeight: "92%" },
   grabber: { alignSelf: "center", width: 38, height: 4, borderRadius: 2, marginBottom: 10 },
   header: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerBody: { flex: 1, minWidth: 0 },
-  roomNumber: { fontFamily: monoFont, fontSize: 34, lineHeight: 40, fontWeight: "800" },
+  roomNumber: { fontFamily: t.mono, fontSize: 34, lineHeight: 40, fontWeight: "800" },
   subtitle: { fontSize: 13.5, fontWeight: "600" },
   iconButton: { minWidth: 44, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   paused: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, marginTop: 8 },
@@ -210,4 +211,4 @@ const styles = StyleSheet.create({
   note: { fontSize: 14, lineHeight: 20 },
   held: { gap: 4 },
   footer: { gap: 8, paddingTop: 8 },
-});
+}));

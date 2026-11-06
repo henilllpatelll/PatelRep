@@ -7,7 +7,7 @@ import { usePalette, type Palette } from "@/components/ai/palette";
 import { SopAnswerNotes } from "@/components/sop/SopAnswerNotes";
 import type { AssistantMessage } from "@/lib/ai/conversationState";
 import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.6;
 /** Longer answers than this are shortened in the compact sheet, with a way into the full assistant. */
@@ -43,7 +43,8 @@ function timeOf(at: number): string {
 export function AssistantMessageView({ message, conversation, compact, palette, onReviewAction, onOpenRoom, onExpand, onOpenMyRooms, onOpenHref, onFollowUp }: Props) {
   const { t, i18n } = useTranslation();
   const theme = usePalette(palette);
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const typo = useTypography();
+  const styles = useMemo(() => makeStyles(theme, typo), [theme, typo]);
   const isUser = message.role === "user";
 
   if (message.kind === "notice" && message.notice) {
@@ -170,16 +171,16 @@ export function AssistantMessageView({ message, conversation, compact, palette, 
   );
 }
 
-const makeStyles = (theme: Palette) =>
+const makeStyles = (theme: Palette, t: TypographyMode) =>
   StyleSheet.create({
     bubble: { maxWidth: "88%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, marginVertical: 4 },
     userBubble: { alignSelf: "flex-end", backgroundColor: theme.primarySoft, borderWidth: 1, borderColor: theme.primaryLine },
     aiBubble: { alignSelf: "flex-start", backgroundColor: theme.surfaceElevated, borderWidth: 1, borderColor: theme.ai.line },
-    who: { fontSize: microLabelSize(10.5), fontWeight: "800", letterSpacing: microLabelTracking(0.6), textTransform: microLabelCase(), color: theme.textMuted, marginBottom: 3 },
+    who: { fontSize: t.labelSize(10.5), fontWeight: "800", letterSpacing: t.tracking(0.6), textTransform: t.labelCase, color: theme.textMuted, marginBottom: 3 },
     bubbleText: { fontSize: 15, lineHeight: 21 },
     userText: { color: theme.textPrimary },
     aiText: { color: theme.textPrimary },
-    provenance: { marginTop: 6, fontSize: microLabelSize(10.5), letterSpacing: microLabelTracking(0.5), textTransform: microLabelCase(), color: theme.textMuted },
+    provenance: { marginTop: 6, fontSize: t.labelSize(10.5), letterSpacing: t.tracking(0.5), textTransform: t.labelCase, color: theme.textMuted },
     disclaimer: { marginTop: 2, fontSize: 11.5, lineHeight: 16, color: theme.textMuted },
     more: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", paddingHorizontal: 4 },
     moreText: { fontSize: 13.5, fontWeight: "800", color: theme.ai.primary },

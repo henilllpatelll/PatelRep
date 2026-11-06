@@ -16,6 +16,7 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 jest.mock("@/lib/design/designV2", () => ({
   isDesignV2Enabled: () => mockFlag,
+  isDesignV2PreviewEnabled: () => mockFlag,
   resolveDesignV2Preview: () => mockFlag,
 }));
 

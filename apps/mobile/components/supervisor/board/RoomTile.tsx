@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { GRID_GAP, type RoomTileModel } from "@/lib/housekeeping/roomBoardView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Room card — the readable board cell ───────────────────────────────────
    Room number, a labelled status (icon + text, never colour alone), who has it, and one or two recorded
@@ -19,6 +20,7 @@ interface TileProps {
 }
 
 function RoomTileView({ model, onSelect }: TileProps) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
@@ -114,6 +116,7 @@ export function RoomTileRow({
   columns: number;
   onSelect: (roomId: string) => void;
 }) {
+  const styles = useStyles();
   const spacers = Math.max(0, columns - models.length);
   return (
     <View style={styles.row} testID="board-row">
@@ -129,7 +132,7 @@ export function RoomTileRow({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { flexDirection: "row", gap: GRID_GAP, alignItems: "stretch" },
   cell: { flex: 1, minWidth: 0 },
   tile: {
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.85 },
   body: { paddingLeft: 14, paddingRight: 10, paddingVertical: 10, gap: 6 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
-  number: { flexShrink: 1, fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "800" },
+  number: { flexShrink: 1, fontFamily: t.mono, fontSize: 22, lineHeight: 26, fontWeight: "800" },
   flags: { flexDirection: "row", alignItems: "center", gap: 5 },
   pill: {
     alignSelf: "flex-start",
@@ -160,4 +163,4 @@ const styles = StyleSheet.create({
   assignee: { flex: 1, minWidth: 0, fontSize: 13, fontWeight: "600" },
   assigneeStrong: { fontWeight: "800" },
   detail: { fontSize: 12, lineHeight: 16 },
-});
+}));

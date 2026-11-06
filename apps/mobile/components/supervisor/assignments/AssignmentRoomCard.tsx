@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { CardChip, CardCtaKind, RoomCardModel } from "@/lib/housekeeping/assignmentRoomsView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Room card — one room in the assignment queue ──────────────────────────
    The whole card opens the room sheet; the call to action at the bottom names what happens next
@@ -27,6 +28,7 @@ const CTA_ICON: Record<CardCtaKind, "person-add-outline" | "chevron-forward" | "
 };
 
 function RoomCardView({ model, onOpen }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
@@ -103,6 +105,7 @@ function RoomCardView({ model, onOpen }: Props) {
 }
 
 function Chip({ chip, roomNumber }: { chip: CardChip; roomNumber: string }) {
+  const styles = useStyles();
   const theme = useTheme();
   const alert = chip.tone === "alert";
   const fg = alert ? theme.status.dirty : theme.status.pickup;
@@ -121,11 +124,11 @@ function Chip({ chip, roomNumber }: { chip: CardChip; roomNumber: string }) {
 
 export const AssignmentRoomCard = memo(RoomCardView, (prev, next) => prev.model.signature === next.model.signature && prev.onOpen === next.onOpen);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { minHeight: 92, overflow: "hidden", borderWidth: 1, borderRadius: R.lg },
   body: { paddingLeft: 14, paddingRight: 12, paddingVertical: 10, gap: 4 },
   top: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
-  number: { fontFamily: monoFont, fontSize: 24, lineHeight: 28, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 24, lineHeight: 28, fontWeight: "800" },
   statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6, flexShrink: 1 },
@@ -139,4 +142,4 @@ const styles = StyleSheet.create({
   blockerText: { flex: 1, fontSize: 12.5, fontWeight: "600" },
   cta: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 6, minHeight: 32, marginTop: 2 },
   ctaText: { fontSize: 14, fontWeight: "800" },
-});
+}));

@@ -8,7 +8,7 @@ import { usePalette, type Palette } from "@/components/ai/palette";
 import { summarizePreview } from "@/lib/ai/actionSummary";
 import type { ActionItem } from "@/lib/ai/conversationState";
 import { validatePreview, type DraftPatch } from "@/lib/ai/drafts";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -33,7 +33,8 @@ interface Props {
 export function ActionConfirmPanel({ item, online, onEdit, onConfirm, onCancel, onDone, palette }: Props) {
   const { t } = useTranslation();
   const theme = usePalette(palette);
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const typo = useTypography();
+  const styles = useMemo(() => makeStyles(theme, typo), [theme, typo]);
   const [editing, setEditing] = useState(false);
 
   const busy = item.status === "confirming";
@@ -125,14 +126,14 @@ export function ActionConfirmPanel({ item, online, onEdit, onConfirm, onCancel, 
   );
 }
 
-const makeStyles = (theme: Palette) =>
+const makeStyles = (theme: Palette, t: TypographyMode) =>
   StyleSheet.create({
     wrap: { gap: 10 },
     prepared: { flexDirection: "row", alignItems: "center", gap: 6 },
     preparedText: { fontSize: 12.5, color: theme.textMuted, fontWeight: "600" },
     rows: { borderRadius: 14, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surfaceElevated, paddingHorizontal: 14, paddingVertical: 4 },
     row: { paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.borderSubtle, gap: 2 },
-    rowLabel: { fontSize: microLabelSize(11), fontWeight: "800", letterSpacing: microLabelTracking(0.5), textTransform: microLabelCase(), color: theme.textMuted },
+    rowLabel: { fontSize: t.labelSize(11), fontWeight: "800", letterSpacing: t.tracking(0.5), textTransform: t.labelCase, color: theme.textMuted },
     rowValue: { fontSize: 15.5, lineHeight: 21, color: theme.textPrimary, fontWeight: "600" },
     rowWarn: { color: theme.status.pickup },
     warn: { fontSize: 12.5, lineHeight: 18, color: theme.status.pickup },

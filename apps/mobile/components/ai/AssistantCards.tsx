@@ -8,7 +8,7 @@ import { summarizePreview } from "@/lib/ai/actionSummary";
 import type { AssistantSource, ClarifyOption, CopilotFailureKind } from "@/lib/ai/contract";
 import type { ActionItem } from "@/lib/ai/conversationState";
 import type { PublishedNextRoom } from "@/lib/ai/shiftBriefingSource";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 /* One card language for everything the assistant can show besides plain text:
    a room, a question back, a limitation, sources, and a proposed action. Screens
@@ -18,7 +18,8 @@ const MAX_FONT_SCALE = 1.6;
 
 function useCardStyles(palette?: Palette) {
   const theme = usePalette(palette);
-  return { theme, styles: useMemo(() => makeStyles(theme), [theme]) };
+  const t = useTypography();
+  return { theme, styles: useMemo(() => makeStyles(theme, t), [theme, t]) };
 }
 
 /** B. Room recommendation: the room Home ranks first, a permitted next step, and where that came from. */
@@ -273,7 +274,7 @@ export function ActionSummaryCard({
   );
 }
 
-const makeStyles = (theme: Palette) =>
+const makeStyles = (theme: Palette, t: TypographyMode) =>
   StyleSheet.create({
     card: {
       marginTop: 4,
@@ -286,7 +287,7 @@ const makeStyles = (theme: Palette) =>
       borderColor: theme.ai.line,
       gap: 4,
     },
-    kicker: { fontSize: microLabelSize(11), fontWeight: "800", letterSpacing: microLabelTracking(0.7), textTransform: microLabelCase(), color: theme.ai.primary },
+    kicker: { fontSize: t.labelSize(11), fontWeight: "800", letterSpacing: t.tracking(0.7), textTransform: t.labelCase, color: theme.ai.primary },
     body: { fontSize: 15, lineHeight: 21, color: theme.textPrimary, fontWeight: "600" },
     muted: { fontSize: 12.5, lineHeight: 18, color: theme.textMuted },
     source: { fontSize: 12, color: theme.textMuted, marginTop: 2 },

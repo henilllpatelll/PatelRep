@@ -14,7 +14,7 @@ import { Toaster } from '@/components/ui/Toast'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { useDesignV2 } from '@/lib/design/useDesignV2'
 import { ShellV2 } from '@/components/design-v2/shell/ShellV2'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { density, theme, accent } = useUIPreferencesStore()
   const hotel = useHotelStore((s) => s.hotel)
   const shellV2 = isSectionRedesigned('shell', hotel)
+  const designV2 = useDesignV2()
 
   const themeClasses = [
     density === 'comfortable' ? 'density-comfortable' : density === 'dense' ? 'density-dense' : 'density-balanced',
@@ -43,9 +44,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [density, theme, accent])
 
-  // Design System V2 preview (NEXT_PUBLIC_DESIGN_V2_PREVIEW, never in production): the V2 management
-  // shell replaces this chrome. Flag off -> the legacy shell below renders exactly as before.
-  if (isDesignV2PreviewEnabled()) {
+  // Design System V2: the V2 management shell replaces this chrome when this hotel's `design_v2` flag is on
+  // (or on a development preview build). Flag off, missing, loading or unknown -> the legacy shell below renders
+  // exactly as before. The two branches are different trees, so a flag change re-mounts every page below and each
+  // one re-reads the decision (see lib/design/designV2.ts).
+  if (designV2) {
     return (
       <ShellV2 themeClasses={themeClasses} legacyRedesigned={shellV2}>
         {children}

@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { lightTheme, monoFont } from "@/components/shared/tokens";
+import { lightTheme } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -15,6 +15,7 @@ import {
   type TaskQueueEntry,
 } from "@/lib/ai/tasks";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Task card — Evening Lobby work card for the Tasks tab ─────────────────
    Mirrors the room-card language: left urgency rail, identity tile, big
@@ -73,6 +74,7 @@ export function TaskCard({
   onCancel,
   onClaim,
 }: TaskCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -216,7 +218,7 @@ export function TaskCard({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   cardLayoutOverrides: {
     position: "relative",
     overflow: "hidden",
@@ -255,12 +257,12 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 2 },
   overdueBadge: { marginLeft: "auto" },
   roomChip: { flexDirection: "row", alignItems: "center", gap: 3 },
-  roomChipText: { fontSize: 12, fontWeight: "700", fontFamily: monoFont },
+  roomChipText: { fontSize: 12, fontWeight: "700", fontFamily: t.mono },
   locationChipText: { fontSize: 12, fontWeight: "600", maxWidth: 140 },
   guestChip: { flexDirection: "row", alignItems: "center", gap: 3 },
   guestChipText: { fontSize: 11.5, fontWeight: "700" },
   dueRow: { flexDirection: "row", alignItems: "center", gap: 3, marginLeft: "auto" },
-  dueText: { fontSize: 11, fontFamily: monoFont },
+  dueText: { fontSize: 11, fontFamily: t.mono },
 
   doneBtn: {
     width: 38,
@@ -280,4 +282,4 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   confirmLabel: { flex: 1, fontSize: 12.5, fontWeight: "700" },
-});
+}));

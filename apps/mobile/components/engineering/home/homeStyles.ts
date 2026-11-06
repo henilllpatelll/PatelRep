@@ -1,6 +1,6 @@
-import { StyleSheet } from "react-native";
+
 import { R } from "@/components/shared/tokens";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /** Shared sizing for the Technician Home pieces. */
 /**
@@ -10,12 +10,12 @@ import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design
 export const HOME_MAX_FONT = 2;
 export const HOME_MIN_TOUCH = 48;
 
-export const homeStyles = StyleSheet.create({
+export const useHomeStyles = createTypographyStyles((t) => ({
   meta: { fontSize: 12.5, lineHeight: 17 },
   link: { fontSize: 13, fontWeight: "800" },
   linkRow: { minHeight: HOME_MIN_TOUCH, justifyContent: "center" },
-  sectionTitle: { fontSize: microLabelSize(11.5), fontWeight: "800", letterSpacing: microLabelTracking(0.9), textTransform: microLabelCase(), marginTop: 6 },
+  sectionTitle: { fontSize: t.labelSize(11.5), fontWeight: "800", letterSpacing: t.tracking(0.9), textTransform: t.labelCase, marginTop: 6 },
   badgeRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
   emptyRow: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: HOME_MIN_TOUCH },
   radius: { borderRadius: R.md },
-});
+}));

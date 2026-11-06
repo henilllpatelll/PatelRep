@@ -59,6 +59,10 @@ Adding a flag means adding one entry to *both* files with the same key. The CI g
 - `apps/web/components/shared/FeatureGate.tsx` — a `{feature, children, fallback}` boundary component for wrapping a whole UI section. A new, general-purpose component — not a rename of `RedesignGate` (which is specific to the completed web-redesign rollout and stays as-is).
 - `enabled_features` arrives once per session via `/auth/me` into the (non-persisted) `hotelStore`. A flag change becomes visible to a logged-in user on the next natural context refresh (page reload, re-login, `SIGNED_IN` event) — not instantly, and not via a realtime subscription. That is an intentional, documented trade-off (see "Kill switch" below).
 
+## Visual-only flags: `design_v2`
+
+`design_v2` is a `release`, **not** backend-enforced flag: it changes presentation, never access, so no route checks it. Web and mobile both read it from `/auth/me` and re-read it on a schedule so a rollback reaches open sessions; see [DESIGN_V2_ACTIVATION.md](DESIGN_V2_ACTIVATION.md) for the refresh model, limits and recovery.
+
 ## Standard new-feature lifecycle
 
 1. Build the feature behind a registered flag, defaulting OFF.

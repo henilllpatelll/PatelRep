@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { usePalette, type Palette } from "@/components/ai/palette";
 import type { RoomQuestionId } from "@/lib/housekeeping/roomAssist";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -27,7 +27,8 @@ interface Props {
 export function RoomQuestionList({ ids, onAsk, variant, palette }: Props) {
   const { t } = useTranslation();
   const theme = usePalette(palette);
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const typo = useTypography();
+  const styles = useMemo(() => makeStyles(theme, typo), [theme, typo]);
   if (ids.length === 0) return null;
   return (
     <View style={variant === "rows" ? styles.rows : styles.chips} testID="room-questions">
@@ -56,10 +57,10 @@ export function RoomQuestionList({ ids, onAsk, variant, palette }: Props) {
   );
 }
 
-const makeStyles = (theme: Palette) =>
+const makeStyles = (theme: Palette, t: TypographyMode) =>
   StyleSheet.create({
     rows: { gap: 8 },
-    eyebrow: { fontSize: microLabelSize(11), fontWeight: "900", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase(), color: theme.textMuted },
+    eyebrow: { fontSize: t.labelSize(11), fontWeight: "900", letterSpacing: t.tracking(0.8), textTransform: t.labelCase, color: theme.textMuted },
     row: {
       minHeight: 52,
       borderRadius: 14,

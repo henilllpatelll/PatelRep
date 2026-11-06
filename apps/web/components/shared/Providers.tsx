@@ -11,6 +11,7 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { ApiClientError, apiClient } from '@/lib/api/client'
 import { staffApi } from '@/lib/api/staff'
 import { isPublicRoute } from '@/lib/utils/routeGuard'
+import { DESIGN_V2_MIN_REFRESH_GAP_MS, DESIGN_V2_REFRESH_INTERVAL_MS } from '@/lib/design/designV2Activation'
 import { LanguageSync } from '@/components/shared/LanguageSync'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -98,10 +99,12 @@ function AuthListener() {
     setLoading,
     clear,
   } = useAuthStore()
-  const { setHotel, setHotels, setSubscription, clear: clearHotel } = useHotelStore()
+  const { setContext, setSubscription, clear: clearHotel } = useHotelStore()
   const router = useRouter()
   // Guard against concurrent /auth/me fetches
   const fetchingRef = useRef(false)
+  // When the last /auth/me attempt started; focus/reconnect refreshes inside the min gap are skipped (rate limit).
+  const lastAttemptRef = useRef(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -117,9 +120,14 @@ function AuthListener() {
       }
     }
 
-    const fetchProfile = async () => {
+    // `refresh` re-reads only the hotel context (the tenant feature flags, e.g. design_v2). It never touches the
+    // role, name or schedule, so a background refresh cannot change what a signed-in person is allowed to do.
+    const fetchProfile = async (refresh = false) => {
       if (fetchingRef.current) return
       fetchingRef.current = true
+      lastAttemptRef.current = Date.now()
+      // Who this read is for. If the signed-in person changes while it is in flight, its answer is discarded.
+      const requestedFor = useAuthStore.getState().user?.id ?? null
       try {
         // /auth/me sits behind the strict auth rate limit; a burst of page loads can get a 429.
         // Without the profile the hotel store stays empty and hotel-gated pages never render,
@@ -129,14 +137,15 @@ function AuthListener() {
           try {
             data = await apiClient.get('/auth/me')
           } catch (err) {
-            if (!(err instanceof ApiClientError) || err.status !== 429 || attempt >= 2) throw err
+            if (!(err instanceof ApiClientError) || err.status !== 429 || refresh || attempt >= 2) throw err
             const waitSeconds = Math.min(Math.max(err.retryAfterSeconds ?? 5, 1), 60)
             await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000))
           }
         }
-        setHotel(data.hotel)
-        setHotels(data.hotels?.length ? data.hotels : [data.hotel])
+        if ((useAuthStore.getState().user?.id ?? null) !== requestedFor) return
+        setContext({ hotel: data.hotel, hotels: data.hotels, userId: requestedFor, fetchedAt: Date.now() })
         setSubscription(data.subscription)
+        if (refresh) return
         // If the API returns a role, overwrite what we got from the JWT
         if (data.user?.role) {
           setRole(data.user.role)
@@ -197,6 +206,8 @@ function AuthListener() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        // A different person must never inherit the previous person's hotel context (and with it its design).
+        if (useAuthStore.getState().user?.id !== session.user.id) clearHotel()
         setUser(session.user)
         setSession(session)
         const role = extractRole(
@@ -225,6 +236,8 @@ function AuthListener() {
         )
         setRole(role)
         writeAppRoleCookie(role)
+        // The token refresh is also how a hotel change reaches this tab; re-read the hotel context behind it.
+        void fetchProfile(true)
       } else if (event === 'USER_UPDATED' && session?.user) {
         setUser(session.user)
         setSession(session)
@@ -255,9 +268,26 @@ function AuthListener() {
     }
     window.addEventListener('patelrep:session-expired', handleSessionExpired)
 
+    // Context refresh (how a flag flipped by Feature Rollout reaches an open tab): when the tab becomes visible or the
+    // network returns, and on a slow timer while visible. Skipped when signed out or when one ran moments ago.
+    const refreshIfDue = (minGapMs: number) => {
+      if (!useAuthStore.getState().user) return
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      if (Date.now() - lastAttemptRef.current < minGapMs) return
+      void fetchProfile(true)
+    }
+    const onVisible = () => refreshIfDue(DESIGN_V2_MIN_REFRESH_GAP_MS)
+    const onOnline = () => refreshIfDue(DESIGN_V2_MIN_REFRESH_GAP_MS)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', onOnline)
+    const refreshTimer = window.setInterval(() => refreshIfDue(DESIGN_V2_REFRESH_INTERVAL_MS - 1000), DESIGN_V2_REFRESH_INTERVAL_MS)
+
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('patelrep:session-expired', handleSessionExpired)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onOnline)
+      window.clearInterval(refreshTimer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
