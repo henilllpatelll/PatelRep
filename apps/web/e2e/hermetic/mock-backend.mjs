@@ -13,6 +13,7 @@
 import { createServer } from 'node:http'
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { reportsRoute } from './reports-fixtures.mjs'
 
 export const HERMETIC_PASSWORD = 'hermetic-fixture-not-a-secret'
 export const HERMETIC_USERS = {
@@ -95,6 +96,8 @@ export function route({ method, path, query, body, email }) {
     const u = userFor(email ?? 'gm@hermetic.invalid')
     return { status: 200, json: { data: { base_role: u.role, effective_role: u.role, schedule_id: null, is_overridden: false, custom_role: null } } }
   }
+  const reports = reportsRoute(api, query)
+  if (reports) return { status: 200, json: reports }
   if (api === '/housekeeping/board') return { status: 200, json: { data: boardRows() } }
   if (api === '/staff') return { status: 200, json: { data: { staff: STAFF, total: STAFF.length } } }
   if (api.startsWith('/clean-sessions/hotel-avg-clean-time')) return { status: 200, json: { data: { today_avg_minutes: null, seven_day_avg_minutes: null, delta_minutes: null, today_count: 0 } } }
