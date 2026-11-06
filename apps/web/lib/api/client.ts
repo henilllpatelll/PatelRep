@@ -35,7 +35,9 @@ export class ApiClientError extends Error {
 function toFriendlyError(raw: string | undefined): string {
   if (!raw) return 'Something went wrong. Please try again.'
   // Already a short friendly message from the API layer
-  if (!raw.includes('{') && !raw.includes('code') && raw.length < 200) return raw
+  // Only the raw database shape (`code: 23505`, `"code": ...`) is treated as unreadable. Validation messages that name a field
+  // (`postal_code`, `problem_code_id`) or say "ZIP code" in prose must reach the form, not become a generic failure.
+  if (!raw.includes('{') && !/\bcode\b["']?\s*[:=]/.test(raw) && raw.length < 200) return raw
   // Duplicate key / unique constraint
   if (raw.includes('23505') || raw.includes('duplicate key') || raw.includes('already exists')) {
     if (raw.includes('room_assignment')) return 'This room is already assigned for that date.'
