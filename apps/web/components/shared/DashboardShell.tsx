@@ -14,7 +14,7 @@ import { Toaster } from '@/components/ui/Toast'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
-import { useDesignV2 } from '@/lib/design/designV2'
+import { useDesignV2 } from '@/lib/design/useDesignV2'
 import { ShellV2 } from '@/components/design-v2/shell/ShellV2'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
