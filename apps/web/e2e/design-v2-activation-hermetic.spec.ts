@@ -29,7 +29,7 @@ async function openDashboard(page: Page, mode: 'light' | 'dark' = 'light') {
   await page.addInitScript((theme) => {
     localStorage.setItem('patelrep-ui-prefs', JSON.stringify({ state: { density: 'balanced', theme, accent: 'terracotta' }, version: 0 }))
   }, mode)
-  await page.goto('/')
+  await page.goto('/dashboard')
   await expect(page.locator('main')).toBeVisible()
 }
 
