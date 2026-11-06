@@ -58,6 +58,11 @@ import { normalizeTask } from "@/lib/api/tasks";
 import { saveHistoryFirstPage } from "@/lib/tasks/offline/taskCache";
 import { useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 
+import { pinMidweekClock } from "../helpers/pinMidweekClock";
+
+// The screen groups by hotel day (America/Chicago). Pin the clock to midday so the "a minute ago" fixtures cannot straddle
+// local midnight when CI happens to run at 00:00 Central (that exact window failed attempt 1 of run 42171459239).
+pinMidweekClock();
 const NOW = Date.now();
 const ago = (hours: number) => new Date(NOW - hours * 3_600_000).toISOString();
 function done(id: string, title: string, completedAt: string, extra: Record<string, unknown> = {}) {
