@@ -16,12 +16,14 @@ import { useAppStore } from "@/stores/appStore";
 import { R } from "@/components/shared/tokens";
 import { IconButton } from "@/components/shared/mobileHandoff";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 export default function NewLogbookEntryScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { isOnline } = useAppStore();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -32,7 +34,7 @@ export default function NewLogbookEntryScreen() {
   const canSubmit = title.trim().length > 0 && body.trim().length > 0;
 
   const submit = async () => {
-    if (!canSubmit || !isOnline) return;
+    if (!canSubmit || !isOnline || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -73,7 +75,7 @@ export default function NewLogbookEntryScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>
+        <Text style={[styles.fieldLabel, { color: theme.textMuted }, x.label]}>
           {t("logbook.fieldTitle")}
         </Text>
         <TextInput
@@ -92,7 +94,7 @@ export default function NewLogbookEntryScreen() {
           maxLength={120}
         />
 
-        <Text style={[styles.fieldLabel, { color: theme.textMuted }]}>
+        <Text style={[styles.fieldLabel, { color: theme.textMuted }, x.label]}>
           {t("logbook.fieldDetails")}
         </Text>
         <TextInput

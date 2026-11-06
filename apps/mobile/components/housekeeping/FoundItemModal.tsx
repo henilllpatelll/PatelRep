@@ -12,6 +12,7 @@ import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
 import { FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
 import { PhotoAttachment } from "./roomDetail/PhotoAttachment";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /** The API accepts up to 2000; a found-item line never needs it. */
 const DESCRIPTION_MAX = 500;
@@ -33,6 +34,7 @@ interface FoundItemModalProps {
 export default function FoundItemModal({ visible, roomId, roomNumber, onClose }: FoundItemModalProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const toast = useToast();
   const isOnline = useAppStore((state) => state.isOnline);
 
@@ -159,7 +161,7 @@ export default function FoundItemModal({ visible, roomId, roomNumber, onClose }:
       <View style={[styles.reminder, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]} accessible accessibilityLabel={`${t("foundItem.reminderTitle")}. ${t("foundItem.reminderBody")}`}>
         <Ionicons name="shield-checkmark-outline" size={20} color={theme.status.pickup} />
         <View style={styles.reminderCopy}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.reminderTitle, { color: theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.reminderTitle, { color: theme.textPrimary }, x.label]}>
             {t("foundItem.reminderTitle")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.reminderBody, { color: theme.textSecondary }]}>

@@ -20,6 +20,7 @@ import { localizeNotification } from "@/lib/notifications/scheduleCopy";
 import { buildFeedItems, groupByDay, mergeFeed, type FeedDay, type FeedFilter, type FeedKind } from "@/lib/notifications/feed";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const ALL_LIMIT = 50;
 /** The unread list is one server page (default 20): at that size it undercounts, so the exact store count wins. */
@@ -47,6 +48,7 @@ const TONE: Record<FeedKind, "accent" | "caution" | "alert" | "ready" | "neutral
 
 export default function NotificationsScreen() {
   const theme = useTheme();
+  const v2 = useV2Text();
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const myRooms = useAppStore((state) => state.myRooms);
@@ -229,7 +231,7 @@ export default function NotificationsScreen() {
             <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
           </Pressable>
         ) : null}
-        <Text style={[styles.headerMeta, { color: theme.textMuted }]}>{t("alertsScreen.unreadSuffix", { count: unreadTotal })}</Text>
+        <Text style={[styles.headerMeta, { color: theme.textMuted }, v2.label]}>{t("alertsScreen.unreadSuffix", { count: unreadTotal })}</Text>
         <Text accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]}>{t(engineering ? "alertsScreen.inboxTitle" : "alertsScreen.title")}</Text>
         <Button
           label={markingAll ? t("alertsScreen.clearing") : t("alertsScreen.markAllRead")}
@@ -296,7 +298,7 @@ export default function NotificationsScreen() {
           ) : (
             groups.map((group) => (
               <View key={group.day}>
-                <Text accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>{dayTitle(group.day)}</Text>
+                <Text accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2.label]}>{dayTitle(group.day)}</Text>
                 <View style={styles.stack}>
                   {group.items.map(({ notification, kind, unread, preview }) => (
                     <Pressable

@@ -17,6 +17,7 @@ import { LinenExchangeRow } from "./LinenExchange";
 import { RoomGuidanceLine } from "./RoomGuidanceLine";
 import { RoomHelpCard } from "./RoomHelpCard";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   room: Room;
@@ -55,6 +56,7 @@ export function ActiveCleaningView({
 }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const reclean = view.kind === "reclean";
   const items = session?.checklist ?? [];
   useEstimateVersion(); // the timer's typical time follows the same estimate as the rest of the app
@@ -77,7 +79,7 @@ export function ActiveCleaningView({
     <View style={styles.root} testID={reclean ? "reclean-work-view" : "active-cleaning-view"}>
       {reclean ? (
         <View style={[styles.reclean, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-          <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recleanTitle, { color: theme.status.dirty }]}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recleanTitle, { color: theme.status.dirty }, x.label]}>
             {t("rooms.work.reclean.title")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.recleanMeta, { color: theme.textPrimary }]}>

@@ -25,12 +25,18 @@ import { useCopilotBrief } from "@/lib/ai/copilotCard";
 import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModule";
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
-import { useTheme } from "@/lib/theme/useTheme";
+import { useChromeTheme, useTheme } from "@/lib/theme/useTheme";
+import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
+import { isV2SurfaceRole } from "@/lib/design/housekeeperV2";
+import { TabIconV2 } from "@/components/shared/TabIconV2";
+import { CROWDED_TAB_COUNT, NAV_ACTIVE_V2, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { AppLockGate } from "@/components/security/AppLockGate";
 import { useAppLockStore } from "@/stores/appLockStore";
 import { useNotificationResponses, usePushRegistration, useUnreadBadge } from "@/lib/notifications/lifecycle";
 import { usePmForegroundSync } from "@/lib/engineering/usePmForegroundSync";
+import { isFrontDeskMoreChild } from "@/lib/frontDesk/moreMenu";
 
 // Secondary screens (profile/*, detail pages, role-hidden tab roots) are declared as tabs but never shown in the bar.
 // Do not hide them with the href-null shortcut: expo-router 58 turns that into `hidden: true`, and a focused hidden tab is
@@ -41,6 +47,9 @@ export default function AppLayout() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  // Shared chrome sits outside any DesignV2Scope; this is V2 tokens only while the preview flag is on.
+  const chrome = useChromeTheme();
+  const designV2 = isDesignV2Enabled();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
@@ -64,8 +73,12 @@ export default function AppLayout() {
   // The housekeeping supervisor keeps this same corner card; its body is the Supervisor Copilot.
   const supervisorCopilot = isSupervisorCopilotRole(effectiveRole);
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
-  const visibleNames = new Set(visibleTabs.map((tab) => tab.name));
-  const { brief, loading: briefLoading, error: briefError, reload: reloadBrief } = useCopilotBrief();
+  // Phase 6: with the preview flag on, Front Desk gets five tabs (Lost & Found and Profile move under More).
+  const navTabs = designV2 && effectiveRole === "front_desk" ? getTabsForRole(effectiveRole, { v2: true }) : visibleTabs;
+  // While a More destination (Lost & Found, Profile, Notifications) is open, the More tab stays the selected one.
+  const moreSelected = designV2 && effectiveRole === "front_desk" && isFrontDeskMoreChild(pathname);
+  const visibleNames = new Set(navTabs.map((tab) => tab.name));
+  const { brief, loading: briefLoading, error: briefError, idle: briefIdle, reload: reloadBrief } = useCopilotBrief();
   usePmForegroundSync();
 
   useEffect(() => {
@@ -236,35 +249,48 @@ export default function AppLayout() {
       <AssistantProvider>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
-          <OfflineBanner />
+          <DesignV2Scope>
+            <OfflineBanner />
+          </DesignV2Scope>
         </View>
-        <ToastViewport topOffset={insets.top + bannerHeight} />
+        <DesignV2Scope>
+          <ToastViewport topOffset={insets.top + bannerHeight} />
+        </DesignV2Scope>
+        {/* Phases 3-4: the Housekeeper's, Inspector's and Housekeeping Supervisor's whole surface (tab screens, hidden
+            routes, assistant) is V2 while the preview flag is on. Every other role renders outside the scope, so
+            its appearance is untouched. Chrome that
+            sits outside (tab bar, banner, toasts) already follows V2 through useChromeTheme / its own scope. */}
+        <DesignV2Scope enabled={isV2SurfaceRole(effectiveRole)}>
         <Tabs
           backBehavior="history"
           screenOptions={{
-            tabBarActiveTintColor: theme.shell.ink,
-            tabBarInactiveTintColor: theme.shell.ink3,
-            tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-            tabBarStyle: {
-              backgroundColor: theme.shell.bg,
-              borderTopColor: theme.shell.line,
-              borderTopWidth: 1,
-              height: 76,
-              paddingTop: 8,
-              paddingBottom: 12,
-              shadowColor: theme.shell.bg,
-              shadowOpacity: 0.25,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: -4 },
-              elevation: 10,
-            },
+            ...(designV2
+              ? buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length)
+              : {
+                  tabBarActiveTintColor: theme.shell.ink,
+                  tabBarInactiveTintColor: theme.shell.ink3,
+                  tabBarLabelStyle: { fontSize: 11, fontWeight: "600" as const },
+                  tabBarStyle: {
+                    backgroundColor: theme.shell.bg,
+                    borderTopColor: theme.shell.line,
+                    borderTopWidth: 1,
+                    height: 76,
+                    paddingTop: 8,
+                    paddingBottom: 12,
+                    shadowColor: theme.shell.bg,
+                    shadowOpacity: 0.25,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: -4 },
+                    elevation: 10,
+                  },
+                }),
             headerStyle: { backgroundColor: theme.shell.surface },
             headerTintColor: theme.shell.ink,
             headerTitleStyle: { fontWeight: "600", color: theme.shell.ink },
             headerShadowVisible: false,
           }}
         >
-          {visibleTabs.map((tab) => (
+          {navTabs.map((tab) => (
             <Tabs.Screen
               key={tab.name}
               name={tab.name}
@@ -272,9 +298,19 @@ export default function AppLayout() {
                 title: t(tab.titleKey),
                 headerShown: false,
                 tabBarAccessibilityLabel: t(tab.titleKey),
-                tabBarIcon: ({ color, size }) => (
-                  <Ionicons name={tab.icon} size={size} color={color as string} />
-                ),
+                ...(moreSelected && tab.key === "more" ? { tabBarInactiveTintColor: NAV_ACTIVE_V2, tabBarAccessibilityLabel: `${t(tab.titleKey)}, ${t("frontDeskMore.selected")}` } : {}),
+                tabBarIcon: ({ color, size, focused }) =>
+                  designV2 ? (
+                    <TabIconV2
+                      name={getTabIconV2(tab, focused || (moreSelected && tab.key === "more"))}
+                      color={color as string}
+                      focused={focused || (moreSelected && tab.key === "more")}
+                      activeFill={chrome.shell.raised}
+                      compact={navTabs.length >= CROWDED_TAB_COUNT}
+                    />
+                  ) : (
+                    <Ionicons name={tab.icon} size={size} color={color as string} />
+                  ),
               }}
             />
           ))}
@@ -329,6 +365,7 @@ export default function AppLayout() {
                 brief={brief}
                 loading={briefLoading}
                 error={briefError}
+                idle={briefIdle}
                 reload={reloadBrief}
               />
             ) : (
@@ -338,11 +375,13 @@ export default function AppLayout() {
                 brief={brief}
                 loading={briefLoading}
                 error={briefError}
+                idle={briefIdle}
                 reload={reloadBrief}
               />
             )}
           </Animated.View>
         ) : null}
+        </DesignV2Scope>
       </View>
       </AssistantProvider>
       </AppLockGate>

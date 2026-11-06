@@ -13,13 +13,19 @@
 import { createServer } from 'node:http'
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { reportsRoute } from './reports-fixtures.mjs'
+import { opsRoute } from './ops-fixtures.mjs'
 
 export const HERMETIC_PASSWORD = 'hermetic-fixture-not-a-secret'
 export const HERMETIC_USERS = {
   'gm@hermetic.invalid': { id: '00000000-0000-4000-8000-0000000000a1', role: 'gm', full_name: 'Hermetic GM' },
   'supervisor@hermetic.invalid': { id: '00000000-0000-4000-8000-0000000000a2', role: 'housekeeping_supervisor', full_name: 'Hermetic Supervisor' },
 }
-const HOTEL = { id: 'a0000000-0000-4000-a000-000000000001', name: 'Hermetic Fixture Hotel', timezone: 'America/Chicago', room_count: 7, enabled_features: [] }
+/** Production tenants have every section flipped on (migration 098). The Room-Board visual baseline was captured
+ *  with the legacy variants, so the default stays empty; browser QA of the redesigned screens sets
+ *  HERMETIC_REDESIGN_SECTIONS=all to mirror production. */
+export const REDESIGN_SECTIONS = ['shell', 'dashboard', 'tasks', 'evidence', 'engineering', 'reports', 'managementRoi', 'aiCopilot', 'logbook', 'staff', 'lostFound', 'programs', 'sop', 'scheduling', 'safety', 'guestRequests', 'billing', 'settings', 'guestFeedback', 'integrations', 'housekeeping']
+const HOTEL = { id: 'a0000000-0000-4000-a000-000000000001', name: 'Hermetic Fixture Hotel', timezone: 'America/Chicago', room_count: 7, enabled_features: [], web_redesign_sections: process.env.HERMETIC_REDESIGN_SECTIONS === 'all' ? REDESIGN_SECTIONS : [] }
 const ROOM_TYPE = { name: 'Standard', code: 'STD', base_clean_minutes: 30 }
 const FIXTURE_ROOMS = [
   ['101', 'DIRTY', false], ['102', 'CLEAN', false], ['103', 'INSPECTED', true], ['104', 'IN_PROGRESS', false],
@@ -51,6 +57,10 @@ function supabaseUser(email) {
   }
 }
 
+/** Opt-in (HERMETIC_RICH_DATA=1): assignments, clean types and a late checkout so Team Plan and the Assignment workspace have
+ *  something to show. Off by default: the Room-Board visual baseline is captured against the plain fixture. */
+const RICH = process.env.HERMETIC_RICH_DATA === '1'
+const RICH_ASSIGN = { 0: ['regression-fixture-staff-1', 'DEP'], 1: ['regression-fixture-staff-1', 'FULL'], 3: ['regression-fixture-staff-2', 'FULL'], 4: [null, 'LIGHT'] }
 const boardRows = () => FIXTURE_ROOMS.map(([number, status, vip], index) => ({
   room_id: `00000000-0000-4000-8000-00000000010${index}`,
   tenant_id: HOTEL.id, status, vip_flag: vip, checkin_time: null, checkout_time: null, dnd_flag: false, do_not_service: false,
@@ -58,6 +68,8 @@ const boardRows = () => FIXTURE_ROOMS.map(([number, status, vip], index) => ({
   rooms: { id: `00000000-0000-4000-8000-00000000010${index}`, room_number: number, floor: 1, building: null, room_types: ROOM_TYPE },
   assignment_id: null, assignment_date: null, assignment_shift_id: null, clean_type: null, clean_type_label: null, prediction: null,
   inspection_required: false,
+  ...(RICH && index === 1 ? { inspection_required: true } : {}),
+  ...(RICH && RICH_ASSIGN[index] ? { assigned_to: RICH_ASSIGN[index][0], assignment_id: RICH_ASSIGN[index][0] ? `assign-${index}` : null, assignment_date: '2020-01-01', clean_type: RICH_ASSIGN[index][1], clean_type_label: RICH_ASSIGN[index][1], checkout_time: index === 0 ? '2020-01-01T11:00:00.000Z' : null } : {}),
 }))
 
 const STAFF = [
@@ -95,6 +107,10 @@ export function route({ method, path, query, body, email }) {
     const u = userFor(email ?? 'gm@hermetic.invalid')
     return { status: 200, json: { data: { base_role: u.role, effective_role: u.role, schedule_id: null, is_overridden: false, custom_role: null } } }
   }
+  const reports = reportsRoute(api, query)
+  if (reports) return { status: 200, json: reports }
+  const ops = opsRoute(api, query)
+  if (ops) return { status: 200, json: ops }
   if (api === '/housekeeping/board') return { status: 200, json: { data: boardRows() } }
   if (api === '/staff') return { status: 200, json: { data: { staff: STAFF, total: STAFF.length } } }
   if (api.startsWith('/clean-sessions/hotel-avg-clean-time')) return { status: 200, json: { data: { today_avg_minutes: null, seven_day_avg_minutes: null, delta_minutes: null, today_count: 0 } } }

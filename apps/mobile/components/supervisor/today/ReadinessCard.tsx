@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { Skeleton, UnavailableBlock, ProgressBar } from "@/components/supervisor/today/TodayBlocks";
@@ -23,6 +24,7 @@ interface Props {
  * excluded and said so); rooms awaiting inspection are NOT ready. Unknown data is "unavailable", never 0.
  */
 export function ReadinessCard({ readiness, freshness, t, onOpen, onRetry }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const value = readiness.value;
 
@@ -72,8 +74,8 @@ export function ReadinessCard({ readiness, freshness, t, onOpen, onRetry }: Prop
       ]}
     >
       <View style={styles.titleRow}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
-          {t("supervisorToday.readiness.title").toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+          {v2t.caps(t("supervisorToday.readiness.title"))}
         </Text>
         <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
       </View>

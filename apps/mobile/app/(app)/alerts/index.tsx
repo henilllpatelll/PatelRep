@@ -16,6 +16,11 @@ import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { AlertsV2 } from "@/components/gm/AlertsV2";
+import { adaptRiskAlerts, type AlertItem } from "@/lib/gm/riskAlerts";
+import { describeAlert } from "@/lib/gm/alertText";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 
 type RiskAlert = {
   id: string;
@@ -27,6 +32,8 @@ type RiskAlert = {
   asset_name: string | null;
   created_at: string;
   is_read: boolean;
+  /** Real-contract items name their source ("Overdue work order") instead of a severity the API does not have. */
+  kindLabel?: string;
 };
 
 const SEVERITY_STATUS: Partial<Record<RiskAlert["severity"], StatusKey>> = {
@@ -35,9 +42,29 @@ const SEVERITY_STATUS: Partial<Record<RiskAlert["severity"], StatusKey>> = {
   low: "low",
 };
 
+function toLegacyAlert(item: AlertItem, t: (k: string, o?: Record<string, unknown>) => string, stamp: (iso: string | null) => string | null): RiskAlert {
+  if (item.kind === "legacy") {
+    return { id: item.id, alert_type: item.kind, severity: item.severity ?? "medium", title: item.title, description: item.description, room_number: item.roomNumber, asset_name: item.assetName, created_at: item.timestamp ?? "", is_read: false };
+  }
+  const words = describeAlert(item, t, stamp);
+  return {
+    id: item.id,
+    alert_type: item.kind,
+    severity: item.tier === "attention" ? "high" : "medium",
+    title: words.title,
+    description: words.detail,
+    room_number: item.roomNumber,
+    asset_name: item.assetName,
+    created_at: "",
+    is_read: false,
+    kindLabel: t(`alertsV2.kinds.${item.kind}`),
+  };
+}
+
 function useTimeAgo() {
   const { t } = useTranslation();
   return (iso: string) => {
+    if (Number.isNaN(Date.parse(iso))) return "";
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return t("alerts.minsAgo", { count: mins });
@@ -47,7 +74,13 @@ function useTimeAgo() {
   };
 }
 
-export default function AlertsScreen() {
+export default function AlertsRoute() {
+  // Design System V2: inside the scope the alerts screen is the redesigned one; otherwise the legacy screen below.
+  const v2 = useIsDesignV2();
+  return v2 ? <AlertsV2 /> : <AlertsScreen />;
+}
+
+function AlertsScreen() {
   const { t } = useTranslation();
   const timeAgo = useTimeAgo();
   const theme = useTheme();
@@ -55,18 +88,24 @@ export default function AlertsScreen() {
   const [alerts, setAlerts] = useState<RiskAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
 
   const loadAlerts = useCallback(async () => {
     if (!isOnline) { setLoading(false); return; }
     try {
-      const res = await api.get<{ data: RiskAlert[] }>("/ai/risk-alerts");
-      setAlerts(res.data ?? []);
+      // The API returns an object of lists (see lib/gm/riskAlerts); older payloads were an array. Both are accepted.
+      const res = await api.get<{ data: unknown }>("/ai/risk-alerts");
+      const stamp = (iso: string | null) => (iso ? formatHotelTime(new Date(iso), hotelTimezone, "en") : null);
+      setAlerts(adaptRiskAlerts(res.data).items.map((item) => toLegacyAlert(item, t, stamp)));
+      setLoadError(false);
     } catch {
-      setAlerts([]);
+      // A failed read is not "all clear": keep what is on screen and say so.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
-  }, [isOnline]);
+  }, [isOnline, hotelTimezone, t]);
 
   useEffect(() => { loadAlerts(); }, [loadAlerts]);
 
@@ -129,7 +168,7 @@ export default function AlertsScreen() {
                   <Text style={[styles.alertTitle, { color: theme.textPrimary }]}>{alert.title}</Text>
                   <StatusBadge
                     statusKey={SEVERITY_STATUS[alert.severity] ?? "urgent"}
-                    label={alert.severity}
+                    label={alert.kindLabel ?? alert.severity}
                   />
                 </View>
                 <Text style={[styles.alertDesc, { color: theme.textSecondary }]}>
@@ -165,7 +204,7 @@ export default function AlertsScreen() {
                   {SEVERITY_STATUS[alert.severity] ? (
                     <StatusBadge
                       statusKey={SEVERITY_STATUS[alert.severity] as StatusKey}
-                      label={alert.severity}
+                      label={alert.kindLabel ?? alert.severity}
                     />
                   ) : (
                     <View
@@ -178,7 +217,7 @@ export default function AlertsScreen() {
                       ]}
                     >
                       <Text style={[styles.severityChipText, { color: theme.status.pickup }]}>
-                        {alert.severity}
+                        {alert.kindLabel ?? alert.severity}
                       </Text>
                     </View>
                   )}
@@ -194,7 +233,15 @@ export default function AlertsScreen() {
           </View>
         ) : null}
 
-        {alerts.length === 0 ? (
+        {loadError && alerts.length === 0 ? (
+          <StateBlock
+            status="error"
+            errorMessage={t("alertsV2.error.title")}
+            onRetry={() => void loadAlerts()}
+            retryLabel={t("common.retry")}
+            style={styles.emptyCard}
+          />
+        ) : alerts.length === 0 ? (
           <StateBlock
             status="empty"
             emptyIcon="shield-checkmark-outline"

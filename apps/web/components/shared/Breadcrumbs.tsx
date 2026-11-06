@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useRole } from '@/lib/hooks/useRole'
 import { cn } from '@/lib/utils'
-import { ALL_NAV_ITEMS, SETTINGS_NAV_ITEM, NAV_LABEL_KEYS } from '@/lib/utils/navigation'
+import { ALL_NAV_ITEMS, SETTINGS_NAV_ITEM, NAV_LABEL_KEYS, routeSegmentLabel } from '@/lib/utils/navigation'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
@@ -14,7 +14,7 @@ import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
 /** Renders in the PageHeader `eyebrow` slot on sub-routes (e.g. Engineering → Work Orders). */
 export function Breadcrumbs({ className }: { className?: string }) {
   const pathname = usePathname()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { role } = useRole()
   const hotel = useHotelStore((s) => s.hotel)
   const redesigned = isSectionRedesigned('shell', hotel)
@@ -31,7 +31,7 @@ export function Breadcrumbs({ className }: { className?: string }) {
   const subItem = subNav?.find((sub) => sub.href === pathname)
   const currentLabel = subItem
     ? t(NAV_LABEL_KEYS[subItem.label] ?? subItem.label)
-    : t(NAV_LABEL_KEYS[segments[1]] ?? segments[1])
+    : routeSegmentLabel(t, (key) => i18n.exists(key), segments[1])
 
   return (
     <nav

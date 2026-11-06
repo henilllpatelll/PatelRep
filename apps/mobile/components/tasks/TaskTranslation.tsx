@@ -7,6 +7,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { TranslationLanguage } from "@/lib/api/translation";
 import type { Task } from "@/lib/api/tasks";
 import { useTaskTranslation } from "@/lib/tasks/useTaskTranslation";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* "Translate instructions" on the task detail. The person picks the language; nothing is fetched until they do.
    The translation is wording written by AI to help someone read the task: the original stays on screen above it,
@@ -23,6 +24,7 @@ interface Props {
 export function TaskTranslation({ task, offline }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { status, language, result, translate, reset } = useTaskTranslation(task, offline);
   const [showOriginal, setShowOriginal] = useState(false);
 
@@ -42,7 +44,7 @@ export function TaskTranslation({ task, offline }: Props) {
     <View style={styles.section} testID="task-translate">
       <View style={styles.titleRow}>
         <Ionicons name="language-outline" size={14} color={theme.textMuted} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textMuted }, x.label]}>
           {t("tasks.hk.translate.title")}
         </Text>
       </View>
@@ -98,7 +100,7 @@ export function TaskTranslation({ task, offline }: Props) {
           accessibilityLiveRegion="polite"
           testID="task-translate-result"
         >
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badge, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badge, { color: theme.textMuted }, x.label]}>
             {showOriginal ? t("tasks.hk.translate.originalBadge") : t("tasks.hk.translate.badge", { language: languageName })}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.shownTitle, { color: theme.textPrimary }]} testID="task-translate-title">

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R, monoFont } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { SectionHeader } from "@/components/shared/evening";
@@ -23,6 +24,7 @@ const COLLAPSED = 12;
 export function WorkOrderActivityTimeline({ items, locale, failed }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [expanded, setExpanded] = useState(false);
   const hidden = !expanded && items.length > COLLAPSED ? items.length - COLLAPSED : 0;
   const visible = hidden > 0 ? items.slice(hidden) : items;
@@ -63,7 +65,7 @@ export function WorkOrderActivityTimeline({ items, locale, failed }: Props) {
                     {item.text}
                   </Text>
                 ) : null}
-                <Text style={{ color: theme.textDisabled, fontSize: 11, fontFamily: monoFont }}>{stamp}</Text>
+                <Text style={[{ color: theme.textDisabled, fontSize: 11, fontFamily: monoFont }, x.num]}>{stamp}</Text>
               </View>
             </View>
           );

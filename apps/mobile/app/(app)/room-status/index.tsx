@@ -20,11 +20,14 @@ import { useAppStore } from "@/stores/appStore";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { EngineeringRoomBoard } from "@/components/engineering/rooms/EngineeringRoomBoard";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { isOccupiedBoardRow, isOutOfOrderBoardRow } from "@/lib/frontDesk/roomReadiness";
+import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
    Every room in the hotel, grouped by floor. The room number IS the card's
@@ -97,13 +100,14 @@ const STATUS_BADGE_KEYS: Record<string, StatusKey> = {
   OUT_OF_SERVICE: "outOfOrder",
 };
 
-/** Occupied by any signal: Opera FO status, or a stay-driven room status. */
+/** Occupied by any signal: Opera FO status, or a stay-driven room status. The rule lives in one place (the Front Desk
+ *  and GM Home count rooms with the same one). */
 function isOccupiedRoom(room: RoomRow): boolean {
-  return room.fo_status === "OCC" || room.status === "OCCUPIED" || room.status === "PICKUP";
+  return isOccupiedBoardRow(room);
 }
 
 function isOutOfOrderRoom(room: RoomRow): boolean {
-  return room.status === "OOO" || room.status === "OUT_OF_ORDER" || room.status === "OUT_OF_SERVICE";
+  return isOutOfOrderBoardRow(room);
 }
 
 function roomNumberValue(room: RoomRow): number {
@@ -114,11 +118,15 @@ function roomNumberValue(room: RoomRow): number {
 const FILTER_OPTIONS = ["all", "VACANT", "OCCUPIED", "OOO"];
 
 function PropertyRoomStatusScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const x = useV2Text();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
   const { isOnline } = useAppStore();
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  const [loadError, setLoadError] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -135,8 +143,11 @@ function PropertyRoomStatusScreen() {
     try {
       const res = await api.get<{ data: BoardRow[] }>("/housekeeping/board");
       setRooms((res.data ?? []).map(normalizeBoardRow));
+      setLoadError(false);
+      setFetchedAt(Date.now());
     } catch {
-      setRooms([]);
+      // A failed read is not "no rooms": keep the rooms already on screen and say the refresh failed.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -211,7 +222,7 @@ function PropertyRoomStatusScreen() {
         <View>
           <View style={[styles.topBleed, { backgroundColor: theme.shell.bg }]} />
           <View style={[styles.hero, { paddingTop: insets.top + 14, backgroundColor: theme.shell.bg }]}>
-            <Text style={[styles.heroKicker, { color: theme.shell.ink3 }]}>{t("roomStatus.kicker")}</Text>
+            <Text style={[styles.heroKicker, x.label, { color: theme.shell.ink3 }]}>{t("roomStatus.kicker")}</Text>
             <Text style={[styles.heroTitle, { color: theme.shell.ink }]}>{t("tabs.roomStatus")}</Text>
             <View style={styles.heroStats}>
               <View
@@ -220,7 +231,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{vacantCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.readyLine }]}>{vacantCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statVacant")}
                 </Text>
@@ -231,7 +242,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.dirtyLine }]}>{occupiedCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.dirtyLine }]}>{occupiedCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statOccupied")}
                 </Text>
@@ -242,7 +253,7 @@ function PropertyRoomStatusScreen() {
                   { backgroundColor: theme.shell.surface, borderColor: theme.shell.line },
                 ]}
               >
-                <Text style={[styles.heroStatValue, { color: theme.status.readyLine }]}>{readyCount}</Text>
+                <Text style={[styles.heroStatValue, x.num, { color: theme.status.readyLine }]}>{readyCount}</Text>
                 <Text style={[styles.heroStatLabel, { color: theme.shell.ink2 }]}>
                   {t("roomStatus.statReady")}
                 </Text>
@@ -300,6 +311,7 @@ function PropertyRoomStatusScreen() {
                   <Text
                     style={[
                       styles.filterLabel,
+                      x.pill,
                       { color: active ? theme.shell.ink : theme.textMuted },
                     ]}
                   >
@@ -316,6 +328,20 @@ function PropertyRoomStatusScreen() {
         </View>
 
         <View style={styles.body}>
+          {loadError && x.active ? (
+            <StateBlock
+              status="error"
+              errorMessage={rooms.length > 0 ? t("roomStatusV2.refreshFailed") : t("frontDeskHome.rooms.failed")}
+              onRetry={() => void loadRooms()}
+              retryLabel={t("common.retry")}
+              style={styles.emptyCard}
+            />
+          ) : null}
+          {x.active && fetchedAt && !loadError ? (
+            <Text style={[styles.updated, { color: theme.textMuted }]} testID="room-status-updated">
+              {t("roomStatusV2.updated", { time: formatHotelTime(new Date(fetchedAt), hotelTimezone, i18n.resolvedLanguage?.startsWith("es") ? "es" : "en") ?? "" })}
+            </Text>
+          ) : null}
           {floors.map(({ floor, rooms: floorRooms }) => (
             <View key={floor} style={styles.floorSection}>
               <SectionHeader title={t("roomStatus.floorSection", { floor })} hint={String(floorRooms.length)} />
@@ -359,6 +385,7 @@ function PropertyRoomStatusScreen() {
                               <Text
                                 style={[
                                   styles.occText,
+                                  x.pill,
                                   {
                                     color: occupied
                                       ? theme.status.dirty
@@ -370,7 +397,7 @@ function PropertyRoomStatusScreen() {
                               </Text>
                             </View>
                           </View>
-                          <Text style={[styles.roomNumber, { color: theme.textPrimary }]}>
+                          <Text style={[styles.roomNumber, x.num, { color: theme.textPrimary }]}>
                             {room.room_number}
                           </Text>
                           {hasMetaRow ? (
@@ -384,7 +411,7 @@ function PropertyRoomStatusScreen() {
                                 </Text>
                               ) : null}
                               {room.checkout_time ? (
-                                <Text style={[styles.checkoutText, { color: theme.status.pickup }]}>
+                                <Text style={[styles.checkoutText, x.num, { color: theme.status.pickup }]}>
                                   {t("roomStatus.checkout", { time: room.checkout_time })}
                                 </Text>
                               ) : null}
@@ -409,7 +436,7 @@ function PropertyRoomStatusScreen() {
             </View>
           ))}
 
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && !(x.active && loadError && rooms.length === 0) ? (
             <StateBlock
               status="empty"
               emptyIcon="bed-outline"
@@ -507,7 +534,7 @@ const styles = StyleSheet.create({
   checkoutText: { fontSize: 11, fontWeight: "600", fontFamily: monoFont },
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
-
+  updated: { fontSize: 12 },
 });
 
 /**

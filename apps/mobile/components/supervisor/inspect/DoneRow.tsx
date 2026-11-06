@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -28,6 +29,7 @@ export function locationText(item: Pick<DoneItem, "floor" | "building">, showBui
 }
 
 function DoneRowView({ item, timeZone, language, t, showBuilding = false, onPress }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const inspector = item.inspectorName ?? t("inspect.done.inspectorUnknown");
   const clock = formatHotelTime(item.completedAtMs === null ? null : new Date(item.completedAtMs), timeZone, language) ?? "—";
@@ -40,9 +42,9 @@ function DoneRowView({ item, timeZone, language, t, showBuilding = false, onPres
       accessibilityRole="button"
       accessibilityLabel={t(item.isReinspection ? "inspect.history.row.a11yReinspection" : "inspect.history.row.a11y", { room, result, inspector, time: clock, location: location ?? "" })}
       testID={`done-row-${item.id}`}
-      style={({ pressed }) => [styles.row, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.88 }]}
+      style={({ pressed }) => [styles.row, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.88 }]}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }]} numberOfLines={1}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }, v2t.num]} numberOfLines={1}>
         {room}
       </Text>
       <View style={styles.body}>

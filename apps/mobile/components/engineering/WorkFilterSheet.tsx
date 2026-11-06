@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Button } from "@/components/ui/Button";
 import { WORK_ORDER_PRIORITIES, type WorkOrderCategory, type WorkOrderStatus } from "@/lib/engineering/workOrders";
 import {
@@ -64,9 +65,10 @@ function Chip({ label, selected, onPress, testID }: { label: string; selected: b
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {title}
       </Text>
       <View style={styles.chips}>{children}</View>
@@ -78,6 +80,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function WorkFilterSheet({ visible, view, role, filters, onApply, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<QueueFilters>(filters);
   const [floorText, setFloorText] = useState(filters.floor != null ? String(filters.floor) : "");
@@ -157,7 +160,7 @@ export function WorkFilterSheet({ visible, view, role, filters, onApply, onClose
             </Section>
 
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+              <Text style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
                 {t("workQueue.filter.location")}
               </Text>
               <View style={styles.fieldRow}>

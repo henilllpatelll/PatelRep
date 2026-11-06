@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { formatDuration, type WorkOrder } from "@/lib/engineering/workOrders";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import {
@@ -236,9 +237,10 @@ export function CompletionSheet({ visible, onClose, online, wo, technicianName, 
 
 function ReviewRow({ k, v }: { k: string; v: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={{ gap: 1 }}>
-      <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }}>{k}</Text>
+      <Text style={[{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }, x.label]}>{k}</Text>
       <Text style={{ color: theme.textPrimary, fontSize: 14.5 }}>{v}</Text>
     </View>
   );

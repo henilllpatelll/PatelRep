@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { NextStepId } from "@/lib/engineering/repairProgress";
@@ -16,6 +17,7 @@ interface Props {
 export function WorkOrderNextAction({ step, barVisible }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const quiet = step === "viewRecord" || step === "cancelled" || step === "viewOnly" || step === "elsewhere";
   const hint = t(`workOrders.repair.next.${step}.hint`) + (barVisible && !quiet ? ` ${t("workOrders.repair.next.useBar")}` : "");
 
@@ -28,7 +30,7 @@ export function WorkOrderNextAction({ step, barVisible }: Props) {
     >
       <Ionicons name={quiet ? "information-circle-outline" : "arrow-forward-circle-outline"} size={22} color={quiet ? theme.textMuted : theme.primaryAction} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>{t("workOrders.repair.next.title")}</Text>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, x.label, { color: theme.textMuted }]}>{t("workOrders.repair.next.title")}</Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.textPrimary, fontSize: 16, fontWeight: "800" }} testID="wo-next-label">
           {t(`workOrders.repair.next.${step}.label`)}
         </Text>

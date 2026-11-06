@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
@@ -511,6 +512,8 @@ export function RoomStatusBoard() {
 
   const [assignError, setAssignError] = useState<string | null>(null)
   const [cleanTypePrompt, setCleanTypePrompt] = useState<{ roomId: string; roomNumber: string } | null>(null)
+  const cleanTypeDialogRef = useRef<HTMLDivElement>(null)
+  useModalFocusTrap(cleanTypeDialogRef, cleanTypePrompt !== null, () => setCleanTypePrompt(null))
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set())
   const toggleFloorCollapsed = useCallback((floor: number) => {
     setCollapsedFloors((prev) => {
@@ -961,6 +964,8 @@ export function RoomStatusBoard() {
 
       {cleanTypePrompt && (
         <div
+          ref={cleanTypeDialogRef}
+          tabIndex={-1}
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 px-4"
           role="dialog"
           aria-modal="true"

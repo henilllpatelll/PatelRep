@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -30,6 +31,7 @@ export function InspectHeader({
   t: Translate;
   onRefresh: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const tone = status.tone === "live" ? theme.status.ready : status.tone === "busy" ? theme.primaryAction : theme.status.pickup;
   const icon = status.tone === "live" ? "radio-button-on" : status.tone === "busy" ? "sync" : "alert-circle-outline";
@@ -43,8 +45,8 @@ export function InspectHeader({
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]} testID="inspect-header">
       <View style={styles.titleRow}>
         <View style={styles.titleCol}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]} numberOfLines={1}>
-            {t("inspect.header.kicker").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]} numberOfLines={1}>
+            {v2t.caps(t("inspect.header.kicker"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
             {t("inspect.title")}

@@ -20,6 +20,7 @@ import {
 import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
 import { FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -30,6 +31,7 @@ interface Props {
 
 function QuantityRow({ label, value, onChange, disabled }: { label: string; value: number; onChange: (next: number) => void; disabled: boolean }) {
   const theme = useTheme();
+  const x = useV2Text();
   const { t } = useTranslation();
   return (
     <View style={styles.row} testID={`supply-row-${label}`}>
@@ -52,7 +54,7 @@ function QuantityRow({ label, value, onChange, disabled }: { label: string; valu
           accessibilityRole="adjustable"
           accessibilityLabel={label}
           accessibilityValue={{ min: 0, max: SUPPLY_MAX_QTY, now: value }}
-          style={[styles.count, { color: theme.textPrimary }]}
+          style={[styles.count, { color: theme.textPrimary }, x.num]}
         >
           {value}
         </Text>

@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -15,6 +16,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
  * With nothing in service there is no percentage to claim, so there is no bar.
  */
 export function BoardReadinessCard({ metrics, t }: { metrics: BoardMetrics; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const hasRooms = metrics.inService > 0;
   const stats = [
@@ -40,8 +42,8 @@ export function BoardReadinessCard({ metrics, t }: { metrics: BoardMetrics; t: T
       accessible
       accessibilityLabel={`${t("roomBoard.card.title")}. ${headline}. ${stats.map((s) => `${s.count} ${s.label}`).join(", ")}. ${footer}`}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
-        {t("roomBoard.card.title").toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(t("roomBoard.card.title"))}
       </Text>
       <Text
         maxFontSizeMultiplier={1.3}

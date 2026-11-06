@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { SheetNotice } from "@/components/home/sheetParts";
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function CallOutSheet({ shift, personName, roleText, attendanceText, zone, language, isOnline, onClose, onRecorded, onFindCoverage, onReviewRooms, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const [kind, setKind] = useState<AbsenceKind>("called_out");
   const [leaving, setLeaving] = useState("");
@@ -134,8 +136,8 @@ export function CallOutSheet({ shift, personName, roleText, attendanceText, zone
         }
       >
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID="call-out-need">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }]}>
-            {t("teamSchedule.coverage.impact.needed").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("teamSchedule.coverage.impact.needed"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardTitle, { color: theme.textPrimary }]}>
             {gap ? gapTitle(gap, t) : shift.name ?? t("teamSchedule.coverage.shiftFallback")}
@@ -151,8 +153,8 @@ export function CallOutSheet({ shift, personName, roleText, attendanceText, zone
           <SheetNotice tone="warn" text={t("teamSchedule.coverage.impact.unassessed")} testID="call-out-impact-unassessed" />
         ) : impact ? (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID="call-out-impact">
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }]}>
-              {t("teamSchedule.coverage.impact.title").toUpperCase()}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }, v2t.label]}>
+              {v2t.caps(t("teamSchedule.coverage.impact.title"))}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardBody, { color: theme.textPrimary }]} testID="call-out-impact-rooms">
               {(impact.roomsAssigned ?? 0) === 0 ? t("teamSchedule.coverage.impact.noRooms") : t("teamSchedule.coverage.impact.rooms", { remaining: impact.roomsRemaining ?? 0, assigned: impact.roomsAssigned ?? 0 })}

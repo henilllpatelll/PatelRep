@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import type { DoneResult } from "@/lib/inspections/lists";
@@ -19,6 +20,7 @@ const ICONS: Record<DoneResult, React.ComponentProps<typeof Ionicons>["name"]> =
 
 /** A small outcome badge: an icon AND a word, so the result never depends on colour alone. */
 export function ResultBadge({ result, t, size = "sm", testID }: { result: DoneResult; t: Translate; size?: "sm" | "lg"; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const tone =
     result === "passed"
@@ -30,7 +32,7 @@ export function ResultBadge({ result, t, size = "sm", testID }: { result: DoneRe
   return (
     <View style={[styles.pill, big && styles.pillLarge, { backgroundColor: tone.bg, borderColor: tone.line }]} testID={testID}>
       <Ionicons name={ICONS[result]} size={big ? 16 : 13} color={tone.fg} />
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.text, big && styles.textLarge, { color: tone.fg }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.text, big && styles.textLarge, { color: tone.fg }, v2t.pill]}>
         {outcomeLabel(result, t)}
       </Text>
     </View>

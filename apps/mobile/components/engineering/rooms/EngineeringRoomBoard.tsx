@@ -5,6 +5,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { EngineeringState } from "@/components/engineering/EngineeringState";
@@ -48,6 +49,7 @@ function formatTime(at: Date | null): string {
 export function EngineeringRoomBoard() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const user = useAppStore((s) => s.user);
   const isOnline = useAppStore((s) => s.isOnline);
@@ -107,7 +109,7 @@ export function EngineeringRoomBoard() {
   const renderItem = useCallback(
     ({ item }: { item: Item }) =>
       item.type === "floor" ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.floorHeader, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.floorHeader, x.label, { color: theme.textMuted }]}>
           {item.floor != null ? t("engRooms.floorHeader", { floor: item.floor }) : t("engRooms.floorUnknown")}
         </Text>
       ) : (

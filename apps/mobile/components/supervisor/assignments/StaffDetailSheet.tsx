@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
@@ -52,6 +53,7 @@ export function StaffDetailSheet({
   /** Starts "Reassign remaining work". Shown with `recovery`; enabled only when `recovery.enabled`. */
   onReassignRemaining?: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const listRef = useRef<FlatList<StaffDetailRoom>>(null);
   const insets = useSafeAreaInsets();
@@ -79,10 +81,10 @@ export function StaffDetailSheet({
         </View>
       </View>
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
-        {t("assignments.v2.team.detail.workloadTitle").toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(t("assignments.v2.team.detail.workloadTitle"))}
       </Text>
-      <View style={[styles.rows, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="team-detail-rows">
+      <View style={[styles.rows, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID="team-detail-rows">
         {detail.rows.map((row, index) => (
           <View key={row.key} style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }]} testID={`team-detail-row-${row.key}`}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textSecondary }]}>
@@ -154,8 +156,8 @@ export function StaffDetailSheet({
         </View>
       ) : null}
 
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
-        {t("assignments.v2.team.detail.roomsTitle").toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(t("assignments.v2.team.detail.roomsTitle"))}
       </Text>
     </View>
   );
@@ -167,9 +169,9 @@ export function StaffDetailSheet({
       accessibilityLabel={item.a11yLabel}
       accessibilityHint={t("assignments.v2.team.detail.roomHint")}
       testID={`team-detail-room-${item.number}`}
-      style={({ pressed }) => [styles.room, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.85 }]}
+      style={({ pressed }) => [styles.room, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.85 }]}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]}>
         {item.number}
       </Text>
       <View style={styles.roomBody}>

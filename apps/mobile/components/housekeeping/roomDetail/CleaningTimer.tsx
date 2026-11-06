@@ -5,6 +5,7 @@ import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { elapsedSeconds, formatElapsed, standardMinutes } from "@/lib/housekeeping/cleaningTimer";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   /** The session's start (the server's once it has the session). */
@@ -37,12 +38,13 @@ function useNow(intervalMs = 1000): number {
 export function CleaningTimer({ startedAt, baseMinutes }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const now = useNow();
   const seconds = elapsedSeconds(startedAt, now);
   const standard = standardMinutes(baseMinutes);
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="cleaning-timer">
+    <View style={[styles.root, { backgroundColor: theme.surface, borderColor: x.edge }]} testID="cleaning-timer">
       <View
         style={styles.block}
         accessible
@@ -53,12 +55,12 @@ export function CleaningTimer({ startedAt, baseMinutes }: Props) {
             : t("rooms.work.timer.elapsedA11y", { minutes: Math.floor(seconds / 60) })
         }
       >
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, x.label]}>
           {t("rooms.work.timer.elapsed")}
         </Text>
         <Text
           maxFontSizeMultiplier={1.3}
-          style={[styles.value, { color: theme.textPrimary }]}
+          style={[styles.value, { color: theme.textPrimary }, x.num]}
           testID="timer-elapsed"
         >
           {seconds === null ? "—" : formatElapsed(seconds)}
@@ -66,10 +68,10 @@ export function CleaningTimer({ startedAt, baseMinutes }: Props) {
       </View>
       {standard !== null ? (
         <View style={styles.block} accessible accessibilityLabel={t("rooms.work.timer.standardA11y", { minutes: standard })}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, x.label]}>
             {t("rooms.work.timer.standard")}
           </Text>
-          <Text maxFontSizeMultiplier={1.3} style={[styles.value, { color: theme.textSecondary }]} testID="timer-standard">
+          <Text maxFontSizeMultiplier={1.3} style={[styles.value, { color: theme.textSecondary }, x.num]} testID="timer-standard">
             {t("rooms.work.timer.standardValue", { minutes: standard })}
           </Text>
         </View>

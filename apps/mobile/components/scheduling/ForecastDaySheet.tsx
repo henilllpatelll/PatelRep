@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { CoverageSheet } from "@/components/scheduling/CoverageSheet";
 import { Breakdown, Hero, Recommendations } from "@/components/scheduling/ForecastParts";
@@ -19,10 +20,11 @@ interface Props {
 }
 
 function Group({ title, children, testID }: { title: string; children: React.ReactNode; testID: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.group} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.groupTitle, { color: theme.textMuted }, v2t.label]}>
         {title}
       </Text>
       {children}

@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* The one clear AI-assisted way into Add Task. It opens the same Add Task sheet (Describe step) the "+ Add task"
    button opens, so there is no second form: typing opens the sheet on the description, and the microphone opens
@@ -18,11 +19,12 @@ interface Props {
 export function QuickTaskCard({ onType, onVoice, disabled = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={[styles.card, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]} testID="quick-task-card">
       <View style={styles.eyebrowRow}>
         <Ionicons name="sparkles-outline" size={14} color={theme.textMuted} />
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.eyebrow, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.eyebrow, { color: theme.textMuted }, x.label]}>
           {t("tasks.hk.quick.title")}
         </Text>
       </View>

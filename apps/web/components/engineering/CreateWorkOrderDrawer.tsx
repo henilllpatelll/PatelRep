@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { useDiscardGuard } from '@/lib/hooks/useDiscardGuard'
+import { DiscardChangesPrompt } from '@/components/ui/DiscardChangesPrompt'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -14,6 +17,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
 import { RepairCodePicker } from '@/components/engineering/RepairCodePicker'
+import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
 interface Props {
   isOpen: boolean
@@ -107,6 +111,8 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
   const [repeatParentId, setRepeatParentId] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const dirty = Boolean(title.trim() || nlInput.trim() || locationText.trim() || propertyArea.trim() || selectedRoomId || assignedTo || assetId || problemCode || photoFile)
+  const guard = useDiscardGuard(isDesignV2PreviewEnabled() && dirty, onClose)
 
   const { data: roomsData, isLoading: roomsLoading, isError: roomsError, refetch: refetchRooms } = useQuery({
     queryKey: ['rooms-picker'],
@@ -182,11 +188,15 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !e.defaultPrevented) guard.requestClose()
     }
     if (isOpen) document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
+  }, [isOpen, guard.requestClose])
+
+  // Tab trap + focus return to the opener on close (Escape is handled above). Declared before the focus effect so the
+  // panel itself still receives focus on open.
+  useModalFocusTrap(drawerRef, isOpen)
 
   useEffect(() => {
     if (isOpen && drawerRef.current) drawerRef.current.focus()
@@ -275,7 +285,7 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
   return (
     <>
       {/* Scrim — solid, no blur, matches WorkOrderDetailDrawer */}
-      <div className="fixed inset-0 bg-[rgba(26,24,21,0.28)] z-drawer transition-opacity" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-[rgba(26,24,21,0.28)] z-drawer transition-opacity" onClick={guard.requestClose} aria-hidden="true" />
 
       {/* Drawer */}
       <div
@@ -284,13 +294,13 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
         role="dialog"
         aria-modal="true"
         aria-label={t('engineering.createWorkOrder.ariaLabel')}
-        className="fixed right-0 top-0 h-full w-[560px] max-w-full border-l border-line bg-paper shadow-[var(--shadow-pop)] z-drawer flex flex-col outline-none"
+        className="!mt-0 fixed right-0 top-0 h-full w-[560px] max-w-full border-l border-line bg-paper shadow-[var(--shadow-pop)] z-drawer flex flex-col outline-none"
         style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 220ms cubic-bezier(.2,.7,.3,1)' }}
       >
         {/* Header */}
         <div className="shrink-0 px-6 py-5 border-b border-line bg-surface flex items-start justify-between">
           <h2 className="font-display italic text-[26px] leading-tight text-ink">{t('engineering.createWorkOrder.title')}</h2>
-          <IconButton onClick={onClose} aria-label={t('engineering.createWorkOrder.closeModal')}>
+          <IconButton onClick={guard.requestClose} aria-label={t('engineering.createWorkOrder.closeModal')}>
             <X className="w-4 h-4" />
           </IconButton>
         </div>
@@ -591,11 +601,12 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
           )}
         </div>
 
+        {guard.confirming && <DiscardChangesPrompt onKeepEditing={guard.keepEditing} onDiscard={guard.discard} />}
         {/* Footer */}
         <div className="shrink-0 px-6 py-4 border-t border-line bg-surface flex items-center justify-between gap-3">
           <p className="text-[11px] text-ink4 max-w-[220px] leading-snug">{t('engineering.createWorkOrder.emergencyHint')}</p>
           <div className="flex items-center gap-2.5 shrink-0">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={guard.requestClose}>
               {t('common.cancel')}
             </Button>
             <Button type="button" variant="primary" onClick={handleSubmit} disabled={mutation.isPending}>

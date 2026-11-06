@@ -192,6 +192,9 @@ export function AICopilotBubble() {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const wasOpenRef = useRef(false)
   const queryClient = useQueryClient()
   const { role } = useRole()
   const user = useAuthStore((s) => s.user)
@@ -212,6 +215,23 @@ export function AICopilotBubble() {
   useEffect(() => {
     if (open) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, open])
+
+  // Non-modal floating chat: focus moves into it on open, Escape closes it, and focus goes back to the launcher.
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true
+      inputRef.current?.focus()
+      const onKey = (event: KeyboardEvent) => {
+        if (event.key === 'Escape' && !event.defaultPrevented) setOpen(false)
+      }
+      document.addEventListener('keydown', onKey)
+      return () => document.removeEventListener('keydown', onKey)
+    }
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      launcherRef.current?.focus()
+    }
+  }, [open])
 
   useEffect(() => {
     const handleOpen = () => setOpen(true)
@@ -297,7 +317,6 @@ export function AICopilotBubble() {
       {open && (
         <div
           role="dialog"
-          aria-modal="true"
           aria-label="AI Copilot chat"
           className="absolute bottom-14 right-0 w-[calc(100vw-2rem)] max-w-[380px] bg-surface border border-line rounded-[var(--r-xl)] shadow-[var(--shadow-pop)] flex flex-col overflow-hidden"
           style={{ height: 'min(500px, calc(100vh - 8rem))' }}
@@ -365,6 +384,7 @@ export function AICopilotBubble() {
           <div className="p-3 shrink-0">
             <div className="flex gap-2">
               <input
+                ref={inputRef}
                 value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && (!e.shiftKey || e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage() } }}
                 placeholder="Room 412 needs towels…"
@@ -382,7 +402,9 @@ export function AICopilotBubble() {
       )}
 
       <Button
+        ref={launcherRef}
         variant="ai"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? 'Close AI Copilot' : 'Open AI Copilot'}
         className="gap-2 rounded-full shadow-[var(--shadow-pop)]"

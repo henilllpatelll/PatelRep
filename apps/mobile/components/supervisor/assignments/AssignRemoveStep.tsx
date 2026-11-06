@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /** The removal confirmation: who has the room, what removing does, and — just as important — what it does NOT do. */
 export function AssignRemoveStep({ controller, banner, paused, t }: { controller: AssignmentFlowController; banner: React.ReactNode; paused: string | null; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { removal, busy } = controller;
   if (!removal) return null;
@@ -18,12 +20,12 @@ export function AssignRemoveStep({ controller, banner, paused, t }: { controller
     <>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" testID="assign-remove-scroll">
         {banner}
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text maxFontSizeMultiplier={1.3} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="assign-remove-room">
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
+          <Text maxFontSizeMultiplier={1.3} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]} testID="assign-remove-room">
             {removal.roomNumber}
           </Text>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-            {t("assignments.v2.assign.remove.assignedTo").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("assignments.v2.assign.remove.assignedTo"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.person, { color: theme.textPrimary }]} testID="assign-remove-owner">
             {owner}

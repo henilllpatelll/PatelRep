@@ -16,6 +16,7 @@ import { groupHistory } from "@/lib/tasks/offline/history";
 import { taskScope } from "@/lib/tasks/offline/taskCache";
 import { useCompletedHistory } from "@/lib/tasks/offline/useCompletedHistory";
 import { shortPlace } from "@/lib/tasks/taskDisplay";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /* Completed Tasks: the signed-in employee's own completion records, newest first, grouped by the hotel's
    local day. Every row comes from the server (GET /tasks/mine/completed); the first page is also saved so
@@ -27,6 +28,7 @@ const MAX_FONT_SCALE = 1.5;
 export default function TaskHistoryScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const { hotelTimezone, isOnline, user } = useAppStore();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
@@ -43,7 +45,7 @@ export default function TaskHistoryScreen() {
   const noop = useCallback(() => undefined, []);
 
   const sectionTitle = (key: string) =>
-    key === "today" ? t("tasks.hk.hist.today") : key === "yesterday" ? t("tasks.hk.hist.yesterday") : (formatShiftDate(key, language) ?? key).toUpperCase();
+    key === "today" ? t("tasks.hk.hist.today") : key === "yesterday" ? t("tasks.hk.hist.yesterday") : x.active ? (formatShiftDate(key, language) ?? key) : (formatShiftDate(key, language) ?? key).toUpperCase();
 
   const doneValue = history.done.value;
   const headline = doneValue
@@ -124,7 +126,7 @@ export default function TaskHistoryScreen() {
                     ? t("tasks.hk.hist.rowA11y", { title: item.title, place, time })
                     : t("tasks.hk.hist.rowA11yNoPlace", { title: item.title, time })
                 }
-                style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                style={[styles.row, { backgroundColor: theme.surface, borderColor: x.edge }]}
                 testID={`history-row-${item.id}`}
               >
                 <Ionicons name="checkmark-circle" size={22} color={theme.status.clean} />

@@ -15,6 +15,7 @@ import { documentStatus, freshnessOf, searchDocuments, sortDocuments, suggestedQ
 import { useAskAboutSop } from "@/lib/sop/useAskAboutSop";
 import { useSopLibrary } from "@/lib/sop/useSopLibrary";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useVoiceCapability } from "@/lib/voice/useVoiceCapability";
 import { useAppStore } from "@/stores/appStore";
 
@@ -24,6 +25,7 @@ const MAX_QUESTION = 500;
 /** The hotel's procedures: ask a question in your own words, or find a document by name or category. */
 export default function SopLibraryScreen() {
   const theme = useTheme();
+  const v2 = useV2Text();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const assistant = useAssistantOptional();
@@ -74,7 +76,7 @@ export default function SopLibraryScreen() {
         <Pressable onPress={back} accessibilityRole="button" accessibilityLabel={t("common.back")} style={styles.backButton} testID="sop-back">
           <Ionicons name="arrow-back" size={22} color={theme.textPrimary} />
         </Pressable>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }, v2.label]}>
           {engineering ? t("sop.libraryTitle") : t("sop.kicker")}
         </Text>
       </View>
@@ -157,7 +159,7 @@ export default function SopLibraryScreen() {
                     onPress={() => ask({ documentId: item.documentId, title: item.title, text: t("sop.suggest.keyPoints", { title: item.title }) })}
                     accessibilityRole="button"
                     accessibilityLabel={t("sop.suggest.keyPoints", { title: item.title })}
-                    style={[styles.chip, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                    style={[styles.chip, { borderColor: v2.edge, backgroundColor: theme.surface }]}
                     testID="sop-suggestion"
                   >
                     <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.chipText, { color: theme.textPrimary }]}>
@@ -237,7 +239,7 @@ export default function SopLibraryScreen() {
                   emptyIcon="document-text-outline"
                   emptyTitle={t("sop.empty.title")}
                   emptyBody={t("sop.empty.body")}
-                  style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
                 />
               ) : visible.length === 0 ? (
                 <StateBlock
@@ -245,7 +247,7 @@ export default function SopLibraryScreen() {
                   emptyIcon="search-outline"
                   emptyTitle={t("sop.noMatch.title", { query: trimmed })}
                   emptyBody={t(isOnline ? "sop.noMatch.bodyAsk" : "sop.noMatch.body")}
-                  style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  style={[styles.empty, { backgroundColor: theme.surface, borderColor: v2.edge }]}
                 />
               ) : null}
             </View>

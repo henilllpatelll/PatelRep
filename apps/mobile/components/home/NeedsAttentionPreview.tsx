@@ -7,6 +7,7 @@ import type { AttentionGroup, AttentionPreview, AttentionPreviewItem } from "@/l
 import { describeAttentionRow } from "@/lib/housekeeping/homeText";
 import type { TextContext } from "@/lib/housekeeping/myRoomsText";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -37,6 +38,7 @@ const ICON: Record<AttentionGroup, keyof typeof Ionicons.glyphMap> = {
  */
 export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onViewAll, onMarkNoteRead }: Props) {
   const theme = useTheme();
+  const x = useV2Text();
   if (preview.total === 0) return null;
 
   const tone: Record<AttentionGroup, string> = {
@@ -51,7 +53,7 @@ export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onVie
     <Card style={styles.card} testID="needs-attention">
       <View style={styles.header}>
         <Kicker>{t("home.attention.kicker")}</Kicker>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.count, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.count, { color: theme.textMuted }, x.num, x.active && { fontSize: 13, fontWeight: "600" }]}>
           {preview.total}
         </Text>
       </View>
@@ -70,7 +72,7 @@ export function NeedsAttentionPreview({ preview, note, t, ctx, onOpenItem, onVie
             >
               <Ionicons name={ICON[row.group]} size={20} color={tone[row.group]} />
               <View style={styles.rowText}>
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }]} numberOfLines={2}>
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textPrimary }, x.active && { fontWeight: "600", fontSize: 16 }]} numberOfLines={2}>
                   {copy.title}
                 </Text>
                 {copy.detail ? (

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
@@ -34,6 +35,7 @@ export default function BroadcastModal({ visible, isOnline, onClose }: Props) {
 }
 
 function BroadcastSheet({ isOnline, onClose }: Omit<Props, "visible">) {
+  const v2t = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -108,7 +110,7 @@ function BroadcastSheet({ isOnline, onClose }: Omit<Props, "visible">) {
         <View style={[styles.audience, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]} testID="broadcast-audience">
           <Ionicons name="megaphone-outline" size={20} color={theme.status.pickup} />
           <View style={styles.audienceText}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
               {t("supervisorComms.team.audienceLabel")}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.audienceTitle, { color: theme.textPrimary }]}>
@@ -121,7 +123,7 @@ function BroadcastSheet({ isOnline, onClose }: Omit<Props, "visible">) {
         </View>
 
         <View style={styles.templates}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
             {t("supervisorComms.team.templatesLabel")}
           </Text>
           {TEMPLATE_KEYS.map((key) => {

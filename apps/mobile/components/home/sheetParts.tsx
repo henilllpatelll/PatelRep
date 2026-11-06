@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
+import { radiusV2 } from "@/components/shared/tokensV2";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -15,10 +17,11 @@ type IconName = ComponentProps<typeof Ionicons>["name"];
 
 export function SheetSection({ title, hint, children }: { title?: string; hint?: string; children: ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.section}>
       {title ? (
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
           {title}
         </Text>
       ) : null}
@@ -47,6 +50,7 @@ interface ActionRowProps {
 
 export function SheetActionRow({ icon, title, hint, disabledReason, onPress, kind = "navigate", testID, accessibilityLabel }: ActionRowProps) {
   const theme = useTheme();
+  const x = useV2Text();
   const disabled = Boolean(disabledReason);
   return (
     <Pressable
@@ -58,6 +62,7 @@ export function SheetActionRow({ icon, title, hint, disabledReason, onPress, kin
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: theme.surfaceSubtle, borderColor: theme.border },
+        x.active && { backgroundColor: theme.surface, borderColor: theme.borderSubtle, borderRadius: radiusV2.input },
         disabled && styles.dim,
         pressed && !disabled && { opacity: 0.7 },
       ]}
@@ -65,7 +70,7 @@ export function SheetActionRow({ icon, title, hint, disabledReason, onPress, kin
     >
       <Ionicons name={icon} size={22} color={theme.textSecondary} />
       <View style={styles.copy}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowTitle, { color: theme.textPrimary }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowTitle, { color: theme.textPrimary }, x.active && { fontWeight: "600" }]}>
           {title}
         </Text>
         {disabledReason || hint ? (

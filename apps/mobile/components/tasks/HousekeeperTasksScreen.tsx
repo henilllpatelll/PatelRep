@@ -34,6 +34,7 @@ import { buildSyncRows, deriveSyncKey } from "@/lib/tasks/offline/syncStatus";
 import { taskScope } from "@/lib/tasks/offline/taskCache";
 import { entriesForCurrentUser, flushTaskOutbox, useTaskOutbox } from "@/lib/tasks/offline/taskOutbox";
 import { useTaskOutboxSync } from "@/lib/tasks/offline/useTaskOutboxSync";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MAX_FONT_SCALE = 1.5;
 const CLOCK_TICK_MS = 60_000;
@@ -120,6 +121,7 @@ interface HousekeeperTasksScreenProps {
 export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, openAdd = false, addPrefill = null, onAddHandled }: HousekeeperTasksScreenProps = {}) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const voiceEnabled = useVoiceCapability().enabled;
   const translationOn = useAiCapability("taskTranslation");
@@ -613,7 +615,7 @@ export function HousekeeperTasksScreen({ linkedTaskId = null, onLinkHandled, ope
       const title = t(`tasks.hk.sections.${item.section}`) + (item.count !== undefined ? ` · ${item.count}` : "");
       const body = (
         <View style={styles.sectionHeader}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, x.label]}>
             {title}
           </Text>
           {item.toggle ? <Ionicons name={item.open ? "chevron-up" : "chevron-down"} size={16} color={theme.textMuted} /> : null}

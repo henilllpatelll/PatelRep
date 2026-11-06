@@ -7,6 +7,7 @@ import { getProgress, type LocalCleanSession } from "@/lib/housekeeping/cleanSes
 import { confirmedDurationMinutes } from "@/lib/housekeeping/cleaningTimer";
 import { cleanTypeLabel, type Translate } from "@/lib/housekeeping/myRoomsText";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   room: Room;
@@ -22,6 +23,7 @@ interface Props {
 export function SubmittedRoomView({ room, session }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const confirmed = session?.completionConfirmed ? session : undefined;
   const minutes = confirmedDurationMinutes(confirmed?.durationSeconds);
   const progress = confirmed ? getProgress(confirmed.checklist) : null;
@@ -45,7 +47,7 @@ export function SubmittedRoomView({ room, session }: Props) {
         </Text>
       </View>
 
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]}>
         {rows.map((row) => (
           <View key={row.key} style={styles.row} accessible accessibilityLabel={`${row.label}: ${row.value}`} testID={`submitted-${row.key}`}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>

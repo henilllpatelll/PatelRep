@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -53,6 +54,7 @@ import { BoardEmpty, BoardNotice, BoardSkeleton, type BoardEmptyKind } from "@/c
    model (useRoomBoard); nothing here fetches or subscribes on its own. */
 
 export default function RoomBoardScreen() {
+  const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -358,7 +360,7 @@ export default function RoomBoardScreen() {
           : t("roomBoard.roomCountOf", { shown: item.shown, total: item.total });
       return (
         <View style={styles.floorHeader} testID={`room-board-floor-${item.key}`}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.floorTitle, { color: theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.floorTitle, { color: theme.textPrimary }, v2t.label]}>
             {label}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.floorCount, { color: theme.textMuted }]}>

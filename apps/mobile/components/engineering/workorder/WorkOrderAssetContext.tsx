@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { SectionHeader } from "@/components/shared/evening";
@@ -26,6 +27,7 @@ interface Props {
 export function WorkOrderAssetContext({ wo, related, relatedFailed, locale, variant }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const asset = wo.assets;
   if (!asset?.name) return null;
   const history = variant === "history";
@@ -48,7 +50,7 @@ export function WorkOrderAssetContext({ wo, related, relatedFailed, locale, vari
 
         {history ? (
           <>
-          <Text style={[styles.label, { color: theme.textMuted }]}>{t("workOrders.repair.asset.previous", { count: related.length })}</Text>
+          <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("workOrders.repair.asset.previous", { count: related.length })}</Text>
           {relatedFailed ? (
             <Text style={{ color: theme.textMuted, fontSize: 13 }}>{t("workOrders.repair.asset.relatedFailed")}</Text>
           ) : related.length === 0 ? (

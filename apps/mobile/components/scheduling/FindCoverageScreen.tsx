@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -36,6 +37,7 @@ const FILTERS: readonly Filter[] = ["eligible", "all", "warnings", "conflicts"];
    without a shift has not agreed to work, and availability is only what each person submitted ("unknown" when nothing was). */
 
 export function FindCoverageScreen({ gapId }: { gapId: string }) {
+  const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -211,8 +213,8 @@ export function FindCoverageScreen({ gapId }: { gapId: string }) {
 
       {pendingOffers.length > 0 ? (
         <View style={styles.block} testID="find-coverage-offers">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-            {t("teamSchedule.coverage.pendingOffers").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("teamSchedule.coverage.pendingOffers"))}
           </Text>
           {pendingOffers.map((offer) => (
             <View key={offer.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID={`find-coverage-offer-${offer.id}`}>
@@ -238,8 +240,8 @@ export function FindCoverageScreen({ gapId }: { gapId: string }) {
 
       {pendingClaims.length > 0 ? (
         <View style={styles.block} testID="find-coverage-claims">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-            {t("teamSchedule.coverage.claims").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("teamSchedule.coverage.claims"))}
           </Text>
           {pendingClaims.map((claim) => (
             <View key={claim.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]} testID={`find-coverage-claim-${claim.id}`}>
@@ -261,8 +263,8 @@ export function FindCoverageScreen({ gapId }: { gapId: string }) {
 
       {open ? (
         <View style={styles.block}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }]}>
-            {t("teamSchedule.coverage.candidates").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.section, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("teamSchedule.coverage.candidates"))}
           </Text>
           <View style={[styles.search, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}>
             <Ionicons name="search" size={18} color={theme.textMuted} />

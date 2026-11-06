@@ -1,0 +1,91 @@
+/* Design System V2 sign-in (web). Scoped by CSS-module class names; reads only var(--dv2-*), which
+   AuthV2Scope sets inline from lib/design/designV2Tokens.ts. Rendered only while
+   NEXT_PUBLIC_DESIGN_V2_PREVIEW is on. No hex colors live in this file. */
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--dv2-bg);
+  color: var(--dv2-text);
+  font-family: var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* The page keeps its legacy token classes for banners and links; map them to V2 inside this scope. */
+  --paper: var(--dv2-bg);
+  --surface: var(--dv2-surface);
+  --surface-2: var(--dv2-surface-2);
+  --surface-3: var(--dv2-surface-2);
+  --line: var(--dv2-border);
+  --line-2: var(--dv2-border);
+  --ink: var(--dv2-text);
+  --ink-2: var(--dv2-text-2);
+  --ink-3: var(--dv2-text-3);
+  --ink-4: var(--dv2-text-3);
+  --accent: var(--dv2-primary);
+  --brand: var(--dv2-primary);
+  --accent-soft: var(--dv2-primary-soft);
+  --alert: var(--dv2-dirty);
+  --alert-soft: var(--dv2-dirty-soft);
+  --alert-line: var(--dv2-dirty-line);
+  --caution: var(--dv2-pickup);
+  --caution-soft: var(--dv2-pickup-soft);
+  --caution-line: var(--dv2-pickup-line);
+  --ready: var(--dv2-ready);
+  --ready-soft: var(--dv2-ready-soft);
+}
+.page *, .page *::before, .page *::after { box-sizing: border-box; }
+.page :focus-visible { outline: 3px solid var(--dv2-primary); outline-offset: 2px; }
+
+.card { width: 100%; max-width: 440px; background: var(--dv2-surface); border: 1px solid var(--dv2-border); border-radius: var(--dv2-r-hero); box-shadow: var(--dv2-shadow-card); padding: 32px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.topRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { width: 44px; height: 44px; border-radius: var(--dv2-r-input); background: var(--dv2-shell-bg); color: var(--dv2-primary); display: grid; place-items: center; flex: none; }
+.brandText { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.brandName { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.brandTag { font-size: 13px; color: var(--dv2-text-2); }
+.heading { display: flex; flex-direction: column; gap: 6px; }
+.title { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.subtitle { margin: 0; font-size: 15px; line-height: 22px; color: var(--dv2-text-2); }
+
+.tabs { display: flex; padding: 3px; gap: 2px; background: var(--dv2-surface-2); border-radius: var(--dv2-r-control); }
+.tab { flex: 1; min-height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--dv2-r-input); background: transparent; color: var(--dv2-text-2); font: inherit; font-weight: 500; cursor: pointer; }
+.tab:disabled { cursor: not-allowed; opacity: 0.6; }
+.tabActive { background: var(--dv2-surface); border-color: var(--dv2-border); color: var(--dv2-text); font-weight: 700; }
+
+.form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.labelRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.label { font-size: 14px; font-weight: 600; color: var(--dv2-text-2); }
+.link { font-size: 14px; font-weight: 600; color: var(--dv2-primary); text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; border-radius: 6px; }
+.link:hover { text-decoration: underline; }
+.input { width: 100%; min-height: 48px; padding: 0 14px; border-radius: var(--dv2-r-input); border: 1.5px solid var(--dv2-border-strong); background: var(--dv2-surface); color: var(--dv2-text); font: inherit; font-size: 16px; }
+.input::placeholder { color: var(--dv2-text-3); }
+.input:disabled { background: var(--dv2-surface-2); }
+.passwordWrap { position: relative; }
+.passwordWrap .input { padding-right: 52px; }
+.reveal { position: absolute; right: 2px; top: 2px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--dv2-text-2); border-radius: var(--dv2-r-input); cursor: pointer; }
+.reveal:hover { background: var(--dv2-surface-2); color: var(--dv2-text); }
+
+.primaryBtn { width: 100%; min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 18px; border: 1px solid transparent; border-radius: var(--dv2-r-control); background: var(--dv2-primary); color: var(--dv2-on-primary); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.primaryBtn:hover:not(:disabled) { background: var(--dv2-primary-pressed); }
+.primaryBtn:disabled { background: var(--dv2-surface-2); color: var(--dv2-text-3); border-color: var(--dv2-border); cursor: not-allowed; }
+.textBtn { background: none; border: 0; padding: 0; min-height: 44px; color: var(--dv2-primary); font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; }
+
+.notice { padding: 12px 14px; border-radius: var(--dv2-r-input); border: 1px solid; font-size: 14px; line-height: 20px; }
+.noticeError { color: var(--dv2-dirty); background: var(--dv2-dirty-soft); border-color: var(--dv2-dirty-line); }
+.noticeWarn { color: var(--dv2-text); background: var(--dv2-pickup-soft); border-color: var(--dv2-pickup-line); }
+.noticeWarn strong { color: var(--dv2-pickup); }
+.health { font-size: 13px; color: var(--dv2-text-2); text-align: center; }
+.healthOk { color: var(--dv2-ready); }
+.healthBad { color: var(--dv2-dirty); }
+.sentIcon { width: 48px; height: 48px; border-radius: 50%; background: var(--dv2-ready-soft); color: var(--dv2-ready); display: grid; place-items: center; margin: 0 auto; }
+.center { text-align: center; }
+
+@media (max-width: 480px) {
+  .card { padding: 24px 20px; border-radius: var(--dv2-r-card); }
+  .title { font-size: 26px; }
+}
+@media (forced-colors: active) {
+  .card, .input, .primaryBtn, .tabActive { border-color: CanvasText; }
+}

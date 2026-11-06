@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { EngineeringState } from "@/components/engineering/EngineeringState";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import type { PmInspection } from "@/lib/engineering/usePmInspection";
 
 /** True once there is a draft against a checklist that still matches it, i.e. the technician can start working. */
@@ -21,6 +22,7 @@ export function inspectionReady(inspection: PmInspection): boolean {
 export function PmInspectionGate({ inspection }: { inspection: PmInspection }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { draft, template, progress, compatibility } = inspection;
 
   if (inspection.loading) return <EngineeringState status="loading" emptyTitle="" />;
@@ -57,7 +59,7 @@ export function PmInspectionGate({ inspection }: { inspection: PmInspection }) {
   if (!draft) {
     return (
       <View style={styles.stack} testID="pm-template-picker">
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
           {t("pm.chooseChecklist")}
         </Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.hint, { color: theme.textSecondary }]}>

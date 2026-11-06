@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -32,6 +33,7 @@ const ACTION_LABEL: Record<CorrectionAction, string> = {
  * only when the room really is back in the queue).
  */
 function CorrectionCardView({ item, now, roomAwaitingInspection, t, onOpen, onAction }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const text = correctionText(item, now, t);
   const action = correctionAction(item, roomAwaitingInspection);
@@ -44,7 +46,7 @@ function CorrectionCardView({ item, now, roomAwaitingInspection, t, onOpen, onAc
         ? { fg: theme.status.ready, bg: theme.status.readySoft, line: theme.status.readyLine }
         : { fg: theme.status.pickup, bg: theme.status.pickupSoft, line: theme.status.pickupLine };
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`correction-card-${item.roomId}`}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`correction-card-${item.roomId}`}>
       <Pressable
         onPress={() => onOpen(item)}
         accessibilityRole="button"
@@ -53,7 +55,7 @@ function CorrectionCardView({ item, now, roomAwaitingInspection, t, onOpen, onAc
         style={({ pressed }) => [styles.body, pressed && { opacity: 0.88 }]}
       >
         <View style={styles.topRow}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.room, { color: theme.textPrimary }, v2t.num]}>
             {item.roomNumber}
           </Text>
           <View style={[styles.badge, { backgroundColor: tone.bg, borderColor: tone.line }]} testID={`correction-status-${item.roomId}`}>

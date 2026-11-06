@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import type { ChecklistItem } from "@/lib/housekeeping/cleanSession";
 import { formatClock, type TextContext } from "@/lib/housekeeping/myRoomsText";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MAX_FONT_SCALE = 1.6;
 const CORRECTION_SECTION = "Corrections";
@@ -25,6 +26,7 @@ interface RecleanCorrectionsPanelProps {
 export function RecleanCorrectionsPanel({ room, checklist, ctx }: RecleanCorrectionsPanelProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   if (!room.reclean_requested_at) return null;
 
   const details = room.reclean_details;
@@ -91,7 +93,7 @@ export function RecleanCorrectionsPanel({ room, checklist, ctx }: RecleanCorrect
 
       {details?.notes ? (
         <View style={styles.notes}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.notesLabel, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.notesLabel, { color: theme.textMuted }, x.label]}>
             {t("rooms.dash.detail.reclean.inspectorNotes")}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.meta, { color: theme.textSecondary }]}>

@@ -13,6 +13,8 @@ import { Card } from "@/components/ui/Card";
 import { Avatar, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { StaffV2 } from "@/components/gm/StaffV2";
 
 
 const ROLE_LABEL_KEYS: Record<string, string> = {
@@ -35,7 +37,13 @@ function groupByRole(members: StaffMember[]) {
   return groups;
 }
 
-export default function StaffScreen() {
+export default function StaffRoute() {
+  // Design System V2: inside the scope the staff directory is the redesigned one; otherwise the legacy screen below.
+  const v2 = useIsDesignV2();
+  return v2 ? <StaffV2 /> : <StaffScreen />;
+}
+
+function StaffScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { isOnline } = useAppStore();

@@ -1,6 +1,9 @@
 import { SETTINGS_ROLES } from '@/lib/settings/navigation'
 
-export const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/reset-password'] as const
+// '/design-v2-preview' is a flag-gated visual reference (sample data only). It must be reachable
+// without a session so it can be reviewed, and it 404s itself unless NEXT_PUBLIC_DESIGN_V2_PREVIEW
+// is on in a non-production environment (see lib/design/designV2.ts).
+export const PUBLIC_ROUTES = ['/', '/login', '/auth/callback', '/auth/reset-password', '/design-v2-preview'] as const
 export const ALL_ROLES = ['housekeeper', 'engineer', 'chief_engineer', 'housekeeping_supervisor', 'front_desk', 'gm'] as const
 
 export type UserRole = (typeof ALL_ROLES)[number]

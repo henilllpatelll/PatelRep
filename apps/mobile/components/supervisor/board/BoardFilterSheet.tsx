@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
@@ -272,10 +273,11 @@ export function BoardFilterSheet({
 }
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.section}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textPrimary }, v2t.label]}>
         {title}
       </Text>
       {children}

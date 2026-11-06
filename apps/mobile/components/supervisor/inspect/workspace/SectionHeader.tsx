@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -16,6 +17,7 @@ interface Props {
 
 /** One configured section: its name, how much of it is reviewed, and whether anything required is still open. */
 function SectionHeaderView({ summary, expanded, t, onToggle }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const complete = summary.requiredMissing === 0 && summary.answered === summary.total;
   const open = summary.requiredMissing > 0;
@@ -46,8 +48,8 @@ function SectionHeaderView({ summary, expanded, t, onToggle }: Props) {
     >
       <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={18} color={theme.textSecondary} />
       <View style={styles.main}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.name, { color: theme.textPrimary }]} numberOfLines={2}>
-          {summary.name.toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.name, { color: theme.textPrimary }, v2t.label]} numberOfLines={2}>
+          {v2t.caps(summary.name)}
         </Text>
         <View style={styles.meta}>
           {open ? (

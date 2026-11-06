@@ -1,0 +1,194 @@
+/* Design System V2 content remap (web, Phase 7).
+
+   Page bodies, drawers, modals and popovers are built from the LEGACY token names (--paper, --ink,
+   --accent, --ready, ...) through Tailwind utilities (bg-surface, text-ink, border-line, ...). This
+   file points those names at the V2 palette so every management screen picks up Precision Slate +
+   Electric Blue without per-file edits.
+
+   Isolation contract (a test enforces all of it):
+   - The ONLY selector is `body[data-dv2-content][data-dv2-mode]`. ShellV2 sets those two
+     attributes (and the --dv2-* variables) on <body> while it is mounted and removes them on
+     unmount, so portaled content (Radix dialogs, drawers) is covered and legacy mode, which never
+     mounts ShellV2, is untouched.
+   - Never `:root`, `html`, `*` or an unscoped selector. Never `!important`.
+   - Reads only var(--dv2-*); no hex colors. Doubled attribute selectors out-rank the legacy
+     `.theme-dark.accent-*` rules without `!important`. */
+
+body[data-dv2-content][data-dv2-mode] {
+  background: var(--dv2-bg);
+  color: var(--dv2-text);
+
+  --paper: var(--dv2-bg);
+  --surface: var(--dv2-surface);
+  --surface-2: var(--dv2-surface-2);
+  --surface-3: color-mix(in srgb, var(--dv2-border) 70%, var(--dv2-surface-2));
+  --surface-raised: var(--dv2-surface);
+  --surface-overlay: var(--dv2-surface);
+  --line: var(--dv2-border);
+  --line-2: var(--dv2-border);
+
+  --ink: var(--dv2-text);
+  --ink-2: var(--dv2-text-2);
+  --ink-3: var(--dv2-text-3);
+  --ink-4: var(--dv2-text-3);
+
+  --accent: var(--dv2-primary);
+  --accent-ink: var(--dv2-on-primary);
+  --accent-soft: var(--dv2-primary-soft);
+  --accent-line: var(--dv2-primary-line);
+  --brand: var(--dv2-primary);
+  --brand-ink: var(--dv2-on-primary);
+  --brand-soft: var(--dv2-primary-soft);
+  --brand-line: var(--dv2-primary-line);
+  --focus-ring: color-mix(in srgb, var(--dv2-primary) 55%, transparent);
+
+  --ready: var(--dv2-ready);
+  --ready-soft: var(--dv2-ready-soft);
+  --ready-line: var(--dv2-ready-line);
+  --caution: var(--dv2-pickup);
+  --caution-soft: var(--dv2-pickup-soft);
+  --caution-line: var(--dv2-pickup-line);
+  --alert: var(--dv2-dirty);
+  --alert-soft: var(--dv2-dirty-soft);
+  --alert-line: var(--dv2-dirty-line);
+  --info: var(--dv2-primary);
+  --info-soft: var(--dv2-primary-soft);
+  --info-line: var(--dv2-primary-line);
+  --progress: var(--dv2-in-progress);
+  --progress-soft: var(--dv2-in-progress-soft);
+  --progress-line: var(--dv2-in-progress-line);
+  --blocked: var(--dv2-out-of-order);
+  --blocked-soft: var(--dv2-out-of-order-soft);
+  --blocked-line: var(--dv2-out-of-order-line);
+  --ai: var(--dv2-ai);
+  --ai-soft: var(--dv2-ai-soft);
+  --ai-line: var(--dv2-ai-line);
+
+  /* V2 is clean sans: the legacy serif display face maps to the sans stack. Mono stays for data. */
+  --font-display: var(--font-sans);
+
+  --r-md: var(--dv2-r-input);
+  --r-lg: var(--dv2-r-card);
+  --r-xl: var(--dv2-r-hero);
+
+  --shadow-xs: none;
+  --shadow-sm: var(--dv2-shadow-card);
+  --shadow-md: var(--dv2-shadow-card);
+  --shadow-lg: 0 8px 24px rgba(13, 23, 40, 0.12);
+  --shadow-pop: 0 12px 32px rgba(13, 23, 40, 0.16);
+}
+
+body[data-dv2-content][data-dv2-mode='dark'] {
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* -- Raw Tailwind gray/slate utilities --------------------------------------------------------
+   About a dozen legacy components (PM completion, archived work orders, work-order cards/lists, the
+   kebab menu, task/logbook drawers) use raw gray-N classes instead of the token utilities, so the
+   variable remap above cannot reach them and they stay light-gray in dark mode. Rather than edit those
+   files (which would shift the legacy look), re-point the same class names to V2 tokens here, under the
+   same body scope. Solid backdrops (bg-stone-900/N), white-on-color text and the switch thumb are
+   intentionally NOT overridden. */
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-900, .text-gray-800, .text-slate-800, .hover\:text-gray-800:hover) { color: var(--dv2-text); }
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-700, .text-gray-600, .hover\:text-gray-700:hover, .hover\:text-gray-600:hover, .text-slate-600) { color: var(--dv2-text-2); }
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-500, .text-gray-400, .text-gray-300, .text-slate-400, .disabled\:text-gray-400:disabled) { color: var(--dv2-text-3); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-gray-50, .bg-slate-100, .hover\:bg-gray-50:hover, .disabled\:bg-gray-50:disabled) { background-color: var(--dv2-surface-2); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-gray-100, .bg-gray-200, .hover\:bg-gray-100:hover) { background-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-300, .hover\:border-gray-300:hover, .divide-gray-50 > :not([hidden]) ~ :not([hidden])) { border-color: var(--dv2-border); }
+/* KebabMenu: a white popover surface that must follow the theme (the switch thumb is also bg-white and must not). */
+body[data-dv2-content][data-dv2-mode] .bg-white.border-gray-200 { background-color: var(--dv2-surface); }
+/* Phase 8: the remaining stray raw utilities (each used once or twice). Placeholders matter most: the legacy
+   stone/gray placeholder tones fall below 4.5:1 on the dark surface. */
+body[data-dv2-content][data-dv2-mode] :is(.placeholder-stone-400, .placeholder-gray-400)::placeholder { color: var(--dv2-text-3); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-stone-100, .hover\:bg-gray-200:hover, .bg-gray-300) { background-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.hover\:text-gray-500:hover) { color: var(--dv2-text-2); }
+body[data-dv2-content][data-dv2-mode] .hover\:border-gray-400:hover { border-color: var(--dv2-border-strong, var(--dv2-border)); }
+/* Route error boundary: its Retry button hardcodes amber in the legacy look (kept for the flag-off contract). */
+body[data-dv2-content][data-dv2-mode] [data-error-retry] { background-color: var(--dv2-primary); color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] [data-error-retry]:hover { background-color: var(--dv2-primary-pressed); }
+/* Phase 8: the V2 design contract retires shouting uppercase micro-labels (docs section 11). Every one in the legacy
+   code is the pair `uppercase` + a `tracking-*` utility, so this targets exactly that pair and nothing else
+   (bare `uppercase` used for e.g. abbreviations is untouched). The source strings are already sentence case.
+   Size is lifted to 12px so the lowercase form stays legible. */
+body[data-dv2-content][data-dv2-mode] .uppercase[class*="tracking-"] { text-transform: none; letter-spacing: 0; font-size: 12px; }
+/* Phase 8: the legacy headline accent was Instrument Serif *italic*. V2 maps the serif to the sans stack, which would
+   otherwise leave sans italic headings. Only the exact `font-display` + `italic` pair is normalized. */
+body[data-dv2-content][data-dv2-mode] .font-display.italic { font-style: normal; }
+
+/* ==== Phase 9: component-level structure hooks (still one scope, no global rules) ====================== */
+
+/* One selected-state language: SOLID PRIMARY. The redesigned drawers already select their category chips with a solid
+   primary fill, but the same forms mixed in black toggles (Room / Property area), neutral grey-outlined pills
+   (priority "Normal") and a dark outline. Every legacy toggle marks "selected" with one of three utility
+   combinations, and all of them now read the same way: primary fill, primary edge, on-primary label.
+     1. `bg-ink text-paper` (usually with `border-ink`)
+     2. `bg-surface-3 border-ink3 text-ink` on a pressed button (the neutral "Normal" priority)
+     3. `data-[selected=true]:border-ink` (the engineering priority pills)
+   Urgent/alert selections keep their semantic alert tint. The dark button variant is excluded: it carries a shadow
+   utility and is a button, not a choice. */
+body[data-dv2-content][data-dv2-mode] :is(button, a, [role='tab'], [role='radio']).bg-ink.text-paper:not([class*='shadow']),
+body[data-dv2-content][data-dv2-mode] button.bg-ink.text-paper.border-ink,
+body[data-dv2-content][data-dv2-mode] button[aria-pressed='true'].bg-surface-3.border-ink3,
+body[data-dv2-content][data-dv2-mode] [data-selected='true'][class*='data-[selected=true]:border-ink'] {
+  background-color: var(--dv2-primary);
+  border-color: var(--dv2-primary);
+  color: var(--dv2-on-primary);
+  font-weight: 600;
+}
+
+/* The legacy brand accent was amber. It survives in a few raw utilities (Logbook, Scheduling, Onboarding, the work
+   order record). Soft tints and borders become the primary family, solid fills become the primary, and amber focus
+   rings become the V2 focus ring, so no screen shows a second brand color. */
+body[data-dv2-content][data-dv2-mode] :is(.bg-amber-50, .bg-amber-100, [class*='bg-amber-100/'], [class*='bg-amber-400/']) { background-color: var(--dv2-primary-soft); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-amber-400, .bg-amber-500, .bg-amber-600) { background-color: var(--dv2-primary); color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] :is(.hover\:bg-amber-600:hover, .hover\:bg-amber-700:hover) { background-color: var(--dv2-primary-pressed); }
+body[data-dv2-content][data-dv2-mode] :is(.border-amber-100, .border-amber-200, .border-amber-400, .border-amber-500, [class*='border-amber-500/'], .hover\:border-amber-400:hover) { border-color: var(--dv2-primary-line); }
+body[data-dv2-content][data-dv2-mode] .divide-amber-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.text-amber-700, .text-amber-800, .text-amber-900, .hover\:text-amber-800:hover, .hover\:text-amber-900:hover) { color: var(--dv2-primary-pressed); }
+body[data-dv2-content][data-dv2-mode='dark'] :is(.text-amber-700, .text-amber-800, .text-amber-900, .hover\:text-amber-800:hover, .hover\:text-amber-900:hover) { color: var(--dv2-primary); }
+body[data-dv2-content][data-dv2-mode] .text-amber-400 { color: var(--dv2-primary); }
+body[data-dv2-content][data-dv2-mode] :is([class*='ring-amber-']):focus,
+body[data-dv2-content][data-dv2-mode] :is([class*='ring-amber-']):focus-visible { --tw-ring-color: var(--focus-ring); }
+
+/* Figures. The legacy mono face is retired for data in V2 (docs section 11): system sans, tabular digits. */
+body[data-dv2-content][data-dv2-mode] .font-mono:not(kbd):not(code):not(pre) { font-family: var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+/* Segmented controls and chips share one 36px minimum height on the manager web. */
+body[data-dv2-content][data-dv2-mode] :is(button, a)[aria-pressed] { min-height: 32px; }
+
+/* The floating Feedback launcher is `bg-ink text-white`. Ink is near-white in V2 dark, which left white text on a
+   near-white pill (unreadable). The label follows the page background instead, which is the correct inverse in
+   both modes. */
+body[data-dv2-content][data-dv2-mode] button.bg-ink.text-white:not([aria-pressed]) { color: var(--dv2-bg); }
+
+/* ==== Phase 12: Setup wizard (/onboarding), all six steps =============================================
+   The wizard hand-rolled its own Button/Input/stepper around `var(--caution)` (amber in the legacy look). Under V2 that
+   token resolves to the `pickup` STATUS colour (burnt orange / amber), so buttons, the step indicator, the AI panel and
+   the selected step label stayed orange. Re-point the three caution tokens to the primary family for the wizard subtree
+   only; every other consumer of --caution (real caution/pickup states elsewhere) is untouched, and the legacy look is
+   unchanged because none of this applies without the V2 body scope. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] {
+  --caution: var(--dv2-primary);
+  --caution-soft: var(--dv2-primary-soft);
+  --caution-line: var(--dv2-primary-line);
+}
+/* Solid primary fills carry white text/icons in the legacy markup. V2 dark primary is light blue (on-primary is dark
+   navy), so white would fall to ~2.5:1: force the on-primary colour on the fill and on its white icon. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is([class*='bg-[var(--caution)]'], .bg-amber-400) {
+  background-color: var(--dv2-primary);
+  color: var(--dv2-on-primary);
+}
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is([class*='bg-[var(--caution)]'], .bg-amber-400) .text-white { color: var(--dv2-on-primary); }
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] button[class*='bg-[var(--caution)]']:hover:not(:disabled) { background-color: var(--dv2-primary-pressed); }
+/* Completed / skipped step dots: white on the legacy green-400 is ~1.9:1. Use the V2 ready token with a readable ink. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] .bg-green-400.text-white { background-color: var(--dv2-ready); color: var(--dv2-bg); }
+/* Hairlines written as border-amber-100/50 (exact-match rules above miss the opacity form). */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] [class*='border-amber-100/'] { border-color: var(--dv2-border); }
+/* The shared primary button (and ~30 other `bg-accent text-white` elements) hard-codes white text. --accent is the V2 primary,
+   which is light blue in dark mode, where white text is only ~2.5:1. Same-element pairs only; light is unchanged because
+   on-primary is white there. */
+body[data-dv2-content][data-dv2-mode='dark'] .bg-accent.text-white { color: var(--dv2-on-primary); }
+/* The wizard's text inputs set no background, so Chromium paints its own dark default (a neutral grey, rgb 59,59,59) on the
+   navy card. Give them the V2 field surface. */
+body[data-dv2-content][data-dv2-mode] [data-onboarding-v2] :is(input:not([type='checkbox'], [type='radio'], [type='file']), textarea) { background-color: var(--dv2-surface-2); }

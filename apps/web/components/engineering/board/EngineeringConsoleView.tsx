@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { ChevronRight } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useTranslation } from 'react-i18next'
@@ -73,6 +74,13 @@ const groupLabelKeys = {
 
 export function EngineeringConsoleView({ workOrders, groups, isLoading, isError, onRetry, selected, onSelect, onUpdate, roomUnavailability, staffNames, completedExpanded, onCompletedExpandedChange }: EngineeringConsoleViewProps) {
   const { t } = useTranslation()
+
+  // Nothing to review: one centered panel instead of an empty list beside an empty detail pane.
+  if (isDesignV2PreviewEnabled() && !isLoading && !isError && groups.length === 0) {
+    return <div className="rounded-[var(--r-lg)] border border-line bg-surface px-6 py-14" aria-label={t('engineering.workOrdersPage.queueTitle')} role="region">
+      <StateBlock status="empty" empty={{ title: t('engineering.workOrdersPage.queueEmptyTitle'), body: t('engineering.workOrdersPage.queueEmptyHint') }} />
+    </div>
+  }
 
   return <div className="grid min-h-[440px] overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface lg:h-[calc(100vh-248px)] lg:grid-cols-[minmax(20rem,40%)_minmax(0,1fr)]">
     <section className="flex min-h-0 flex-col border-b border-line lg:border-b-0 lg:border-r" aria-label={t('engineering.workOrdersPage.queueTitle')}>

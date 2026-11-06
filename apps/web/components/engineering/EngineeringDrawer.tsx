@@ -36,7 +36,7 @@ export function EngineeringDrawer({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-drawer" role="presentation">
+    <div className="!mt-0 fixed inset-0 z-drawer" role="presentation">
       <button
         type="button"
         className="absolute inset-0 w-full cursor-default bg-[rgba(26,24,21,0.28)]"
@@ -50,7 +50,7 @@ export function EngineeringDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={label ?? title}
-        className={`absolute right-0 top-0 flex h-[100dvh] w-full flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)] outline-none sm:w-[min(${width === 'wide' ? '640px' : '580px'},92vw)]`}
+        className={`absolute right-0 top-0 flex h-[100dvh] w-full flex-col border-l border-line bg-surface shadow-[var(--shadow-pop)] outline-none ${width === 'wide' ? 'sm:w-[min(640px,92vw)]' : 'sm:w-[min(580px,92vw)]'}`}
       >
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-line bg-surface px-5 py-4 sm:px-6">
           <h2 className="font-display text-[25px] leading-tight text-ink">{title}</h2>

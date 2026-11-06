@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { X, ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +13,8 @@ import type { StaffMember } from '@/lib/api/staff'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useDiscardGuard } from '@/lib/hooks/useDiscardGuard'
+import { DiscardChangesPrompt } from '@/components/ui/DiscardChangesPrompt'
 import { useToast } from '@/components/ui/Toast'
 import { getPriorityOptions, getTaskTypeOptions, taskTypeIcon } from './taskDisplay'
 import { AssigneePicker } from './AssigneePicker'
@@ -141,7 +144,9 @@ export function CreateTaskDrawer({
 
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
-  useModalFocusTrap(ref, isOpen, onClose)
+  const dirty = Boolean(title.trim() || description.trim() || guestName.trim() || locationText.trim() || roomId || guestRoomId || assignedTo || guestAssignedTo)
+  const guard = useDiscardGuard(isDesignV2PreviewEnabled() && dirty, onClose)
+  useModalFocusTrap(ref, isOpen, guard.requestClose)
 
   // Reset (and apply any prefill) every time the drawer opens — never leaks
   // stale values from a previous open, and never re-derives context from the DOM.
@@ -288,14 +293,14 @@ export function CreateTaskDrawer({
 
   return (
     <div className="fixed inset-0 z-drawer flex justify-end">
-      <button aria-label={t('tasks.createModal.closeAria')} className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <button aria-label={t('tasks.createModal.closeAria')} className="absolute inset-0 bg-black/30" onClick={guard.requestClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="task-create-title" className="relative flex h-full w-full max-w-[540px] flex-col border-l border-line bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.12em] text-ink3">{t('tasks.unified.eyebrow')}</p>
             <h2 id="task-create-title" className="text-lg font-semibold text-ink">{t('tasks.workspace.createTitle')}</h2>
           </div>
-          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label={t('tasks.createModal.closeAria')}><X size={18} /></IconButton>
+          <IconButton variant="ghost" size="sm" onClick={guard.requestClose} aria-label={t('tasks.createModal.closeAria')}><X size={18} /></IconButton>
         </div>
 
         <form ref={formRef} onSubmit={submit} className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -506,8 +511,9 @@ export function CreateTaskDrawer({
           {error && <p role="alert" className="text-sm text-[var(--alert)]">{error}</p>}
         </form>
 
+        {guard.confirming && <DiscardChangesPrompt onKeepEditing={guard.keepEditing} onDiscard={guard.discard} />}
         <div className="flex gap-3 border-t border-line p-4">
-          <Button variant="outline" onClick={onClose} className="flex-1">{t('common.cancel')}</Button>
+          <Button variant="outline" onClick={guard.requestClose} className="flex-1">{t('common.cancel')}</Button>
           <Button variant="primary" loading={submitting} disabled={!title.trim()} onClick={() => formRef.current?.requestSubmit()} className="flex-1">
             {mode === 'guest' ? t('tasks.createModal.createGuestRequest') : recurrence.enabled ? t('tasks.createModal.createRecurring') : t('tasks.createModal.create')}
           </Button>

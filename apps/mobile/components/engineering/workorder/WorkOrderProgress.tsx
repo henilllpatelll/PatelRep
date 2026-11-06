@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { RepairProgress, StageState } from "@/lib/engineering/repairProgress";
@@ -21,6 +22,7 @@ const ICON: Record<StageState, "checkmark-circle" | "ellipse" | "ellipse-outline
 export function WorkOrderProgress({ progress }: { progress: RepairProgress }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const summary = progress.stages.map((s) => `${t(`workOrders.repair.progress.stage.${s.id}`)}: ${t(`workOrders.repair.progress.state.${s.state}`)}`).join(", ");
 
   return (
@@ -30,7 +32,7 @@ export function WorkOrderProgress({ progress }: { progress: RepairProgress }) {
       accessibilityLabel={`${t("workOrders.repair.progress.title")}. ${progress.cancelled ? t("workOrders.repair.progress.cancelled") : summary}`}
       testID="wo-progress"
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, { color: theme.textMuted }]}>{t("workOrders.repair.progress.title")}</Text>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.title, x.label, { color: theme.textMuted }]}>{t("workOrders.repair.progress.title")}</Text>
       <View style={styles.row}>
         {progress.stages.map((stage, index) => {
           const color = stage.state === "done" ? theme.primaryAction : stage.state === "current" ? theme.primaryAction : stage.state === "paused" ? theme.status.pickup : theme.textDisabled;

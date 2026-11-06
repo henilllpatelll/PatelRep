@@ -156,15 +156,12 @@ async function loadGmBrief(t: Translate, language: "en" | "es"): Promise<Copilot
 /** Loads the corner-card brief for the current user's role.
  *
  *  Housekeepers get Home's own briefing, read-only from the shared briefing source (lib/ai/shiftBriefingSource):
- *  nothing here ever requests, or pays for, an AI briefing. The other 4 roles use the unified briefing
- *  contract and resolve to null on failure.
+ *  nothing here ever requests, or pays for, an AI briefing. Engineer, Front Desk and GM briefings are real
+ *  credit-charged AI calls and are TAP-TO-LOAD: opening or refreshing the app never requests one.
  *
- *  This hook lives for the whole app session (mounted once in the root layout, feeding both the collapsed
- *  bubble's unread/thinking state and the open card). The auto-fetch is deliberately keyed ONLY to who is
- *  signed in and their role, not to myRooms/isOnline/language churn: several of the underlying briefings
- *  are real, credit-charged AI calls (see CLAUDE.md A3), and re-firing one on every room-status mutation
- *  for as long as the app is open would multiply that spend for no reason. A different person signing in
- *  on the same device starts from nothing and never sees the previous person's brief. */
+ *  This hook lives for the whole app session (mounted once in the root layout). Nothing is fetched on mount
+ *  (CLAUDE.md A3: credit-charged calls must be deliberate). A different person signing in on the same device
+ *  starts from nothing and never sees the previous person's brief. */
 export function useCopilotBrief() {
   const { t, i18n } = useTranslation();
   const language: "en" | "es" = i18n.language?.startsWith("es") ? "es" : "en";
@@ -177,6 +174,7 @@ export function useCopilotBrief() {
   const [brief, setBrief] = useState<CopilotCardBrief | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   const load = useCallback(async () => {
     // Housekeepers have nothing to load: their briefing is the shared one above. The supervisor's overview is built
@@ -185,6 +183,7 @@ export function useCopilotBrief() {
       setBrief(null);
       return;
     }
+    setRequested(true);
     setLoading(true);
     setError(false);
     try {
@@ -206,28 +205,26 @@ export function useCopilotBrief() {
     }
   }, [cardRole, language, t]);
 
+  // A paid briefing is NEVER requested by mounting the app. The person (or a different role) changing only resets what
+  // is shown; the request itself happens when the user taps "Get my briefing" (or Retry), which calls `reload`.
   const personKey = cardRole ? `${assistantScope(user) ?? "anon"}:${cardRole}` : null;
-  const loadedKeyRef = useRef<string | null>(null);
+  const seenKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!personKey) {
-      loadedKeyRef.current = null;
+    if (seenKeyRef.current !== personKey) {
+      seenKeyRef.current = personKey;
       setBrief(null);
       setError(false);
-      return;
+      setRequested(false);
     }
-    if (loadedKeyRef.current !== personKey) {
-      loadedKeyRef.current = personKey;
-      setBrief(null);
-      setError(false);
-      load();
-    }
-  }, [personKey, load]);
+  }, [personKey]);
 
   if (cardRole === "housekeeper") {
-    return { cardRole, brief: housekeeperBrief, loading: false, error: false, reload: load };
+    return { cardRole, brief: housekeeperBrief, loading: false, error: false, idle: false, reload: load };
   }
   if (cardRole === "housekeeping_supervisor") {
-    return { cardRole, brief: null, loading: false, error: false, reload: load };
+    return { cardRole, brief: null, loading: false, error: false, idle: false, reload: load };
   }
-  return { cardRole, brief, loading, error, reload: load };
+  // `idle` = a paid role that has not asked for a briefing yet: the card offers a button instead of spending credits.
+  const idle = Boolean(cardRole) && !requested && !brief && !loading && !error;
+  return { cardRole, brief, loading, error, idle, reload: load };
 }

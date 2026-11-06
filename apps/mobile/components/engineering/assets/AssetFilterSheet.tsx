@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import type { AssetCategory } from "@/lib/api/assets";
@@ -43,9 +44,10 @@ function Chip({ label, selected, onPress, testID }: { label: string; selected: b
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {title}
       </Text>
       <View style={styles.chips}>{children}</View>
@@ -57,6 +59,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function AssetFilterSheet({ visible, filters, categories, categoriesFailed, onApply, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const [draft, setDraft] = useState<AssetFilters>(filters);
   const [floorText, setFloorText] = useState(filters.floor != null ? String(filters.floor) : "");
 
@@ -120,7 +123,7 @@ export function AssetFilterSheet({ visible, filters, categories, categoriesFaile
       </Section>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header">
+        <Text style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
           {t("assets.filter.location")}
         </Text>
         <View style={styles.fieldRow}>

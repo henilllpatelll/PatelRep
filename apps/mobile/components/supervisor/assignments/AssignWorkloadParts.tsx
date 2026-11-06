@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -69,13 +70,14 @@ export function ImpactBlock({
   /** `receive` = they take the room; `release` = it leaves them. Only changes the label wording. */
   tone: "receive" | "release";
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const before = impact.before;
   const after = impact.after;
   const capacity = capacityText(before, after, t);
   const missing = missingText(after.minutes, t);
   return (
-    <View style={[styles.block, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={testID}>
+    <View style={[styles.block, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={testID}>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heading, { color: theme.textPrimary }]}>
         {heading}
       </Text>

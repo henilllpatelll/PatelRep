@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -263,11 +264,12 @@ export function ReviewView({
 }
 
 function Section({ title, testID, children }: { title: string; testID: string; children: React.ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.section} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }]}>
-        {title.toUpperCase()}
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(title)}
       </Text>
       {children}
     </View>

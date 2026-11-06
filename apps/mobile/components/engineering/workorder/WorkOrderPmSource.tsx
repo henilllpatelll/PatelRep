@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { SectionHeader } from "@/components/shared/evening";
@@ -24,6 +25,7 @@ interface Props {
 export function WorkOrderPmSource({ wo, language, timezone }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const source = wo.pm_source;
   if (!source) return null;
   const record = source.details_unavailable ? null : pmRecordRoute(source.completion_id, source.schedule_id);
@@ -56,7 +58,7 @@ export function WorkOrderPmSource({ wo, language, timezone }: Props) {
             </Text>
             {own ? (
               <>
-                <Text style={[styles.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.thisItem")}</Text>
+                <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.thisItem")}</Text>
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={{ color: theme.textPrimary, fontSize: 14, fontWeight: "700" }} testID="wo-pm-source-this-item">
                   {own.note ? `${own.label}: ${own.note}` : own.label}
                 </Text>
@@ -64,7 +66,7 @@ export function WorkOrderPmSource({ wo, language, timezone }: Props) {
             ) : null}
             {failed.length > 0 ? (
               <>
-                <Text style={[styles.label, { color: theme.textMuted }]}>
+                <Text style={[styles.label, x.label, { color: theme.textMuted }]}>
                   {t(own ? "workOrders.pmSource.alsoFailed" : "workOrders.pmSource.failed", { count: failed.length })}
                 </Text>
                 {failed.map((item, index) => (
@@ -76,7 +78,7 @@ export function WorkOrderPmSource({ wo, language, timezone }: Props) {
             ) : null}
             {defect ? (
               <>
-                <Text style={[styles.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.recorded")}</Text>
+                <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("workOrders.pmSource.recorded")}</Text>
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={6} style={{ color: theme.textSecondary, fontSize: 13.5 }}>
                   {defect}
                 </Text>

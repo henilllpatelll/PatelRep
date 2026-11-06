@@ -132,3 +132,19 @@ export function getAllowedNavItems(params: AllowedNavParams): NavItem[] {
   const allowed = getAllowedHrefs(params)
   return ALL_NAV_ITEMS.filter((item) => allowed.includes(item.href))
 }
+
+/** Label for an unlisted route segment such as `/engineering/vendors`. A bare `t('vendors')` resolves to the top-level
+ *  `vendors` namespace OBJECT, and i18next then prints "key 'vendors (en)' returned an object instead of string" in the
+ *  breadcrumb. Prefer a nav label, then the page's own `<segment>.title`, then a humanized segment. */
+export function routeSegmentLabel(
+  t: (key: string) => string,
+  exists: (key: string) => boolean,
+  segment: string,
+): string {
+  const navKey = NAV_LABEL_KEYS[segment]
+  if (navKey) return t(navKey)
+  const titleKey = `${segment}.title`
+  if (exists(titleKey)) return t(titleKey)
+  const spaced = segment.replace(/[-_]+/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}

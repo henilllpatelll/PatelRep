@@ -1,0 +1,149 @@
+/* Design System V2 management shell (web). Everything here is scoped by CSS-module class names and
+   reads ONLY var(--dv2-*) custom properties, which ShellV2 sets inline from
+   lib/design/designV2Tokens.ts. No hex colors live in this file.
+
+   The shell exists only when NEXT_PUBLIC_DESIGN_V2_PREVIEW is on (see DashboardShell). Page bodies
+   rendered inside <main> keep their legacy styling; only the chrome (sidebar, header, drawer) is
+   remapped. `.chromeLight` / `.chromeDark` remap the LEGACY token names (--paper, --ink, ...) on
+   the chrome subtrees only, so the existing Header keeps its behavior with a V2 appearance. */
+
+.root {
+  min-height: 100vh;
+  height: 100vh;
+  background: var(--dv2-bg);
+  color: var(--dv2-text);
+  font-family: var(--font-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+
+.skipLink { position: absolute; left: 12px; top: -64px; z-index: 100; padding: 10px 16px; border-radius: var(--dv2-r-control); background: var(--dv2-primary); color: var(--dv2-on-primary); font-weight: 600; text-decoration: none; }
+.skipLink:focus { top: 12px; outline: 3px solid var(--dv2-text); outline-offset: 2px; }
+
+.shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); height: 100vh; transition: grid-template-columns 160ms cubic-bezier(0.2, 0, 0, 1); }
+.shellRail { grid-template-columns: 72px minmax(0, 1fr); }
+
+/* -- Chrome token remaps (legacy names -> V2) ---------------------------------------------- */
+.chromeLight {
+  --paper: var(--dv2-surface);
+  --surface: var(--dv2-surface);
+  --surface-2: var(--dv2-surface-2);
+  --surface-3: var(--dv2-border);
+  --line: var(--dv2-border);
+  --line-2: var(--dv2-border);
+  --ink: var(--dv2-text);
+  --ink-2: var(--dv2-text-2);
+  --ink-3: var(--dv2-text-3);
+  --ink-4: var(--dv2-text-3);
+  --accent: var(--dv2-primary);
+  --brand: var(--dv2-primary);
+  --accent-soft: var(--dv2-primary-soft);
+  --accent-line: var(--dv2-primary-line);
+  --brand-soft: var(--dv2-primary-soft);
+  --brand-line: var(--dv2-primary-line);
+  --alert: var(--dv2-destructive);
+  --focus-ring: var(--dv2-primary);
+}
+
+/* -- Sidebar ------------------------------------------------------------------------------ */
+.sidebar { background: var(--dv2-shell-bg); color: var(--dv2-shell-ink); display: flex; flex-direction: column; min-width: 0; height: 100vh; border-right: 1px solid var(--dv2-shell-line); }
+.sidebar :focus-visible, .drawerNav :focus-visible { outline: 3px solid var(--dv2-shell-ink); outline-offset: 2px; }
+.sideTop { display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; min-height: 64px; }
+.sideTopRail { justify-content: center; padding-inline: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; color: inherit; text-decoration: none; border-radius: var(--dv2-r-control); padding: 4px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.brandRail { flex: none; padding: 0; }
+.logo { width: 34px; height: 34px; border-radius: var(--dv2-r-input); background: var(--dv2-primary); color: var(--dv2-on-primary); display: grid; place-items: center; flex: none; }
+.brandText { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brandSub { font-size: 12px; font-weight: 500; color: var(--dv2-shell-ink-2); }
+
+.navScroll { flex: 1; overflow-y: auto; padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 18px; }
+.group { display: flex; flex-direction: column; gap: 2px; }
+.groupLabel { padding: 0 12px 6px; font-size: 12px; font-weight: 600; color: var(--dv2-shell-ink-3); }
+.groupLabelRail { display: none; }
+.groupRule { height: 1px; background: var(--dv2-shell-line); margin: 0 8px; }
+.navList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.navLink { display: flex; align-items: center; gap: 12px; min-height: var(--dv2-touch); padding: 0 12px; border-radius: var(--dv2-r-control); color: var(--dv2-shell-ink-2); text-decoration: none; font-size: 15px; background: none; border: 0; width: 100%; text-align: left; cursor: pointer; position: relative; }
+.navLink:hover { background: var(--dv2-shell-surface); color: var(--dv2-shell-ink); }
+.navLinkRail { justify-content: center; padding: 0; }
+.navLinkActive { background: var(--dv2-shell-raised); color: var(--dv2-shell-ink); font-weight: 600; }
+.navLinkActive::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--dv2-primary); }
+.navLinkRail.navLinkActive::before { left: -12px; }
+.navIcon { flex: none; }
+.navLabel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navTag { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--dv2-ai-line); background: var(--dv2-ai-soft); color: var(--dv2-ai); }
+.subNav { list-style: none; margin: 2px 0 4px 26px; padding: 0 0 0 12px; border-left: 1px solid var(--dv2-shell-line); display: flex; flex-direction: column; gap: 1px; }
+.subLink { display: flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: var(--dv2-r-input); font-size: 14px; color: var(--dv2-shell-ink-2); text-decoration: none; }
+.subLink:hover { background: var(--dv2-shell-surface); color: var(--dv2-shell-ink); }
+.subLinkActive { color: var(--dv2-shell-ink); font-weight: 600; background: var(--dv2-shell-surface); }
+
+.sideBottom { padding: 8px 12px 12px; border-top: 1px solid var(--dv2-shell-line); display: flex; flex-direction: column; gap: 6px; }
+.identity { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--dv2-r-control); background: var(--dv2-shell-surface); min-width: 0; }
+.identityRail { justify-content: center; padding: 6px 0; background: transparent; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--dv2-primary-soft); color: var(--dv2-primary); border: 1px solid var(--dv2-primary-line); display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
+.identityText { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.identityName { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.identityRole { font-size: 12px; color: var(--dv2-shell-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.tooltip { z-index: 1000; padding: 6px 10px; border-radius: var(--dv2-r-input); background: var(--dv2-shell-bg); color: var(--dv2-shell-ink); border: 1px solid var(--dv2-shell-line); font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); font-family: var(--font-sans), system-ui, sans-serif; }
+
+/* -- Main column --------------------------------------------------------------------------- */
+.main { min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.headerWrap { flex: none; background: var(--dv2-surface); border-bottom: 1px solid var(--dv2-border); position: relative; z-index: 30; }
+.content { flex: 1; overflow-y: auto; background: var(--dv2-bg); outline: none; }
+.contentInner { max-width: 1440px; margin: 0 auto; width: 100%; padding: 24px 24px 80px; }
+
+/* Header additions (the rest of the header is the existing component, remapped by .chromeLight) */
+.leading { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.menuButton { display: none; width: var(--dv2-touch); height: var(--dv2-touch); place-items: center; border-radius: var(--dv2-r-control); border: 0; background: transparent; color: var(--dv2-text); cursor: pointer; flex: none; }
+.menuButton:hover { background: var(--dv2-surface-2); }
+.menuButton:focus-visible, .searchButton:focus-visible { outline: 3px solid var(--dv2-primary); outline-offset: 2px; }
+.context { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 14px; color: var(--dv2-text-2); }
+.contextCurrent { color: var(--dv2-text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.contextLink { color: var(--dv2-text-2); text-decoration: none; white-space: nowrap; border-radius: 6px; }
+.contextLink:hover { color: var(--dv2-text); text-decoration: underline; }
+.contextSep { color: var(--dv2-text-3); flex: none; }
+.property { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px; border: 1px solid var(--dv2-border); border-radius: var(--dv2-r-control); background: var(--dv2-surface-2); font-size: 14px; font-weight: 600; max-width: 240px; flex: none; }
+.propertyName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.searchButton { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--dv2-border-strong); border-radius: var(--dv2-r-control); background: var(--dv2-surface); color: var(--dv2-text-2); cursor: pointer; font-size: 14px; flex: 0 1 280px; min-width: 0; }
+.searchButton:hover { background: var(--dv2-surface-2); }
+.searchText { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kbd { font-size: 12px; padding: 1px 6px; border: 1px solid var(--dv2-border); border-radius: 6px; color: var(--dv2-text-3); font-family: var(--font-mono), ui-monospace, monospace; }
+
+/* -- Nav drawer (Radix Dialog; focus trap, Esc, focus return) ----------------------------- */
+.overlay { position: fixed; inset: 0; background: var(--dv2-text); opacity: 0.45; z-index: 60; }
+.drawerNav { position: fixed; top: 0; bottom: 0; left: 0; z-index: 70; width: min(304px, 88vw); background: var(--dv2-shell-bg); color: var(--dv2-shell-ink); border-right: 1px solid var(--dv2-shell-line); display: flex; flex-direction: column; font-family: var(--font-sans), system-ui, sans-serif; }
+.drawerNav *, .drawerNav *::before, .drawerNav *::after { box-sizing: border-box; }
+.drawerNav h2, .drawerNav p { margin: 0; }
+.drawerHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 8px 0 12px; }
+.drawerClose { width: var(--dv2-touch); height: var(--dv2-touch); display: grid; place-items: center; border-radius: var(--dv2-r-control); border: 0; background: transparent; color: var(--dv2-shell-ink); cursor: pointer; }
+.drawerClose:hover { background: var(--dv2-shell-surface); }
+@media (prefers-reduced-motion: no-preference) {
+  .drawerNav { animation: navIn 180ms cubic-bezier(0.2, 0, 0, 1); }
+}
+@keyframes navIn { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .shell { transition: none; }
+}
+
+/* Legacy floating report-an-issue pill: sit just right of the sidebar instead of on top of it. */
+.feedbackSlot > div { left: calc(248px + 16px); }
+.feedbackSlotRail > div { left: calc(72px + 16px); }
+@media (max-width: 1279px) { .feedbackSlot > div, .feedbackSlotRail > div { left: calc(72px + 16px); } }
+@media (max-width: 1023px) { .feedbackSlot > div, .feedbackSlotRail > div { left: 16px; } }
+
+/* -- Responsive ---------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .shell, .shellRail { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { display: none; }
+  .menuButton { display: grid; }
+  .contentInner { padding: 16px 16px 96px; }
+}
+@media (max-width: 720px) {
+  .property, .searchText, .kbd { display: none; }
+  .searchButton { flex: none; width: var(--dv2-touch); height: var(--dv2-touch); justify-content: center; padding: 0; border-color: transparent; }
+}
+@media (forced-colors: active) {
+  .navLinkActive, .property, .searchButton { border: 1px solid CanvasText; }
+}

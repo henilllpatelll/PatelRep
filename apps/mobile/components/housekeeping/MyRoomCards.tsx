@@ -20,6 +20,9 @@ import {
   locationLabel,
 } from "@/lib/housekeeping/myRoomsText";
 import { useTextContext } from "@/components/housekeeping/useTextContext";
+import { LinearProgress } from "@/components/ui/LinearProgress";
+import { radiusV2 } from "@/components/shared/tokensV2";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const MIN_TARGET = 44;
 const MAX_FONT_SCALE = 1.6;
@@ -37,10 +40,11 @@ function useNow(intervalMs: number): Date {
 function RushBadge() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   return (
-    <View style={[styles.badge, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-      <Ionicons name="flash" size={11} color={theme.status.dirty} />
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.status.dirty }]}>
+    <View style={[styles.badge, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }, x.active && styles.badgeV2]}>
+      <Ionicons name="flash" size={x.active ? 13 : 11} color={theme.status.dirty} />
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.status.dirty }, x.active && styles.badgeTextV2]}>
         {t("rooms.dash.card.rush")}
       </Text>
     </View>
@@ -51,6 +55,7 @@ function RushBadge() {
 export function WhyNextLink({ roomNumber, onPress }: { roomNumber: string; onPress: () => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <Pressable
       onPress={onPress}
@@ -59,7 +64,7 @@ export function WhyNextLink({ roomNumber, onPress }: { roomNumber: string; onPre
       style={({ pressed }) => [styles.whyNext, pressed && styles.pressed]}
       testID="why-next"
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.whyNextText, { color: theme.primaryAction }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.whyNextText, { color: theme.primaryAction }, x.active && { fontWeight: "600" }]}>
         {t("rooms.dash.card.whyNext")}
       </Text>
       <Ionicons name="chevron-forward" size={16} color={theme.primaryAction} />
@@ -84,6 +89,7 @@ interface MyRoomCardProps {
 export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const ctx = useTextContext();
   const room = entry.room;
   const isAttention = entry.category === "attention";
@@ -122,22 +128,22 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
               {position ? (
                 <Text
                   maxFontSizeMultiplier={MAX_FONT_SCALE}
-                  style={[styles.position, { color: theme.textMuted }]}
+                  style={[styles.position, { color: theme.textMuted }, x.num]}
                   accessibilityElementsHidden
                   importantForAccessibility="no"
                 >
                   {position}.
                 </Text>
               ) : null}
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, x.display]}>
                 {room.room_number}
               </Text>
             </View>
             <View style={styles.badges}>
               {stateBadge ? (
-                <View style={[styles.badge, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }]}>
-                  <Ionicons name={stateBadge.icon} size={12} color={theme.status.dirty} />
-                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.status.dirty }]}>
+                <View style={[styles.badge, { backgroundColor: theme.status.dirtySoft, borderColor: theme.status.dirtyLine }, x.active && styles.badgeV2]}>
+                  <Ionicons name={stateBadge.icon} size={x.active ? 13 : 12} color={theme.status.dirty} />
+                  <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.badgeText, { color: theme.status.dirty }, x.active && styles.badgeTextV2]}>
                     {stateBadge.label}
                   </Text>
                 </View>
@@ -157,7 +163,7 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
           {rushLine ? (
             <Text
               maxFontSizeMultiplier={MAX_FONT_SCALE}
-              style={[styles.neededBy, { color: rush?.overdue ? theme.status.dirty : theme.textPrimary }]}
+              style={[styles.neededBy, { color: rush?.overdue ? theme.status.dirty : theme.textPrimary }, x.active && { fontWeight: "600" }]}
             >
               {rushLine}
             </Text>
@@ -174,7 +180,7 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
           ))}
 
           <View style={styles.actionRow}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.action, { color: theme.primaryAction }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.action, { color: theme.primaryAction }, x.active && { fontWeight: "600" }]}>
               {isReclean ? t("rooms.dash.detail.reclean.start") : t("rooms.dash.card.review")}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={theme.primaryAction} />
@@ -190,6 +196,7 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
 export function CompactRoomRow({ entry, onPress }: { entry: RoomEntry; onPress: () => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const ctx = useTextContext();
   const room = entry.room;
   const label = compactStateLabel(entry, t, ctx);
@@ -206,16 +213,17 @@ export function CompactRoomRow({ entry, onPress }: { entry: RoomEntry; onPress: 
       style={({ pressed }) => [
         styles.row,
         { borderColor: theme.borderSubtle, backgroundColor: theme.surface },
+        x.active && { borderRadius: radiusV2.input },
         pressed && styles.pressed,
       ]}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowNumber, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowNumber, { color: theme.textPrimary }, x.display, x.active && { fontSize: 18, lineHeight: 24 }]}>
         {room.room_number}
       </Text>
       <View style={styles.rowMain}>
         <Text
           maxFontSizeMultiplier={MAX_FONT_SCALE}
-          style={[styles.rowStatus, { color: entry.category === "attention" || entry.rush ? tone : theme.textSecondary }]}
+          style={[styles.rowStatus, { color: entry.category === "attention" || entry.rush ? tone : theme.textSecondary }, x.active && { fontWeight: "600" }]}
         >
           {label}
         </Text>
@@ -244,6 +252,7 @@ interface CurrentRoomCardProps {
 export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, isOnline }: CurrentRoomCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const now = useNow(30_000);
   const room = entry.room;
   const session = entry.session;
@@ -251,7 +260,7 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
   if (!session || session.state === "missing") {
     return (
       <View
-        style={[styles.currentCard, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }]}
+        style={[styles.currentCard, { backgroundColor: theme.status.pickupSoft, borderColor: theme.status.pickupLine }, x.active && styles.currentCardV2]}
         testID={`current-recovery-${room.room_number}`}
       >
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.currentTitle, { color: theme.textPrimary }]}>
@@ -312,10 +321,11 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
       style={({ pressed }) => [
         styles.currentCard,
         { backgroundColor: theme.status.inProgressSoft, borderColor: theme.status.inProgressLine },
+        x.active && styles.currentCardV2,
         pressed && styles.pressed,
       ]}
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.currentTitle, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.currentTitle, { color: theme.textPrimary }, x.title]}>
         {t("rooms.dash.current.title", { room: room.room_number })}
       </Text>
       {subtitle ? (
@@ -333,7 +343,16 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.detail, { color: theme.textPrimary }]}>
             {t("rooms.dash.current.checklist", { done: session.checklistDone, total: session.checklistTotal })}
           </Text>
-          <ProgressBar value={session.checklistDone} total={session.checklistTotal} color={theme.status.inProgress} />
+          {x.active ? (
+            <LinearProgress
+              value={session.checklistDone}
+              total={session.checklistTotal}
+              tone="inProgress"
+              accessibilityLabel={t("rooms.dash.current.checklist", { done: session.checklistDone, total: session.checklistTotal })}
+            />
+          ) : (
+            <ProgressBar value={session.checklistDone} total={session.checklistTotal} color={theme.status.inProgress} />
+          )}
         </View>
       ) : null}
       {note ? (
@@ -341,8 +360,8 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
           {note}
         </Text>
       ) : null}
-      <View style={[styles.primaryBtn, { backgroundColor: theme.primaryAction }]}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.primaryBtnText, { color: theme.onPrimary }]}>
+      <View style={[styles.primaryBtn, { backgroundColor: theme.primaryAction }, x.active && styles.primaryBtnV2]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.primaryBtnText, { color: theme.onPrimary }, x.active && { fontWeight: "600" }]}>
           {t("rooms.dash.current.resume", { room: room.room_number })}
         </Text>
         <Ionicons name="arrow-forward" size={16} color={theme.onPrimary} />
@@ -373,6 +392,8 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   badgeText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },
+  badgeV2: { paddingHorizontal: 10, paddingVertical: 4 },
+  badgeTextV2: { fontSize: 12, fontWeight: "600", letterSpacing: 0 },
   subtitle: { fontSize: 14, fontWeight: "600" },
   neededBy: { fontSize: 13.5, fontWeight: "800" },
   detail: { fontSize: 13.5, lineHeight: 19 },
@@ -395,6 +416,8 @@ const styles = StyleSheet.create({
   rowMarkers: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
 
   currentCard: { borderWidth: 1.5, borderRadius: 16, padding: 16, gap: 6 },
+  currentCardV2: { borderWidth: 1, borderRadius: radiusV2.hero, gap: 8 },
+  primaryBtnV2: { minHeight: 56, borderRadius: radiusV2.control },
   currentTitle: { fontSize: 20, fontWeight: "800", lineHeight: 26 },
   checklist: { gap: 6, marginTop: 4 },
   syncNote: { fontSize: 13, fontWeight: "700" },

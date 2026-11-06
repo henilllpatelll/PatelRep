@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
@@ -26,6 +27,7 @@ const CTA_ICON: Record<CardCtaKind, "person-add-outline" | "chevron-forward" | "
 };
 
 function RoomCardView({ model, onOpen }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
   const blocked = model.section === "blocked";
@@ -44,11 +46,11 @@ function RoomCardView({ model, onOpen }: Props) {
       <StatusRail status={model.rawStatus} />
       <View style={styles.body}>
         <View style={styles.top}>
-          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: theme.textPrimary }]} testID={`assignment-room-number-${model.roomNumber}`}>
+          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: theme.textPrimary }, v2t.num]} testID={`assignment-room-number-${model.roomNumber}`}>
             {model.roomNumber}
           </Text>
           <View style={[styles.statusPill, { backgroundColor: meta.bg, borderColor: meta.border }]} testID={`assignment-room-status-${model.roomNumber}`}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.statusText, { color: meta.fg }]}>
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.statusText, { color: meta.fg }, v2t.pill]}>
               {model.statusLabel}
             </Text>
           </View>

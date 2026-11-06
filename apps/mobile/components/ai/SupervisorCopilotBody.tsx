@@ -14,6 +14,7 @@ import {
 import type { AssistantConversation } from "@/lib/ai/useAssistantConversation";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { supervisorHref, type SupervisorScreen } from "@/lib/navigation/supervisorRoutes";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 /* The supervisor Copilot's overview, inside the existing floating card (no second assistant, no extra button).
    Facts come from the verified Today snapshot and say where they came from; the optional AI wording is labelled
@@ -339,10 +340,10 @@ const styles = StyleSheet.create({
   heading: {
     marginTop: 12,
     marginBottom: 4,
-    fontSize: 10.5,
+    fontSize: microLabelSize(10.5),
     fontWeight: "700",
-    letterSpacing: 0.9,
-    textTransform: "uppercase",
+    letterSpacing: microLabelTracking(0.9),
+    textTransform: microLabelCase(),
     color: "rgba(247,244,238,0.45)",
   },
   overview: { fontSize: 14, lineHeight: 20, color: darkTheme.textPrimary },

@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { Mark } from "@/components/supervisor/assignments/BulkParts";
@@ -18,6 +19,7 @@ interface Props {
 }
 
 function SelectableRoomRowView({ model, onToggle }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <Pressable
@@ -35,7 +37,7 @@ function SelectableRoomRowView({ model, onToggle }: Props) {
       <Mark checked={model.selected} disabled={!model.selectable} />
       <View style={styles.body}>
         <View style={styles.top}>
-          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: model.selectable ? theme.textPrimary : theme.textMuted }]} testID={`bulk-row-number-${model.roomNumber}`}>
+          <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.number, { color: model.selectable ? theme.textPrimary : theme.textMuted }, v2t.num]} testID={`bulk-row-number-${model.roomNumber}`}>
             {model.roomNumber}
           </Text>
           {model.chips.map((chip) => (

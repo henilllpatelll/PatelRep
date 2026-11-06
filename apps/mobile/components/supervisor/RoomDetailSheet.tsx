@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -77,6 +78,7 @@ export function RoomDetailSheet({
   deps: RoomDetailDeps;
   onClose: () => void;
 }) {
+  const v2t = useV2Text();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -261,7 +263,7 @@ export function RoomDetailSheet({
         ) : top === "detail" ? (
           <View style={styles.header}>
             <View style={styles.headerBody} accessible accessibilityLabel={detail.accessibilityLabel} testID="room-detail-header">
-              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }]} testID="room-detail-number">
+              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]} testID="room-detail-number">
                 {detail.roomNumber}
               </Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.subtitle, { color: theme.textSecondary }]} testID="room-detail-subtitle">

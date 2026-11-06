@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R } from "@/components/shared/tokens";
 import { SectionHeader } from "@/components/shared/evening";
 import { formatDuration, type WorkOrder } from "@/lib/engineering/workOrders";
@@ -14,9 +15,10 @@ interface Props {
 
 function Row({ k, v }: { k: string; v: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={{ gap: 1 }}>
-      <Text style={{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }}>{k}</Text>
+      <Text style={[{ color: theme.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" }, x.label]}>{k}</Text>
       <Text style={{ color: theme.textPrimary, fontSize: 14.5, lineHeight: 20 }}>{v}</Text>
     </View>
   );

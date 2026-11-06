@@ -13,6 +13,7 @@ import { roomRoute, workOrderRoute } from "@/lib/engineering/routes";
 import { useAsyncResource } from "@/lib/engineering/useAsyncResource";
 import { workOrderLabel } from "@/lib/engineering/workQueue";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -33,6 +34,7 @@ interface Props {
 export function RoomImpactSheet({ visible, impact, assetName, assetTag, scope, language, timezone, onClose }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   // The room's own state is a separate read, only made while the sheet is open; a role that may not read it just sees the note.
   const room = useAsyncResource((signal) => fetchRoomRow(impact.roomId as string, signal), {
     scope,
@@ -53,7 +55,7 @@ export function RoomImpactSheet({ visible, impact, assetName, assetTag, scope, l
           {assetName}
         </Text>
         {assetTag?.trim() ? <Text style={{ color: theme.textMuted, fontSize: 12.5 }}>{assetTag.trim()}</Text> : null}
-        <Text style={[styles.label, { color: theme.textMuted }]}>{t("assets.roomImpact.equipment")}</Text>
+        <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("assets.roomImpact.equipment")}</Text>
         <View style={styles.row}>
           <StatusBadge status={impact.serviceStatus} />
           {impact.downtimeSince ? (
@@ -67,7 +69,7 @@ export function RoomImpactSheet({ visible, impact, assetName, assetTag, scope, l
       </View>
 
       <View style={styles.block}>
-        <Text style={[styles.label, { color: theme.textMuted }]}>{t("assets.roomImpact.serves")}</Text>
+        <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("assets.roomImpact.serves")}</Text>
         {impact.hasRoom ? (
           <>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.strong, { color: theme.textPrimary }]} testID="room-impact-room">
@@ -92,7 +94,7 @@ export function RoomImpactSheet({ visible, impact, assetName, assetTag, scope, l
       </View>
 
       <View style={styles.block}>
-        <Text style={[styles.label, { color: theme.textMuted }]}>{t("assets.roomImpact.repairs", { count: impact.activeRepairs.length })}</Text>
+        <Text style={[styles.label, x.label, { color: theme.textMuted }]}>{t("assets.roomImpact.repairs", { count: impact.activeRepairs.length })}</Text>
         {impact.activeRepairs.length === 0 ? (
           <Text style={{ color: theme.textMuted, fontSize: 13.5 }}>{t("assets.roomImpact.noRepairs")}</Text>
         ) : (

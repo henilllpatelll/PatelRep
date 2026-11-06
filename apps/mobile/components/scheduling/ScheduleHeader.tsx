@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -44,14 +45,15 @@ function IconButton({ icon, label, onPress, testID, disabled }: { icon: "chevron
 
 /** Back path, title, refresh, the Today/Week switch, and day-by-day navigation. */
 export function ScheduleHeader({ topInset, view, onView, dateLabel, isToday, onPrevDay, onNextDay, onToday, refreshing, onRefresh, onBack, freshness, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]} testID="team-schedule-header">
       <View style={styles.titleRow}>
         <IconButton icon="chevron-back" label={t("teamSchedule.back")} onPress={onBack} testID="team-schedule-back" />
         <View style={styles.titleText}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]} numberOfLines={1}>
-            {t("teamSchedule.kicker").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]} numberOfLines={1}>
+            {v2t.caps(t("teamSchedule.kicker"))}
           </Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
             {t("teamSchedule.title")}

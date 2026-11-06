@@ -8,6 +8,7 @@ import type { BriefingPlanEntry } from "@/lib/housekeeping/homeBriefing";
 import { formatClock, type TextContext, type Translate } from "@/lib/housekeeping/myRoomsText";
 import type { AiRequestStatus } from "@/lib/housekeeping/useShiftBriefing";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   visible: boolean;
@@ -35,6 +36,7 @@ interface Props {
  */
 export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t, ctx, updatedAt, onNewBriefing, onAskAi, onOpenRoom, onClose }: Props) {
   const theme = useTheme();
+  const x = useV2Text();
   const isAi = briefing.source === "ai";
   const loading = status === "loading";
   const updated = formatClock(updatedAt, ctx);
@@ -60,7 +62,7 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
         </>
       }
     >
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.source, { color: theme.textMuted }]} testID="briefing-source">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.source, { color: theme.textMuted }, x.label]} testID="briefing-source">
         {t(isAi ? "home.briefingSheet.sourceAi" : "home.briefingSheet.sourceLocal")}
       </Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.headline, { color: theme.textPrimary }]} testID="briefing-headline">
@@ -83,7 +85,7 @@ export function ShiftBriefingSheet({ visible, plan, briefing, status, online, t,
               testID={`briefing-plan-${entry.roomNumber}`}
             />
           ))}
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.source, { color: theme.textMuted }]} testID="briefing-plan-source">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.source, { color: theme.textMuted }, x.label]} testID="briefing-plan-source">
             {t("home.briefingSheet.planSource")}
           </Text>
         </SheetSection>

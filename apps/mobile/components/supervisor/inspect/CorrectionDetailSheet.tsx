@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Button } from "@/components/ui/Button";
 import { PhotoViewer } from "@/components/supervisor/inspect/workspace/PhotoViewer";
 import { WorkspaceSheet } from "@/components/supervisor/inspect/workspace/WorkspaceSheet";
@@ -55,6 +56,7 @@ export function CorrectionDetailSheet({
   onClose: () => void;
 }) {
   const theme = useTheme();
+  const v2t = useV2Text();
   const [state, setState] = useState<State>({ status: "loading" });
   const [confirmEscalate, setConfirmEscalate] = useState(false);
   const [viewing, setViewing] = useState<{ uri: string; label: string } | null>(null);
@@ -113,8 +115,8 @@ export function CorrectionDetailSheet({
       {correction ? (
         <View style={styles.body}>
           <View style={styles.row}>
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-              {t("inspect.drawer.statusLabel").toUpperCase()}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+              {v2t.caps(t("inspect.drawer.statusLabel"))}
             </Text>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]} testID="correction-sheet-status">
               {statusKey ? t(`inspect.correction.detail.${statusKey}`) : t(`inspect.correction.detail.${correction.status}`)}
@@ -138,8 +140,8 @@ export function CorrectionDetailSheet({
           ) : null}
 
           <View style={styles.block} testID="correction-sheet-issues">
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-              {t("inspect.drawer.issue").toUpperCase()}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+              {v2t.caps(t("inspect.drawer.issue"))}
             </Text>
             {(detail ? failed : correction.failedLabels.map((label) => ({ template_item_id: label, description: label, note: null, severity: null, photo_url: null }))).map((item) => (
               <View key={item.template_item_id ?? item.description} style={[styles.issue, { borderColor: theme.border, backgroundColor: theme.surface }]}>
@@ -178,8 +180,8 @@ export function CorrectionDetailSheet({
 
           <View style={styles.cols}>
             <View style={styles.col} testID="correction-sheet-owner">
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-                {t("inspect.drawer.assignedTo").toUpperCase()}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+                {v2t.caps(t("inspect.drawer.assignedTo"))}
               </Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>
                 {detail ? owner : correction.owner.kind === "named" ? correction.owner.name : correction.owner.kind === "unnamed" ? t("inspect.correction.ownerUnnamed") : t("inspect.correction.unassigned")}
@@ -187,8 +189,8 @@ export function CorrectionDetailSheet({
             </View>
             {task?.priority ? (
               <View style={styles.col} testID="correction-sheet-priority">
-                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-                  {t("inspect.drawer.priority").toUpperCase()}
+                <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+                  {v2t.caps(t("inspect.drawer.priority"))}
                 </Text>
                 <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>
                   {t(`inspect.drawer.priorityValue.${task.priority}`)}
@@ -199,12 +201,12 @@ export function CorrectionDetailSheet({
 
           {detail ? (
             <View style={styles.block} testID="correction-sheet-activity">
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }]}>
-                {t("inspect.drawer.activity").toUpperCase()}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.label, { color: theme.textMuted }, v2t.label]}>
+                {v2t.caps(t("inspect.drawer.activity"))}
               </Text>
               {lines.map((line) => (
                 <Text key={line.key} maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.value, { color: theme.textPrimary }]}>
-                  <Text style={{ fontFamily: monoFont }}>{line.time}</Text> — {line.text}
+                  <Text style={[{ fontFamily: monoFont }, v2t.num]}>{line.time}</Text> — {line.text}
                 </Text>
               ))}
               {next ? (

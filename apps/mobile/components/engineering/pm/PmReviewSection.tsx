@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/Card";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { evidenceSummary, type PmDraft, type PmInspectionIssue, type PmProgress, type PmTemplate } from "@/lib/engineering/pmChecklist";
 import { evaluateReading, hasReferenceLimits, parseReading, type PmMeter } from "@/lib/engineering/pmReadings";
@@ -23,9 +24,10 @@ interface Props {
 
 function Block({ title, children, testID }: { title: string; children: React.ReactNode; testID?: string }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={styles.block} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockTitle, { color: theme.textMuted }]} accessibilityRole="header">
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.blockTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header">
         {title}
       </Text>
       <Card style={styles.card}>{children}</Card>

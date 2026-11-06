@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { useToast } from "@/lib/theme/useToast";
 import { EngineeringState, StaleBanner } from "@/components/engineering/EngineeringState";
 import { WorkOrderCard } from "@/components/engineering/WorkOrderCard";
@@ -73,6 +74,7 @@ const emptyFiltersByView = (): Record<QueueView, QueueFilters> =>
 export default function WorkOrdersScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const toast = useToast();
   const { isOnline, user, hotelTimezone, lastSyncedAt } = useAppStore();
   const locale = user?.language_pref === "es" ? "es" : "en";
@@ -412,7 +414,7 @@ export default function WorkOrdersScreen() {
       case "section":
         return (
           <View style={styles.sectionRow}>
-            <Text style={[styles.sectionTitle, { color: theme.textMuted }]} accessibilityRole="header" maxFontSizeMultiplier={1.4}>
+            <Text style={[styles.sectionTitle, x.label, { color: theme.textMuted }]} accessibilityRole="header" maxFontSizeMultiplier={1.4}>
               {item.title}
             </Text>
             <Text style={[styles.sectionCount, { color: theme.textDisabled }]}>{item.count}</Text>

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { SheetNotice } from "@/components/home/sheetParts";
@@ -69,12 +70,13 @@ export function StepIndicator({ step, t }: { step: Exclude<HandoffStep, "saved">
 /* ─── Section frame ───────────────────────────────────────────────────────── */
 
 export function Section({ title, children, testID, action }: { title: string; children: React.ReactNode; testID?: string; action?: React.ReactNode }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.section} testID={testID}>
       <View style={styles.sectionHead}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }]}>
-          {title.toUpperCase()}
+        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textMuted }, v2t.label]}>
+          {v2t.caps(title)}
         </Text>
         {action}
       </View>

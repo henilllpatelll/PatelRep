@@ -6,6 +6,7 @@ import { usePalette, type Palette } from "@/components/ai/palette";
 import { useVoiceInput, type VoiceState } from "@/lib/tasks/addTask/useVoiceInput";
 import { speechLocale } from "@/lib/voice/locale";
 import type { TextInputInstance } from "react-native";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -166,7 +167,7 @@ const makeStyles = (theme: Palette) =>
     unavailable: { alignItems: "center", gap: 8, paddingVertical: 6 },
     status: { textAlign: "center", fontSize: 16, fontWeight: "700", color: theme.textPrimary },
     hint: { textAlign: "center", fontSize: 12.5, lineHeight: 18, color: theme.textMuted },
-    label: { fontSize: 11, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase", color: theme.textMuted },
+    label: { fontSize: microLabelSize(11), fontWeight: "800", letterSpacing: microLabelTracking(0.5), textTransform: microLabelCase(), color: theme.textMuted },
     input: {
       minHeight: 76,
       maxHeight: 160,

@@ -19,6 +19,7 @@ import {
   type ThemeTokens,
 } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 export type Tone =
   | "neutral"
@@ -816,9 +817,9 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   pillText: {
-    fontSize: 11,
+    fontSize: microLabelSize(11),
     fontWeight: "700",
-    textTransform: "uppercase",
+    textTransform: microLabelCase(),
   },
   aiLabel: {
     alignSelf: "flex-start",
@@ -831,10 +832,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiLabelText: {
-    fontSize: 10,
+    fontSize: microLabelSize(10),
     fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    letterSpacing: microLabelTracking(0.5),
+    textTransform: microLabelCase(),
   },
   aiConfidence: {
     fontSize: 10,
@@ -852,9 +853,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   aiChipText: {
-    fontSize: 10.5,
+    fontSize: microLabelSize(10.5),
     fontWeight: "700",
-    textTransform: "uppercase",
+    textTransform: microLabelCase(),
   },
   aiInsightCard: {
     borderRadius: R.lg,
@@ -896,8 +897,8 @@ const styles = StyleSheet.create({
   sectionText: {
     fontSize: 12,
     fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
+    textTransform: microLabelCase(),
+    letterSpacing: microLabelTracking(1.1),
   },
   sectionHint: {
     fontSize: 11,
@@ -930,10 +931,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   copilotKicker: {
-    fontSize: 10.5,
+    fontSize: microLabelSize(10.5),
     fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    letterSpacing: microLabelTracking(1.2),
+    textTransform: microLabelCase(),
   },
   confidence: {
     marginLeft: "auto",

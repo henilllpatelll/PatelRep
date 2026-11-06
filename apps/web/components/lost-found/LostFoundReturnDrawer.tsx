@@ -56,10 +56,11 @@ export function LostFoundReturnDrawer({ returnId, onClose }: { returnId: string;
   const [showComplete, setShowComplete] = useState(false)
   const [shippingForm, setShippingForm] = useState({ recipient_name: '', address_line1: '', address_line2: '', city: '', region: '', postal_code: '', country: 'United States', shipping_paid_by: 'hotel' as LostFoundShippingPaidBy })
   const [shipForm, setShipForm] = useState({ carrier: 'fedex' as LostFoundCarrier, tracking_number: '', shipping_cost: '' })
-  useModalFocusTrap(drawerRef, true, onClose)
-
   const query = useQuery({ queryKey: ['lost-found-return', returnId], queryFn: () => lostFoundApi.getReturn(returnId), select: (response) => response.data })
   const row = query.data
+  // Activate only once the real dialog is mounted: while the "Loading return…" shell shows, drawerRef is null and the trap would
+  // never attach (no focus move, Escape ignored).
+  useModalFocusTrap(drawerRef, Boolean(row), onClose)
 
   const invalidate = () => invalidateLostFound(queryClient)
 

@@ -10,6 +10,7 @@ import { useRelatedProcedures } from "@/lib/sop/useRelatedProcedures";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore, type Room } from "@/stores/appStore";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   room: Room;
@@ -28,6 +29,7 @@ interface Props {
 export function RoomHelpCard({ room, live, onReportIssue, variant }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const assistant = useAssistantOptional();
   const { user } = useAppStore();
   const role = user?.effective_role ?? user?.role;
@@ -57,10 +59,10 @@ export function RoomHelpCard({ room, live, onReportIssue, variant }: Props) {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} testID="room-help-card">
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]} testID="room-help-card">
       <View style={styles.head}>
         <Ionicons name="sparkles-outline" size={16} color={theme.textMuted} />
-        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }]}>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }, x.label]}>
           {t(variant === "active" ? "rooms.help.needHelp" : "rooms.help.needHelpRoom")}
         </Text>
       </View>

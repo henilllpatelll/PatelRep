@@ -18,6 +18,9 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ScreenHeader } from "@/components/shared/HeadersV2";
+import { useV2Text } from "@/lib/design/housekeeperV2";
+import { shiftDateKeyOf } from "@/lib/housekeeping/hotelTime";
 
 type LogbookEntry = {
   id: string;
@@ -51,9 +54,13 @@ function groupByDate(entries: LogbookEntry[]) {
 }
 
 export default function LogbookScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const { isOnline } = useAppStore();
+  const hotelTimezone = useAppStore((state) => state.hotelTimezone);
+  const language = i18n?.resolvedLanguage?.startsWith("es") ? "es" : "en";
+  const [loadError, setLoadError] = useState(false);
   const [entries, setEntries] = useState<LogbookEntry[]>([]);
   const [summary, setSummary] = useState<AISummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +73,13 @@ export default function LogbookScreen() {
         api.get<{ data: LogbookEntry[] }>("/logbook/entries?per_page=30"),
         api.get<{ data: AISummary }>("/logbook/shift-summary"),
       ]);
-      if (entriesRes.status === "fulfilled") setEntries(entriesRes.value.data ?? []);
+      if (entriesRes.status === "fulfilled") {
+        setEntries(entriesRes.value.data ?? []);
+        setLoadError(false);
+      } else {
+        // A failed read is not "no entries": keep what is on screen and say so.
+        setLoadError(true);
+      }
       if (summaryRes.status === "fulfilled") setSummary(summaryRes.value.data ?? null);
     } catch {
       setEntries([]);
@@ -83,8 +96,26 @@ export default function LogbookScreen() {
     setRefreshing(false);
   }, [loadEntries]);
 
-  const grouped = groupByDate(entries);
+  // V2 groups and labels by the hotel's calendar day (the legacy grouping used the UTC date, which moves an evening
+  // entry to the next day); legacy keeps its grouping and en-US formatting unchanged.
+  const dayKey = (iso: string) => (x.active ? (shiftDateKeyOf(iso, hotelTimezone) ?? iso.slice(0, 10)) : iso.slice(0, 10));
+  const grouped = (() => {
+    const groups: Record<string, LogbookEntry[]> = {};
+    for (const e of entries) (groups[dayKey(e.created_at)] ??= []).push(e);
+    return groups;
+  })();
+  const stampOf = (iso: string) =>
+    x.active
+      ? new Intl.DateTimeFormat(language === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: hotelTimezone ?? undefined }).format(new Date(iso))
+      : formatDate(iso);
+  const dayLabel = (day: string) =>
+    x.active
+      ? new Intl.DateTimeFormat(language === "es" ? "es-US" : "en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))
+      : new Date(day).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const days = Object.keys(grouped).sort().reverse();
+  const newEntry = (
+    <Button label={t("logbook.newEntry")} icon="add" size="sm" style={styles.addBtn} onPress={() => router.push("/(app)/logbook/new")} testID="logbook-new-entry-button" />
+  );
 
   if (loading) {
     return (
@@ -96,22 +127,19 @@ export default function LogbookScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("logbook.title")}</Text>
-        <Button
-          label={t("logbook.newEntry")}
-          icon="add"
-          size="sm"
-          style={styles.addBtn}
-          onPress={() => router.push("/(app)/logbook/new")}
-          testID="logbook-new-entry-button"
-        />
-      </View>
+      {x.active ? (
+        <ScreenHeader title={t("logbook.title")} trailing={newEntry} />
+      ) : (
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.borderSubtle, backgroundColor: theme.background },
+          ]}
+        >
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{t("logbook.title")}</Text>
+          {newEntry}
+        </View>
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -136,7 +164,7 @@ export default function LogbookScreen() {
               <Text style={[styles.summaryLabel, { color: theme.ai.primary }]}>
                 {t("logbook.aiSummary")}
               </Text>
-              <Text style={[styles.summaryDate, { color: theme.textDisabled }]}>
+              <Text style={[styles.summaryDate, x.num, { color: theme.textDisabled }]}>
                 {summary.date}
               </Text>
             </View>
@@ -149,7 +177,7 @@ export default function LogbookScreen() {
         {days.map((day) => (
           <View key={day}>
             <SectionLabel hint={`${grouped[day].length} ${t("logbook.entries")}`}>
-              {new Date(day).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+              {dayLabel(day)}
             </SectionLabel>
             {grouped[day].map((entry) => (
               <Card
@@ -181,8 +209,8 @@ export default function LogbookScreen() {
                   <Text style={[styles.entryAuthor, { color: theme.textMuted }]}>
                     {entry.author_name}
                   </Text>
-                  <Text style={[styles.entryTime, { color: theme.textDisabled }]}>
-                    {formatDate(entry.created_at)}
+                  <Text style={[styles.entryTime, x.num, { color: theme.textDisabled }]}>
+                    {stampOf(entry.created_at)}
                   </Text>
                 </View>
               </Card>
@@ -190,7 +218,15 @@ export default function LogbookScreen() {
           </View>
         ))}
 
-        {entries.length === 0 ? (
+        {loadError && entries.length === 0 ? (
+          <StateBlock
+            status="error"
+            errorMessage={t("logbook.loadFailed")}
+            onRetry={() => void loadEntries()}
+            retryLabel={t("common.retry")}
+            style={styles.emptyCard}
+          />
+        ) : entries.length === 0 ? (
           <StateBlock
             status="empty"
             emptyIcon="book-outline"

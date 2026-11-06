@@ -11,6 +11,7 @@ import { type CategoryKey, type OverviewCategory } from "@/lib/offline/syncOverv
 import { useTheme } from "@/lib/theme/useTheme";
 import { useAppStore } from "@/stores/appStore";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 
 interface Props {
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
   empty: { fontSize: 14, lineHeight: 20 },
   intro: { fontSize: 14, lineHeight: 20 },
   group: { gap: 8 },
-  groupTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
+  groupTitle: { fontSize: 12, fontWeight: "700", letterSpacing: microLabelTracking(0.6), textTransform: microLabelCase() },
   row: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 4 },
   rowTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   rowLabel: { flex: 1, fontSize: 14, fontWeight: "700" },

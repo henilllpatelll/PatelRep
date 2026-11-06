@@ -1,4 +1,5 @@
 import { FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
@@ -26,6 +27,7 @@ export function AssignRoomChooserSheet({
   onChoose: (roomId: string) => void;
   onClose: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -45,10 +47,10 @@ export function AssignRoomChooserSheet({
         onPress={() => onChoose(item.roomId)}
         accessibilityRole="button"
         accessibilityLabel={[t("assignments.v2.assign.team.roomLabel", { room: item.roomNumber }), meta, priority, held].filter(Boolean).join(". ")}
-        style={({ pressed }) => [styles.room, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [styles.room, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.85 }]}
         testID={`assign-chooser-room-${item.roomNumber}`}
       >
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomNumber, { color: theme.textPrimary }, v2t.num]}>
           {item.roomNumber}
         </Text>
         <View style={styles.roomBody}>

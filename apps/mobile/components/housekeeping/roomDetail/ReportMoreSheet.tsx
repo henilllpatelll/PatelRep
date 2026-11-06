@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import type { ReportActionId, ReportActionState } from "@/lib/housekeeping/reportActions";
 import { BottomSheet, MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 /** Everything the hub can open. "flags" is the room-condition flags sheet (only when the room has any). */
 export type ReportTarget = ReportActionId | "flags";
@@ -54,6 +55,7 @@ function Row({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const x = useV2Text();
   const disabled = Boolean(disabledReason);
   return (
     <Pressable
@@ -62,7 +64,7 @@ function Row({
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${disabledReason ?? hint}${badge ? `. ${badge}` : ""}`}
       accessibilityState={{ disabled }}
-      style={[styles.row, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }, disabled && styles.dim]}
+      style={[styles.row, { backgroundColor: theme.surfaceSubtle, borderColor: x.edge }, disabled && styles.dim]}
       testID={`more-${target}`}
     >
       <Ionicons name={ICONS[target]} size={22} color={theme.textSecondary} />
@@ -93,6 +95,7 @@ function Row({
 export function ReportMoreSheet({ visible, room, actions, hasFlags, isOnline, pendingCount, onClose, onSelect, onAsk }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
 
   const ordered: Array<{ target: ReportTarget; disabledReason: string | null }> = actions.map((action) => ({
     target: action.id,
@@ -121,7 +124,7 @@ export function ReportMoreSheet({ visible, room, actions, hasFlags, isOnline, pe
           onPress={onAsk}
           accessibilityRole="button"
           accessibilityLabel={`${t("rooms.work.more.ask.title", { room: room.room_number })}. ${t("rooms.work.more.ask.hint")}`}
-          style={[styles.row, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
+          style={[styles.row, { backgroundColor: theme.surfaceSubtle, borderColor: x.edge }]}
           testID="more-ask"
         >
           <Ionicons name="sparkles-outline" size={22} color={theme.textSecondary} />

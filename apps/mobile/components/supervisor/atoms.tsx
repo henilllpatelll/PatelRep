@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -45,6 +46,7 @@ export function FloorMosaic({
   rooms: Pick<FloorRoom, "roomId" | "roomNumber" | "status">[];
   getLabel: (status: string) => string;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.mosaic} testID="floor-mosaic">
@@ -57,7 +59,7 @@ export function FloorMosaic({
             accessible
             accessibilityLabel={`${room.roomNumber} — ${getLabel(room.status)}`}
           >
-            <Text style={[styles.mosaicText, { color: visual.fg }]}>{room.roomNumber}</Text>
+            <Text style={[styles.mosaicText, { color: visual.fg }, v2t.num]}>{room.roomNumber}</Text>
           </View>
         );
       })}
@@ -79,6 +81,7 @@ export function TeamLoadRow({
   onPress?: () => void;
   onMessage?: () => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const { t } = useTranslation();
   const activeRoom = load.rooms.find((r) => r.status === "IN_PROGRESS") ?? null;
@@ -114,8 +117,8 @@ export function TeamLoadRow({
               <Text style={[styles.overAssignedText, { color: theme.status.pickup }]}>{t("supervisorTools.overBadge")}</Text>
             </View>
           ) : null}
-          <Text style={[styles.loadCount, { color: theme.textMuted }]}>{load.done}/{load.total}</Text>
-          {avgMin !== null ? <Text style={[styles.loadAvg, { color: theme.textMuted }]}>{t("supervisorTools.avgMinutes", { min: avgMin })}</Text> : null}
+          <Text style={[styles.loadCount, { color: theme.textMuted }, v2t.num]}>{load.done}/{load.total}</Text>
+          {avgMin !== null ? <Text style={[styles.loadAvg, { color: theme.textMuted }, v2t.num]}>{t("supervisorTools.avgMinutes", { min: avgMin })}</Text> : null}
         </View>
         <ProgressBar value={load.done} total={load.total} color={load.overAssigned ? theme.status.pickup : theme.status.ready} />
         <View style={styles.loadMetaRow}>

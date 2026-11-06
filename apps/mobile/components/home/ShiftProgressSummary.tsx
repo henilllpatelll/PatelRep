@@ -7,6 +7,7 @@ import { Kicker, LinkButton, MAX_FONT_SCALE } from "@/components/home/homeUi";
 import type { HomeProgress } from "@/lib/housekeeping/homeModel";
 import type { ProgressCounts } from "@/lib/housekeeping/homeState";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -25,6 +26,7 @@ interface Props {
  */
 export function ShiftProgressSummary({ progress, counts, t, onViewDetails }: Props) {
   const theme = useTheme();
+  const x = useV2Text();
   const detailsRef = useRef<unknown>(null);
   const { completed, serviceable } = progress;
 
@@ -47,7 +49,7 @@ export function ShiftProgressSummary({ progress, counts, t, onViewDetails }: Pro
   return (
     <Card style={styles.card} testID="shift-progress-card">
       <Kicker>{t("home.progress.kicker")}</Kicker>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headline, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headline, { color: theme.textPrimary }, x.num]}>
         {headline}
       </Text>
       {serviceable > 0 ? (
@@ -71,7 +73,7 @@ export function ShiftProgressSummary({ progress, counts, t, onViewDetails }: Pro
           >
             <Ionicons name={chip.icon} size={14} color={chip.value > 0 ? chip.color : theme.textDisabled} />
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.chipText, { color: chip.value > 0 ? theme.textPrimary : theme.textMuted }]}>
-              <Text style={styles.chipValue}>{chip.value}</Text> {chip.label}
+              <Text style={[styles.chipValue, x.num, x.active && { fontWeight: "700" }]}>{chip.value}</Text> {chip.label}
             </Text>
           </View>
         ))}

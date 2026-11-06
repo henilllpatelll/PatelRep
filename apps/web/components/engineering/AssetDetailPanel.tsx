@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useModalFocusTrap } from "@/lib/hooks/useModalFocusTrap";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
@@ -82,6 +83,7 @@ interface Props {
 }
 
 export function AssetDetailPanel({ assetId, canEdit, onClose }: Props) {
+  const deactivateDialogRef = useRef<HTMLDivElement>(null);
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<DetailTab>("overview");
@@ -90,6 +92,7 @@ export function AssetDetailPanel({ assetId, canEdit, onClose }: Props) {
   const [showCreatePM, setShowCreatePM] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showDeactivate, setShowDeactivate] = useState(false);
+  useModalFocusTrap(deactivateDialogRef, showDeactivate, () => setShowDeactivate(false));
 
   const assetQuery = useQuery({
     queryKey: ["asset", assetId],
@@ -824,13 +827,15 @@ export function AssetDetailPanel({ assetId, canEdit, onClose }: Props) {
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby="asset-deactivate-title"
+          aria-describedby="asset-deactivate-help"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
         >
-          <div className="w-full max-w-sm rounded-[var(--r-md)] bg-surface p-5 shadow-xl">
-            <h3 className="font-semibold text-ink">
+          <div ref={deactivateDialogRef} tabIndex={-1} className="w-full max-w-sm rounded-[var(--r-md)] bg-surface p-5 shadow-xl">
+            <h3 id="asset-deactivate-title" className="font-semibold text-ink">
               {t("engineering.assetsPage.deactivateConfirmTitle")}
             </h3>
-            <p className="mt-2 text-sm text-ink2">
+            <p id="asset-deactivate-help" className="mt-2 text-sm text-ink2">
               {t("engineering.assetsPage.deactivateConfirmHelp")}
             </p>
             <div className="mt-5 flex justify-end gap-2">

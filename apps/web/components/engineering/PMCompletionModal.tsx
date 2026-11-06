@@ -329,7 +329,7 @@ export function PMCompletionModal({ isOpen, onClose, schedule, onSuccess }: PMCo
         onClick={!saving ? onClose : undefined}
         aria-hidden="true"
       />
-      <div className="fixed inset-y-0 right-0 z-drawer flex w-full justify-end">
+      <div className="!mt-0 fixed inset-y-0 right-0 z-drawer flex w-full justify-end">
         <div
           ref={modalRef}
           role="dialog"

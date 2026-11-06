@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useAppStore } from "@/stores/appStore";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
 import { SectionHeader } from "@/components/shared/evening";
@@ -45,10 +46,14 @@ import { useEstimateVersion } from "@/lib/housekeeping/estimateTable";
 import { useActiveSessionRestore, useMyRoomsData } from "@/lib/housekeeping/useMyRoomsData";
 
 const NO_SESSIONS: SessionMap = {};
+/** Design System V2 phone gutter. */
+const V2_GUTTER = 16;
 
 export default function MyRoomsScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const v2 = useIsDesignV2();
+  const gutter = v2 ? V2_GUTTER : 18;
   const insets = useSafeAreaInsets();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const { isOnline, myRooms, user, pendingActions } = useAppStore();
@@ -171,8 +176,8 @@ export default function MyRoomsScreen() {
         topInset={isOnline ? insets.top : 0}
       />
       {tab === "floors" ? (
-        <View style={styles.searchWrap}>
-          <View style={[styles.search, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.searchWrap, { paddingHorizontal: gutter }]}>
+          <View style={[styles.search, { backgroundColor: theme.surface, borderColor: theme.border }, v2 && styles.searchV2]}>
             <Ionicons name="search" size={16} color={theme.textMuted} />
             <TextInput
               value={query}
@@ -207,7 +212,7 @@ export default function MyRoomsScreen() {
     switch (item.kind) {
       case "section":
         return (
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, { paddingHorizontal: gutter }]}>
             <SectionHeader title={t(item.titleKey)} hint={`${item.count}`} />
             {item.note ? (
               <Text style={[styles.note, { color: theme.textMuted }]}>{t(item.note)}</Text>
@@ -216,7 +221,7 @@ export default function MyRoomsScreen() {
         );
       case "current":
         return (
-          <View style={styles.item}>
+          <View style={[styles.item, { paddingHorizontal: gutter }]}>
             <CurrentRoomCard
               entry={item.entry}
               isOnline={isOnline}
@@ -228,7 +233,7 @@ export default function MyRoomsScreen() {
         );
       case "card":
         return (
-          <View style={styles.item}>
+          <View style={[styles.item, { paddingHorizontal: gutter }]}>
             <MyRoomCard entry={item.entry} position={item.position} onPress={() => openRoom(item.entry.room.id)} />
             {item.key.startsWith("next-") && item.position === 1 ? (
               <WhyNextLink roomNumber={item.entry.room.room_number} onPress={() => setWhyFor(item.entry.room.id)} />
@@ -237,15 +242,15 @@ export default function MyRoomsScreen() {
         );
       case "row":
         return (
-          <View style={styles.rowItem}>
+          <View style={[styles.rowItem, { paddingHorizontal: gutter }]}>
             <CompactRoomRow entry={item.entry} onPress={() => openRoom(item.entry.room.id)} />
           </View>
         );
       case "text":
-        return <Text style={[styles.note, styles.item, { color: theme.textMuted }]}>{t(item.textKey)}</Text>;
+        return <Text style={[styles.note, styles.item, { color: theme.textMuted, paddingHorizontal: gutter }]}>{t(item.textKey)}</Text>;
       case "building":
         return (
-          <Text accessibilityRole="header" style={[styles.buildingTitle, { color: theme.textPrimary }]}>
+          <Text accessibilityRole="header" style={[styles.buildingTitle, { color: theme.textPrimary, paddingHorizontal: gutter }, v2 && styles.buildingTitleV2]}>
             {item.label ?? t("rooms.dash.floors.noBuilding")}
           </Text>
         );
@@ -265,7 +270,11 @@ export default function MyRoomsScreen() {
             })}
             accessibilityState={{ expanded }}
             testID={`floor-${section.key}`}
-            style={[styles.floorHeader, { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle }]}
+            style={[
+              styles.floorHeader,
+              { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSubtle, marginHorizontal: gutter },
+              v2 && { borderRadius: 14, backgroundColor: theme.surface },
+            ]}
           >
             <Ionicons name={expanded ? "chevron-down" : "chevron-forward"} size={16} color={theme.textMuted} />
             <Text style={[styles.floorName, { color: theme.textPrimary }]}>{name}</Text>
@@ -443,5 +452,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   searchInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
+  searchV2: { borderRadius: 14, borderWidth: 1.5 },
+  buildingTitleV2: { fontSize: 18, fontWeight: "700" },
   clear: { minWidth: 32, minHeight: 32, alignItems: "center", justifyContent: "center" },
 });

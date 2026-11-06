@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { describeAge, type BoardStatusLine } from "@/lib/housekeeping/roomBoardView";
@@ -42,6 +43,7 @@ export function statusText(status: BoardStatusLine, verifiedClock: string | null
 
 /** Compact operational header: kicker, title, an honest freshness line, and a refresh control. */
 export function BoardHeader({ status, verifiedClock, refreshing, topInset, t, onRefresh }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const live = status.kind === "live";
   const tone = live ? theme.status.ready : status.kind === "updating" || status.kind === "loading" ? theme.primaryAction : theme.status.pickup;
@@ -51,8 +53,8 @@ export function BoardHeader({ status, verifiedClock, refreshing, topInset, t, on
   return (
     <View style={[styles.wrap, { paddingTop: topInset + 10 }]} testID="room-board-header">
       <View style={styles.text}>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]} numberOfLines={1}>
-          {t("roomBoard.header.kicker").toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]} numberOfLines={1}>
+          {v2t.caps(t("roomBoard.header.kicker"))}
         </Text>
         <Text
           maxFontSizeMultiplier={MAX_FONT_SCALE}

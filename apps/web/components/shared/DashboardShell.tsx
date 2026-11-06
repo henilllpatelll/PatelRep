@@ -14,6 +14,8 @@ import { Toaster } from '@/components/ui/Toast'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { useHotelStore } from '@/stores/hotelStore'
 import { isSectionRedesigned } from '@/lib/utils/redesignFlag'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { ShellV2 } from '@/components/design-v2/shell/ShellV2'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -40,6 +42,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [density, theme, accent])
+
+  // Design System V2 preview (NEXT_PUBLIC_DESIGN_V2_PREVIEW, never in production): the V2 management
+  // shell replaces this chrome. Flag off -> the legacy shell below renders exactly as before.
+  if (isDesignV2PreviewEnabled()) {
+    return (
+      <ShellV2 themeClasses={themeClasses} legacyRedesigned={shellV2}>
+        {children}
+      </ShellV2>
+    )
+  }
 
   return (
     <div className={`flex h-screen bg-paper ${themeClasses.join(' ')}`}>

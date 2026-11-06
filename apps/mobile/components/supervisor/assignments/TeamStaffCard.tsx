@@ -1,3 +1,4 @@
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +25,7 @@ const PHASE_ICON: Record<StaffRoomPhase, string> = {
  * have left. Compact on purpose — a preview of a few room numbers, never every room (the drawer has those).
  */
 function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCardModel; onOpen: (userId: string) => void; t: Translate; /** What this person would have if the unpublished draft were published; the live figures above stay live. */ proposedText?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const phaseColor = (phase: StaffRoomPhase) => (phase === "completed" ? theme.status.ready : phase === "in_progress" ? theme.status.pickup : theme.textSecondary);
   return (
@@ -33,7 +35,7 @@ function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCard
       accessibilityLabel={proposedText ? `${model.a11yLabel}. ${proposedText}` : model.a11yLabel}
       accessibilityHint={t("assignments.v2.team.openHint")}
       testID={`team-card-${model.userId}`}
-      style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, pressed && { opacity: 0.9 }]}
+      style={({ pressed }) => [styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }, pressed && { opacity: 0.9 }]}
     >
       <View style={styles.top}>
         <Avatar name={model.unnamed ? "?" : model.name} size={40} />
@@ -89,7 +91,7 @@ function TeamStaffCardView({ model, onOpen, t, proposedText }: { model: TeamCard
           {model.preview.map((room) => (
             <View key={room.roomId} style={[styles.room, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} accessible accessibilityLabel={room.label} testID={`team-card-room-${model.userId}-${room.number}`}>
               <Ionicons name={PHASE_ICON[room.phase] as never} size={11} color={phaseColor(room.phase)} />
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomText, { color: theme.textPrimary }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.roomText, { color: theme.textPrimary }, v2t.num]}>
                 {room.number}
               </Text>
             </View>

@@ -3,6 +3,9 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AccountHeader } from "@/components/shared/HeadersV2";
+import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 import { MIN_TOUCH } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -10,6 +13,9 @@ interface SettingsScreenProps {
   title: string;
   /** Child screens show a back button; the root Settings screen does not. */
   back?: boolean;
+  /** Screens that reuse this frame for non-Settings content (team, engineering sync) opt out of the
+   *  V2 preview so their bodies are not recolored before their own phase. Default: follows the flag. */
+  v2Chrome?: boolean;
   children: React.ReactNode;
 }
 
@@ -18,8 +24,40 @@ function goBack() {
   else router.replace("/(app)/profile" as never);
 }
 
-/** Shared chrome for every Settings screen: safe-area header with title (and back), scrolling body. */
-export function SettingsScreen({ title, back, children }: SettingsScreenProps) {
+/** Shared chrome for every Settings screen: safe-area header with title (and back), scrolling body.
+ *  With the Design V2 preview on, Settings screens render the V2 account header inside a scoped V2
+ *  theme; with it off this is exactly the legacy chrome. */
+export function SettingsScreen(props: SettingsScreenProps) {
+  if (isDesignV2Enabled() && props.v2Chrome !== false) {
+    return (
+      <DesignV2Scope>
+        <SettingsScreenV2 {...props} />
+      </DesignV2Scope>
+    );
+  }
+  return <LegacySettingsScreen {...props} />;
+}
+
+function SettingsScreenV2({ title, back, children }: SettingsScreenProps) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.root, { backgroundColor: theme.background }]} testID="settings-screen-v2">
+      <AccountHeader title={title} onBack={back ? goBack : undefined} backLabel={t("settings.back")} />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
+        {children}
+      </ScrollView>
+    </View>
+  );
+}
+
+function LegacySettingsScreen({ title, back, children }: SettingsScreenProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();

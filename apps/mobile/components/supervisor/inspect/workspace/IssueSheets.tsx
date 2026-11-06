@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
@@ -40,6 +41,7 @@ export function ChangeAnswerSheet({ visible, busy, t, onKeep, onConfirm }: { vis
  * inspection is submitted. It never says anything has already been created or sent.
  */
 export function CorrectionSheet({ plan, t, onClose }: { plan: CorrectionPlan | null; t: Translate; onClose: () => void }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const owner = plan?.owner.name ? t("inspect.workspace.correction.ownerExpected", { name: plan.owner.name }) : t("inspect.workspace.correction.ownerUnknown");
   return (
@@ -67,8 +69,8 @@ export function CorrectionSheet({ plan, t, onClose }: { plan: CorrectionPlan | n
             />
             <Fact label={t("inspect.workspace.correction.priority")} value={t("inspect.workspace.correction.priorityValue")} testID="workspace-correction-priority" />
           </View>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heading, { color: theme.textMuted }]}>
-            {t("inspect.workspace.correction.steps").toUpperCase()}
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.heading, { color: theme.textMuted }, v2t.label]}>
+            {v2t.caps(t("inspect.workspace.correction.steps"))}
           </Text>
           {plan.steps.map((step) => (
             <View key={step.itemId} style={[styles.card, { borderColor: theme.border, backgroundColor: theme.surface }]} testID={`workspace-correction-step-${step.itemId}`}>

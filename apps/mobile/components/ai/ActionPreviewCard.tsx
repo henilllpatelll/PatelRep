@@ -13,6 +13,7 @@ import {
   validatePreview,
   type DraftPatch,
 } from "@/lib/ai/drafts";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 interface Props {
   item: ActionItem;
@@ -258,7 +259,7 @@ const makeStyles = (theme: Palette) => StyleSheet.create({
     alignSelf: "stretch",
   },
   cardCompact: { padding: 10 },
-  kicker: { fontSize: 11, color: theme.ai.primary, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+  kicker: { fontSize: microLabelSize(11), color: theme.ai.primary, fontWeight: "700", textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.6) },
   hint: { fontSize: 12, color: theme.textMuted, marginTop: 2, marginBottom: 6 },
   label: { fontSize: 11, color: theme.textMuted, fontWeight: "600", marginTop: 8, marginBottom: 4 },
   input: {

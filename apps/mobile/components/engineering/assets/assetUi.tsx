@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { AssetServiceStatus } from "@/lib/engineering/assetModel";
 
@@ -61,8 +62,9 @@ export function Panel({ children, testID }: { children: ReactNode; testID?: stri
 
 export function PanelTitle({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const x = useV2Text();
   return (
-    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.panelTitle, { color: theme.textMuted }]}>
+    <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.panelTitle, x.label, { color: theme.textMuted }]}>
       {children}
     </Text>
   );

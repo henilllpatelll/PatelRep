@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { monoFont, R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { UNKNOWN_DISPLAY } from "@/lib/engineering/homeContract";
 import { HOME_MAX_FONT } from "./homeStyles";
 
@@ -22,6 +23,7 @@ export interface SummaryCardData {
 
 function SummaryCard({ card }: { card: SummaryCardData }) {
   const theme = useTheme();
+  const x = useV2Text();
   const { t } = useTranslation();
   const unknown = card.value === UNKNOWN_COUNT;
   const loading = card.loading === true;
@@ -40,7 +42,7 @@ function SummaryCard({ card }: { card: SummaryCardData }) {
       ) : (
         <View style={styles.valueRow}>
           {card.alert ? <Ionicons name="alert-circle" size={16} color={theme.status.dirty} accessibilityElementsHidden importantForAccessibility="no" /> : null}
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.value, { color: card.alert ? theme.status.dirty : theme.textPrimary }]}>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.value, x.num, { color: card.alert ? theme.status.dirty : theme.textPrimary }]}>
             {card.value}
           </Text>
         </View>

@@ -8,6 +8,7 @@ import { getAppInfo } from "@/lib/app/appInfo";
 import { RELEASE_NOTE_SECTIONS, findReleaseNotes, formatReleaseDate, localized } from "@/lib/app/releaseNotes";
 import { useTheme } from "@/lib/theme/useTheme";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 
 /** Release notes for the installed version, bundled with the app (so they also work offline). */
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   headline: { fontSize: 18, fontWeight: "700" },
   meta: { fontFamily: monoFont, fontSize: 12.5 },
   section: { gap: 8, paddingHorizontal: 4 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
+  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: microLabelTracking(0.6), textTransform: microLabelCase() },
   item: { flexDirection: "row", gap: 10 },
   bullet: { fontSize: 15, lineHeight: 22 },
   itemText: { flex: 1, fontSize: 15, lineHeight: 22 },

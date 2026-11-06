@@ -23,9 +23,12 @@ import { PREFERENCES_HREF } from '@/lib/settings/preferences'
 interface HeaderProps {
   onMenuToggle?: () => void
   redesigned?: boolean
+  /** Design System V2 preview only: replaces the hamburger/spacer/date block with the V2 leading
+   *  area (menu, route trail, property, search). Leave undefined for the legacy header. */
+  v2Leading?: React.ReactNode
 }
 
-export function Header({ onMenuToggle, redesigned }: HeaderProps) {
+export function Header({ onMenuToggle, redesigned, v2Leading }: HeaderProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, signOut } = useAuth()
@@ -169,17 +172,23 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
       'h-14 flex items-center justify-between px-4 md:px-5 bg-paper border-b border-line sticky top-0 shrink-0 gap-3',
       redesigned ? 'z-header' : 'z-50'
     )}>
-      {/* Hamburger — mobile only */}
-      <button
-        onClick={onMenuToggle}
-        className="md:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-2 transition-colors text-ink3 hover:text-ink shrink-0"
-        aria-label={t('header.openMenu')}
-      >
-        <Menu size={16} />
-      </button>
+      {v2Leading ? (
+        v2Leading
+      ) : (
+        <>
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={onMenuToggle}
+            className="md:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg hover:bg-surface-2 transition-colors text-ink3 hover:text-ink shrink-0"
+            aria-label={t('header.openMenu')}
+          >
+            <Menu size={16} />
+          </button>
 
-      {/* Spacer */}
-      <div className="flex-1" />
+          {/* Spacer */}
+          <div className="flex-1" />
+        </>
+      )}
 
       {environmentLabel && (
         <span
@@ -191,13 +200,17 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
         </span>
       )}
 
-      {/* Date + shift */}
-      <div className="hidden lg:flex items-center gap-1.5 text-[12px] text-ink2 shrink-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-ready shrink-0" />
-        <span className="font-mono">{dateShiftLabel || '\u00a0'}</span>
-      </div>
+      {/* Date + shift (legacy header only: the V2 header shows the property in its leading area) */}
+      {!v2Leading && (
+        <>
+          <div className="hidden lg:flex items-center gap-1.5 text-[12px] text-ink2 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-ready shrink-0" />
+            <span className="font-mono">{dateShiftLabel || '\u00a0'}</span>
+          </div>
 
-      <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
+          <div className="hidden lg:block w-px h-5 bg-line shrink-0" />
+        </>
+      )}
 
       <LanguageToggle className="hidden sm:inline-flex shrink-0" />
 
@@ -206,7 +219,8 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
         <button
           onClick={() => setNotificationsOpen((prev) => !prev)}
           className={cn(
-            'relative flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0',
+            'relative flex items-center justify-center rounded-lg bg-surface border border-line text-ink2 hover:bg-surface-2 transition-colors shrink-0',
+            v2Leading ? 'h-11 w-11' : 'h-8 w-8',
             redesigned && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]'
           )}
           aria-label={t('header.notifications')}
@@ -313,7 +327,14 @@ export function Header({ onMenuToggle, redesigned }: HeaderProps) {
           aria-expanded={dropdownOpen}
           aria-label={t('header.userMenuFor', { name: fullName })}
         >
-          <div className={`w-7 h-7 rounded-full ${avatarBg} flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
+          <div
+            className={cn(
+              'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
+              v2Leading
+                ? 'border border-[var(--dv2-primary-line)] bg-[var(--dv2-primary-soft)] text-[var(--dv2-primary)]'
+                : `${avatarBg} text-white`
+            )}
+          >
             {initials}
           </div>
           <ChevronDown

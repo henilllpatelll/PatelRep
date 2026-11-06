@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -13,11 +14,12 @@ import { useTheme } from "@/lib/theme/useTheme";
 
 /** A titled block of the record. */
 export function RecordSection({ title, children, testID }: { title: string; children: ReactNode; testID?: string }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
-    <View style={[styles.section, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={testID}>
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }]}>
-        {title.toUpperCase()}
+    <View style={[styles.section, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={testID}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+        {v2t.caps(title)}
       </Text>
       {children}
     </View>
@@ -112,14 +114,15 @@ export function IssueList({
   onOpenEvidence: (issue: IssueView) => void;
   onRetryEvidence: (issue: IssueView) => void;
 }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <View style={styles.stack}>
       {issues.map((issue) => (
         <View key={issue.id} style={[styles.issue, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]} testID={`record-issue-${issue.id}`}>
           {issue.section ? (
-            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
-              {issue.section.toUpperCase()}
+            <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+              {v2t.caps(issue.section)}
             </Text>
           ) : null}
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.issueTitle, { color: theme.textPrimary }]}>
@@ -133,8 +136,8 @@ export function IssueList({
           </Text>
           {issue.note ? (
             <View>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
-                {t("inspect.history.record.note").toUpperCase()}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+                {v2t.caps(t("inspect.history.record.note"))}
               </Text>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.body, { color: theme.textPrimary }]} testID={`record-issue-note-${issue.id}`}>
                 {issue.note}
@@ -143,8 +146,8 @@ export function IssueList({
           ) : null}
           {issue.evidence !== "none" ? (
             <View>
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }]}>
-                {t("inspect.history.record.evidence").toUpperCase()}
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.kicker, { color: theme.textMuted }, v2t.label]}>
+                {v2t.caps(t("inspect.history.record.evidence"))}
               </Text>
               <EvidenceThumb answer={issue} uri={resolveUri(issue)} t={t} onOpen={() => onOpenEvidence(issue)} onRetry={() => onRetryEvidence(issue)} />
             </View>
@@ -177,6 +180,7 @@ export function ChecklistSections({ sections, defaultOpen, t }: { sections: read
 }
 
 function SectionCard({ section, expanded, t, onToggle }: { section: SectionView; expanded: boolean; t: Translate; onToggle: () => void }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const title = section.title ?? t("inspect.history.record.sectionOther");
   const tally = t("inspect.history.record.sectionTally", { passed: section.passed, total: section.answered });
@@ -190,8 +194,8 @@ function SectionCard({ section, expanded, t, onToggle }: { section: SectionView;
         testID={`record-section-toggle-${section.key}`}
         style={styles.sectionHead}
       >
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textPrimary }]} numberOfLines={2}>
-          {title.toUpperCase()}
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTitle, { color: theme.textPrimary }, v2t.label]} numberOfLines={2}>
+          {v2t.caps(title)}
         </Text>
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.sectionTally, { color: section.failed > 0 ? theme.status.dirty : theme.textSecondary }]}>
           {tally}

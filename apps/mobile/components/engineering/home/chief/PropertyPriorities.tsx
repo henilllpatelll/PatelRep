@@ -7,6 +7,7 @@ import { R } from "@/components/shared/tokens";
 import { PRIORITY_PREVIEW, canAssignFromPriority, type Priorities, type PriorityItem } from "@/lib/engineering/chiefHomeModel";
 import { workOrderCode } from "@/lib/engineering/teamModel";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "../homeStyles";
 import { HomeLoadNotice } from "../HomeLoadNotice";
 
@@ -69,6 +70,7 @@ function describe(item: PriorityItem, t: (key: string, o?: Record<string, unknow
 function Row({ item, canAssign, online, onOpen, onAssign }: { item: PriorityItem; canAssign: boolean; online: boolean; onOpen: Props["onOpen"]; onAssign: Props["onAssign"] }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const d = describe(item, t as never);
   const tone = d.hot ? theme.status.dirty : theme.status.pickup;
   const assignable = canAssign && canAssignFromPriority(item);
@@ -86,7 +88,7 @@ function Row({ item, canAssign, online, onOpen, onAssign }: { item: PriorityItem
         <View style={styles.body}>
           <View style={styles.headRow}>
             <Ionicons name={d.icon} size={14} color={tone} accessibilityElementsHidden importantForAccessibility="no" />
-            <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.heading, { color: tone }]}>
+            <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.heading, x.label, { color: tone }]}>
               {d.heading}
             </Text>
           </View>

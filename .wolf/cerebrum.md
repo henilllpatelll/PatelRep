@@ -1115,3 +1115,34 @@
 ## Do-Not-Repeat (2026-11-02)
 - Bash tool heredocs containing apostrophes in the body (even with <<'EOF') failed with "unexpected EOF". Write the file with the Write tool (or a scratchpad .py/.json) and run it instead.
 - Do not read "queue returned []" as "nothing queued" in cleanup code: a failed/corrupt read must abort the sweep (see `sweepPmPhotos`; `listPmDraftLocalUris` returns null when unreadable).
+
+## Design System V2 Phase 1 (2026-11-04, one branch/PR for 8 phases: feat/patelrep-design-system-v2, worktree PatelRep-designv2)
+- V2 is isolated: mobile `useTheme()` returns V2 ONLY inside `<DesignV2Scope>` (inert unless `EXPO_PUBLIC_DESIGN_V2_PREVIEW=true`, never in production env). Web preview route `/design-v2-preview` is in PUBLIC_ROUTES and 404s itself without `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true`. globals.css/tailwind.config.ts are FROZEN: V2 web styling is a CSS module + inline `--dv2-*` vars from `lib/design/designV2Tokens.ts`.
+- Web tokens duplicate mobile `tokensV2.ts` (web Docker copies only apps/web); `designV2Tokens.test.ts` fails on drift. Add new V2 web test files to the `test:unit` script in package.json.
+- Brief colors that fail AA were adjusted (light pickup #B04F08, out-of-order #566379, dark ai soft 12%); `border` in V2 theme = strong 3:1 edge, `borderSubtle` = the brief's separator.
+- `next dev` with a dummy Supabase URL does not hydrate (HMR websocket goes through proxy.ts); verify web with `NEXT_DIST_DIR=.next-v2 next build && next start`, then revert tsconfig.json/next-env.d.ts/AGENTS.md that Next rewrites. Expo web needs temporary `web.output: single` plus a dummy `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- Bash heredocs with apostrophes fail in this shell: use the Write tool.
+
+## Design System V2 Phase 2 (2026-11-04, same branch/PR #200)
+- Isolation rule for chrome: `useChromeTheme()` (V2 tokens by flag, outside any scope) for the tab bar; `DesignV2Scope` only around FULLY migrated areas ((auth) stack, OfflineBanner, ToastViewport, SettingsScreen); web remaps legacy token names (`--paper`, `--ink`...) only on chrome subtrees (`.chromeLight`, auth `.page`), never on `<main>` (a test enforces it).
+- Python on Windows: `open(p, "w")` rewrites LF files as CRLF and can mangle UTF-8. Use `open(..., encoding="utf-8", newline="")` (helper in the session scratchpad) or the Edit tool; check `git diff --stat` for a huge diff.
+- `next dev` DOES hydrate when you browse `http://localhost:PORT` (not `127.0.0.1`, which Next 16 blocks for dev resources). Hermetic web preview: `node e2e/hermetic/mock-backend.mjs` (port 4010) + `next dev` with NEXT_PUBLIC_SUPABASE_URL/API_URL=http://127.0.0.1:4010; sign in as gm@hermetic.invalid with the fixture password in the mock backend. Next dev/build rewrites apps/web/AGENTS.md and next-env.d.ts: `git checkout` them.
+- React Navigation tab bar: item area = height - paddingTop - paddingBottom; below ~56 dp the label is clipped (seen in the Expo web render). Mobile jest test helper `makeTranslator` does not resolve i18next plural suffixes; use non-plural keys for new strings.
+- Legacy web global CSS sets `button { min-height: 44px }` on narrow widths, which stretches fixed-height icon buttons (bell was 32x44).
+
+## Design System V2 Phase 8 (2026-11-05, same branch/PR #200)
+- V2 WEB DARK MODE IS THE APP PREFERENCE, NOT THE OS: `ShellV2` reads `useUIPreferencesStore().theme` (localStorage key `patelrep-ui-prefs`, `{state:{theme:"dark"},version:0}`). Playwright `colorScheme:"dark"` does nothing; set the key with `addInitScript` and assert `body[data-dv2-mode="dark"]`. My first "dark" probe pass was silently light.
+- The mobile production guard only works if the build sets `EXPO_PUBLIC_APP_ENV=production`; no EAS profile did until Phase 8. EAS Update (`eas update`) does NOT read eas.json build-profile env, so an OTA can still bypass it. Guard fails open on unset env (a test pins that).
+- `useModalFocusTrap` captured the opener inside an effect, after child effects/autofocus could move focus; and Radix `Dialog` with no `Dialog.Trigger` (the command palette) drops focus on body. Fix = module-level `focusin` tracker (`getFocusReturnTarget`). Render-phase ref writes are rejected by `react-hooks/refs` lint: do not use them.
+- Static `monoFont`/`serifFont`/`textTransform:"uppercase"` StyleSheets bypass `useV2Text`; `monoFont`/`serifFont` now switch on the bundle-time flag in `tokens.ts`. 17 mobile files still keep uppercase labels under V2 (see docs/PATELREP_DESIGN_V2_FINAL_AUDIT.md A.1).
+- Web V2 content remap: use `[data-error-retry]`-style data hooks to re-color a hardcoded legacy class without changing the flag-off look. `.uppercase[class*="tracking-"]` is the exact micro-label pattern.
+- Engineer/Front Desk/GM auto-POST a paid AI briefing on app-layout mount (`useCopilotBrief`); pre-existing, not V2.
+- Hermetic mock answers most endpoints with `[]`; /tasks and /guest-requests render with Playwright `page.route` fixtures, /reports needs the large `views/overview` payload and still does not.
+
+## Do-Not-Repeat (2026-11-05)
+- I re-hit the Python text-mode CRLF rewrite on Windows (Phase 2 already recorded it): always `open(p, encoding="utf-8", newline="")` for read AND write, then check `git diff --stat` for a whole-file diff before moving on.
+- Do not run `cd ../web` inside a backgrounded `cd mobile && (...) &` list; the web chain silently never started. Launch each package chain from its own absolute `cd`.
+
+- [2026-11-06] Do-Not-Repeat: hermetic browser QA must set `HERMETIC_REDESIGN_SECTIONS=all` (production tenants have every `web_redesign_sections` entry on, migration 098). Without it you review the LEGACY page variants, which production never shows. Keep it off for the Room-Board visual baseline run.
+- [2026-11-06] Learning: a page that crashes into its error boundary under the hermetic mock is usually the mock's generic `{ data: [] }` fallback for an object-shaped endpoint (reports capabilities, tasks workspace, programs overview, lost-found summaries). Add a fixture in `e2e/hermetic/*-fixtures.mjs` plus a shape test; do not touch app code.
+- [2026-11-06] Learning: Room-Board visual baselines are Linux-only; a Windows run writes `*-win32.png` files that must be deleted, not committed. Flag-off layout changes to Room Board components must stay behind `isDesignV2PreviewEnabled()`.

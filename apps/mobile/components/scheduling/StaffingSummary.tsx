@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
 import { SectionCard } from "@/components/supervisor/today/TodayBlocks";
@@ -41,10 +42,11 @@ interface Props {
  * cleaning work is the staffing forecast's job (ForecastSummaryCard, just below), which carries its own data quality.
  */
 export function StaffingSummary({ scheduled, counts, attendanceNote, attendanceMissing, isToday, t }: Props) {
+  const v2t = useV2Text();
   const theme = useTheme();
   return (
     <SectionCard testID="team-schedule-summary">
-      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }]}>
+      <Text maxFontSizeMultiplier={MAX_FONT_SCALE} accessibilityRole="header" style={[styles.title, { color: theme.textPrimary }, v2t.label]}>
         {isToday ? t("teamSchedule.summary.title") : t("teamSchedule.summary.planTitle")}
       </Text>
       <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.headline, { color: theme.textPrimary }]} testID="team-schedule-scheduled-count">

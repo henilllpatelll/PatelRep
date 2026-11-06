@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import type { PmCompletionResult } from "@/lib/api/pm";
 
@@ -44,6 +45,7 @@ interface Props {
 export function PmCompletionSummary({ summary, result, recordedAtLabel, nextDueLabel, onViewRecord, onViewEquipment, onOpenWorkOrder, onDone }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const workOrders = result.corrective_work_orders ?? [];
   const total = summary.passed + summary.failed + summary.notApplicable;
 
@@ -107,7 +109,7 @@ export function PmCompletionSummary({ summary, result, recordedAtLabel, nextDueL
 
       {workOrders.length > 0 ? (
         <Card style={styles.card} testID="pm-recorded-workorders">
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heading, { color: theme.textMuted }]}>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.heading, x.label, { color: theme.textMuted }]}>
             {t("pm.recorded.workOrders", { count: workOrders.length })}
           </Text>
           {workOrders.map((wo) => (

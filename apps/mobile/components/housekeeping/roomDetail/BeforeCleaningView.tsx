@@ -14,6 +14,7 @@ import { RoomGuidanceLine } from "./RoomGuidanceLine";
 import { RoomHelpCard } from "./RoomHelpCard";
 import { RoomStatusNotice } from "./RoomStatusNotice";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 const ESTIMATE_KEY = {
   history: "rooms.readiness.estimateHistory",
@@ -40,6 +41,7 @@ interface Props {
 export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, isNext = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const checks = buildEntryChecks(room);
   const reclean = view.kind === "reclean";
   useEstimateVersion(); // re-render when the learned table refreshes
@@ -53,8 +55,8 @@ export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, i
       {reclean ? <RecleanCorrectionsPanel room={room} checklist={undefined} ctx={ctx} /> : null}
       <RoomStatusNotice room={room} advisories={view.advisories} />
 
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }]}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]}>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.eyebrow, { color: theme.textMuted }, x.label]}>
           {t("rooms.work.beforeYouEnter")}
         </Text>
         {checks.map((check) => {
@@ -104,7 +106,7 @@ export function BeforeCleaningView({ room, view, ctx, restriction, onOpenInfo, i
         onPress={onOpenInfo}
         accessibilityRole="button"
         accessibilityLabel={t("rooms.work.roomInfo.open")}
-        style={[styles.infoLink, { borderColor: theme.border, backgroundColor: theme.surface }]}
+        style={[styles.infoLink, { borderColor: x.edge, backgroundColor: theme.surface }]}
         testID="open-room-info"
       >
         <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.infoLinkText, { color: theme.primaryAction }]}>

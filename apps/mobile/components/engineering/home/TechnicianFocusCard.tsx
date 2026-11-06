@@ -9,6 +9,7 @@ import { CATEGORY_META } from "@/components/engineering/WorkOrderCard";
 import { dueState, formatClock, formatDuration, workOrderLocation, type WorkOrder } from "@/lib/engineering/workOrders";
 import type { FocusState } from "@/lib/engineering/homeFocus";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { HOME_MAX_FONT, homeStyles } from "./homeStyles";
 
 interface Props {
@@ -22,6 +23,7 @@ interface Props {
 }
 
 function WorkOrderFacts({ wo, locale, now, showStarted }: { wo: WorkOrder; locale: "en" | "es"; now: Date; showStarted: boolean }) {
+  const x = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
   const categoryKey = wo.category && CATEGORY_META[wo.category] ? wo.category : "general";
@@ -80,6 +82,7 @@ function Badges({ wo }: { wo: WorkOrder }) {
 export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActive }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
 
   switch (focus.kind) {
     case "none":
@@ -91,7 +94,7 @@ export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActiv
       const label = t(continuing ? "home.engineer.continueRepair" : "home.engineer.startNextAction");
       return (
         <Card style={styles.card} testID="engineer-focus">
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, { color: theme.primary }]}>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, x.label, { color: theme.primary }]}>
             {t(continuing ? "home.engineer.continueKicker" : "home.engineer.startNextKicker")}
           </Text>
           <WorkOrderFacts wo={focus.wo} locale={locale} now={now} showStarted={continuing} />
@@ -118,7 +121,7 @@ export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActiv
       const where = schedule?.assetName ?? null;
       return (
         <Card style={styles.card} testID="engineer-focus-pm">
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, { color: theme.primary }]}>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, x.label, { color: theme.primary }]}>
             {t("home.engineer.resumePmKicker")}
           </Text>
           {where ? (
@@ -143,7 +146,7 @@ export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActiv
     case "available_work":
       return (
         <Card style={styles.card} testID="engineer-focus-available">
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, { color: theme.primary }]}>
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} accessibilityRole="header" style={[styles.kicker, x.label, { color: theme.primary }]}>
             {t("home.engineer.availableKicker")}
           </Text>
           <Text maxFontSizeMultiplier={HOME_MAX_FONT} style={[styles.title, { color: theme.textPrimary }]}>

@@ -6,6 +6,7 @@ import { monoFont } from "@/components/shared/tokens";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   roomNumber: string;
@@ -26,6 +27,7 @@ interface Props {
 export function RoomDetailHeader({ roomNumber, subtitle, statusKey, statusLabel, rush, onBack, onMore }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
 
   return (
@@ -69,7 +71,7 @@ export function RoomDetailHeader({ roomNumber, subtitle, statusKey, statusLabel,
             maxFontSizeMultiplier={1.3}
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={[styles.number, { color: theme.textPrimary }]}
+            style={[styles.number, { color: theme.textPrimary }, x.display]}
           >
             {roomNumber}
           </Text>
@@ -84,10 +86,10 @@ export function RoomDetailHeader({ roomNumber, subtitle, statusKey, statusLabel,
             <View
               accessible
               accessibilityLabel={t("rooms.dash.rush.title")}
-              style={[styles.rush, { backgroundColor: theme.status.dirty }]}
+              style={[styles.rush, { backgroundColor: theme.status.dirty }, x.active && { paddingVertical: 5 }]}
             >
               <Ionicons name="flash" size={12} color={theme.onPrimary} />
-              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rushText, { color: theme.onPrimary }]}>
+              <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rushText, { color: theme.onPrimary }, x.active && { fontSize: 12, fontWeight: "700", letterSpacing: 0 }]}>
                 {t("rooms.work.rushBadge")}
               </Text>
             </View>

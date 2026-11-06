@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { R } from "@/components/shared/tokens";
@@ -104,6 +105,7 @@ function ownerText(owner: { userId: string | null; name: string | null } | undef
 
 /** "Assignment changed": the supervisor's change was NOT applied, and pressing the same button again is not offered. */
 export function ConflictOutcome({ conflict, controller, t }: { conflict: ConflictView; controller: AssignmentFlowController; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const stageKey = conflict.reason === "not_assignable" && conflict.stage ? `assignments.v2.assign.conflict.stage.${conflict.stage}` : null;
   return (
@@ -116,7 +118,7 @@ export function ConflictOutcome({ conflict, controller, t }: { conflict: Conflic
           body={t("assignments.v2.assign.conflict.body", { room: conflict.roomNumber })}
           testID="assign-conflict"
         />
-        <View style={[styles.facts, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.facts, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
           <View style={styles.fact}>
             <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.factLabel, { color: theme.textSecondary }]}>
               {t("assignments.v2.assign.conflict.previous")}

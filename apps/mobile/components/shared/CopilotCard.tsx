@@ -11,6 +11,7 @@ import type { CopilotCardBrief } from "@/lib/ai/copilotCard";
 import type { SupervisorCopilotController } from "@/lib/ai/useSupervisorCopilot";
 import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
 import type { ScrollViewInstance, TextInputInstance } from "react-native";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 const CARD_WIDTH = 306;
 const THREAD_MAX_HEIGHT = 260;
@@ -21,12 +22,14 @@ export interface CopilotCardProps {
   brief: CopilotCardBrief | null;
   loading: boolean;
   error: boolean;
+  /** A credit-charged briefing that has not been requested yet: show a button, never fetch on open. */
+  idle?: boolean;
   reload: () => void;
   /** Present only for the housekeeping supervisor: the overview replaces the generic brief, in this same card. */
   supervisor?: SupervisorCopilotController;
 }
 
-export function CopilotCard({ onClose, insetsBottom, brief, loading, error, reload, supervisor }: CopilotCardProps) {
+export function CopilotCard({ onClose, insetsBottom, brief, loading, error, idle = false, reload, supervisor }: CopilotCardProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const inputRef = useRef<TextInputInstance>(null);
@@ -246,6 +249,13 @@ export function CopilotCard({ onClose, insetsBottom, brief, loading, error, relo
               </View>
             ) : null}
           </>
+        ) : idle ? (
+          <View style={styles.unavailableBlock} testID="copilot-card-idle">
+            <Text style={styles.unavailableText}>{t("copilot.card.getBriefingHint")}</Text>
+            <Pressable accessibilityRole="button" onPress={reload} testID="copilot-card-get-briefing">
+              <Text style={styles.retryText}>{t("copilot.card.getBriefing")}</Text>
+            </Pressable>
+          </View>
         ) : error ? (
           <View style={styles.unavailableBlock}>
             <Text style={styles.unavailableText}>{t("copilot.card.unavailable")}</Text>
@@ -335,10 +345,10 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 10, fontWeight: "700", color: darkTheme.onAi, letterSpacing: 0.4 },
   headerLabel: {
-    fontSize: 10.5,
+    fontSize: microLabelSize(10.5),
     fontWeight: "600",
-    letterSpacing: 1,
-    textTransform: "uppercase",
+    letterSpacing: microLabelTracking(1),
+    textTransform: microLabelCase(),
     color: "rgba(247,244,238,0.5)",
     flexShrink: 1,
   },
@@ -366,10 +376,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sourcesLabel: {
-    fontSize: 10,
+    fontSize: microLabelSize(10),
     fontWeight: "600",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
+    letterSpacing: microLabelTracking(0.4),
+    textTransform: microLabelCase(),
     color: "rgba(247,244,238,0.4)",
   },
   sourceChip: {

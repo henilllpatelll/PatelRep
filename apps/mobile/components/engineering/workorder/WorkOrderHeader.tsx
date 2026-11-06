@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { R, monoFont } from "@/components/shared/tokens";
 import { MAX_FONT_SCALE } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { dueState, formatDuration, workOrderLocation, type WorkOrder } from "@/lib/engineering/workOrders";
@@ -19,11 +20,12 @@ interface HeaderProps {
 export function WorkOrderHeader({ wo, onBack, onMore }: HeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const insets = useSafeAreaInsets();
   const label = workOrderLabel(wo) ?? t("workOrders.detailKicker");
   const priority = wo.priority === "emergency" || wo.priority === "urgent" ? t(`workOrders.repair.priority.${wo.priority}`) : null;
   const status = t(`workOrders.status.${wo.status}`);
-  const statusLine = [priority, status].filter(Boolean).join(" · ").toUpperCase();
+  const statusLine = [priority, status].filter(Boolean).join(" · ");
   const { room, text: locationText } = workOrderLocation(wo);
   const where = room ? `${t("workOrders.repair.complete.room", { room })}${wo.rooms?.floor != null ? `  ·  ${t("workOrders.floor", { floor: wo.rooms.floor })}` : ""}` : locationText;
   const chips = [wo.guest_reported ? t("workOrders.chipGuest") : null].filter(Boolean) as string[];
@@ -35,16 +37,16 @@ export function WorkOrderHeader({ wo, onBack, onMore }: HeaderProps) {
           <Ionicons name="arrow-back" size={22} color={theme.shell.ink} />
         </Pressable>
         <View style={styles.body}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.shell.ink, fontFamily: monoFont }]} accessibilityRole="header" testID="wo-number">
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.number, { color: theme.shell.ink, fontFamily: monoFont }, x.num]} accessibilityRole="header" testID="wo-number">
             {label}
           </Text>
           <Text
             maxFontSizeMultiplier={MAX_FONT_SCALE}
-            style={[styles.statusLine, { color: wo.priority === "emergency" || wo.priority === "urgent" ? theme.status.dirty : theme.shell.ink3 }]}
+            style={[styles.statusLine, x.label, { color: wo.priority === "emergency" || wo.priority === "urgent" ? theme.status.dirty : theme.shell.ink3 }]}
             accessibilityLabel={`${priority ? `${priority}. ` : ""}${status}`}
             testID="wo-status-line"
           >
-            {statusLine}
+            {x.caps(statusLine)}
           </Text>
         </View>
         {onMore ? (
@@ -89,6 +91,7 @@ interface SummaryProps {
 export function WorkOrderSummary({ wo, locale, labor, laborFailed, nowMs, onOpenLabor }: SummaryProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const due = dueState(wo, locale, new Date(nowMs));
   const dueText =
     due?.kind === "overdue" ? t("workOrders.overdueBy", { time: formatDuration(due.minutes) }) : due?.kind === "due" ? due.clock : wo.due_at ? "—" : t("workOrders.repair.summary.noDeadline");
@@ -107,7 +110,7 @@ export function WorkOrderSummary({ wo, locale, labor, laborFailed, nowMs, onOpen
     <View style={styles.summary} testID="wo-summary">
       {wo.status !== "completed" && wo.status !== "cancelled" ? (
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: overdue ? theme.status.dirtyLine : theme.border }]} accessible accessibilityLabel={`${t("workOrders.factDue")}: ${dueText}`}>
-          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }]}>{t("workOrders.factDue")}</Text>
+          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, x.label, { color: theme.textMuted }]}>{t("workOrders.factDue")}</Text>
           <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardValue, { color: overdue ? theme.status.dirty : theme.textPrimary }]} testID="wo-due">{dueText}</Text>
         </View>
       ) : null}
@@ -118,10 +121,10 @@ export function WorkOrderSummary({ wo, locale, labor, laborFailed, nowMs, onOpen
         accessibilityLabel={`${t("workOrders.repair.summary.labor")}: ${laborText}`}
         testID="wo-labor-card"
       >
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, { color: theme.textMuted }]}>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardLabel, x.label, { color: theme.textMuted }]}>
           {t(running ? "workOrders.repair.summary.laborRunning" : "workOrders.repair.summary.labor")}
         </Text>
-        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardValue, { color: running ? theme.primaryAction : theme.textPrimary, fontFamily: monoFont }]} testID="wo-labor-value">{laborText}</Text>
+        <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.cardValue, { color: running ? theme.primaryAction : theme.textPrimary, fontFamily: monoFont }, x.num]} testID="wo-labor-value">{laborText}</Text>
       </Pressable>
     </View>
   );

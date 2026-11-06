@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 
 export type StatusKey =
   | "ready"
@@ -32,6 +33,7 @@ interface StatusBadgeProps {
  * useTheme().status from day one (D-12) — never an inline status hex. */
 export function StatusBadge({ statusKey, label, style }: StatusBadgeProps) {
   const theme = useTheme();
+  const v2 = useIsDesignV2();
   const s = theme.status;
 
   const meta: Record<
@@ -41,7 +43,15 @@ export function StatusBadge({ statusKey, label, style }: StatusBadgeProps) {
     ready: { icon: "checkmark-circle", bg: s.readySoft, fg: s.ready, border: s.readyLine },
     clean: { icon: "checkmark-done-outline", bg: s.cleanSoft, fg: s.clean, border: s.cleanLine },
     dirty: { icon: "brush-outline", bg: s.dirtySoft, fg: s.dirty, border: s.dirtyLine },
-    occupied: { icon: "person-outline", bg: s.dirtySoft, fg: s.occupied, border: s.dirtyLine },
+    occupied: v2
+      ? {
+          // V2 gives "occupied" its own slate fill instead of borrowing the dirty rose.
+          icon: "person-outline",
+          bg: (s as Record<string, string>).occupiedSoft,
+          fg: s.occupied,
+          border: (s as Record<string, string>).occupiedLine,
+        }
+      : { icon: "person-outline", bg: s.dirtySoft, fg: s.occupied, border: s.dirtyLine },
     pickup: { icon: "alert-circle-outline", bg: s.pickupSoft, fg: s.pickup, border: s.pickupLine },
     outOfOrder: {
       icon: "close-circle-outline",
@@ -75,7 +85,7 @@ export function StatusBadge({ statusKey, label, style }: StatusBadgeProps) {
       style={[styles.container, { backgroundColor: bg, borderColor: border }, style]}
     >
       <Ionicons name={icon} size={12} color={fg} accessible={false} />
-      <Text accessible={false} style={[styles.label, { color: fg }]}>
+      <Text accessible={false} style={[styles.label, v2 ? styles.labelV2 : null, { color: fg }]}>
         {label}
       </Text>
     </View>
@@ -99,5 +109,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.3,
     flexShrink: 1,
+  },
+  // V2: sentence case, no shouting; 12px / 600 stays legible at large dynamic type.
+  labelV2: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "none",
+    letterSpacing: 0,
   },
 });

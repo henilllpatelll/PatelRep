@@ -5,6 +5,7 @@ import { useTheme } from "@/lib/theme/useTheme";
 import type { Room } from "@/stores/appStore";
 import { cleanTypeLabel, formatClock, type TextContext, type Translate } from "@/lib/housekeeping/myRoomsText";
 import { MAX_FONT_SCALE } from "./BottomSheet";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 
 interface Props {
   room: Room;
@@ -15,6 +16,7 @@ interface Props {
 export function ReadyRoomView({ room, ctx }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const x = useV2Text();
   const cleaned = formatClock(room.last_cleaned_at, ctx);
   const inspected = formatClock(room.last_inspected_at, ctx);
   const type = cleanTypeLabel(room, t as Translate);
@@ -36,7 +38,7 @@ export function ReadyRoomView({ room, ctx }: Props) {
         </Text>
       </View>
       {rows.length > 0 ? (
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: x.edge }]}>
           {rows.map((row) => (
             <View key={row.key} style={styles.row} accessible accessibilityLabel={`${row.label}: ${row.value}`}>
               <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.rowLabel, { color: theme.textMuted }]}>

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { R } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { ENGINEERING_SYNC_ROUTE } from "@/lib/engineering/homeNavigation";
 import { HOME_MAX_FONT, HOME_MIN_TOUCH } from "./homeStyles";
 import { HomeConnectionStatus, type HomeConnection } from "./HomeConnectionStatus";
@@ -31,6 +32,7 @@ export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, ro
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const x = useV2Text();
   return (
     <View style={[styles.hero, { paddingTop: insets.top + 8, backgroundColor: theme.shell.bg }]}>
       <View style={styles.row}>
@@ -52,7 +54,7 @@ export function TechnicianHomeHeader({ name, greetingKey, heading, hotelName, ro
               {hotelName}
             </Text>
           ) : null}
-          <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.role, { color: theme.shell.ink3 }]} testID="engineer-role">
+          <Text maxFontSizeMultiplier={HOME_MAX_FONT} numberOfLines={1} style={[styles.role, x.label, { color: theme.shell.ink3 }]} testID="engineer-role">
             {roleLabel}
           </Text>
         </View>

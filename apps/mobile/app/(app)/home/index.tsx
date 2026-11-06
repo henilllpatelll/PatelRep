@@ -9,7 +9,11 @@ import { R } from "@/components/shared/tokens";
 import { Avatar, IconButton } from "@/components/shared/mobileHandoff";
 import { HousekeeperHome } from "@/components/home/HousekeeperHomeScreen";
 import { SupervisorHome } from "@/components/home/SupervisorHome";
+import { InspectorHome } from "@/components/home/InspectorHome";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
+import { FrontDeskHome } from "@/components/home/FrontDeskHome";
+import { GMHome } from "@/components/home/GMHome";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -22,12 +26,25 @@ function firstName(name?: string | null) {
 export default function HousekeeperHomeScreen() {
   const user = useAppStore((state) => state.user);
   const effectiveRole = user?.effective_role ?? user?.role;
+  // Design System V2 (Phase 4): inside the scope an Inspector gets a purpose-built Home; with the flag off the
+  // legacy fallback below is exactly what it was.
+  const v2 = useIsDesignV2();
 
   if (isEngineeringRole(effectiveRole)) {
     return <EngineerHome name={displayNameFor(user) || "Engineer"} />;
   }
   if (effectiveRole === "housekeeping_supervisor") {
     return <SupervisorHome name={displayNameFor(user)} />;
+  }
+  if (effectiveRole === "inspector" && v2) {
+    return <InspectorHome name={displayNameFor(user)} />;
+  }
+  // Phase 6: inside the scope Front Desk and GM get the operational dashboards; flag off keeps the legacy Home below.
+  if (effectiveRole === "front_desk" && v2) {
+    return <FrontDeskHome name={displayNameFor(user)} />;
+  }
+  if (effectiveRole === "gm" && v2) {
+    return <GMHome name={displayNameFor(user)} />;
   }
   if (effectiveRole === "front_desk") {
     return <FrontDeskHomeScreen name={displayNameFor(user) || "Front Desk"} />;

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -20,6 +21,7 @@ const ADDABLE_SHOWN = 40;
    Nothing here touches a live assignment; "Save draft edits" just returns to the review. */
 
 export function BulkEditStep({ bulk, t }: { bulk: BulkAssignmentController; t: Translate }) {
+  const v2t = useV2Text();
   const theme = useTheme();
   const userId = bulk.editUserId;
   const employee = bulk.draft.review?.employees.find((candidate) => candidate.userId === userId);
@@ -45,7 +47,7 @@ export function BulkEditStep({ bulk, t }: { bulk: BulkAssignmentController; t: T
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" testID="bulk-edit-scroll">
         {employee ? (
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: v2t.edge }]}>
             <ValueLine label={t("assignments.v2.bulk.review.currentRemaining")} value={minutesText(employee.current.minutes, t)} />
             <ValueLine label={t("assignments.v2.bulk.edit.projected")} value={minutesText(employee.proposed.minutes, t)} strong testID="bulk-edit-projected" />
             {missing ? <Body tone="muted">{missing}</Body> : null}
@@ -56,9 +58,9 @@ export function BulkEditStep({ bulk, t }: { bulk: BulkAssignmentController; t: T
         <SectionLabel>{t("assignments.v2.bulk.edit.proposedRooms")}</SectionLabel>
         {rooms.length === 0 ? <Notice testID="bulk-edit-empty">{t("assignments.v2.bulk.edit.noRooms")}</Notice> : null}
         {rooms.map((item) => (
-          <View key={item.roomId} style={[styles.room, { backgroundColor: theme.surface, borderColor: theme.border }]} testID={`bulk-edit-room-${item.roomNumber}`}>
+          <View key={item.roomId} style={[styles.room, { backgroundColor: theme.surface, borderColor: v2t.edge }]} testID={`bulk-edit-room-${item.roomNumber}`}>
             <View style={styles.roomTop}>
-              <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }]}>
+              <Text maxFontSizeMultiplier={1.3} style={[styles.number, { color: theme.textPrimary }, v2t.num]}>
                 {item.roomNumber}
               </Text>
               <Body tone="secondary" style={styles.roomMeta}>

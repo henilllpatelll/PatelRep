@@ -12,7 +12,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-import { api } from "@/lib/api/client";
+import { fetchGuestRequests } from "@/lib/frontDesk/guestRequestsApi";
+import type { GuestRequestView } from "@/lib/frontDesk/guestRequests";
+import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
+import { GuestRequestsV2 } from "@/components/frontDesk/GuestRequestsV2";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
 import { R, monoFont } from "@/components/shared/tokens";
@@ -61,6 +64,25 @@ const REQUEST_PRIORITY_BADGE_KEYS: Partial<Record<GuestRequest["priority"], Stat
   low: "low",
 };
 
+/** The legacy list's flat shape, built from the real API rows (see lib/frontDesk/guestRequests). Cancelled requests are
+ *  not part of the active list. The API has no assignee, so `assigned_to_name` is only ever set by legacy payloads. */
+function toLegacy(v: GuestRequestView): GuestRequest {
+  const status: GuestRequest["status"] =
+    v.status === "escalated" ? "escalated" : v.stage === "open" ? "new" : v.stage === "resolved" ? "resolved" : "in_progress";
+  const priority: GuestRequest["priority"] = v.priority === "emergency" || v.priority === "urgent" || v.priority === "low" ? v.priority : "normal";
+  return {
+    id: v.id,
+    room_number: v.roomNumber ?? "",
+    guest_name: v.guestName,
+    request_type: v.title,
+    description: v.description,
+    status,
+    priority,
+    assigned_to_name: v.assignedToName,
+    created_at: v.createdAt ?? new Date(0).toISOString(),
+  };
+}
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -71,7 +93,13 @@ function timeAgo(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function GuestRequestsScreen() {
+export default function GuestRequestsRoute() {
+  // Design System V2: inside the scope the list is the redesigned screen; otherwise the legacy list below, unchanged.
+  const v2 = useIsDesignV2();
+  return v2 ? <GuestRequestsV2 /> : <GuestRequestsScreen />;
+}
+
+function GuestRequestsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -80,16 +108,18 @@ export default function GuestRequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | "new" | "in_progress" | "escalated">("all");
+  const [loadError, setLoadError] = useState(false);
 
   const loadRequests = useCallback(async () => {
     if (!isOnline) { setLoading(false); return; }
     try {
-      const res = await api.get<{ data: GuestRequest[] }>("/guest-requests?per_page=100");
-      const data = res.data ?? [];
+      const data = (await fetchGuestRequests()).filter((r) => r.stage !== "cancelled").map(toLegacy);
       setRequests(data);
+      setLoadError(false);
       setUnreadCount(data.filter((r) => r.status === "new").length);
     } catch {
-      setRequests([]);
+      // A failed read is not "no requests": keep what is on screen and say so.
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -255,7 +285,15 @@ export default function GuestRequestsScreen() {
           </Pressable>
         ))}
 
-        {filtered.length === 0 ? (
+        {loadError && requests.length === 0 ? (
+          <StateBlock
+            status="error"
+            errorMessage={t("guestRequestsV2.error.title")}
+            onRetry={() => void loadRequests()}
+            retryLabel={t("common.retry")}
+            style={styles.emptyCard}
+          />
+        ) : filtered.length === 0 ? (
           <StateBlock
             status="empty"
             emptyIcon="chatbubble-ellipses-outline"

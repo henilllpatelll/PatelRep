@@ -27,7 +27,7 @@ export default function DashboardError({
           This page encountered an error. Your other data is safe.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button variant="primary" onClick={reset} className="gap-1.5 bg-amber-600 hover:bg-amber-700">
+          <Button variant="primary" onClick={reset} data-error-retry className="gap-1.5 bg-amber-600 hover:bg-amber-700">
             <RefreshCw className="w-3.5 h-3.5" />
             Retry
           </Button>
