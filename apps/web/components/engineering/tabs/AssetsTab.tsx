@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AssetDetailPanel } from "@/components/engineering/AssetDetailPanel";
+import { isDesignV2PreviewEnabled } from "@/lib/design/designV2";
 import { CreateAssetModal } from "@/components/engineering/CreateAssetModal";
 
 type Filter = "all" | "risk" | "open" | "pm" | "warranty";
@@ -149,6 +150,10 @@ export function AssetsTab({
         0,
       )
     : null;
+  // V2: a zero count is not a warning (it stays neutral), and an empty inventory is one panel, not a list beside "Select an asset".
+  const v2 = isDesignV2PreviewEnabled();
+  const tone = (count: number, cls: string) => (v2 && count === 0 ? "text-ink" : cls);
+  const emptyInventory = v2 && !assetsQuery.isLoading && assets.length === 0;
   const filterItems: Array<{ key: Filter; label: string }> = [
     { key: "all", label: t("engineering.assetsPage.filterAll") },
     { key: "risk", label: t("engineering.assetsPage.filterHighRisk") },
@@ -161,7 +166,7 @@ export function AssetsTab({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-y border-line py-3 sm:grid-cols-4">
         <div>
-          <p className="text-lg font-semibold tabular-nums text-alert">
+          <p className={`text-lg font-semibold tabular-nums ${tone(highRisk, "text-alert")}`}>
             {highRisk}
           </p>
           <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
@@ -169,7 +174,7 @@ export function AssetsTab({
           </p>
         </div>
         <div>
-          <p className="text-lg font-semibold tabular-nums text-caution">
+          <p className={`text-lg font-semibold tabular-nums ${tone(openRepairs, "text-caution")}`}>
             {openRepairs}
           </p>
           <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
@@ -177,7 +182,7 @@ export function AssetsTab({
           </p>
         </div>
         <div>
-          <p className="text-lg font-semibold tabular-nums text-alert">
+          <p className={`text-lg font-semibold tabular-nums ${tone(pmOverdue, "text-alert")}`}>
             {pmOverdue}
           </p>
           <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-ink3">
@@ -230,7 +235,7 @@ export function AssetsTab({
           }}
         />
       ) : (
-        <div className="overflow-hidden rounded-[var(--r-md)] border border-line bg-surface md:grid md:grid-cols-[minmax(18rem,38%)_1fr]">
+        <div className={`overflow-hidden rounded-[var(--r-md)] border border-line bg-surface ${emptyInventory ? "" : "md:grid md:grid-cols-[minmax(18rem,38%)_1fr]"}`}>
           <aside className={selectedAssetId ? "hidden md:block" : ""}>
             <div className="border-b border-line px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[.1em] text-ink3">
@@ -337,11 +342,13 @@ export function AssetsTab({
               </div>
             )}
           </aside>
-          <AssetDetailPanel
-            assetId={selectedAssetId}
-            canEdit={canEdit}
-            onClose={() => setSelectedAssetId(null)}
-          />
+          {!emptyInventory && (
+            <AssetDetailPanel
+              assetId={selectedAssetId}
+              canEdit={canEdit}
+              onClose={() => setSelectedAssetId(null)}
+            />
+          )}
         </div>
       )}
       <CreateAssetModal

@@ -8,14 +8,14 @@ import { useTranslation } from 'react-i18next'
 import { useRole } from '@/lib/hooks/useRole'
 import { useHotelStore } from '@/stores/hotelStore'
 import { getHousekeepingSubNavItems } from '@/lib/utils/housekeepingNavigation'
-import { ALL_NAV_ITEMS, NAV_LABEL_KEYS, SETTINGS_NAV_ITEM } from '@/lib/utils/navigation'
+import { ALL_NAV_ITEMS, NAV_LABEL_KEYS, SETTINGS_NAV_ITEM, routeSegmentLabel } from '@/lib/utils/navigation'
 import styles from './shellV2.module.css'
 
 /** Where am I: "Section" or "Section > Page" for the current route. Uses the same nav tables as the
  *  legacy breadcrumb, so it can never name a destination the person cannot reach. */
 export function useRouteContext(): { section: { href: string; label: string } | null; page: string | null } {
   const pathname = usePathname()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { role } = useRole()
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length === 0) return { section: null, page: null }
@@ -27,7 +27,7 @@ export function useRouteContext(): { section: { href: string; label: string } | 
   const subNav = parentHref === '/housekeeping' ? getHousekeepingSubNavItems(role) : parent.subNav
   const sub = subNav?.find((item) => item.href === pathname)
   const raw = sub ? sub.label : segments[1]
-  return { section, page: t(NAV_LABEL_KEYS[raw] ?? raw) }
+  return { section, page: sub ? t(NAV_LABEL_KEYS[raw] ?? raw) : routeSegmentLabel(t, (key) => i18n.exists(key), raw) }
 }
 
 interface Props {

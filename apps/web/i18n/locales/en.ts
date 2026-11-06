@@ -2398,6 +2398,7 @@ const en = {
       tabOverview: "Overview",
       tabHistory: "History",
       tabPm: "PM",
+      tabReadings: "Readings",
       tabReliability: "Reliability",
       operationalStatus: "Operational status",
       operating: "Operating",

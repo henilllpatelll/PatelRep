@@ -2432,6 +2432,7 @@ const es = {
       tabOverview: "Resumen",
       tabHistory: "Historial",
       tabPm: "MP",
+      tabReadings: "Lecturas",
       tabReliability: "Confiabilidad",
       operationalStatus: "Estado operativo",
       operating: "En funcionamiento",

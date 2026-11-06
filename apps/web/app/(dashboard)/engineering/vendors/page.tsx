@@ -10,7 +10,7 @@ import { EngineeringDrawer } from '@/components/engineering/EngineeringDrawer'
 import { StateBlock } from '@/components/ui/StateBlock'
 
 const TRADES: VendorTrade[] = ['hvac', 'plumbing', 'electrical', 'elevator', 'fire_life_safety', 'pool', 'roofing', 'locksmith_doors', 'appliance', 'laundry_equipment', 'refrigeration', 'general_contractor', 'landscaping', 'pest_control', 'other']
-const formatTrade = (trade: string) => trade.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+const formatTrade = (trade: string) => trade.toLowerCase() === 'hvac' ? 'HVAC' : trade.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 export default function VendorsPage() {
   const { t } = useTranslation()

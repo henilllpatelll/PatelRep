@@ -37,12 +37,59 @@ const SAFETY_INFO = {
 }
 const CONTACTS = [{ id: 'ec-1', contact_name: 'Front Desk', role_label: 'On duty', phone: '555-0100', alternate_phone: null, is_primary: true }]
 
+const asset = (n, over) => ({ id: `asset-${n}`, name: `Asset ${n}`, category_id: 'cat-1', is_active: true, failure_risk_score: 20, created_at: T0, updated_at: T0, asset_categories: { name: 'HVAC', code: 'HVAC' }, ...over })
+const ASSETS = [
+  asset(1, { name: 'Boiler 1', asset_tag: 'BLR-001', location_text: 'Mechanical room', manufacturer: 'Hermetic Heat', model: 'HB-400', failure_risk_score: 82, active_downtime: { id: 'dt-1', asset_id: 'asset-1', started_at: T0, downtime_type: 'unplanned', impact_level: 'out_of_service', elapsed_minutes: 540 } }),
+  asset(2, { name: 'Ice machine, floor 2', asset_tag: 'ICE-002', location_text: 'Floor 2 alcove', asset_categories: { name: 'Appliance', code: 'APP' }, failure_risk_score: 55, warranty_expires: '2021-06-01' }),
+  asset(3, { name: 'Room 214 PTAC', asset_tag: 'PTAC-214', room_id: 'room-214', rooms: { room_number: '214' }, failure_risk_score: 31 }),
+  asset(4, { name: 'Lobby elevator', asset_tag: 'ELV-001', location_text: 'Lobby', asset_categories: { name: 'Elevator', code: 'ELV' }, failure_risk_score: 12 }),
+]
+const wo = (n, over) => ({ id: `wo-${n}`, work_order_number: 100 + n, title: `Work order ${n}`, category: 'general', priority: 'normal', status: 'open', created_by: USER, is_ai_created: false, is_pm_generated: false, guest_reported: false,
+  sla_minutes: 240, due_at: '2020-01-01T18:00:00.000Z', created_at: T0, updated_at: T0, ...over })
+const WORK_ORDERS = [
+  wo(1, { title: 'Boiler not heating', category: 'hvac', priority: 'emergency', status: 'in_progress', asset_id: 'asset-1', assets: ASSETS[0], location_text: 'Mechanical room', assigned_to: 'regression-fixture-staff-2' }),
+  wo(2, { title: 'Room 214 A/C not cooling', category: 'hvac', priority: 'urgent', room_id: 'room-214', rooms: { room_number: '214', floor: 2 }, guest_reported: true }),
+  wo(3, { title: 'Leaking faucet', category: 'plumbing', priority: 'normal', room_id: 'room-305', rooms: { room_number: '305', floor: 3 }, status: 'on_hold' }),
+  wo(4, { title: 'Replace lobby bulbs', category: 'electrical', priority: 'low', status: 'completed', completed_at: '2020-01-01T10:00:00.000Z' }),
+]
+const PM = [
+  { id: 'pm-1', asset_id: 'asset-1', name: 'Boiler inspection', interval_type: 'quarterly', estimated_minutes: 90, last_completed_at: '2019-09-20T12:00:00.000Z', next_due_at: '2019-12-20T12:00:00.000Z', is_active: true, assets: { name: 'Boiler 1' } },
+  { id: 'pm-2', asset_id: 'asset-2', name: 'Ice machine sanitize', interval_type: 'monthly', estimated_minutes: 45, next_due_at: '2020-01-10T12:00:00.000Z', is_active: true, assets: { name: 'Ice machine, floor 2' } },
+  { id: 'pm-3', asset_id: 'asset-4', name: 'Elevator state inspection', interval_type: 'annual', estimated_minutes: 120, next_due_at: '2020-03-01T12:00:00.000Z', is_active: true, assets: { name: 'Lobby elevator' } },
+]
+const VENDORS = [
+  { id: 'v-1', name: 'Hermetic HVAC Co.', trades: ['hvac'], contact_name: 'Pat Vendor', phone: '555-0140', email: 'dispatch@hvac.example', emergency_phone: '555-0141', offers_24h_service: true, insurance_expires_at: '2021-01-01', is_active: true, performance: { jobs: 4, spend: 4200, average_acceptance_minutes: 20, average_arrival_minutes: 180 } },
+  { id: 'v-2', name: 'Hermetic Plumbing', trades: ['plumbing'], contact_name: 'Sam Vendor', phone: '555-0150', offers_24h_service: false, is_active: true, performance: { jobs: 2, spend: 800 } },
+]
+
 /** Returns a response body, or null when the path is not one of these routes. */
-export function opsRoute(api) {
+export function opsRoute(api, query = new URLSearchParams()) {
   if (api === '/tasks/workspace') {
     return { data: { active: { tasks: ACTIVE_TASKS, guest_requests: GUEST_REQUESTS }, history: { tasks: HISTORY_TASKS, guest_requests: [] } }, meta: { history_page: 1, history_per_page: 25 } }
   }
   if (api === '/programs/overview') return { data: PROGRAMS }
+  if (api === '/assets') return { data: ASSETS }
+  const assetDetail = api.match(/^\/assets\/(asset-\d+)$/)
+  if (assetDetail) return { data: ASSETS.find((item) => item.id === assetDetail[1]) }
+  if (api === '/assets/pm-schedules') return { data: PM }
+  if (api === '/work-orders') {
+    // Behave like the real list endpoint: honour the filters the page sends, so the same order is never returned twice.
+    const wanted = (query.get('status') ?? '').split(',').filter(Boolean)
+    const archived = query.get('archived') === 'true'
+    let rows = WORK_ORDERS.filter((row) => (wanted.length ? wanted.includes(row.status) : true))
+    if (archived) rows = []
+    if (query.get('overdue') === 'true') rows = rows.filter((row) => row.status !== 'completed')
+    if (query.get('unassigned') === 'true') rows = rows.filter((row) => !row.assigned_to && row.status !== 'completed')
+    return { data: rows, meta: { page: 1, per_page: 50 } }
+  }
+  const woDetail = api.match(/^\/work-orders\/(wo-\d+)$/)
+  if (woDetail) {
+    const row = WORK_ORDERS.find((item) => item.id === woDetail[1])
+    return { data: { ...row, work_order_photos: [], work_order_comments: [], timing_events: [], labor_sessions: [] } }
+  }
+  if (/^\/work-orders\/wo-\d+\/duplicate-signals?$/.test(api)) return { data: { signals: [] } }
+  if (api === '/work-orders/stats') return { data: { open: 3, overdue: 3, unassigned: 2, on_hold: 1, in_progress: 1, completed_today: 1 } }
+  if (api === '/engineering/vendors') return { data: VENDORS }
   if (api === '/engineering/insights') return { data: ENGINEERING_INSIGHTS }
   if (api === '/lost-found/claims/summary') return { data: { open: 2, matched: 1, possible_matches: 3 } }
   if (api === '/lost-found/returns/summary') return { data: { awaiting_return: 2, ready_for_pickup: 1, shipping: 0, completed_this_month: 5 } }

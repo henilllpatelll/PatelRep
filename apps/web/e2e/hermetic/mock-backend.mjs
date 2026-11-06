@@ -108,7 +108,7 @@ export function route({ method, path, query, body, email }) {
   }
   const reports = reportsRoute(api, query)
   if (reports) return { status: 200, json: reports }
-  const ops = opsRoute(api)
+  const ops = opsRoute(api, query)
   if (ops) return { status: 200, json: ops }
   if (api === '/housekeeping/board') return { status: 200, json: { data: boardRows() } }
   if (api === '/staff') return { status: 200, json: { data: { staff: STAFF, total: STAFF.length } } }
