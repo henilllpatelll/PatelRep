@@ -1,6 +1,6 @@
 # PatelRep Design System V2 — "Precision Slate + Electric Blue"
 
-Status: **Phase 6 of 8 (Front Desk and GM mobile; see section 47 onward).** Phase 3 was Housekeeper (section 26), Phase 4 Inspector and Supervisor, Phase 5 Engineering. Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
+Status: **Phase 7 of 8 (manager web app; see section 61 onward).** Phase 6 was Front Desk and GM mobile (section 47). Phase 3 was Housekeeper (section 26), Phase 4 Inspector and Supervisor, Phase 5 Engineering. Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
 foundation + reference previews. V2 is disabled by default; production
 still renders the legacy "Evening Lobby" look everywhere. Branch `feat/patelrep-design-system-v2`,
 one draft PR for all eight phases.
@@ -893,3 +893,120 @@ Legacy `FrontDeskHomeScreen` / `GMHomeScreen` in `app/(app)/home/index.tsx`, the
 the six-tab Front Desk set, `monoFont`/`displayFont` on Room Status and Lost & Found (legacy branch), and the English-only Lost & Found
 strings can go once V2 is the only look. Backend contract follow-ups for the owner: a `GET /guest-requests/{id}`, an assignee on guest
 requests, and a total on the list response.
+
+---
+
+# Phase 7 of 8: Manager web application
+
+Status: implemented on the same branch/PR (#200, draft). Renders **only** while `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true` (never when
+`NEXT_PUBLIC_APP_ENV=production`). No backend, database, migration, RBAC, route, billing or AI-credit change is part of this phase.
+
+**Be clear about what this phase is.** Phase 2 restyled the web chrome (sidebar, header, auth). Phase 7 does two different things:
+
+1. **Restructured:** the manager dashboard (`SimplifiedDashboard`), built from the data it already fetched.
+2. **Recolored (token remap):** every other management route, drawer, modal, popover and chart. They keep their layout and are
+   re-themed to Precision Slate + Electric Blue (light and dark) by re-pointing the legacy token names to V2 tokens. They are **not**
+   individually redesigned: no per-screen table, form or drawer restructuring was done outside the dashboard.
+
+## 61. The content remap (how ~45 routes get V2 without 45 rewrites)
+
+Pages are built from legacy token names (`--paper`, `--ink`, `--accent`, `--ready`, ...) through Tailwind utilities. Only a small number of
+component files use raw palette classes or hex, so one layer reaches nearly everything:
+
+| Piece | Where | Role |
+|---|---|---|
+| `contentRemapV2.css` | `components/design-v2/content/` | Re-points legacy tokens (surfaces, ink, accent/brand, ready/caution/alert/info/progress/blocked/ai, radii, shadows, `--font-display` -> sans) to `var(--dv2-*)`. Also re-points the raw `text/bg/border-gray-N` utilities used by ~12 legacy components. |
+| `applyContentScopeV2` | `lib/design/contentScopeV2.ts` | Called by `ShellV2` only. Sets `data-dv2-content` / `data-dv2-mode` and the `--dv2-*` variables on `<body>`, and removes all of it on unmount. Body-level so portaled Radix dialogs and drawers are covered. |
+| Root class filter | `ShellV2.tsx` | The V2 root keeps only `density-*`. `theme-dark` / `accent-*` stay on `<body>` (as before) because on the root they would shadow the remap with the legacy warm-dark palette and terracotta accent. Found in browser QA; covered by a test. |
+
+Isolation contract (tests in `lib/design/contentRemapV2.test.ts`): every selector starts with `body[data-dv2-content][data-dv2-mode`;
+no `:root`/`html`/`*`, no `!important`, no hex; every `--dv2-*` it reads is defined by `designV2CssVars`; only `ShellV2` turns it on, and
+`DashboardShell` mounts `ShellV2` only behind the preview flag. Flag off: `ShellV2` never mounts, so the body has no V2 attributes
+(verified in a browser: legacy accents `#b8431c`/`#d97757` unchanged).
+
+Deliberately **not** overridden: `bg-white` (the settings switch thumb), solid `bg-stone-900/N` backdrops, white-on-color text.
+The Tweaks accent picker is hidden under V2 (the primary accent is standardized); the stored preference is untouched, legacy still shows it.
+
+## 62. Dashboard (restructured)
+
+`SimplifiedDashboard` keeps one set of queries and drawers; with the flag on it returns a V2 layout built from `DashboardV2Sections.tsx`
+and the pure `lib/design/dashboardV2Model.ts`. The legacy `return` is byte-for-byte unchanged (`classifyOccupancy` moved to the model
+file with identical logic and is imported back).
+
+| Section | Source (existing queries only) | Rules |
+|---|---|---|
+| Header | hotel store, `boardUpdatedAt` | Title, hotel, date, "Live - Updated h:mm" (or "Waiting for data"). Refresh + New task as before. |
+| KPI row | board, open work orders, clean-time | Total/Occupied/Departures/Vacant open the existing room list; Open work orders -> `/engineering/work-orders`; Avg clean time -> `/reports`, shown only when data exists. |
+| Room readiness | board | % = inspected / rooms that need turning (not OOO, not an occupied stayover); stacked bar + labelled legend (never color alone); OOO and stayovers are reported separately, not folded in. `null` (not 0%) when nothing is in scope. -> Room Board. |
+| Priority exceptions | open work orders, board | Only urgent/emergency work orders (emergencies first, "Unassigned" when so) and a real "N departure rooms not ready" count. No VIP/ETA/severity/prediction fields exist, so none are shown. |
+| Team pulse | assignments | Assignment progress (done / assigned). Labelled "not shift attendance". |
+| AI insights | existing briefing + chat | Violet frame on the always-dark slate. The briefing text is derived from data already on screen; chat is the existing user-initiated component. Nothing calls AI on mount. |
+| Staff + Work orders panels | unchanged | All existing actions (message, assign, resolve, escalate, create) preserved. |
+
+Work-order list responses carry no server total, so counts show "N+" when the loaded page is full and the exceptions card says it is
+based on the loaded page. i18n: `dashboardV2.*` in `en.ts` / `es.ts` (parity test already covers it).
+
+## 63. Route inventory and migration status
+
+"Remap" = themed through section 61 only. "Restructured" = layout redesigned in V2. "Verified" = opened in a real browser against the
+hermetic mock backend (section 66). Drawers/modals are themed through the body remap (portals included) but **none were opened in QA**.
+
+| Route group | Routes | V2 status | Browser-verified |
+|---|---|---|---|
+| Dashboard | `/dashboard` | **Restructured** | Yes: 1440/1280/1024/768/390, light, dark, Spanish |
+| Housekeeping | `/housekeeping` (+ rooms, assignments, inspections, out-of-order, routes) | Remap | `/housekeeping` 1440 light + dark; subroutes not opened |
+| Engineering | `/engineering` (+ work-orders, pm-schedules, assets, predictions, insights, vendors) | Remap | `/engineering/work-orders` 1440 light + dark |
+| Guest ops | `/guest-requests`, `/logbook`, `/lost-found` | Remap | logbook, lost-found yes; **guest-requests not renderable under the mock** |
+| People and time | `/staff`, `/scheduling`, `/tasks` | Remap | staff, scheduling yes; **tasks not renderable under the mock** |
+| Reports | `/reports` | Remap (charts read `var(--accent)`/`var(--line)`) | **Not renderable under the mock** |
+| Settings | `/settings` and 13 nested screens | Remap | `/settings/general` only |
+| Compliance and knowledge | `/safety`, `/evidence`, `/programs`, `/sop`, `/ai` | Remap | No |
+| Account and billing | `/billing`, `/onboarding`, `/preferences`, `/management-roi` | Remap | No |
+| Shell | sidebar, header, search, notifications, command palette, account menu, toasts, drawer nav | Phase 2 (restructured); body remap now covers the portaled parts | Header/sidebar yes |
+
+No route, permission, nav item or feature gate was added, removed or changed. The older per-hotel `web_redesign_sections` flag is untouched
+and independent.
+
+## 64. Standards (applied by the remap; enforced only where a test says so)
+
+- **Tables, forms, drawers, dialogs:** they keep their existing structure and handlers. They pick up V2 surfaces, borders, ink and primary.
+  The 440 px drawer contract, unsaved-changes protection and a fixed footer are **not** retrofitted to existing drawers in this phase.
+- **Charts:** colors already come from CSS variables, so they follow the remap. Axis/legend/format changes were not made.
+- **AI:** always violet (`--ai`) with an icon and the "AI suggestions, not operational facts" label.
+- **Status:** the dashboard pairs every color with an icon and text. Legacy screens keep their own status presentation.
+
+## 65. Previewing Phase 7
+
+```bash
+NEXT_PUBLIC_DESIGN_V2_PREVIEW=true npm run dev:web      # must be exactly "true"; ignored when NEXT_PUBLIC_APP_ENV=production
+# Flag off (default): the legacy look, byte-identical markup, no body attributes.
+```
+
+## 66. Verification (what was and was not done)
+
+Automated (web): `tsc --noEmit` clean; ESLint 0 errors (5 existing warnings in files this phase did not touch); `check:frozen-files` OK;
+`test:unit` **480/480** (new: dashboard model, content-remap contract and scope tests, ShellV2 class-filter regression); `git diff --check` clean.
+Mobile (Phase 6 + cross-platform safety): `tsc --noEmit` clean; full Jest 480 of 481 suites, 10,866 of 10,867 tests. The one failure, `__tests__/screens/PmInspection.test.tsx`, took 16 s under full-suite load and passes 17/17 when run alone; it is an Engineering PM test last changed in #195, not touched here. Cause not diagnosed.
+
+Browser QA used a **production build against the hermetic mock backend** (`e2e/hermetic/mock-backend.mjs`; no credentials, no production data;
+work orders and assignments were injected with Playwright route fixtures). Local `.env` points at production Supabase, so no real login was made.
+
+- V2 ON: dashboard at 1440 light/dark, 1280, 1024, 768, 390 light/dark, 1440 Spanish; 10 other routes at 1440 light and dark.
+  Zero horizontal overflow on all 28 page loads; `--accent` resolved to the V2 blue in every one; screenshots reviewed for dashboard
+  (1440 light/dark, 390), `/housekeeping`.
+- V2 OFF: the same 28 loads: no `data-dv2-*` on the body, legacy accents, zero overflow.
+- Under the mock, `/guest-requests`, `/reports` and `/tasks` throw (`Cannot read properties of undefined`) **with the flag off as well**; the mock
+  returns `[]` where those pages expect objects. They are therefore **unverified in V2**, not shown to be broken or fine by V2.
+
+**Not done:** opening any drawer, modal or dropdown in the browser; keyboard-only and screen-reader passes; an automated accessibility audit
+or contrast sweep of legacy screens; Spanish beyond the dashboard; real-data checks (production data is off limits locally); visual comparison
+with the Phase 1 preview; a Playwright E2E for the V2 flows. Treat all of these as open.
+
+## 67. Known limitations and Phase 8 cleanup
+
+- Non-dashboard pages are recolored, not redesigned. Table density, filter bars, form layouts and drawer widths are the legacy ones.
+- Some legacy components keep their own hardcoded tones (white-on-color buttons, `bg-stone-900/N` backdrops, the AI label chip).
+- The fixed Feedback and Tweaks pills overlap page content at 390 px (legacy widgets, unchanged).
+- Legacy serif headings become sans under V2 via `--font-display`; italic briefing copy therefore renders as sans italic.
+- Phase 8: remove the legacy shell/dashboard branches and the per-file raw-gray overrides once V2 is the only look; migrate the ~13 files that use raw
+  palette classes to tokens; per-screen redesigns of Reports, Settings, Engineering and Housekeeping tables/drawers if wanted.

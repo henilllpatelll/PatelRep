@@ -14,10 +14,12 @@ import { MobileFloorNav } from '@/components/shared/MobileFloorNav'
 import { PageTransition } from '@/components/shared/PageTransition'
 import { TweaksPanel } from '@/components/shared/TweaksPanel'
 import { Toaster } from '@/components/ui/Toast'
+import { applyContentScopeV2 } from '@/lib/design/contentScopeV2'
 import { designV2CssVars, type ModeV2 } from '@/lib/design/designV2Tokens'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { HeaderLeadingV2 } from './HeaderLeadingV2'
 import { SidebarContent } from './SidebarV2'
+import '../content/contentRemapV2.css'
 import styles from './shellV2.module.css'
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ')
@@ -51,9 +53,9 @@ interface ShellV2Props {
  *  focus-trapped drawer on small screens), light header and a bounded content column.
  *
  *  Rendered by DashboardShell ONLY when NEXT_PUBLIC_DESIGN_V2_PREVIEW is on (never in production).
- *  Routes, permissions and page bodies are untouched: navigation comes from
+ *  Routes, permissions and page bodies' behavior are untouched: navigation comes from
  *  `getAllowedNavItems`, the header is the existing Header with a V2 leading area, and `children`
- *  keep their legacy styling until their own migration phase. */
+ *  receive the V2 palette through the body-scoped token remap (Phase 7, contentRemapV2.css). */
 export function ShellV2({ children, themeClasses = [], legacyRedesigned }: ShellV2Props) {
   const { t } = useTranslation()
   const pathname = usePathname()
@@ -62,6 +64,15 @@ export function ShellV2({ children, themeClasses = [], legacyRedesigned }: Shell
   const toggleCollapsed = useUIPreferencesStore((s) => s.toggleSidebarCollapsed)
   const mode: ModeV2 = theme === 'dark' ? 'dark' : 'light'
   const vars = useMemo(() => ({ ...designV2CssVars(mode), colorScheme: mode }) as CSSProperties, [mode])
+
+  // Phase 7: remap the legacy token names to V2 for page bodies and portaled drawers/dialogs.
+  useEffect(() => applyContentScopeV2(document.body, mode, vars as Record<string, string>), [mode, vars])
+
+  // `theme-dark` / `accent-*` re-declare the legacy tokens on THIS element, which is closer to the page
+  // bodies than <body> and would shadow the body-scoped V2 remap (warm dark palette, terracotta accent).
+  // They stay on <body> (DashboardShell mirrors them there) so legacy portals are unaffected; only the
+  // density classes are kept on the V2 root.
+  const rootThemeClasses = useMemo(() => themeClasses.filter((c) => c.startsWith('density-')), [themeClasses])
 
   const railForced = useMaxWidth(RAIL_BREAKPOINT_PX)
   const rail = railForced || prefCollapsed
@@ -84,7 +95,7 @@ export function ShellV2({ children, themeClasses = [], legacyRedesigned }: Shell
   }, [])
 
   return (
-    <div className={cx(styles.root, ...themeClasses)} style={vars} data-design-v2={mode} data-shell-v2="">
+    <div className={cx(styles.root, ...rootThemeClasses)} style={vars} data-design-v2={mode} data-shell-v2="">
       <a href="#main-content" className={styles.skipLink}>
         {t('shellV2.skipToContent')}
       </a>

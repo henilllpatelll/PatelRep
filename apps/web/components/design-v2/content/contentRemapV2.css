@@ -1,0 +1,100 @@
+/* Design System V2 content remap (web, Phase 7).
+
+   Page bodies, drawers, modals and popovers are built from the LEGACY token names (--paper, --ink,
+   --accent, --ready, ...) through Tailwind utilities (bg-surface, text-ink, border-line, ...). This
+   file points those names at the V2 palette so every management screen picks up Precision Slate +
+   Electric Blue without per-file edits.
+
+   Isolation contract (a test enforces all of it):
+   - The ONLY selector is `body[data-dv2-content][data-dv2-mode]`. ShellV2 sets those two
+     attributes (and the --dv2-* variables) on <body> while it is mounted and removes them on
+     unmount, so portaled content (Radix dialogs, drawers) is covered and legacy mode, which never
+     mounts ShellV2, is untouched.
+   - Never `:root`, `html`, `*` or an unscoped selector. Never `!important`.
+   - Reads only var(--dv2-*); no hex colors. Doubled attribute selectors out-rank the legacy
+     `.theme-dark.accent-*` rules without `!important`. */
+
+body[data-dv2-content][data-dv2-mode] {
+  background: var(--dv2-bg);
+  color: var(--dv2-text);
+
+  --paper: var(--dv2-bg);
+  --surface: var(--dv2-surface);
+  --surface-2: var(--dv2-surface-2);
+  --surface-3: color-mix(in srgb, var(--dv2-border) 70%, var(--dv2-surface-2));
+  --surface-raised: var(--dv2-surface);
+  --surface-overlay: var(--dv2-surface);
+  --line: var(--dv2-border);
+  --line-2: var(--dv2-border);
+
+  --ink: var(--dv2-text);
+  --ink-2: var(--dv2-text-2);
+  --ink-3: var(--dv2-text-3);
+  --ink-4: var(--dv2-text-3);
+
+  --accent: var(--dv2-primary);
+  --accent-ink: var(--dv2-on-primary);
+  --accent-soft: var(--dv2-primary-soft);
+  --accent-line: var(--dv2-primary-line);
+  --brand: var(--dv2-primary);
+  --brand-ink: var(--dv2-on-primary);
+  --brand-soft: var(--dv2-primary-soft);
+  --brand-line: var(--dv2-primary-line);
+  --focus-ring: color-mix(in srgb, var(--dv2-primary) 55%, transparent);
+
+  --ready: var(--dv2-ready);
+  --ready-soft: var(--dv2-ready-soft);
+  --ready-line: var(--dv2-ready-line);
+  --caution: var(--dv2-pickup);
+  --caution-soft: var(--dv2-pickup-soft);
+  --caution-line: var(--dv2-pickup-line);
+  --alert: var(--dv2-dirty);
+  --alert-soft: var(--dv2-dirty-soft);
+  --alert-line: var(--dv2-dirty-line);
+  --info: var(--dv2-primary);
+  --info-soft: var(--dv2-primary-soft);
+  --info-line: var(--dv2-primary-line);
+  --progress: var(--dv2-in-progress);
+  --progress-soft: var(--dv2-in-progress-soft);
+  --progress-line: var(--dv2-in-progress-line);
+  --blocked: var(--dv2-out-of-order);
+  --blocked-soft: var(--dv2-out-of-order-soft);
+  --blocked-line: var(--dv2-out-of-order-line);
+  --ai: var(--dv2-ai);
+  --ai-soft: var(--dv2-ai-soft);
+  --ai-line: var(--dv2-ai-line);
+
+  /* V2 is clean sans: the legacy serif display face maps to the sans stack. Mono stays for data. */
+  --font-display: var(--font-sans);
+
+  --r-md: var(--dv2-r-input);
+  --r-lg: var(--dv2-r-card);
+  --r-xl: var(--dv2-r-hero);
+
+  --shadow-xs: none;
+  --shadow-sm: var(--dv2-shadow-card);
+  --shadow-md: var(--dv2-shadow-card);
+  --shadow-lg: 0 8px 24px rgba(13, 23, 40, 0.12);
+  --shadow-pop: 0 12px 32px rgba(13, 23, 40, 0.16);
+}
+
+body[data-dv2-content][data-dv2-mode='dark'] {
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+/* -- Raw Tailwind gray/slate utilities --------------------------------------------------------
+   About a dozen legacy components (PM completion, archived work orders, work-order cards/lists, the
+   kebab menu, task/logbook drawers) use raw gray-N classes instead of the token utilities, so the
+   variable remap above cannot reach them and they stay light-gray in dark mode. Rather than edit those
+   files (which would shift the legacy look), re-point the same class names to V2 tokens here, under the
+   same body scope. Solid backdrops (bg-stone-900/N), white-on-color text and the switch thumb are
+   intentionally NOT overridden. */
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-900, .text-gray-800, .text-slate-800, .hover\:text-gray-800:hover) { color: var(--dv2-text); }
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-700, .text-gray-600, .hover\:text-gray-700:hover, .hover\:text-gray-600:hover, .text-slate-600) { color: var(--dv2-text-2); }
+body[data-dv2-content][data-dv2-mode] :is(.text-gray-500, .text-gray-400, .text-gray-300, .text-slate-400, .disabled\:text-gray-400:disabled) { color: var(--dv2-text-3); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-gray-50, .bg-slate-100, .hover\:bg-gray-50:hover, .disabled\:bg-gray-50:disabled) { background-color: var(--dv2-surface-2); }
+body[data-dv2-content][data-dv2-mode] :is(.bg-gray-100, .bg-gray-200, .hover\:bg-gray-100:hover) { background-color: var(--dv2-border); }
+body[data-dv2-content][data-dv2-mode] :is(.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-300, .hover\:border-gray-300:hover, .divide-gray-50 > :not([hidden]) ~ :not([hidden])) { border-color: var(--dv2-border); }
+/* KebabMenu: a white popover surface that must follow the theme (the switch thumb is also bg-white and must not). */
+body[data-dv2-content][data-dv2-mode] .bg-white.border-gray-200 { background-color: var(--dv2-surface); }

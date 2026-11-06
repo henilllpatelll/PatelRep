@@ -31,6 +31,10 @@ import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { buildExceptions, buildReadiness, buildTeamPulse, classifyOccupancy, formatPartialCount } from '@/lib/design/dashboardV2Model'
+import { AIInsightsCard, DashboardV2Header, DashboardV2Kpis, ExceptionsCard, ReadinessCard, TeamPulseCard, type KpiTile } from './DashboardV2Sections'
 
 // ── Room status → pill/tile styling (matches STATUS_LABEL_MAP in the housekeeping board) ──
 
@@ -64,20 +68,6 @@ const OCCUPANCY_TILE_LABEL: Record<StatKey, string> = {
   OCCUPIED: 'Occupied',
   DEPARTURE: 'Departure',
   VACANT: 'Vacant',
-}
-
-/**
- * Front-desk occupancy bucket for a housekeeping board row. `clean_type === 'DEP'`
- * is the real proxy for "checking out" — assigned specifically to departure rooms
- * regardless of whether the guest has physically left yet (see cleanType.ts).
- * PICKUP status means a stayover clean (Full/Light) is queued while the guest
- * is still in the room, so it counts as occupied too — Vacant must only ever
- * mean nobody is in the room.
- */
-function classifyOccupancy(room: any): 'OCCUPIED' | 'DEPARTURE' | 'VACANT' {
-  if (room.clean_type === 'DEP') return 'DEPARTURE'
-  if (room.status === 'OCCUPIED' || room.status === 'PICKUP') return 'OCCUPIED'
-  return 'VACANT'
 }
 
 /**
@@ -563,6 +553,7 @@ export function SimplifiedDashboard() {
   const canMessage = role === 'gm' || role === 'housekeeping_supervisor' || role === 'engineer'
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { t } = useTranslation()
 
   const [listFilter, setListFilter] = useState<StatKey | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null)
@@ -788,6 +779,155 @@ export function SimplifiedDashboard() {
     />
   )
 
+  const drawers = (
+    <>
+      {listFilter && (
+        <RoomListDrawer
+          filter={listFilter}
+          rooms={rooms}
+          hkNameById={hkNameById}
+          onClose={() => setListFilter(null)}
+          onSelectRoom={(room) => { setSelectedRoom(room); setListFilter(null) }}
+        />
+      )}
+
+      <RoomDetailDrawer
+        room={drawerRoom}
+        isOpen={!!selectedRoom}
+        onClose={() => setSelectedRoom(null)}
+        selectedDate={todayISO}
+        onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => (prev ? { ...prev, checkout_time: time } : prev))}
+      />
+
+      <WorkOrderDetailDrawerHost onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} />
+
+      {showCreateWO && (
+        <CreateWorkOrderDrawer
+          isOpen={showCreateWO}
+          onClose={() => setShowCreateWO(false)}
+          onCreate={() => {
+            queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+            setShowCreateWO(false)
+          }}
+        />
+      )}
+    </>
+  )
+
+  if (isDesignV2PreviewEnabled()) {
+    const readiness = buildReadiness(rooms)
+    const exceptions = buildExceptions({
+      workOrders,
+      rooms,
+      workOrdersPerPage: (workOrdersData as any)?.meta?.per_page,
+    })
+    const teamPulse = buildTeamPulse((assignmentsData as any)?.data ?? [])
+    const woPerPage: number | undefined = (workOrdersData as any)?.meta?.per_page
+    const tiles: KpiTile[] = [
+      ...statTiles.map((tile) => ({
+        key: tile.key,
+        label: t(`dashboardV2.${{ all: 'kpiTotalRooms', OCCUPIED: 'kpiOccupied', DEPARTURE: 'kpiDepartures', VACANT: 'kpiVacant' }[tile.key]}`),
+        value: String(tile.value),
+        hint: tile.hint,
+        active: listFilter === tile.key,
+        onClick: () => setListFilter(listFilter === tile.key ? null : tile.key),
+      })),
+      {
+        key: 'work-orders',
+        label: t('dashboardV2.kpiOpenWorkOrders'),
+        value: woError ? '—' : formatPartialCount(workOrders.length, woPerPage),
+        ariaLabel: t('dashboardV2.kpiOpenWorkOrders'),
+        onClick: () => router.push('/engineering/work-orders'),
+      },
+      ...(cleanTime && cleanTime.today_avg_minutes != null
+        ? [{
+            key: 'avg-clean',
+            label: t('dashboardV2.kpiAvgClean'),
+            value: `${cleanTime.today_avg_minutes}m`,
+            hint: cleanTime.delta_minutes ? t('dashboardV2.kpiAvgCleanVs', { delta: `${cleanTime.delta_minutes > 0 ? '+' : ''}${cleanTime.delta_minutes}` }) : undefined,
+            ariaLabel: t('dashboardV2.kpiAvgClean'),
+            onClick: () => router.push('/reports'),
+          }]
+        : []),
+    ]
+
+    return (
+      <div className="flex flex-col gap-4 pb-6">
+        <DashboardV2Header
+          hotelName={hotel?.name}
+          updatedAt={boardUpdatedAt || undefined}
+          onRefresh={handleRefresh}
+          onNewTask={() => router.push('/tasks')}
+        />
+
+        {isSupervisor && (
+          <OvernightRecapStrip summary={overnightSummary} isLoading={overnightLogbookQuery.isLoading} />
+        )}
+
+        <DashboardV2Kpis tiles={tiles} loading={boardLoading} />
+
+        {boardError && (
+          <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="bg-surface border border-line rounded-[var(--r-lg)]" />
+        )}
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
+            <ReadinessCard model={readiness} onOpenBoard={() => router.push('/housekeeping')} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <ExceptionsCard
+                model={exceptions}
+                workOrders={workOrders}
+                workOrdersPerPage={woPerPage}
+                onOpenWorkOrder={(wo) => useEngineeringStore.getState().openDrawer(wo)}
+                onOpenDepartures={() => setListFilter('DEPARTURE')}
+              />
+              <TeamPulseCard model={teamPulse} />
+            </div>
+          </div>
+          <AIInsightsCard>
+            <LayoutGroup id={briefingLayoutId}>
+              <div className="briefing-left flex flex-col gap-3">
+                <AnimatePresence
+                  initial={false}
+                  onExitComplete={() => {
+                    if (briefingView === 'briefing') askButtonRef.current?.focus({ preventScroll: true })
+                  }}
+                >
+                  <BriefingCell key={briefingView} duration={briefingTransition.duration}>
+                    {briefingView === 'chat' ? renderChatBody() : renderBriefingBody()}
+                  </BriefingCell>
+                </AnimatePresence>
+              </div>
+            </LayoutGroup>
+          </AIInsightsCard>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="h-[520px] min-w-0">
+            <StaffPanel
+              assignmentsData={assignmentsData}
+              staffData={staffData}
+              workOrders={workOrders}
+              completedWorkOrders={completedWorkOrders}
+              rooms={rooms}
+              canMessage={canMessage}
+            />
+          </div>
+          <div className="h-[520px] min-w-0">
+            <WorkOrdersPanel
+              workOrders={workOrders}
+              isError={woError}
+              onRetry={() => refetchWO()}
+              onNewWorkOrder={() => setShowCreateWO(true)}
+            />
+          </div>
+        </div>
+
+        {drawers}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
       {/* Greeting */}
@@ -915,36 +1055,7 @@ export function SimplifiedDashboard() {
         </div>
       </div>
 
-      {listFilter && (
-        <RoomListDrawer
-          filter={listFilter}
-          rooms={rooms}
-          hkNameById={hkNameById}
-          onClose={() => setListFilter(null)}
-          onSelectRoom={(room) => { setSelectedRoom(room); setListFilter(null) }}
-        />
-      )}
-
-      <RoomDetailDrawer
-        room={drawerRoom}
-        isOpen={!!selectedRoom}
-        onClose={() => setSelectedRoom(null)}
-        selectedDate={todayISO}
-        onCheckoutTimeSaved={(time) => setSelectedRoom((prev: any) => (prev ? { ...prev, checkout_time: time } : prev))}
-      />
-
-      <WorkOrderDetailDrawerHost onUpdate={() => queryClient.invalidateQueries({ queryKey: ['work-orders'] })} />
-
-      {showCreateWO && (
-        <CreateWorkOrderDrawer
-          isOpen={showCreateWO}
-          onClose={() => setShowCreateWO(false)}
-          onCreate={() => {
-            queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-            setShowCreateWO(false)
-          }}
-        />
-      )}
+      {drawers}
     </div>
   )
 }
