@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { useAppStore } from "@/stores/appStore";
 import { SignOutSheet } from "@/components/security/SignOutSheet";
-import { monoFont } from "@/components/shared/tokens";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
@@ -18,9 +17,11 @@ import { useSettingsIdentity } from "@/lib/settings/useSettingsIdentity";
 import { useAppearancePreference } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 
 export default function SettingsHomeScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const { preference } = useAppearancePreference();
@@ -205,7 +206,7 @@ export default function SettingsHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   identity: {
     flexDirection: "row",
     alignItems: "center",
@@ -222,5 +223,5 @@ const styles = StyleSheet.create({
   connRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   connDot: { width: 8, height: 8, borderRadius: 4 },
   connText: { fontSize: 12.5 },
-  version: { textAlign: "center", fontFamily: monoFont, fontSize: 11 },
-});
+  version: { textAlign: "center", fontFamily: t.mono, fontSize: 11 },
+}));

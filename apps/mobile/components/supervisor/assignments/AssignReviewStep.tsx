@@ -1,18 +1,20 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { ImpactBlock } from "@/components/supervisor/assignments/AssignWorkloadParts";
 import { ackText, attendanceLabel, minutesText } from "@/lib/housekeeping/assignmentFlowText";
 import type { AssignReview } from "@/lib/housekeeping/assignmentPicker";
 import type { AssignmentFlowController } from "@/lib/housekeeping/useAssignmentFlow";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   return (
@@ -26,6 +28,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function AckRow({ ack, name, checked, onToggle, t }: { ack: AssignReview["requiredAcks"][number]; name: string; checked: boolean; onToggle: () => void; t: Translate }) {
+  const styles = useStyles();
   const theme = useTheme();
   const label = ackText(ack, name, t);
   return (
@@ -46,6 +49,7 @@ function AckRow({ ack, name, checked, onToggle, t }: { ack: AssignReview["requir
 }
 
 export function AssignReviewStep({ controller, banner, paused, t }: { controller: AssignmentFlowController; banner: React.ReactNode; paused: string | null; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { flow, review, busy } = controller;
@@ -149,17 +153,17 @@ export function AssignReviewStep({ controller, banner, paused, t }: { controller
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scroll: { flexGrow: 0, flexShrink: 1 },
   content: { gap: 14, paddingBottom: 8 },
   field: { gap: 6 },
   fieldLabel: { fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
   stack: { gap: 8 },
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 10, gap: 3 },
-  roomNumber: { fontFamily: monoFont, fontSize: 30, lineHeight: 36, fontWeight: "800" },
+  roomNumber: { fontFamily: t.mono, fontSize: 30, lineHeight: 36, fontWeight: "800" },
   person: { fontSize: 19, fontWeight: "800" },
   line: { fontSize: 13.5, lineHeight: 19 },
   ack: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 12, minHeight: 52, paddingVertical: 8 },
   ackText: { flex: 1, fontSize: 14, fontWeight: "600", lineHeight: 19 },
   footer: { gap: 8, paddingTop: 6 },
-});
+}));

@@ -8,7 +8,7 @@ import type { Technician } from "@/lib/api/engineeringTeam";
 import type { Presence } from "@/lib/engineering/technicianPresence";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
 import { useTheme } from "@/lib/theme/useTheme";
-import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "../homeStyles";
+import { HOME_MAX_FONT, HOME_MIN_TOUCH, useHomeStyles } from "../homeStyles";
 
 interface Props {
   technicians: readonly Technician[];
@@ -56,6 +56,7 @@ interface RowProps {
 }
 
 function Row({ row, presence, onOpen }: RowProps) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const text = detail(row.tech, t as never);
@@ -98,6 +99,7 @@ function Row({ row, presence, onOpen }: RowProps) {
  * Everyone is in Team Overview.
  */
 export function TeamWorkloadPreview({ technicians, presenceOf, zone, language, onOpenTechnician, onViewTeam }: Props) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const { rows, total } = workloadPreview(technicians, t("engineeringTeam.technician"));

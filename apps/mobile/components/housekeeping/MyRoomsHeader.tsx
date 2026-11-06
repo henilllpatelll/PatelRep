@@ -1,8 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
-import { monoFont } from "@/components/shared/tokens";
 import { ProgressBar } from "@/components/shared/evening";
 import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
 import { AppText } from "@/components/ui/AppText";
@@ -10,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { LinearProgress } from "@/components/ui/LinearProgress";
 import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import type { DashboardProgress, DashboardTab } from "@/lib/housekeeping/myRoomsDashboard";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.5;
 const TABS: DashboardTab[] = ["route", "floors", "done"];
@@ -36,6 +36,7 @@ export function MyRoomsHeader(props: MyRoomsHeaderProps) {
 
 /** Design System V2: a light page header (title, date), honest sync chips, one progress card and a segmented list switch. */
 function MyRoomsHeaderV2({ dateLabel, progress, indicators, tab, onTabChange, topInset }: MyRoomsHeaderProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const summaryLabel =
@@ -145,6 +146,7 @@ function MyRoomsHeaderV2({ dateLabel, progress, indicators, tab, onTabChange, to
 }
 
 function CountV2({ label, value, emphasize }: { label: string; value: number; emphasize?: boolean }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View style={styles.countV2} accessible accessibilityLabel={`${label} ${value}`}>
@@ -159,6 +161,7 @@ function CountV2({ label, value, emphasize }: { label: string; value: number; em
 }
 
 function MyRoomsHeaderLegacy({ dateLabel, progress, indicators, tab, onTabChange, topInset }: MyRoomsHeaderProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -274,6 +277,7 @@ function MyRoomsHeaderLegacy({ dateLabel, progress, indicators, tab, onTabChange
 }
 
 function Count({ label, value, emphasize }: { label: string; value: number; emphasize?: boolean }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View style={styles.count} accessible accessibilityLabel={`${label} ${value}`}>
@@ -290,7 +294,7 @@ function Count({ label, value, emphasize }: { label: string; value: number; emph
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   headerV2: { paddingHorizontal: spaceV2.page, paddingBottom: spaceV2.md, gap: spaceV2.md },
   indicatorsV2: { flexDirection: "row", flexWrap: "wrap", gap: spaceV2.sm },
   indicatorChipV2: {
@@ -323,12 +327,12 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
   progressRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8 },
   progressText: { flexShrink: 1, fontSize: 18, fontWeight: "800" },
-  percent: { fontFamily: monoFont, fontSize: 14, fontWeight: "800" },
+  percent: { fontFamily: t.mono, fontSize: 14, fontWeight: "800" },
   chips: { flexDirection: "row", flexWrap: "wrap", columnGap: 18, rowGap: 6 },
   count: { flexDirection: "row", alignItems: "baseline", gap: 5 },
-  countValue: { fontFamily: monoFont, fontSize: 16, fontWeight: "800" },
+  countValue: { fontFamily: t.mono, fontSize: 16, fontWeight: "800" },
   countLabel: { fontSize: 12.5, fontWeight: "600" },
   segmented: { flexDirection: "row", gap: 4, borderWidth: 1, borderRadius: 12, padding: 3 },
   segment: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, borderRadius: 9 },
   segmentText: { fontSize: 14, fontWeight: "800" },
-});
+}));

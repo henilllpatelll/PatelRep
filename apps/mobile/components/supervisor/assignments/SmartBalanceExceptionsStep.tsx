@@ -1,13 +1,14 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { SheetHeader } from "@/components/supervisor/assignments/SmartBalanceParts";
 import { Button } from "@/components/ui/Button";
 import { leftOutText, roomExclusionText, staffExclusionText } from "@/lib/housekeeping/smartBalanceText";
 import type { SmartBalanceController } from "@/lib/housekeeping/useSmartBalance";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -18,6 +19,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
    it (the supervisor decides on that room alone). */
 
 export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }: { smart: SmartBalanceController; onViewRoom: (roomId: string) => void; onViewStaff: (userId: string) => void; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { plan, preview } = smart;
@@ -99,11 +101,11 @@ export function SmartBalanceExceptionsStep({ smart, onViewRoom, onViewStaff, t }
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scroll: { flexGrow: 0, marginTop: 8 },
   content: { gap: 10, paddingBottom: 12 },
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
-  number: { fontFamily: monoFont, fontSize: 21, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 21, fontWeight: "800" },
   action: { minHeight: MIN_TARGET, justifyContent: "center", alignSelf: "flex-start" },
   footer: { paddingTop: 8 },
-});
+}));

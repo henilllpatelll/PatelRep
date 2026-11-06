@@ -1,8 +1,8 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { WarningLines } from "@/components/supervisor/assignments/AssignWorkloadParts";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import { blockedText, leftOutText, nameOrFallback, reasonLabel } from "@/lib/hou
 import type { LoadView } from "@/lib/housekeeping/assignmentPicker";
 import type { MidshiftController } from "@/lib/housekeeping/useMidshiftRecovery";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -30,6 +31,7 @@ function itemDetail(item: ReviewItem, t: Translate): string {
 }
 
 function ValidationLine({ id, state, count, t }: { id: string; state: string; count: number; t: Translate }) {
+  const styles = useStyles();
   const theme = useTheme();
   const icon = state === "pass" ? "checkmark-circle" : state === "fail" ? "close-circle" : state === "attention" ? "alert-circle" : "help-circle-outline";
   const color = state === "pass" ? theme.status.ready : state === "fail" ? theme.destructiveAction : theme.textSecondary;
@@ -45,6 +47,7 @@ function ValidationLine({ id, state, count, t }: { id: string; state: string; co
 }
 
 function MovePicker({ midshift, t }: { midshift: MidshiftController; t: Translate }) {
+  const styles = useStyles();
   const theme = useTheme();
   const roomId = midshift.movePickerFor;
   const room = midshift.summary?.valid.find((candidate) => candidate.roomId === roomId);
@@ -77,6 +80,7 @@ function MovePicker({ midshift, t }: { midshift: MidshiftController; t: Translat
 }
 
 export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftController; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { source, plan, editing } = midshift;
@@ -233,7 +237,7 @@ export function MidshiftReviewStep({ midshift, t }: { midshift: MidshiftControll
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scroll: { flex: 1, marginTop: 8 },
   content: { gap: 12, paddingBottom: 12 },
   block: { gap: 8 },
@@ -241,7 +245,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
   name: { fontSize: 17, fontWeight: "800" },
   itemRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10, minHeight: 36, paddingTop: 4 },
-  roomNumber: { fontFamily: monoFont, fontSize: 17, fontWeight: "800", minWidth: 48 },
+  roomNumber: { fontFamily: t.mono, fontSize: 17, fontWeight: "800", minWidth: 48 },
   itemDetail: { flex: 1, fontSize: 13.5, lineHeight: 19 },
   itemActions: { flexDirection: "row", gap: 4 },
   action: { minHeight: MIN_TARGET, minWidth: 56, justifyContent: "center", alignItems: "center", paddingHorizontal: 6 },
@@ -249,4 +253,4 @@ const styles = StyleSheet.create({
   validation: { flexDirection: "row", alignItems: "center", gap: 8 },
   validationText: { flex: 1, fontSize: 14, lineHeight: 20 },
   footer: { gap: 8, paddingTop: 8 },
-});
+}));

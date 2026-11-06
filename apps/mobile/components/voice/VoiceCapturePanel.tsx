@@ -6,7 +6,7 @@ import { usePalette, type Palette } from "@/components/ai/palette";
 import { useVoiceInput, type VoiceState } from "@/lib/tasks/addTask/useVoiceInput";
 import { speechLocale } from "@/lib/voice/locale";
 import type { TextInputInstance } from "react-native";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { useTypography, type TypographyMode } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -42,7 +42,8 @@ const STATUS_KEY: Partial<Record<VoiceState, string>> = {
 export function VoiceCapturePanel({ language, maxChars, autoStart, onUse, onClose, palette }: Props) {
   const { t, i18n } = useTranslation();
   const theme = usePalette(palette);
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const typo = useTypography();
+  const styles = useMemo(() => makeStyles(theme, typo), [theme, typo]);
   const appLanguage = language ?? i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [text, setText] = useState("");
   const inputRef = useRef<TextInputInstance>(null);
@@ -159,7 +160,7 @@ export function VoiceCapturePanel({ language, maxChars, autoStart, onUse, onClos
   );
 }
 
-const makeStyles = (theme: Palette) =>
+const makeStyles = (theme: Palette, t: TypographyMode) =>
   StyleSheet.create({
     wrap: { gap: 10, alignItems: "stretch" },
     mic: { alignSelf: "center", width: 76, height: 76, borderRadius: 38, alignItems: "center", justifyContent: "center", backgroundColor: theme.primaryAction },
@@ -167,7 +168,7 @@ const makeStyles = (theme: Palette) =>
     unavailable: { alignItems: "center", gap: 8, paddingVertical: 6 },
     status: { textAlign: "center", fontSize: 16, fontWeight: "700", color: theme.textPrimary },
     hint: { textAlign: "center", fontSize: 12.5, lineHeight: 18, color: theme.textMuted },
-    label: { fontSize: microLabelSize(11), fontWeight: "800", letterSpacing: microLabelTracking(0.5), textTransform: microLabelCase(), color: theme.textMuted },
+    label: { fontSize: t.labelSize(11), fontWeight: "800", letterSpacing: t.tracking(0.5), textTransform: t.labelCase, color: theme.textMuted },
     input: {
       minHeight: 76,
       maxHeight: 160,

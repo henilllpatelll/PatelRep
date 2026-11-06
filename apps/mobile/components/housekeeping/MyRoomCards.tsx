@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/lib/theme/useTheme";
-import { monoFont } from "@/components/shared/tokens";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar, StatusPill } from "@/components/shared/evening";
 import type { RoomEntry } from "@/lib/housekeeping/myRoomsDashboard";
@@ -23,6 +22,7 @@ import { useTextContext } from "@/components/housekeeping/useTextContext";
 import { LinearProgress } from "@/components/ui/LinearProgress";
 import { radiusV2 } from "@/components/shared/tokensV2";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const MIN_TARGET = 44;
 const MAX_FONT_SCALE = 1.6;
@@ -38,6 +38,7 @@ function useNow(intervalMs: number): Date {
 }
 
 function RushBadge() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -53,6 +54,7 @@ function RushBadge() {
 
 /** "Why next?" under the first Up Next card. A sibling of the card, never inside it, so the card stays one control. */
 export function WhyNextLink({ roomNumber, onPress }: { roomNumber: string; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -87,6 +89,7 @@ interface MyRoomCardProps {
  * blocking entry (with attempts and retry), or the reclean corrections.
  */
 export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -194,6 +197,7 @@ export function MyRoomCard({ entry, onPress, position }: MyRoomCardProps) {
 /* ─── Compact row (Floors + Done) ─────────────────────────────────────────── */
 
 export function CompactRoomRow({ entry, onPress }: { entry: RoomEntry; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -250,6 +254,7 @@ interface CurrentRoomCardProps {
 }
 
 export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, isOnline }: CurrentRoomCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -370,7 +375,7 @@ export function CurrentRoomCard({ entry, onResume, onReloadSession, reloading, i
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   whyNext: { minHeight: MIN_TARGET, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4 },
   whyNextText: { fontSize: 14.5, fontWeight: "800" },
   pressable: { minHeight: MIN_TARGET },
@@ -379,8 +384,8 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1, minWidth: 0, gap: 4 },
   topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" },
   numberRow: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-  position: { fontFamily: monoFont, fontSize: 13, fontWeight: "700" },
-  roomNumber: { fontFamily: monoFont, fontSize: 28, fontWeight: "800", lineHeight: 34 },
+  position: { fontFamily: t.mono, fontSize: 13, fontWeight: "700" },
+  roomNumber: { fontFamily: t.mono, fontSize: 28, fontWeight: "800", lineHeight: 34 },
   badges: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   badge: {
     flexDirection: "row",
@@ -410,7 +415,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
   },
-  rowNumber: { fontFamily: monoFont, fontSize: 18, fontWeight: "800", minWidth: 52 },
+  rowNumber: { fontFamily: t.mono, fontSize: 18, fontWeight: "800", minWidth: 52 },
   rowMain: { flex: 1, minWidth: 0, gap: 2 },
   rowStatus: { fontSize: 14, fontWeight: "700" },
   rowMarkers: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
@@ -443,4 +448,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   secondaryBtnText: { fontSize: 15, fontWeight: "700" },
-});
+}));

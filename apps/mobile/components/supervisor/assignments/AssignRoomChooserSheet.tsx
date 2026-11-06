@@ -3,9 +3,10 @@ import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MAX_FONT_SCALE, MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { ChooserRoom } from "@/lib/housekeeping/assignmentPicker";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -27,6 +28,7 @@ export function AssignRoomChooserSheet({
   onChoose: (roomId: string) => void;
   onClose: () => void;
 }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -119,10 +121,11 @@ export function AssignRoomChooserSheet({
 }
 
 function Separator() {
+  const styles = useStyles();
   return <View style={styles.separator} />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   overlay: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.45)" },
   sheet: { maxHeight: "88%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8 },
@@ -133,10 +136,10 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 16, paddingBottom: 12 },
   caption: { fontSize: 12, fontWeight: "700", letterSpacing: 0.3, paddingBottom: 8 },
   room: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderWidth: 1, borderRadius: R.md, paddingHorizontal: 14, paddingVertical: 10 },
-  roomNumber: { width: 56, fontFamily: monoFont, fontSize: 20, fontWeight: "800" },
+  roomNumber: { width: 56, fontFamily: t.mono, fontSize: 20, fontWeight: "800" },
   roomBody: { flex: 1, minWidth: 0, gap: 2 },
   meta: { fontSize: 12.5, lineHeight: 17 },
   held: { flexDirection: "row", alignItems: "center", gap: 4 },
   separator: { height: 8 },
   empty: { fontSize: 14, lineHeight: 20, paddingVertical: 18, textAlign: "center" },
-});
+}));

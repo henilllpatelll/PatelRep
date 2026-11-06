@@ -1,8 +1,7 @@
 import type { ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 
 const MAX_FONT_SCALE = 1.5;
@@ -13,6 +12,7 @@ import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
 import { AppText } from "@/components/ui/AppText";
 import { Card } from "@/components/ui/Card";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 export type SyncKey = TaskSyncKey;
 
@@ -47,6 +47,7 @@ interface TasksHeaderProps {
 }
 
 function Stat({ label, stat }: { label: string; stat: SummaryValue }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -92,6 +93,7 @@ function segmentList(t: (key: string, options?: Record<string, unknown>) => stri
 }
 
 function StatV2({ label, stat }: { label: string; stat: SummaryValue }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const known = stat.value !== null;
   const shown = known ? `${stat.value}${stat.atLeast ? "+" : ""}` : "—";
@@ -114,6 +116,7 @@ function StatV2({ label, stat }: { label: string; stat: SummaryValue }) {
 
 /** Design System V2: a light page header (title, date), a named sync chip, one summary card and a segmented switch. */
 function TasksHeaderV2({ dateLabel, sync, summary, segment, counts, onSegmentChange, onOpenHistory, onOpenSync, topInset }: TasksHeaderProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const tone =
@@ -217,6 +220,7 @@ function TasksHeaderLegacy({
   onOpenSync,
   topInset,
 }: TasksHeaderProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const syncColor = sync === "synced" ? theme.shell.ink3 : sync === "attention" ? theme.status.dirty : theme.status.pickup;
@@ -331,7 +335,7 @@ function TasksHeaderLegacy({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   headerV2: { paddingHorizontal: spaceV2.page, paddingBottom: spaceV2.md, gap: spaceV2.md },
   historyBtnV2: { width: 44, height: 44, borderRadius: radiusV2.control, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   syncChipV2: {
@@ -369,9 +373,9 @@ const styles = StyleSheet.create({
   },
   summary: { flexDirection: "row", borderWidth: 1, borderRadius: 14, paddingVertical: 10 },
   stat: { flex: 1, alignItems: "center", gap: 2, paddingHorizontal: 4 },
-  statValue: { fontFamily: monoFont, fontSize: 20, fontWeight: "800" },
+  statValue: { fontFamily: t.mono, fontSize: 20, fontWeight: "800" },
   statLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
   segmented: { flexDirection: "row", borderWidth: 1, borderRadius: 14, padding: 4, gap: 4 },
   segment: { flex: 1, minHeight: 48, borderRadius: 11, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
   segmentText: { fontSize: 14.5, fontWeight: "700" },
-});
+}));

@@ -1,12 +1,12 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { formatHotelTime, formatShiftDate } from "@/lib/housekeeping/hotelTime";
 import type { TaskActivityEvent } from "@/lib/api/tasks";
 import { actorLabel, groupByDay } from "@/lib/tasks/taskDisplay";
 import type { Viewer } from "@/lib/tasks/taskActions";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const MAX_FONT_SCALE = 1.5;
 
@@ -21,6 +21,7 @@ interface Props {
 }
 
 function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent; viewer: Viewer; zone: string | null; language: string }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -76,6 +77,7 @@ function EventRow({ event, viewer, zone, language }: { event: TaskActivityEvent;
 
 /** Chronological feed. Every row is a persisted event; the component adds nothing of its own. */
 export function ActivityFeed({ events, viewer, zone, language, now, grouped = false }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -114,14 +116,14 @@ export function ActivityFeed({ events, viewer, zone, language, now, grouped = fa
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   list: { gap: 14 },
   group: { gap: 12 },
   day: { fontSize: 11.5, fontWeight: "800", letterSpacing: 0.9, textTransform: "uppercase" },
   row: { flexDirection: "row", gap: 12 },
-  time: { width: 64, fontFamily: monoFont, fontSize: 12, paddingTop: 2 },
+  time: { width: 64, fontFamily: t.mono, fontSize: 12, paddingTop: 2 },
   main: { flex: 1, minWidth: 0, gap: 2 },
   actor: { fontSize: 12.5, fontWeight: "700" },
   note: { fontSize: 14.5, lineHeight: 20 },
   event: { fontSize: 14.5, lineHeight: 20, fontWeight: "600" },
-});
+}));

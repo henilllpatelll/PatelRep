@@ -1,17 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { monoFont } from "@/components/shared/tokens";
 import { Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +14,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ScreenHeader } from "@/components/shared/HeadersV2";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { shiftDateKeyOf } from "@/lib/housekeeping/hotelTime";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type LogbookEntry = {
   id: string;
@@ -54,6 +48,7 @@ function groupByDate(entries: LogbookEntry[]) {
 }
 
 export default function LogbookScreen() {
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -240,7 +235,7 @@ export default function LogbookScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
@@ -260,7 +255,7 @@ const styles = StyleSheet.create({
   },
   summaryHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   summaryLabel: { flex: 1, fontSize: 12, fontWeight: "700" },
-  summaryDate: { fontSize: 11, fontFamily: monoFont },
+  summaryDate: { fontSize: 11, fontFamily: t.mono },
   summaryText: { fontSize: 13, lineHeight: 19 },
   entryCard: { padding: 14, gap: 6 },
   entryTop: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
@@ -268,6 +263,6 @@ const styles = StyleSheet.create({
   entryBody: { fontSize: 13, lineHeight: 18 },
   entryFooter: { flexDirection: "row", justifyContent: "space-between" },
   entryAuthor: { fontSize: 11, fontWeight: "600" },
-  entryTime: { fontSize: 11, fontFamily: monoFont },
+  entryTime: { fontSize: 11, fontFamily: t.mono },
   emptyCard: { paddingVertical: 48 },
-});
+}));

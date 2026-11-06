@@ -11,7 +11,7 @@ import type { CopilotCardBrief } from "@/lib/ai/copilotCard";
 import type { SupervisorCopilotController } from "@/lib/ai/useSupervisorCopilot";
 import { MAX_MESSAGE_CHARS, useAssistantConversation } from "@/lib/ai/useAssistantConversation";
 import type { ScrollViewInstance, TextInputInstance } from "react-native";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const CARD_WIDTH = 306;
 const THREAD_MAX_HEIGHT = 260;
@@ -30,6 +30,7 @@ export interface CopilotCardProps {
 }
 
 export function CopilotCard({ onClose, insetsBottom, brief, loading, error, idle = false, reload, supervisor }: CopilotCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const inputRef = useRef<TextInputInstance>(null);
@@ -310,7 +311,7 @@ export function CopilotCard({ onClose, insetsBottom, brief, loading, error, idle
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scrim: {
     backgroundColor: "rgba(26,24,21,0.22)",
   },
@@ -345,10 +346,10 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 10, fontWeight: "700", color: darkTheme.onAi, letterSpacing: 0.4 },
   headerLabel: {
-    fontSize: microLabelSize(10.5),
+    fontSize: t.labelSize(10.5),
     fontWeight: "600",
-    letterSpacing: microLabelTracking(1),
-    textTransform: microLabelCase(),
+    letterSpacing: t.tracking(1),
+    textTransform: t.labelCase,
     color: "rgba(247,244,238,0.5)",
     flexShrink: 1,
   },
@@ -376,10 +377,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sourcesLabel: {
-    fontSize: microLabelSize(10),
+    fontSize: t.labelSize(10),
     fontWeight: "600",
-    letterSpacing: microLabelTracking(0.4),
-    textTransform: microLabelCase(),
+    letterSpacing: t.tracking(0.4),
+    textTransform: t.labelCase,
     color: "rgba(247,244,238,0.4)",
   },
   sourceChip: {
@@ -460,4 +461,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   askIconBtnDisabled: { opacity: 0.4 },
-});
+}));

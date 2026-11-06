@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -18,12 +10,13 @@ import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { GuestRequestsV2 } from "@/components/frontDesk/GuestRequestsV2";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/stores/appStore";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { AIInsightCard, Pill, SectionLabel } from "@/components/shared/mobileHandoff";
 import { useTheme } from "@/lib/theme/useTheme";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 export type GuestRequest = {
   id: string;
@@ -100,6 +93,7 @@ export default function GuestRequestsRoute() {
 }
 
 function GuestRequestsScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -307,7 +301,7 @@ function GuestRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
@@ -343,13 +337,13 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   cardLeft: { flex: 1 },
-  roomLabel: { fontFamily: monoFont, fontSize: 20, lineHeight: 24, fontWeight: "700" },
+  roomLabel: { fontFamily: t.mono, fontSize: 20, lineHeight: 24, fontWeight: "700" },
   guestName: { fontSize: 11 },
   cardBadges: { flexDirection: "row", gap: 4, flexWrap: "wrap" },
   requestType: { fontSize: 15, fontWeight: "600" },
   description: { fontSize: 13, lineHeight: 18 },
   cardFooter: { flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
-  metaText: { fontSize: 11, fontFamily: monoFont },
+  metaText: { fontSize: 11, fontFamily: t.mono },
   assignedTo: { fontSize: 11, fontWeight: "500" },
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
-});
+}));

@@ -3,16 +3,17 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { monoFont } from "@/components/shared/tokens";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { loadLicenses } from "@/lib/app/licenses";
 import { useTheme } from "@/lib/theme/useTheme";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 
 /** Notices for the open-source packages PatelRep ships directly. Bundled, so it works offline. */
 export default function LicensesScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   // Read on first open, not at app start.
@@ -83,12 +84,12 @@ export default function LicensesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   intro: { fontSize: 13.5, lineHeight: 19, paddingHorizontal: 4 },
   row: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
   rowText: { flex: 1, minWidth: 0, gap: 2 },
   name: { fontSize: 15, fontWeight: "600" },
-  meta: { fontFamily: monoFont, fontSize: 12 },
+  meta: { fontFamily: t.mono, fontSize: 12 },
   body: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
   text: { fontSize: 12.5, lineHeight: 18 },
-});
+}));

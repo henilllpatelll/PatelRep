@@ -1,23 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { Chip, SectionHeader, StatusRail } from "@/components/shared/evening";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
@@ -28,6 +17,7 @@ import { isEngineeringRole } from "@/lib/engineering/roles";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { isOccupiedBoardRow, isOutOfOrderBoardRow } from "@/lib/frontDesk/roomReadiness";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Rooms — the property atlas ────────────────────────────────────────────
    Every room in the hotel, grouped by floor. The room number IS the card's
@@ -118,6 +108,7 @@ function roomNumberValue(room: RoomRow): number {
 const FILTER_OPTIONS = ["all", "VACANT", "OCCUPIED", "OOO"];
 
 function PropertyRoomStatusScreen() {
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -451,7 +442,7 @@ function PropertyRoomStatusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
@@ -474,7 +465,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  heroStatValue: { fontSize: 22, lineHeight: 26, fontWeight: "700", fontFamily: monoFont },
+  heroStatValue: { fontSize: 22, lineHeight: 26, fontWeight: "700", fontFamily: t.mono },
   heroStatLabel: { fontSize: 10.5, marginTop: 3 },
 
   controls: {
@@ -517,7 +508,7 @@ const styles = StyleSheet.create({
   roomCardPressed: { opacity: 0.82 },
   cardBody: { flex: 1, minWidth: 0, paddingVertical: 13, gap: 7 },
   cardTopRow: { flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" },
-  roomNumber: { fontFamily: monoFont, fontSize: 28, lineHeight: 32, fontWeight: "800" },
+  roomNumber: { fontFamily: t.mono, fontSize: 28, lineHeight: 32, fontWeight: "800" },
   occBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -531,11 +522,11 @@ const styles = StyleSheet.create({
   occText: { fontSize: 10.5, fontWeight: "800" },
   metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
   guestText: { fontSize: 12, fontWeight: "600", flexShrink: 1 },
-  checkoutText: { fontSize: 11, fontWeight: "600", fontFamily: monoFont },
+  checkoutText: { fontSize: 11, fontWeight: "600", fontFamily: t.mono },
 
   emptyCard: { alignItems: "center", paddingVertical: 48, gap: 8 },
   updated: { fontSize: 12 },
-});
+}));
 
 /**
  * Engineers (and the chief engineer) get Engineering Rooms: search and filters over the whole hotel, room detail with

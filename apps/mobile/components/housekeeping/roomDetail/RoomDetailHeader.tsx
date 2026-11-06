@@ -1,12 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
 import { useTheme } from "@/lib/theme/useTheme";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   roomNumber: string;
@@ -25,6 +25,7 @@ interface Props {
  * element; everything else on the screen is subordinate to it.
  */
 export function RoomDetailHeader({ roomNumber, subtitle, statusKey, statusLabel, rush, onBack, onMore }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -101,7 +102,7 @@ export function RoomDetailHeader({ roomNumber, subtitle, statusKey, statusLabel,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   root: { paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 1, gap: 4 },
   navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
   back: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44 },
@@ -109,9 +110,9 @@ const styles = StyleSheet.create({
   more: { width: 44, height: 44, alignItems: "center", justifyContent: "center", marginRight: -8 },
   identity: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   numberCol: { flexShrink: 1, gap: 2 },
-  number: { fontFamily: monoFont, fontSize: 48, lineHeight: 54, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 48, lineHeight: 54, fontWeight: "800" },
   subtitle: { fontSize: 14, fontWeight: "600" },
   badges: { alignItems: "flex-end", gap: 6, paddingTop: 8 },
   rush: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
   rushText: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6 },
-});
+}));

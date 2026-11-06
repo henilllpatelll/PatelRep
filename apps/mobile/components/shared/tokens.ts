@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
 
 /* ─── PatelRep Mobile — "Evening Lobby" design system ───────────────────────
    Dark warm charcoal-green chrome (tab bar, heroes) framing a warm paper
@@ -294,27 +293,20 @@ export const S = { page: 18, card: 16, cardGap: 15, sectionGap: 22 } as const;
 /** IBM Plex Mono, loaded via useFonts() in app/_layout.tsx. Falls back to the
  *  platform monospace until the font finishes loading (pre-load frame only —
  *  the splash screen stays up until fontsLoaded, so this fallback is rarely
- *  visible in practice). */
-/** Design System V2 uses the system sans-serif everywhere (no mono/serif accents). The flag is a
- *  bundle-time constant, so the ~56 static StyleSheets that reference `monoFont` / `serifFont` switch
- *  together; with the flag off (the default and all of production) the legacy fonts are unchanged. */
-const V2_SANS = Platform.select({
-  ios: "System",
-  android: "sans-serif",
-  default: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+ *  visible in practice).
+ *
+ *  These are the LEGACY faces: constants that never read the tenant flag. Design V2 swaps them for the system sans
+ *  at render time: static StyleSheets go through `createTypographyStyles` (lib/design/reactiveTypography.ts) and
+ *  inline uses layer `useV2Text().num`. Never decide a face from the flag at module initialization. */
+export const monoFont = Platform.select({
+  ios: "IBMPlexMono_500Medium",
+  android: "IBMPlexMono_500Medium",
+  default: "monospace",
 }) as string;
-
-export const monoFont = isDesignV2Enabled()
-  ? V2_SANS
-  : (Platform.select({
-      ios: "IBMPlexMono_500Medium",
-      android: "IBMPlexMono_500Medium",
-      default: "monospace",
-    }) as string);
 
 /** Instrument Serif — headline accents only (greeting, focus-card room
  *  number), per the "Mobile Home - housekeeper" design import. Not a
  *  general-purpose display font; most text stays on the system sans-serif. */
-export const serifFont = isDesignV2Enabled() ? V2_SANS : "InstrumentSerif_400Regular";
+export const serifFont = "InstrumentSerif_400Regular";
 
 export const displayFont = undefined;

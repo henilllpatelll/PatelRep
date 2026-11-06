@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { LINEN_MAX, clampLinen, type LinenState } from "@/lib/housekeeping/cleanSession";
 import { BottomSheet, MAX_FONT_SCALE } from "./BottomSheet";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Counts = { dirtyOut: number; cleanIn: number };
 
 function Stepper({ label, value, onChange, disabled }: { label: string; value: number; onChange: (n: number) => void; disabled: boolean }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   return (
@@ -58,6 +59,7 @@ function Stepper({ label, value, onChange, disabled }: { label: string; value: n
 
 /** Entry in the cleaning view: what is recorded and whether it has reached the server. */
 export function LinenExchangeRow({ linen, onOpen }: { linen: LinenState | undefined; onOpen: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -105,6 +107,7 @@ interface SheetProps {
 
 /** Dirty linens removed / fresh linens placed for this clean. Whole numbers, 0–99. */
 export function LinenExchangeSheet({ visible, roomNumber, linen, locked, onSave, onClose }: SheetProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const [draft, setDraft] = useState<Counts>({ dirtyOut: 0, cleanIn: 0 });
@@ -174,7 +177,7 @@ export function LinenExchangeSheet({ visible, roomNumber, linen, locked, onSave,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { minHeight: 60, borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 12 },
   rowCopy: { flex: 1, gap: 1 },
   rowTitle: { fontSize: 15, fontWeight: "800" },
@@ -186,6 +189,6 @@ const styles = StyleSheet.create({
   stepBtn: { width: 48, height: 48, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   stepGlyph: { fontSize: 24, fontWeight: "700", lineHeight: 28 },
   dim: { opacity: 0.4 },
-  count: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", minWidth: 36, textAlign: "center" },
+  count: { fontFamily: t.mono, fontSize: 22, fontWeight: "800", minWidth: 36, textAlign: "center" },
   note: { fontSize: 13, lineHeight: 18 },
-});
+}));

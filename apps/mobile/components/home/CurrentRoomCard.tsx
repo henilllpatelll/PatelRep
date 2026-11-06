@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { monoFont, serifFont } from "@/components/shared/tokens";
 import { ProgressBar } from "@/components/shared/evening";
 import { radiusV2, spaceV2 } from "@/components/shared/tokensV2";
 import { AppText } from "@/components/ui/AppText";
@@ -17,6 +16,7 @@ import { describeRecommendation, roomContext } from "@/lib/housekeeping/homeText
 import type { TextContext } from "@/lib/housekeeping/myRoomsText";
 import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -79,6 +79,7 @@ export function CurrentRoomCard({ active, recommendation, canMarkClean, t, ctx, 
 /** The hero card: status badge, a large sans room number, real elapsed time, checklist progress and exactly one
  *  primary action. Same data, same handlers and same test IDs as the legacy card; only the presentation changed. */
 function HeroFrame({ children, testID }: { children: React.ReactNode; testID: string }) {
+  const styles = useStyles();
   return (
     <Card style={styles.heroV2} testID={testID}>
       {children}
@@ -87,6 +88,7 @@ function HeroFrame({ children, testID }: { children: React.ReactNode; testID: st
 }
 
 function RoomHeadingV2({ number, context, t }: { number: string; context: string; t: Translate }) {
+  const styles = useStyles();
   return (
     <View style={styles.headingV2}>
       <AppText
@@ -116,6 +118,7 @@ function ActiveCardV2({
   onMarkClean,
   onMore,
 }: Pick<Props, "canMarkClean" | "t" | "onOpenRoom" | "onMarkClean" | "onMore"> & { active: ActiveRoomView }) {
+  const styles = useStyles();
   const theme = useTheme();
   const moreRef = useRef<unknown>(null);
   const running = active.sessionState === "active" || active.sessionState === "starting";
@@ -239,6 +242,7 @@ function RecommendedCardV2({
   onMore,
   onWhy,
 }: Pick<Props, "t" | "ctx" | "onOpenRoom" | "onMore" | "onWhy"> & { recommendation: Recommendation }) {
+  const styles = useStyles();
   const theme = useTheme();
   const whyRef = useRef<unknown>(null);
   const moreRef = useRef<unknown>(null);
@@ -290,6 +294,7 @@ function RecommendedCardV2({
 /* ─── Legacy (unchanged) ─────────────────────────────────────────────────── */
 
 function Shell({ accent, children, testID }: { accent: string; children: React.ReactNode; testID: string }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View
@@ -303,6 +308,7 @@ function Shell({ accent, children, testID }: { accent: string; children: React.R
 }
 
 function RoomHeading({ number, context, t }: { number: string; context: string; t: Translate }) {
+  const styles = useStyles();
   const theme = useTheme();
   return (
     <View style={styles.heading}>
@@ -332,6 +338,7 @@ function ActiveCard({
   onMarkClean,
   onMore,
 }: Pick<Props, "canMarkClean" | "t" | "onOpenRoom" | "onMarkClean" | "onMore"> & { active: ActiveRoomView }) {
+  const styles = useStyles();
   const theme = useTheme();
   const moreRef = useRef<unknown>(null);
   const running = active.sessionState === "active" || active.sessionState === "starting";
@@ -431,6 +438,7 @@ function RecommendedCard({
   onMore,
   onWhy,
 }: Pick<Props, "t" | "ctx" | "onOpenRoom" | "onMore" | "onWhy"> & { recommendation: Recommendation }) {
+  const styles = useStyles();
   const theme = useTheme();
   const whyRef = useRef<unknown>(null);
   const moreRef = useRef<unknown>(null);
@@ -475,7 +483,7 @@ function RecommendedCard({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: {
     borderWidth: 1,
     borderRadius: 18,
@@ -489,14 +497,14 @@ const styles = StyleSheet.create({
   rail: { width: 5 },
   body: { flex: 1, padding: 16, gap: 10 },
   heading: { gap: 2 },
-  roomNumber: { fontFamily: serifFont, fontSize: 48, lineHeight: 54 },
+  roomNumber: { fontFamily: t.serif, fontSize: 48, lineHeight: 54 },
   context: { fontSize: 15, lineHeight: 20 },
   headline: { fontSize: 15, lineHeight: 21, fontWeight: "600" },
   note: { fontSize: 14, lineHeight: 20 },
   facts: { gap: 8 },
   factRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   factText: { fontSize: 13, lineHeight: 18 },
-  elapsed: { fontFamily: monoFont, fontSize: 18, fontWeight: "700" },
+  elapsed: { fontFamily: t.mono, fontSize: 18, fontWeight: "700" },
   checklist: { gap: 6 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   grow: { flex: 1 },
@@ -512,4 +520,4 @@ const styles = StyleSheet.create({
   checklistV2: { gap: 6 },
   actionsV2: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spaceV2.sm },
   hintV2: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
-});
+}));

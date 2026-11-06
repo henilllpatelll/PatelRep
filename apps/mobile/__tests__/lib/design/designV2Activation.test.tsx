@@ -331,16 +331,14 @@ describe("wiring contracts (source)", () => {
       return /\.(ts|tsx)$/.test(e.name) ? [rel.replace(/\\/g, "/")] : [];
     });
 
-  it("only the decision module, the hook and the static-style helpers call isDesignV2Enabled() directly", () => {
+  it("only the decision module and the live hook call isDesignV2Enabled() directly", () => {
     const offenders = ["app", "components", "lib", "stores"]
       .flatMap(walk)
       .filter((f) => /\bisDesignV2Enabled\(/.test(read(f)))
       .sort();
     expect(offenders).toEqual(
       [
-        "components/shared/tokens.ts", // module-level font constants (bundle-time; see designV2.ts)
         "lib/design/designV2.ts",
-        "lib/design/microLabel.ts", // static StyleSheet typography helpers (bundle-time)
         "lib/design/useDesignV2Active.ts",
       ].sort(),
     );

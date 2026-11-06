@@ -8,7 +8,7 @@ import { workOrderLocation } from "@/lib/engineering/workOrders";
 import type { AttentionItem } from "@/lib/engineering/homeModel";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
-import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "./homeStyles";
+import { HOME_MAX_FONT, HOME_MIN_TOUCH, useHomeStyles } from "./homeStyles";
 
 /** Rows shown before "View all". The full set (work orders, PM and blocked saves) is one tap away, in place. */
 export const ATTENTION_PREVIEW = 3;
@@ -31,6 +31,7 @@ interface Props {
 }
 
 function Row({ item, viewerId, onOpen }: { item: AttentionItem; viewerId: string | null | undefined; onOpen: (item: AttentionItem) => void }) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -89,6 +90,7 @@ function Row({ item, viewerId, onOpen }: { item: AttentionItem; viewerId: string
  * includes PM and blocked saves (a Work-only destination would silently drop them).
  */
 export function TechnicianAttentionSection({ items, viewerId, trusted, onOpen }: Props) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { AppState, StyleSheet, Text, View } from "react-native";
+import { AppState, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { elapsedSeconds, formatElapsed, standardMinutes } from "@/lib/housekeeping/cleaningTimer";
 import { MAX_FONT_SCALE } from "./BottomSheet";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   /** The session's start (the server's once it has the session). */
@@ -36,6 +36,7 @@ function useNow(intervalMs = 1000): number {
  * passed — and nothing about the timer is ever sent to the server.
  */
 export function CleaningTimer({ startedAt, baseMinutes }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -80,9 +81,9 @@ export function CleaningTimer({ startedAt, baseMinutes }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   root: { flexDirection: "row", borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, gap: 24 },
   block: { gap: 2 },
   label: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
-  value: { fontFamily: monoFont, fontSize: 28, lineHeight: 34, fontWeight: "800" },
-});
+  value: { fontFamily: t.mono, fontSize: 28, lineHeight: 34, fontWeight: "800" },
+}));

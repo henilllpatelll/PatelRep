@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/lib/api/client";
 import { useAppStore } from "@/stores/appStore";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { SectionLabel } from "@/components/shared/mobileHandoff";
 import { Card } from "@/components/ui/Card";
 import { StateBlock } from "@/components/ui/StateBlock";
@@ -21,6 +15,7 @@ import { AlertsV2 } from "@/components/gm/AlertsV2";
 import { adaptRiskAlerts, type AlertItem } from "@/lib/gm/riskAlerts";
 import { describeAlert } from "@/lib/gm/alertText";
 import { formatHotelTime } from "@/lib/housekeeping/hotelTime";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type RiskAlert = {
   id: string;
@@ -81,6 +76,7 @@ export default function AlertsRoute() {
 }
 
 function AlertsScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const timeAgo = useTimeAgo();
   const theme = useTheme();
@@ -255,7 +251,7 @@ function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
@@ -270,7 +266,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: "row", alignItems: "center", gap: 8 },
   alertTitle: { flex: 1, fontSize: 14, fontWeight: "700" },
   alertDesc: { fontSize: 13, lineHeight: 18 },
-  alertMeta: { fontSize: 11, fontFamily: monoFont },
+  alertMeta: { fontSize: 11, fontFamily: t.mono },
   severityChip: {
     borderRadius: 999,
     borderWidth: 1,
@@ -285,4 +281,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   emptyCard: { alignItems: "center", paddingVertical: 56, gap: 8 },
-});
+}));

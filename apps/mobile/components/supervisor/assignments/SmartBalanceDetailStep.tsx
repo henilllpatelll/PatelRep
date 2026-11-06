@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { MIN_TARGET } from "@/components/home/homeUi";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { WarningLines } from "@/components/supervisor/assignments/AssignWorkloadParts";
 import { Body, Notice, SectionLabel } from "@/components/supervisor/assignments/BulkParts";
 import { SheetHeader } from "@/components/supervisor/assignments/SmartBalanceParts";
@@ -14,6 +14,7 @@ import { explain, type ProposedRow } from "@/lib/housekeeping/smartBalancePrevie
 import { explainText, leftOutText, refusalText } from "@/lib/housekeeping/smartBalanceText";
 import type { SmartBalanceController } from "@/lib/housekeeping/useSmartBalance";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -26,6 +27,7 @@ const ADDABLE_SHOWN = 40;
    another person) restored. Every tap changes the LOCAL proposal and the numbers update at once; nothing is sent. */
 
 export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { smart: SmartBalanceController; model: AssignmentsModel; nameOf: (userId: string) => string; toast: (message: string) => void; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { detail, plan, picker } = smart;
@@ -147,6 +149,7 @@ export function SmartBalanceDetailStep({ smart, model, nameOf, toast, t }: { sma
 }
 
 function ProposedCard({ row, nameOf, smart, t }: { row: ProposedRow; nameOf: (userId: string) => string; smart: SmartBalanceController; t: Translate }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const why = explainText(explain(row, nameOf), t);
@@ -192,17 +195,17 @@ function ProposedCard({ row, nameOf, smart, t }: { row: ProposedRow; nameOf: (us
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   scroll: { flexGrow: 0, marginTop: 8 },
   content: { gap: 10, paddingBottom: 12 },
   card: { borderWidth: 1, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
   existing: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 40, borderBottomWidth: StyleSheet.hairlineWidth },
   room: { borderWidth: 1.5, borderRadius: R.lg, paddingHorizontal: 14, paddingVertical: 8, gap: 2 },
   roomTop: { flexDirection: "row", alignItems: "baseline", gap: 10 },
-  number: { fontFamily: monoFont, fontSize: 21, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 21, fontWeight: "800" },
   grow: { flex: 1 },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
   action: { minHeight: MIN_TARGET, justifyContent: "center", paddingHorizontal: 10 },
   person: { minHeight: MIN_TARGET, justifyContent: "center", paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: R.md, gap: 2 },
   footer: { paddingTop: 8 },
-});
+}));

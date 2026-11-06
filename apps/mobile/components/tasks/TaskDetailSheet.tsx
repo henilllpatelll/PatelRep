@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
@@ -7,7 +7,6 @@ import { BottomSheet, MAX_FONT_SCALE } from "@/components/housekeeping/roomDetai
 import { ActivityFeed } from "@/components/tasks/ActivityFeed";
 import { TaskHelpCard } from "@/components/tasks/TaskHelpCard";
 import { TaskTranslation } from "@/components/tasks/TaskTranslation";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import type { Task } from "@/lib/api/tasks";
 import { canAddNote, isMine, primaryAction, type TaskAction, type Viewer } from "@/lib/tasks/taskActions";
@@ -18,6 +17,7 @@ import { useTaskActivity } from "@/lib/tasks/useTaskActivity";
 import { canRetryConflict, type OutboxEntry } from "@/lib/tasks/offline/outboxPolicy";
 import type { SyncRowState } from "@/lib/tasks/offline/syncStatus";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const PREVIEW_EVENTS = 3;
 /** Instructions longer than this fold behind "Show more" so the actions stay reachable. */
@@ -88,6 +88,7 @@ export function TaskDetailSheet({
   onFindProcedure,
   onOpenProcedure,
 }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -505,11 +506,11 @@ export function TaskDetailSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   head: { gap: 6 },
   headRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
   placeRow: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
-  place: { fontFamily: monoFont, fontSize: 13, fontWeight: "700", letterSpacing: 0.3, flexShrink: 1 },
+  place: { fontFamily: t.mono, fontSize: 13, fontWeight: "700", letterSpacing: 0.3, flexShrink: 1 },
   urgent: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   urgentText: { fontSize: 11, fontWeight: "800", letterSpacing: 0.6 },
   title: { fontSize: 22, lineHeight: 28, fontWeight: "800", letterSpacing: -0.2 },
@@ -533,4 +534,4 @@ const styles = StyleSheet.create({
   linkText: { fontSize: 14, fontWeight: "700" },
   muted: { fontSize: 13.5 },
   errorRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-});
+}));

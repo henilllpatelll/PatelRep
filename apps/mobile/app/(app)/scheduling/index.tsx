@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { displayFont } from "@/components/shared/tokens";
@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
-import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -29,6 +29,7 @@ function formatTime(t: string): string {
 }
 
 export default function SchedulingScreen() {
+  const styles = useStyles();
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const isOnline = useAppStore((state) => state.isOnline);
@@ -231,7 +232,7 @@ export default function SchedulingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   container: { flex: 1 },
   content: { padding: 18, gap: 13, paddingBottom: 32 },
   header: { marginBottom: 2 },
@@ -239,11 +240,11 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15 },
   subtitle: { fontSize: 13, marginTop: 2 },
   center: { paddingTop: 40, alignItems: "center" },
-  headerMeta: { fontSize: microLabelSize(11), fontWeight: "700", letterSpacing: microLabelTracking(1), textTransform: microLabelCase() },
+  headerMeta: { fontSize: t.labelSize(11), fontWeight: "700", letterSpacing: t.tracking(1), textTransform: t.labelCase },
   title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
   today: { borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16 },
   todayOff: { borderWidth: 1 },
-  todayMeta: { fontSize: microLabelSize(11), fontWeight: "700", letterSpacing: microLabelTracking(1), textTransform: microLabelCase() },
+  todayMeta: { fontSize: t.labelSize(11), fontWeight: "700", letterSpacing: t.tracking(1), textTransform: t.labelCase },
   todayTime: { fontFamily: displayFont, fontSize: 32, lineHeight: 34, marginTop: 9 },
   todayTimeOff: { fontFamily: displayFont, fontSize: 28, lineHeight: 32, marginTop: 9 },
   todaySub: { fontSize: 13, marginTop: 6 },
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   weekRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 14, paddingVertical: 12 },
   rowBorder: { borderTopWidth: 1 },
   dateCell: { width: 40, alignItems: "center" },
-  day: { fontSize: microLabelSize(10.5), textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.5) },
+  day: { fontSize: t.labelSize(10.5), textTransform: t.labelCase, letterSpacing: t.tracking(0.5) },
   dayNumber: { fontFamily: displayFont, fontSize: 20, lineHeight: 22 },
   shift: { flex: 1, fontSize: 13, fontWeight: "600", flexShrink: 1 },
   offShift: { fontWeight: "400" },
@@ -265,4 +266,4 @@ const styles = StyleSheet.create({
   swapHit: { minHeight: 44, justifyContent: "center", paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
   swapText: { fontSize: 12, fontWeight: "700" },
   actions: { gap: 10 },
-});
+}));

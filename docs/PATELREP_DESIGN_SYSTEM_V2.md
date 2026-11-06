@@ -1017,7 +1017,7 @@ with the Phase 1 preview; a Playwright E2E for the V2 flows. Treat all of these 
 
 The evidence-based coverage report, the production activation analysis and the merge / activation decisions are in
 [`PATELREP_DESIGN_V2_FINAL_AUDIT.md`](./PATELREP_DESIGN_V2_FINAL_AUDIT.md). Phase 8 changed the mobile production guard (`eas.json`), the
-bundle-time legacy font tokens, web dialog focus handling, and added V2-scoped remap rules (sentence-case micro-labels, upright headings,
+legacy font tokens (since made reactive, see `DESIGN_V2_ACTIVATION.md`), web dialog focus handling, and added V2-scoped remap rules (sentence-case micro-labels, upright headings,
 error-boundary primary). Everything else in this document stands as written.
 
 ---
@@ -1085,7 +1085,7 @@ empty state, Guest Operations drawers, Scheduling and 12 settings screens were n
   prompt and Out-of-order create/detail dialogs now trap focus, close on Escape and return focus; AI Copilot and Feedback are non-modal
   dialogs (no `aria-modal`, Escape closes, focus returns to the launcher). `RoomStatusBoard.tsx` is a frozen file: its hash was bumped with a
   reasoned allowlist entry; the change adds no markup or visual difference.
-- **Mobile.** `lib/design/microLabel.ts` resolves case, tracking and size from the bundle-time flag for static styles; 16 files migrated.
+- **Mobile.** Superseded by tenant activation: static-style typography is now reactive (`lib/design/reactiveTypography.ts`, see `DESIGN_V2_ACTIVATION.md` → Mobile typography). `microLabel.ts` no longer exists.
 - **AI cost (own commit, approved by the owner).** Engineer, Front Desk and GM briefings are tap-to-load. Nothing is requested on mount,
   re-render, remount or a different person signing in. The corner card shows a "Get my briefing" button. Credit accounting and the API are untouched.
 - **Test infrastructure.** Hermetic fixtures for Reports, Tasks, Programs, Safety, Engineering insights and Lost & Found summaries. Root cause of

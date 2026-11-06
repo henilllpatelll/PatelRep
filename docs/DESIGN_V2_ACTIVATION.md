@@ -48,8 +48,21 @@ Worst-case time for an open, online session to notice a change: **~10 minutes** 
 - **Not instant.** Do not promise a hotel an immediate switch; promise "within about ten minutes, or on next reload or app open".
 - **Signed-out screens are never tenant-aware.** The web sign-in page and the mobile login stack cannot know the hotel yet, so they stay legacy for tenant activation. They are V2 only on a development preview build.
 - **A brief legacy flash on cold start** for an enabled hotel (until the first read lands).
-- **Mobile static typography is bundle-time.** About 54 style sites use `microLabel*()` (sentence-case micro labels, tracking, 12 pt floor) and 57 files use `monoFont` / `serifFont`; they are evaluated once when the JavaScript bundle loads, before anyone is signed in, so a *tenant*-activated phone keeps the legacy label casing / mono-and-serif accent fonts, while colors, tokens, shells, tab bar and V2 components do switch. Making these live means converting those static StyleSheets (a separate change). They do follow the development preview. **Treat this as a blocker for a real production activation** unless the owner accepts the difference.
+- **Mobile typography is live (no longer a limitation).** Sentence-case labels, no tracking, the 12 pt floor, and the system sans with tabular digits in place of IBM Plex Mono / Instrument Serif all follow the hotel's flag at render time; see "Mobile typography" below. Two things are intentionally not covered: print/QR labels (`assets/label/[assetId].tsx`, literal uppercase) and the signed-out screens (no hotel known yet).
 - **Mobile first paint** on an enabled hotel is the legacy design until the first read lands; nothing is cached across launches on purpose (a cache would be a second source of truth and could show the last user's design).
+
+## Mobile typography
+
+Typography used to be decided when the JavaScript bundle loaded, before anyone signed in, so a tenant-activated phone kept the legacy label casing and mono/serif fonts. Nothing tenant-dependent is evaluated at module initialization any more.
+
+- `lib/design/reactiveTypography.ts` — `createTypographyStyles((t) => ({ … }))` builds **both** variants of a static sheet once, from pure flag-free inputs (`t.labelCase`, `t.tracking()`, `t.labelSize()`, `t.mono`, `t.serif`), and returns a hook that picks one at render time from the enclosing `<DesignV2Scope>` (`useIsDesignV2`), the same source the colors, tokens and `useV2Text()` overlays use. `useTypography()` does the same for sheets built inside a component (`useMemo(() => makeStyles(theme, typo), [theme, typo])`).
+- Legacy output is the previous static sheet, value for value. V2 output: `textTransform: none`, `letterSpacing: 0`, size never below 12, system sans (explicit platform family), and `fontVariant: ["tabular-nums"]` on every entry that used the mono face (system sans is proportional).
+- `useDesignV2Active()` is now a shared live subscription (`useSyncExternalStore`): one module-level expiry timer for all subscribers, released when the last one unmounts, so offline expiry reverts a mounted tree without a timer per row.
+- `monoFont` / `serifFont` in `components/shared/tokens.ts` are legacy constants that never read the flag; the few inline uses already layer `useV2Text().num`. `lib/design/microLabel.ts` is deleted.
+- Toggling ON → OFF → ON re-styles mounted components in place: no remount, no restart, no `key` trick.
+- Rule for new code: never call `isDesignV2Enabled()` or branch on the flag in a module-level constant or a static `StyleSheet.create`; use `createTypographyStyles` / `useTypography` / `useV2Text`. A contract test fails if a static `StyleSheet.create` references `monoFont`, `serifFont` or a micro-label helper, and if anything other than `designV2.ts` and `useDesignV2Active.ts` calls `isDesignV2Enabled()`.
+
+Automated evidence is in `apps/mobile/__tests__/lib/design/reactiveTypography.test.tsx`: ON → OFF → ON on one mounted tree (legacy restored byte-for-byte, no remount) for all seven roles × light/dark, English and Spanish text untouched by the style layer, a real shared component (`SectionLabel` with its mono hint), account switching, hotel A/B switching, sign-out, offline expiry with fake timers, one shared timer for 40 subscribers, and the exemptions. It does **not** replace a device pass.
 
 ## Development preview (separate from production activation)
 
@@ -81,13 +94,12 @@ Run the same check for at least two hotels with opposite states (for example sta
 
 ## Tests that must pass before any real production activation
 
-Automated (all run in CI): API `tests/test_design_v2_flag.py`; web `lib/design/designV2Activation.test.ts` (plus the updated shell/remap/dialog contracts); mobile `__tests__/lib/design/designV2Activation.test.tsx` and `designV2Flag.test.ts`; the Feature Flag Registry Gate.
+Automated (all run in CI): API `tests/test_design_v2_flag.py`; web `lib/design/designV2Activation.test.ts` (plus the updated shell/remap/dialog contracts); mobile `__tests__/lib/design/designV2Activation.test.tsx`, `designV2Flag.test.ts` and `reactiveTypography.test.tsx`; the Feature Flag Registry Gate.
 
 Still required by the owner and **not done by this change** (DEFERRED BY OWNER during implementation):
 
 1. Physical iPhone **and** Android pass of the K.3 checklist in `PATELREP_DESIGN_V2_FINAL_AUDIT.md`, per role (7), light and dark, English and Spanish.
 2. Screen-reader pass (VoiceOver, TalkBack, and a desktop screen reader for web).
 3. A staging rehearsal with two fixture hotels in opposite states (the checks above), plus an enable → disable → confirm-legacy cycle through the real Feature Rollout workflow.
-4. A decision on the mobile static-typography limitation above.
-5. The open items B3 / G.3 / C.1 named in the audit.
-6. Enable for **one** pilot hotel first; keep that hotel on it for a full shift cycle before widening.
+4. The open items B3 / G.3 / C.1 named in the audit.
+5. Enable for **one** pilot hotel first; keep that hotel on it for a full shift cycle before widening.

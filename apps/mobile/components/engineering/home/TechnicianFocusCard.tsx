@@ -1,7 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { monoFont } from "@/components/shared/tokens";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -10,7 +9,8 @@ import { dueState, formatClock, formatDuration, workOrderLocation, type WorkOrde
 import type { FocusState } from "@/lib/engineering/homeFocus";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
-import { HOME_MAX_FONT, homeStyles } from "./homeStyles";
+import { HOME_MAX_FONT, useHomeStyles } from "./homeStyles";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   focus: FocusState;
@@ -23,6 +23,8 @@ interface Props {
 }
 
 function WorkOrderFacts({ wo, locale, now, showStarted }: { wo: WorkOrder; locale: "en" | "es"; now: Date; showStarted: boolean }) {
+  const homeStyles = useHomeStyles();
+  const styles = useStyles();
   const x = useV2Text();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -66,6 +68,7 @@ function WorkOrderFacts({ wo, locale, now, showStarted }: { wo: WorkOrder; local
 }
 
 function Badges({ wo }: { wo: WorkOrder }) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   return (
     <View style={homeStyles.badgeRow}>
@@ -80,6 +83,8 @@ function Badges({ wo }: { wo: WorkOrder }) {
  * order itself, so a passive refresh of Home can never change a work order.
  */
 export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActive }: Props) {
+  const homeStyles = useHomeStyles();
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -172,11 +177,11 @@ export function TechnicianFocusCard({ focus, locale, now, onPrimary, onMoreActiv
   }
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: { gap: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   kicker: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
-  heading: { fontSize: 12.5, fontWeight: "700", fontFamily: monoFont },
+  heading: { fontSize: 12.5, fontWeight: "700", fontFamily: t.mono },
   title: { fontSize: 19, fontWeight: "700", lineHeight: 25 },
   caughtUp: { flex: 1, fontSize: 15, fontWeight: "600", lineHeight: 21 },
-});
+}));

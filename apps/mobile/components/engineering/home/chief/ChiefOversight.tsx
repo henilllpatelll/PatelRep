@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { R } from "@/components/shared/tokens";
 import type { TeamOverview } from "@/lib/api/engineeringTeam";
 import { useTheme } from "@/lib/theme/useTheme";
-import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "../homeStyles";
+import { HOME_MAX_FONT, HOME_MIN_TOUCH, useHomeStyles } from "../homeStyles";
 
 interface Props {
   overview: TeamOverview;
@@ -23,6 +23,7 @@ interface RowProps {
 }
 
 function OversightRow({ icon, label, value, hint, alert, onPress, testID }: RowProps) {
+  const homeStyles = useHomeStyles();
   const theme = useTheme();
   return (
     <Pressable
@@ -52,6 +53,7 @@ function OversightRow({ icon, label, value, hint, alert, onPress, testID }: RowP
  * could not read is "Unavailable", never zero. The individual records are in Property Priorities and Team Overview.
  */
 export function ChiefOversight({ overview, onOpenRooms, onOpenPmPlan }: Props) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const rooms = overview.rooms_down;

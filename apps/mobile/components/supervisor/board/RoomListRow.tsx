@@ -1,12 +1,13 @@
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { MAX_FONT_SCALE } from "@/components/home/homeUi";
 import { getStatusMeta, StatusRail } from "@/components/shared/evening";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import type { ResultRowModel } from "@/lib/housekeeping/roomBoardView";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Result row — the compact list form of a room ──────────────────────────
    Used for search results, small filtered sets and the flat sort modes, where rooms are not grouped under a
@@ -19,6 +20,7 @@ interface Props {
 }
 
 function RoomListRowView({ model, onSelect }: Props) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const meta = getStatusMeta(model.rawStatus, theme);
@@ -84,11 +86,11 @@ function RoomListRowView({ model, onSelect }: Props) {
 
 export const RoomListRow = memo(RoomListRowView, (prev, next) => prev.model.signature === next.model.signature && prev.onSelect === next.onSelect);
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   row: { minHeight: 76, overflow: "hidden", borderWidth: 1, borderRadius: R.lg },
   body: { flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 12, paddingVertical: 10 },
   numberCol: { minWidth: 56, gap: 4 },
-  number: { fontFamily: monoFont, fontSize: 22, lineHeight: 26, fontWeight: "800" },
+  number: { fontFamily: t.mono, fontSize: 22, lineHeight: 26, fontWeight: "800" },
   flags: { flexDirection: "row", gap: 5 },
   main: { flex: 1, minWidth: 0, gap: 3 },
   statusLine: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
@@ -98,4 +100,4 @@ const styles = StyleSheet.create({
   assigneeStrong: { fontWeight: "800" },
   detail: { fontSize: 12.5, lineHeight: 17 },
   location: { fontSize: 11.5 },
-});
+}));

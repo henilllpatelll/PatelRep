@@ -1,8 +1,8 @@
 import { memo, useMemo, type ComponentProps } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { lightTheme, monoFont, type ThemeTokens } from "@/components/shared/tokens";
+import { lightTheme, type ThemeTokens } from "@/components/shared/tokens";
 import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
@@ -27,6 +27,7 @@ import {
   type StatusTone,
 } from "@/lib/engineering/workCard";
 import { workOrderLabel, type QueueView } from "@/lib/engineering/workQueue";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Work-order card — the one card for every engineering queue ────────────
    Reading order: (1) where and which order, with its priority word, (2) the issue, (3) its status and the
@@ -180,6 +181,7 @@ function WorkOrderCardView({
   assignable = false,
   onAssign,
 }: WorkOrderCardProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -470,7 +472,7 @@ const TONES: Record<StatusTone, (theme: Theme) => { fg: string; bg: string; line
   cancelled: (theme) => ({ fg: theme.status.outOfOrder, bg: theme.status.outOfOrderSoft, line: theme.status.outOfOrderLine }),
 };
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   card: {
     position: "relative",
     overflow: "hidden",
@@ -493,7 +495,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
     textTransform: "uppercase",
-    fontFamily: monoFont,
+    fontFamily: t.mono,
   },
   priorityChip: {
     flexDirection: "row",
@@ -535,4 +537,4 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   queuedText: { flex: 1, fontSize: 13, fontWeight: "700" },
-});
+}));

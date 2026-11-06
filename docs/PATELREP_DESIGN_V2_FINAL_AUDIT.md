@@ -54,9 +54,7 @@ layout kept. Evidence is T1 (Jest renders the screens with the scope on) plus T3
 - 466 of 517 `app/` + `components/` files read colors through `useTheme()`. **Zero** files use the frozen static `C.*` color tokens, so
   there is no color bypass.
 - **Typography bypass (fixed in Phase 8).** 56 files hardwired IBM Plex Mono / Instrument Serif in static `StyleSheet`s via `monoFont`
-  / `serifFont` / `displayFont`. Those are retired by the V2 contract (docs §11). Because the flag is a bundle-time constant, they now
-  resolve to the system sans when it is on (`components/shared/tokens.ts`). Flag off: byte-identical. Tabular digits are **not**
-  applied at those 56 sites (React Native sets `fontVariant` per call site), so figures that previously aligned in mono may not.
+  / `serifFont` / `displayFont`. Those are retired by the V2 contract (docs §11). They were first resolved from a bundle-time constant; that is superseded: the sheets are now built in both variants and chosen at render time by the V2 scope (`lib/design/reactiveTypography.ts`), so a tenant flag flip re-styles them live. Flag off: byte-identical. Tabular digits are now applied to every entry that used the mono face.
 - **Uppercase micro-labels (not fixed).** 130 `textTransform: "uppercase"` uses in 110 files; 93 of those files already override it under
   V2. **17 files do not**, so they still shout in V2: `scheduling/index.tsx`, `StaffTasksScreen.tsx`, `shared/mobileHandoff.tsx`,
   `shared/CopilotCard.tsx`, `engineering/home/homeStyles.ts`, `settings/EditFieldSheet.tsx`, `settings/SyncChangesSheet.tsx`,
@@ -239,8 +237,7 @@ V2 does not unify the vocabulary.
 ## H. Performance
 
 **Not measured.** No pre-V2 baseline was captured and no benchmark was run, so no performance claim is made. The existing perf tests under
-`apps/mobile/__tests__/perf` run inside the Jest suite and passed. The V2 scope reads a context value and the font tokens are bundle-time
-constants, so a large regression is not expected, but that is an expectation, not a measurement.
+`apps/mobile/__tests__/perf` run inside the Jest suite and passed. The V2 scope reads a context value and typography is picked from that same context (two prebuilt sheets, no per-render style creation), so a large regression is not expected, but that is an expectation, not a measurement.
 
 ---
 

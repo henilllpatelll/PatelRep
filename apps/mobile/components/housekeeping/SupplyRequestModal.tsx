@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/appStore";
 import { Button } from "@/components/ui/Button";
-import { monoFont } from "@/components/shared/tokens";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useToast } from "@/lib/theme/useToast";
 import { newSessionId } from "@/lib/housekeeping/cleanSession";
@@ -21,6 +20,7 @@ import { useDiscardGuard } from "@/lib/housekeeping/useDiscardGuard";
 import { BottomSheet, MAX_FONT_SCALE } from "./roomDetail/BottomSheet";
 import { FieldError, FieldLabel, StatusText, TextArea } from "./roomDetail/FormBits";
 import { useV2Text } from "@/lib/design/housekeeperV2";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 interface Props {
   visible: boolean;
@@ -30,6 +30,7 @@ interface Props {
 }
 
 function QuantityRow({ label, value, onChange, disabled }: { label: string; value: number; onChange: (next: number) => void; disabled: boolean }) {
+  const styles = useStyles();
   const theme = useTheme();
   const x = useV2Text();
   const { t } = useTranslation();
@@ -82,6 +83,7 @@ function QuantityRow({ label, value, onChange, disabled }: { label: string; valu
  * answer first checks for the request it may already have made.
  */
 export default function SupplyRequestModal({ visible, roomId, roomNumber, onClose }: Props) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const toast = useToast();
@@ -207,15 +209,15 @@ export default function SupplyRequestModal({ visible, roomId, roomNumber, onClos
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   list: { gap: 2 },
   row: { minHeight: 56, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: "700" },
   controls: { flexDirection: "row", alignItems: "center", gap: 14 },
   step: { width: 48, height: 48, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   glyph: { fontSize: 24, fontWeight: "700", lineHeight: 28 },
-  count: { fontFamily: monoFont, fontSize: 22, fontWeight: "800", minWidth: 36, textAlign: "center" },
+  count: { fontFamily: t.mono, fontSize: 22, fontWeight: "800", minWidth: 36, textAlign: "center" },
   dim: { opacity: 0.4 },
   total: { fontSize: 15, fontWeight: "800" },
   failure: { fontSize: 13, lineHeight: 18, fontWeight: "700" },
-});
+}));

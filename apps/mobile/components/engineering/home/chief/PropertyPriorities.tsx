@@ -8,7 +8,7 @@ import { PRIORITY_PREVIEW, canAssignFromPriority, type Priorities, type Priority
 import { workOrderCode } from "@/lib/engineering/teamModel";
 import { useTheme } from "@/lib/theme/useTheme";
 import { useV2Text } from "@/lib/design/housekeeperV2";
-import { HOME_MAX_FONT, HOME_MIN_TOUCH, homeStyles } from "../homeStyles";
+import { HOME_MAX_FONT, HOME_MIN_TOUCH, useHomeStyles } from "../homeStyles";
 import { HomeLoadNotice } from "../HomeLoadNotice";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -68,6 +68,7 @@ function describe(item: PriorityItem, t: (key: string, o?: Record<string, unknow
 }
 
 function Row({ item, canAssign, online, onOpen, onAssign }: { item: PriorityItem; canAssign: boolean; online: boolean; onOpen: Props["onOpen"]; onAssign: Props["onAssign"] }) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const x = useV2Text();
@@ -127,6 +128,7 @@ function Row({ item, canAssign, online, onOpen, onAssign }: { item: PriorityItem
  * did not send is reachable from Team Overview. A source that could not be read says so; it is never an all-clear.
  */
 export function PropertyPriorities({ priorities, canAssign, online, truncated, onOpen, onAssign, onViewAll, onRetry }: Props) {
+  const homeStyles = useHomeStyles();
   const { t } = useTranslation();
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);

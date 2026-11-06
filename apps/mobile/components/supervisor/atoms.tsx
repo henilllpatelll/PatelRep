@@ -1,13 +1,14 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useV2Text } from "@/lib/design/housekeeperV2";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { R, monoFont } from "@/components/shared/tokens";
+import { R } from "@/components/shared/tokens";
 import { getTileVisual } from "@/components/home/CompanionHome";
 import { ProgressBar } from "@/components/shared/evening";
 import { Avatar } from "@/components/shared/mobileHandoff";
 import type { FloorRoom, TeamLoad } from "@/lib/housekeeping/supervisor";
 import { useTheme } from "@/lib/theme/useTheme";
+import { createTypographyStyles } from "@/lib/design/reactiveTypography";
 
 /* ─── Supervisor atoms — Evening Lobby language for the floor-command view ── */
 
@@ -21,6 +22,7 @@ export interface HeroSignal {
 }
 
 export function HeroSignalRow({ signals }: { signals: HeroSignal[] }) {
+  const styles = useStyles();
   if (signals.length === 0) return null;
   return (
     <View style={styles.signalRow}>
@@ -46,6 +48,7 @@ export function FloorMosaic({
   rooms: Pick<FloorRoom, "roomId" | "roomNumber" | "status">[];
   getLabel: (status: string) => string;
 }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   return (
@@ -81,6 +84,7 @@ export function TeamLoadRow({
   onPress?: () => void;
   onMessage?: () => void;
 }) {
+  const styles = useStyles();
   const v2t = useV2Text();
   const theme = useTheme();
   const { t } = useTranslation();
@@ -158,7 +162,7 @@ export function TeamLoadRow({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createTypographyStyles((t) => ({
   signalRow: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
   signalChip: {
     borderWidth: 1,
@@ -178,7 +182,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  mosaicText: { fontFamily: monoFont, fontSize: 11.5, fontWeight: "800" },
+  mosaicText: { fontFamily: t.mono, fontSize: 11.5, fontWeight: "800" },
 
   loadRow: {
     flexDirection: "row",
@@ -193,11 +197,11 @@ const styles = StyleSheet.create({
   loadTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   loadName: { flex: 1, minWidth: 0, fontSize: 14, fontWeight: "700" },
   loadActiveDot: { width: 7, height: 7, borderRadius: 4 },
-  loadCount: { fontFamily: monoFont, fontSize: 12, fontWeight: "800" },
+  loadCount: { fontFamily: t.mono, fontSize: 12, fontWeight: "800" },
   loadMetaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
   loadSummary: { fontSize: 11.5, flex: 1 },
   loadCurrentRoom: { fontSize: 11.5, fontWeight: "700" },
-  loadAvg: { fontFamily: monoFont, fontSize: 11, fontWeight: "700" },
+  loadAvg: { fontFamily: t.mono, fontSize: 11, fontWeight: "700" },
   overAssignedChip: {
     borderWidth: 1,
     borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,
@@ -208,4 +212,4 @@ const styles = StyleSheet.create({
     borderWidth: 1, alignItems: "center", justifyContent: "center",
   },
   pressed: { opacity: 0.8 },
-});
+}));
