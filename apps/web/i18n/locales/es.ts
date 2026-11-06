@@ -640,6 +640,7 @@ const es = {
     roomStatus: {
       loading: "Cargando habitaciones…",
       filters: {
+        cleanTypeGroup: "Tipo de limpieza",
         all: "Todos",
         departure: "Salida",
         full: "Completa",

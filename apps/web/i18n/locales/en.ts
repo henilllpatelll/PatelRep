@@ -632,6 +632,7 @@ const en = {
     roomStatus: {
       loading: "Loading rooms…",
       filters: {
+        cleanTypeGroup: "Clean type",
         all: "All",
         departure: "Departure",
         full: "Full",
