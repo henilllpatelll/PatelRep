@@ -57,6 +57,10 @@ function supabaseUser(email) {
   }
 }
 
+/** Opt-in (HERMETIC_RICH_DATA=1): assignments, clean types and a late checkout so Team Plan and the Assignment workspace have
+ *  something to show. Off by default: the Room-Board visual baseline is captured against the plain fixture. */
+const RICH = process.env.HERMETIC_RICH_DATA === '1'
+const RICH_ASSIGN = { 0: ['regression-fixture-staff-1', 'DEP'], 1: ['regression-fixture-staff-1', 'FULL'], 3: ['regression-fixture-staff-2', 'FULL'], 4: [null, 'LIGHT'] }
 const boardRows = () => FIXTURE_ROOMS.map(([number, status, vip], index) => ({
   room_id: `00000000-0000-4000-8000-00000000010${index}`,
   tenant_id: HOTEL.id, status, vip_flag: vip, checkin_time: null, checkout_time: null, dnd_flag: false, do_not_service: false,
@@ -64,6 +68,7 @@ const boardRows = () => FIXTURE_ROOMS.map(([number, status, vip], index) => ({
   rooms: { id: `00000000-0000-4000-8000-00000000010${index}`, room_number: number, floor: 1, building: null, room_types: ROOM_TYPE },
   assignment_id: null, assignment_date: null, assignment_shift_id: null, clean_type: null, clean_type_label: null, prediction: null,
   inspection_required: false,
+  ...(RICH && RICH_ASSIGN[index] ? { assigned_to: RICH_ASSIGN[index][0], assignment_id: RICH_ASSIGN[index][0] ? `assign-${index}` : null, assignment_date: '2020-01-01', clean_type: RICH_ASSIGN[index][1], clean_type_label: RICH_ASSIGN[index][1], checkout_time: index === 0 ? '2020-01-01T11:00:00.000Z' : null } : {}),
 }))
 
 const STAFF = [

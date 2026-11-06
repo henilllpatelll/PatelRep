@@ -612,7 +612,8 @@ const en = {
       },
       unassigned: {
         title: "Unassigned",
-        summary: "{{count}} rooms · {{credits}} credits",
+        summary_one: "{{count}} room · {{credits}} cr",
+        summary_other: "{{count}} rooms · {{credits}} cr",
         empty: "All rooms are assigned.",
         assignAria: "Assign {{label}}",
         blocked: "Blocked",

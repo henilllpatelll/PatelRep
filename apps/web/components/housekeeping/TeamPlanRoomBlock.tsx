@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
+import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import type { TeamPlanStop } from '@/lib/housekeeping/teamPlanView'
@@ -22,6 +23,9 @@ export function TeamPlanRoomBlock({ stop, style, onOpen }: Props) {
   const { t, i18n } = useTranslation()
   const cleanTypeLabel = getCleanTypeShortLabel(stop.cleanType)
   const done = stop.state === 'done'
+  // Narrow stops (short cleans, few hours on screen) cannot fit the clean-type word; V2 shows a one-letter chip and keeps the
+  // full text in the tooltip instead of an ellipsis.
+  const narrow = isDesignV2PreviewEnabled() && typeof style?.width === 'number' && style.width < 120
   const active = stop.state === 'active'
 
   // A blocked room (unresolved discrepancy) can't be actioned right now, so it
@@ -57,6 +61,7 @@ export function TeamPlanRoomBlock({ stop, style, onOpen }: Props) {
       type="button"
       onClick={() => onOpen(stop.roomId)}
       aria-label={ariaLabel}
+      title={ariaLabel}
       style={style}
       className={cn(
         'group absolute top-3 flex h-[58px] flex-col justify-center gap-1 overflow-hidden rounded-[var(--r-md)] border px-2.5 py-1.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)]',
@@ -70,7 +75,8 @@ export function TeamPlanRoomBlock({ stop, style, onOpen }: Props) {
       <span className="flex items-center gap-1.5">
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_DOT[stop.state])} aria-hidden="true" />
         <span className="font-mono text-[13px] font-semibold leading-none text-ink">{stop.roomNumber}</span>
-        {cleanTypeLabel && <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-ink3">{cleanTypeLabel}</span>}
+        {cleanTypeLabel && narrow && <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-surface-3 text-[10px] font-semibold text-ink2">{cleanTypeLabel.charAt(0)}</span>}
+        {cleanTypeLabel && !narrow && <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-ink3">{cleanTypeLabel}</span>}
       </span>
       <span className="flex items-center gap-1 text-[10px] font-medium">
         {stop.isRush && <span className="text-[var(--alert)]">{t('housekeeping.boardV2.attention.categories.rush')}</span>}
