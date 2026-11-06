@@ -68,12 +68,12 @@ test('applyContentScopeV2 sets and fully removes the attributes and variables', 
   assert.equal(attrs.size, 0)
 })
 
-test('flag isolation: only ShellV2 turns the remap on, and only when the preview flag mounted it', () => {
+test('flag isolation: only ShellV2 turns the remap on, and only when the tenant-aware decision mounted it', () => {
   const shell = read('components/design-v2/shell/ShellV2.tsx')
   assert.match(shell, /applyContentScopeV2\(document\.body/)
   assert.match(shell, /import '\.\.\/content\/contentRemapV2\.css'/)
   const dashboardShell = read('components/shared/DashboardShell.tsx')
-  assert.match(dashboardShell, /if \(isDesignV2PreviewEnabled\(\)\) \{\s*return \(\s*<ShellV2/)
+  assert.match(dashboardShell, /if \(designV2\) \{\s*return \(\s*<ShellV2/)
   assert.equal(/applyContentScopeV2|data-dv2-content/.test(dashboardShell), false)
 })
 
@@ -84,9 +84,9 @@ test('ShellV2 root never carries theme-dark / accent-* (they would shadow the bo
   assert.equal(/cx\(styles\.root, \.\.\.themeClasses\)/.test(shell), false)
 })
 
-test('dashboard: the V2 layout is behind the preview flag and the legacy return is untouched', () => {
+test('dashboard: the V2 layout is behind the V2 decision and the legacy return is untouched', () => {
   const src = read('components/dashboard/SimplifiedDashboard.tsx')
-  assert.match(src, /if \(isDesignV2PreviewEnabled\(\)\) \{/)
+  assert.match(src, /if \(isDesignV2Enabled\(\)\) \{/)
   assert.match(src, /<div className="flex flex-col gap-4 h-full min-h-0">/)
   assert.match(src, /<DashboardGreeting/)
 })

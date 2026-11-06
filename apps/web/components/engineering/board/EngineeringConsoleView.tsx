@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { ChevronRight } from 'lucide-react'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { useTranslation } from 'react-i18next'
@@ -76,7 +76,7 @@ export function EngineeringConsoleView({ workOrders, groups, isLoading, isError,
   const { t } = useTranslation()
 
   // Nothing to review: one centered panel instead of an empty list beside an empty detail pane.
-  if (isDesignV2PreviewEnabled() && !isLoading && !isError && groups.length === 0) {
+  if (isDesignV2Enabled() && !isLoading && !isError && groups.length === 0) {
     return <div className="rounded-[var(--r-lg)] border border-line bg-surface px-6 py-14" aria-label={t('engineering.workOrdersPage.queueTitle')} role="region">
       <StateBlock status="empty" empty={{ title: t('engineering.workOrdersPage.queueEmptyTitle'), body: t('engineering.workOrdersPage.queueEmptyHint') }} />
     </div>

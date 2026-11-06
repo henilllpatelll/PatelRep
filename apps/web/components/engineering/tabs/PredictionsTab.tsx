@@ -22,7 +22,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { Pill, Stat } from '@/components/ui/primitives'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 
 function getAvgScoreColorClass(score: number): string {
   if (score >= 70) return 'text-[var(--alert)]'
@@ -198,7 +198,7 @@ function PredictionCard({
                 variant="ghost"
                 size="sm"
                 onClick={() => onToggleExpand(prediction.id)}
-                className={`mt-1 gap-1 px-0 h-auto min-h-0 text-xs ${isDesignV2PreviewEnabled() ? 'text-accent hover:text-ink' : 'text-[var(--caution)] hover:text-amber-800'}`}
+                className={`mt-1 gap-1 px-0 h-auto min-h-0 text-xs ${isDesignV2Enabled() ? 'text-accent hover:text-ink' : 'text-[var(--caution)] hover:text-amber-800'}`}
               >
                 {isExpanded ? (
                   <>
@@ -438,7 +438,7 @@ export function PredictionsTab({ canManage, canAuthorize, highlightAssetId }: Pr
               onClick={() => setRiskFilter(key)}
               aria-pressed={riskFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                riskFilter === key ? (isDesignV2PreviewEnabled() ? 'bg-ink text-paper' : 'bg-[var(--caution)] text-white shadow-sm') : 'text-ink3 hover:text-ink'
+                riskFilter === key ? (isDesignV2Enabled() ? 'bg-ink text-paper' : 'bg-[var(--caution)] text-white shadow-sm') : 'text-ink3 hover:text-ink'
               }`}
             >
               {label}
@@ -459,7 +459,7 @@ export function PredictionsTab({ canManage, canAuthorize, highlightAssetId }: Pr
               onClick={() => setStatusFilter(key)}
               aria-pressed={statusFilter === key}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                statusFilter === key ? (isDesignV2PreviewEnabled() ? 'bg-ink text-paper' : 'bg-[var(--caution)] text-white shadow-sm') : 'text-ink3 hover:text-ink'
+                statusFilter === key ? (isDesignV2Enabled() ? 'bg-ink text-paper' : 'bg-[var(--caution)] text-white shadow-sm') : 'text-ink3 hover:text-ink'
               }`}
             >
               {label}
@@ -475,7 +475,7 @@ export function PredictionsTab({ canManage, canAuthorize, highlightAssetId }: Pr
               setRiskFilter('all')
               setStatusFilter('all')
             }}
-            className={isDesignV2PreviewEnabled() ? 'text-accent hover:text-ink' : 'text-[var(--caution)] hover:text-amber-800'}
+            className={isDesignV2Enabled() ? 'text-accent hover:text-ink' : 'text-[var(--caution)] hover:text-amber-800'}
           >
             {t('engineering.predictionsPage.clearFilters')}
           </Button>
@@ -575,7 +575,7 @@ export function PredictionsTab({ canManage, canAuthorize, highlightAssetId }: Pr
                   setRiskFilter('all')
                   setStatusFilter('all')
                 }}
-                className={`hover:underline font-medium ${isDesignV2PreviewEnabled() ? "text-accent" : "text-[var(--caution)]"}`}
+                className={`hover:underline font-medium ${isDesignV2Enabled() ? "text-accent" : "text-[var(--caution)]"}`}
               >
                 {t('engineering.predictionsPage.clearFilters')}
               </button>{' '}

@@ -5,14 +5,14 @@ import { Settings2, Sun, Moon, X } from 'lucide-react'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { cn } from '@/lib/utils'
 import { ACCENT_OPTIONS, DENSITY_OPTIONS } from '@/lib/settings/preferences'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
+import { isDesignV2Enabled } from '@/lib/design/designV2'
 
 export function TweaksPanel() {
   const [open, setOpen] = useState(false)
   const { density, theme, accent, setDensity, setAccent, toggleTheme } = useUIPreferencesStore()
   // Design System V2 standardizes the primary accent (electric blue), so the picker would change nothing.
   // The stored preference is untouched; legacy mode still shows the picker.
-  const showAccentPicker = !isDesignV2PreviewEnabled()
+  const showAccentPicker = !isDesignV2Enabled()
 
   return (
     <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">

@@ -26,7 +26,8 @@ import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModul
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useChromeTheme, useTheme } from "@/lib/theme/useTheme";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
+import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
+import { useDesignV2Sync } from "@/lib/design/useDesignV2Sync";
 import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 import { isV2SurfaceRole } from "@/lib/design/housekeeperV2";
 import { TabIconV2 } from "@/components/shared/TabIconV2";
@@ -47,9 +48,11 @@ export default function AppLayout() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  // Shared chrome sits outside any DesignV2Scope; this is V2 tokens only while the preview flag is on.
+  // Shared chrome sits outside any DesignV2Scope; this is V2 tokens only while Design V2 is active for this hotel.
   const chrome = useChromeTheme();
-  const designV2 = isDesignV2Enabled();
+  const designV2 = useDesignV2Active();
+  // Keeps this hotel's `design_v2` answer fresh (sign-in, foreground, reconnect, slow timer); hotel flag off => legacy.
+  useDesignV2Sync();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);

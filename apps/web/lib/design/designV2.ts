@@ -1,19 +1,82 @@
-/** Design System V2 preview switch (web).
+import { useEffect, useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
+import { useHotelStore } from '@/stores/hotelStore'
+import { designV2ContextExpiresAt, resolveTenantDesignV2 } from './designV2Activation'
+
+/** Design System V2 on web: two independent switches that are deliberately kept apart.
  *
- *  - Disabled by default. Enabled only by an explicit `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true` at
- *    build/start time (e.g. `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true npm run dev:web`).
- *  - Never enabled when `NEXT_PUBLIC_APP_ENV=production`, whatever the flag says.
- *  - Purely visual: grants no permission, unlocks no feature, stores nothing. It only decides
- *    whether the /design-v2-preview reference route exists (otherwise it is a 404). Next inlines
- *    NEXT_PUBLIC_* only for literal references, so the two reads below must stay literal. */
-export function resolveDesignV2Preview(flag: string | undefined, appEnv: string | undefined): boolean {
-  if ((appEnv ?? '').trim().toLowerCase() === 'production') return false
-  return (flag ?? '').trim().toLowerCase() === 'true'
+ *  1. PRODUCTION ACTIVATION (per hotel, runtime). The registered `design_v2` tenant flag, read from
+ *     `GET /auth/me` -> `hotel.enabled_features` (see designV2Activation.ts). Off for every hotel by default.
+ *     Turned on/off with the Feature Rollout workflow, no rebuild or redeploy. Applies after sign-in only.
+ *  2. DEVELOPMENT PREVIEW (build time, never production). `NEXT_PUBLIC_DESIGN_V2_PREVIEW=true` exposes V2 to
+ *     everyone on a developer/staging build, including the signed-out sign-in page and the /design-v2-preview
+ *     reference route. It fails CLOSED: it needs an explicit non-production `NEXT_PUBLIC_APP_ENV`
+ *     (development | staging | test), or `next dev`. An unset or unknown environment is treated as production.
+ *     A stray preview flag in a production build therefore does nothing.
+ *
+ *  Both are purely visual: they grant no permission, unlock no feature and are never an input to a route guard.
+ *  Next inlines NEXT_PUBLIC_* only for literal references, so the three reads below must stay literal. */
+
+const PREVIEW_ALLOWED_ENVS = new Set(['development', 'staging', 'test'])
+
+export function resolveDesignV2Preview(
+  flag: string | undefined,
+  appEnv: string | undefined,
+  nodeEnv?: string | undefined,
+): boolean {
+  if ((flag ?? '').trim().toLowerCase() !== 'true') return false
+  const env = (appEnv ?? '').trim().toLowerCase()
+  if (env) return PREVIEW_ALLOWED_ENVS.has(env)
+  // No explicit environment: only the local dev server qualifies. Never a production build.
+  return (nodeEnv ?? '').trim().toLowerCase() === 'development'
 }
 
+/** Development preview only (build-time switch). Not the production activation. */
 export function isDesignV2PreviewEnabled(): boolean {
   return resolveDesignV2Preview(
     process.env.NEXT_PUBLIC_DESIGN_V2_PREVIEW,
     process.env.NEXT_PUBLIC_APP_ENV,
+    process.env.NODE_ENV,
   )
+}
+
+/** Non-reactive read of the current decision: development preview OR the signed-in hotel's `design_v2` flag.
+ *  Safe to call during render of anything inside <DashboardShell>: the shell subscribes via useDesignV2() and
+ *  swaps between two different trees when the answer changes, so every descendant re-mounts and re-reads it.
+ *  Signed-out and unknown states are false. */
+export function isDesignV2Enabled(now: number = Date.now()): boolean {
+  if (isDesignV2PreviewEnabled()) return true
+  const hotelState = useHotelStore.getState()
+  return resolveTenantDesignV2({
+    authUserId: useAuthStore.getState().user?.id,
+    hotel: hotelState.hotel,
+    contextUserId: hotelState.contextUserId,
+    contextHotelId: hotelState.contextHotelId,
+    contextFetchedAt: hotelState.contextFetchedAt,
+    now,
+  })
+}
+
+/** Reactive version for the shell: re-renders when the user, hotel, flag or freshness changes, including exactly
+ *  when a fresh-enough context expires (an offline tab drops back to the legacy design on its own). The decision
+ *  itself is isDesignV2Enabled(), the one place that combines preview and tenant activation. */
+export function useDesignV2(): boolean {
+  // Subscribed only so this component re-renders when any input to the decision changes.
+  useAuthStore((s) => s.user?.id)
+  useHotelStore((s) => s.hotel)
+  useHotelStore((s) => s.contextUserId)
+  useHotelStore((s) => s.contextHotelId)
+  const contextFetchedAt = useHotelStore((s) => s.contextFetchedAt)
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    if (typeof contextFetchedAt !== 'number') return undefined
+    const wait = designV2ContextExpiresAt(contextFetchedAt) - Date.now() + 50
+    if (wait <= 0) return undefined
+    // setTimeout caps at ~24.8 days; the max age is minutes, far below that.
+    const timer = setTimeout(() => setTick((n) => n + 1), wait)
+    return () => clearTimeout(timer)
+  }, [contextFetchedAt])
+
+  return isDesignV2Enabled()
 }
