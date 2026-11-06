@@ -42,3 +42,30 @@ for (const file of ['components/ai/AICopilotBubble.tsx', 'components/shared/Feed
     assert.match(src, /aria-expanded=\{open\}/)
   })
 }
+
+/** Unsaved-changes protection (verified in a real browser; this pins the wiring so it cannot silently regress). */
+const GUARDED: Array<[string, string[]]> = [
+  ['components/tasks/CreateTaskDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+  ['components/logbook/AddHandoffDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+  ['components/engineering/CreateWorkOrderDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+]
+for (const [file, needles] of GUARDED) {
+  test(`create drawer asks before discarding input: ${file}`, () => {
+    const src = read(file)
+    for (const needle of needles) assert.ok(src.includes(needle), `${file} must contain ${needle}`)
+    // Saving is not discarding: the success path still uses the raw onClose.
+    assert.match(src, /onClose\(\)/)
+  })
+}
+
+test('discard prompt defaults to the safe choice and Escape means keep editing', () => {
+  const src = read('components/ui/DiscardChangesPrompt.tsx')
+  assert.match(src, /role="alertdialog"/)
+  assert.match(src, /keepRef\.current\?\.focus\(\)/)
+  assert.match(src, /event\.key === 'Escape'[\s\S]*onKeepEditing\(\)/)
+})
+
+test('useDiscardGuard closes immediately when clean and only prompts when dirty', () => {
+  const src = read('lib/hooks/useDiscardGuard.ts')
+  assert.match(src, /if \(dirty\) setConfirming\(true\)\s*else onClose\(\)/)
+})

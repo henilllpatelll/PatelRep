@@ -1,5 +1,6 @@
 const es = {
   common: {
+    discardChanges: { title: "¿Descartar los cambios?", help: "Lo que escribió no se ha guardado.", keep: "Seguir editando", discard: "Descartar" },
     english: "Ingles",
     spanish: "Espanol",
     language: "Idioma",

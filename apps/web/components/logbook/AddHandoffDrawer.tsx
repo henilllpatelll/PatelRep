@@ -11,6 +11,8 @@ import { evidenceApi } from '@/lib/api/evidence'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
+import { useDiscardGuard } from '@/lib/hooks/useDiscardGuard'
+import { DiscardChangesPrompt } from '@/components/ui/DiscardChangesPrompt'
 import { useToast } from '@/components/ui/Toast'
 import { AssigneePicker } from '@/components/tasks/AssigneePicker'
 import { endOfShiftDate } from '@/lib/utils/taskCreation'
@@ -72,8 +74,6 @@ export function AddHandoffDrawer({
   const ref = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const wasOpen = useRef(false)
-  useModalFocusTrap(ref, isOpen, onClose)
-
   const [content, setContent] = useState('')
   const [contentTouched, setContentTouched] = useState(false)
   const [category, setCategory] = useState<LogbookCategory>('general')
@@ -94,6 +94,9 @@ export function AddHandoffDrawer({
   const [attachments, setAttachments] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
+  const dirty = Boolean(content.trim() || relatedItem || attachments.length > 0 || assignedTo)
+  const guard = useDiscardGuard(dirty, onClose)
+  useModalFocusTrap(ref, isOpen, guard.requestClose)
 
   // Reset every time the drawer opens — never leaks stale values from a previous
   // submission (spec #38). A late department fetch must not erase entered text.
@@ -213,14 +216,14 @@ export function AddHandoffDrawer({
 
   return (
     <div className="fixed inset-0 z-drawer flex justify-end">
-      <button aria-label={t('common.close')} className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <button aria-label={t('common.close')} className="absolute inset-0 bg-black/30" onClick={guard.requestClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="add-handoff-title" className="relative flex h-full w-full max-w-[580px] flex-col border-l border-line bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
             <h2 id="add-handoff-title" className="text-lg font-semibold text-ink">{t('logbook.addHandoff')}</h2>
             {shiftContextLabel && <p className="mt-0.5 text-xs text-ink3">{shiftContextLabel}</p>}
           </div>
-          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label={t('common.close')}><X size={18} /></IconButton>
+          <IconButton variant="ghost" size="sm" onClick={guard.requestClose} aria-label={t('common.close')}><X size={18} /></IconButton>
         </div>
 
         <form ref={formRef} onSubmit={submit} className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -429,8 +432,9 @@ export function AddHandoffDrawer({
           )}
         </form>
 
+        {guard.confirming && <DiscardChangesPrompt onKeepEditing={guard.keepEditing} onDiscard={guard.discard} />}
         <div className="flex gap-3 border-t border-line p-4">
-          <Button type="button" variant="outline" onClick={onClose} className="flex-1">{t('common.cancel')}</Button>
+          <Button type="button" variant="outline" onClick={guard.requestClose} className="flex-1">{t('common.cancel')}</Button>
           <Button variant="primary" loading={mutation.isPending} disabled={!canSubmit} onClick={() => formRef.current?.requestSubmit()} className="flex-1">
             {t('logbook.addHandoffSubmit')}
           </Button>
