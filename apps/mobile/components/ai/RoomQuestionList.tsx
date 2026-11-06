@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { usePalette, type Palette } from "@/components/ai/palette";
 import type { RoomQuestionId } from "@/lib/housekeeping/roomAssist";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 const MAX_FONT_SCALE = 1.6;
 
@@ -58,7 +59,7 @@ export function RoomQuestionList({ ids, onAsk, variant, palette }: Props) {
 const makeStyles = (theme: Palette) =>
   StyleSheet.create({
     rows: { gap: 8 },
-    eyebrow: { fontSize: 11, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase", color: theme.textMuted },
+    eyebrow: { fontSize: microLabelSize(11), fontWeight: "900", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase(), color: theme.textMuted },
     row: {
       minHeight: 52,
       borderRadius: 14,

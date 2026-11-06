@@ -8,6 +8,7 @@ import { summarizePreview } from "@/lib/ai/actionSummary";
 import type { AssistantSource, ClarifyOption, CopilotFailureKind } from "@/lib/ai/contract";
 import type { ActionItem } from "@/lib/ai/conversationState";
 import type { PublishedNextRoom } from "@/lib/ai/shiftBriefingSource";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 /* One card language for everything the assistant can show besides plain text:
    a room, a question back, a limitation, sources, and a proposed action. Screens
@@ -285,7 +286,7 @@ const makeStyles = (theme: Palette) =>
       borderColor: theme.ai.line,
       gap: 4,
     },
-    kicker: { fontSize: 11, fontWeight: "800", letterSpacing: 0.7, textTransform: "uppercase", color: theme.ai.primary },
+    kicker: { fontSize: microLabelSize(11), fontWeight: "800", letterSpacing: microLabelTracking(0.7), textTransform: microLabelCase(), color: theme.ai.primary },
     body: { fontSize: 15, lineHeight: 21, color: theme.textPrimary, fontWeight: "600" },
     muted: { fontSize: 12.5, lineHeight: 18, color: theme.textMuted },
     source: { fontSize: 12, color: theme.textMuted, marginTop: 2 },

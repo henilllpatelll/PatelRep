@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { isEngineeringRole } from "@/lib/engineering/roles";
 import { useAppStore } from "@/stores/appStore";
 import { useTheme } from "@/lib/theme/useTheme";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -238,11 +239,11 @@ const styles = StyleSheet.create({
   backText: { fontSize: 15 },
   subtitle: { fontSize: 13, marginTop: 2 },
   center: { paddingTop: 40, alignItems: "center" },
-  headerMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  headerMeta: { fontSize: microLabelSize(11), fontWeight: "700", letterSpacing: microLabelTracking(1), textTransform: microLabelCase() },
   title: { fontFamily: displayFont, fontSize: 30, lineHeight: 34 },
   today: { borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16 },
   todayOff: { borderWidth: 1 },
-  todayMeta: { fontSize: 11, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
+  todayMeta: { fontSize: microLabelSize(11), fontWeight: "700", letterSpacing: microLabelTracking(1), textTransform: microLabelCase() },
   todayTime: { fontFamily: displayFont, fontSize: 32, lineHeight: 34, marginTop: 9 },
   todayTimeOff: { fontFamily: displayFont, fontSize: 28, lineHeight: 32, marginTop: 9 },
   todaySub: { fontSize: 13, marginTop: 6 },
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
   weekRow: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 14, paddingVertical: 12 },
   rowBorder: { borderTopWidth: 1 },
   dateCell: { width: 40, alignItems: "center" },
-  day: { fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.5 },
+  day: { fontSize: microLabelSize(10.5), textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.5) },
   dayNumber: { fontFamily: displayFont, fontSize: 20, lineHeight: 22 },
   shift: { flex: 1, fontSize: 13, fontWeight: "600", flexShrink: 1 },
   offShift: { fontWeight: "400" },

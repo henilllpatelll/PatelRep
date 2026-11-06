@@ -33,6 +33,7 @@ import {
   type TaskPreview,
   type TaskQueueEntry,
 } from "@/lib/ai/tasks";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 const BUCKET_TITLES: Record<TaskBucket, string> = {
   overdue: "tasks.groupOverdue",
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
   shellDate: { fontSize: 12.5, marginTop: 2 },
   shellCountBlock: { alignItems: "flex-end" },
   shellCountValue: { fontFamily: monoFont, fontSize: 24, fontWeight: "800" },
-  shellCountLabel: { fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  shellCountLabel: { fontSize: microLabelSize(10.5), fontWeight: "800", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase() },
   shellDoneLabel: { fontFamily: monoFont, fontSize: 10.5, marginTop: 2 },
   claimMessage: { fontSize: 12, marginTop: 8 },
 
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   previewHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
-  previewLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase" },
+  previewLabel: { fontSize: microLabelSize(10), fontWeight: "800", letterSpacing: microLabelTracking(0.8), textTransform: microLabelCase() },
   previewItem: { gap: 4 },
   previewTitle: { fontSize: 14.5, fontWeight: "700" },
   previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },

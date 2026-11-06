@@ -5,6 +5,7 @@ import { BottomSheet } from "@/components/housekeeping/roomDetail/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { useTheme } from "@/lib/theme/useTheme";
 import { SETTINGS_MAX_FONT_SCALE as MAX_FONT_SCALE } from "@/lib/settings/a11y";
+import { microLabelCase, microLabelSize, microLabelTracking } from "@/lib/design/microLabel";
 
 
 interface EditFieldSheetProps {
@@ -161,7 +162,7 @@ export function EditFieldSheet({
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  label: { fontSize: 12, fontWeight: "700", textTransform: microLabelCase(), letterSpacing: microLabelTracking(0.5) },
   input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16 },
   meta: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   helper: { flex: 1, fontSize: 12.5, lineHeight: 17 },
