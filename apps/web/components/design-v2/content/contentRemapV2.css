@@ -156,3 +156,8 @@ body[data-dv2-content][data-dv2-mode] .font-mono:not(kbd):not(code):not(pre) { f
 
 /* Segmented controls and chips share one 36px minimum height on the manager web. */
 body[data-dv2-content][data-dv2-mode] :is(button, a)[aria-pressed] { min-height: 32px; }
+
+/* The floating Feedback launcher is `bg-ink text-white`. Ink is near-white in V2 dark, which left white text on a
+   near-white pill (unreadable). The label follows the page background instead, which is the correct inverse in
+   both modes. */
+body[data-dv2-content][data-dv2-mode] button.bg-ink.text-white:not([aria-pressed]) { color: var(--dv2-bg); }
