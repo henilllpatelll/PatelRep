@@ -681,23 +681,20 @@ async def test_roster_endpoint_and_team_share_one_attendance_read(db):
 # --- adjacent consumers ------------------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_shift_summary_cron_skips_archived_templates(db, monkeypatch):
-    """Archiving replaces hard deletion, so the cron that walks every shift must not keep summarising archived ones."""
-    import services.ai.shift_summary as summary
-    from routers import internal
+async def test_shift_summary_cron_skips_archived_templates(db):
+    """Archiving replaces hard deletion, so the cron must not keep summarising archived (or switched-off) templates
+    even when they have a published assignment for a finished day."""
+    from services.ai.shift_summary_due import load_due_occurrences
 
-    seen = []
-
-    async def fake_generate(tenant_id, shift_id, shift_date):
-        seen.append(shift_id)
-        return {"was_generated": True}
-
+    now = datetime(2030, 1, 9, 17, 0, tzinfo=timezone.utc)  # after every fixture shift of DAY, inside the lookback
     db.rows["shifts"][0]["archived_at"] = "2029-01-01T00:00:00+00:00"  # Morning is archived
-    monkeypatch.setattr(internal, "supabase", db)
-    monkeypatch.setattr(internal, "verify_cron", lambda secret: None)
-    monkeypatch.setattr(internal, "_record_cron_run", lambda name, **kw: None)
-    monkeypatch.setattr("services.ai.providers.get_anthropic_client", lambda: object())
-    monkeypatch.setattr(summary, "generate_or_get_shift_summary", fake_generate)
-    monkeypatch.setattr(summary, "hotel_today", lambda tenant_id: DAY)
-    await internal.generate_shift_summaries("secret")
-    assert S_MORN not in seen and {S_EVE, S_NIGHT, S_ENG, S_OTHER} == set(seen)
+    db.rows.setdefault("logbook_entries", [])
+    db.rows.setdefault("shift_summaries", [])
+    for tenant in db.rows["tenants"]:
+        tenant.setdefault("is_active", True)
+    for shift in db.rows["shifts"]:
+        shift.setdefault("is_active", True)
+        db.rows["shift_assignments"].append({"shift_id": shift["id"], "tenant_id": shift["tenant_id"],
+                                             "work_date": DAY.isoformat(), "publication_state": "published", "ends_at": None})
+    seen = {o.shift_id for o in load_due_occurrences(db, now).due}
+    assert S_MORN not in seen and seen  # archived excluded; live templates still selected
