@@ -1412,13 +1412,20 @@ async def generate_shift_summary_endpoint(
         raise HTTPException(status_code=404, detail="Shift not found for this hotel")
 
     from services.ai.shift_summary import generate_or_get_shift_summary, regenerate_shift_summary
+    from services.ai.shift_summary_claims import (
+        ShiftSummaryClaimLost, ShiftSummaryClaimUnavailable, claim_http_error,
+    )
 
-    if request.regenerate:
-        result = await regenerate_shift_summary(
-            current_user.hotel_id, shift_id, shift_date, user_id=current_user.user_id,
-        )
-    else:
-        result = await generate_or_get_shift_summary(
-            current_user.hotel_id, shift_id, shift_date, user_id=current_user.user_id,
-        )
+    try:
+        if request.regenerate:
+            result = await regenerate_shift_summary(
+                current_user.hotel_id, shift_id, shift_date, user_id=current_user.user_id,
+            )
+        else:
+            result = await generate_or_get_shift_summary(
+                current_user.hotel_id, shift_id, shift_date, user_id=current_user.user_id,
+            )
+    except (ShiftSummaryClaimUnavailable, ShiftSummaryClaimLost):
+        # Another request/replica is already generating this exact handoff; never start a second paid call.
+        raise claim_http_error()
     return {"data": _summary_with_stats(result)}

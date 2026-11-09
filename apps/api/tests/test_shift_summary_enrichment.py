@@ -19,6 +19,9 @@ from middleware import credits as credits_module
 from services.ai import shift_summary as shift_summary_module
 from services.ai.shift_summary import collect_shift_handoff_context, generate_or_get_shift_summary
 from tests.smoke.fake_supabase import FakeDB, FakeQuery
+from tests.shift_claim_fake import fake_shift_claims  # noqa: F401 (pytest fixture)
+
+pytestmark = pytest.mark.usefixtures("fake_shift_claims")
 
 HOTEL = "hotel-1"
 FOREIGN_HOTEL = "hotel-2"

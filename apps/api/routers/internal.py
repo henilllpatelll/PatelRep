@@ -343,17 +343,24 @@ async def monthly_trueup(x_cron_secret: str = Header(None)):
 
 @router.post("/logbook/shift-summary")
 async def generate_shift_summaries(x_cron_secret: str = Header(None)):
-    """Cron: Generate AI shift summaries for shifts that ended in the last 2 hours.
+    """Cron: generate AI handoff summaries for shift occurrences that have finished.
 
-    Shares generate_or_get_shift_summary() with the manual endpoint so cron and
-    manual generation can never diverge in identity, storage, or dedup — a
-    second cron run (or a manual Generate after the cron already ran) is a
-    no-op, never a duplicate row or a second AI charge. shift_date uses each
-    shift's own tenant-local date, not the cron server's UTC date, so identity
-    matches exactly what the manual/web path means by "today" for that hotel."""
+    An occurrence (shift template + tenant-local start date) is eligible only if
+    it actually ran that day (published assignment or logbook activity), ended in
+    the TENANT's timezone at least 2h ago (DST-safe, overnight shifts end on the
+    next local day) and no more than 24h ago. The 24h catch-up window exceeds the
+    8h cron cadence + 2h grace, so no finished shift is skipped between runs.
+
+    Generation goes through generate_or_get_shift_summary(), which takes a
+    database claim (migration 236) before the model call: overlapping cron ticks,
+    other replicas and manual requests cannot trigger a second call or charge.
+    A run that finds the claim held by someone else reports it as skipped, not
+    failed; real failures keep the honest failed/partial cron_health reporting."""
     verify_cron(x_cron_secret)
     from services.ai.providers import AIProviderConfigurationError, get_anthropic_client
-    from services.ai.shift_summary import generate_or_get_shift_summary, hotel_today
+    from services.ai.shift_summary import generate_or_get_shift_summary
+    from services.ai.shift_summary_claims import ShiftSummaryClaimLost, ShiftSummaryClaimUnavailable
+    from services.ai.shift_summary_due import load_due_occurrences
 
     # Fail fast and visibly when no AI provider is configured: every summary would
     # fail identically, and recording that as a success hid the outage.
@@ -365,42 +372,44 @@ async def generate_shift_summaries(x_cron_secret: str = Header(None)):
         return {"status": "skipped", "reason": "ai_provider_not_configured",
                 "summaries_generated": 0, "already_present": 0, "errors": 0}
 
-    # Find shifts that ended ~2 hours ago (give staff time to log entries)
-    # Archived templates (what DELETE /schedules/shifts/{id} does since migration 225) are removed shifts: they
-    # must stop producing summaries exactly as a hard-deleted row used to.
     try:
-        shifts_result = supabase.table("shifts")\
-            .select("id, tenant_id, end_time")\
-            .is_("archived_at", "null")\
-            .execute()
+        selection = load_due_occurrences(supabase)
     except Exception as exc:
         _record_cron_run("logbook.shift-summary", error=f"failed: shift lookup failed: {exc}")
         raise
 
     generated = 0
-    already_present = 0
-    errors = 0
-    last_error: str | None = None
-    for shift in (shifts_result.data or []):
-        # Simple heuristic: if shift end_time is within 2h window
-        end_str = shift.get("end_time", "")
-        if not end_str:
-            continue
-
+    already_present = selection.already_present
+    skipped_in_progress = 0
+    skipped_backoff = 0
+    errors = len(selection.tenant_errors)
+    last_error: str | None = selection.tenant_errors[-1] if selection.tenant_errors else None
+    for occ in selection.due:
         try:
-            shift_date = hotel_today(shift["tenant_id"])
-            result = await generate_or_get_shift_summary(shift["tenant_id"], shift["id"], shift_date)
+            result = await generate_or_get_shift_summary(occ.tenant_id, occ.shift_id, occ.shift_date)
             if result.get("was_generated"):
                 generated += 1
             else:
                 already_present += 1
+        except ShiftSummaryClaimLost:
+            skipped_in_progress += 1
+        except ShiftSummaryClaimUnavailable as e:
+            if e.reason == "in_progress":
+                skipped_in_progress += 1  # another worker owns it; not a failure
+            elif e.reason == "backoff":
+                skipped_backoff += 1  # recent failure; retried on a later run, already counted then
+            else:  # retry_exhausted: attempts are spent and nobody will generate it: surface it
+                errors += 1
+                last_error = f"retry exhausted for shift={occ.shift_id} date={occ.shift_date}: {e.last_error}"
         except Exception as e:
             logger.error("Shift summary failed for tenant=%s shift=%s: %s",
-                         shift["tenant_id"], shift["id"], e, exc_info=True)
+                         occ.tenant_id, occ.shift_id, e, exc_info=True)
             errors += 1
             last_error = str(getattr(e, "detail", None) or e)
 
-    counts = {"summaries_generated": generated, "already_present": already_present, "errors": errors}
+    counts = {"summaries_generated": generated, "already_present": already_present, "errors": errors,
+              "skipped_in_progress": skipped_in_progress, "skipped_backoff": skipped_backoff,
+              "eligible": len(selection.due)}
     if errors:
         # Any failure (partial included) must not refresh last_success_at.
         status = "partial" if (generated or already_present) else "failed"

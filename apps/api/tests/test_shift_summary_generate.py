@@ -21,6 +21,7 @@ of a hardcoded credit charge.
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 import jwt
 
@@ -30,6 +31,9 @@ from middleware import credits as credits_module
 from routers import logbook as logbook_router
 from services.ai import shift_summary as shift_summary_module
 from tests.smoke.fake_supabase import FakeDB, FakeQuery
+from tests.shift_claim_fake import fake_shift_claims  # noqa: F401 (pytest fixture)
+
+pytestmark = pytest.mark.usefixtures("fake_shift_claims")
 
 DEPT_ID = "11111111-1111-4111-8111-111111111111"
 MORNING_SHIFT_ID = "aaaaaaaa-0000-4000-8000-000000000001"

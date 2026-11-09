@@ -12,7 +12,7 @@ window, and prompt construction are all testable without an Anthropic call:
 Both call through _perform_generation() so cron and manual generation, and
 Generate vs Regenerate, can never diverge in how a row is built or stored.
 """
-from datetime import datetime, time as time_cls, timedelta, timezone
+from datetime import datetime, timezone
 import time as time_module
 from typing import Optional
 
@@ -23,6 +23,10 @@ from core.database import supabase
 from core.timezones import safe_gettz
 from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
 from services.ai.providers import get_anthropic_client
+from services.ai.shift_summary_claims import (
+    Claim, ShiftSummaryClaimLost, ShiftSummaryClaimUnavailable, acquire_claim, claim_is_owned, finish_claim,
+)
+from services.ai.shift_summary_schedule import occurrence_window
 
 MODEL_NAME = "claude-sonnet-4-6"
 
@@ -48,27 +52,16 @@ def hotel_today(hotel_id: str) -> str:
     return datetime.now(_get_hotel_tz(hotel_id)).date().isoformat()
 
 
-def _parse_time(value) -> time_cls:
-    hours, minutes, *_ = str(value).split(":")
-    return time_cls(int(hours), int(minutes))
-
-
 def build_shift_window(hotel_id: str, shift: dict, shift_date: str) -> tuple[datetime, datetime]:
     """Real UTC [start, end) instant for a shift on a hotel-local calendar date.
 
     Overnight shifts (end_time <= start_time) end on the following local day —
     e.g. Night 23:00->07:00 on 2026-09-29 runs through 2026-09-30 07:00 local.
+    DST-safe: a wall time inside a spring-forward gap or a fall-back overlap
+    resolves to a real instant (see shift_summary_schedule.local_to_utc).
     """
-    tz = _get_hotel_tz(hotel_id)
     base_date = datetime.strptime(shift_date, "%Y-%m-%d").date()
-    start_time = _parse_time(shift.get("start_time"))
-    end_time = _parse_time(shift.get("end_time"))
-
-    start_local = datetime.combine(base_date, start_time, tzinfo=tz)
-    end_date = base_date if end_time > start_time else base_date + timedelta(days=1)
-    end_local = datetime.combine(end_date, end_time, tzinfo=tz)
-
-    return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+    return occurrence_window(_get_hotel_tz(hotel_id), shift.get("start_time"), shift.get("end_time"), base_date)
 
 
 def collect_shift_handoff_context(hotel_id: str, shift_id: str, shift_date: str, shift: dict) -> dict:
@@ -342,7 +335,7 @@ def _build_handoff_data(context: dict) -> dict:
 
 async def _perform_generation(
     hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str],
-    existing_row: Optional[dict], is_regenerate: bool,
+    existing_row: Optional[dict], is_regenerate: bool, claim: Optional[Claim] = None,
 ) -> dict:
     shift_result = supabase.table("shifts")\
         .select("name, start_time, end_time, department_id, departments(name)")\
@@ -378,6 +371,17 @@ async def _perform_generation(
             status_code=503,
             detail="Unable to generate the handoff right now. Existing Logbook entries and operational data are still available.",
         ) from exc
+
+    # A lease takeover rotates the claim token. A superseded owner must write and
+    # charge nothing: the new owner's call is the one that counts.
+    if claim is not None and not claim_is_owned(hotel_id, shift_id, shift_date, claim):
+        await log_ai_interaction(
+            hotel_id=hotel_id, user_id=user_id, interaction_type="shift_summary",
+            model_used=MODEL_NAME, credits_charged=0.0,
+            latency_ms=int((time_module.time() - started_at) * 1000),
+            success=False, error_message="generation claim was taken over; result discarded",
+        )
+        raise ShiftSummaryClaimLost()
 
     summary_text = message.content[0].text
     usage = getattr(message, "usage", None)
@@ -431,18 +435,51 @@ def _find_existing_summary(hotel_id: str, shift_id: str, shift_date: str) -> Opt
     return (result.data if result else None) or None
 
 
+async def _generate_under_claim(
+    hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str],
+    existing_row: Optional[dict], is_regenerate: bool,
+) -> dict:
+    """Take the cross-replica claim, generate once, record the outcome.
+
+    Cron (user_id None) obeys the retry backoff/attempt cap; a person using the
+    manual endpoint may override them. Nobody overrides an in-progress lease.
+    """
+    claim = acquire_claim(hotel_id, shift_id, shift_date,
+                          replace_existing=is_regenerate, ignore_retry_limits=user_id is not None)
+    if claim is None:
+        # Someone else finished between our existence check and the claim: hand back their row, no AI call.
+        existing = _find_existing_summary(hotel_id, shift_id, shift_date)
+        if existing:
+            return {**existing, "was_generated": False}
+        raise ShiftSummaryClaimUnavailable("in_progress")
+    try:
+        row = await _perform_generation(hotel_id, shift_id, shift_date, user_id, existing_row=existing_row,
+                                        is_regenerate=is_regenerate, claim=claim)
+    except ShiftSummaryClaimLost:
+        raise
+    except BaseException as exc:
+        finish_claim(hotel_id, shift_id, shift_date, claim, succeeded=False,
+                     error=str(exc.__cause__ or getattr(exc, "detail", None) or exc))
+        raise
+    finish_claim(hotel_id, shift_id, shift_date, claim, succeeded=True)
+    return row
+
+
 async def generate_or_get_shift_summary(hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str] = None) -> dict:
     """'Generate' semantics: return the existing summary untouched (no AI call,
     no credit charge) if one already exists for this shift/date; otherwise
-    generate fresh. Used by both the manual endpoint and the cron job."""
+    generate fresh under a database claim, so concurrent cron/manual requests on
+    any replica produce exactly one model call. Used by manual endpoint and cron.
+    Raises ShiftSummaryClaimUnavailable when another worker holds the claim."""
     existing = _find_existing_summary(hotel_id, shift_id, shift_date)
     if existing:
         return {**existing, "was_generated": False}
-    return await _perform_generation(hotel_id, shift_id, shift_date, user_id, existing_row=None, is_regenerate=False)
+    return await _generate_under_claim(hotel_id, shift_id, shift_date, user_id, existing_row=None, is_regenerate=False)
 
 
 async def regenerate_shift_summary(hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str] = None) -> dict:
     """'Regenerate' semantics: always call the AI again and upsert the same
-    logical row in place — never a duplicate — clearing any prior acknowledgment."""
+    logical row in place — never a duplicate — clearing any prior acknowledgment.
+    Still claimed, so a double-click or two replicas cannot double-charge."""
     existing = _find_existing_summary(hotel_id, shift_id, shift_date)
-    return await _perform_generation(hotel_id, shift_id, shift_date, user_id, existing_row=existing, is_regenerate=True)
+    return await _generate_under_claim(hotel_id, shift_id, shift_date, user_id, existing_row=existing, is_regenerate=True)

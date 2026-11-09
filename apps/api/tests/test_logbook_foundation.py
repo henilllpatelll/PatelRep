@@ -9,6 +9,7 @@ import pytest
 from core.config import settings
 from main import app
 from routers import logbook as logbook_router
+from tests.shift_claim_fake import fake_shift_claims  # noqa: F401 (pytest fixture)
 from tests.smoke.fake_supabase import FakeDB
 
 DEPT_HK = "11111111-1111-4111-8111-111111111111"
@@ -237,6 +238,7 @@ def test_gm_can_permanently_delete_a_logbook_entry(monkeypatch):
     assert db.rows["logbook_entries"] == []
 
 
+@pytest.mark.usefixtures("fake_shift_claims")
 def test_summary_generation_contract_is_full_for_existing_and_fresh_summaries(monkeypatch):
     """Phase 5: the caller now supplies the exact shift_id/shift_date it's
     viewing (see test_shift_summary_generate.py for the full contract suite);
