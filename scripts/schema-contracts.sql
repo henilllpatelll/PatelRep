@@ -13,7 +13,7 @@ BEGIN
   FOREACH rls_table IN ARRAY ARRAY[
     'room_status', 'room_assignments', 'tasks', 'work_orders', 'assets',
     'logbook_entries', 'lost_found_items', 'lost_found_claims', 'lost_found_returns',
-    'shift_summary_generation_claims'
+    'shift_summary_generation_claims', 'shift_summary_credit_charges'
   ] LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_class relations

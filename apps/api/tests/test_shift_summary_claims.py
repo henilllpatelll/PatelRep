@@ -277,6 +277,109 @@ def test_superseded_owner_writes_nothing_and_charges_nothing(world):
     assert world.store.rows[(HOTEL, SHIFT, DAY)]["status"] == "claimed"
 
 
+# --- fencing: the lease can lapse at any instant, the commit point must still be safe ------------------------------
+
+def test_lease_lapsing_between_model_return_and_persistence_discards_without_writing_or_charging(world):
+    """Fault injection: the lease expires after the model answered but before the commit. Nobody took over, yet an
+    expired lease is never finalized -- the old 'token + status' check would have let this through."""
+    world.model.hook = lambda: _advance(world, claims.LEASE_SECONDS + 1)
+
+    with pytest.raises(ShiftSummaryClaimLost) as lost:
+        asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+
+    assert str(lost.value) == "lease_expired"
+    assert world.db.rows["shift_summaries"] == [] and world.db.charges == []
+    assert world.store.rows[(HOTEL, SHIFT, DAY)]["status"] == "claimed"  # recoverable: the next run takes it over
+
+    world.model.hook = None
+    result = asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+    assert result["was_generated"] is True and len(world.db.charges) == 1
+    assert world.store.rows[(HOTEL, SHIFT, DAY)]["attempts"] == 2
+
+
+def test_two_workers_cannot_both_charge_when_the_first_outlives_its_lease(world):
+    """Worker A's lease lapses mid-call; B takes over and finishes; A then returns. Exactly one write, one charge."""
+    a_inside, release_a = threading.Event(), threading.Event()
+    first = threading.Lock()
+    state = {"a_taken": False}
+
+    def hook():
+        with first:
+            mine = not state["a_taken"]
+            state["a_taken"] = True
+        if mine:  # only the first caller (A) is parked mid-call
+            a_inside.set()
+            assert release_a.wait(20)
+
+    world.model.hook = hook
+    outcome = {}
+
+    def worker_a():
+        try:
+            outcome["a"] = asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+        except Exception as exc:  # noqa: BLE001
+            outcome["a"] = exc
+
+    thread = threading.Thread(target=worker_a)
+    thread.start()
+    assert a_inside.wait(20)
+    _advance(world, claims.LEASE_SECONDS + 1)          # A's lease lapses while A is still inside the model call
+
+    b = asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))   # B takes over and completes
+    assert b["was_generated"] is True and len(world.db.charges) == 1
+
+    release_a.set()                                    # A finally returns and tries to commit
+    thread.join(20)
+
+    assert isinstance(outcome["a"], ShiftSummaryClaimLost)
+    assert len(world.db.charges) == 1 and len(world.db.rows["shift_summaries"]) == 1
+    assert world.model.calls == 2                      # A's call was wasted, but not billed
+    assert world.store.rows[(HOTEL, SHIFT, DAY)]["status"] == "succeeded"
+
+
+def test_heartbeat_renews_the_lease_so_a_slow_call_still_commits(world, monkeypatch):
+    monkeypatch.setattr(claims, "LEASE_SECONDS", 1)
+    monkeypatch.setattr(claims, "HEARTBEAT_SECONDS", 0.2)
+    world.model.delay = 1.6                            # longer than the 1s lease: only renewal can save it
+
+    result = asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+
+    renewals = [c for c in world.store.calls if c[0] == "renew_shift_summary_claim"]
+    assert result["was_generated"] is True and len(renewals) >= 3
+    assert len(world.db.charges) == 1 and world.model.calls == 1
+
+
+def test_without_renewal_the_same_slow_call_is_discarded_not_double_charged(world, monkeypatch):
+    monkeypatch.setattr(claims, "LEASE_SECONDS", 1)
+    monkeypatch.setattr(claims, "HEARTBEAT_SECONDS", 3600)   # effectively no heartbeat
+    world.model.delay = 1.4
+
+    with pytest.raises(ShiftSummaryClaimLost):
+        asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+    assert world.db.charges == [] and world.db.rows["shift_summaries"] == []
+
+
+def test_regenerate_is_a_deliberate_second_generation_with_its_own_charge(world):
+    asyncio.run(summary.generate_or_get_shift_summary(HOTEL, SHIFT, DAY))
+    world.db.rows["shift_summaries"][0].update(acknowledged_by="u1", acknowledged_at="2026-09-16T10:00:00+00:00")
+
+    again = asyncio.run(summary.regenerate_shift_summary(HOTEL, SHIFT, DAY, user_id="gm-1"))
+
+    assert again["was_generated"] is True and len(world.db.rows["shift_summaries"]) == 1
+    assert world.db.rows["shift_summaries"][0]["acknowledged_by"] is None
+    assert world.model.calls == 2 and len(world.db.charges) == 2
+
+
+def test_replayed_finalize_for_the_same_generation_does_not_charge_again(world):
+    claim = claims.acquire_claim(HOTEL, SHIFT, DAY, replace_existing=False, ignore_retry_limits=False)
+    payload = {"department_id": None, "summary_text": "x", "stats": {}, "handoff_data": {},
+               "generated_at": "2026-09-16T10:00:00+00:00"}
+    first = claims.finalize_claim(HOTEL, SHIFT, DAY, claim, summary=payload, credits=1.0, replace_existing=False)
+    replay = claims.finalize_claim(HOTEL, SHIFT, DAY, claim, summary=payload, credits=1.0, replace_existing=False)
+    assert first["finalized"] is True and replay == {"finalized": False, "reason": "already_finalized"}
+    assert len(world.db.charges) == 1
+
+
 # --- manual endpoint contract ---------------------------------------------------------------------------------------
 
 def test_manual_generate_returns_409_not_a_second_paid_call_while_another_request_holds_the_claim(world, monkeypatch):

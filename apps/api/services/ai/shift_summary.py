@@ -21,10 +21,12 @@ from fastapi import HTTPException
 
 from core.database import supabase
 from core.timezones import safe_gettz
-from middleware.credits import assert_ai_allowance, check_and_deduct_credits, log_ai_interaction
+from core.config import settings
+from middleware.credits import CAP_REACHED_MESSAGE, assert_ai_allowance, compute_credits, log_ai_interaction
 from services.ai.providers import get_anthropic_client
 from services.ai.shift_summary_claims import (
-    Claim, ShiftSummaryClaimLost, ShiftSummaryClaimUnavailable, acquire_claim, claim_is_owned, finish_claim,
+    Claim, ShiftSummaryClaimLost, ShiftSummaryClaimUnavailable, acquire_claim, finalize_claim, finish_claim,
+    run_with_lease,
 )
 from services.ai.shift_summary_schedule import occurrence_window
 
@@ -335,7 +337,7 @@ def _build_handoff_data(context: dict) -> dict:
 
 async def _perform_generation(
     hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str],
-    existing_row: Optional[dict], is_regenerate: bool, claim: Optional[Claim] = None,
+    existing_row: Optional[dict], is_regenerate: bool, claim: Claim,
 ) -> dict:
     shift_result = supabase.table("shifts")\
         .select("name, start_time, end_time, department_id, departments(name)")\
@@ -355,10 +357,13 @@ async def _perform_generation(
     await assert_ai_allowance(hotel_id, user_id, "shift_summary")
     client = get_anthropic_client()
     try:
-        message = client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
+        message = await run_with_lease(
+            hotel_id, shift_id, shift_date, claim,
+            lambda: client.messages.create(
+                model=MODEL_NAME,
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}],
+            ),
         )
     except Exception as exc:
         latency_ms = int((time_module.time() - started_at) * 1000)
@@ -372,56 +377,49 @@ async def _perform_generation(
             detail="Unable to generate the handoff right now. Existing Logbook entries and operational data are still available.",
         ) from exc
 
-    # A lease takeover rotates the claim token. A superseded owner must write and
-    # charge nothing: the new owner's call is the one that counts.
-    if claim is not None and not claim_is_owned(hotel_id, shift_id, shift_date, claim):
-        await log_ai_interaction(
-            hotel_id=hotel_id, user_id=user_id, interaction_type="shift_summary",
-            model_used=MODEL_NAME, credits_charged=0.0,
-            latency_ms=int((time_module.time() - started_at) * 1000),
-            success=False, error_message="generation claim was taken over; result discarded",
-        )
-        raise ShiftSummaryClaimLost()
-
     summary_text = message.content[0].text
     usage = getattr(message, "usage", None)
     prompt_tokens = getattr(usage, "input_tokens", 0) or 0
     completion_tokens = getattr(usage, "output_tokens", 0) or 0
 
-    stats = _build_stats(context)
-    handoff_data = _build_handoff_data(context)
-    now_iso = datetime.now(timezone.utc).isoformat()
+    # Local Ollama has no provider bill: it must not debit the tenant (mirrors check_and_deduct_credits).
+    credits = 0.0 if settings.ai_provider.strip().lower() == "ollama" else compute_credits(
+        "shift_summary", prompt_tokens, completion_tokens)
 
-    row_payload = {
-        "tenant_id": hotel_id,
-        "shift_id": shift_id,
-        "shift_date": shift_date,
-        "department_id": department_id,
-        "summary_text": summary_text,
-        "stats": stats,
-        "handoff_data": handoff_data,
-        "generated_at": now_iso,
-        "updated_at": now_iso,
-    }
-    if is_regenerate:
-        row_payload["acknowledged_by"] = None
-        row_payload["acknowledged_at"] = None
-
-    result = supabase.table("shift_summaries")\
-        .upsert(row_payload, on_conflict="tenant_id,shift_id,shift_date")\
-        .execute()
-    row = (result.data or [{}])[0] if result.data else {**row_payload, "id": (existing_row or {}).get("id")}
-
-    credits_charged = await check_and_deduct_credits(hotel_id, "shift_summary", prompt_tokens, completion_tokens)
+    # The commit point. Ownership is NOT checked here and acted on later: verification, the summary write, the
+    # credit debit and the claim's completion happen in one database transaction fenced by the claim row's
+    # token and unexpired lease, so a worker that lost its lease cannot persist or charge anything.
+    outcome = finalize_claim(
+        hotel_id, shift_id, shift_date, claim, replace_existing=is_regenerate, credits=credits,
+        summary={
+            "department_id": department_id,
+            "summary_text": summary_text,
+            "stats": _build_stats(context),
+            "handoff_data": _build_handoff_data(context),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        },
+    )
     latency_ms = int((time_module.time() - started_at) * 1000)
+    if not outcome.get("finalized"):
+        await log_ai_interaction(
+            hotel_id=hotel_id, user_id=user_id, interaction_type="shift_summary",
+            model_used=MODEL_NAME, credits_charged=0.0, latency_ms=latency_ms, success=False,
+            error_message=f"generation discarded: {outcome.get('reason')}",
+        )
+        raise ShiftSummaryClaimLost(outcome.get("reason"))
+    if credits > 0 and not outcome.get("charged"):
+        # The monthly cap refused the debit. The summary is stored (the provider cost was already incurred) and
+        # the caller is told as before.
+        raise HTTPException(status_code=402, detail=CAP_REACHED_MESSAGE)
+
     await log_ai_interaction(
         hotel_id=hotel_id, user_id=user_id, interaction_type="shift_summary",
-        model_used=MODEL_NAME, credits_charged=credits_charged,
+        model_used=MODEL_NAME, credits_charged=credits,
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
         latency_ms=latency_ms, success=True,
     )
 
-    return {**row, "was_generated": True}
+    return {**outcome["summary"], "was_generated": True}
 
 
 def _find_existing_summary(hotel_id: str, shift_id: str, shift_date: str) -> Optional[dict]:
@@ -461,8 +459,7 @@ async def _generate_under_claim(
         finish_claim(hotel_id, shift_id, shift_date, claim, succeeded=False,
                      error=str(exc.__cause__ or getattr(exc, "detail", None) or exc))
         raise
-    finish_claim(hotel_id, shift_id, shift_date, claim, succeeded=True)
-    return row
+    return row  # finalize_shift_summary_generation already marked the claim succeeded, atomically
 
 
 async def generate_or_get_shift_summary(hotel_id: str, shift_id: str, shift_date: str, user_id: Optional[str] = None) -> dict:
