@@ -17,7 +17,6 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator("en"), i18n: { language: "en", resolvedLanguage: "en" } }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => "light" }));
-jest.mock("@/lib/design/designV2", () => ({ isDesignV2Enabled: () => true, resolveDesignV2Preview: () => true }));
 jest.mock("expo-router", () => ({
   router: { push: (...a: unknown[]) => mockPush(...a), back: () => mockBack() },
   useLocalSearchParams: () => mockParams,

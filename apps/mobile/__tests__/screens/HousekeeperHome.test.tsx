@@ -5,7 +5,7 @@ import { act, fireEvent, render, waitFor, within } from "@testing-library/react-
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { ToastProvider } from "@/lib/theme/ToastProvider";
 import { APPEARANCE_STORAGE_KEY } from "@/lib/theme/appearance";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import { getPublishedBriefing } from "@/lib/ai/shiftBriefingSource";
 
 const mockSetMyRooms = jest.fn();
@@ -272,7 +272,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       const { getByTestId, getByText, getByLabelText } = screen;
 
       await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
-      expect(getByText("Right now — in progress")).toBeTruthy();
+      expect(getByText("Right now")).toBeTruthy();
       expect(getByTestId("current-room-number").props.children).toBe("108");
       expect(getByText("Cleaning checklist: 0 of 3")).toBeTruthy();
       // 18:24 (±a few seconds of test runtime), not a made-up number
@@ -325,7 +325,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
     it("is a recovery state, not a fake timer, when the room is in progress but this phone has no session", async () => {
       const { getByTestId, getByText, queryByTestId } = renderHome();
       await waitFor(() => expect(getByTestId("current-room-recovery")).toBeTruthy());
-      expect(getByText("Right now — needs recovery")).toBeTruthy();
+      expect(getByText("Right now")).toBeTruthy();
       expect(queryByTestId("current-room-elapsed")).toBeNull();
       expect(queryByTestId("focus-mark-clean")).toBeNull();
     });
@@ -398,7 +398,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
     it("recommends the first eligible room and starts nothing by itself", async () => {
       const { getByTestId, getByText } = renderHome();
       await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
-      expect(getByText("Right now — recommended")).toBeTruthy();
+      expect(getByText("Recommended next")).toBeTruthy();
       expect(getByTestId("current-room-number").props.children).toBe("112");
       expect(getByText("Departure · Floor 2")).toBeTruthy();
 
@@ -1016,7 +1016,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
     it("shows the hotel-local date and part of day, a greeting by first name, and the real shift status", async () => {
       const { getByTestId, getByText } = renderHome();
       await waitFor(() => expect(getByTestId("home-header")).toBeTruthy());
-      expect(getByText(/^[A-Z]+, [A-Z]{3} \d{1,2} · (MORNING|AFTERNOON|EVENING)$/)).toBeTruthy();
+      expect(getByText(/^[A-Za-z]+, [A-Za-z]{3} \d{1,2} · (morning|afternoon|evening)$/i)).toBeTruthy();
       expect(getByText(/Good (morning|afternoon|evening), Maria\./)).toBeTruthy();
       expect(getByTestId("home-shift-status").props.children).toBe("Your shift is underway.");
     });
@@ -1055,7 +1055,7 @@ describe("HousekeeperHomeScreen — My Shift dashboard", () => {
       const { getByText, getByTestId, queryByText } = renderHome();
 
       await waitFor(() => expect(getByTestId("focus-card")).toBeTruthy());
-      expect(getByText("Ahora mismo — en curso")).toBeTruthy();
+      expect(getByText("Ahora mismo")).toBeTruthy();
       expect(getByText("Continuar limpieza")).toBeTruthy();
       expect(getByText("Tu progreso")).toBeTruthy();
       expect(getByText(/Lista de limpieza: 0 de 3/)).toBeTruthy();

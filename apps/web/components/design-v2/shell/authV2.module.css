@@ -1,6 +1,6 @@
 /* Design System V2 sign-in (web). Scoped by CSS-module class names; reads only var(--dv2-*), which
-   AuthV2Scope sets inline from lib/design/designV2Tokens.ts. Rendered only while
-   NEXT_PUBLIC_DESIGN_V2_PREVIEW is on. No hex colors live in this file. */
+   AuthV2Scope sets inline from lib/design/designV2Tokens.ts. Rendered for
+   every hotel (V2 is the permanent sign-in). No hex colors live in this file. */
 
 .page {
   min-height: 100vh;

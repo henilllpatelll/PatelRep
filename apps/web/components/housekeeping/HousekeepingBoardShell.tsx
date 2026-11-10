@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { CheckCircle2, ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
@@ -53,7 +52,6 @@ export function HousekeepingSummary({
   onStatusChange: (status: BoardStatusFilter | null) => void
 }) {
   const { t } = useTranslation()
-  const v2 = isDesignV2Enabled()
   const supportingCopy: Record<string, string | null> = {
     needsCleaning: kpis.needsCleaningCredits > 0
       ? t('housekeeping.boardV2.summary.credits', { count: kpis.needsCleaningCredits })
@@ -69,8 +67,8 @@ export function HousekeepingSummary({
   }
 
   return (
-    <div className={v2 ? 'overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface' : 'space-y-2'}>
-      <section aria-label={t('housekeeping.boardV2.summary.label')} className={v2 ? 'grid grid-cols-2 sm:grid-cols-5' : 'grid grid-cols-2 overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface sm:grid-cols-5'}>
+    <div className="overflow-hidden rounded-[var(--r-lg)] border border-line bg-surface">
+      <section aria-label={t('housekeeping.boardV2.summary.label')} className="grid grid-cols-2 sm:grid-cols-5">
         {KPI_CONFIG.map(({ key, status, label }) => {
         const selected = activeStatus === status
         return (
@@ -88,13 +86,11 @@ export function HousekeepingSummary({
         )
         })}
       </section>
-      {kpis.outOfOrder > 0 && (v2 ? (
+      {kpis.outOfOrder > 0 && (
         <div className="flex justify-end border-t border-line bg-surface-2 px-3 py-1.5">
           <Link href="/housekeeping/out-of-order" className="inline-flex items-center gap-1 rounded-[var(--r-sm)] px-1.5 py-0.5 text-xs font-medium text-accent hover:underline focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.boardV2.summary.manageOutOfOrder')} <span aria-hidden="true">&rarr;</span></Link>
         </div>
-      ) : (
-        <Link href="/housekeeping/out-of-order" className="inline-flex text-xs font-medium text-accent underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-accent">{t('housekeeping.boardV2.summary.manageOutOfOrder')}</Link>
-      ))}
+      )}
     </div>
   )
 }
@@ -138,7 +134,7 @@ export function HousekeepingAttention({
     return byGroup
   }, [summary])
 
-  if (summary.length === 0 && isDesignV2Enabled()) {
+  if (summary.length === 0) {
     return (
       <section id="housekeeping-attention" aria-labelledby="housekeeping-attention-title" className="flex items-center gap-2 rounded-[var(--r-lg)] border border-line bg-surface px-4 py-2.5 sm:px-5">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ready)]" aria-hidden="true" />
@@ -325,57 +321,7 @@ function V2BoardFilters(props: BoardFiltersProps) {
   )
 }
 
-function LegacyBoardFilters(props: BoardFiltersProps) {
-  const { t } = useTranslation()
-  const selectClass = 'h-9 min-w-0 rounded-[var(--r-md)] border border-line bg-surface px-2 text-sm text-ink outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]'
-  return (
-    <section aria-label={t('housekeeping.boardV2.filters.label')} className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
-        {STATUS_FILTERS.map((filter) => {
-          const active = props.status === filter.key
-          return (
-            <button
-              key={filter.key}
-              type="button"
-              aria-pressed={active}
-              onClick={() => props.onStatusChange(active ? null : filter.key)}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${active ? 'border-ink bg-ink text-paper' : 'border-line bg-surface text-ink2 hover:bg-surface-2'}`}
-            >
-              {t(`housekeeping.boardV2.filters.status.${filter.label}`)}
-            </button>
-          )
-        })}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {props.buildings.length > 1 && <select aria-label={t('housekeeping.boardV2.filters.building')} className={selectClass} value={props.building ?? ''} onChange={(event) => props.onBuildingChange(event.target.value || null)}>
-          <option value="">{t('housekeeping.boardV2.filters.allBuildings')}</option>
-          {props.buildings.map((building) => <option key={building} value={building}>{building}</option>)}
-        </select>}
-        <select aria-label={t('housekeeping.boardV2.filters.floor')} className={selectClass} value={props.floor ?? ''} onChange={(event) => props.onFloorChange(event.target.value ? Number(event.target.value) : null)}>
-          <option value="">{t('housekeeping.boardV2.filters.allFloors')}</option>
-          {props.floors.map((floor) => <option key={floor} value={floor}>{t('housekeeping.boardV2.filters.floorOption', { floor })}</option>)}
-        </select>
-        <select aria-label={t('housekeeping.boardV2.filters.assignee')} className={selectClass} value={props.assigneeId ?? ''} onChange={(event) => props.onAssigneeChange(event.target.value || null)}>
-          <option value="">{t('housekeeping.boardV2.filters.allAssignees')}</option>
-          {props.staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
-        </select>
-        <select aria-label={t('housekeeping.boardV2.filters.cleanType')} className={selectClass} value={props.cleanTypes[0] ?? ''} onChange={(event) => props.onCleanTypesChange(event.target.value ? [event.target.value as CleanType] : [])}>
-          <option value="">{t('housekeeping.boardV2.filters.allCleanTypes')}</option>
-          <option value="DEP">{t('housekeeping.roomStatus.filters.departure')}</option>
-          <option value="FULL">{t('housekeeping.roomStatus.filters.full')}</option>
-          <option value="LIGHT">{t('housekeeping.roomStatus.filters.light')}</option>
-        </select>
-      </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-ink2">
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.attention === 'service_issue'} onChange={(event) => props.onAttentionChange(event.target.checked ? 'service_issue' : null)} />{t('housekeeping.boardV2.filters.serviceIssues')}</label>
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.attention === 'arrival_risk'} onChange={(event) => props.onAttentionChange(event.target.checked ? 'arrival_risk' : null)} />{t('housekeeping.boardV2.filters.arrivalRisk')}</label>
-        <label className="inline-flex items-center gap-2"><input type="checkbox" checked={props.unassignedOnly} onChange={(event) => props.onUnassignedChange(event.target.checked)} />{t('housekeeping.boardV2.filters.unassigned')}</label>
-      </div>
-    </section>
-  )
-}
-
-/** V2 groups the filters into one toolbar with Clear; flag off keeps the original layout byte for byte. */
+/** Filters grouped into one toolbar with Clear. */
 export function HousekeepingBoardFilters(props: BoardFiltersProps) {
-  return isDesignV2Enabled() ? <V2BoardFilters {...props} /> : <LegacyBoardFilters {...props} />
+  return <V2BoardFilters {...props} />
 }

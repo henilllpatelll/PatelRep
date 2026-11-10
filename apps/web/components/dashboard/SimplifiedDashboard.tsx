@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, LayoutGroup, motion, useIsPresent, useReducedMotion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Plus, MessageSquare, UserPlus, X, ChevronRight, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
-import { useAuthStore } from '@/stores/authStore'
+import { Plus, MessageSquare, UserPlus, X, ChevronRight, AlertTriangle, CheckCircle2, ArrowUpDown } from 'lucide-react'
 import { useHotelStore } from '@/stores/hotelStore'
 import { useRole } from '@/lib/hooks/useRole'
 import { useEngineeringStore } from '@/stores/engineeringStore'
@@ -20,8 +19,6 @@ import { Avatar, Pill, Bar, SectionLabel, AILabel, Mono, SparkIcon } from '@/com
 import { Button, IconButton } from '@/components/ui/Button'
 import { StateBlock } from '@/components/ui/StateBlock'
 import { useToast } from '@/components/ui/Toast'
-import { getGreetingName } from '@/lib/utils/userGreeting'
-import { DashboardGreeting } from './DashboardGreeting'
 import { BriefingChat } from './BriefingChat'
 import { OvernightRecapStrip } from './OvernightRecapStrip'
 import type { BriefingBoardStats } from '@/lib/ai/briefingFastPath'
@@ -30,10 +27,8 @@ import type { OvernightSummary } from '@/lib/hooks/useArrivalReadiness'
 import { RoomDetailDrawer } from '@/components/housekeeping/RoomDetailDrawer'
 import { WorkOrderDetailDrawer } from '@/components/engineering/WorkOrderDetailDrawer'
 import { CreateWorkOrderDrawer } from '@/components/engineering/CreateWorkOrderDrawer'
-import { cn } from '@/lib/utils'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 import { useTranslation } from 'react-i18next'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { buildExceptions, buildReadiness, buildTeamPulse, classifyOccupancy, formatPartialCount } from '@/lib/design/dashboardV2Model'
 import { AIInsightsCard, DashboardV2Header, DashboardV2Kpis, ExceptionsCard, ReadinessCard, TeamPulseCard, type KpiTile } from './DashboardV2Sections'
 
@@ -349,7 +344,6 @@ function WorkOrdersPanel({
   onRetry: () => void
   onNewWorkOrder: () => void
 }) {
-  const router = useRouter()
   const [urgentOnly, setUrgentOnly] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -558,13 +552,10 @@ function BriefingCell({ children, duration }: { children: ReactNode; duration: n
 
 export function SimplifiedDashboard() {
   const router = useRouter()
-  const storedFullName = useAuthStore((s) => s.fullName)
-  const user = useAuthStore((s) => s.user)
   const hotel = useHotelStore((s) => s.hotel)
   const { role, isSupervisor } = useRole()
   const canMessage = role === 'gm' || role === 'housekeeping_supervisor' || role === 'engineer'
   const queryClient = useQueryClient()
-  const toast = useToast()
   const { t } = useTranslation()
 
   const [listFilter, setListFilter] = useState<StatKey | null>(null)
@@ -578,12 +569,6 @@ export function SimplifiedDashboard() {
   const briefingTransition = { duration: reducedMotion ? 0 : 0.4, ease: [0.16, 0.84, 0.34, 1] as const }
   type BriefingView = 'briefing' | 'chat'
   const [briefingView, setBriefingView] = useState<BriefingView>('briefing')
-
-  const firstName = getGreetingName({
-    fullName: storedFullName,
-    userMetadataFullName: user?.user_metadata?.full_name,
-    appMetadataFullName: user?.app_metadata?.full_name,
-  })
 
   const todayISO = format(new Date(), 'yyyy-MM-dd')
 
@@ -716,7 +701,6 @@ export function SimplifiedDashboard() {
     { key: 'VACANT', label: 'Vacant', value: vacant, hint: vacantInProgress > 0 ? `${vacantInProgress} in progress` : '', dot: 'bg-[var(--ready)]' },
   ]
 
-  const now = new Date()
 
   // Grounds "Ask about this" answers in exactly what's on screen right now.
   const briefingStats: BriefingBoardStats = {
@@ -826,228 +810,95 @@ export function SimplifiedDashboard() {
     </>
   )
 
-  if (isDesignV2Enabled()) {
-    const readiness = buildReadiness(rooms)
-    const exceptions = buildExceptions({
-      workOrders,
-      rooms,
-      workOrdersPerPage: (workOrdersData as any)?.meta?.per_page,
-    })
-    const teamPulse = buildTeamPulse((assignmentsData as any)?.data ?? [])
-    const woPerPage: number | undefined = (workOrdersData as any)?.meta?.per_page
-    const tiles: KpiTile[] = [
-      ...statTiles.map((tile) => ({
-        key: tile.key,
-        label: t(`dashboardV2.${{ all: 'kpiTotalRooms', OCCUPIED: 'kpiOccupied', DEPARTURE: 'kpiDepartures', VACANT: 'kpiVacant' }[tile.key]}`),
-        value: String(tile.value),
-        hint: tile.hint,
-        active: listFilter === tile.key,
-        onClick: () => setListFilter(listFilter === tile.key ? null : tile.key),
-      })),
-      {
-        key: 'work-orders',
-        label: t('dashboardV2.kpiOpenWorkOrders'),
-        value: woError ? '—' : formatPartialCount(workOrders.length, woPerPage),
-        ariaLabel: t('dashboardV2.kpiOpenWorkOrders'),
-        onClick: () => router.push('/engineering/work-orders'),
-      },
-      ...(cleanTime && cleanTime.today_avg_minutes != null
-        ? [{
-            key: 'avg-clean',
-            label: t('dashboardV2.kpiAvgClean'),
-            value: `${cleanTime.today_avg_minutes}m`,
-            hint: cleanTime.delta_minutes ? t('dashboardV2.kpiAvgCleanVs', { delta: `${cleanTime.delta_minutes > 0 ? '+' : ''}${cleanTime.delta_minutes}` }) : undefined,
-            ariaLabel: t('dashboardV2.kpiAvgClean'),
-            onClick: () => router.push('/reports'),
-          }]
-        : []),
-    ]
-
-    return (
-      <div className="flex flex-col gap-4 pb-6">
-        <DashboardV2Header
-          hotelName={hotel?.name}
-          updatedAt={boardUpdatedAt || undefined}
-          onRefresh={handleRefresh}
-          onNewTask={() => router.push('/tasks')}
-        />
-
-        {isSupervisor && (
-          <OvernightRecapStrip summary={overnightSummary} isLoading={overnightLogbookQuery.isLoading} />
-        )}
-
-        <DashboardV2Kpis tiles={tiles} loading={boardLoading} />
-
-        {boardError && (
-          <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="bg-surface border border-line rounded-[var(--r-lg)]" />
-        )}
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
-            <ReadinessCard model={readiness} onOpenBoard={() => router.push('/housekeeping')} />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <ExceptionsCard
-                model={exceptions}
-                workOrders={workOrders}
-                workOrdersPerPage={woPerPage}
-                onOpenWorkOrder={(wo) => useEngineeringStore.getState().openDrawer(wo)}
-                onOpenDepartures={() => setListFilter('DEPARTURE')}
-              />
-              <TeamPulseCard model={teamPulse} />
-            </div>
-          </div>
-          <AIInsightsCard>
-            <LayoutGroup id={briefingLayoutId}>
-              <div className="briefing-left flex flex-col gap-3">
-                <AnimatePresence
-                  initial={false}
-                  onExitComplete={() => {
-                    if (briefingView === 'briefing') askButtonRef.current?.focus({ preventScroll: true })
-                  }}
-                >
-                  <BriefingCell key={briefingView} duration={briefingTransition.duration}>
-                    {briefingView === 'chat' ? renderChatBody() : renderBriefingBody()}
-                  </BriefingCell>
-                </AnimatePresence>
-              </div>
-            </LayoutGroup>
-          </AIInsightsCard>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="h-[520px] min-w-0">
-            <StaffPanel
-              assignmentsData={assignmentsData}
-              staffData={staffData}
-              workOrders={workOrders}
-              completedWorkOrders={completedWorkOrders}
-              rooms={rooms}
-              canMessage={canMessage}
-            />
-          </div>
-          <div className="h-[520px] min-w-0">
-            <WorkOrdersPanel
-              workOrders={workOrders}
-              isError={woError}
-              onRetry={() => refetchWO()}
-              onNewWorkOrder={() => setShowCreateWO(true)}
-            />
-          </div>
-        </div>
-
-        {drawers}
-      </div>
-    )
-  }
+  const readiness = buildReadiness(rooms)
+  const exceptions = buildExceptions({
+    workOrders,
+    rooms,
+    workOrdersPerPage: (workOrdersData as any)?.meta?.per_page,
+  })
+  const teamPulse = buildTeamPulse((assignmentsData as any)?.data ?? [])
+  const woPerPage: number | undefined = (workOrdersData as any)?.meta?.per_page
+  const tiles: KpiTile[] = [
+    ...statTiles.map((tile) => ({
+      key: tile.key,
+      label: t(`dashboardV2.${{ all: 'kpiTotalRooms', OCCUPIED: 'kpiOccupied', DEPARTURE: 'kpiDepartures', VACANT: 'kpiVacant' }[tile.key]}`),
+      value: String(tile.value),
+      hint: tile.hint,
+      active: listFilter === tile.key,
+      onClick: () => setListFilter(listFilter === tile.key ? null : tile.key),
+    })),
+    {
+      key: 'work-orders',
+      label: t('dashboardV2.kpiOpenWorkOrders'),
+      value: woError ? '—' : formatPartialCount(workOrders.length, woPerPage),
+      ariaLabel: t('dashboardV2.kpiOpenWorkOrders'),
+      onClick: () => router.push('/engineering/work-orders'),
+    },
+    ...(cleanTime && cleanTime.today_avg_minutes != null
+      ? [{
+          key: 'avg-clean',
+          label: t('dashboardV2.kpiAvgClean'),
+          value: `${cleanTime.today_avg_minutes}m`,
+          hint: cleanTime.delta_minutes ? t('dashboardV2.kpiAvgCleanVs', { delta: `${cleanTime.delta_minutes > 0 ? '+' : ''}${cleanTime.delta_minutes}` }) : undefined,
+          ariaLabel: t('dashboardV2.kpiAvgClean'),
+          onClick: () => router.push('/reports'),
+        }]
+      : []),
+  ]
 
   return (
-    <div className="flex flex-col gap-4 h-full min-h-0">
-      {/* Greeting */}
-      <div className="shrink-0 flex items-end justify-between gap-6">
-        <DashboardGreeting
-          name={firstName}
-          meta={hotel?.name}
-        />
-        <div className="flex gap-2 pb-1 shrink-0">
-          <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-1.5">
-            <RefreshCw size={13} />
-            Refresh
-          </Button>
-          <Button variant="dark" size="sm" onClick={() => router.push('/tasks')} className="gap-1.5">
-            <Plus size={13} />
-            New task
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-4 pb-6">
+      <DashboardV2Header
+        hotelName={hotel?.name}
+        updatedAt={boardUpdatedAt || undefined}
+        onRefresh={handleRefresh}
+        onNewTask={() => router.push('/tasks')}
+      />
 
       {isSupervisor && (
         <OvernightRecapStrip summary={overnightSummary} isLoading={overnightLogbookQuery.isLoading} />
       )}
 
-      {/* AI briefing hero */}
-      <section className="shrink-0 relative overflow-hidden rounded-[var(--r-xl)] bg-ink text-paper shadow-card">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(circle at 84% 12%, var(--accent) 0%, transparent 52%)', opacity: 0.26 }}
-          />
-          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6 p-7">
-            <LayoutGroup id={briefingLayoutId}>
-              <div className="briefing-left">
-                <AnimatePresence
-                  initial={false}
-                  onExitComplete={() => {
-                    if (briefingView === 'briefing') askButtonRef.current?.focus({ preventScroll: true })
-                  }}
-                >
-                  <BriefingCell key={briefingView} duration={briefingTransition.duration}>
-                    {briefingView === 'chat' ? renderChatBody() : renderBriefingBody()}
-                  </BriefingCell>
-                </AnimatePresence>
-              </div>
-            </LayoutGroup>
-
-            <div className="grid grid-cols-2 gap-3">
-              {boardLoading ? (
-                Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-xl bg-white/5 min-h-[100px] animate-pulse" />)
-              ) : (
-                statTiles.map((tile) => (
-                  <button
-                    key={tile.key}
-                    onClick={() => setListFilter(listFilter === tile.key ? null : tile.key)}
-                    className={cn(
-                      'flex flex-col justify-between gap-2.5 min-h-[100px] px-4 py-3.5 rounded-xl text-left transition-colors',
-                      listFilter === tile.key
-                        ? 'bg-white/[.11] border border-white/30'
-                        : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className={cn('w-2 h-2 rounded-full', tile.dot)} />
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-white/60">{tile.label}</span>
-                    </span>
-                    <span className="flex items-baseline gap-2">
-                      <span className="font-display text-[32px] leading-none">{tile.value}</span>
-                      {tile.hint && <span className="text-[11px] font-mono text-white/50">{tile.hint}</span>}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-          <div className="relative border-t border-white/10 px-7 py-2 flex items-center justify-between gap-3 flex-wrap text-[11px] text-white/50">
-            {cleanTime && cleanTime.today_avg_minutes != null ? (
-              <button
-                onClick={() => router.push('/reports')}
-                className="inline-flex items-baseline gap-2 hover:opacity-75 transition-opacity"
-                title="How today's clean times compare to the 7-day average"
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-white/55">Avg clean time</span>
-                <span className="font-mono text-[13px] font-medium text-white/90">{cleanTime.today_avg_minutes}m</span>
-                {cleanTime.delta_minutes != null && cleanTime.delta_minutes !== 0 && (
-                  <span className={cn('text-[10.5px]', cleanTime.delta_minutes < 0 ? 'text-[#7cd6c5]' : 'text-[#e0a3a3]')}>
-                    {cleanTime.delta_minutes > 0 ? '+' : ''}{cleanTime.delta_minutes}m vs 7-day
-                  </span>
-                )}
-              </button>
-            ) : (
-              <span />
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#4ab8a8] animate-pulse" />
-              <span className="font-mono">
-                Live · {boardUpdatedAt ? format(new Date(boardUpdatedAt), 'h:mm a') : '—'}
-              </span>
-            </span>
-          </div>
-        </section>
+      <DashboardV2Kpis tiles={tiles} loading={boardLoading} />
 
       {boardError && (
-        <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="shrink-0 bg-surface border border-line rounded-[var(--r-lg)]" />
+        <StateBlock status="error" error={{ message: 'Could not load the room board', onRetry: () => refetchBoard() }} className="bg-surface border border-line rounded-[var(--r-lg)]" />
       )}
 
-      {/* Staff + Work orders — each panel scrolls internally so the page itself never scrolls */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-5">
-        <div className="flex-1 min-h-0 min-w-0 md:basis-1/2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-4 xl:col-span-2">
+          <ReadinessCard model={readiness} onOpenBoard={() => router.push('/housekeeping')} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <ExceptionsCard
+              model={exceptions}
+              workOrders={workOrders}
+              workOrdersPerPage={woPerPage}
+              onOpenWorkOrder={(wo) => useEngineeringStore.getState().openDrawer(wo)}
+              onOpenDepartures={() => setListFilter('DEPARTURE')}
+            />
+            <TeamPulseCard model={teamPulse} />
+          </div>
+        </div>
+        <AIInsightsCard>
+          <LayoutGroup id={briefingLayoutId}>
+            <div className="briefing-left flex flex-col gap-3">
+              <AnimatePresence
+                initial={false}
+                onExitComplete={() => {
+                  if (briefingView === 'briefing') askButtonRef.current?.focus({ preventScroll: true })
+                }}
+              >
+                <BriefingCell key={briefingView} duration={briefingTransition.duration}>
+                  {briefingView === 'chat' ? renderChatBody() : renderBriefingBody()}
+                </BriefingCell>
+              </AnimatePresence>
+            </div>
+          </LayoutGroup>
+        </AIInsightsCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="h-[520px] min-w-0">
           <StaffPanel
             assignmentsData={assignmentsData}
             staffData={staffData}
@@ -1057,7 +908,7 @@ export function SimplifiedDashboard() {
             canMessage={canMessage}
           />
         </div>
-        <div className="flex-1 min-h-0 min-w-0 md:basis-1/2">
+        <div className="h-[520px] min-w-0">
           <WorkOrdersPanel
             workOrders={workOrders}
             isError={woError}

@@ -295,7 +295,7 @@ export const S = { page: 18, card: 16, cardGap: 15, sectionGap: 22 } as const;
  *  the splash screen stays up until fontsLoaded, so this fallback is rarely
  *  visible in practice).
  *
- *  These are the LEGACY faces: constants that never read the tenant flag. Design V2 swaps them for the system sans
+ *  These are the LEGACY faces: constants that never read any flag. Design V2 swaps them for the system sans
  *  at render time: static StyleSheets go through `createTypographyStyles` (lib/design/reactiveTypography.ts) and
  *  inline uses layer `useV2Text().num`. Never decide a face from the flag at module initialization. */
 export const monoFont = Platform.select({

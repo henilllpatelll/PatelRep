@@ -22,7 +22,7 @@ interface HotelStore {
   hotels: Hotel[]
   subscription: Subscription | null
   /** Provenance of the hotel record: which signed-in user and hotel the last successful GET /auth/me was for, and
-   *  when (epoch ms). Design V2 activation requires all three to match; anything else fails closed to legacy.
+   *  when (epoch ms). Consumers that depend on a per-hotel setting use it to ignore a record fetched for another user or hotel.
    *  Set only by setContext (never by setHotel, which also serves local edits and onboarding). */
   contextUserId: string | null
   contextHotelId: string | null

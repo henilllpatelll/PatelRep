@@ -8,7 +8,7 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
 }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  useTranslation: () => ({ t: (k: string) => k, i18n: { resolvedLanguage: "en" } }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -157,12 +157,12 @@ describe("RoomStatusScreen", () => {
     expect(screen.queryByText("102")).toBeNull();
   });
 
-  it("shows the shared empty state when the board request fails", async () => {
+  it("shows the shared error state with a retry when the board request fails", async () => {
     mockApiGet.mockRejectedValueOnce(new Error("offline"));
     renderScreen();
 
-    await waitFor(() => expect(screen.getByText("roomStatus.noRoomsMatch")).toBeTruthy());
-    expect(screen.getByText("roomStatus.noRoomsMatchHint")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("frontDeskHome.rooms.failed")).toBeTruthy());
+    expect(screen.getByText("common.retry")).toBeTruthy();
   });
 
   it("renders translated room statuses through the shared status badge contract", async () => {

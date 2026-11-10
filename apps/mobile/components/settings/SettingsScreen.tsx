@@ -4,8 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AccountHeader } from "@/components/shared/HeadersV2";
-import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
-import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
 import { MIN_TOUCH } from "@/lib/settings/a11y";
 import { useTheme } from "@/lib/theme/useTheme";
 
@@ -25,17 +23,9 @@ function goBack() {
 }
 
 /** Shared chrome for every Settings screen: safe-area header with title (and back), scrolling body.
- *  With the Design V2 preview on, Settings screens render the V2 account header inside a scoped V2
- *  theme; with it off this is exactly the legacy chrome. */
+ *  Settings screens render the V2 account header; `v2Chrome={false}` keeps the plain header for screens that own theirs. */
 export function SettingsScreen(props: SettingsScreenProps) {
-  const designV2 = useDesignV2Active();
-  if (designV2 && props.v2Chrome !== false) {
-    return (
-      <DesignV2Scope>
-        <SettingsScreenV2 {...props} />
-      </DesignV2Scope>
-    );
-  }
+  if (props.v2Chrome !== false) return <SettingsScreenV2 {...props} />;
   return <LegacySettingsScreen {...props} />;
 }
 

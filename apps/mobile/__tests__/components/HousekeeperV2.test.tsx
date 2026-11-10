@@ -10,16 +10,11 @@ import { getThemeTokens } from "@/components/shared/tokens";
 
 let mockLanguage: "en" | "es" = "en";
 let mockMode: "light" | "dark" = "light";
-let mockFlag = true;
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator(() => mockLanguage), i18n: { language: mockLanguage, resolvedLanguage: mockLanguage } }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => mockMode }));
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
@@ -51,14 +46,14 @@ import type { ActiveRoomView } from "@/lib/housekeeping/homeModel";
 const t = mockMakeTranslator(() => mockLanguage);
 const flat = (node: { props: Record<string, unknown> }) => StyleSheet.flatten(node.props.style as StyleProp<TextStyle>) as TextStyle;
 
-function gated(enabled: boolean, ui: React.ReactElement) {
-  return render(<DesignV2Scope enabled={enabled}>{ui}</DesignV2Scope>);
+// V2 is unconditional: the first argument is kept only so existing call sites read the same.
+function gated(_enabled: boolean, ui: React.ReactElement) {
+  return render(<DesignV2Scope>{ui}</DesignV2Scope>);
 }
 
 beforeEach(() => {
   mockLanguage = "en";
   mockMode = "light";
-  mockFlag = true;
 });
 
 describe("role gate", () => {
@@ -73,18 +68,10 @@ describe("role gate", () => {
     }
   });
 
-  it("an enabled scope is V2 while the preview flag is on", () => {
+  it("the scope is V2", () => {
     expect(gated(true, <Probe />).getByTestId("probe").props.children).toBe("v2");
   });
 
-  it("a disabled scope (any other role) stays legacy even with the flag on", () => {
-    expect(gated(false, <Probe />).getByTestId("probe").props.children).toBe("legacy");
-  });
-
-  it("an enabled scope is inert when the preview flag is off", () => {
-    mockFlag = false;
-    expect(gated(true, <Probe />).getByTestId("probe").props.children).toBe("legacy");
-  });
 });
 
 describe("V2 text overrides", () => {
@@ -111,14 +98,6 @@ describe("V2 text overrides", () => {
     expect(view.getByTestId("edge").props.children).toBe(lightThemeV2.borderSubtle);
   });
 
-  it("changes nothing outside the scope", () => {
-    const view = gated(false, <Overrides />);
-    expect(view.getByTestId("active").props.children).toBe("false");
-    expect(flat(view.getByTestId("label")).textTransform).toBe("uppercase");
-    expect(flat(view.getByTestId("num")).fontFamily).toBe("IBMPlexMono_500Medium");
-    expect(view.getByTestId("edge").props.children).toBe(getThemeTokens("light").border);
-  });
-
   it("uses the dark separator in dark mode", () => {
     mockMode = "dark";
     expect(gated(true, <Overrides />).getByTestId("edge").props.children).toBe(darkThemeV2.borderSubtle);
@@ -126,7 +105,6 @@ describe("V2 text overrides", () => {
 
   it("the shouting Kicker becomes a sentence-case label", () => {
     expect(flat(gated(true, <Kicker>Your progress</Kicker>).getByText("Your progress")).textTransform).toBe("none");
-    expect(flat(gated(false, <Kicker>Your progress</Kicker>).getByText("Your progress")).textTransform).toBe("uppercase");
   });
 
   it("the terracotta housekeeper accent is retired inside V2 only", () => {
@@ -135,7 +113,6 @@ describe("V2 text overrides", () => {
       return <Text testID="accent">{a.bg}</Text>;
     }
     expect(gated(true, <Accent />).getByTestId("accent").props.children).toBe(lightThemeV2.primary);
-    expect(gated(false, <Accent />).getByTestId("accent").props.children).toBe("#B8431C");
   });
 });
 
@@ -167,13 +144,6 @@ describe("Home header", () => {
     expect(onOpenNotifications).toHaveBeenCalledTimes(1);
     expect(onOpenSync).toHaveBeenCalledTimes(1);
     expect(view.getByTestId("home-notifications-badge")).toBeTruthy();
-  });
-
-  it("legacy keeps the uppercase meta and never shows a hotel line", () => {
-    const view = gated(false, <HomeHeader {...base} hotelName="Fossil Creek Inn" />);
-    expect(view.getByText("WEDNESDAY, OCT 14 · MORNING")).toBeTruthy();
-    expect(view.queryByTestId("home-hotel")).toBeNull();
-    expect(view.getByTestId("home-sync-line")).toBeTruthy();
   });
 
   it("V2 omits the hotel line when the hotel is unknown", () => {
@@ -242,12 +212,6 @@ describe("Current room card", () => {
   it("a session with no timer start shows no elapsed time (never invented)", () => {
     const view = gated(true, card(active({ startedAt: null }), false));
     expect(view.queryByTestId("current-room-elapsed")).toBeNull();
-  });
-
-  it("legacy never shows the V2 reason line", () => {
-    const view = gated(false, card(active(), false));
-    expect(view.queryByTestId("focus-mark-clean-reason")).toBeNull();
-    expect(view.getByTestId("focus-primary")).toBeTruthy();
   });
 
   it("recovery states keep one obvious route into the room", () => {
@@ -352,10 +316,6 @@ describe("Guest knock guidance", () => {
     expect(flat(title).fontWeight).toBe("700");
   });
 
-  it("legacy keeps the heavy title", () => {
-    const view = gated(false, knock());
-    expect(flat(view.getAllByRole("header")[0]).fontWeight).toBe("900");
-  });
 });
 
 describe("copy", () => {

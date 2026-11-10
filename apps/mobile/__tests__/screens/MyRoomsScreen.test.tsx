@@ -198,11 +198,11 @@ describe("My Rooms dashboard", () => {
   });
 
   it("summarises progress with the shared counts (unavailable excluded from the total)", async () => {
-    const { getByLabelText, getByText } = renderScreen();
+    const { getByLabelText, getAllByLabelText, getByText } = renderScreen();
     await waitFor(() => expect(mockApiGet).toHaveBeenCalled());
     // 7 assigned − 1 out of service = 6 serviceable; CLEAN + INSPECTED = 2 completed.
     expect(getByText(/rooms\.dash\.progressOf .*"completed":2,"total":6/)).toBeTruthy();
-    expect(getByLabelText(/rooms\.dash\.progressA11y .*"percent":33/)).toBeTruthy();
+    expect(getAllByLabelText(/rooms\.dash\.progressA11y .*"percent":33/).length).toBeGreaterThan(0);
     expect(getByLabelText(/rooms\.dash\.chips\.attention 1/)).toBeTruthy();
     expect(getByLabelText(/rooms\.dash\.chips\.unavailable 1/)).toBeTruthy();
   });

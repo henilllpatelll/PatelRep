@@ -2,7 +2,6 @@
 
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2 } from 'lucide-react'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { Button } from '@/components/ui/Button'
 import type { TeamPlanAttentionItem } from '@/lib/housekeeping/teamPlanView'
 
@@ -23,7 +22,7 @@ function itemLabelKey(code: TeamPlanAttentionItem['code']): string {
 export function TeamPlanAttention({ items, canAssign, onOpenRoom, onAssignRoom, onRebalance, onOpenGuestRequest }: Props) {
   const { t, i18n } = useTranslation()
 
-  if (items.length === 0 && isDesignV2Enabled()) {
+  if (items.length === 0) {
     return (
       <section aria-labelledby="team-plan-attention-title" className="flex items-center gap-2 rounded-[var(--r-lg)] border border-line bg-surface px-4 py-2.5">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ready)]" aria-hidden="true" />

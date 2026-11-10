@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { useDiscardGuard } from '@/lib/hooks/useDiscardGuard'
 import { DiscardChangesPrompt } from '@/components/ui/DiscardChangesPrompt'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -112,7 +111,7 @@ export function CreateWorkOrderDrawer({ isOpen, onClose, onCreate, initialRoomId
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const dirty = Boolean(title.trim() || nlInput.trim() || locationText.trim() || propertyArea.trim() || selectedRoomId || assignedTo || assetId || problemCode || photoFile)
-  const guard = useDiscardGuard(isDesignV2Enabled() && dirty, onClose)
+  const guard = useDiscardGuard(dirty, onClose)
 
   const { data: roomsData, isLoading: roomsLoading, isError: roomsError, refetch: refetchRooms } = useQuery({
     queryKey: ['rooms-picker'],

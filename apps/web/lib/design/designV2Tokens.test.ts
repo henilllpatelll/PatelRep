@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isDesignV2PreviewEnabled, resolveDesignV2Preview } from './designV2'
 import { aiV2, designV2CssVars, paletteV2, shellV2, statusV2, type ModeV2 } from './designV2Tokens'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -46,17 +45,6 @@ function contrast(fg: string, fill: string, base = fill): number {
 
 const MODES: ModeV2[] = ['light', 'dark']
 const STATUS = ['ready', 'clean', 'inProgress', 'dirty', 'occupied', 'pickup', 'outOfOrder'] as const
-
-test('preview flag is disabled by default and never on in production', () => {
-  assert.equal(isDesignV2PreviewEnabled(), false)
-  assert.equal(resolveDesignV2Preview(undefined, undefined), false)
-  assert.equal(resolveDesignV2Preview('1', undefined), false)
-  assert.equal(resolveDesignV2Preview('false', undefined), false)
-  assert.equal(resolveDesignV2Preview('true', 'development'), true)
-  assert.equal(resolveDesignV2Preview(' TRUE ', 'staging'), true)
-  assert.equal(resolveDesignV2Preview('true', 'production'), false)
-  assert.equal(resolveDesignV2Preview('true', ' Production '), false)
-})
 
 // The mobile file is loaded dynamically (non-literal specifier) because the web Docker build copies
 // only apps/web: a static import would break `next build`'s type-check there. In a full checkout

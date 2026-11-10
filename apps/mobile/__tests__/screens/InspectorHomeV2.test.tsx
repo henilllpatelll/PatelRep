@@ -14,7 +14,6 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator("en"), i18n: { language: "en", resolvedLanguage: "en" } }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => "light" }));
-jest.mock("@/lib/design/designV2", () => ({ isDesignV2Enabled: () => true, resolveDesignV2Preview: () => true }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));

@@ -13,7 +13,7 @@ import {
 import { Button, type ButtonSize, type ButtonVariant } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge, type StatusKey } from "@/components/ui/StatusBadge";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 
 let mockSystemScheme: "light" | "dark" = "light";
@@ -148,7 +148,7 @@ describe("Card dark-mode separation", () => {
 
     expect(flattenedStyle(card)).toMatchObject({
       backgroundColor: surface,
-      borderColor: darkTheme.border,
+      borderColor: darkTheme.borderSubtle,
       borderWidth: 1,
     });
   });

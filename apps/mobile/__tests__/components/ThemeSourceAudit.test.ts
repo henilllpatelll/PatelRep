@@ -157,12 +157,7 @@ describe("protected theme exceptions and integration links", () => {
       "<NavigationThemeProvider value={getNavigationTheme(mode)}>",
     );
     expect(protectedLayoutSource).toContain("const theme = useTheme();");
-    expect(protectedLayoutSource).toContain(
-      "tabBarActiveTintColor: theme.shell.ink",
-    );
-    expect(protectedLayoutSource).toContain(
-      "backgroundColor: theme.shell.bg",
-    );
+    expect(protectedLayoutSource).toContain("buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length)");
   });
 
   it("keeps the real Settings appearance selector radio-semantic and direct", () => {

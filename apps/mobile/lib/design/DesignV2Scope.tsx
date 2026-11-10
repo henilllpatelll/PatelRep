@@ -1,38 +1,25 @@
 import { createContext, useContext, useMemo } from "react";
 import type { ThemeMode } from "@/components/shared/tokens";
-import { useDesignV2Active } from "./useDesignV2Active";
 
 type ScopeValue = { mode?: ThemeMode };
 
-const DesignV2Context = createContext<ScopeValue | null>(null);
+const DesignV2Context = createContext<ScopeValue>({});
 
-/** Renders its subtree with the V2 theme — but only while Design V2 is active: this hotel's `design_v2` flag
- *  (after the signed-in context was read) or the development preview. With neither it is a transparent
- *  pass-through, so a stray usage can never change production appearance, and it follows the flag live:
- *  a refresh that turns the flag off or on re-themes the subtree without a restart.
- *  `mode` optionally pins light/dark inside the scope (the preview's own toggle); omit it to follow
- *  the app's normal system/light/dark appearance preference. */
-export function DesignV2Scope({
-  mode,
-  enabled = true,
-  children,
-}: {
-  mode?: ThemeMode;
-  /** Role gate: `false` makes the scope an inert pass-through (used to scope V2 to one role's surface). */
-  enabled?: boolean;
-  children: React.ReactNode;
-}) {
-  const active = useDesignV2Active();
-  const value = useMemo<ScopeValue | null>(() => (enabled && active ? { mode } : null), [mode, enabled, active]);
+/** Design System V2 is the one PatelRep design for every hotel and role; there is no flag, preview variable or
+ *  per-tenant switch. The scope exists only to PIN light/dark for a subtree (`mode`); omit it to follow the app's
+ *  system/light/dark preference. Without a provider the default context is already V2, so a surface mounted outside
+ *  any scope (a modal, a toast, a sheet) can never fall back to a legacy look. */
+export function DesignV2Scope({ mode, children }: { mode?: ThemeMode; children: React.ReactNode }) {
+  const value = useMemo<ScopeValue>(() => ({ mode }), [mode]);
   return <DesignV2Context.Provider value={value}>{children}</DesignV2Context.Provider>;
 }
 
-export function useDesignV2Scope(): { active: boolean; mode?: ThemeMode } {
+export function useDesignV2Scope(): { active: true; mode?: ThemeMode } {
   const ctx = useContext(DesignV2Context);
-  return ctx ? { active: true, mode: ctx.mode } : { active: false };
+  return { active: true, mode: ctx.mode };
 }
 
-/** True only inside an active `<DesignV2Scope>`. Components use it for non-color V2 styling. */
-export function useIsDesignV2(): boolean {
-  return useContext(DesignV2Context) !== null;
+/** Always true. Kept so components can branch their remaining non-color styling through one name. */
+export function useIsDesignV2(): true {
+  return true;
 }

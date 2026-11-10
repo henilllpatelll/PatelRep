@@ -5,17 +5,14 @@ import { useIsDesignV2 } from "@/lib/design/DesignV2Scope";
  *
  *  Legacy styles used shouted micro labels, tracked caps, sub-12 sizes and IBM Plex Mono / Instrument Serif
  *  accents; Design V2 uses sentence case, no tracking, a 12 floor and the system sans (tabular for figures).
- *  Those choices used to be evaluated when the bundle loaded, before anyone signed in, so a tenant-activated
- *  phone could not follow the `design_v2` flag. Nothing tenant-dependent is decided at module initialization
- *  any more: `createTypographyStyles` builds BOTH variants of a sheet up front from pure, flag-free inputs and the
- *  returned hook picks one at render time from the enclosing `<DesignV2Scope>` (`useIsDesignV2`), the same source the
- *  colors, tokens and `useV2Text()` overlays use, so typography can never disagree with them: a subtree outside an
- *  active scope (flag off, or a role gate) is exactly legacy. The scope follows the live flag, so toggling it
- *  re-styles mounted components in place: no remount, no restart.
+ *  V2 is the permanent design for every hotel and role, so `useIsDesignV2()` is always true and the V2 variant is
+ *  always the one returned. `createTypographyStyles` still builds both variants of a sheet up front from pure inputs
+ *  (the legacy variant is retained only until the remaining legacy branches are deleted); nothing is decided at
+ *  module initialization and no flag, scope or hotel setting can select the legacy variant.
  *
  *  Usage: `const useStyles = createTypographyStyles((t) => ({ kicker: { fontSize: t.labelSize(11), letterSpacing:
  *  t.tracking(1), textTransform: t.labelCase }, num: { fontFamily: t.mono } }));` then `const styles = useStyles();`
- *  inside each component. Legacy output is byte-identical to the previous static sheet. Print/QR labels keep a
+ *  inside each component. Print/QR labels keep a
  *  literal `textTransform: "uppercase"` and never use this module. */
 
 /** Platform system sans, set explicitly: an undefined fontFamily does not override a legacy font on every platform. */

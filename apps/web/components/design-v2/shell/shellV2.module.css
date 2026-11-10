@@ -2,7 +2,7 @@
    reads ONLY var(--dv2-*) custom properties, which ShellV2 sets inline from
    lib/design/designV2Tokens.ts. No hex colors live in this file.
 
-   The shell exists only when NEXT_PUBLIC_DESIGN_V2_PREVIEW is on (see DashboardShell). Page bodies
+   This is the one management shell (see DashboardShell). Page bodies
    rendered inside <main> keep their legacy styling; only the chrome (sidebar, header, drawer) is
    remapped. `.chromeLight` / `.chromeDark` remap the LEGACY token names (--paper, --ink, ...) on
    the chrome subtrees only, so the existing Header keeps its behavior with a V2 appearance. */

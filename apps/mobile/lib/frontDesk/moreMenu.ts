@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import type { Ionicons } from "@expo/vector-icons";
 
 /* ─── Front Desk More (Design System V2, Phase 6) ──────────────────────────────
-   With the preview flag on, Front Desk has five tabs (Home, Requests, Rooms, Logbook, More). Lost & Found and
+   Front Desk has five tabs (Home, Requests, Rooms, Logbook, More). Lost & Found and
    Profile were tabs in the legacy six-tab bar; they live here now. Every entry is a route that already exists, so
    no URL, deep link or notification destination changes. Role access is still enforced by each screen and the API;
    this list only decides what is shown. */

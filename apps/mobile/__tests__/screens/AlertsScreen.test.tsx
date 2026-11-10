@@ -5,19 +5,22 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 
+jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
+// Stable references, like the real hook: a fresh `t` on every render would re-run every effect that depends on it.
+const mockT = (key: string, options?: { count?: number }) => (options?.count == null ? key : `${key}:${options.count}`);
+const mockI18n = { resolvedLanguage: "en" };
+const mockTranslation = { t: mockT, i18n: mockI18n };
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, options?: { count?: number }) =>
-      options?.count == null ? key : `${key}:${options.count}`,
-  }),
+  useTranslation: () => mockTranslation,
 }));
 
 jest.mock("@/lib/api/client", () => ({
   api: { get: jest.fn() },
 }));
 
+const mockStoreState = { isOnline: true, hotelTimezone: "America/Chicago" };
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({ isOnline: true }),
+  useAppStore: (selector?: (state: typeof mockStoreState) => unknown) => (selector ? selector(mockStoreState) : mockStoreState),
 }));
 
 import { api } from "@/lib/api/client";
@@ -58,9 +61,10 @@ describe("AlertsScreen", () => {
 
     renderScreen();
 
-    await waitFor(() => expect(screen.getByText("Elevator motor temperature")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("alert-alert-1")).toBeTruthy());
     expect(mockGet).toHaveBeenCalledWith("/ai/risk-alerts");
-    expect(screen.getByText("Temperature is trending above the normal range.")).toBeTruthy();
+    expect(screen.getByTestId("alerts-v2")).toBeTruthy();
+    expect(screen.getByTestId("alerts-metric-attention")).toBeTruthy();
   });
 
   it("shows the existing all-clear state when no risk alerts are returned", async () => {
@@ -68,7 +72,7 @@ describe("AlertsScreen", () => {
 
     renderScreen();
 
-    await waitFor(() => expect(screen.getByText("alerts.allClear")).toBeTruthy());
-    expect(screen.getByText("alerts.noAlerts")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("alertsV2.empty.title")).toBeTruthy());
+    expect(screen.getByText("alertsV2.empty.body")).toBeTruthy();
   });
 });

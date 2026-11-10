@@ -18,6 +18,7 @@ jest.mock("react-i18next", () => ({
       if (!values) return template;
       return template.replace(/\{\{(\w+)\}\}/g, (_, k) => String(values[k] ?? `{{${k}}}`));
     },
+    i18n: { resolvedLanguage: "en" },
   }),
 }));
 jest.mock("@expo/vector-icons", () => ({
@@ -78,15 +79,15 @@ beforeEach(() => {
 });
 
 describe("GuestRequestsScreen", () => {
-  it("shows AI triage context without changing request data", async () => {
+  it("lists request data without a static AI insight card", async () => {
     renderScreen();
 
     await waitFor(() => expect(screen.getByText("Room 214")).toBeTruthy());
 
-    expect(screen.getByText("AI triage")).toBeTruthy();
-    expect(screen.getByText(/Escalated requests stay surfaced/)).toBeTruthy();
+    // V2 shows no static "AI triage" insight card: nothing AI-derived appears without an explicit request.
+    expect(screen.queryByText("AI triage")).toBeNull();
     expect(screen.getByText("Towels")).toBeTruthy();
-    expect(screen.getByText("workOrders.chipUrgent")).toBeTruthy();
+    expect(screen.getByText("guestRequestsV2.urgent")).toBeTruthy();
   });
 
   it("opens the selected request detail", async () => {

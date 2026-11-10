@@ -155,12 +155,12 @@ test('legacy token names are remapped only on chrome scopes, never globally', ()
 
 /* -- Flag isolation / legacy preserved -------------------------------------------------------- */
 
-test('DashboardShell swaps in the V2 shell only through the tenant-aware useDesignV2() decision; legacy markup is intact', () => {
+test('DashboardShell always renders the V2 shell: no flag, hotel setting or environment variable is consulted', () => {
   const src = read('components/shared/DashboardShell.tsx')
-  assert.match(src, /if \(designV2\) \{\s*return \(\s*<ShellV2/)
-  assert.match(src, /className=\{`flex h-screen bg-paper \$\{themeClasses\.join\(' '\)\}`\}/)
-  assert.match(src, /<Sidebar redesigned=\{shellV2\}/)
-  assert.equal(/process\.env/.test(src), false, 'the shell must not read the environment; the decision lives in designV2.ts')
+  assert.match(src, /return \(\s*<ShellV2/)
+  assert.equal(/useDesignV2|isDesignV2|enabled_features|design_v2/.test(src), false, 'no activation logic may remain')
+  assert.equal(/flex h-screen bg-paper/.test(src), false, 'the legacy shell markup is gone')
+  assert.equal(/process\.env/.test(src), false, 'the shell must not read the environment')
   for (const file of ['components/design-v2/shell/ShellV2.tsx', 'components/design-v2/shell/SidebarV2.tsx', 'components/design-v2/shell/HeaderLeadingV2.tsx', 'components/design-v2/shell/AuthV2Scope.tsx']) {
     assert.equal(/process\.env/.test(read(file)), false, `${file} must not read env`)
   }
@@ -174,14 +174,14 @@ test('the legacy Header only changes when v2Leading is provided', () => {
   assert.match(src, /data-testid="environment-indicator"/)
 })
 
-test('login keeps one flag-guarded V2 branch before the untouched legacy layout', () => {
+test('login is always the V2 sign-in with the unchanged auth handlers', () => {
   const src = read('app/(auth)/login/page.tsx')
-  const v2 = src.indexOf('if (isDesignV2PreviewEnabled())')
-  const legacy = src.indexOf('<div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-paper">')
-  assert.ok(v2 > 0 && legacy > v2)
-  // Both branches use the same handlers and the same sign-in methods.
-  assert.equal((src.match(/handlePasswordLogin/g) ?? []).length >= 3, true)
-  assert.equal((src.match(/handleMagicLink/g) ?? []).length >= 3, true)
+  assert.match(src, /<AuthV2Scope>/)
+  assert.equal(/isDesignV2PreviewEnabled|DESIGN_V2_PREVIEW/.test(src), false)
+  assert.equal(src.includes('<div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-paper">'), false, 'the legacy layout is gone')
+  // One layout, the same handlers and the same sign-in methods.
+  assert.equal((src.match(/handlePasswordLogin/g) ?? []).length >= 2, true)
+  assert.equal((src.match(/handleMagicLink/g) ?? []).length >= 2, true)
   assert.match(src, /MOBILE_ONLY_ROLES\.has\(userRole\)/)
   assert.match(src, /signInWithPassword/)
   assert.match(src, /signInWithOtp/)

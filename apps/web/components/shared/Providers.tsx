@@ -11,10 +11,14 @@ import { useHotelStore } from '@/stores/hotelStore'
 import { ApiClientError, apiClient } from '@/lib/api/client'
 import { staffApi } from '@/lib/api/staff'
 import { isPublicRoute } from '@/lib/utils/routeGuard'
-import { DESIGN_V2_MIN_REFRESH_GAP_MS, DESIGN_V2_REFRESH_INTERVAL_MS } from '@/lib/design/designV2Activation'
 import { LanguageSync } from '@/components/shared/LanguageSync'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
+/** Hotel-context refresh cadence (tenant feature flags reach an open tab this way). /auth/* is limited to 10/min per user. */
+const CONTEXT_REFRESH_INTERVAL_MS = 10 * 60 * 1000
+/** A visibility/online-triggered refresh is skipped when the last attempt was more recent than this. */
+const CONTEXT_MIN_REFRESH_GAP_MS = 2 * 60 * 1000
+
 interface MeResponse {
   user: {
     id: string
@@ -120,7 +124,7 @@ function AuthListener() {
       }
     }
 
-    // `refresh` re-reads only the hotel context (the tenant feature flags, e.g. design_v2). It never touches the
+    // `refresh` re-reads only the hotel context (the tenant feature flags). It never touches the
     // role, name or schedule, so a background refresh cannot change what a signed-in person is allowed to do.
     const fetchProfile = async (refresh = false) => {
       if (fetchingRef.current) return
@@ -268,7 +272,7 @@ function AuthListener() {
     }
     window.addEventListener('patelrep:session-expired', handleSessionExpired)
 
-    // Context refresh (how a flag flipped by Feature Rollout reaches an open tab): when the tab becomes visible or the
+    // Context refresh (how a tenant feature flag flipped by Feature Rollout reaches an open tab): when the tab becomes visible or the
     // network returns, and on a slow timer while visible. Skipped when signed out or when one ran moments ago.
     const refreshIfDue = (minGapMs: number) => {
       if (!useAuthStore.getState().user) return
@@ -276,11 +280,11 @@ function AuthListener() {
       if (Date.now() - lastAttemptRef.current < minGapMs) return
       void fetchProfile(true)
     }
-    const onVisible = () => refreshIfDue(DESIGN_V2_MIN_REFRESH_GAP_MS)
-    const onOnline = () => refreshIfDue(DESIGN_V2_MIN_REFRESH_GAP_MS)
+    const onVisible = () => refreshIfDue(CONTEXT_MIN_REFRESH_GAP_MS)
+    const onOnline = () => refreshIfDue(CONTEXT_MIN_REFRESH_GAP_MS)
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('online', onOnline)
-    const refreshTimer = window.setInterval(() => refreshIfDue(DESIGN_V2_REFRESH_INTERVAL_MS - 1000), DESIGN_V2_REFRESH_INTERVAL_MS)
+    const refreshTimer = window.setInterval(() => refreshIfDue(CONTEXT_REFRESH_INTERVAL_MS - 1000), CONTEXT_REFRESH_INTERVAL_MS)
 
     return () => {
       subscription.unsubscribe()

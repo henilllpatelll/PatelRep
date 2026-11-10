@@ -52,7 +52,7 @@ interface ShellV2Props {
 /** Design System V2 management shell: dark sidebar (collapsible; icon rail at medium widths;
  *  focus-trapped drawer on small screens), light header and a bounded content column.
  *
- *  Rendered by DashboardShell ONLY when NEXT_PUBLIC_DESIGN_V2_PREVIEW is on (never in production).
+ *  Rendered by DashboardShell for every hotel and role (V2 is the permanent design).
  *  Routes, permissions and page bodies' behavior are untouched: navigation comes from
  *  `getAllowedNavItems`, the header is the existing Header with a V2 leading area, and `children`
  *  receive the V2 palette through the body-scoped token remap (Phase 7, contentRemapV2.css). */

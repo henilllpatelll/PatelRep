@@ -2,7 +2,8 @@ import React from "react";
 import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { makeTranslator as mockMakeTranslator } from "../helpers/i18n";
-import { darkTheme, lightTheme, type ThemeMode } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
+import type { ThemeMode } from "@/components/shared/tokens";
 
 let mockLanguage: "en" | "es" = "en";
 let mockThemeMode: ThemeMode = "light";

@@ -11,16 +11,11 @@ import { getThemeTokens } from "@/components/shared/tokens";
    shared presentation pieces both roles use. Flag-off rendering must stay identical to before. */
 
 let mockRole = "inspector";
-let mockFlag = true;
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator("en"), i18n: { language: "en", resolvedLanguage: "en" } }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => "light" }));
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("@expo/vector-icons", () => {
@@ -68,11 +63,11 @@ import type { DoneItem } from "@/lib/inspections/lists";
 
 const t = mockMakeTranslator("en");
 const flat = (node: { props: Record<string, unknown> }) => StyleSheet.flatten(node.props.style as StyleProp<TextStyle>) as TextStyle;
-const gated = (enabled: boolean, ui: React.ReactElement) => render(<DesignV2Scope enabled={enabled}>{ui}</DesignV2Scope>);
+// V2 is unconditional: the first argument is kept only so existing call sites read the same.
+const gated = (_enabled: boolean, ui: React.ReactElement) => render(<DesignV2Scope>{ui}</DesignV2Scope>);
 
 beforeEach(() => {
   mockRole = "inspector";
-  mockFlag = true;
 });
 
 describe("role gate", () => {
@@ -100,13 +95,6 @@ describe("Home routing", () => {
 
   it("V2 on: an Inspector gets the purpose-built Home", () => {
     expect(home(true).getByTestId("inspector-home-marker")).toBeTruthy();
-  });
-
-  it("V2 off: the Inspector keeps the legacy fallback with housekeeper functionality disabled", () => {
-    mockFlag = false;
-    const screen = home(true);
-    expect(screen.queryByTestId("inspector-home-marker")).toBeNull();
-    expect(screen.getByTestId("legacy-fallback").props.children).toBe("false");
   });
 
   it("the Supervisor Home is chosen by role as before", () => {
@@ -139,26 +127,17 @@ describe("V2 text helpers added in Phase 4", () => {
     expect(flat(view.getByTestId("pill")).fontSize).toBeGreaterThanOrEqual(12);
   });
 
-  it("outside the scope: exactly the legacy uppercase micro-label", () => {
-    const view = gated(false, <Probe />);
-    expect(view.getByTestId("caps").props.children).toBe("ROOM BOARD");
-    expect(flat(view.getByTestId("pill")).textTransform).toBe("uppercase");
-    expect(flat(view.getByTestId("pill")).fontSize).toBe(10.5);
-  });
 });
 
 describe("shared pieces follow the scope", () => {
   it("a section label is sentence case in V2 and uppercase otherwise", () => {
     expect(gated(true, <SectionLabel>Selected rooms</SectionLabel>).getByText("Selected rooms")).toBeTruthy();
-    expect(gated(false, <SectionLabel>Selected rooms</SectionLabel>).getByText("SELECTED ROOMS")).toBeTruthy();
   });
 
   it("a result badge never shouts in V2 but keeps its icon AND word", () => {
     const on = gated(true, <ResultBadge result="failed" t={t} />);
     expect(flat(on.getByText("Failed")).textTransform).toBe("none");
     expect(on.getByTestId("icon-close-circle")).toBeTruthy();
-    const off = gated(false, <ResultBadge result="failed" t={t} />);
-    expect(flat(off.getByText("Failed")).textTransform).toBe("uppercase");
   });
 
   const done: DoneItem = {
@@ -179,7 +158,6 @@ describe("shared pieces follow the scope", () => {
     const on = flat(gated(true, row).getByText("214"));
     expect(on.fontFamily).not.toMatch(/mono/i);
     expect(on.fontVariant).toEqual(["tabular-nums"]);
-    expect(flat(gated(false, row).getByText("214")).fontFamily).toMatch(/mono/i);
   });
 
   it("the Readiness kicker is sentence case in V2", () => {
@@ -189,7 +167,6 @@ describe("shared pieces follow the scope", () => {
     } as never;
     const card = <ReadinessCard readiness={readiness} freshness={null} t={t} onOpen={jest.fn()} onRetry={jest.fn()} />;
     expect(gated(true, card).getByText("Readiness", { exact: false })).toBeTruthy();
-    expect(gated(false, card).getByText(/READINESS/)).toBeTruthy();
   });
 });
 
@@ -251,9 +228,6 @@ describe("Supervisor quick actions", () => {
     const keys = ["shiftNote", "messageTeam", "messageStaff", "handoff"];
     const surfaces = new Set(keys.map((k) => bg(on, k).backgroundColor));
     expect(surfaces).toEqual(new Set([lightThemeV2.surface]));
-    const off = gated(false, actions);
-    expect(new Set(keys.map((k) => bg(off, k).backgroundColor)).size).toBeGreaterThan(1);
-    expect(bg(off, "shiftNote").backgroundColor).toBe(getThemeTokens("light").status.cleanSoft);
   });
 
   it("keeps all four actions and their labels (nothing hidden by the redesign)", () => {

@@ -1,7 +1,7 @@
 /**
  * Phase 12 — browser workflow checks for the Setup Wizard (/onboarding), against the hermetic build + mock backend.
  *
- *   npm run build   (with NEXT_PUBLIC_DESIGN_V2_PREVIEW=true and the mock origin, see e2e/hermetic/run.mjs)
+ *   npm run build   (with the mock origin, see e2e/hermetic/run.mjs)
  *   npm run test:e2e:workflows
  *
  * The mock backend serves reads only. Every write the wizard makes is intercepted in the page, recorded, and answered

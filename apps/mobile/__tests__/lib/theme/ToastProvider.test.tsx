@@ -24,7 +24,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import { useReducedMotion } from "@/lib/accessibility/useReducedMotion";
 import {
   ToastProvider,

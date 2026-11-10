@@ -5,7 +5,6 @@ import { makeTranslator as mockMakeTranslator } from "../helpers/i18n";
 import { darkThemeV2, lightThemeV2 } from "@/components/shared/tokensV2";
 
 let mockMode: "light" | "dark" = "light";
-let mockFlag = true;
 const mockSignInWithPassword = jest.fn();
 const mockSignInWithOtp = jest.fn();
 const mockPush = jest.fn();
@@ -14,10 +13,6 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator(() => "en") }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => mockMode }));
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
@@ -70,7 +65,6 @@ function scoped(ui: React.ReactElement) {
 
 beforeEach(() => {
   mockMode = "light";
-  mockFlag = true;
   mockSignInWithPassword.mockReset().mockResolvedValue({ error: null });
   mockSignInWithOtp.mockReset().mockResolvedValue({ error: null });
   mockPush.mockReset();
@@ -150,17 +144,6 @@ describe("Login (V2 preview)", () => {
   });
 });
 
-describe("Login (flag off) is the legacy presentation", () => {
-  it("keeps the eyebrow, serif heading and 10px controls", () => {
-    mockFlag = false;
-    const u = render(<LoginScreen />);
-    expect(u.getByText("Sign in")).toBeTruthy();
-    expect(flat(u.getByTestId("login-submit")).borderRadius).toBe(10);
-    expect(u.queryByRole("header")).toBeNull();
-    expect(u.queryByText("Email address")).toBeNull();
-  });
-});
-
 describe("Other auth screens", () => {
   it("Forgot password takes the V2 frame (labelled field, 44pt back, V2 surface)", () => {
     const u = scoped(<ForgotPasswordScreen />);
@@ -169,10 +152,8 @@ describe("Other auth screens", () => {
     expect(u.getAllByText("Email address")).toHaveLength(1);
   });
 
-  it("the (auth) layout wraps its stack in the V2 scope without touching routing", () => {
+  it("the (auth) layout renders its stack V2 with no flag or scope, without touching routing", () => {
     const u = render(<AuthLayout />);
     expect(u.getByTestId("stack-probe").props.children).toBe("true");
-    mockFlag = false;
-    expect(render(<AuthLayout />).getByTestId("stack-probe").props.children).toBe("false");
   });
 });

@@ -7,7 +7,7 @@ import type { RoleTabDef, RoleTabKey } from "./roleTabs";
 /** Design System V2 bottom-navigation presentation. Pure (no React) so it is unit-tested directly.
  *
  *  Visual only: it never decides which tabs exist or who may see them — `roleTabs.ts` stays the one
- *  source of destinations. Everything here is applied only when the V2 preview flag is on. */
+ *  source of destinations. Applied to every role. */
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 

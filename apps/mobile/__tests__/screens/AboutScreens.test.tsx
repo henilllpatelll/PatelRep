@@ -3,7 +3,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { makeTranslator as mockMakeTranslator } from "../helpers/i18n";
 import { makeAppStoreMock as mockMakeAppStore } from "../helpers/appStoreMock";
-import { getThemeTokens } from "@/components/shared/tokens";
+import { getThemeTokensV2 as getThemeTokens } from "@/components/shared/tokensV2";
 
 let mockLanguage: "en" | "es" = "en";
 let mockMode: "light" | "dark" = "light";

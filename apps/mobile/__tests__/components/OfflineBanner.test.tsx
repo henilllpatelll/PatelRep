@@ -4,9 +4,11 @@ import { render } from "@testing-library/react-native";
 import { I18nextProvider } from "react-i18next";
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import i18n from "@/i18n";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockUseAppStore = jest.fn();
 let mockSystemScheme: "light" | "dark" = "light";

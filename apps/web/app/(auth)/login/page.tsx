@@ -7,7 +7,6 @@ import { LanguageToggle } from '@/components/shared/LanguageToggle'
 import { useTranslation } from 'react-i18next'
 import { MOBILE_ONLY_ROLES, type UserRole } from '@/lib/utils/routeGuard'
 import { resolvedApiUrl } from '@/lib/api/client'
-import { isDesignV2PreviewEnabled } from '@/lib/design/designV2'
 import { AuthV2Scope, authV2Styles as v2s } from '@/components/design-v2/shell/AuthV2Scope'
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
@@ -129,314 +128,133 @@ function LoginContent() {
     setMagicLinkSent(false)
   }
 
-  const inputCls = 'w-full border border-line rounded-[var(--r-md)] px-3 py-2.5 text-[13px] text-ink bg-surface focus:outline-none focus:border-accent focus:ring-1 focus:ring-[var(--accent-soft)] transition-colors placeholder:text-ink-4'
-  const primaryBtn = 'w-full bg-accent text-white font-medium rounded-[var(--r-md)] px-4 py-2.5 text-[13px] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2'
 
-  // Design System V2 preview (NEXT_PUBLIC_DESIGN_V2_PREVIEW, never in production): same state and
-  // handlers as below, V2 presentation. Flag off -> the legacy layout renders unchanged.
-  if (isDesignV2PreviewEnabled()) {
-    return (
-      <AuthV2Scope>
-        <div className={v2s.card} data-testid="login-v2">
-          <div className={v2s.topRow}>
-            <div className={v2s.brand}>
-              <span className={v2s.logo} aria-hidden>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 21V8l8-5 8 5v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M9 21v-6h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <span className={v2s.brandText}>
-                <span className={v2s.brandName}>PatelRep</span>
-                <span className={v2s.brandTag}>{t('login.brandTag')}</span>
-              </span>
-            </div>
-            <LanguageToggle />
-          </div>
-
-          {magicLinkSent ? (
-            <div className={`${v2s.form} ${v2s.center}`}>
-              <div className={v2s.sentIcon} aria-hidden>
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className={v2s.heading}>
-                <h1 className={v2s.title}>{t('login.checkEmailTitle')}</h1>
-                <p className={v2s.subtitle}>{t('login.checkEmailBody', { email })}</p>
-              </div>
-              <button type="button" className={v2s.textBtn} onClick={() => { setMagicLinkSent(false); setError('') }}>
-                &larr; {t('login.backToLogin')}
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className={v2s.heading}>
-                <h1 className={v2s.title}>{t('login.title')}</h1>
-                <p className={v2s.subtitle}>{t('login.subtitle')}</p>
-              </div>
-
-              <div className={v2s.tabs} role="tablist">
-                {(['password', 'magic'] as Tab[]).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === tab}
-                    disabled={!isHydrated || loading}
-                    onClick={() => handleTabChange(tab)}
-                    className={`${v2s.tab} ${activeTab === tab ? v2s.tabActive : ''}`}
-                  >
-                    {tab === 'password' ? t('login.passwordTab') : t('login.magicTab')}
-                  </button>
-                ))}
-              </div>
-
-              {mobileOnlyParam && (
-                <div className={`${v2s.notice} ${v2s.noticeWarn}`} role="alert">
-                  <strong>Web portal is for management staff only</strong>
-                  <div>Housekeepers and engineers should use the PatelRep mobile app.</div>
-                </div>
-              )}
-
-              {error && (
-                <div className={`${v2s.notice} ${v2s.noticeError}`} role="alert">
-                  {error}
-                </div>
-              )}
-
-              {activeTab === 'password' && (
-                <form onSubmit={handlePasswordLogin} className={v2s.form} noValidate>
-                  <div className={v2s.field}>
-                    <label className={v2s.label} htmlFor="email-pw">{t('login.email')}</label>
-                    <input id="email-pw" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={v2s.input} />
-                  </div>
-                  <div className={v2s.field}>
-                    <div className={v2s.labelRow}>
-                      <label className={v2s.label} htmlFor="password-pw">{t('login.password')}</label>
-                      <a href="/auth/reset-password" className={v2s.link}>{t('login.forgotPassword')}</a>
-                    </div>
-                    <div className={v2s.passwordWrap}>
-                      <input id="password-pw" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} disabled={!isHydrated || loading} autoComplete="current-password" className={v2s.input} />
-                      <button type="button" className={v2s.reveal} onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
-                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
-                          {showPassword ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                          ) : (
-                            <>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </>
-                          )}
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <button type="submit" disabled={!isHydrated || loading || !email || !password} className={v2s.primaryBtn}>
-                    {loading ? <><Spinner /> {t('login.signingIn')}</> : t('login.passwordTab')}
-                  </button>
-                </form>
-              )}
-
-              {activeTab === 'magic' && (
-                <form onSubmit={handleMagicLink} className={v2s.form} noValidate>
-                  <p className={v2s.subtitle}>{t('login.magicIntro')}</p>
-                  <div className={v2s.field}>
-                    <label className={v2s.label} htmlFor="email-ml">{t('login.email')}</label>
-                    <input id="email-ml" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={v2s.input} />
-                  </div>
-                  <button type="submit" disabled={!isHydrated || loading || !email} className={v2s.primaryBtn}>
-                    {loading ? <><Spinner /> {t('login.sending')}</> : t('login.sendMagicLink')}
-                  </button>
-                </form>
-              )}
-
-              <div className={v2s.health} data-testid="service-health" role="status" aria-live="polite">
-                {serviceHealth === 'checking' && t('login.healthChecking')}
-                {serviceHealth === 'connected' && <span className={v2s.healthOk}>{t('login.healthConnected')}</span>}
-                {serviceHealth === 'unavailable' && <span className={v2s.healthBad}>{t('login.healthUnavailable')}</span>}
-              </div>
-            </>
-          )}
-        </div>
-      </AuthV2Scope>
-    )
-  }
-
-  if (magicLinkSent) {
-    return (
-      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-paper">
-        <div className="flex flex-col items-center justify-center p-10">
-          <div className="w-full max-w-sm text-center space-y-6">
-            <div className="w-12 h-12 rounded-full bg-[var(--ready-soft)] flex items-center justify-center mx-auto">
-              <svg className="w-6 h-6 text-[var(--ready)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="font-display text-2xl italic text-ink">{t('login.checkEmailTitle')}</h2>
-              <p className="text-[13px] text-ink-3 mt-2 leading-relaxed">
-                {t('login.checkEmailBody', { email })}
-              </p>
-            </div>
-            <button type="button" onClick={() => { setMagicLinkSent(false); setError('') }} className="text-[13px] text-accent font-medium hover:opacity-80 transition-opacity">
-              &larr; {t('login.backToLogin')}
-            </button>
-          </div>
-        </div>
-        <div className="hidden lg:flex bg-ink relative overflow-hidden" />
-      </div>
-    )
-  }
-
+  // Design System V2 is the one sign-in design for every hotel.
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-paper">
-      {/* Left — form pane */}
-      <div className="flex flex-col p-10 lg:p-16">
-        {/* Logo */}
-        <div className="mb-auto flex items-center justify-between gap-3">
-          <div>
-            <span className="text-accent font-mono text-lg font-bold tracking-tight">&#10022; PatelRep</span>
-            <span className="ml-2 text-[11px] text-ink-4 font-mono uppercase tracking-widest">{t('login.brandTag')}</span>
+    <AuthV2Scope>
+      <div className={v2s.card} data-testid="login-v2">
+        <div className={v2s.topRow}>
+          <div className={v2s.brand}>
+            <span className={v2s.logo} aria-hidden>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M4 21V8l8-5 8 5v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 21v-6h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className={v2s.brandText}>
+              <span className={v2s.brandName}>PatelRep</span>
+              <span className={v2s.brandTag}>{t('login.brandTag')}</span>
+            </span>
           </div>
           <LanguageToggle />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center max-w-[380px] w-full mx-auto lg:mx-0 py-12">
-          <p className="text-[11px] font-semibold uppercase tracking-[1.4px] text-ink-3 mb-4">{t('login.eyebrow')}</p>
-          <h1 className="font-display text-[42px] leading-[1.05] tracking-[-0.8px] text-ink mb-3">
-            {t('login.title')}
-          </h1>
-          <p className="text-[14px] text-ink-2 leading-relaxed mb-8">
-            {t('login.subtitle')}
-          </p>
-
-          {/* Tab switcher */}
-          <div className="flex bg-surface-3 rounded-[var(--r-md)] p-1 mb-5" role="tablist">
-            {(['password', 'magic'] as Tab[]).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                disabled={!isHydrated || loading}
-                onClick={() => handleTabChange(tab)}
-                className={`flex-1 py-2 text-[13px] rounded-[var(--r-sm)] transition-all ${
-                  activeTab === tab ? 'bg-surface text-accent shadow-sm font-semibold' : 'text-ink-3'
-                }`}
-              >
-                {tab === 'password' ? t('login.passwordTab') : t('login.magicTab')}
-              </button>
-            ))}
+        {magicLinkSent ? (
+          <div className={`${v2s.form} ${v2s.center}`}>
+            <div className={v2s.sentIcon} aria-hidden>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className={v2s.heading}>
+              <h1 className={v2s.title}>{t('login.checkEmailTitle')}</h1>
+              <p className={v2s.subtitle}>{t('login.checkEmailBody', { email })}</p>
+            </div>
+            <button type="button" className={v2s.textBtn} onClick={() => { setMagicLinkSent(false); setError('') }}>
+              &larr; {t('login.backToLogin')}
+            </button>
           </div>
-
-          {mobileOnlyParam && (
-            <div className="mb-4 px-4 py-3 bg-[var(--caution-soft)] border border-[var(--caution-line)] rounded-[var(--r-md)] text-[13px]" role="alert">
-              <div className="font-semibold text-[var(--caution)] mb-0.5">Web portal is for management staff only</div>
-              <div className="text-ink-2">Housekeepers and engineers should use the PatelRep mobile app.</div>
+        ) : (
+          <>
+            <div className={v2s.heading}>
+              <h1 className={v2s.title}>{t('login.title')}</h1>
+              <p className={v2s.subtitle}>{t('login.subtitle')}</p>
             </div>
-          )}
 
-          {error && (
-            <div className="mb-4 px-4 py-3 bg-[var(--alert-soft)] border border-[var(--alert-line)] rounded-[var(--r-md)] text-[13px] text-[var(--alert)]" role="alert">
-              {error}
-            </div>
-          )}
-
-          {activeTab === 'password' && (
-            <form onSubmit={handlePasswordLogin} className="space-y-4" noValidate>
-              <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-pw">{t('login.email')}</label>
-                <input id="email-pw" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={inputCls} />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[12px] font-medium text-ink-2" htmlFor="password-pw">{t('login.password')}</label>
-                  <a href="/auth/reset-password" className="text-[12px] text-accent hover:opacity-80 transition-opacity">{t('login.forgotPassword')}</a>
-                </div>
-                <div className="relative">
-                  <input id="password-pw" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••••" disabled={!isHydrated || loading} autoComplete="current-password" className={`${inputCls} pr-10 font-mono`} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-4 hover:text-ink-2 transition-colors" aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                    {showPassword ? (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <button type="submit" disabled={!isHydrated || loading || !email || !password} className={`${primaryBtn} mt-2`}>
-                {loading ? <><Spinner className="text-white" /> {t('login.signingIn')}</> : t('login.passwordTab')}
-              </button>
-            </form>
-          )}
-
-          {activeTab === 'magic' && (
-            <form onSubmit={handleMagicLink} className="space-y-4" noValidate>
-              <p className="text-[13px] text-ink-3 leading-relaxed">{t('login.magicIntro')}</p>
-              <div className="space-y-1.5">
-                <label className="block text-[12px] font-medium text-ink-2" htmlFor="email-ml">{t('login.email')}</label>
-                <input id="email-ml" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={inputCls} />
-              </div>
-              <button type="submit" disabled={!isHydrated || loading || !email} className={`${primaryBtn} mt-2`}>
-                {loading ? <><Spinner className="text-white" /> {t('login.sending')}</> : t('login.sendMagicLink')}
-              </button>
-            </form>
-          )}
-        </div>
-
-        <div className="font-mono text-[11px] text-ink-4 mt-auto" data-testid="service-health" role="status" aria-live="polite">
-          {serviceHealth === 'checking' && t('login.healthChecking')}
-          {serviceHealth === 'connected' && <span className="text-[var(--ready)]">{t('login.healthConnected')}</span>}
-          {serviceHealth === 'unavailable' && <span className="text-[var(--alert)]">{t('login.healthUnavailable')}</span>}
-        </div>
-      </div>
-
-      {/* Right — hero pane (desktop only) */}
-      <div className="hidden lg:flex bg-ink relative overflow-hidden flex-col p-12">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 80% 20%, var(--accent) 0%, transparent 55%), radial-gradient(circle at 10% 90%, var(--ready) 0%, transparent 50%)', opacity: 0.22 }} />
-        <div className="relative flex flex-col flex-1 justify-between">
-          {/* Top label */}
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[1.4px] text-white/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            {t('login.heroLocation')}
-          </div>
-
-          {/* Dashboard preview */}
-          <div className="my-10 rounded-[var(--r-lg)] p-6" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="text-[11px] text-white/50 uppercase tracking-[1.2px] mb-3 font-mono">{t('login.heroTime')}</div>
-            <div className="mb-4">
-              <div className="font-mono text-[11px] text-white/50 mb-1">{t('login.roomsReady')}</div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-[52px] leading-none text-white">52</span>
-                <span className="text-lg text-white/40">/ 87</span>
-                <span className="ml-auto font-mono text-[12px] text-[var(--ready)]">{t('login.forecast')}</span>
-              </div>
-              <div className="h-1 mt-3 rounded-full overflow-hidden bg-white/10">
-                <div className="h-full bg-accent rounded-full" style={{ width: '60%' }} />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                t('login.occupancyChip'),
-                t('login.cleanTimeChip'),
-                t('login.workOrdersChip'),
-                t('login.vipChip'),
-              ].map((s) => (
-                <span key={s} className="font-mono text-[11px] px-2.5 py-1 rounded-full text-white/80" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>{s}</span>
+            <div className={v2s.tabs} role="tablist">
+              {(['password', 'magic'] as Tab[]).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  disabled={!isHydrated || loading}
+                  onClick={() => handleTabChange(tab)}
+                  className={`${v2s.tab} ${activeTab === tab ? v2s.tabActive : ''}`}
+                >
+                  {tab === 'password' ? t('login.passwordTab') : t('login.magicTab')}
+                </button>
               ))}
             </div>
-          </div>
 
-          {/* Testimonial */}
-          <blockquote className="font-display italic text-[21px] leading-[1.4] text-white max-w-sm">
-            &ldquo;{t('login.testimonial')}&rdquo;
-            <footer className="mt-4 not-italic font-sans text-[12px] text-white/50 uppercase tracking-[1.2px]">
-              {t('login.testimonialByline')}
-            </footer>
-          </blockquote>
-        </div>
+            {mobileOnlyParam && (
+              <div className={`${v2s.notice} ${v2s.noticeWarn}`} role="alert">
+                <strong>Web portal is for management staff only</strong>
+                <div>Housekeepers and engineers should use the PatelRep mobile app.</div>
+              </div>
+            )}
+
+            {error && (
+              <div className={`${v2s.notice} ${v2s.noticeError}`} role="alert">
+                {error}
+              </div>
+            )}
+
+            {activeTab === 'password' && (
+              <form onSubmit={handlePasswordLogin} className={v2s.form} noValidate>
+                <div className={v2s.field}>
+                  <label className={v2s.label} htmlFor="email-pw">{t('login.email')}</label>
+                  <input id="email-pw" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={v2s.input} />
+                </div>
+                <div className={v2s.field}>
+                  <div className={v2s.labelRow}>
+                    <label className={v2s.label} htmlFor="password-pw">{t('login.password')}</label>
+                    <a href="/auth/reset-password" className={v2s.link}>{t('login.forgotPassword')}</a>
+                  </div>
+                  <div className={v2s.passwordWrap}>
+                    <input id="password-pw" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} disabled={!isHydrated || loading} autoComplete="current-password" className={v2s.input} />
+                    <button type="button" className={v2s.reveal} onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+                        {showPassword ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        ) : (
+                          <>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={!isHydrated || loading || !email || !password} className={v2s.primaryBtn}>
+                  {loading ? <><Spinner /> {t('login.signingIn')}</> : t('login.passwordTab')}
+                </button>
+              </form>
+            )}
+
+            {activeTab === 'magic' && (
+              <form onSubmit={handleMagicLink} className={v2s.form} noValidate>
+                <p className={v2s.subtitle}>{t('login.magicIntro')}</p>
+                <div className={v2s.field}>
+                  <label className={v2s.label} htmlFor="email-ml">{t('login.email')}</label>
+                  <input id="email-ml" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hotel.com" required disabled={!isHydrated || loading} autoComplete="email" className={v2s.input} />
+                </div>
+                <button type="submit" disabled={!isHydrated || loading || !email} className={v2s.primaryBtn}>
+                  {loading ? <><Spinner /> {t('login.sending')}</> : t('login.sendMagicLink')}
+                </button>
+              </form>
+            )}
+
+            <div className={v2s.health} data-testid="service-health" role="status" aria-live="polite">
+              {serviceHealth === 'checking' && t('login.healthChecking')}
+              {serviceHealth === 'connected' && <span className={v2s.healthOk}>{t('login.healthConnected')}</span>}
+              {serviceHealth === 'unavailable' && <span className={v2s.healthBad}>{t('login.healthUnavailable')}</span>}
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </AuthV2Scope>
   )
 }
 
