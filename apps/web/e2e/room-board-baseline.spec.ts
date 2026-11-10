@@ -108,6 +108,8 @@ function chromeMasks(page: Page) {
     // Phases 31-36, never part of the frozen board contract. Masked wholesale
     // rather than diffed, since their content/styling is expected to evolve.
     page.locator('aside[aria-label="Main navigation"]'),
+    // Design V2 shell (the permanent shell): same wholesale masking of its sidebar landmark.
+    page.locator('[data-testid="shell-v2-sidebar"]'),
     page.locator('header'),
     // PHASE 35 FIX: Phase 35 is the first phase (30-36) to intentionally
     // restyle in-page chrome (PageHeader + tab bar) that shares a full-page
@@ -183,8 +185,17 @@ async function gotoWithTheme(page: Page, path: string, mode: 'light' | 'dark'): 
   // stable content chrome and wait through the width transition so every
   // baseline begins from the intended collapsed shell.
   await page.mouse.move(1200, 700)
-  await expect(page.locator('aside[aria-label="Main navigation"]')).toHaveCSS('width', '64px')
-  if (mode === 'dark') {
+  // The same spec also runs against the live tenant, which serves the legacy shell until Design V2 is deployed there:
+  // wait for whichever shell is present. Design V2 (the permanent shell) has a fixed-width rail with no hover
+  // expansion, so there is no width transition to wait through.
+  const legacyRail = page.locator('aside[aria-label="Main navigation"]')
+  const v2Nav = page.locator('nav[aria-label="Main navigation"]')
+  await expect(legacyRail.or(v2Nav).first()).toBeVisible()
+  if ((await legacyRail.count()) > 0) await expect(legacyRail).toHaveCSS('width', '64px')
+  else await expect(page.locator('body')).toHaveAttribute('data-dv2-content', /.*/)
+  if (mode === 'dark' && (await legacyRail.count()) === 0) {
+    await expect(page.locator('body')).toHaveAttribute('data-dv2-mode', 'dark')
+  } else if (mode === 'dark') {
     // Housekeeping redesign Phase 10 dark-mode portal fix: DashboardShell.tsx
     // now mirrors theme/density/accent classes onto document.body (in
     // addition to its own root div) so portaled content (RoomDetailDrawer via
