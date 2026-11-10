@@ -141,7 +141,7 @@ describe("header and verified counts", () => {
     mockRecords.mockResolvedValue([inspectionRecord("401"), inspectionRecord("402", { overall_result: "failed" }), inspectionRecord("403")]);
     const screen = renderScreen();
     await settle();
-    expect(screen.getByText("HOUSEKEEPING · TODAY")).toBeTruthy();
+    expect(screen.getByText(/housekeeping · today/i)).toBeTruthy();
     expect(screen.getByText("Inspections")).toBeTruthy();
     expect(text(screen, "inspect-status-text")).toBe("Live · Updated just now");
     expect(metric(screen, "waiting")).toBe("2");
@@ -787,7 +787,7 @@ describe("Spanish and dark mode", () => {
     mockHistoryPage.mockResolvedValue({ rows: [historyRow("401", { inspector_display_name: null })], hasMore: false, nextCursor: null, total: 1 });
     const screen = renderScreen();
     await settle();
-    expect(screen.getByText("LIMPIEZA · HOY")).toBeTruthy();
+    expect(screen.getByText(/limpieza · hoy/i)).toBeTruthy();
     expect(text(screen, "inspect-status-text")).toBe("En vivo · Actualizado ahora");
     expect(within(screen.getByTestId("queue-card-room-203")).getByText("Iniciar inspección")).toBeTruthy();
     expect(screen.getByTestId("inspect-tab-queue").props.accessibilityLabel).toBe("Por inspeccionar, 2");
@@ -796,7 +796,7 @@ describe("Spanish and dark mode", () => {
     await act(async () => fireEvent.press(screen.getByTestId("inspect-tab-done")));
     await settle();
     expect(screen.getByText(es("inspect.done.inspectorUnknown"))).toBeTruthy();
-    expect(screen.getByText(es("inspect.history.insights.title").toUpperCase())).toBeTruthy();
+    expect(screen.getByText(es("inspect.history.insights.title"))).toBeTruthy();
     expect(screen.queryAllByText(/^inspect\.[A-Za-z]/)).toHaveLength(0);
   });
 

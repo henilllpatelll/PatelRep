@@ -95,7 +95,7 @@ import { listActiveRoomPeriods } from "@/lib/api/engineeringRooms";
 import { fetchTeamSchedule } from "@/lib/api/schedulingTeam";
 import { EngineerHome } from "@/components/engineering/EngineerHome";
 import { resetAsyncResourceCache } from "@/lib/engineering/useAsyncResource";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import { APPEARANCE_STORAGE_KEY } from "@/lib/theme/appearance";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 

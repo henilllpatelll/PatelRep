@@ -209,12 +209,12 @@ export function CleaningChecklist({ title, items, pendingKeys, locked, placehold
                         {item.is_required && !item.checked ? (
                           <Text
                             maxFontSizeMultiplier={MAX_FONT_SCALE}
-                            style={[styles.tag, { color: theme.status.pickup, borderColor: theme.status.pickupLine, backgroundColor: theme.status.pickupSoft }]}
+                            style={[styles.tag, { color: theme.status.pickup, borderColor: theme.status.pickupLine, backgroundColor: theme.status.pickupSoft }, x.pill]}
                           >
                             {t("rooms.detail.session.required")}
                           </Text>
                         ) : !item.is_required && !item.checked && hasRequired ? (
-                          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.optional, { color: theme.textMuted }]}>
+                          <Text maxFontSizeMultiplier={MAX_FONT_SCALE} style={[styles.optional, { color: theme.textMuted }, x.pill]}>
                             {t("rooms.work.checklist.optional")}
                           </Text>
                         ) : null}

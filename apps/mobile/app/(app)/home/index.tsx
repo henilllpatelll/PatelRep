@@ -26,8 +26,7 @@ function firstName(name?: string | null) {
 export default function HousekeeperHomeScreen() {
   const user = useAppStore((state) => state.user);
   const effectiveRole = user?.effective_role ?? user?.role;
-  // Design System V2 (Phase 4): inside the scope an Inspector gets a purpose-built Home; with the flag off the
-  // legacy fallback below is exactly what it was.
+  // Design System V2 is unconditional: an Inspector gets the purpose-built Home.
   const v2 = useIsDesignV2();
 
   if (isEngineeringRole(effectiveRole)) {
@@ -39,7 +38,7 @@ export default function HousekeeperHomeScreen() {
   if (effectiveRole === "inspector" && v2) {
     return <InspectorHome name={displayNameFor(user)} />;
   }
-  // Phase 6: inside the scope Front Desk and GM get the operational dashboards; flag off keeps the legacy Home below.
+  // Front Desk and GM get the operational dashboards.
   if (effectiveRole === "front_desk" && v2) {
     return <FrontDeskHome name={displayNameFor(user)} />;
   }

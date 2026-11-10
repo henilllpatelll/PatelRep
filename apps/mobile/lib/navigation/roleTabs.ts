@@ -70,7 +70,7 @@ const FRONT_DESK_TABS: RoleTabDef[] = [
   { key: "me", name: "profile/index", titleKey: "tabs.profile", icon: "person-outline" },
 ];
 
-/** Phase 6 (preview flag on): five destinations instead of six so every label fits a 320 dp phone. Lost & Found and
+/** Phase 6: five destinations instead of six so every label fits a 320 dp phone. Lost & Found and
  *  Profile move under More; every route URL is unchanged (they are hidden tab routes, see HIDDEN handling in the layout). */
 const FRONT_DESK_TABS_V2: RoleTabDef[] = [
   { key: "home", name: "home/index", titleKey: "tabs.home", icon: "grid-outline" },

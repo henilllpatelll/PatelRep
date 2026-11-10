@@ -181,11 +181,11 @@ describe("Evening status composites", () => {
     const progressViews = progress.UNSAFE_getAllByType(View);
     const track = findViewByStyle(
       progressViews,
-      (style) => style.overflow === "hidden" && style.height === 7,
+      (style) => style.overflow === "hidden" && style.height === 8,
     );
     const fill = findViewByStyle(
       progressViews,
-      (style) => style.width === "25%" && style.height === 7,
+      (style) => style.width === "25%" && style.height === 8,
     );
 
     expect(flattenStyle(track).backgroundColor).toBe(

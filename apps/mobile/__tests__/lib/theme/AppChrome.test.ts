@@ -59,18 +59,8 @@ describe("protected navigation chrome", () => {
     expect(rootLayoutSource).not.toMatch(/\bC\./);
     expect(protectedLayoutSource).not.toMatch(/\bC\./);
     expect(protectedLayoutSource).toContain("const theme = useTheme();");
-    expect(protectedLayoutSource).toContain(
-      "tabBarActiveTintColor: theme.shell.ink",
-    );
-    expect(protectedLayoutSource).toContain(
-      "tabBarInactiveTintColor: theme.shell.ink3",
-    );
-    expect(protectedLayoutSource).toContain(
-      "backgroundColor: theme.shell.bg",
-    );
-    expect(protectedLayoutSource).toContain(
-      "borderTopColor: theme.shell.line",
-    );
+    // Tab bar colours come from the V2 chrome builder, which reads the active theme (see tabChromeV2.ts).
+    expect(protectedLayoutSource).toContain("buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length)");
     expect(protectedLayoutSource).toContain(
       "headerStyle: { backgroundColor: theme.shell.surface }",
     );

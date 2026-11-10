@@ -69,7 +69,7 @@ export function isFrontDeskGmV2Role(role: string | null | undefined): boolean {
   return role === "front_desk" || role === "gm";
 }
 
-/** Every role whose whole surface is inside `<DesignV2Scope>` while the preview flag is on (Phases 3 to 6). */
+/** Every role whose whole surface is inside `<DesignV2Scope>` (Phases 3 to 6). */
 export function isV2SurfaceRole(role: string | null | undefined): boolean {
   return isHousekeeperV2Role(role) || isInspectorSupervisorV2Role(role) || isEngineeringV2Role(role) || isFrontDeskGmV2Role(role);
 }

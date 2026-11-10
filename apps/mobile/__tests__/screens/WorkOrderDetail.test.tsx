@@ -170,7 +170,7 @@ describe("header and reported problem", () => {
     const { getByTestId, getByText } = renderScreen();
     await waitFor(() => expect(getByTestId("wo-number")).toBeTruthy());
     expect(getByTestId("wo-number").props.children).toBe("WO-1042");
-    expect(getByTestId("wo-status-line").props.children).toBe("WORKORDERS.REPAIR.PRIORITY.URGENT · WORKORDERS.STATUS.IN_PROGRESS");
+    expect(getByTestId("wo-status-line").props.children).toBe("workOrders.repair.priority.urgent · workOrders.status.in_progress");
     expect(getByTestId("wo-description").props.children).toBe("Room is not cooling; guest called twice.");
     await waitFor(() => expect(getByText(/Occupied/)).toBeTruthy());
   });
@@ -536,7 +536,7 @@ describe("completion", () => {
     fireEvent.press(utils.getByTestId("wo-complete-confirm"));
     await waitFor(() => expect(utils.getByTestId("wo-outcome-failed")).toBeTruthy());
     expect(utils.queryByTestId("wo-completion-result")).toBeNull();
-    expect(utils.getByTestId("wo-status-line").props.children).toContain("IN_PROGRESS");
+    expect(utils.getByTestId("wo-status-line").props.children).toContain("in_progress");
   });
 
   it("shows a conflict when someone changed the order, and no success", async () => {
@@ -564,7 +564,7 @@ describe("completion", () => {
     );
     expect(api.completeWorkOrder).not.toHaveBeenCalled();
     expect(utils.queryByTestId("wo-completion-result")).toBeNull();
-    expect(utils.getByTestId("wo-status-line").props.children).toContain("IN_PROGRESS");
+    expect(utils.getByTestId("wo-status-line").props.children).toContain("in_progress");
   });
 
   it("offline, a failed test cannot be queued", async () => {
@@ -1022,7 +1022,7 @@ describe("Phase 4: checklist and completion verification", () => {
     fireEvent.press(utils.getByTestId("wo-complete-confirm"));
     await waitFor(() => expect(utils.getByTestId("wo-err-checklist")).toBeTruthy());
     expect(utils.queryByTestId("wo-completion-result")).toBeNull();
-    expect(utils.getByTestId("wo-status-line").props.children).toContain("IN_PROGRESS");
+    expect(utils.getByTestId("wo-status-line").props.children).toContain("in_progress");
     // The checklist was re-read, so the readiness now names the step.
     await waitFor(() => expect(utils.getByTestId("wo-blocker-checklist")).toBeTruthy());
   });

@@ -4,8 +4,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 jest.mock("expo-router", () => ({
   router: { back: jest.fn(), push: jest.fn() },
 }));
+jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({ t: (key: string) => key, i18n: { resolvedLanguage: "en" } }),
 }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -14,7 +15,10 @@ jest.mock("@/lib/api/client", () => ({
   api: { get: jest.fn(), post: jest.fn() },
 }));
 jest.mock("@/stores/appStore", () => ({
-  useAppStore: () => ({ isOnline: true }),
+  useAppStore: (selector?: (state: { isOnline: boolean; hotelTimezone: string }) => unknown) => {
+    const state = { isOnline: true, hotelTimezone: "America/Chicago" };
+    return selector ? selector(state) : state;
+  },
 }));
 
 import { router } from "expo-router";

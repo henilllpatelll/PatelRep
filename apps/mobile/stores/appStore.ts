@@ -12,7 +12,6 @@ import { clearAllTaskCaches, taskScope } from "@/lib/tasks/offline/taskCache";
 import { getQueueOwner, setQueueOwner } from "@/lib/offline/queueOwner";
 import { currentShiftDate } from "@/lib/housekeeping/hotelTime";
 import { flushSessions, isRoomManagedBySession } from "@/lib/housekeeping/sessionGuard";
-import { useDesignV2Store } from "@/lib/design/designV2Store";
 import type { UserProfile } from "@/lib/supabase";
 
 const QUEUE_STORAGE_KEY = "@patelrep/offline_queue";
@@ -177,9 +176,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const previous = get().user;
     setQueueOwner(taskScope(user));
     const changed = (previous?.id ?? null) !== (user?.id ?? null) || (previous?.tenant_id ?? null) !== (user?.tenant_id ?? null);
-    // The hotel's Design V2 answer belongs to one person at one hotel: gone the moment either changes or they sign out,
-    // so the next person never sees the last one's design while their own hotel context is still loading.
-    if (changed || !user) useDesignV2Store.getState().clear();
     if (changed && previous) {
       // A different person/hotel on this device must never see the last user's rooms.
       set({ user, isAuthenticated: !!user, myRooms: [], hotelTimezone: null, pendingActions: [], unreadCount: 0, lastSyncedAt: null });

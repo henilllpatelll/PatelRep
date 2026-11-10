@@ -6,7 +6,6 @@ import { darkThemeV2, lightThemeV2 } from "@/components/shared/tokensV2";
 
 let mockLanguage: "en" | "es" = "en";
 let mockMode: "light" | "dark" = "light";
-let mockFlag = true;
 let mockOnline = true;
 let mockPending = 0;
 const mockBack = jest.fn();
@@ -15,10 +14,6 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator(() => mockLanguage) }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => mockMode }));
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
@@ -63,7 +58,6 @@ function v2(ui: React.ReactElement) {
 beforeEach(() => {
   mockLanguage = "en";
   mockMode = "light";
-  mockFlag = true;
   mockOnline = true;
   mockPending = 0;
   mockBack.mockReset();
@@ -168,10 +162,8 @@ describe("Connection indicator", () => {
 });
 
 describe("Offline banner chrome", () => {
-  it("gains an icon only inside the V2 scope", () => {
+  it("shows an icon with the offline message", () => {
     mockOnline = false;
-    const legacy = render(<OfflineBanner />);
-    expect(legacy.queryByTestId("icon-cloud-offline-outline")).toBeNull();
     const scoped = v2(<OfflineBanner />);
     expect(scoped.getByTestId("icon-cloud-offline-outline")).toBeTruthy();
     expect(scoped.getByRole("alert")).toBeTruthy();
@@ -179,7 +171,7 @@ describe("Offline banner chrome", () => {
 });
 
 describe("Settings chrome", () => {
-  it("renders the V2 account header when the preview flag is on", () => {
+  it("renders the V2 account header", () => {
     const u = render(
       <SettingsScreen title="Language" back>
         <Text>body</Text>
@@ -191,18 +183,6 @@ describe("Settings chrome", () => {
     expect(u.getByText("body")).toBeTruthy();
   });
 
-  it("is the untouched legacy frame when the flag is off", () => {
-    mockFlag = false;
-    const u = render(
-      <SettingsScreen title="Language" back>
-        <Text>body</Text>
-      </SettingsScreen>,
-    );
-    expect(u.queryByTestId("settings-screen-v2")).toBeNull();
-    expect(u.getByTestId("settings-title")).toBeTruthy();
-    expect(u.getByTestId("settings-back")).toBeTruthy();
-  });
-
   it("screens that reuse the frame for non-Settings content can opt out of V2", () => {
     const u = render(
       <SettingsScreen title="Team" back v2Chrome={false}>
@@ -212,10 +192,8 @@ describe("Settings chrome", () => {
     expect(u.queryByTestId("settings-screen-v2")).toBeNull();
   });
 
-  it("section titles are sentence case under V2 and keep legacy uppercase otherwise", () => {
+  it("section titles are sentence case", () => {
     const scoped = v2(<SettingsSection title="Account"><Text>x</Text></SettingsSection>);
     expect(flat(scoped.getByText("Account")).textTransform).toBe("none");
-    const legacy = render(<SettingsSection title="Account"><Text>x</Text></SettingsSection>);
-    expect(flat(legacy.getByText("Account")).textTransform).toBe("uppercase");
   });
 });

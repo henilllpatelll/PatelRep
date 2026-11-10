@@ -4,7 +4,6 @@ import { AppState, StyleSheet, View } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Tabs, router, usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppStore } from "@/stores/appStore";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
@@ -26,10 +25,6 @@ import { speechModule, useSpeechRecognitionEvent } from "@/lib/voice/speechModul
 import { ALL_ROLE_TAB_ROUTES, HIDDEN_APP_ROUTES, getTabsForRole } from "@/lib/navigation/roleTabs";
 import { ToastProvider, ToastViewport } from "@/lib/theme/ToastProvider";
 import { useChromeTheme, useTheme } from "@/lib/theme/useTheme";
-import { useDesignV2Active } from "@/lib/design/useDesignV2Active";
-import { useDesignV2Sync } from "@/lib/design/useDesignV2Sync";
-import { DesignV2Scope } from "@/lib/design/DesignV2Scope";
-import { isV2SurfaceRole } from "@/lib/design/housekeeperV2";
 import { TabIconV2 } from "@/components/shared/TabIconV2";
 import { CROWDED_TAB_COUNT, NAV_ACTIVE_V2, buildTabScreenOptionsV2, getTabIconV2 } from "@/lib/navigation/tabChromeV2";
 import { useCleanSessionStore } from "@/stores/cleanSessionStore";
@@ -48,11 +43,7 @@ export default function AppLayout() {
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  // Shared chrome sits outside any DesignV2Scope; this is V2 tokens only while Design V2 is active for this hotel.
   const chrome = useChromeTheme();
-  const designV2 = useDesignV2Active();
-  // Keeps this hotel's `design_v2` answer fresh (sign-in, foreground, reconnect, slow timer); hotel flag off => legacy.
-  useDesignV2Sync();
   const { user, isAuthenticated, isLoading, loadPendingActions, unreadCount } = useAppStore();
   const pathname = usePathname();
   const [bannerHeight, setBannerHeight] = useState(0);
@@ -76,10 +67,10 @@ export default function AppLayout() {
   // The housekeeping supervisor keeps this same corner card; its body is the Supervisor Copilot.
   const supervisorCopilot = isSupervisorCopilotRole(effectiveRole);
   const visibleTabs = effectiveRole ? getTabsForRole(effectiveRole) : [];
-  // Phase 6: with the preview flag on, Front Desk gets five tabs (Lost & Found and Profile move under More).
-  const navTabs = designV2 && effectiveRole === "front_desk" ? getTabsForRole(effectiveRole, { v2: true }) : visibleTabs;
+  // Front Desk gets five tabs (Lost & Found and Profile move under More).
+  const navTabs = effectiveRole === "front_desk" ? getTabsForRole(effectiveRole, { v2: true }) : visibleTabs;
   // While a More destination (Lost & Found, Profile, Notifications) is open, the More tab stays the selected one.
-  const moreSelected = designV2 && effectiveRole === "front_desk" && isFrontDeskMoreChild(pathname);
+  const moreSelected = effectiveRole === "front_desk" && isFrontDeskMoreChild(pathname);
   const visibleNames = new Set(navTabs.map((tab) => tab.name));
   const { brief, loading: briefLoading, error: briefError, idle: briefIdle, reload: reloadBrief } = useCopilotBrief();
   usePmForegroundSync();
@@ -252,41 +243,13 @@ export default function AppLayout() {
       <AssistantProvider>
       <View style={styles.root}>
         <View onLayout={(e) => setBannerHeight(e.nativeEvent.layout.height)}>
-          <DesignV2Scope>
-            <OfflineBanner />
-          </DesignV2Scope>
+          <OfflineBanner />
         </View>
-        <DesignV2Scope>
-          <ToastViewport topOffset={insets.top + bannerHeight} />
-        </DesignV2Scope>
-        {/* Phases 3-4: the Housekeeper's, Inspector's and Housekeeping Supervisor's whole surface (tab screens, hidden
-            routes, assistant) is V2 while the preview flag is on. Every other role renders outside the scope, so
-            its appearance is untouched. Chrome that
-            sits outside (tab bar, banner, toasts) already follows V2 through useChromeTheme / its own scope. */}
-        <DesignV2Scope enabled={isV2SurfaceRole(effectiveRole)}>
+        <ToastViewport topOffset={insets.top + bannerHeight} />
         <Tabs
           backBehavior="history"
           screenOptions={{
-            ...(designV2
-              ? buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length)
-              : {
-                  tabBarActiveTintColor: theme.shell.ink,
-                  tabBarInactiveTintColor: theme.shell.ink3,
-                  tabBarLabelStyle: { fontSize: 11, fontWeight: "600" as const },
-                  tabBarStyle: {
-                    backgroundColor: theme.shell.bg,
-                    borderTopColor: theme.shell.line,
-                    borderTopWidth: 1,
-                    height: 76,
-                    paddingTop: 8,
-                    paddingBottom: 12,
-                    shadowColor: theme.shell.bg,
-                    shadowOpacity: 0.25,
-                    shadowRadius: 12,
-                    shadowOffset: { width: 0, height: -4 },
-                    elevation: 10,
-                  },
-                }),
+            ...buildTabScreenOptionsV2(chrome, insets.bottom, navTabs.length),
             headerStyle: { backgroundColor: theme.shell.surface },
             headerTintColor: theme.shell.ink,
             headerTitleStyle: { fontWeight: "600", color: theme.shell.ink },
@@ -302,18 +265,15 @@ export default function AppLayout() {
                 headerShown: false,
                 tabBarAccessibilityLabel: t(tab.titleKey),
                 ...(moreSelected && tab.key === "more" ? { tabBarInactiveTintColor: NAV_ACTIVE_V2, tabBarAccessibilityLabel: `${t(tab.titleKey)}, ${t("frontDeskMore.selected")}` } : {}),
-                tabBarIcon: ({ color, size, focused }) =>
-                  designV2 ? (
-                    <TabIconV2
-                      name={getTabIconV2(tab, focused || (moreSelected && tab.key === "more"))}
-                      color={color as string}
-                      focused={focused || (moreSelected && tab.key === "more")}
-                      activeFill={chrome.shell.raised}
-                      compact={navTabs.length >= CROWDED_TAB_COUNT}
-                    />
-                  ) : (
-                    <Ionicons name={tab.icon} size={size} color={color as string} />
-                  ),
+                tabBarIcon: ({ color, focused }) => (
+                  <TabIconV2
+                    name={getTabIconV2(tab, focused || (moreSelected && tab.key === "more"))}
+                    color={color as string}
+                    focused={focused || (moreSelected && tab.key === "more")}
+                    activeFill={chrome.shell.raised}
+                    compact={navTabs.length >= CROWDED_TAB_COUNT}
+                  />
+                ),
               }}
             />
           ))}
@@ -384,7 +344,6 @@ export default function AppLayout() {
             )}
           </Animated.View>
         ) : null}
-        </DesignV2Scope>
       </View>
       </AssistantProvider>
       </AppLockGate>

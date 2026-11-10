@@ -10,16 +10,11 @@ import { lightThemeV2 } from "@/components/shared/tokensV2";
 /* Design System V2 Phase 5 (Engineer + Chief Engineer): the role gate, the flag-off contract, the theme-aware
    category chips, and a guard that no engineering file keeps an un-migrated uppercase micro-label. */
 
-let mockFlag = true;
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: mockMakeTranslator("en"), i18n: { language: "en", resolvedLanguage: "en" } }),
 }));
 jest.mock("@/lib/theme/ThemeProvider", () => ({ useThemeMode: () => "light" }));
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 jest.mock("@expo/vector-icons", () => {
   const ReactRuntime = require("react");
@@ -33,10 +28,10 @@ import { CATEGORY_META, useCategoryMeta } from "@/components/engineering/WorkOrd
 import { WorkOrderNextAction } from "@/components/engineering/workorder/WorkOrderNextAction";
 
 const flat = (node: { props: Record<string, unknown> }) => StyleSheet.flatten(node.props.style as StyleProp<TextStyle>) as TextStyle;
-const gated = (enabled: boolean, ui: React.ReactElement) => render(<DesignV2Scope enabled={enabled}>{ui}</DesignV2Scope>);
+// V2 is unconditional: the first argument is kept only so existing call sites read the same.
+const gated = (_enabled: boolean, ui: React.ReactElement) => render(<DesignV2Scope>{ui}</DesignV2Scope>);
 
 beforeEach(() => {
-  mockFlag = true;
 });
 
 describe("role gate", () => {
@@ -68,12 +63,6 @@ describe("theme-aware category chips", () => {
   }
   const read = (enabled: boolean) => gated(enabled, <Probe />).getByTestId("meta").props.meta as typeof CATEGORY_META;
 
-  it("flag off / outside the scope: exactly the legacy static map", () => {
-    const meta = read(false);
-    expect(meta).toBe(CATEGORY_META);
-    expect(meta.plumbing.fg).toBe(lightTheme.status.clean);
-  });
-
   it("inside the scope: the same categories and icons, coloured from the V2 theme", () => {
     const meta = read(true);
     expect(Object.keys(meta)).toEqual(Object.keys(CATEGORY_META));
@@ -82,19 +71,12 @@ describe("theme-aware category chips", () => {
     expect(meta.safety.bg).toBe(lightThemeV2.status.dirtySoft);
   });
 
-  it("with the preview flag off the scope is inert, so the legacy map is kept", () => {
-    mockFlag = false;
-    expect(read(true)).toBe(CATEGORY_META);
-  });
 });
 
 describe("engineering presentation follows the scope", () => {
   it("scope on: sentence-case kicker; off: the legacy uppercase micro-label", () => {
     const on = gated(true, <WorkOrderNextAction step="viewRecord" barVisible={false} />);
     expect(flat(on.getByText("Next step")).textTransform).toBe("none");
-    const off = gated(false, <WorkOrderNextAction step="viewRecord" barVisible={false} />);
-    expect(flat(off.getByText("Next step")).textTransform).toBe("uppercase");
-    expect(flat(off.getByText("Next step")).fontSize).toBe(10.5);
   });
 });
 

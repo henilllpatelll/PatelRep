@@ -21,17 +21,12 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { useTheme } from "@/lib/theme/useTheme";
 
 let mockSystemScheme: "light" | "dark" = "light";
-let mockFlag = true;
 
 jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
   __esModule: true,
   default: () => mockSystemScheme,
 }));
 
-jest.mock("@/lib/design/designV2", () => ({
-  isDesignV2Enabled: () => mockFlag,
-  resolveDesignV2Preview: () => mockFlag,
-}));
 
 jest.mock("@expo/vector-icons", () => {
   const ReactActual = jest.requireActual<typeof import("react")>("react");
@@ -55,7 +50,6 @@ function renderV2(ui: React.ReactElement, mode: "light" | "dark" = "light") {
 }
 
 beforeEach(() => {
-  mockFlag = true;
   mockSystemScheme = "light";
 });
 
@@ -65,7 +59,7 @@ describe("DesignV2Scope and useTheme", () => {
     return <Text testID="probe">{theme.primaryAction}</Text>;
   }
 
-  it("flag ON: returns V2 tokens in both modes, following the app appearance", () => {
+  it("returns V2 tokens in both modes, following the app appearance", () => {
     renderV2(<Probe />, "light");
     expect(screen.getByTestId("probe").props.children).toBe(lightThemeV2.primaryAction);
     screen.unmount();
@@ -73,7 +67,7 @@ describe("DesignV2Scope and useTheme", () => {
     expect(screen.getByTestId("probe").props.children).toBe(darkThemeV2.primaryAction);
   });
 
-  it("flag ON: an explicit scope mode overrides the system appearance only inside the scope", () => {
+  it("an explicit scope mode overrides the system appearance only inside the scope", () => {
     mockSystemScheme = "light";
     render(
       <ThemeProvider>
@@ -85,38 +79,13 @@ describe("DesignV2Scope and useTheme", () => {
       </ThemeProvider>,
     );
     const probes = screen.getAllByTestId("probe");
-    expect(probes[0].props.children).toBe(lightTheme.primaryAction);
+    expect(probes[0].props.children).toBe(lightThemeV2.primaryAction);
     expect(probes[1].props.children).toBe(darkThemeV2.primaryAction);
   });
 
-  it("flag OFF: the scope is inert and the legacy theme is returned unchanged", () => {
-    mockFlag = false;
-    renderV2(<Probe />, "light");
-    expect(screen.getByTestId("probe").props.children).toBe(lightTheme.primaryAction);
-    screen.unmount();
-    renderV2(<Probe />, "dark");
-    expect(screen.getByTestId("probe").props.children).toBe(darkTheme.primaryAction);
-  });
-
-  it("outside any scope the legacy theme is used even when the flag is on", () => {
-    render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>,
-    );
-    expect(screen.getByTestId("probe").props.children).toBe(lightTheme.primaryAction);
-  });
 });
 
-describe("existing components, legacy vs V2", () => {
-  it("Button keeps its legacy look with the flag off", () => {
-    mockFlag = false;
-    renderV2(<Button label="Go" onPress={jest.fn()} testID="b" />);
-    const s = flat(screen.getByTestId("b"));
-    expect(s.backgroundColor).toBe(lightTheme.primaryAction);
-    expect(s.borderRadius).toBe(12);
-  });
-
+describe("shared components are V2", () => {
   it("Button uses V2 color and 14px radius inside an active scope", () => {
     renderV2(<Button label="Go" onPress={jest.fn()} testID="b" />);
     const s = flat(screen.getByTestId("b"));
@@ -152,25 +121,11 @@ describe("existing components, legacy vs V2", () => {
     expect(s.borderRadius).toBe(16);
   });
 
-  it("Card in legacy mode is unchanged", () => {
-    mockFlag = false;
-    renderV2(
-      <Card testID="c">
-        <Text>x</Text>
-      </Card>,
-    );
-    expect(flat(screen.getByTestId("c")).borderColor).toBe(lightTheme.border);
-  });
-
-  it("StatusBadge is sentence case in V2 and keeps icon + text; legacy stays uppercase", () => {
+  it("StatusBadge is sentence case and keeps icon + text", () => {
     renderV2(<StatusBadge statusKey="dirty" label="Dirty" />);
     const v2 = flat(screen.getByText("Dirty"));
     expect(v2.textTransform).toBe("none");
     expect(v2.color).toBe(lightThemeV2.status.dirty);
-    screen.unmount();
-    mockFlag = false;
-    renderV2(<StatusBadge statusKey="dirty" label="Dirty" />);
-    expect(flat(screen.getByText("Dirty")).textTransform).toBe("uppercase");
   });
 
   it("StateBlock supports an offline state with retry", () => {

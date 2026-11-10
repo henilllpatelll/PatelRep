@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react-nativ
 
 const mockToastError = jest.fn();
 
+jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
@@ -37,6 +38,7 @@ jest.mock("@/lib/theme/useToast", () => ({
 
 import { createLostFoundItem, listItems, listRooms } from "@/lib/api/lostFound";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
+import "@/i18n";
 import LostFoundScreen from "@/app/(app)/lost-found/index";
 
 const mockCreateLostFoundItem = createLostFoundItem as jest.Mock;

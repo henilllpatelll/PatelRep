@@ -1,8 +1,9 @@
 import React from "react";
 import { render } from "@testing-library/react-native";
 
+jest.mock("react-native-safe-area-context", () => ({ useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { resolvedLanguage: "en" } }) }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("@/lib/api/client", () => ({ api: { get: jest.fn().mockResolvedValue({ data: [] }) } }));
 jest.mock("@/components/home/HousekeeperHomeScreen", () => {

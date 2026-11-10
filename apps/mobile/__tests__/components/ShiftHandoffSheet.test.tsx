@@ -247,7 +247,7 @@ describe("Submitting", () => {
     await act(async () => pending.resolve(SAVED));
     expect(await screen.findByText("Handoff submitted")).toBeTruthy();
     expect(screen.getByText("Your housekeeping shift report has been saved.")).toBeTruthy();
-    expect(screen.getByTestId("handoff-saved-ref")).toHaveTextContent(/#ABCDEF12/);
+    expect(screen.getByTestId("handoff-saved-ref")).toHaveTextContent(/#abcdef12/i);
     expect(screen.getByTestId("handoff-still-open")).toHaveTextContent(/Submitting did not clock you out./);
     expect(screen.getByTestId("handoff-managers")).toHaveTextContent(/Managers were notified./);
     expect(await AsyncStorage.getItem(DRAFT_KEY)).toBeNull(); // the draft is cleared only on confirmed success

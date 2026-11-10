@@ -65,7 +65,7 @@ import {
   fetchShiftRoster,
 } from "@/lib/api/housekeepingSupervisor";
 import { fetchBlockedTasks } from "@/lib/api/tasks";
-import { darkTheme, lightTheme } from "@/components/shared/tokens";
+import { darkThemeV2 as darkTheme, lightThemeV2 as lightTheme } from "@/components/shared/tokensV2";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import RoomBoardScreen from "@/app/(app)/room-board/index";
 import { STAFF, hotelBoard, rawRoom } from "../helpers/roomBoardFixtures";
