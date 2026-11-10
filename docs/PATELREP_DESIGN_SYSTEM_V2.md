@@ -1,5 +1,8 @@
 # PatelRep Design System V2 — "Precision Slate + Electric Blue"
 
+> **Update (permanent V2):** V2 is now the unconditional design for every hotel and role. The preview variables, `/design-v2-preview` routes, the per-hotel `design_v2` flag and all "flag off" behaviour described below were **removed**; sections that describe them are historical. Current state and rollback: [DESIGN_V2_ACTIVATION.md](DESIGN_V2_ACTIVATION.md).
+
+
 Status: **Phase 7 of 8 (manager web app; see section 61 onward).** Phase 6 was Front Desk and GM mobile (section 47). Phase 3 was Housekeeper (section 26), Phase 4 Inspector and Supervisor, Phase 5 Engineering. Phase 2 was shell, navigation, auth and headers (section 14 onward). Phase 1 was the
 foundation + reference previews. V2 is disabled by default; production
 still renders the legacy "Evening Lobby" look everywhere. Branch `feat/patelrep-design-system-v2`,

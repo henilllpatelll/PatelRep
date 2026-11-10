@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/Input";
 import { StateBlock } from "@/components/ui/StateBlock";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AssetDetailPanel } from "@/components/engineering/AssetDetailPanel";
-import { isDesignV2Enabled } from "@/lib/design/designV2";
 import { CreateAssetModal } from "@/components/engineering/CreateAssetModal";
 
 type Filter = "all" | "risk" | "open" | "pm" | "warranty";
@@ -151,9 +150,8 @@ export function AssetsTab({
       )
     : null;
   // V2: a zero count is not a warning (it stays neutral), and an empty inventory is one panel, not a list beside "Select an asset".
-  const v2 = isDesignV2Enabled();
-  const tone = (count: number, cls: string) => (v2 && count === 0 ? "text-ink" : cls);
-  const emptyInventory = v2 && !assetsQuery.isLoading && assets.length === 0;
+  const tone = (count: number, cls: string) => (count === 0 ? "text-ink" : cls);
+  const emptyInventory = !assetsQuery.isLoading && assets.length === 0;
   const filterItems: Array<{ key: Filter; label: string }> = [
     { key: "all", label: t("engineering.assetsPage.filterAll") },
     { key: "risk", label: t("engineering.assetsPage.filterHighRisk") },

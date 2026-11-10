@@ -81,9 +81,9 @@ for (const file of ['components/ai/AICopilotBubble.tsx', 'components/shared/Feed
 
 /** Unsaved-changes protection (verified in a real browser; this pins the wiring so it cannot silently regress). */
 const GUARDED: Array<[string, string[]]> = [
-  ['components/tasks/CreateTaskDrawer.tsx', ['useDiscardGuard(isDesignV2Enabled() && dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
-  ['components/logbook/AddHandoffDrawer.tsx', ['useDiscardGuard(isDesignV2Enabled() && dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
-  ['components/engineering/CreateWorkOrderDrawer.tsx', ['useDiscardGuard(isDesignV2Enabled() && dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+  ['components/tasks/CreateTaskDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+  ['components/logbook/AddHandoffDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
+  ['components/engineering/CreateWorkOrderDrawer.tsx', ['useDiscardGuard(dirty, onClose)', 'guard.requestClose', 'DiscardChangesPrompt']],
 ]
 for (const [file, needles] of GUARDED) {
   test(`create drawer asks before discarding input: ${file}`, () => {

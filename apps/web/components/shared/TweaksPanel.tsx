@@ -4,15 +4,13 @@ import { useState } from 'react'
 import { Settings2, Sun, Moon, X } from 'lucide-react'
 import { useUIPreferencesStore } from '@/stores/uiPreferencesStore'
 import { cn } from '@/lib/utils'
-import { ACCENT_OPTIONS, DENSITY_OPTIONS } from '@/lib/settings/preferences'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
+import { DENSITY_OPTIONS } from '@/lib/settings/preferences'
 
 export function TweaksPanel() {
   const [open, setOpen] = useState(false)
-  const { density, theme, accent, setDensity, setAccent, toggleTheme } = useUIPreferencesStore()
-  // Design System V2 standardizes the primary accent (electric blue), so the picker would change nothing.
-  // The stored preference is untouched; legacy mode still shows the picker.
-  const showAccentPicker = !isDesignV2Enabled()
+  const { density, theme, setDensity, toggleTheme } = useUIPreferencesStore()
+  // Design System V2 standardizes the primary accent (electric blue), so there is no accent picker.
+  // The stored accent preference is left untouched.
 
   return (
     <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
@@ -58,28 +56,6 @@ export function TweaksPanel() {
               ))}
             </div>
           </div>
-
-          {showAccentPicker && (
-            <div>
-              <p className="text-[10px] text-ink3 mb-1.5">Accent</p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {ACCENT_OPTIONS.map(({ value, label, swatch }) => (
-                  <button
-                    key={value}
-                    onClick={() => setAccent(value)}
-                    className={cn(
-                      'h-8 rounded-md border transition-all flex items-center justify-center',
-                      accent === value ? 'border-ink ring-2 ring-[var(--accent-soft)]' : 'border-line hover:border-ink4'
-                    )}
-                    aria-label={`Use ${label} accent`}
-                    title={label}
-                  >
-                    <span className="h-4 w-4 rounded-full" style={{ backgroundColor: swatch }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

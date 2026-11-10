@@ -1,12 +1,12 @@
 /**
- * Design V2 per-hotel activation, in a real browser against the production build and the hermetic mock backend.
+ * Design V2 is the one design for every hotel, in a real browser against the production build and the hermetic mock.
  *
- *   npm run build   (mock origin, NO preview flag: see e2e/hermetic/run.mjs; the tenant flag is the only switch here)
- *   npx playwright test --config=playwright.workflows.config.ts e2e/design-v2-activation-hermetic.spec.ts
+ *   npm run build   (mock origin, NO preview variable: see e2e/hermetic/run.mjs)
+ *   npx playwright test --config=playwright.workflows.config.ts e2e/design-v2-permanent-hermetic.spec.ts
  *
- * The mock stands in for Feature Rollout through POST /__hermetic/hotel (it changes the signed-in hotel's id and
- * enabled_features); the app is then driven through the real refresh paths (reload, the 10-minute timer, going
- * offline). Nothing here reaches production or shared staging.
+ * The mock's POST /__hermetic/hotel changes the signed-in hotel's id and enabled_features. Whatever a hotel's
+ * (retired) `design_v2` setting was (true, false or missing) it gets V2, in light and dark, and switching hotels
+ * never produces a legacy frame.
  */
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { join } from 'node:path'
@@ -23,7 +23,7 @@ const setHotel = (request: APIRequestContext, hotel: Record<string, unknown>) =>
 
 /** V2 content scope is set on <body> by ShellV2 and removed again when it unmounts. */
 const isV2 = (page: Page) => page.evaluate(() => document.body.hasAttribute('data-dv2-content'))
-const expectV2 = (page: Page, expected: boolean) => expect.poll(() => isV2(page), { timeout: 15000 }).toBe(expected)
+const expectV2 = (page: Page) => expect.poll(() => isV2(page), { timeout: 15000 }).toBe(true)
 
 async function openDashboard(page: Page, mode: 'light' | 'dark' = 'light') {
   await page.addInitScript((theme) => {
@@ -33,82 +33,47 @@ async function openDashboard(page: Page, mode: 'light' | 'dark' = 'light') {
   await expect(page.locator('main')).toBeVisible()
 }
 
-test.beforeEach(async ({ request }) => {
-  await setHotel(request, { id: HOTEL_A, enabled_features: [] })
-})
 test.afterAll(async ({ request }) => {
   await setHotel(request, {})
 })
 
-test('default OFF: a hotel without the flag shows the legacy design', async ({ page }) => {
-  await openDashboard(page)
-  await expectV2(page, false)
-})
+const SETTINGS: Array<[string, Record<string, unknown>]> = [
+  ['flag missing', { id: HOTEL_A, enabled_features: [] }],
+  ['flag present', { id: HOTEL_A, enabled_features: ['design_v2'] }],
+  ['unrelated flags only', { id: HOTEL_A, enabled_features: ['hk_ai_assistant'] }],
+]
 
 for (const mode of ['light', 'dark'] as const) {
-  test(`flag ON shows V2 after sign-in context loads (${mode}), and OFF restores legacy after a reload`, async ({ page, request }) => {
-    await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
-    await openDashboard(page, mode)
-    await expectV2(page, true)
-    await expect(page.locator('body')).toHaveAttribute('data-dv2-mode', mode)
-
-    // Feature Rollout enabled=false, then the person reloads.
-    await setHotel(request, { id: HOTEL_A, enabled_features: [] })
-    await page.reload()
-    await expect(page.locator('main')).toBeVisible()
-    await expectV2(page, false)
-  })
+  for (const [label, hotel] of SETTINGS) {
+    test(`V2 for a hotel with ${label} (${mode})`, async ({ page, request }) => {
+      await setHotel(request, hotel)
+      await openDashboard(page, mode)
+      await expectV2(page)
+      await expect(page.locator('body')).toHaveAttribute('data-dv2-mode', mode)
+    })
+  }
 }
 
-test('an open tab picks up a rollback on its own (10-minute refresh), no reload', async ({ page, request }) => {
-  await page.clock.install()
+test('switching to another hotel never shows a legacy frame', async ({ page, request }) => {
   await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
   await openDashboard(page)
-  await expectV2(page, true)
-
-  await setHotel(request, { id: HOTEL_A, enabled_features: [] })
-  await page.clock.fastForward('10:05')
-  await expectV2(page, false)
-
-  // ...and a roll-forward the same way.
-  await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
-  await page.clock.fastForward('10:05')
-  await expectV2(page, true)
-})
-
-test('two hotels: switching to a hotel without the flag never keeps the first hotel\'s design', async ({ page, request }) => {
-  await page.clock.install()
-  await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
-  await openDashboard(page)
-  await expectV2(page, true)
-
+  await expectV2(page)
   await setHotel(request, { id: HOTEL_B, enabled_features: [] })
-  await page.clock.fastForward('10:05')
-  await expectV2(page, false)
+  await page.reload()
+  await expect(page.locator('main')).toBeVisible()
+  await expectV2(page)
 })
 
-test('offline: an enabled hotel does not keep V2 indefinitely once its last read is 30 minutes old', async ({ page, context, request }) => {
-  await page.clock.install()
-  await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
-  await openDashboard(page)
-  await expectV2(page, true)
-
-  await context.setOffline(true)
-  await page.clock.fastForward('09:00')
-  await expectV2(page, true) // inside the window, last good answer still trusted
-  await page.clock.fastForward('25:00')
-  await expectV2(page, false) // aged out: fails closed to legacy by itself
-
-  await context.setOffline(false)
-  await page.clock.fastForward('10:05')
-  await expectV2(page, true) // back online: the next refresh restores it
-})
-
-test('signed-out sign-in page stays legacy for tenant activation', async ({ browser, request }) => {
-  await setHotel(request, { id: HOTEL_A, enabled_features: ['design_v2'] })
-  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } })
+test('signed-out sign-in page is V2', async ({ browser, baseURL }) => {
+  // browser.newContext() does not inherit the config's baseURL or the describe's signed-in storageState.
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } })
   const page = await context.newPage()
   await page.goto('/login')
-  await expect(page.getByTestId('login-v2')).toHaveCount(0)
+  await expect(page.getByTestId('login-v2')).toBeVisible()
   await context.close()
+})
+
+test('the retired preview route no longer exists', async ({ page }) => {
+  const res = await page.goto('/design-v2-preview')
+  expect(res?.status()).not.toBe(200)
 })

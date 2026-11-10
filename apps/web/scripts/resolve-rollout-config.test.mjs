@@ -191,10 +191,10 @@ test('tenant slug resolution stays exact and enable/disable keep writing audit e
   const tenantId = await resolveTenantId(repo, 'rehearsal-a')
   assert.equal(tenantId, 't-a')
 
-  await applyFeatureFlag(repo, { tenantId, featureKey: 'design_v2', enabled: true, changeSource: 'test' })
-  await applyFeatureFlag(repo, { tenantId, featureKey: 'design_v2', enabled: false, changeSource: 'test' })
+  await applyFeatureFlag(repo, { tenantId, featureKey: 'staging_flag_demo', enabled: true, changeSource: 'test' })
+  await applyFeatureFlag(repo, { tenantId, featureKey: 'staging_flag_demo', enabled: false, changeSource: 'test' })
   assert.deepEqual(events.map((event) => [event.oldValue, event.newValue]), [[null, true], [true, false]])
-  assert.equal(flags['t-b:design_v2'], undefined)
+  assert.equal(flags['t-b:staging_flag_demo'], undefined)
 })
 
 function runResolver(environment, source) {

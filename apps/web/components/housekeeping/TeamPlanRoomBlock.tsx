@@ -1,7 +1,6 @@
 'use client'
 
 import { useTranslation } from 'react-i18next'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { cn } from '@/lib/utils'
 import { getCleanTypeShortLabel } from '@/lib/utils/cleanType'
 import type { TeamPlanStop } from '@/lib/housekeeping/teamPlanView'
@@ -25,7 +24,7 @@ export function TeamPlanRoomBlock({ stop, style, onOpen }: Props) {
   const done = stop.state === 'done'
   // Narrow stops (short cleans, few hours on screen) cannot fit the clean-type word; V2 shows a one-letter chip and keeps the
   // full text in the tooltip instead of an ellipsis.
-  const narrow = isDesignV2Enabled() && typeof style?.width === 'number' && style.width < 120
+  const narrow = typeof style?.width === 'number' && style.width < 120
   const active = stop.state === 'active'
 
   // A blocked room (unresolved discrepancy) can't be actioned right now, so it

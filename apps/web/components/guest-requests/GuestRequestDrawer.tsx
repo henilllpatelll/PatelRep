@@ -14,7 +14,6 @@ import {
 import { getCategories } from '@/components/engineering/CreateWorkOrderDrawer'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Pill } from '@/components/ui/primitives'
-import { isDesignV2Enabled } from '@/lib/design/designV2'
 import { useRole } from '@/lib/hooks/useRole'
 import { useModalFocusTrap } from '@/lib/hooks/useModalFocusTrap'
 
@@ -197,7 +196,7 @@ export function GuestRequestDrawer({ request, isOpen, onClose, onNoteAdded, onAd
         </div>
 
         {/* V2: the facts a lead needs before reading anything else (state, urgency, deadline, who asked). */}
-        {isDesignV2Enabled() && (
+        {(
           <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface-2 px-5 py-2.5" data-testid="guest-request-summary">
             <Pill tone={request.status === 'resolved' || request.status === 'verified' ? 'ready' : request.status === 'cancelled' ? 'neutral' : 'info'} size="sm">
               {t(`guestRequests.drawerStatus.${request.status}`, { defaultValue: request.status })}

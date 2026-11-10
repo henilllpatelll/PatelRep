@@ -496,3 +496,13 @@ The other seven files using the same `NOW = Date.now()` pattern were run with th
 
 **Production-reaching changes in this pass (not behind the V2 flag):** the `toFriendlyError` fix above, and the inert `data-onboarding-v2` attribute on the wizard roots.
 Everything else is V2-scoped CSS or test code.
+
+## Phase 13 addendum: V2 made permanent
+
+V2 is now the unconditional design (see [DESIGN_V2_ACTIVATION.md](DESIGN_V2_ACTIVATION.md)). Effect on this audit's open items:
+
+- **B1 (no runtime activation mechanism) and Option A/B in section I:** superseded. The per-hotel flag shipped in #201 and has now been retired; Option B (replace the legacy look) was chosen by the owner.
+- **B2 / K.3 (device, emulator, assistive-technology run):** still **not done**, and now more important because there is no flag to roll back with. The checklist in DESIGN_V2_ACTIVATION.md supersedes K.3 for release sign-off.
+- **C.1 dialogs, B3 reports, B4 AI mount calls, B5, B6, B7:** closed in Phase 9 as recorded above; unchanged here.
+- **Newly reachable code:** V2 branches that were only exercised behind the flag now run for everyone. Running the existing Jest suite against that surfaced test-only assumptions (legacy copy, missing safe-area and i18n mocks) and no product defect; each affected test was updated to assert V2 behaviour rather than weakened. One real defect found by the static label audit and fixed: the housekeeper checklist "Required/Optional" tag was a 10 pt uppercase label outside the V2 text overlay.
+- **Colour/token migration is not layout redesign:** the "Still not done" list under Phase 9 is unchanged.
