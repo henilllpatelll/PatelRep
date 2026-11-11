@@ -431,3 +431,145 @@ def test_sdk_uses_httpx2_and_application_httpx_pin_is_independent():
     assert httpx2.__version__
     assert settings.openai_api_key is not None
     assert callable(get_openai_client)
+
+
+# --------------------------------------------------------------------------
+# pypdf 7: Opera PDF xref repair (services.opera_pdf._repair_pdf)
+# --------------------------------------------------------------------------
+
+def _opera_hk_details_pdf() -> bytes:
+    """A real PDF laid out with the column positions the HK Details parser reads."""
+    import io
+
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    page = canvas.Canvas(buf, pagesize=(594, 842))
+    y = 800
+    for row in (
+        ("101", "S1K", "Dirty", "OCC", "Stayover"),
+        ("102", "S1K", "Inspected", "VAC", "Vacant"),
+        ("103", "D2Q", "Clean", "OCC", "Due Out"),
+    ):
+        for x, text in zip((9, 54, 121, 341, 413), row):
+            page.drawString(x, y, text)
+        y -= 14
+    page.save()
+    return buf.getvalue()
+
+
+def _corrupt_xref(pdf: bytes) -> bytes:
+    """Reproduce Opera's defect: xref byte offsets that no longer match the objects."""
+    import re
+
+    bad = re.sub(rb"startxref\n\d+", b"startxref\n99999", pdf)
+    return re.sub(rb"(\d{10}) 00000 n", lambda m: b"%010d 00000 n" % (int(m.group(1)) + 37), bad)
+
+
+def test_repair_pdf_rebuilds_a_corrupt_xref_into_a_strictly_valid_pdf():
+    import io
+
+    from pypdf import PdfReader
+
+    from services.opera_pdf import _repair_pdf
+
+    good = _opera_hk_details_pdf()
+    bad = _corrupt_xref(good)
+    assert bad != good
+
+    repaired = _repair_pdf(bad)
+
+    reader = PdfReader(io.BytesIO(repaired), strict=True)  # strict re-read: xref is clean now
+    assert len(reader.pages) == 1
+    assert "Inspected" in reader.pages[0].extract_text()
+
+
+def test_hk_details_parses_identically_from_a_repaired_pdf():
+    from services.opera_pdf import _repair_pdf, parse_hk_details
+
+    good = _opera_hk_details_pdf()
+    expected, expected_warnings = parse_hk_details(good)
+    assert [r.room_number for r in expected] == ["101", "102", "103"]
+
+    rows, warnings_ = parse_hk_details(_repair_pdf(_corrupt_xref(good)))
+
+    assert rows == expected
+    assert warnings_ == expected_warnings
+    assert {r.room_number: r.our_status for r in rows} == {"101": "DIRTY", "102": "INSPECTED", "103": "OOO"}
+
+
+def test_repair_pdf_accepts_the_pypdf_reader_signature_in_use():
+    # pypdf 7 restored the `strict` keyword (6.x removed it); _repair_pdf tolerates both,
+    # but must never raise for a well-formed input on either signature.
+    from services.opera_pdf import _repair_pdf
+
+    assert _repair_pdf(_opera_hk_details_pdf()).startswith(b"%PDF-")
+
+
+# --------------------------------------------------------------------------
+# python-dateutil 4: DST helpers behind services.scheduling._local_instant
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "zone_name,day,clock,expected_utc",
+    [
+        # Spring-forward gap resolves with the pre-transition offset (matches PostgreSQL AT TIME ZONE).
+        ("America/Chicago", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 8, 30, tzinfo=timezone.utc)),
+        ("America/Denver", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 9, 30, tzinfo=timezone.utc)),
+        # Fall-back overlap resolves to the later (standard-time) instant.
+        ("America/Chicago", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 7, 30, tzinfo=timezone.utc)),
+        ("America/Denver", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 8, 30, tzinfo=timezone.utc)),
+        # Arizona never changes: no gap, no overlap.
+        ("America/Phoenix", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 9, 30, tzinfo=timezone.utc)),
+        ("America/Phoenix", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 8, 30, tzinfo=timezone.utc)),
+    ],
+)
+def test_local_instant_resolves_dst_edges_for_each_hotel_zone(zone_name, day, clock, expected_utc):
+    from datetime import time
+
+    from services.scheduling import _local_instant
+
+    assert _local_instant(day, time(*clock), tz.gettz(zone_name)) == expected_utc
+
+
+def test_dateutil_dst_helper_apis_report_gap_and_overlap():
+    zone = tz.gettz("America/Chicago")
+    assert tz.datetime_exists(datetime(2026, 3, 8, 2, 30), zone) is False
+    assert tz.datetime_exists(datetime(2026, 3, 8, 3, 30), zone) is True
+    assert tz.datetime_ambiguous(datetime(2026, 11, 1, 1, 30), zone) is True
+    assert tz.datetime_ambiguous(datetime(2026, 11, 1, 2, 30), zone) is False
+    resolved = tz.resolve_imaginary(datetime(2026, 3, 8, 2, 30, tzinfo=zone))
+    assert resolved.replace(tzinfo=None) == datetime(2026, 3, 8, 3, 30)
+
+
+# --------------------------------------------------------------------------
+# supabase-py 2.34: PostgREST GET retries must stay disabled (fail fast)
+# --------------------------------------------------------------------------
+
+def test_supabase_client_options_disable_postgrest_retries():
+    from core.database import _build_client_options
+
+    assert _build_client_options().postgrest_client_retry is False
+
+
+def test_unreachable_supabase_get_fails_fast_instead_of_sleeping_through_retries():
+    # supabase-py 2.34 retries GETs on network errors with time.sleep(1, 2, 4) = 7s+ by default,
+    # which made /health take ~28s whenever the database host was unreachable.
+    import socket
+    import time
+
+    from supabase import create_client
+
+    from core.database import _build_client_options
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed_port = probe.getsockname()[1]  # bound then released: nothing is listening here
+
+    client = create_client(
+        f"http://127.0.0.1:{closed_port}", "service-role-key-for-tests", _build_client_options()
+    )
+    started = time.monotonic()
+    with pytest.raises(Exception):
+        client.table("tenants").select("id").execute()
+    assert time.monotonic() - started < 3

@@ -10,12 +10,18 @@ _supabase_client: Client | None = None
 
 
 def _build_client_options() -> SyncClientOptions:
-    return SyncClientOptions(
+    options = SyncClientOptions(
         auto_refresh_token=False,
         persist_session=False,
         postgrest_client_timeout=settings.supabase_http_timeout_seconds,
         storage_client_timeout=settings.supabase_storage_timeout_seconds,
     )
+    # supabase-py >= 2.34 retries idempotent PostgREST GETs on network errors with a blocking
+    # time.sleep (1s, 2s, 4s). That stalls request threads and makes /health take ~28s when Supabase
+    # is unreachable, so keep the previous fail-fast behaviour. Older versions lack the option.
+    if hasattr(options, "postgrest_client_retry"):
+        options.postgrest_client_retry = False
+    return options
 
 
 def get_supabase() -> Client:
