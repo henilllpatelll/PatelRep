@@ -431,3 +431,76 @@ def test_sdk_uses_httpx2_and_application_httpx_pin_is_independent():
     assert httpx2.__version__
     assert settings.openai_api_key is not None
     assert callable(get_openai_client)
+
+
+# --------------------------------------------------------------------------
+# pypdf 7: Opera PDF xref repair (services.opera_pdf._repair_pdf)
+# --------------------------------------------------------------------------
+
+def _opera_hk_details_pdf() -> bytes:
+    """A real PDF laid out with the column positions the HK Details parser reads."""
+    import io
+
+    from reportlab.pdfgen import canvas
+
+    buf = io.BytesIO()
+    page = canvas.Canvas(buf, pagesize=(594, 842))
+    y = 800
+    for row in (
+        ("101", "S1K", "Dirty", "OCC", "Stayover"),
+        ("102", "S1K", "Inspected", "VAC", "Vacant"),
+        ("103", "D2Q", "Clean", "OCC", "Due Out"),
+    ):
+        for x, text in zip((9, 54, 121, 341, 413), row):
+            page.drawString(x, y, text)
+        y -= 14
+    page.save()
+    return buf.getvalue()
+
+
+def _corrupt_xref(pdf: bytes) -> bytes:
+    """Reproduce Opera's defect: xref byte offsets that no longer match the objects."""
+    import re
+
+    bad = re.sub(rb"startxref\n\d+", b"startxref\n99999", pdf)
+    return re.sub(rb"(\d{10}) 00000 n", lambda m: b"%010d 00000 n" % (int(m.group(1)) + 37), bad)
+
+
+def test_repair_pdf_rebuilds_a_corrupt_xref_into_a_strictly_valid_pdf():
+    import io
+
+    from pypdf import PdfReader
+
+    from services.opera_pdf import _repair_pdf
+
+    good = _opera_hk_details_pdf()
+    bad = _corrupt_xref(good)
+    assert bad != good
+
+    repaired = _repair_pdf(bad)
+
+    reader = PdfReader(io.BytesIO(repaired), strict=True)  # strict re-read: xref is clean now
+    assert len(reader.pages) == 1
+    assert "Inspected" in reader.pages[0].extract_text()
+
+
+def test_hk_details_parses_identically_from_a_repaired_pdf():
+    from services.opera_pdf import _repair_pdf, parse_hk_details
+
+    good = _opera_hk_details_pdf()
+    expected, expected_warnings = parse_hk_details(good)
+    assert [r.room_number for r in expected] == ["101", "102", "103"]
+
+    rows, warnings_ = parse_hk_details(_repair_pdf(_corrupt_xref(good)))
+
+    assert rows == expected
+    assert warnings_ == expected_warnings
+    assert {r.room_number: r.our_status for r in rows} == {"101": "DIRTY", "102": "INSPECTED", "103": "OOO"}
+
+
+def test_repair_pdf_accepts_the_pypdf_reader_signature_in_use():
+    # pypdf 7 restored the `strict` keyword (6.x removed it); _repair_pdf tolerates both,
+    # but must never raise for a well-formed input on either signature.
+    from services.opera_pdf import _repair_pdf
+
+    assert _repair_pdf(_opera_hk_details_pdf()).startswith(b"%PDF-")
