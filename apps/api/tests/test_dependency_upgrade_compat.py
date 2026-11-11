@@ -504,3 +504,39 @@ def test_repair_pdf_accepts_the_pypdf_reader_signature_in_use():
     from services.opera_pdf import _repair_pdf
 
     assert _repair_pdf(_opera_hk_details_pdf()).startswith(b"%PDF-")
+
+
+# --------------------------------------------------------------------------
+# python-dateutil 4: DST helpers behind services.scheduling._local_instant
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "zone_name,day,clock,expected_utc",
+    [
+        # Spring-forward gap resolves with the pre-transition offset (matches PostgreSQL AT TIME ZONE).
+        ("America/Chicago", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 8, 30, tzinfo=timezone.utc)),
+        ("America/Denver", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 9, 30, tzinfo=timezone.utc)),
+        # Fall-back overlap resolves to the later (standard-time) instant.
+        ("America/Chicago", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 7, 30, tzinfo=timezone.utc)),
+        ("America/Denver", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 8, 30, tzinfo=timezone.utc)),
+        # Arizona never changes: no gap, no overlap.
+        ("America/Phoenix", date(2026, 3, 8), (2, 30), datetime(2026, 3, 8, 9, 30, tzinfo=timezone.utc)),
+        ("America/Phoenix", date(2026, 11, 1), (1, 30), datetime(2026, 11, 1, 8, 30, tzinfo=timezone.utc)),
+    ],
+)
+def test_local_instant_resolves_dst_edges_for_each_hotel_zone(zone_name, day, clock, expected_utc):
+    from datetime import time
+
+    from services.scheduling import _local_instant
+
+    assert _local_instant(day, time(*clock), tz.gettz(zone_name)) == expected_utc
+
+
+def test_dateutil_dst_helper_apis_report_gap_and_overlap():
+    zone = tz.gettz("America/Chicago")
+    assert tz.datetime_exists(datetime(2026, 3, 8, 2, 30), zone) is False
+    assert tz.datetime_exists(datetime(2026, 3, 8, 3, 30), zone) is True
+    assert tz.datetime_ambiguous(datetime(2026, 11, 1, 1, 30), zone) is True
+    assert tz.datetime_ambiguous(datetime(2026, 11, 1, 2, 30), zone) is False
+    resolved = tz.resolve_imaginary(datetime(2026, 3, 8, 2, 30, tzinfo=zone))
+    assert resolved.replace(tzinfo=None) == datetime(2026, 3, 8, 3, 30)
