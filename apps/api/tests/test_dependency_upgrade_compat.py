@@ -540,3 +540,36 @@ def test_dateutil_dst_helper_apis_report_gap_and_overlap():
     assert tz.datetime_ambiguous(datetime(2026, 11, 1, 2, 30), zone) is False
     resolved = tz.resolve_imaginary(datetime(2026, 3, 8, 2, 30, tzinfo=zone))
     assert resolved.replace(tzinfo=None) == datetime(2026, 3, 8, 3, 30)
+
+
+# --------------------------------------------------------------------------
+# supabase-py 2.34: PostgREST GET retries must stay disabled (fail fast)
+# --------------------------------------------------------------------------
+
+def test_supabase_client_options_disable_postgrest_retries():
+    from core.database import _build_client_options
+
+    assert _build_client_options().postgrest_client_retry is False
+
+
+def test_unreachable_supabase_get_fails_fast_instead_of_sleeping_through_retries():
+    # supabase-py 2.34 retries GETs on network errors with time.sleep(1, 2, 4) = 7s+ by default,
+    # which made /health take ~28s whenever the database host was unreachable.
+    import socket
+    import time
+
+    from supabase import create_client
+
+    from core.database import _build_client_options
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        closed_port = probe.getsockname()[1]  # bound then released: nothing is listening here
+
+    client = create_client(
+        f"http://127.0.0.1:{closed_port}", "service-role-key-for-tests", _build_client_options()
+    )
+    started = time.monotonic()
+    with pytest.raises(Exception):
+        client.table("tenants").select("id").execute()
+    assert time.monotonic() - started < 3
