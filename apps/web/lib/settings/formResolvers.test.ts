@@ -2,9 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ResolverOptions } from 'react-hook-form'
+import { z } from 'zod'
 import { EMPTY_PROFILE, propertyProfileSchema, type PropertyProfileValues } from './propertyProfile'
 
-// @hookform/resolvers 6 contract: the zod resolver feeds react-hook-form on the Property Profile
+// @hookform/resolvers 6/7 contract: the zod resolver feeds react-hook-form on the Property Profile
 // (settings/general) and onboarding forms. These run the real resolver against the real schema.
 const options: ResolverOptions<PropertyProfileValues> = { fields: {}, shouldUseNativeValidation: false }
 const resolve = (values: unknown) => zodResolver(propertyProfileSchema)(values as PropertyProfileValues, undefined, options)
@@ -60,4 +61,52 @@ test('the empty default form fails every required field instead of throwing', as
   const result = await resolve(EMPTY_PROFILE)
   const keys = Object.keys(result.errors as object).sort()
   assert.deepEqual(keys, ['address', 'city', 'name', 'phone', 'state', 'zip'])
+})
+
+// The onboarding hotel form (app/(dashboard)/onboarding/page.tsx) keeps its schema local to the page; this
+// mirrors its field shapes (integer room count, timezone enum, 2-letter state) so the resolver paths it
+// relies on stay covered across @hookform/resolvers majors.
+const onboardingShape = z.object({
+  name: z.string().min(2, 'Hotel name is required'),
+  state: z.string().length(2, 'Enter 2-letter state code'),
+  room_count: z
+    .number({ error: 'Room count is required' })
+    .int()
+    .min(1, 'Must have at least 1 room')
+    .max(1000, 'Max 1000 rooms'),
+  timezone: z.enum(['America/Chicago', 'America/New_York']),
+})
+type OnboardingValues = z.infer<typeof onboardingShape>
+const onboardingOptions: ResolverOptions<OnboardingValues> = { fields: {}, shouldUseNativeValidation: false }
+const resolveOnboarding = (values: unknown) =>
+  zodResolver(onboardingShape)(values as OnboardingValues, undefined, onboardingOptions)
+
+test('onboarding-shaped values resolve with typed output', async () => {
+  const result = await resolveOnboarding({ name: 'Fossil Creek Inn', state: 'TX', room_count: 98, timezone: 'America/Chicago' })
+  assert.deepEqual(result.errors, {})
+  assert.deepEqual(result.values, { name: 'Fossil Creek Inn', state: 'TX', room_count: 98, timezone: 'America/Chicago' })
+})
+
+test('onboarding errors cover missing number, non-integer, bounds and enum mismatches', async () => {
+  const errorsFor = async (values: unknown) =>
+    (await resolveOnboarding(values)).errors as Record<string, { message?: string; type?: string }>
+  const base = { name: 'Inn', state: 'TX', room_count: 98, timezone: 'America/Chicago' }
+
+  assert.equal((await errorsFor({ ...base, room_count: undefined })).room_count?.message, 'Room count is required')
+  assert.equal((await errorsFor({ ...base, room_count: 0 })).room_count?.message, 'Must have at least 1 room')
+  assert.equal((await errorsFor({ ...base, room_count: 1001 })).room_count?.message, 'Max 1000 rooms')
+  assert.ok((await errorsFor({ ...base, room_count: 10.5 })).room_count, 'a fractional room count is rejected')
+  assert.ok((await errorsFor({ ...base, timezone: 'Mars/Olympus' })).timezone, 'an unknown timezone is rejected')
+  assert.equal((await errorsFor({ ...base, state: 'Texas' })).state?.message, 'Enter 2-letter state code')
+})
+
+test('criteriaMode all keeps every failed rule for a field', async () => {
+  const result = await zodResolver(onboardingShape)(
+    { name: '', state: 'TX', room_count: 98, timezone: 'America/Chicago' } as OnboardingValues,
+    undefined,
+    { ...onboardingOptions, criteriaMode: 'all' },
+  )
+  const errors = result.errors as Record<string, { message?: string; types?: Record<string, unknown> }>
+  assert.equal(errors.name?.message, 'Hotel name is required')
+  assert.ok(errors.name?.types && Object.keys(errors.name.types).length >= 1)
 })
