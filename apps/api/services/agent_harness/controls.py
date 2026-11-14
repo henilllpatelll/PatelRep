@@ -20,6 +20,19 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from services.agent_harness.errors import AgentExecutionDisabled
 
 H0_EXECUTION_SUPPORTED: Final[bool] = False
+
+# H2 execution-capability boundary (replaces H0's blanket write hard stop for an EXACT reviewed set, nothing broader).
+# A tool version may execute only if it is listed here AND bound in services/agent_gateway/bindings.py AND allowlisted
+# in the database (agent__gateway_tool_spec, migration 243) -- three independently reviewed places that drift tests pin
+# together. Membership is necessary, never sufficient: every invocation still needs fresh platform enablement
+# (APP_ENV + AGENT_GATEWAY_EXECUTION_ENABLED + the database switch), the tenant entitlement, a per-property grant,
+# current identity and, for writes, a valid single-use human approval. There is no blanket "execution supported" flag:
+# H0_EXECUTION_SUPPORTED stays False and require_execution_supported() still refuses everything outside this set.
+H2_EXECUTABLE_TOOLS: Final[frozenset[tuple[str, int]]] = frozenset({
+    ("engineering.work_orders.lookup", 2),
+    ("housekeeping.rooms.status_lookup", 1),
+    ("engineering.work_orders.assign", 2),
+})
 MAX_CONTROL_AGE = timedelta(seconds=30)
 
 
@@ -59,5 +72,16 @@ def load_runtime_controls(now: datetime) -> RuntimeControls:
 
 
 def require_execution_supported() -> NoReturn:
-    """The single gate any future executor must pass first. In H0 it always refuses."""
+    """Blanket gate for anything OUTSIDE the reviewed H2 tool set. It always refuses."""
     raise AgentExecutionDisabled("Agent execution is not available in Agent Harness H0.")
+
+
+def tool_is_executable(tool_key: object) -> bool:
+    """True only for an exact (tool_id, version) pair in the reviewed H2 set."""
+    return isinstance(tool_key, tuple) and tool_key in H2_EXECUTABLE_TOOLS
+
+
+def require_tool_executable(tool_key: object) -> None:
+    """Gate for the Tool Gateway: refuses every tool version outside ``H2_EXECUTABLE_TOOLS``."""
+    if not tool_is_executable(tool_key):
+        require_execution_supported()

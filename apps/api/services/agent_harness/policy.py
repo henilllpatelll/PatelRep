@@ -6,10 +6,13 @@ denied -- unknown or malformed contexts, agents, tools, roles, principals, flags
 
 What a decision is NOT:
   * ``requires_approval`` is never authorization to execute.
-  * ``allow`` is a policy answer, not an execution. ``AuthorizationDecision.authorizes_execution`` is False for every
-    decision in H0 because ``H0_EXECUTION_SUPPORTED`` is False, and there is no dispatcher in this package.
-  * A write tool is never allowed in H0: even with a valid, server-recorded approval the answer is
-    ``deny / write_execution_unavailable`` because the durable approval-to-execution workflow does not exist yet.
+  * ``allow`` is a policy answer, not an execution. ``AuthorizationDecision.authorizes_execution`` is True only for an
+    ``allow`` on a tool version in the reviewed H2 set (``controls.H2_EXECUTABLE_TOOLS``); there is still no dispatcher
+    in this package -- the Tool Gateway (services/agent_gateway) is the only executor and re-checks volatile state in
+    the database immediately before any side effect.
+  * A write tool outside ``H2_EXECUTABLE_TOOLS`` is never allowed: even with a valid, server-recorded approval the answer
+    is ``deny / write_execution_unavailable``. Inside the set, a write is allowed only with a valid approval bound to the
+    exact action digest, initiator, agent version and tool version.
 
 The request is UNTRUSTED (it is shaped by a model). Identity comes only from the ``TrustedExecutionContext``; resource
 ownership only from a server-resolved ``VerifiedResource``; approval only from a server-recorded ``ApprovalEvidence``.
@@ -28,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 
 from services.agent_harness.agents import AGENT_HARNESS_FLAG, AgentRegistry, AgentSpec
 from services.agent_harness.autonomy import APPROVAL_POLICIES, AutonomyGrant, effective_autonomy, requires_human_authority
-from services.agent_harness.controls import H0_EXECUTION_SUPPORTED, RuntimeControls, TenantAgentState
+from services.agent_harness.controls import RuntimeControls, TenantAgentState, tool_is_executable
 from services.agent_harness.identity import POLICY_VERSION, SYSTEM_PRINCIPALS, TrustedExecutionContext
 from services.agent_harness.tools import ToolSpec
 from services.agent_harness.vocabulary import (
@@ -132,8 +135,8 @@ class AuthorizationDecision:
 
     @property
     def authorizes_execution(self) -> bool:
-        """Only ``allow`` could ever authorize execution, and nothing does while H0's ceiling is in force."""
-        return self.outcome is Outcome.ALLOW and H0_EXECUTION_SUPPORTED
+        """Only an ``allow`` for a tool version in the reviewed H2 executable set can authorize execution."""
+        return self.outcome is Outcome.ALLOW and tool_is_executable(self.tool_key)
 
 
 def action_digest(tool: ToolSpec, resource: Optional[VerifiedResource], arguments: Mapping[str, Any]) -> str:
@@ -271,7 +274,7 @@ def evaluate(
     if tool.access is AccessMode.READ:
         return AuthorizationDecision(Outcome.ALLOW, ReasonCode.ALLOWED, agent_key=agent.key, tool_key=tool.key)
 
-    # --- writes: autonomy, then human approval, then the H0 hard stop --------------------------------------------
+    # --- writes: autonomy, then human approval, then the H2 executable-tool boundary --------------------------------------------
     level = effective_autonomy(hotel_id=ctx.hotel_id, agent_id=agent.agent_id, agent_ceiling=agent.autonomy_ceiling,
                                tool=tool, grants=grants, now=now, platform_ceiling=POLICY_AUTONOMY_CEILING)
     if ctx.principal_type is not PrincipalType.HUMAN or level < AutonomyLevel.HUMAN_APPROVED:
@@ -283,4 +286,6 @@ def evaluate(
         approval, ctx=ctx, agent=agent, tool=tool, digest=action_digest(tool, resource, arguments), now=now,
     ):
         return _deny(ReasonCode.APPROVAL_INVALID, agent, tool)
-    return _deny(ReasonCode.WRITE_EXECUTION_UNAVAILABLE, agent, tool)
+    if not tool_is_executable(tool.key):
+        return _deny(ReasonCode.WRITE_EXECUTION_UNAVAILABLE, agent, tool)
+    return AuthorizationDecision(Outcome.ALLOW, ReasonCode.ALLOWED, agent_key=agent.key, tool_key=tool.key)

@@ -224,3 +224,6 @@ H2 (Tool Gateway) builds on: fenced step commits (add the tool idempotency recor
 identity/controls reload (feed `policy.evaluate`), and `require_execution_supported()` (the single gate H2 flips together
 with the gateway, in a reviewed PR). H2 must also relax `agent_runs_h1_synthetic_only` in a reviewed forward migration
 and add an admission path that is subject to `policy.evaluate` and the `ai_agents` entitlement.
+
+**H2 status:** implemented in migrations 241-243 and `services/agent_gateway` -- see [tool-gateway.md](tool-gateway.md)
+§11. `require_execution_supported()` was NOT flipped; the gateway uses the exact `H2_EXECUTABLE_TOOLS` boundary instead.

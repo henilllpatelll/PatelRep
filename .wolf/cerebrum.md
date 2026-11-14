@@ -1186,3 +1186,11 @@
 - Decision Log: pgmq messages are wake-up hints only; agent_runs.queue_msg_id names the single authoritative message; terminal transitions ack inside the same transaction; "wait" outcomes re-dispatch a fresh message so read_ct only counts real claim/crash cycles.
 - Decision Log: H1 has NO HTTP routes; synthetic admission requires AGENT_WORKER_SYNTHETIC_ENABLED and APP_ENV in development/test/staging; DB CHECK agent_runs_h1_synthetic_only is the independent ceiling (H2 relaxes it in a reviewed migration).
 - Decision Log: a human with two active roles in one hotel fails closed for background runs in H1 (documented limitation).
+
+## Agent Harness H2 (Tool Gateway) - learnings (2026-11-14)
+
+- Decision Log: H2 never flips H0_EXECUTION_SUPPORTED; it adds the exact frozenset controls.H2_EXECUTABLE_TOOLS, pinned by drift tests to bindings.GATEWAY_BINDINGS and the DB allowlist agent__gateway_tool_spec (migration 243). Production execution is refused in code (authorization.process_allows_execution).
+- Decision Log: work-order assignment rules live ONLY in SQL work_order_assign_apply (migration 242), used by both POST /work-orders/{id}/assign and the gateway's single-transaction approved write; never re-implement them in Python.
+- Key Learning: on Windows, Python text-mode writes produce CRLF; `git diff --cached --check` then flags every line. Normalize with sed 's/$//' — except apps/api/RBAC-MATRIX.md, which the repo stores CRLF (regenerate it instead).
+- Do-Not-Repeat (2026-11-14): never put a CASE expression inside a PL/pgSQL IF condition (IF scans to the first THEN); compute it into a variable first.
+- Do-Not-Repeat (2026-11-14): rewriting .wolf/buglog.json with json.dump reformats ~70k lines; append entries textually.

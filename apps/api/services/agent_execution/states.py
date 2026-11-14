@@ -15,6 +15,7 @@ class RunState(str, Enum):
     RETRY_WAIT = "retry_wait"
     PAUSED = "paused"
     CANCEL_REQUESTED = "cancel_requested"
+    AWAITING_APPROVAL = "awaiting_approval"  # H2: a write waits for a human; no lease, no queue message
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -45,6 +46,10 @@ RUN_TRANSITIONS: frozenset[tuple[RunState, RunState]] = frozenset({
     (_R.RETRY_WAIT, _R.DEAD_LETTER),
     (_R.PAUSED, _R.QUEUED), (_R.PAUSED, _R.CANCELLED), (_R.PAUSED, _R.FAILED),
     (_R.CANCEL_REQUESTED, _R.CANCELLED), (_R.CANCEL_REQUESTED, _R.FAILED),
+    # H2 (migration 241): approval wait. Resumed exactly once by the approval decision; ended by reject / revoke /
+    # expiry / deadline / cancel.
+    (_R.RUNNING, _R.AWAITING_APPROVAL),
+    (_R.AWAITING_APPROVAL, _R.QUEUED), (_R.AWAITING_APPROVAL, _R.CANCELLED), (_R.AWAITING_APPROVAL, _R.FAILED),
 })
 
 _S = StepState
