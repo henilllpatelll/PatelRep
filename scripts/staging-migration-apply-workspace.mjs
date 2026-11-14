@@ -37,6 +37,7 @@ import {
 } from './production-migration-apply-workspace.mjs';
 import { assertStagingTarget } from './staging-target-guard.mjs';
 import { planStagingMigrations } from './staging-migration-plan.mjs';
+import { REVIEWED_REGISTRY_PATH, loadReviewedRegistry, verifyReviewedBindings } from './staging-reviewed-migrations.mjs';
 import {
   CANDIDATE_MIGRATIONS_ENV,
   assertTrustedControlPlaneFromEnvironment,
@@ -164,6 +165,8 @@ function resolveContext(options, deps) {
       assertStagingTarget(options.target);
     }),
     probeRunner: deps.probeRunner ?? defaultProbeRunner,
+    // Main's reviewed-preview registry: an applied, reviewed file must stay byte-identical in every later candidate.
+    reviewedRegistry: options.reviewedRegistryPath ? loadReviewedRegistry(resolve(options.reviewedRegistryPath)) : null,
   };
 }
 
@@ -194,10 +197,14 @@ function removeWorkspace(workspace) {
   if (existsSync(workspace)) throw new Error('Unable to remove the ephemeral staging apply workspace.');
 }
 
-/** Independent plan: trusted history + destructive-SQL rejection + exactly one file per pending version + coverage. */
+/**
+ * Independent plan: trusted history + reviewed-file bindings + destructive-SQL rejection + exactly one file per pending
+ * version + coverage. `options.reviewedMigrations` is set only by the reviewed-preview driver (never from environment).
+ */
 function independentPlan(context, label) {
   const live = context.evaluateLive(true);
-  const plan = planStagingMigrations({ evaluation: live.evaluation, migrations: live.migrations });
+  if (context.reviewedRegistry) verifyReviewedBindings(context.reviewedRegistry, { remoteRows: live.remoteRows, migrations: live.migrations });
+  const plan = planStagingMigrations({ evaluation: live.evaluation, migrations: live.migrations, reviewed: context.options.reviewedMigrations ?? null });
   const pendingFiles = selectPendingMigrationFiles(live.evaluation.missingOnRemote, live.migrations);
   if (!sameSet(plan.pending, pendingFiles.map((file) => file.filename))) {
     throw new Error(`${label}: planner and file selection disagree; stopping.`);
@@ -261,7 +268,7 @@ export function buildVerifiedApplyWorkspace(options, deps = {}) {
     }
     log(`Verified staging apply workspace: ${mirror.length} mirrored history versions, ${expected.length} pending migration(s).`);
     for (const file of expected) log(`  would apply ${file}`);
-    return { workspace, pendingFiles: initial.pendingFiles, mirrorCount: mirror.length, cleanup: () => removeWorkspace(workspace), context };
+    return { workspace, pendingFiles: initial.pendingFiles, mirrorCount: mirror.length, remoteRows: after.live.remoteRows, cleanup: () => removeWorkspace(workspace), context };
   } catch (error) {
     removeWorkspace(workspace);
     throw error;
@@ -314,6 +321,7 @@ export function verifyApplied(options, deps = {}) {
   context.assertTarget();
   const live = context.evaluateLive(false);
   if (live.evaluation.status !== 'CLEAN') throw new Error(`Post-apply staging drift status is ${live.evaluation.status}, not CLEAN.`);
+  if (context.reviewedRegistry) verifyReviewedBindings(context.reviewedRegistry, { remoteRows: live.remoteRows, migrations: live.migrations });
   verifyDuplicateCoverage(options.databaseUrl, loadDuplicateCoverageRegistry(resolve(options.coveragePath), live.migrations), context.probeRunner);
   context.log('Status: CLEAN');
   return { status: 'CLEAN' };
@@ -329,6 +337,7 @@ export function optionsFromEnvironment(environment = process.env) {
     migrationsDirectory: environment[CANDIDATE_MIGRATIONS_ENV] || 'supabase/migrations',
     configPath: 'supabase/config.toml',
     coveragePath: 'supabase/staging-duplicate-coverage.json',
+    reviewedRegistryPath: REVIEWED_REGISTRY_PATH,
     target: {
       databaseUrl,
       supabaseUrl: environment.STAGING_SUPABASE_URL,

@@ -1,0 +1,407 @@
+name: Staging Reviewed Migration Preview
+
+# Single-use, human-approved forward apply of EXACTLY the migration files that a reviewed entry in
+# supabase/staging-reviewed-migrations.json ON MAIN pins (repository, PR, branch, exact head SHA, staging base, a
+# SHA-256 per file, read-only pre/postconditions), from that open PR's head, to the persistent shared staging database
+# BEFORE the PR merges. Staging Candidate keeps refusing destructive pending migrations; nothing here changes that.
+#
+# Trust model (same boundary as Staging Candidate):
+#   - this definition and every executed script come from trusted main (github.sha); the PR contributes its
+#     supabase/migrations directory as DATA ONLY; no candidate script, package or interpreter ever runs,
+#   - dispatch inputs are restated identifiers checked against the registry; they never reach a shell via ${{ }},
+#   - plan (read-only dry run) -> staging-migration-approval environment approval -> apply, which re-proves every input
+#     (registry, digests, live PR head, candidate files, staging base, preconditions, the run's recorded approval)
+#     immediately before the single forward push. Nothing is reset, wiped or repaired; history is never written by hand.
+# See docs/STAGING_REVIEWED_MIGRATION_PREVIEW.md before dispatching.
+
+on:
+  workflow_dispatch:
+    inputs:
+      preview_id:
+        description: Reviewed registry entry id on main (e.g. h2-tool-gateway-241-243)
+        required: true
+        type: string
+      pr_number:
+        description: The reviewed, open, same-repository PR number
+        required: true
+        type: string
+      head_sha:
+        description: The reviewed PR head commit (full 40-hex SHA)
+        required: true
+        type: string
+      file_digests:
+        description: Every approved file restated as filename=sha256, comma-separated (must equal the registry entry)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-request:
+    name: Verify the reviewed request (no secrets)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate dispatch input shape
+        env:
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          [[ "$PREVIEW_ID" =~ ^[a-z0-9][a-z0-9-]{2,63}$ ]] || { echo "::error::preview_id is malformed"; exit 1; }
+          [[ "$PREVIEW_PR_NUMBER" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "::error::pr_number is malformed"; exit 1; }
+          [[ "$PREVIEW_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::head_sha must be a full 40-hex commit SHA"; exit 1; }
+      - name: Read the live PR and the approval environment (identifiers only)
+        id: live
+        uses: actions/github-script@v9
+        env:
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: Number(process.env.PREVIEW_PR_NUMBER) })
+            core.setOutput('pr', JSON.stringify({ number: pr.number, state: pr.state, base_ref: pr.base.ref, head_ref: pr.head.ref, head_sha: pr.head.sha, head_repo: pr.head.repo?.full_name ?? '' }))
+            let environment = {}
+            try {
+              environment = (await github.request('GET /repos/{owner}/{repo}/environments/{environment_name}', { ...context.repo, environment_name: 'staging-migration-approval' })).data
+            } catch (error) {
+              core.warning(`staging-migration-approval environment unavailable: ${error.status ?? ''}`)
+            }
+            core.setOutput('environment', JSON.stringify({
+              name: environment.name ?? null,
+              can_admins_bypass: environment.can_admins_bypass ?? null,
+              deployment_branch_policy: environment.deployment_branch_policy ?? null,
+              protection_rules: (environment.protection_rules ?? []).map((rule) => ({ type: rule.type, reviewers: (rule.reviewers ?? []).map((item) => item.reviewer?.login ?? item.reviewer?.slug ?? '') })),
+            }))
+      - name: Check out the candidate at the pinned head (migrations are data only)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact candidate checkout
+        id: candidate
+        env:
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$PREVIEW_HEAD_SHA"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Refuse a candidate that shadows the trusted control-plane directory
+        run: test ! -e .trusted-control-plane
+      - name: Check out the trusted control plane (workflow commit on main)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-control-plane
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          # Never read the candidate's package.json/.npmrc to configure caching; no package manager runs in this workflow.
+          package-manager-cache: false
+      - name: Verify the trusted control plane and treat candidate migrations as data only
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Check candidate migration integrity (trusted checker and released-migration manifest)
+        working-directory: .trusted-control-plane
+        run: node scripts/check-migrations.mjs --migration-dir "$STAGING_CANDIDATE_MIGRATIONS_DIR"
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Verify registry entry, restated digests, live PR, candidate files and approval environment
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-reviewed-migration-preview.mjs verify-request
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+          PREVIEW_FILE_DIGESTS: ${{ inputs.file_digests }}
+          PREVIEW_CANDIDATE_CHECKOUT_SHA: ${{ steps.candidate.outputs.sha }}
+          PREVIEW_LIVE_PR_JSON: ${{ steps.live.outputs.pr }}
+          PREVIEW_APPROVAL_ENVIRONMENT_JSON: ${{ steps.live.outputs.environment }}
+
+  plan:
+    name: Plan against staging (read-only dry run)
+    needs: verify-request
+    runs-on: ubuntu-latest
+    environment: staging
+    # The same group as Staging Candidate and Staging Database Migrate: never two staging database actions at once.
+    # Job-level, so a run waiting for human approval does not hold the shared staging lock.
+    concurrency:
+      group: staging-release-candidate
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate dispatch input shape
+        env:
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          [[ "$PREVIEW_ID" =~ ^[a-z0-9][a-z0-9-]{2,63}$ ]] || { echo "::error::preview_id is malformed"; exit 1; }
+          [[ "$PREVIEW_PR_NUMBER" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "::error::pr_number is malformed"; exit 1; }
+          [[ "$PREVIEW_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::head_sha must be a full 40-hex commit SHA"; exit 1; }
+      - name: Re-read the live PR and the approval environment (identifiers only)
+        id: live
+        uses: actions/github-script@v9
+        env:
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: Number(process.env.PREVIEW_PR_NUMBER) })
+            core.setOutput('pr', JSON.stringify({ number: pr.number, state: pr.state, base_ref: pr.base.ref, head_ref: pr.head.ref, head_sha: pr.head.sha, head_repo: pr.head.repo?.full_name ?? '' }))
+            let environment = {}
+            try {
+              environment = (await github.request('GET /repos/{owner}/{repo}/environments/{environment_name}', { ...context.repo, environment_name: 'staging-migration-approval' })).data
+            } catch (error) {
+              core.warning(`staging-migration-approval environment unavailable: ${error.status ?? ''}`)
+            }
+            core.setOutput('environment', JSON.stringify({
+              name: environment.name ?? null,
+              can_admins_bypass: environment.can_admins_bypass ?? null,
+              deployment_branch_policy: environment.deployment_branch_policy ?? null,
+              protection_rules: (environment.protection_rules ?? []).map((rule) => ({ type: rule.type, reviewers: (rule.reviewers ?? []).map((item) => item.reviewer?.login ?? item.reviewer?.slug ?? '') })),
+            }))
+      - name: Check out the candidate at the pinned head (migrations are data only)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact candidate checkout
+        id: candidate
+        env:
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$PREVIEW_HEAD_SHA"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Refuse a candidate that shadows the trusted control-plane directory
+        run: test ! -e .trusted-control-plane
+      - name: Check out the trusted control plane (workflow commit on main)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-control-plane
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          # Never read the candidate's package.json/.npmrc to configure caching; no package manager runs in this workflow.
+          package-manager-cache: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.112.0
+      - name: Verify the trusted control plane and treat candidate migrations as data only
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Check candidate migration integrity (trusted checker and released-migration manifest)
+        working-directory: .trusted-control-plane
+        run: node scripts/check-migrations.mjs --migration-dir "$STAGING_CANDIDATE_MIGRATIONS_DIR"
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Refuse any non-staging database target
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-target-guard.mjs
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for read-only verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Plan the reviewed preview (history base, preconditions, verified dry run; applies nothing)
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-reviewed-migration-preview.mjs plan
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+          PREVIEW_FILE_DIGESTS: ${{ inputs.file_digests }}
+          PREVIEW_CANDIDATE_CHECKOUT_SHA: ${{ steps.candidate.outputs.sha }}
+          PREVIEW_LIVE_PR_JSON: ${{ steps.live.outputs.pr }}
+          PREVIEW_APPROVAL_ENVIRONMENT_JSON: ${{ steps.live.outputs.environment }}
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+
+  authorize:
+    name: Maintainer authorization (staging-migration-approval)
+    needs: plan
+    runs-on: ubuntu-latest
+    # Required reviewers, no admin bypass, protected branches only (verified by every other job). No secrets, no code.
+    environment: staging-migration-approval
+    permissions: {}
+    steps:
+      - name: Record the authorization point
+        run: echo "A maintainer approved applying the reviewed preview planned by this run."
+
+  apply:
+    name: Apply the reviewed preview to staging (forward only)
+    needs: [verify-request, plan, authorize]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: staging-release-candidate
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate dispatch input shape
+        env:
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          [[ "$PREVIEW_ID" =~ ^[a-z0-9][a-z0-9-]{2,63}$ ]] || { echo "::error::preview_id is malformed"; exit 1; }
+          [[ "$PREVIEW_PR_NUMBER" =~ ^[1-9][0-9]{0,6}$ ]] || { echo "::error::pr_number is malformed"; exit 1; }
+          [[ "$PREVIEW_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::head_sha must be a full 40-hex commit SHA"; exit 1; }
+      - name: Re-read the live PR, the approval environment and this run's recorded approvals (identifiers only)
+        id: live
+        uses: actions/github-script@v9
+        env:
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: Number(process.env.PREVIEW_PR_NUMBER) })
+            core.setOutput('pr', JSON.stringify({ number: pr.number, state: pr.state, base_ref: pr.base.ref, head_ref: pr.head.ref, head_sha: pr.head.sha, head_repo: pr.head.repo?.full_name ?? '' }))
+            let environment = {}
+            try {
+              environment = (await github.request('GET /repos/{owner}/{repo}/environments/{environment_name}', { ...context.repo, environment_name: 'staging-migration-approval' })).data
+            } catch (error) {
+              core.warning(`staging-migration-approval environment unavailable: ${error.status ?? ''}`)
+            }
+            core.setOutput('environment', JSON.stringify({
+              name: environment.name ?? null,
+              can_admins_bypass: environment.can_admins_bypass ?? null,
+              deployment_branch_policy: environment.deployment_branch_policy ?? null,
+              protection_rules: (environment.protection_rules ?? []).map((rule) => ({ type: rule.type, reviewers: (rule.reviewers ?? []).map((item) => item.reviewer?.login ?? item.reviewer?.slug ?? '') })),
+            }))
+            const { data: approvals } = await github.request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/approvals', { ...context.repo, run_id: context.runId })
+            const records = approvals.map((item) => ({ state: item.state, user: { login: item.user?.login ?? '' }, environments: (item.environments ?? []).map((env) => ({ name: env.name })) }))
+            core.setOutput('approvals', JSON.stringify(records))
+      - name: Check out the candidate at the pinned head (migrations are data only)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prove exact candidate checkout
+        id: candidate
+        env:
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$PREVIEW_HEAD_SHA"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Refuse a candidate that shadows the trusted control-plane directory
+        run: test ! -e .trusted-control-plane
+      - name: Check out the trusted control plane (workflow commit on main)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .trusted-control-plane
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          # Never read the candidate's package.json/.npmrc to configure caching; no package manager runs in this workflow.
+          package-manager-cache: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.112.0
+      - name: Verify the trusted control plane and treat candidate migrations as data only
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-trusted-control-plane.mjs assert
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Check candidate migration integrity (trusted checker and released-migration manifest)
+        working-directory: .trusted-control-plane
+        run: node scripts/check-migrations.mjs --migration-dir "$STAGING_CANDIDATE_MIGRATIONS_DIR"
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+      - name: Refuse any non-staging database target
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-target-guard.mjs
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Install PostgreSQL client for read-only verification
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Apply exactly the approved files (every input re-proven immediately before the single push)
+        working-directory: .trusted-control-plane
+        run: node scripts/staging-reviewed-migration-preview.mjs apply
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+          PREVIEW_FILE_DIGESTS: ${{ inputs.file_digests }}
+          PREVIEW_CANDIDATE_CHECKOUT_SHA: ${{ steps.candidate.outputs.sha }}
+          PREVIEW_LIVE_PR_JSON: ${{ steps.live.outputs.pr }}
+          PREVIEW_APPROVAL_ENVIRONMENT_JSON: ${{ steps.live.outputs.environment }}
+          PREVIEW_RUN_APPROVALS_JSON: ${{ steps.live.outputs.approvals }}
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      - name: Verify history, approved names and read-only postconditions
+        working-directory: .trusted-control-plane
+        run: |
+          node scripts/check-db-drift.mjs --environment staging
+          node scripts/staging-reviewed-migration-preview.mjs verify-applied
+        env:
+          STAGING_CANDIDATE_MIGRATIONS_DIR: ${{ github.workspace }}/supabase/migrations
+          PREVIEW_ID: ${{ inputs.preview_id }}
+          PREVIEW_PR_NUMBER: ${{ inputs.pr_number }}
+          PREVIEW_HEAD_SHA: ${{ inputs.head_sha }}
+          PREVIEW_FILE_DIGESTS: ${{ inputs.file_digests }}
+          PREVIEW_CANDIDATE_CHECKOUT_SHA: ${{ steps.candidate.outputs.sha }}
+          PREVIEW_LIVE_PR_JSON: ${{ steps.live.outputs.pr }}
+          PREVIEW_APPROVAL_ENVIRONMENT_JSON: ${{ steps.live.outputs.environment }}
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+          STAGING_SUPABASE_URL: ${{ vars.STAGING_SUPABASE_URL }}
+          STAGING_EXPECTED_DATABASE_HOST: ${{ vars.STAGING_EXPECTED_DATABASE_HOST }}
+          STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
+          PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+          PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      # The schema contracts are trusted main's copy; a candidate-supplied SQL file would run with the staging credential.
+      - name: Verify schema contracts (trusted copy)
+        working-directory: .trusted-control-plane
+        run: psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --file scripts/schema-contracts.sql
+        env:
+          STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+      - name: Verify the deployed staging API is still ready when configured
+        if: ${{ vars.STAGING_API_URL != '' }}
+        working-directory: .trusted-control-plane
+        run: |
+          curl --fail --show-error --silent "${STAGING_API_URL%/}/ready" | tee "$RUNNER_TEMP/readiness.json"
+          node -e "const result=require(process.env.RUNNER_TEMP + '/readiness.json'); if(result.status !== 'ready') process.exit(1)"
+        env:
+          STAGING_API_URL: ${{ vars.STAGING_API_URL }}
