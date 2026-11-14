@@ -6,7 +6,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 |---|---|---|---|
 | **H0** | Contracts: agent/tool registries, capability grants, trusted identity, default-deny policy, autonomy, metering, `ai_agents` entitlement, hard execution ceiling, docs, AI-ready standard. Legacy action policy fails closed. | — | ✅ |
 | **H1** | Durable execution: `agent_runs`/`agent_run_steps`/`agent_run_events` migrations (RLS, tenant-scoped), pgmq queue, dedicated worker, `IdentityAuthority` over `user_roles`/`user_profiles`/`tenants`, server-side runtime-controls store, per-step identity/controls reload, leases + fencing, retries, cancellation/pause, recovery. Synthetic jobs only; no operational writes. | H0 identity, controls | ✅ (worker not deployed) |
-| **H2** | Tool Gateway: bind `ToolSpec` to extracted shared business operations; read tools first; approval records + action digest; idempotency store; immutable audit events; timeouts/output limits. First human-approved write tool. | H1 | ⏳ |
+| **H2** | Tool Gateway: exact `(tool, version)` bindings; strict input/output enforcement; two read tools; persistent approvals bound to the action digest (independent approver, single use, revocable, expiring); `awaiting_approval` run state; atomic idempotent approved work-order assignment on the operation shared with the human route; immutable tool audit. | H1 | ✅ (isolated DB only; no worker deployed; production refused in code) |
 | **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ⏳ |
 | **H4** | Customer billing: `CustomerPricingPolicy` persistence, credit quotes from reconciled cost, reconciliation job for `unreconciled` usage, overage opt-in UX + Stripe true-up (no automatic overage by default). | H3 | ⏳ |
 | **H5** | First specialist agents for Operations (Engineering, Housekeeping) at observe / human-approved autonomy. | H2–H4 | ⏳ |
@@ -45,9 +45,9 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | Real-database concurrency / crash / recovery tests (CI Database Migration Gate) | ✅ |
 | Railway worker service (staging or production) | ⏳ needs separate authorization |
 | Customer-facing run APIs / AI Control Center | ⏳ H6 |
-| Tool dispatch, idempotent tool adapters, `H0_EXECUTION_SUPPORTED = True` | ⏳ H2 |
+| Tool dispatch, idempotent tool adapters | ✅ H2 (exact `H2_EXECUTABLE_TOOLS`; `H0_EXECUTION_SUPPORTED` stays False) |
 | Model calls, orchestration, budget reservations | ⏳ H3 |
-| Multi-role human principals (currently fail closed) | ⏳ H2 |
+| Multi-role human principals (currently fail closed) | ⏳ still fail closed in H2 (deliberate) |
 
 See [durable-execution.md](durable-execution.md) and [runbook.md](runbook.md).
 
@@ -57,3 +57,18 @@ H1 only has to implement the two protocols H0 defines (`IdentityAuthority`, plus
 replaces `load_runtime_controls`) and persist the run/step records. Everything it executes still passes through
 `policy.evaluate`. H1 must not flip `H0_EXECUTION_SUPPORTED`. That constant changes only in H2, together with the
 Tool Gateway, in a reviewed PR.
+
+## H2: implemented vs. deferred
+
+| Item | Status |
+|---|---|
+| Binding registry, strict schemas, output limits/redaction, layered execution boundary | ✅ |
+| `engineering.work_orders.lookup` v2, `housekeeping.rooms.status_lookup` v1 | ✅ real-DB tested |
+| Approvals (migration 241/243), `awaiting_approval`, expiry sweep | ✅ real-DB tested |
+| `engineering.work_orders.assign` v2: atomic, idempotent, human-approved | ✅ real-DB concurrency/crash tested |
+| `POST /work-orders/{id}/assign` moved onto the shared `work_order_assign_apply` | ✅ |
+| Staging worker / staging end-to-end run | ⏳ needs separate authorization |
+| Approval inbox routes / UI | ⏳ H6 |
+| Production activation | ⏳ separate decision (refused in code) |
+
+See [tool-gateway.md](tool-gateway.md).

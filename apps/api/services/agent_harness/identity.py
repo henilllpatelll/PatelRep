@@ -31,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
 from services.agent_harness.errors import IdentityError
 from services.agent_harness.vocabulary import CANONICAL_ROLES, IDENTITY_CLAIM_KEYS, AutonomyLevel, PrincipalType, TriggerType  # noqa: F401 (re-export)
 
-POLICY_VERSION = "agent-harness-policy/h0.1"
+POLICY_VERSION = "agent-harness-policy/h2.0"
 MAX_AUTHORITY_AGE = timedelta(minutes=5)
 _AGENT_ID_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,3}$")
 _minting: ContextVar[bool] = ContextVar("agent_harness_identity_minting", default=False)

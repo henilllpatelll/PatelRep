@@ -4,8 +4,10 @@ This package defines validated contracts (agent manifests, tool contracts, trust
 autonomy, metering) that H1+ will build durable execution, tool dispatch and orchestration on. It deliberately
 contains NO executor, dispatcher, model call, queue, worker, scheduler hook, database access or route.
 
-Agent execution is disabled: ``controls.H0_EXECUTION_SUPPORTED`` is a code constant set to False, every runtime-control
-snapshot defaults to platform execution off, and no ``AuthorizationDecision`` authorizes execution.
+Blanket agent execution is disabled: ``controls.H0_EXECUTION_SUPPORTED`` stays False and every runtime-control
+snapshot from this package defaults to platform execution off. Since H2 an ``AuthorizationDecision`` can authorize
+execution ONLY for an ``allow`` on a tool version in the exact reviewed set ``controls.H2_EXECUTABLE_TOOLS``; the Tool
+Gateway (services/agent_gateway) is the only executor and this package still contains no dispatcher.
 
 Module map:
   vocabulary.py  closed enums, capability catalog, explicit capability->role grants (no numeric rank)

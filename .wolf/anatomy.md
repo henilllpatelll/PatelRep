@@ -1035,3 +1035,25 @@
 - `238_agent_harness_durable_execution_schema.sql` — pgmq + logged queue, agent_runs/steps/events/runtime_controls/worker_heartbeats, state-machine + append-only triggers, RLS
 - `239_agent_harness_durable_execution_rpcs.sql` — admit, claim, heartbeat, step complete/fail, acknowledge (fenced)
 - `240_agent_harness_operations_rpcs.sql` — tenant-scoped cancel/pause/resume, run get, events page, recover, diagnostics, control set, worker heartbeat
+
+## apps/api/services/agent_gateway/
+
+- `__init__.py` — H2 Tool Gateway package doc (module map) (~0.4k tok)
+- `schema.py` — strict JSON-schema subset, canonicalize, nested identity-claim refusal, 4 KiB bound (~1.8k tok)
+- `catalog.py` — H2 ToolSpecs (wo lookup v2, room status v1, wo assign v2), engineering.dispatch_assistant v1, frozen registries, DB_ALLOWLIST mirror (~1.9k tok)
+- `bindings.py` — exact frozen (tool, version) -> resolver + read handler | write RPC name (~1.0k tok)
+- `adapters.py` — tenant-filtered resolve_work_order/resolve_room, minimal read_work_order_summary/read_room_status (~0.9k tok)
+- `output.py` — redact -> output schema -> item/byte limits; untrusted tool_result envelope (~0.6k tok)
+- `authorization.py` — GatewaySettings (AGENT_GATEWAY_EXECUTION_ENABLED), process_allows_execution (no production), block_reason, policy_inputs from DB snapshot (~1.0k tok)
+- `gateway.py` — prepare (binding/schema/resource/digest), decide (H0 policy.evaluate), approval_evidence (~0.9k tok)
+- `admission.py` — admit_tool_run(CurrentUser, ...) (~0.9k tok)
+- `approvals.py` — list/get/approve/reject/revoke/expire_due (verified CurrentUser only) (~1.0k tok)
+- `grants.py` — set_tool_grant (current GM) (~0.3k tok)
+- `steps.py` — execute_tool_step: fenced context, replay, identity, controls, read/await-approval/atomic write (~2.1k tok)
+- `store.py` — GatewayStore over agent_tool_* RPCs (~1.1k tok)
+
+## supabase/migrations (H2)
+
+- `241_agent_gateway_schema.sql` — agent_tool_invocations/approvals/executions/events/grants/controls, agent_execution_enablement, awaiting_approval state, exact agent + step_type allowlists
+- `242_work_order_assign_apply.sql` — shared locked work-order assignment (human route + gateway)
+- `243_agent_gateway_rpcs.sql` — admit, step context, approvals, atomic agent_tool_execute_work_order_assign, record outcome, expiry sweep, grants/controls, agent_run_claim redefinition

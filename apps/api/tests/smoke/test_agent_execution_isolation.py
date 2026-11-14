@@ -54,7 +54,10 @@ def test_no_application_code_imports_or_starts_the_worker():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
-        if rel.startswith(("services/agent_execution/", "tests/", ".venv/")) or "/site-packages/" in rel:
+        # H2: services/agent_gateway/ is the worker's sibling runtime (its step executor reuses the H1 identity
+        # revalidation and LeaseLost). It is itself never imported by application code -- test_agent_gateway_isolation.py.
+        if rel.startswith(("services/agent_execution/", "services/agent_gateway/", "tests/", ".venv/")) \
+                or "/site-packages/" in rel:
             continue
         if re.search(r"services[./]agent_execution", path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)

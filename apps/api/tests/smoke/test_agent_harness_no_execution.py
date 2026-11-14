@@ -72,9 +72,11 @@ def test_no_application_code_wires_the_harness_in():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
-        # H1: services/agent_execution/ is the ONE sanctioned consumer of the contracts (the durable-execution runtime).
-        # It is itself never imported by application code -- see test_agent_execution_isolation.py.
-        if rel.startswith(("services/agent_harness/", "services/agent_execution/", "tests/", ".venv/")) or "/site-packages/" in rel:
+        # H1: services/agent_execution/ (durable-execution runtime) and H2: services/agent_gateway/ (Tool Gateway) are
+        # the ONLY sanctioned consumers of the contracts. Neither is imported by application code -- see
+        # test_agent_execution_isolation.py and test_agent_gateway_isolation.py.
+        if rel.startswith(("services/agent_harness/", "services/agent_execution/", "services/agent_gateway/", "tests/",
+                           ".venv/")) or "/site-packages/" in rel:
             continue
         if pattern.search(path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)
