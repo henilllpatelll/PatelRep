@@ -35288,6 +35288,56 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-13T22:40:00-06:00"
+    },
+    {
+      "id": "bug-2139",
+      "timestamp": "2026-11-14T01:00:00-06:00",
+      "error_message": "supabase db reset: syntax error at or near THEN in agent__gateway_refusal (IF x < CASE WHEN .. THEN 2 ELSE 1 END THEN)",
+      "file": "supabase/migrations/243_agent_gateway_rpcs.sql",
+      "root_cause": "PL/pgSQL IF scans to the first THEN, so a CASE expression inside an IF condition breaks parsing",
+      "fix": "Compute the CASE into a variable before the IF.",
+      "tags": [
+        "plpgsql",
+        "migration",
+        "agent-harness",
+        "h2"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T01:00:00-06:00"
+    },
+    {
+      "id": "bug-2140",
+      "timestamp": "2026-11-14T02:00:00-06:00",
+      "error_message": "crash-after-commit redelivery replayed the write but left no execution_replayed audit event",
+      "file": "apps/api/services/agent_gateway/steps.py",
+      "root_cause": "steps returned the ledger row from the step context directly; agent_tool_record_outcome refused write invocations before checking for a committed outcome",
+      "fix": "record_outcome checks the ledger first (replay + event for any access); the step executor replays through it.",
+      "tags": [
+        "agent-harness",
+        "h2",
+        "idempotency",
+        "audit"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T02:00:00-06:00"
+    },
+    {
+      "id": "bug-2141",
+      "timestamp": "2026-11-14T02:30:00-06:00",
+      "error_message": "tests/smoke/test_rbac_matrix_contract.py stale after a work_orders.py edit",
+      "file": "apps/api/RBAC-MATRIX.md",
+      "root_cause": "the generated matrix embeds router line numbers; adding an import shifts them",
+      "fix": "Run python apps/api/scripts/generate_rbac_matrix.py after any routers/ edit.",
+      "tags": [
+        "rbac",
+        "generated",
+        "tests"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T02:30:00-06:00"
     }
   ]
 }

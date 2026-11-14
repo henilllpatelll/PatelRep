@@ -4,6 +4,11 @@ Chief engineers cannot claim or transition, so this is their one write on a work
 tenant and role are enforced on the server, the change applies only when the order still has the assignee the
 caller saw (a conditional update, so two managers never silently overwrite each other), closed orders are
 refused, audit history is appended, and the new assignee is told exactly once.
+
+Since H2 the rules live in ONE database operation, ``work_order_assign_apply`` (migration 242), shared with the Agent
+Harness Tool Gateway. These route tests use a faithful in-memory double of that RPC to pin the route's own contract
+(HTTP mapping, actor/source passed, notifications). The real SQL -- including the check-then-write race that is now
+closed by a row lock -- is exercised against PostgreSQL in tests/integration/test_agent_gateway_work_order_assign.py.
 """
 import asyncio
 import uuid
@@ -21,15 +26,62 @@ H1, H2 = "hotel-1", "hotel-2"
 CHIEF = CurrentUser(user_id="chief-1", hotel_id=H1, role="chief_engineer", email="c@h.com")
 GM = CurrentUser(user_id="gm-1", hotel_id=H1, role="gm", email="g@h.com")
 ENG_A, ENG_B, ENG_OTHER_HOTEL, HK = (str(uuid.uuid4()) for _ in range(4))
-WO = "wo-1"
+WO = "5a0e5a0e-0000-4000-8000-000000000001"
+WO_H2 = "5a0e5a0e-0000-4000-8000-000000000002"
+ASSIGNABLE = ("open", "escalated", "in_progress", "on_hold")
+
+
+class _AssignDB(FakeDB):
+    """FakeDB plus an in-memory double of the work_order_assign_apply RPC (same outcomes as the SQL)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rpc_calls = []
+
+    def rpc(self, name, params):
+        assert name == "work_order_assign_apply", name
+        self.rpc_calls.append(params)
+        db = self
+
+        class _Call:
+            def execute(self_inner):
+                return type("R", (), {"data": db._apply(params)})()
+
+        return _Call()
+
+    def _apply(self, p):
+        wo = next((w for w in self.rows["work_orders"]
+                   if w["id"] == p["p_work_order_id"] and w["tenant_id"] == p["p_tenant_id"]), None)
+        if wo is None:
+            return {"outcome": "not_found"}
+        if wo["status"] not in ASSIGNABLE:
+            return {"outcome": "closed", "status": wo["status"]}
+        if not any(r["tenant_id"] == p["p_tenant_id"] and r["user_id"] == p["p_assignee_user_id"]
+                   and r["role"] == "engineer" and r["is_active"] for r in self.rows["user_roles"]):
+            return {"outcome": "assignee_not_eligible"}
+        view = {k: wo[k] for k in ("id", "title", "status", "priority", "assigned_to", "work_order_number")}
+        previous = wo["assigned_to"]
+        if previous == p["p_assignee_user_id"]:
+            return {"outcome": "unchanged", "work_order": view}
+        if previous != p["p_expected_assigned_to"]:
+            return {"outcome": "stale"}
+        wo["assigned_to"] = p["p_assignee_user_id"]
+        self.rows["operational_audit_events"].append({
+            "tenant_id": p["p_tenant_id"], "resource_type": "work_order", "resource_id": wo["id"],
+            "action": "work_order.reassigned" if previous else "work_order.assigned", "actor_id": p["p_actor_id"],
+            "actor_role": p["p_actor_role"], "old_state": {"assigned_to": previous},
+            "new_state": {"assigned_to": p["p_assignee_user_id"]}, "reason_note": p["p_reason_note"],
+            "reason_code": p["p_reason_code"], "source": p["p_source"]})
+        return {"outcome": "reassigned" if previous else "assigned", "previous_assigned_to": previous,
+                "work_order": {**view, "assigned_to": wo["assigned_to"]}}
 
 
 def _db(**wo_over):
     wo = {"id": WO, "tenant_id": H1, "title": "Sink leaking", "status": "open", "priority": "urgent",
           "assigned_to": None, "work_order_number": 1042}
     wo.update(wo_over)
-    return FakeDB({
-        "work_orders": [wo, {**wo, "id": "wo-h2", "tenant_id": H2}],
+    return _AssignDB({
+        "work_orders": [wo, {**wo, "id": WO_H2, "tenant_id": H2}],
         "user_roles": [
             {"tenant_id": H1, "user_id": ENG_A, "role": "engineer", "is_active": True},
             {"tenant_id": H1, "user_id": ENG_B, "role": "engineer", "is_active": True},
@@ -108,33 +160,25 @@ async def test_a_stale_view_is_refused_and_nothing_changes(monkeypatch, pushes):
 
 
 @pytest.mark.asyncio
-async def test_losing_a_race_between_check_and_write_is_a_conflict(monkeypatch, pushes):
+async def test_the_route_delegates_to_the_shared_locked_operation_and_never_writes_the_order_itself(monkeypatch, pushes):
+    """The check-then-write race is closed in the database (row lock in work_order_assign_apply); the route must not
+    reintroduce it with its own read or update of work_orders."""
     db = _install(monkeypatch, _db())
-    real = db.table
+    await _assign(ENG_A, note="n")
+    [call] = db.rpc_calls
+    assert call["p_tenant_id"] == H1 and call["p_work_order_id"] == WO and call["p_assignee_user_id"] == ENG_A
+    assert call["p_expected_assigned_to"] is None and call["p_actor_id"] == CHIEF.user_id
+    assert call["p_actor_role"] == "chief_engineer" and call["p_source"] == "api" and call["p_reason_note"] == "n"
+    assert not [table for table, _ in db.updates if table == "work_orders"]
+    assert not [table for table, _ in db.select_calls if table == "work_orders"]
 
-    def racing_table(name):
-        query = real(name)
-        if name == "work_orders" and getattr(db, "_armed", False):
-            db.rows["work_orders"][0]["assigned_to"] = ENG_B  # another manager wins between our read and write
-        return query
 
-    original_execute = None
-    # arm the race only for the conditional update: flip the assignee just before it runs
-    from tests.smoke import fake_supabase as fs
-
-    original_execute = fs.FakeQuery.execute
-
-    def execute(self):
-        if self.table_name == "work_orders" and self.action == "update":
-            db.rows["work_orders"][0]["assigned_to"] = ENG_B
-        return original_execute(self)
-
-    monkeypatch.setattr(fs.FakeQuery, "execute", execute)
+@pytest.mark.asyncio
+async def test_a_malformed_work_order_id_is_not_found_without_reaching_the_database(monkeypatch, pushes):
+    db = _install(monkeypatch, _db())
     with pytest.raises(HTTPException) as err:
-        await _assign(ENG_A, expected=None)
-    assert err.value.status_code == 409
-    assert db.rows["work_orders"][0]["assigned_to"] == ENG_B
-    assert not db.rows["operational_audit_events"] and not pushes
+        await _assign(ENG_A, wo_id="wo-1")
+    assert err.value.status_code == 404 and not db.rpc_calls
 
 
 @pytest.mark.asyncio
@@ -189,7 +233,7 @@ async def test_a_deactivated_engineer_is_not_assignable(monkeypatch, pushes):
 async def test_another_hotels_order_is_not_found(monkeypatch, pushes):
     _install(monkeypatch, _db())
     with pytest.raises(HTTPException) as err:
-        await _assign(ENG_A, wo_id="wo-h2")
+        await _assign(ENG_A, wo_id=WO_H2)
     assert err.value.status_code == 404
 
 

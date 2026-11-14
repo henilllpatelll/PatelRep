@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from typing import Literal, Optional
 from middleware.auth import get_current_user, require_role, CurrentUser
@@ -1232,50 +1233,40 @@ async def assign_work_order(
     """Assign or reassign an active work order to a technician. Chief engineers manage the queue but cannot
     claim or transition, so this is their one write on a work order.
 
-    Server-checked: the order is in this hotel and still active; the target is an active engineer here; and the
-    change applies only when the order still has the assignee the caller saw (a conditional update, so two
-    managers cannot silently overwrite each other - the loser gets 409). Assigning to the person it is already
-    assigned to succeeds without a second audit row or alert. Status is never changed here."""
+    Server-checked in ONE database transaction by ``work_order_assign_apply`` (migration 242) -- the same operation
+    the Agent Harness Tool Gateway uses, so human and agent assignments follow identical rules: the order is in this
+    hotel and still active; the target is an active engineer here; and the change applies only when the order still
+    has the assignee the caller saw (checked under a row lock, so two managers cannot silently overwrite each other -
+    the loser gets 409). Assigning to the person it is already assigned to succeeds without a second audit row or
+    alert. Status is never changed here. The audit row is written in the same transaction as the change."""
     tenant_id = current_user.hotel_id
-    wo = (
-        supabase.table("work_orders")
-        .select("id, title, status, priority, assigned_to, work_order_number")
-        .eq("id", wo_id).eq("tenant_id", tenant_id).maybe_single().execute()
-    )
-    if not wo or not wo.data:
+    try:
+        wo_uuid = str(uuid.UUID(wo_id))
+    except (ValueError, TypeError):
         raise HTTPException(status_code=404, detail="Work order not found")
-    row = wo.data
-    if row["status"] not in ASSIGNABLE_STATUSES:
-        raise HTTPException(status_code=409, detail="This work order is closed and can no longer be assigned")
-
     target = str(request.assigned_to)
-    technician = (
-        supabase.table("user_roles").select("id").eq("tenant_id", tenant_id).eq("user_id", target)
-        .eq("role", "engineer").eq("is_active", True).limit(1).execute()
-    )
-    if not technician.data:
-        raise HTTPException(status_code=422, detail="That person is not an active engineer at this hotel")
-
-    previous = str(row["assigned_to"]) if row.get("assigned_to") else None
-    if previous == target:
-        return {"data": {**row, "changed": False}}
     expected = str(request.expected_assigned_to) if request.expected_assigned_to else None
-    if previous != expected:
+    applied = supabase.rpc("work_order_assign_apply", {
+        "p_tenant_id": tenant_id, "p_work_order_id": wo_uuid, "p_assignee_user_id": target,
+        "p_expected_assigned_to": expected, "p_actor_id": current_user.user_id, "p_actor_role": current_user.role,
+        "p_reason_note": request.note, "p_reason_code": None, "p_source": "api",
+    }).execute().data or {}
+    outcome = applied.get("outcome")
+    if outcome == "not_found":
+        raise HTTPException(status_code=404, detail="Work order not found")
+    if outcome == "closed":
+        raise HTTPException(status_code=409, detail="This work order is closed and can no longer be assigned")
+    if outcome == "assignee_not_eligible":
+        raise HTTPException(status_code=422, detail="That person is not an active engineer at this hotel")
+    if outcome == "stale":
         raise HTTPException(status_code=409, detail="This work order was assigned by someone else. Refresh and try again.")
-
-    update = supabase.table("work_orders").update({"assigned_to": target}).eq("id", wo_id).eq("tenant_id", tenant_id).eq("status", row["status"])
-    update = update.is_("assigned_to", "null") if previous is None else update.eq("assigned_to", previous)
-    result = update.execute()
-    if not result.data:
+    row = applied.get("work_order") or {}
+    if outcome == "unchanged":
+        return {"data": {**row, "changed": False}}
+    if outcome not in ("assigned", "reassigned"):
         raise HTTPException(status_code=409, detail="This work order changed while you were assigning it. Refresh and try again.")
-
-    supabase.table("operational_audit_events").insert({
-        "tenant_id": tenant_id, "resource_type": "work_order", "resource_id": wo_id,
-        "action": "work_order.reassigned" if previous else "work_order.assigned",
-        "actor_id": current_user.user_id, "actor_role": current_user.role,
-        "old_state": {"assigned_to": previous}, "new_state": {"assigned_to": target},
-        "reason_note": request.note, "source": "api",
-    }).execute()
+    previous = applied.get("previous_assigned_to")
+    previous = str(previous) if previous else None
 
     label = row.get("title") or "Work order"
     if target != current_user.user_id:
@@ -1294,7 +1285,7 @@ async def assign_work_order(
             tenant_id=tenant_id, user_id=previous, event="wo_reassigned", title="Work Order Reassigned",
             body=label, wo_id=wo_id, link=False,
         )
-    return {"data": {**result.data[0], "changed": True}}
+    return {"data": {**row, "changed": True}}
 
 
 def _timing_work_order_or_404(wo_id: str, current_user: CurrentUser) -> dict:
