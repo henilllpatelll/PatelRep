@@ -33,6 +33,7 @@ function makeRepository(parent, name, { guardSource = 'export const guard = "tru
   writeFileSync(join(root, DRIVER), 'export const driver = "trusted"\n')
   writeFileSync(join(root, TARGET_GUARD), guardSource)
   writeFileSync(join(root, 'supabase/staging-duplicate-coverage.json'), '{"files":[]}\n')
+  writeFileSync(join(root, 'supabase/staging-reviewed-migrations.json'), '{"schema_version":1,"environment":"staging","entries":[]}\n')
   writeFileSync(join(root, 'supabase/migration-manifest.json'), '{"migrations":{}}\n')
   writeFileSync(join(root, 'supabase/config.toml'), 'project_id = "x"\n')
   git(root, 'init', '-q')
@@ -82,6 +83,7 @@ refusing('workflow definition from a pull request ref', (c) => { c.env.GITHUB_RE
 refusing('GITHUB_SHA is not a full commit SHA', (c) => { c.env.GITHUB_SHA = 'main' }, /not a full commit SHA/)
 refusing('trusted checkout is not at the workflow commit', (c) => { c.env.GITHUB_SHA = '0'.repeat(40) }, /not the workflow commit/)
 refusing('a modified privileged script in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, TARGET_GUARD), 'export const guard = "neutered"\n') }, /modified tracked files/)
+refusing('a modified reviewed-preview registry in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'supabase/staging-reviewed-migrations.json'), '{"schema_version":1,"environment":"staging","entries":[{"id":"forged"}]}\n') }, /modified tracked files/)
 refusing('a modified coverage registry in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'supabase/staging-duplicate-coverage.json'), '{"files":[]} \n') }, /modified tracked files/)
 const UNTRACKED = /untracked files under scripts, supabase, apps\/web\/scripts, apps\/web\/e2e/
 refusing('an untracked script planted in the trusted tree', (c) => { writeFileSync(join(c.trusted.root, 'scripts/extra.mjs'), 'export {}\n') }, UNTRACKED)
@@ -163,6 +165,8 @@ test('NEGATIVE: a PR that rewrites the duplicate-history coverage registry or ma
     [CANDIDATE_MIGRATIONS_ENV]: join(candidate.root, 'supabase/migrations'),
   })
   assert.equal(options.coveragePath, 'supabase/staging-duplicate-coverage.json', 'coverage registry is a cwd-relative (trusted) path')
+  assert.equal(options.reviewedRegistryPath, 'supabase/staging-reviewed-migrations.json', 'reviewed-preview registry is a cwd-relative (trusted) path')
+  assert.equal(options.reviewedMigrations, undefined, 'no reviewed allowance is ever derived from the environment')
   assert.equal(options.configPath, 'supabase/config.toml', 'Supabase config is a cwd-relative (trusted) path')
   assert.equal(options.migrationsDirectory, join(candidate.root, 'supabase/migrations'), 'only the migrations come from the candidate')
   assert.equal(optionsFromEnvironment({ STAGING_SUPABASE_DB_URL: 'postgresql://u:p@db.example/postgres' }).migrationsDirectory, 'supabase/migrations')
@@ -202,6 +206,7 @@ test('the privileged import closure equals the pinned privileged file list (no u
     for (const match of readFileSync(file, 'utf8').matchAll(/from '(\.\/[^']+)'/g)) visit(join(dirname(file), match[1]).replaceAll('\\', '/'))
   }
   visit(DRIVER)
+  visit('scripts/staging-reviewed-migration-preview.mjs')
   visit('scripts/check-migrations.mjs')
   visit('scripts/staging-target-guard.mjs')
   visit('apps/web/e2e/fixtures/seed-staging-tenant.mjs')
@@ -231,10 +236,17 @@ test('shared staging concurrency: both staging-mutating workflows queue in ONE g
   assert.equal(new Set(groups).size, 1, 'one shared group string')
 })
 
-test('only the two grouped workflows can touch the persistent staging database', () => {
+test('only the three staging-lock workflows can touch the persistent staging database', () => {
   const holders = readdirSync('.github/workflows').filter((file) => /\.ya?ml$/.test(file))
     .filter((file) => readFileSync(join('.github/workflows', file), 'utf8').includes(SECRET))
-  assert.deepEqual(holders.sort(), ['staging-candidate.yml', 'staging-db-migrate.yml'])
+  // The reviewed preview takes the same lock at job level (its approval wait must not hold staging); see its contract test.
+  assert.deepEqual(holders.sort(), ['staging-candidate.yml', 'staging-db-migrate.yml', 'staging-reviewed-migration-preview.yml'])
+  const preview = readFileSync('.github/workflows/staging-reviewed-migration-preview.yml', 'utf8').replace(/\r\n/g, '\n')
+  const jobs = preview.slice(preview.indexOf('\njobs:\n')).split(/\n  (?=[a-z-]+:\n)/).filter((text) => text.includes(SECRET))
+  assert.equal(jobs.length, 2, 'exactly the plan and apply jobs hold the secret')
+  for (const job of jobs) {
+    assert.match(job, /\n    concurrency:\n      group: staging-release-candidate\n      cancel-in-progress: false\n/, 'every preview job holding the secret takes the shared lock')
+  }
 })
 
 test('trusted checkout: exact workflow commit, separate path, no persisted credentials, before any privileged step', () => {

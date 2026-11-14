@@ -478,6 +478,8 @@
 
 ## .github/workflows/
 
+- `staging-reviewed-migration-preview.yml` -- manual, main-only: verify-request (no secrets) -> plan (staging, read-only dry run) -> authorize (env staging-migration-approval) -> apply (staging, forward push of exactly the approved files + postconditions); plan/apply share the staging-release-candidate lock at job level (~5k tok)
+
 
 ## Lost & Found Phase 2 (2026-10-01)
 
@@ -689,17 +691,26 @@
 
 ## docs/
 
+- `STAGING_REVIEWED_MIGRATION_PREVIEW.md` -- design, one-time environment setup, dispatch procedure, failure/recovery/backup (~2.5k tok)
+- `staging-previews/h2-tool-gateway-241-243.md` -- review evidence for PR #217 migrations 241-243: digests, constraint before/after, security + compatibility (~2.5k tok)
+
 
 ## e2e/golden-paths/
 
 
 ## scripts/
 
+- `staging-reviewed-migrations.mjs` -- reviewed staging preview registry: validation, entry selection (id/PR/branch/SHA/window/digests), live-PR + candidate-file checks, staging base, read-only probes, approval-environment + run-approval checks, `verifyReviewedBindings` (applied reviewed files frozen for every later candidate) (~3.5k tok)
+- `staging-reviewed-migration-preview.mjs` -- driver for Staging Reviewed Migration Preview: verify-request | plan | apply | verify-applied; trusted-main only, candidate migrations as data; hands the planner the exact reviewed allowance (~2.5k tok)
+- `staging-reviewed-migration-preview.test.mjs` / `-workflow.test.mjs` -- refusal paths with fakes + workflow trust/approval contract (~5k tok)
+
 
 ## spec/
 
 
 ## supabase/
+
+- `staging-reviewed-migrations.json` -- reviewed staging preview registry (on main = review recorded; applies nothing). Entry h2-tool-gateway-241-243 pins PR #217 @ 2c953930 + 241-243 digests (~1.5k tok)
 
 
 ## supabase/migrations/

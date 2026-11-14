@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "environment": "staging",
+  "description": "Single-use, human-reviewed exceptions that let EXACTLY these migration files (by SHA-256) reach the persistent shared staging database before their PR merges, through the Staging Reviewed Migration Preview workflow only. Merging an entry records the review; it applies nothing. Applying needs a dispatch that restates every digest plus a staging-migration-approval environment approval. See docs/STAGING_REVIEWED_MIGRATION_PREVIEW.md.",
+  "entries": [
+    {
+      "id": "h2-tool-gateway-241-243",
+      "repository": "henilllpatelll/PatelRep",
+      "pr_number": 217,
+      "head_ref": "feat/agent-harness-h2-tool-gateway",
+      "head_sha": "2c9539307fbdaa6fd99038a58036a4f2891f3e8c",
+      "base_staging_version": "240",
+      "approved_at": "2026-11-14T00:00:00Z",
+      "expires_at": "2026-11-28T00:00:00Z",
+      "review_document": "docs/staging-previews/h2-tool-gateway-241-243.md",
+      "files": [
+        { "filename": "241_agent_gateway_schema.sql", "sha256": "5c636306c421060d0baddb16c998ac247d3feb4b27132659237fae3340af39d7" },
+        { "filename": "242_work_order_assign_apply.sql", "sha256": "50332e7de8e2d2016080e6f283875be944508945ffe6fc4a0954deb2611d81a6" },
+        { "filename": "243_agent_gateway_rpcs.sql", "sha256": "c4fde72a5e59756a54e6770414a5f8106198f5dff85927ced8660db02e56eebb" }
+      ],
+      "preconditions": [
+        { "name": "h1_synthetic_only_check_present", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h1_synthetic_only' and contype = 'c' and convalidated)" },
+        { "name": "h1_state_check_present_without_awaiting_approval", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_state_check' and contype = 'c' and pg_get_constraintdef(oid) not like '%awaiting_approval%')" },
+        { "name": "h1_step_type_check_present", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_run_steps'::regclass and conname = 'agent_run_steps_step_type_check' and contype = 'c')" },
+        { "name": "h2_objects_absent", "probe": "select to_regclass('public.agent_tool_invocations') is null and to_regclass('public.agent_execution_enablement') is null and not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and proname in ('work_order_assign_apply', 'agent_tool_run_admit', 'agent__guard_gateway_run_insert'))" },
+        { "name": "existing_runs_fit_h2_agent_allowlist", "probe": "select not exists (select 1 from public.agent_runs where not (agent_id = 'harness.synthetic' and agent_version = 1))" },
+        { "name": "existing_steps_fit_h2_step_type_allowlist", "probe": "select not exists (select 1 from public.agent_run_steps where step_type not in ('synthetic_noop', 'synthetic_transient_failure', 'synthetic_permanent_failure', 'synthetic_delay', 'tool_invocation'))" },
+        { "name": "h1_queue_present_and_logged", "probe": "select exists (select 1 from pgmq.meta where queue_name = 'patelrep_agent_runs_v1' and not is_unlogged)" },
+        { "name": "domain_tables_present", "probe": "select to_regclass('public.work_orders') is not null and to_regclass('public.operational_audit_events') is not null and to_regclass('public.user_roles') is not null and to_regclass('public.tenant_feature_flags') is not null" }
+      ],
+      "postconditions": [
+        { "name": "h2_agent_allowlist_replaces_h1_synthetic_only", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h2_agent_allowlist' and convalidated) and not exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h1_synthetic_only')" },
+        { "name": "state_check_adds_only_awaiting_approval", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_state_check' and convalidated and pg_get_constraintdef(oid) like '%awaiting_approval%' and pg_get_constraintdef(oid) like '%dead_letter%' and pg_get_constraintdef(oid) like '%cancel_requested%')" },
+        { "name": "step_type_allowlist_replaces_regex", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_run_steps'::regclass and conname = 'agent_run_steps_step_type_allowlist' and convalidated) and not exists (select 1 from pg_constraint where conrelid = 'public.agent_run_steps'::regclass and conname = 'agent_run_steps_step_type_check')" },
+        { "name": "gateway_insert_trigger_enabled", "probe": "select exists (select 1 from pg_trigger where tgrelid = 'public.agent_runs'::regclass and tgname = 'agent_runs_guard_gateway_insert' and tgenabled = 'O')" },
+        { "name": "h1_transitions_preserved", "probe": "select public.agent_run_transition_allowed('queued', 'running') and public.agent_run_transition_allowed('running', 'succeeded') and public.agent_run_transition_allowed('running', 'retry_wait') and public.agent_run_transition_allowed('paused', 'queued') and not public.agent_run_transition_allowed('succeeded', 'running') and not public.agent_run_transition_allowed('awaiting_approval', 'running')" },
+        { "name": "new_tables_rls_enabled", "probe": "select count(*) = 7 and bool_and(relrowsecurity) from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and relname in ('agent_execution_enablement', 'agent_tool_controls', 'agent_tool_grants', 'agent_tool_invocations', 'agent_tool_approvals', 'agent_tool_executions', 'agent_tool_events')" },
+        { "name": "new_tables_closed_to_end_users", "probe": "select not exists (select 1 from pg_class c cross join unnest(array['anon', 'authenticated']) as r(role_name) where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and c.relname in ('agent_execution_enablement', 'agent_tool_controls', 'agent_tool_grants', 'agent_tool_invocations', 'agent_tool_approvals', 'agent_tool_executions', 'agent_tool_events') and (has_table_privilege(r.role_name, c.oid, 'SELECT') or has_table_privilege(r.role_name, c.oid, 'INSERT') or has_table_privilege(r.role_name, c.oid, 'UPDATE') or has_table_privilege(r.role_name, c.oid, 'DELETE')))" },
+        { "name": "agent_functions_backend_only", "probe": "select not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and (p.proname like 'agent%' or p.proname = 'work_order_assign_apply') and (p.prosecdef or has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')))" },
+        { "name": "gateway_execution_disabled", "probe": "select count(*) = 1 and bool_and(not enabled) from public.agent_execution_enablement" },
+        { "name": "no_tool_grants_and_no_gateway_runs", "probe": "select not exists (select 1 from public.agent_tool_grants) and not exists (select 1 from public.agent_runs where agent_id <> 'harness.synthetic')" },
+        { "name": "h1_queue_still_logged", "probe": "select exists (select 1 from pgmq.meta where queue_name = 'patelrep_agent_runs_v1' and not is_unlogged) and (select count(*) from pgmq.meta) = 1" }
+      ]
+    }
+  ]
+}
