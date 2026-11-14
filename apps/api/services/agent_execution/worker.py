@@ -5,7 +5,9 @@ It runs OUTSIDE the FastAPI app (``python -m services.agent_execution worker``);
 runs simply wait, and crash recovery is driven by the database (leases, fencing, ``agent_runs_recover``).
 
 Per claimed run the worker, for every step:
-  1. refuses anything but the synthetic probe through the H0 gate ``require_execution_supported()``,
+  1. refuses anything but the synthetic probe and the H2 dispatch assistant through the H0 gate
+     ``require_execution_supported()``; dispatch-assistant steps go ONLY through the Tool Gateway
+     (``services.agent_gateway.steps``), which re-checks identity, controls, policy and approval itself,
   2. re-establishes the principal from CURRENT authoritative membership (``revalidate_principal``),
   3. re-reads runtime controls (pauses / cost stop) from the database,
   4. executes the closed synthetic step, heartbeating at cooperative checkpoints,
@@ -32,9 +34,14 @@ from services.agent_execution.admission import synthetic_admission_allowed
 from services.agent_execution.config import WorkerSettings
 from services.agent_execution.controls_store import block_reason, load_runtime_controls_from_store
 from services.agent_execution.identity_authority import revalidate_principal
-from services.agent_execution.retry import DeadlineExceeded, LeaseLost, backoff_seconds, classify
+from services.agent_execution.retry import DeadlineExceeded, InvalidJob, LeaseLost, backoff_seconds, classify
 from services.agent_execution.store import AgentRunStore
 from services.agent_execution.synthetic import execute_step, next_step_type, parse_spec
+from services.agent_gateway.authorization import GatewaySettings, process_allows_execution
+from services.agent_gateway.catalog import DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION
+from services.agent_gateway.errors import GatewayBlocked
+from services.agent_gateway.steps import execute_tool_step
+from services.agent_gateway.store import GatewayStore
 from services.agent_harness.controls import require_execution_supported
 from services.agent_harness.identity import IdentityAuthority
 
@@ -103,6 +110,7 @@ class Worker:
         monotonic: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         rng: Callable[[], float] = random.random,
+        gateway_settings: Optional[GatewaySettings] = None,
     ) -> None:
         self.settings = settings
         self.app_env = app_env
@@ -117,12 +125,21 @@ class Worker:
         self._in_flight = 0
         self._lock = threading.Lock()
         self.started_at = clock()
+        self.gateway_settings = gateway_settings or GatewaySettings()
 
     # ---- policy ----------------------------------------------------------------------------------------------
     @property
+    def synthetic_allowed(self) -> bool:
+        return synthetic_admission_allowed(app_env=self.app_env, synthetic_enabled=self.settings.synthetic_enabled)
+
+    @property
+    def gateway_allowed(self) -> bool:
+        """Process-level gateway layers only (APP_ENV + AGENT_GATEWAY_EXECUTION_ENABLED); never true in production."""
+        return process_allows_execution(app_env=self.app_env, settings=self.gateway_settings)
+
+    @property
     def may_process(self) -> bool:
-        return self.settings.enabled and synthetic_admission_allowed(
-            app_env=self.app_env, synthetic_enabled=self.settings.synthetic_enabled)
+        return self.settings.enabled and (self.synthetic_allowed or self.gateway_allowed)
 
     # ---- one claim -------------------------------------------------------------------------------------------
     def process_one(self, store: AgentRunStore, authority: IdentityAuthority) -> str:
@@ -154,17 +171,41 @@ class Worker:
         common = dict(run_id=job.run["id"], fencing_token=job.token, worker_id=self.settings.worker_id)
         while True:
             step = job.step
+            next_type: Optional[str] = None
             try:
-                if (job.run.get("agent_id"), job.run.get("agent_version")) != (SYNTHETIC_AGENT_ID, SYNTHETIC_AGENT_VERSION):
-                    require_execution_supported()  # H0 ceiling: raises AgentExecutionDisabled
-                revalidate_principal(job.run, authority, clock=self.clock)
-                controls = load_runtime_controls_from_store(store.client, self.clock())
-                blocked = block_reason(controls, hotel_id=job.run["tenant_id"], agent_id=job.run["agent_id"])
-                if blocked:
-                    raise CooperativeStop("yield", blocked)
-                spec = parse_spec(job.run.get("synthetic_spec"))
-                meta = execute_step(spec, step_number=step["step_number"], attempt=step["attempt_count"],
-                                    checkpoint=checkpoint, sleep=self._sleep)
+                agent_key = (job.run.get("agent_id"), job.run.get("agent_version"))
+                if agent_key == (DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION):
+                    if not self.gateway_allowed:
+                        raise CooperativeStop("yield", "gateway_disabled")
+                    if step.get("step_type") != "tool_invocation":
+                        raise InvalidJob("gateway runs only contain tool_invocation steps")
+                    try:
+                        result = execute_tool_step(
+                            gstore=GatewayStore(store.client), run=job.run, step=step, fencing_token=job.token,
+                            worker_id=self.settings.worker_id, authority=authority, clock=self.clock,
+                            process_enabled=self.gateway_allowed, checkpoint=checkpoint)
+                    except GatewayBlocked as blocked_exc:
+                        raise CooperativeStop("yield", blocked_exc.reason) from None
+                    if result.action == "await_approval":
+                        log_event("awaiting_approval", run_id=job.run["id"], approval_id=result.meta.get("approval_id"))
+                        return "awaiting_approval"
+                    if result.action == "cancel":
+                        raise CooperativeStop("cancel", "cancel_requested")
+                    meta = result.meta
+                else:
+                    if agent_key != (SYNTHETIC_AGENT_ID, SYNTHETIC_AGENT_VERSION):
+                        require_execution_supported()  # everything outside the two reviewed agents: always refused
+                    if not self.synthetic_allowed:
+                        raise CooperativeStop("yield", "synthetic_disabled")
+                    revalidate_principal(job.run, authority, clock=self.clock)
+                    controls = load_runtime_controls_from_store(store.client, self.clock())
+                    blocked = block_reason(controls, hotel_id=job.run["tenant_id"], agent_id=job.run["agent_id"])
+                    if blocked:
+                        raise CooperativeStop("yield", blocked)
+                    spec = parse_spec(job.run.get("synthetic_spec"))
+                    meta = execute_step(spec, step_number=step["step_number"], attempt=step["attempt_count"],
+                                        checkpoint=checkpoint, sleep=self._sleep)
+                    next_type = next_step_type(spec, step["step_number"])
             except CooperativeStop as stop:
                 action, reason = stop.action, stop.reason
                 delay = 0 if reason == "worker_shutdown" else self.settings.blocked_retry_seconds
@@ -187,7 +228,6 @@ class Worker:
                           error_code=cls.code, retryable=cls.retryable, outcome=outcome)
                 return outcome
 
-            next_type = next_step_type(spec, step["step_number"])
             result = self._safe(lambda: store.complete_step(step_id=step["id"], result_meta=meta,
                                                             next_step_type=next_type, **common))
             outcome = (result or {}).get("outcome", "store_unavailable")
@@ -218,6 +258,10 @@ class Worker:
                     next_recovery = self.monotonic() + self.settings.recovery_interval_seconds
                     if counts and any(counts.values()):
                         log_event("recovery", **{k: v for k, v in counts.items() if isinstance(v, int)})
+                    if self.gateway_allowed:
+                        swept = GatewayStore(store.client).approvals_expire(limit=self.settings.recovery_batch)
+                        if swept and any(swept.values()):
+                            log_event("approval_sweep", **{k: v for k, v in swept.items() if isinstance(v, int)})
                 outcome = self.process_one(store, authority)
             except Exception as exc:
                 log_event("slot_error", slot=slot, error_class=classify(exc).error_class.value)

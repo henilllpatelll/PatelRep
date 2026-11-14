@@ -14,6 +14,7 @@ from typing import Callable
 
 import httpx
 
+from services.agent_gateway.errors import GatewayRefused, ToolTimeout
 from services.agent_harness.errors import AgentExecutionDisabled, IdentityError
 
 BACKOFF_BASE_SECONDS = 2.0
@@ -71,6 +72,13 @@ def classify(exc: BaseException) -> Classification:
         if exc.code in _STALE_IDENTITY_CODES:
             return Classification(ErrorClass.STALE_IDENTITY, "stale_identity", True)
         return Classification(ErrorClass.AUTHORIZATION_DENIED, _safe_code(exc.code, "authorization_denied"), False)
+    if isinstance(exc, ToolTimeout):
+        # Only read tools run under a client-side timeout, and reads have no side effect: retrying is safe. A timed-out
+        # WRITE RPC surfaces as a transport error below and is retried too -- safely, because the ledger replays any
+        # outcome that did commit instead of applying it twice.
+        return Classification(ErrorClass.TRANSIENT_INFRASTRUCTURE, "tool_timeout", True)
+    if isinstance(exc, GatewayRefused):
+        return Classification(ErrorClass.AUTHORIZATION_DENIED, _safe_code(exc.code, "gateway_refused"), exc.retryable)
     if isinstance(exc, AgentExecutionDisabled):
         return Classification(ErrorClass.INVALID_AGENT, "agent_execution_disabled", False)
     if isinstance(exc, InvalidJob):

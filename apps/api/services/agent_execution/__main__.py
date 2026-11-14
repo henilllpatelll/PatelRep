@@ -6,6 +6,13 @@
   control  --scope ... [...]   set/clear a platform, hotel or agent pause, or the cost emergency stop
   run      --tenant T --run R --action cancel|pause|resume
   probe    --tenant T --operation noop|...   admit ONE synthetic run (non-production + synthetic opt-in only)
+  gateway-switch --on|--off --operator O     H2: set the database platform switch for Tool Gateway execution
+                                             (necessary, never sufficient: APP_ENV, AGENT_GATEWAY_EXECUTION_ENABLED,
+                                             entitlement, grant and approval are separate; production refuses in code)
+  tool-pause --tool T [--paused] --operator O   H2: pause / unpause one tool
+  approvals-expire                           H2: expire overdue approvals and end the runs waiting on them
+
+There is deliberately NO approve command: an approval needs a verified human (services.agent_gateway.approvals).
 
 Commands use the backend service credentials from the environment. ``probe`` mints only the registered H0 system
 principal ``harness.scheduled_observer``; it cannot create or impersonate a human or privileged identity.
@@ -107,6 +114,29 @@ def cmd_probe(args: argparse.Namespace) -> int:
     return 0
 
 
+def _gateway_store():
+    from services.agent_gateway.store import GatewayStore
+
+    return GatewayStore(_store().client)
+
+
+def cmd_gateway_switch(args: argparse.Namespace) -> int:
+    print(json.dumps(_gateway_store().set_execution_enablement(enabled=args.on, updated_by=args.operator,
+                                                                reason_code=args.reason), sort_keys=True, default=str))
+    return 0
+
+
+def cmd_tool_pause(args: argparse.Namespace) -> int:
+    print(json.dumps(_gateway_store().set_tool_control(tool_id=args.tool, paused=args.paused, updated_by=args.operator,
+                                                       reason_code=args.reason), sort_keys=True, default=str))
+    return 0
+
+
+def cmd_approvals_expire(args: argparse.Namespace) -> int:
+    print(json.dumps(_gateway_store().approvals_expire(limit=args.limit), sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m services.agent_execution")
     sub = parser.add_subparsers(dest="command")
@@ -140,6 +170,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--delay-ms", type=int, default=0)
     p.add_argument("--key")
     p.set_defaults(func=cmd_probe)
+    p = sub.add_parser("gateway-switch")
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--on", dest="on", action="store_true")
+    group.add_argument("--off", dest="on", action="store_false")
+    p.add_argument("--operator", required=True)
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_gateway_switch)
+    p = sub.add_parser("tool-pause")
+    p.add_argument("--tool", required=True)
+    p.add_argument("--paused", action="store_true")
+    p.add_argument("--operator", required=True)
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_tool_pause)
+    p = sub.add_parser("approvals-expire")
+    p.add_argument("--limit", type=int, default=100)
+    p.set_defaults(func=cmd_approvals_expire)
     return parser
 
 

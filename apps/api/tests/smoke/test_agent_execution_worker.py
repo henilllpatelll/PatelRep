@@ -159,3 +159,34 @@ def test_run_loop_starts_and_drains_cleanly():
     statuses = [kw["status"] for s in stores for n, kw in s.calls if n == "worker_heartbeat"]
     assert statuses[0] == "starting" and statuses[-1] == "stopped"
     assert any(n == "recover" for s in stores for n, _ in s.calls)
+
+
+# --- H2: gateway runs ------------------------------------------------------------------------------------------
+
+def test_a_gateway_run_on_a_worker_without_the_gateway_switch_yields_and_executes_nothing():
+    store = FakeStore(claim=claimed(run_row(agent_id="engineering.dispatch_assistant", synthetic_spec={}),
+                                    step_row(step_type="tool_invocation")))
+    assert go(make_worker(), store) == "run_yielded"
+    (_, ack), = [c for c in store.calls if c[0] == "acknowledge"]
+    assert (ack["action"], ack["reason"]) == ("yield", "gateway_disabled")
+    assert not [c for c in store.calls if c[0] in ("complete_step", "fail_step")]
+
+
+def test_production_worker_never_processes_even_with_every_switch_on():
+    from services.agent_gateway.authorization import GatewaySettings
+
+    worker = make_worker(app_env="production")
+    worker.gateway_settings = GatewaySettings(execution_enabled=True)
+    assert worker.may_process is False and worker.gateway_allowed is False
+    assert go(worker, FakeStore()) == "disabled"
+
+
+def test_unknown_agents_still_hit_the_execution_ceiling_even_with_the_gateway_on():
+    from services.agent_gateway.authorization import GatewaySettings
+
+    worker = make_worker()
+    worker.gateway_settings = GatewaySettings(execution_enabled=True)
+    store = FakeStore(claim=claimed(run_row(agent_id="engineering.rogue_agent")))
+    assert go(worker, store) == "run_failed"
+    (_, fail), = [c for c in store.calls if c[0] == "fail_step"]
+    assert (fail["error_code"], fail["retryable"]) == ("agent_execution_disabled", False)
