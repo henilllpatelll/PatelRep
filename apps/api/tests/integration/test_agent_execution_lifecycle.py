@@ -23,6 +23,7 @@ from agent_execution_support import (
     store,
     worker,
 )
+from batch_support import run_sql
 from core.database import get_supabase
 
 pytestmark = requires_db
@@ -105,7 +106,20 @@ def test_admission_refuses_unknown_members_inactive_hotels_and_real_agents(db):
                 idempotency_key=f"real-{uuid.uuid4().hex}", request_digest="a" * 64, correlation_id="c",
                 policy_version="p", synthetic_spec={}, first_step_type="real", deadline_seconds=60, max_attempts=1,
                 step_max_attempts=1)
-    assert "agent_runs_h1_synthetic_only" in str(err.value)
+    # H2 (migration 241): the gateway-admission trigger refuses any non-synthetic insert outside agent_tool_run_admit
+    # before the CHECK runs; the replacement allowlist CHECK independently refuses every agent but the two reviewed ones.
+    assert "admitted only through agent_tool_run_admit" in str(err.value)
+    with pytest.raises(AssertionError) as sql_err:
+        run_sql(f"""
+          BEGIN;
+          SELECT set_config('patelrep.agent_gateway_admission', 'on', true);
+          INSERT INTO public.agent_runs (tenant_id, agent_id, agent_version, principal_type, system_principal_id,
+                                         trigger_type, idempotency_key, request_digest, correlation_id, policy_version,
+                                         deadline_at, max_attempts)
+          VALUES ('{tenant}', 'engineering.work_orders', 1, 'system', 'harness.scheduled_observer', 'schedule',
+                  'real-{uuid.uuid4().hex}', repeat('a', 64), 'c', 'p', now() + interval '1 minute', 1);
+          COMMIT;""")
+    assert "agent_runs_h2_agent_allowlist" in str(sql_err.value)
 
 
 # --- scenario 1: normal completion --------------------------------------------------------------------------------
