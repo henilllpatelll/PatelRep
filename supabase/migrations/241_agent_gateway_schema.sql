@@ -2,10 +2,15 @@
 -- Migration 241: Agent Harness H2 -- Tool Gateway schema
 -- =============================================================================
 -- migration-safety: destructive-reviewed
--- rollback-plan: forward-only. The only DROP statements replace three H1 CHECK constraints with STRICTER-OR-EQUAL
---   exact allowlists (agent_runs agent allowlist, agent_runs state list + awaiting_approval, agent_run_steps step_type
---   allowlist). No table, column, row or index is removed. To roll back behaviour, set agent_execution_enablement.enabled
---   = false (and leave AGENT_GATEWAY_EXECUTION_ENABLED unset); every gateway path then fails closed while the objects stay.
+-- rollback-plan: forward-only. The only DROP statements replace three H1 CHECK constraints; no table, column, row or
+--   index is removed. Exact effect: (1) agent_runs_h1_synthetic_only -> agent_runs_h2_agent_allowlist WIDENS the admitted
+--   agents from the synthetic probe alone to the synthetic probe plus engineering.dispatch_assistant v1 (empty
+--   synthetic_spec only); a BEFORE INSERT trigger confines that agent to agent_tool_run_admit. (2) agent_runs_state_check
+--   WIDENS by exactly one state, awaiting_approval. (3) agent_run_steps.step_type NARROWS from any lower-case identifier
+--   to an exact allowlist (the four synthetic types plus tool_invocation). Every row H1 code writes satisfies all three.
+--   To roll back behaviour, set agent_execution_enablement.enabled = false (and leave AGENT_GATEWAY_EXECUTION_ENABLED
+--   unset); every gateway path then fails closed while the objects stay. Reverting the schema itself requires a new,
+--   separately reviewed forward migration; migration history is never rewritten.
 --
 -- New tables (all tenant-scoped through (run_id, tenant_id) foreign keys, RLS on, service role only):
 --   agent_tool_invocations      the immutable proposed tool call of a run step (tool, version, canonical arguments,
