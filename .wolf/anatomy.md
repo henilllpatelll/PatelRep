@@ -1014,3 +1014,24 @@
 - apps/mobile/components/engineering/pm/PmQueuedNotice.tsx, PmSyncSection.tsx - queued notice screen, Sync Status PM section (~2k tok)
 - apps/mobile/__tests__/lib/engineering/{pmSyncState,pmLocalEvidence,pmSyncWorker,pmSyncRunner,pmSyncItems,usePmInspectionOffline,assetCacheStore}.test.ts(x) - Phase 7 tests (~12k tok)
 - apps/api/routers/assets.py - /assets/browse now reads maintenance facts for the page only (_browse_aggregates/_decorate_browse_rows); tests in tests/test_asset_browse.py
+
+## apps/api/services/agent_execution/
+
+- `__init__.py` — H1 package doc; SYNTHETIC_AGENT_ID="harness.synthetic" v1 (~0.3k tok)
+- `states.py` — RunState/StepState + transition tables mirroring migration 238 SQL (~0.8k tok)
+- `retry.py` — ErrorClass, classify(), full-jitter backoff, LeaseLost/InvalidJob/DeadlineExceeded (~0.9k tok)
+- `synthetic.py` — CLOSED synthetic catalog (noop/transient_failure/permanent_failure/delay), SyntheticSpec, execute_step (~0.7k tok)
+- `identity_authority.py` — SupabaseIdentityAuthority (tenants/user_profiles/user_roles), identity_from_rows, revalidate_principal(clock=) (~1.4k tok)
+- `controls_store.py` — RuntimeControls from agent_runtime_controls (restrict-only), block_reason, set_control (~0.7k tok)
+- `store.py` — AgentRunStore: one method per agent_* RPC (~1.3k tok)
+- `admission.py` — admit_synthetic_run (trusted ctx only, env-gated, H0 ceiling for real agents), request_digest (~1.1k tok)
+- `operations.py` — tenant-scoped get/steps/events/cancel/pause/resume for CurrentUser + operator_control (~0.8k tok)
+- `config.py` — WorkerSettings (AGENT_WORKER_*, disabled by default) (~0.6k tok)
+- `worker.py` — Worker: slot threads, fenced claim->revalidate->controls->step->commit, checkpoints, recovery, liveness (~2.6k tok)
+- `__main__.py` — CLI: worker | diagnostics | recover | control | run | probe (~1.4k tok)
+
+## supabase/migrations (H1)
+
+- `238_agent_harness_durable_execution_schema.sql` — pgmq + logged queue, agent_runs/steps/events/runtime_controls/worker_heartbeats, state-machine + append-only triggers, RLS
+- `239_agent_harness_durable_execution_rpcs.sql` — admit, claim, heartbeat, step complete/fail, acknowledge (fenced)
+- `240_agent_harness_operations_rpcs.sql` — tenant-scoped cancel/pause/resume, run get, events page, recover, diagnostics, control set, worker heartbeat

@@ -35253,6 +35253,41 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-13T20:10:00-06:00"
+    },
+    {
+      "id": "bug-2135",
+      "timestamp": "2026-11-13T22:40:00-06:00",
+      "error_message": "H1 real-DB test: human-initiated synthetic runs returned retry_scheduled (stale_identity) instead of executing",
+      "file": "apps/api/services/agent_execution/identity_authority.py",
+      "root_cause": "Worker sampled now BEFORE the IdentityAuthority read; the authority stamps loaded_at with its own later clock, so H0 reload_identity saw a negative age and refused as stale. Unit fakes used identical timestamps and hid it.",
+      "fix": "revalidate_principal takes a clock, performs the membership read first, then calls H0 reload_identity via a preloaded authority with now sampled after the read. Regression unit test added.",
+      "tags": [
+        "agent-harness",
+        "h1",
+        "identity",
+        "clock",
+        "stale_identity"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-13T22:40:00-06:00"
+    },
+    {
+      "id": "bug-2136",
+      "timestamp": "2026-11-13T22:40:00-06:00",
+      "error_message": "python -m services.agent_execution worker crashed with STAGING_EXPECTED_SUPABASE_HOST validation error while AGENT_WORKER_ENABLED was unset",
+      "file": "apps/api/services/agent_execution/__main__.py",
+      "root_cause": "cmd_worker imported core.config (full app settings) before checking the worker switch",
+      "fix": "Check WorkerSettings().enabled first; only an enabled worker loads app settings (incomplete config then fails closed).",
+      "tags": [
+        "agent-harness",
+        "h1",
+        "worker",
+        "config"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-13T22:40:00-06:00"
     }
   ]
 }
