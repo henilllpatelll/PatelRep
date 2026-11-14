@@ -35219,6 +35219,40 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-02T04:30:00-06:00"
+    },
+    {
+      "id": "bug-2133",
+      "timestamp": "2026-11-13T20:45:00-06:00",
+      "error_message": "git diff showed whole-file rewrites (168+/151-) after a scripted one-entry edit to core/feature_registry.py and apps/web/lib/featureRegistry.ts",
+      "file": "apps/api/core/feature_registry.py",
+      "root_cause": "Python open(..., 'w') in text mode on Windows translates \n to CRLF; repository files are LF with core.autocrlf=false",
+      "fix": "Converted back to LF (sed -i 's/\r$//') and used newline='' for all later scripted edits",
+      "tags": [
+        "windows",
+        "line-endings",
+        "crlf",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-13T20:45:00-06:00"
+    },
+    {
+      "id": "bug-2134",
+      "timestamp": "2026-11-13T20:10:00-06:00",
+      "error_message": "6 failed on unmodified main: test_dependency_upgrade_compat (5), test_stripe_sdk_contract::test_sdk_pins_an_endive_or_newer_api_version",
+      "file": "apps/api/.venv",
+      "root_cause": "Local main-checkout venv is behind requirements.txt (python-dateutil 2.9 vs 4.0, stripe 15.4 vs 16.1, supabase 2.31 vs 2.34); not a code defect",
+      "fix": "Verified with a fresh py3.12 venv from requirements.txt: 0 failures (3503 passed on the H0 branch)",
+      "tags": [
+        "environment",
+        "venv",
+        "dependencies",
+        "false-failure"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-13T20:10:00-06:00"
     }
   ]
 }

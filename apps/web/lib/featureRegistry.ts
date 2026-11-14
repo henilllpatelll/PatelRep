@@ -68,4 +68,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
     owner: 'mobile-engineering',
     created: '2026-10-31',
   },
+  ai_agents: {
+    key: 'ai_agents',
+    description:
+      'Agent Harness entitlement: a hotel may use PatelRep AI agents. Default off. Every agent manifest requires it and the backend agent policy denies without it. In H0 enabling it executes nothing: agent execution is hard-disabled in code.',
+    type: 'entitlement',
+    backendEnforced: true,
+    owner: 'agent-harness',
+    created: '2026-11-13',
+  },
 }

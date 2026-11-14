@@ -75,6 +75,14 @@ _DEFS = [
         owner="mobile-engineering",
         created="2026-10-31",
     ),
+    FeatureFlagDef(
+        key="ai_agents",
+        description="Agent Harness entitlement: a hotel may use PatelRep AI agents. Default off. Every agent manifest requires it and the agent policy evaluator (services/agent_harness/policy.py) denies without it. In H0 enabling it executes nothing: agent execution is hard-disabled in code.",
+        type="entitlement",
+        backend_enforced=True,
+        owner="agent-harness",
+        created="2026-11-13",
+    ),
 ]
 
 FEATURE_REGISTRY: dict[str, FeatureFlagDef] = {f.key: f for f in _DEFS}

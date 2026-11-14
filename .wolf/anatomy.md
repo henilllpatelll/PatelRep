@@ -524,6 +524,19 @@
 ## apps/api/services/
 
 
+## apps/api/services/agent_harness/
+
+- `__init__.py` — H0 package doc + module map; HARNESS_PHASE="H0". No executor anywhere (~0.3k tok)
+- `vocabulary.py` — closed enums (risk, autonomy, trigger, resource...), IDENTITY_CLAIM_KEYS, CAPABILITY_CATALOG with explicit capability->role grants mirroring domain routes (no rank) (~1.5k tok)
+- `tools.py` — ToolSpec/ToolRef/ToolRegistry; required security fields, write tools forced to human approval+idempotency+immutable audit; resolve_untrusted exact-match only (~1.8k tok)
+- `agents.py` — AgentSpec (manifest schema v1, disabled by default, must require ai_agents), ExecutionLimits, AgentRegistry validated against frozen ToolRegistry (~1.7k tok)
+- `identity.py` — TrustedExecutionContext minted only by context_from_verified_user / reload_identity(IdentityAuthority) / context_for_system; SYSTEM_PRINCIPALS; 5-min authority (~2.2k tok)
+- `controls.py` — H0_EXECUTION_SUPPORTED=False, RuntimeControls (pauses, cost stop; 30s freshness), TenantAgentState, load_runtime_controls (always off) (~0.7k tok)
+- `autonomy.py` — approval-policy catalog, AutonomyGrant (no wildcards), effective_autonomy, requires_human_authority (~1.2k tok)
+- `policy.py` — pure default-deny evaluate() -> allow/deny/requires_approval + ReasonCode; ApprovalEvidence + action_digest; writes always deny in H0 (~2.6k tok)
+- `metering.py` — Decimal-only provider cost vs customer credits vs budgets; PriceBook exact lookup; unreconciled never guessed; reservations (~3k tok)
+- `examples.py` — NON-EXECUTABLE example tools (work_orders.lookup/assign v1) + disabled examples.work_order_observer agent (~1.3k tok)
+
 ## apps/api/services/ai/
 
 
