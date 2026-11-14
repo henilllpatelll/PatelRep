@@ -273,3 +273,47 @@ test('unproven historical duplicate coverage fails closed', { skip }, () => {
     psql('alter table public.t_v042_gone rename to t_v042');
   }
 });
+
+test('reviewed preview through the real CLI: refused without the exact allowance, applied once with it, frozen afterwards', { skip }, () => {
+  const repoMigrations = join(fixture.repo, 'supabase', 'migrations');
+  const run = () => ({ log: () => {}, runSupabase: createSupabaseRunner(CLI_BIN, [fixture.databaseUrl]) });
+  psql('create table public.t_preview (id int constraint t_preview_old check (id > 0))');
+  const sql = 'alter table public.t_preview drop constraint if exists t_preview_old;\nalter table public.t_preview add constraint t_preview_new check (id >= 0);';
+  writeMigration(repoMigrations, '238_reviewed_swap.sql', sql);
+  const digest = sha256(`${sql}\n`);
+  const before = historySnapshot();
+
+  // The normal (Staging Candidate) path is unchanged: destructive SQL is refused.
+  assert.throws(() => runPlan(options(), run()), /destructive pending migration\(s\).*238_reviewed_swap\.sql/s);
+  // A wrong digest is refused before any push.
+  const wrong = { id: 'contract', files: new Map([['238_reviewed_swap.sql', 'f'.repeat(64)]]) };
+  assert.throws(() => runApply(options({ reviewedMigrations: wrong }), run()), /differ\(s\) from the approved digest/);
+  assert.deepEqual(historySnapshot(), before, 'nothing was recorded');
+  assert.equal(psql("select count(*) from pg_constraint where conname = 't_preview_old'"), '1');
+
+  const reviewed = { id: 'contract', files: new Map([['238_reviewed_swap.sql', digest]]) };
+  assert.deepEqual(runPlan(options({ reviewedMigrations: reviewed }), run()).pending, ['238_reviewed_swap.sql']);
+  assert.deepEqual(runApply(options({ reviewedMigrations: reviewed }), run()).applied, ['238_reviewed_swap.sql']);
+  assert.equal(psql("select count(*) from pg_constraint where conname = 't_preview_new'"), '1');
+  assert.equal(psql("select count(*) from pg_constraint where conname = 't_preview_old'"), '0');
+  assert.deepEqual(historySnapshot().filter((row) => row.version !== '238'), before, 'every earlier history row is byte-identical');
+  assert.equal(psql("select to_regclass('public.t_canary_never_replay') is not null"), 't');
+
+  // After the preview, every candidate is bound to the approved bytes of the applied file.
+  const registryPath = join(fixture.root, 'staging-reviewed-migrations.json');
+  writeFileSync(registryPath, JSON.stringify({ schema_version: 1, environment: 'staging', entries: [{
+    id: 'contract', repository: 'owner/repo', pr_number: 1, head_ref: 'feat/contract', head_sha: 'a'.repeat(40), base_staging_version: '237',
+    approved_at: '2026-11-14T00:00:00Z', expires_at: '2026-11-15T00:00:00Z', review_document: 'docs/contract.md',
+    files: [{ filename: '238_reviewed_swap.sql', sha256: digest }],
+    preconditions: [{ name: 'old_present', probe: "select exists (select 1 from pg_constraint where conname = 't_preview_old')" }],
+    postconditions: [{ name: 'new_present', probe: "select exists (select 1 from pg_constraint where conname = 't_preview_new')" }],
+  }] }));
+  assert.deepEqual(verifyApplied(options({ reviewedRegistryPath: registryPath }), { log: () => {} }), { status: 'CLEAN' });
+  writeMigration(repoMigrations, '238_reviewed_swap.sql', `${sql}\n-- edited after the preview`);
+  try {
+    assert.throws(() => verifyApplied(options({ reviewedRegistryPath: registryPath }), { log: () => {} }), /applied to staging by reviewed preview contract/);
+    assert.throws(() => runPlan(options({ reviewedRegistryPath: registryPath }), run()), /applied to staging by reviewed preview contract/);
+  } finally {
+    writeMigration(repoMigrations, '238_reviewed_swap.sql', sql);
+  }
+});

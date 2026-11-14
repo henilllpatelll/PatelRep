@@ -28,6 +28,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const TRUSTED_REF = 'refs/heads/main';
 export const TRUSTED_CHECKOUT_DIRECTORY = '.trusted-control-plane';
 export const CANDIDATE_MIGRATIONS_ENV = 'STAGING_CANDIDATE_MIGRATIONS_DIR';
+/** Workflows whose privileged steps always operate on a PR candidate's migrations (as data) and must name them. */
+export const CANDIDATE_WORKFLOWS = ['Staging Candidate', 'Staging Reviewed Migration Preview'];
 const COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 /** Files whose content decides what privileged staging actions do. Pinned by the contract test against the import graph. */
@@ -37,11 +39,14 @@ export const PRIVILEGED_STAGING_FILES = [
   'scripts/staging-target-guard.mjs',
   'scripts/production-target-guard.mjs',
   'scripts/staging-migration-plan.mjs',
+  'scripts/staging-reviewed-migration-preview.mjs',
+  'scripts/staging-reviewed-migrations.mjs',
   'scripts/production-migration-apply-workspace.mjs',
   'scripts/check-db-drift.mjs',
   'scripts/check-migrations.mjs',
   'scripts/migration-statement-fingerprint.mjs',
   'supabase/staging-duplicate-coverage.json',
+  'supabase/staging-reviewed-migrations.json',
   'supabase/migration-manifest.json',
   'supabase/config.toml',
   // Run with the staging database credential or the staging service-role key; never from the candidate checkout.
@@ -134,8 +139,8 @@ export function assertTrustedControlPlaneFromEnvironment(env = process.env, scri
     env,
     scriptDirectory,
     candidateMigrationsDirectory: env[CANDIDATE_MIGRATIONS_ENV] || undefined,
-    requireCandidate: env.GITHUB_WORKFLOW === 'Staging Candidate',
-    protectedPaths: ['supabase/staging-duplicate-coverage.json', 'supabase/config.toml', 'supabase/migration-manifest.json'],
+    requireCandidate: CANDIDATE_WORKFLOWS.includes(env.GITHUB_WORKFLOW),
+    protectedPaths: ['supabase/staging-duplicate-coverage.json', 'supabase/staging-reviewed-migrations.json', 'supabase/config.toml', 'supabase/migration-manifest.json'],
     ...extra,
   });
 }

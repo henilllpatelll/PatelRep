@@ -403,6 +403,7 @@
 - **Logbook privileged actions use PROGRAM_MANAGER_ROLES (2026-09-29):** Edit/delete-any and summary generation need exactly gm, housekeeping_supervisor, engineer, and chief_engineer. Import `PROGRAM_MANAGER_ROLES` from `core.roles` instead of declaring a router-local tuple, which keeps the bare-role guard and generated RBAC matrix in sync.
 
 ## Do-Not-Repeat
+- **[2026-11-14]** Never describe a CHECK replacement as "stricter" without reading both definitions: H2's 241 widened two of three (extra agent, extra state). Staging's destructive-SQL guard is intentional; pre-merge destructive staging changes go only through the Staging Reviewed Migration Preview (registry entry on main + restated digests + staging-migration-approval). Once a file is previewed it is frozen: fixes ship as a new forward migration.
 - **[2026-10-18]** A React hook must not take a caller-supplied function as an effect/callback dependency (an inline fn re-runs the effect every render and loops). Read it through a ref. In RTL, re-rendering the very same element object is skipped by React: build a fresh element per rerender.
 - **[2026-10-18]** Do not put 'Live' in UI copy unless the data was verified fresh; guard closed realtime channels against late events; the 1 PM 'behind schedule' check must use the hotel zone, not the device.
 
@@ -1011,7 +1012,8 @@
 - **Counting rules:** Overdue / Due Today / This Week; This Week = today..Sunday of the Monday-first hotel week, excludes overdue, includes today. One adapter (`adaptPmSchedules`) feeds Home and PM.
 - **Jest:** `jest.resetAllMocks()` wipes React Native's own mocks (AccessibilityInfo -> 'then' of undefined). Reset only the mocks you own (`mockReset()`), because `clearAllMocks` leaves `mockXOnce` queues that leak into the next test.
 - **Bash heredocs containing JSX with backticks/apostrophes can fail the whole tool call** - write component files with the Write tool.
-- [2026-10-31] Do-Not-Repeat (again): my first PM edit to apps/api routers used Python text mode and flipped assets.py/programs.py to CRLF (1800-line diffs). Caught by `git diff --stat`; fix `sed -i 's/$//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator writes CRLF - keep it CRLF.
+- [2026-10-31] Do-Not-Repeat (again): my first PM edit to apps/api routers used Python text mode and flipped assets.py/programs.py to CRLF (1800-line diffs). Caught by `git diff --stat`; fix `sed -i 's/
+$//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator writes CRLF - keep it CRLF.
 
 ## Engineering mobile Phase 6 (assets) - 2026-10-31
 - **No asset QR/label support existed.** `assets.asset_tag` is documented as the physical barcode/QR label, so scanning accepts the tag text, a bare uuid, or the new versioned `patelrep:asset:v1:<uuid>` (lib/engineering/assetQr.ts). Anything with a scheme/URL is refused; a code is only a lookup key resolved by GET /assets/lookup (tenant-scoped, same 404 for unknown and other-hotel). No label generator was built.
