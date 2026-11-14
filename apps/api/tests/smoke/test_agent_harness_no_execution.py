@@ -72,7 +72,9 @@ def test_no_application_code_wires_the_harness_in():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
-        if rel.startswith(("services/agent_harness/", "tests/", ".venv/")) or "/site-packages/" in rel:
+        # H1: services/agent_execution/ is the ONE sanctioned consumer of the contracts (the durable-execution runtime).
+        # It is itself never imported by application code -- see test_agent_execution_isolation.py.
+        if rel.startswith(("services/agent_harness/", "services/agent_execution/", "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         if pattern.search(path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)
