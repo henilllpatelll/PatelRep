@@ -646,23 +646,28 @@ async def test_stripe_subscription_updated_scopes_update_to_tenant(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_stripe_invoice_paid_updates_current_credit_ledger_period(monkeypatch):
+async def test_stripe_invoice_paid_stamps_the_ledger_whose_invoice_item_is_on_the_invoice(monkeypatch):
+    """H4 audit F1: the overage item for April is on the renewal invoice paid in May. The invoice id must land on
+    April's ledger (matched by its invoice ITEM id), never on whichever period happens to be current."""
     db = FakeDB({
         "subscriptions": [{
             "tenant_id": "hotel-a",
             "stripe_subscription_id": "sub_123",
         }],
-        "credit_ledger": [{
-            "id": "ledger-1",
-            "tenant_id": "hotel-a",
-            "stripe_invoice_id": None,
-            "period_start": "2026-05-01",
-            "period_end": "2026-05-31",
-        }],
+        "credit_ledger": [
+            {"id": "ledger-apr", "tenant_id": "hotel-a", "stripe_invoice_id": None, "stripe_invoice_item_id": "ii_apr",
+             "period_start": "2026-04-01", "period_end": "2026-04-30"},
+            {"id": "ledger-may", "tenant_id": "hotel-a", "stripe_invoice_id": None, "stripe_invoice_item_id": None,
+             "period_start": "2026-05-01", "period_end": "2026-05-31"},
+        ],
         "stripe_webhook_events": [],
     })
     monkeypatch.setattr(webhooks_router, "supabase", db)
-    invoice = SimpleNamespace(id="in_123", subscription="sub_123")
+    line = SimpleNamespace(parent=SimpleNamespace(invoice_item_details=SimpleNamespace(invoice_item="ii_apr")))
+    invoice = SimpleNamespace(
+        id="in_123", parent=SimpleNamespace(subscription_details=SimpleNamespace(subscription="sub_123")),
+        lines=SimpleNamespace(data=[line]),
+    )
     monkeypatch.setattr(
         webhooks_router.stripe.Webhook,
         "construct_event",
@@ -672,9 +677,51 @@ async def test_stripe_invoice_paid_updates_current_credit_ledger_period(monkeypa
     response = await webhooks_router.stripe_webhook(FakeRequest(headers={"stripe-signature": "sig"}))
 
     assert response == {"status": "ok"}
-    assert db.rows["credit_ledger"][0]["stripe_invoice_id"] == "in_123"
-    assert db.updates[-1][0] == "credit_ledger"
-    assert db.updates[-1][2] == {"tenant_id": "hotel-a"}
+    by_id = {row["id"]: row for row in db.rows["credit_ledger"]}
+    assert by_id["ledger-apr"]["stripe_invoice_id"] == "in_123"
+    assert by_id["ledger-may"]["stripe_invoice_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_stripe_invoice_paid_without_a_true_up_item_stamps_no_ledger(monkeypatch):
+    """A plain renewal invoice (old top-level ``subscription`` shape, no legacy true-up item) touches no ledger."""
+    db = FakeDB({
+        "subscriptions": [{"tenant_id": "hotel-a", "stripe_subscription_id": "sub_123"}],
+        "credit_ledger": [{"id": "ledger-1", "tenant_id": "hotel-a", "stripe_invoice_id": None,
+                           "stripe_invoice_item_id": None, "period_start": "2026-05-01", "period_end": "2026-05-31"}],
+        "stripe_webhook_events": [],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    invoice = SimpleNamespace(id="in_456", subscription="sub_123", lines=SimpleNamespace(data=[]))
+    monkeypatch.setattr(webhooks_router.stripe.Webhook, "construct_event",
+                        lambda *_a, **_k: stripe_event("invoice.paid", invoice))
+
+    response = await webhooks_router.stripe_webhook(FakeRequest(headers={"stripe-signature": "sig"}))
+
+    assert response == {"status": "ok"}
+    assert db.rows["credit_ledger"][0]["stripe_invoice_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_stripe_payment_failed_reads_the_current_invoice_shape(monkeypatch):
+    """Current API versions moved the subscription to parent.subscription_details; the handler must not crash."""
+    db = FakeDB({
+        "subscriptions": [{"tenant_id": "hotel-a", "stripe_subscription_id": "sub_123", "plan_status": "active"}],
+        "stripe_webhook_events": [],
+    })
+    monkeypatch.setattr(webhooks_router, "supabase", db)
+    # Invoice events also reach the legacy true-up outbox (an RPC this table fake does not model); no operation matches.
+    import services.billing_trueup as billing_trueup
+    monkeypatch.setattr(billing_trueup, "apply_invoice_event", lambda *_a, **_k: 0)
+    invoice = SimpleNamespace(id="in_789",
+                              parent=SimpleNamespace(subscription_details=SimpleNamespace(subscription="sub_123")))
+    monkeypatch.setattr(webhooks_router.stripe.Webhook, "construct_event",
+                        lambda *_a, **_k: stripe_event("invoice.payment_failed", invoice))
+
+    response = await webhooks_router.stripe_webhook(FakeRequest(headers={"stripe-signature": "sig"}))
+
+    assert response == {"status": "ok"}
+    assert db.rows["subscriptions"][0]["plan_status"] == "past_due"
 
 
 @pytest.mark.asyncio

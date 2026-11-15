@@ -9,7 +9,6 @@ the idempotency key, and response parsing into the attributes the router reads.
 """
 
 import json
-from datetime import date
 from urllib.parse import parse_qsl
 
 import pytest
@@ -44,6 +43,8 @@ class RecordingHTTPClient(stripe.HTTPClient):
 
     def request(self, method, url, headers, post_data=None, *, _usage=None):
         path = "/" + url.split("://", 1)[1].split("/", 1)[1]
+        if method == "get" and path not in RESPONSES:
+            path = path.replace("%5B", "[").replace("%5D", "]")
         self.requests.append(
             {
                 "method": method,
@@ -120,50 +121,49 @@ async def test_billing_portal_session_request_shape_and_response(monkeypatch, ht
     assert req["params"]["return_url"].endswith("/settings/billing")
 
 
-def test_invoice_item_creation_via_true_up(monkeypatch, http):
-    period_start = date(date.today().year, date.today().month, 1)
-    db = FakeDB(
-        {
-            "credit_ledger": [
-                {
-                    "tenant_id": "hotel-a",
-                    "period_start": period_start.isoformat(),
-                    "period_end": date.today().isoformat(),
-                    "credits_used": 6000,
-                    "credits_included": 5000,
-                    "overage_credits": 1000,
-                    "overage_cost_cents": 2000,
-                    "is_finalized": False,
-                }
-            ],
-            "subscriptions": [
-                {
-                    "tenant_id": "hotel-a",
-                    "stripe_customer_id": "cus_test_1",
-                    "plan_status": "active",
-                    "cap_cents": None,
-                    "base_fee_cents": 9900,
-                }
-            ],
-        }
-    )
-    monkeypatch.setattr(billing_router, "supabase", db)
+def test_legacy_trueup_invoice_item_request_shape_and_response(http):
+    """The legacy true-up outbox's create call on the wire: durable operation identity as BOTH the idempotency key and
+    the invoice item metadata (so a retry after Stripe prunes the key still finds the item), unchanged amount and
+    customer-facing description, and the billed period."""
+    from services.billing_trueup import METADATA_KEY, StripeTrueUpTransport
 
-    result = billing_router.true_up_tenant("hotel-a", period_start, require_active=True)
+    transport = StripeTrueUpTransport("sk_test_contract_fixture", http_client=http)
+    item = transport.create_invoice_item(
+        customer="cus_test_1", amount_cents=2000, currency="usd", description="AI Credits Overage: 1000 credits @ $0.02",
+        metadata={METADATA_KEY: "op-1", "patelrep_hotel_id": "hotel-a"}, period_start=1761955200,
+        period_end=1764547199, idempotency_key="patelrep-legacy-trueup-op-1")
 
-    assert result["status"] == "invoiced"
+    assert item.id == "ii_test_1"
     (req,) = http.requests
     assert req["path"] == "/v1/invoiceitems"
-    assert req["headers"]["Idempotency-Key"] == f"trueup-hotel-a-{period_start.isoformat()}"
+    assert req["headers"]["Idempotency-Key"] == "patelrep-legacy-trueup-op-1"
     assert req["headers"]["Stripe-Version"] == stripe.api_version
     assert req["params"] == {
         "customer": "cus_test_1",
         "amount": "2000",
         "currency": "usd",
         "description": "AI Credits Overage: 1000 credits @ $0.02",
+        f"metadata[{METADATA_KEY}]": "op-1",
+        "metadata[patelrep_hotel_id]": "hotel-a",
+        "period[start]": "1761955200",
+        "period[end]": "1764547199",
     }
-    assert db.rows["credit_ledger"][0]["stripe_invoice_id"] == "ii_test_1"
-    assert db.rows["credit_ledger"][0]["is_finalized"] is True
+
+
+def test_legacy_trueup_pages_every_invoice_line(http):
+    from services.billing_trueup import StripeTrueUpTransport
+
+    RESPONSES["/v1/invoices/in_test_1/lines?limit=100"] = {
+        "object": "list", "has_more": True, "url": "/v1/invoices/in_test_1/lines",
+        "data": [{"id": "il_1", "object": "line_item",
+                  "parent": {"invoice_item_details": {"invoice_item": "ii_page1"}}}]}
+    RESPONSES["/v1/invoices/in_test_1/lines?limit=100&starting_after=il_1"] = {
+        "object": "list", "has_more": False, "url": "/v1/invoices/in_test_1/lines",
+        "data": [{"id": "il_2", "object": "line_item", "parent": {"invoice_item_details": {"invoice_item": "ii_page2"}}},
+                 {"id": "il_3", "object": "line_item", "parent": {"subscription_item_details": {}}}]}
+    transport = StripeTrueUpTransport("sk_test_contract_fixture", http_client=http)
+    assert transport.list_invoice_line_item_ids("in_test_1") == ["ii_page1", "ii_page2"]
+    assert [r["method"] for r in http.requests] == ["get", "get"]
 
 
 def test_sdk_pins_an_endive_or_newer_api_version():

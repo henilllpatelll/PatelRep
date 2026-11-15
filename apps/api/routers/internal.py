@@ -294,21 +294,17 @@ async def run_failure_predictions(x_cron_secret: str = Header(None)):
     return {"data": result, "message": f"Failure predictions complete: {result}"}
 
 
-def run_monthly_trueup(*, today: date | None = None) -> dict:
+def run_monthly_trueup(*, today: date | None = None, processor=None) -> dict:
     from routers.billing import true_up_tenant
+    from services.billing_trueup import default_processor
     current_day = today or date.today()
+    worker = processor or default_processor()
 
-    # Query by period_end, NOT by "this month's period_start" — this is the
-    # primary fix for the early-finalization bug: a cron firing on day 28 of
-    # a 30-day month finds ZERO rows here (period_end=day 30 is not <=
-    # day 28), so no premature finalization is even attempted. Also
-    # self-healing: any previously-skipped period gets picked up once its
-    # period_end finally passes, without needing to know which month it was.
-    ledgers = supabase.table("credit_ledger")\
-        .select("tenant_id, period_start")\
-        .eq("is_finalized", False)\
-        .lte("period_end", current_day.isoformat())\
-        .execute()
+    # Query by period_end, NOT by "this month's period_start": strictly less-than, because period_end is the last
+    # (inclusive) day, so on that day the period is still open (H4 audit F3). Self-healing: a previously skipped period
+    # is picked up once its period_end has passed. The database re-checks the period end itself (CURRENT_DATE), and
+    # each hotel-month can produce at most one Stripe operation, ever (migration 250).
+    ledgers = supabase.table("credit_ledger")        .select("tenant_id, period_start")        .eq("is_finalized", False)        .lt("period_end", current_day.isoformat())        .execute()
 
     invoiced = errors = skipped = 0
     for ledger in (ledgers.data or []):
@@ -316,12 +312,11 @@ def run_monthly_trueup(*, today: date | None = None) -> dict:
         ledger_period_start = ledger.get("period_start")
         if not tenant_id or not ledger_period_start:
             continue
-        result = true_up_tenant(
-            tenant_id,
-            date.fromisoformat(ledger_period_start),
-            require_active=True,
-            today=current_day,
-        )
+        try:
+            result = true_up_tenant(tenant_id, date.fromisoformat(ledger_period_start), processor=worker)
+        except Exception:  # noqa: BLE001 -- one hotel's failure must not stop the others; the outbox makes retry safe
+            logger.error("legacy true-up failed for tenant=%s period=%s", tenant_id, ledger_period_start)
+            result = {"status": "error"}
         status = result.get("status")
         if status == "invoiced":
             invoiced += 1
@@ -330,7 +325,14 @@ def run_monthly_trueup(*, today: date | None = None) -> dict:
         else:
             skipped += 1
 
-    return {"invoiced": invoiced, "errors": errors, "skipped": skipped}
+    # Advance operations left in flight by earlier runs: reconcile ambiguous submissions from Stripe's records and
+    # refresh invoice status for recorded items (covers invoices whose webhook was missed or paginated).
+    try:
+        pending = worker.run_due()
+    except Exception:  # noqa: BLE001
+        logger.error("legacy true-up reconciliation pass failed")
+        pending = {"error": 1}
+    return {"invoiced": invoiced, "errors": errors, "skipped": skipped, "reconciled": pending}
 
 
 @router.post("/billing/monthly-trueup")

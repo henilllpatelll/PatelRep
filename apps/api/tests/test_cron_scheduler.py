@@ -49,10 +49,12 @@ def test_frequent_jobs_fire_every_30_minutes():
         assert "*/30" in str(scheduler.get_job(job_id).trigger)
 
 
-def test_billing_job_is_month_end_only():
+def test_billing_job_runs_only_after_month_end():
+    # H4 audit F3: a period ends after its last (inclusive) day, so the true-up runs on days 1-3, never 28-31.
     scheduler = sched.build_scheduler()
     trigger = str(scheduler.get_job("billing.monthly-trueup").trigger)
-    assert "28-31" in trigger
+    assert "day='1-3'" in trigger
+    assert "28" not in trigger
 
 
 def test_scheduler_only_runs_in_production(monkeypatch):

@@ -8,7 +8,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | **H1** | Durable execution: `agent_runs`/`agent_run_steps`/`agent_run_events` migrations (RLS, tenant-scoped), pgmq queue, dedicated worker, `IdentityAuthority` over `user_roles`/`user_profiles`/`tenants`, server-side runtime-controls store, per-step identity/controls reload, leases + fencing, retries, cancellation/pause, recovery. Synthetic jobs only; no operational writes. | H0 identity, controls | ✅ (worker not deployed) |
 | **H2** | Tool Gateway: exact `(tool, version)` bindings; strict input/output enforcement; two read tools; persistent approvals bound to the action digest (independent approver, single use, revocable, expiring); `awaiting_approval` run state; atomic idempotent approved work-order assignment on the operation shared with the human route; immutable tool audit. | H1 | ✅ (isolated DB only; no worker deployed; production refused in code) |
 | **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ✅ (isolated DB only; paid calls never enabled; no worker deployed; production refused in code) |
-| **H4** | Customer billing: `CustomerPricingPolicy` persistence, credit quotes from reconciled cost, reconciliation job for `unreconciled` usage, overage opt-in UX + Stripe true-up (no automatic overage by default). | H3 | ⏳ |
+| **H4** | Customer billing: versioned two-person pricing policies, pre-dispatch customer-credit holds bound to the H3 reservation, one immutable charge per settled attempt, reconciliation (dry-run, metadata-only), GM-only overage consent (off by default) with caps, durable Stripe true-up outbox, Billing & Usage UX. | H3 | ✅ (default disabled; Stripe test mode only; nothing scheduled; production refused in code) |
 | **H5** | First specialist agents for Operations (Engineering, Housekeeping) at observe / human-approved autonomy. | H2–H4 | ⏳ |
 | **H6** | AI Control Center: per-hotel enablement, autonomy grants, pauses/emergency stops, approval inbox, audit viewer. | H1–H5 | ⏳ |
 | **H7** | Bounded autonomy (level 3) for expressly granted low-risk operational tools; requires a new manifest schema version and a reviewed risk model. | H6 | ⏳ |
@@ -87,6 +87,24 @@ See [tool-gateway.md](tool-gateway.md).
 | Live paid provider calls | ⏳ never enabled in H3 |
 | Staging application of 244-247 | ⏳ needs the reviewed staging preview (246 is destructive by the guard's definition) |
 | Proposal handoff to the Tool Gateway | ⏳ H5 |
-| Customer credits from settled provider cost | ⏳ H4 |
+| Customer credits from settled provider cost | ✅ H4 |
 
 See [orchestrator.md](orchestrator.md) and [ADR-0002](adr-0002-h3-orchestration-and-spend.md).
+
+## H4: implemented vs. deferred
+
+| Item | Status |
+|---|---|
+| Financial audit + 4 legacy fixes (invoice item vs invoice id, whole cents, last-day drop, payment_failed shape) | ✅ ADR-0003 |
+| Versioned two-person pricing policies, consent history, holds, charge journal, adjustments (248) | ✅ real-DB tested |
+| Hold/dispatch/settle wrappers + dispatch guard trigger, reconciler, Stripe outbox RPCs (249) | ✅ real-DB concurrency/crash tested |
+| Planning worker routed through the H4 wrappers (pass-through while disabled) | ✅ |
+| GM API: `/billing/ai-usage`, `/billing/overage/{quote,authorize,revoke}`, `/billing/history` | ✅ |
+| Stripe true-up processor + invoice webhooks (fake transport; test mode only) | ✅ |
+| Billing & Usage UX: usage breakdown, overage controls, AI billing history | ✅ browser-verified (hermetic) |
+| Any pricing policy for a real hotel; customer billing mode `enforced` anywhere | ⏳ human/product decision |
+| Scheduling reconciliation or true-up; live Stripe | ⏳ separate authorization (code + migration change for live) |
+| Legacy true-up on a durable outbox (250) + full dispatch-authorization trigger (250) | ✅ real-DB tested |
+| Cancellation billing policy (held in manual review until decided) | ⏳ product decision (ADR-0003 F5) |
+
+See [customer-billing.md](customer-billing.md) and [ADR-0003](adr-0003-h4-customer-billing.md).

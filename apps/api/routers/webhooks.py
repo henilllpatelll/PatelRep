@@ -158,6 +158,41 @@ async def stripe_webhook(request: Request):
         "event_type": event.type,
     }).execute()
 
+    try:
+        _handle_stripe_event(event)
+    except Exception:
+        # Retry-after-failure: the de-duplication marker must not swallow an event whose handling failed, or Stripe's
+        # redelivery is ignored and the outcome is lost. Every handler below is idempotent, so a redelivery is safe.
+        logger.error("Stripe event handling failed for type=%s; releasing the de-duplication marker for redelivery",
+                     event.type)
+        try:
+            supabase.table("stripe_webhook_events").delete().eq("event_id", event.id).execute()
+        except Exception:  # noqa: BLE001
+            logger.error("could not release the de-duplication marker for a failed Stripe event")
+        raise HTTPException(status_code=500, detail="Stripe event handling failed; it will be retried")
+    return {"status": "ok"}
+
+
+def _complete_invoice_item_ids(invoice) -> list[str]:
+    """Invoice item ids on ALL lines of an invoice. Webhook payloads carry only the first page of lines; when Stripe
+    says there are more, the rest is fetched (bounded). If that fetch fails, the first page is used and the legacy and
+    H4 reconcilers associate the remainder from the item side (item -> invoice)."""
+    from services.agent_billing.webhooks import _get, invoice_item_ids
+
+    ids = invoice_item_ids(invoice)
+    if not _get(_get(invoice, "lines"), "has_more"):
+        return ids
+    try:
+        from services.billing_trueup import StripeTrueUpTransport
+
+        complete = StripeTrueUpTransport(settings.stripe_secret_key or "").list_invoice_line_item_ids(_get(invoice, "id"))
+    except Exception:  # noqa: BLE001 -- classified transport errors; never fatal for the event
+        logger.warning("could not page invoice lines; reconcilers will complete the association")
+        return ids
+    return list(dict.fromkeys(ids + complete))
+
+
+def _handle_stripe_event(event) -> None:
     if event.type in ("customer.subscription.created", "customer.subscription.updated"):
         sub = event.data.object
         hotel_id = sub.metadata.get("hotel_id")
@@ -181,18 +216,10 @@ async def stripe_webhook(request: Request):
         if hotel_id:
             from routers.billing import true_up_tenant
             today = date.today()
-            period_start = date(today.year, today.month, 1)
-            try:
-                true_up_tenant(
-                    hotel_id, period_start,
-                    require_active=False, require_period_ended=False,
-                )
-            except Exception as exc:
-                logger.error(
-                    "Final true-up failed for tenant=%s on subscription.deleted "
-                    "(proceeding to cancel anyway): %s",
-                    hotel_id, exc, exc_info=True,
-                )
+            # Mid-period cancellation billing has no approved commercial policy: the period's overage is recorded in
+            # the legacy outbox in manual_intervention ('cancellation_policy_pending') and never sent to Stripe.
+            # A failure raises, so the event is redelivered instead of the period being silently skipped.
+            true_up_tenant(hotel_id, date(today.year, today.month, 1), source="cancellation")
             supabase.table("subscriptions")\
                 .update({"plan_status": "cancelled"})\
                 .eq("tenant_id", hotel_id)\
@@ -209,35 +236,62 @@ async def stripe_webhook(request: Request):
             }).eq("tenant_id", hotel_id).execute()
 
     elif event.type == "invoice.payment_failed":
-        sub_id = event.data.object.subscription
+        sub_id = _invoice_subscription_id(event.data.object)
         if sub_id:
             supabase.table("subscriptions")\
                 .update({"plan_status": "past_due"})\
                 .eq("stripe_subscription_id", sub_id)\
                 .execute()
 
-    elif event.type == "invoice.paid":
-        inv = event.data.object
-        sub_id = getattr(inv, "subscription", None)
-        stripe_invoice_id = inv.id
-        if sub_id and stripe_invoice_id:
-            # Resolve tenant from subscription
+    if not event.type.startswith("invoice."):
+        return
+    inv = event.data.object
+    item_ids = _complete_invoice_item_ids(inv)
+
+    # Legacy true-up outbox (migration 250): associate by invoice item id (or a previously recorded invoice id) with
+    # the operation for the month the item was created for -- never by the date the webhook arrives (H4 audit F1).
+    # Customer-checked, stale-event tolerant, idempotent. A failure raises so the event is redelivered.
+    from services.billing_trueup import TrueUpStore, apply_invoice_event
+    apply_invoice_event(event, TrueUpStore(supabase), item_ids)
+
+    invoice_id = getattr(inv, "id", None)
+    if event.type == "invoice.paid" and item_ids and invoice_id:
+        # Ledgers finalized before the outbox existed carry only the item id: stamp the invoice on exactly those.
+        sub_id = _invoice_subscription_id(inv)
+        sub_row = None
+        if sub_id:
             sub_row = supabase.table("subscriptions")\
                 .select("tenant_id")\
                 .eq("stripe_subscription_id", sub_id)\
                 .maybe_single()\
                 .execute()
-            if sub_row and sub_row.data:
-                tenant_id = sub_row.data["tenant_id"]
-                today = date.today().isoformat()
-                supabase.table("credit_ledger")\
-                    .update({"stripe_invoice_id": stripe_invoice_id})\
-                    .eq("tenant_id", tenant_id)\
-                    .lte("period_start", today)\
-                    .gte("period_end", today)\
-                    .execute()
+        if sub_row and sub_row.data:
+            supabase.table("credit_ledger")\
+                .update({"stripe_invoice_id": invoice_id})\
+                .eq("tenant_id", sub_row.data["tenant_id"])\
+                .in_("stripe_invoice_item_id", item_ids)\
+                .execute()
 
-    return {"status": "ok"}
+    # H4 outbox (agent overage). Idempotent, customer-checked, live-mode refusing; a failure here must not undo the
+    # legacy handling above, and the H4 reconciler re-derives anything missed from Stripe itself.
+    try:
+        from services.agent_billing.store import CustomerBillingStore
+        from services.agent_billing.webhooks import handle_invoice_event
+        handle_invoice_event(event, CustomerBillingStore(supabase), item_ids=item_ids)
+    except Exception:  # noqa: BLE001
+        logger.error("H4 invoice event handling failed for event type=%s (reconciler will retry from Stripe)",
+                     event.type)
+
+
+def _invoice_subscription_id(invoice) -> str | None:
+    """Subscription id of an invoice for both API shapes: ``parent.subscription_details.subscription`` (current
+    API versions, where the top-level field was removed) and the older top-level ``subscription``."""
+    from services.agent_billing.webhooks import _get, _id
+
+    parent = _get(invoice, "parent")
+    sub = _get(_get(parent, "subscription_details"), "subscription") or _get(invoice, "subscription")
+    sub = _id(sub)
+    return sub if isinstance(sub, str) else None
 
 
 @router.post("/twilio-sms")

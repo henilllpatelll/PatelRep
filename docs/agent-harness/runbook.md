@@ -97,3 +97,33 @@ on the next claim or sweep.
 4. In production `diagnostics.workers` should be empty or show `disabled`; a production worker refuses to process.
 5. `grep -rn "services.agent_execution" apps/api --include=*.py` outside the package and tests → nothing (enforced by
    `tests/smoke/test_agent_execution_isolation.py`).
+
+## H4 customer billing (default disabled)
+
+Commands: `python -m services.agent_billing status | reconcile [--apply] | controls | policy-propose | policy-approve |
+policy-retire | adjust | trueup-prepare | trueup-run`. Emergency shutdown, incident recovery and staged activation are in
+[customer-billing.md](customer-billing.md) §11-12.
+
+Verify customer billing and live overage are OFF:
+1. `SELECT customer_billing_mode, stripe_trueup_enabled FROM public.agent_customer_billing_controls;` -> `disabled`, `false`.
+2. `SELECT count(*) FROM public.agent_customer_pricing_policies WHERE approved_at IS NOT NULL AND effective_to IS NULL;` -> `0`
+   unless a policy was deliberately approved.
+3. `SELECT count(*) FROM public.agent_customer_overage_authorizations;` -> `0` unless a GM opted in.
+4. `python -c "from services.agent_billing import H4_LIVE_STRIPE_SUPPORTED as x; print(x)"` -> `False`.
+5. `grep -n agent_billing apps/api/core/scheduler.py apps/api/main.py` -> nothing (nothing is scheduled).
+
+### Legacy monthly true-up outbox (migration 250)
+
+The existing monthly AI-credit true-up (`billing.monthly-trueup`, days 1-3) now runs through
+`billing_trueup_operations`. Each hotel-month gets exactly one operation, created together with the ledger
+finalization before any Stripe call.
+- Operations needing a person: `SELECT tenant_id, period_start, amount_cents, manual_reason FROM
+  public.billing_trueup_operations WHERE state = 'manual_intervention';`
+- `unlinked_legacy_item_found` means a legacy-format invoice item exists in Stripe that no ledger accounts for.
+  It may be this month's charge from the pre-outbox code. Inspect it in Stripe. If it is this period's charge, adopt
+  it with `billing_trueup_record(op, 'item_created', 'operator', <you>, <cus_>, <ii_>, NULL, NULL, <livemode>, NULL,
+  NULL)`. If Stripe shows no charge for the period, use `'resolve_retry'` with an `error_code` naming the evidence.
+- `cancellation_policy_pending`: no commercial policy exists for cancellation billing, so leave it as is. It cannot be
+  resubmitted.
+- Never edit a row by hand. Amounts, identity and recorded Stripe ids are immutable (trigger
+  `billing_trueup_operations_guard`).
