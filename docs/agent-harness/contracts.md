@@ -116,6 +116,18 @@ ceiling)`, capped at `HUMAN_APPROVED` whenever `requires_human_authority(tool)` 
 
 No allowance values for future pricing tiers are chosen anywhere.
 
+## 7a. Provider usage, pricing and USD budgets (H3)
+
+- `provider_usage.NormalizedUsage`: disjoint `uncached_input`, `cache_read`, `cache_write_short`,
+  `cache_write_long`, `output` (reasoning included), informational `reasoning`, `unpriced` categories and
+  `processing_mode`; status `reported | unreported | malformed`. `normalize_openai_usage` subtracts cached and
+  written tokens from `input_tokens`; `normalize_anthropic_usage` adds the separately reported cache categories.
+- `provider_pricing.TieredPriceSchedule` / `ProviderPriceBook`: exact provider + model (or reviewed alias) +
+  processing mode + effective window; optional long-context tier; non-overlapping versions. `price_usage` ->
+  `AttemptCost` (`costed`, or `unreconciled` with a `CostCause`); `max_exposure` -> conservative per-attempt bound.
+- `UsdAgentBudget`: USD call <= step <= run <= period. H0 `ExecutionBudget` stays in customer **credits** and is
+  not reinterpreted as USD.
+
 ## 8. Versioning and compatibility
 
 - Manifest schema strings are versioned (`patelrep.agent-manifest/v1`). A new schema version is added to

@@ -1068,3 +1068,20 @@
 - `241_agent_gateway_schema.sql` — agent_tool_invocations/approvals/executions/events/grants/controls, agent_execution_enablement, awaiting_approval state, exact agent + step_type allowlists
 - `242_work_order_assign_apply.sql` — shared locked work-order assignment (human route + gateway)
 - `243_agent_gateway_rpcs.sql` — admit, step context, approvals, atomic agent_tool_execute_work_order_assign, record outcome, expiry sweep, grants/controls, agent_run_claim redefinition
+
+## apps/api/services/agent_orchestrator/ (H3)
+
+- `__init__.py` — package map; ORCHESTRATOR_AGENT_ID/VERSION, PLANNING_STEP_TYPE (~0.6k tok)
+- `boundary.py` — BudgetedCaller: reserve -> dispatch marker -> provider -> settle per attempt; retries/fallback (~3.5k tok)
+- `budget_store.py` — SpendLedger port + SupabaseSpendLedger over agent_model_* RPCs (decimal text money) (~2k tok)
+- `catalog.py` — model catalog h3.1, workload routes, resolve_route (fallback never costs more) (~2k tok)
+- `config.py` / `providers_factory.py` — default-off gates; the only credential reader (httpx2 timeouts) (~1k tok)
+- `errors.py` — closed sanitized error taxonomy mapped to H1 ErrorClass (~1.2k tok)
+- `providers.py` / `provider_openai.py` / `provider_anthropic.py` — neutral types, dispatch-state classification, native adapters (~4k tok)
+- `plans.py` — PlanDraft schema + validate_plan against H2 bindings/schemas (~2.5k tok)
+- `sdk_model.py` / `planner.py` / `orchestrator.py` — BudgetedModel, tracing off, AgentsSdkPlanner, intents/limits (~4k tok)
+- `steps.py` / `store.py` / `admission.py` — H1 planning step, planning RPC wrapper, verified-user admission (~2.5k tok)
+- `observability.py` — allowlisted, redacted metadata logging (~0.6k tok)
+- `apps/api/services/agent_harness/provider_usage.py` / `provider_pricing.py` — pure usage normalisation, tiered price book, exposure (~5k tok)
+- `supabase/migrations/244-247` — spend ledger schema/RPCs, reviewed H1 allowlist swap, planning runs
+- `docs/agent-harness/orchestrator.md`, `adr-0002-h3-orchestration-and-spend.md`, `docs/staging-previews/h3-orchestrator-244-247.md`

@@ -111,7 +111,9 @@ def test_no_application_code_imports_the_orchestrator():
     assert offenders == [], offenders
     sanctioned = {p.relative_to(API_ROOT).as_posix() for p in (API_ROOT / "services" / "agent_execution").glob("*.py")
                   if "agent_orchestrator" in p.read_text(encoding="utf-8")}
-    assert sanctioned == {"services/agent_execution/worker.py", "services/agent_execution/retry.py"}
+    # worker (planning steps), retry (error classes) and the operator CLI (spend-* commands) -- nothing else.
+    assert sanctioned == {"services/agent_execution/worker.py", "services/agent_execution/retry.py",
+                          "services/agent_execution/__main__.py"}
 
 
 def test_no_route_or_app_startup_mentions_planning():

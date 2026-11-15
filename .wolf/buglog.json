@@ -35338,6 +35338,57 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-14T02:30:00-06:00"
+    },
+    {
+      "id": "bug-2142",
+      "timestamp": "2026-11-14T23:00:00-06:00",
+      "error_message": "anthropic.AsyncAnthropic rejects httpx.Timeout: 'httpx objects don't work with httpx2'",
+      "file": "apps/api/services/agent_orchestrator/providers_factory.py",
+      "root_cause": "anthropic 2.x (and openai 3.x) run on the separate httpx2 package; anthropic refuses classic httpx objects",
+      "fix": "Build timeouts/clients with httpx2 (httpx2.Timeout, httpx2.AsyncClient/MockTransport in tests)",
+      "tags": [
+        "httpx2",
+        "anthropic",
+        "sdk",
+        "h3"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T23:00:00-06:00"
+    },
+    {
+      "id": "bug-2143",
+      "timestamp": "2026-11-14T23:00:00-06:00",
+      "error_message": "transport errors from the provider SDKs were never classified as pre-dispatch (connect) failures",
+      "file": "apps/api/services/agent_orchestrator/providers.py",
+      "root_cause": "httpx2.ConnectError is not a subclass of httpx.ConnectError; isinstance checks only knew httpx",
+      "fix": "Recognise both httpx and httpx2 exception families; follow only explicit __cause__ chains",
+      "tags": [
+        "httpx2",
+        "classification",
+        "spend",
+        "h3"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T23:00:00-06:00"
+    },
+    {
+      "id": "bug-2144",
+      "timestamp": "2026-11-14T23:00:00-06:00",
+      "error_message": "H3 commit showed whole-file rewrites (743 deletions) of LF files",
+      "file": "apps/api/services/agent_execution/worker.py",
+      "root_cause": "python open(...,'w') in text mode on Windows writes CRLF; scripted edits converted LF files",
+      "fix": "Normalized with sed 's/\\r$//'; scripted edits must use open(path, newline='') for read and write",
+      "tags": [
+        "crlf",
+        "windows",
+        "git",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-14T23:00:00-06:00"
     }
   ]
 }

@@ -7,7 +7,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | **H0** | Contracts: agent/tool registries, capability grants, trusted identity, default-deny policy, autonomy, metering, `ai_agents` entitlement, hard execution ceiling, docs, AI-ready standard. Legacy action policy fails closed. | — | ✅ |
 | **H1** | Durable execution: `agent_runs`/`agent_run_steps`/`agent_run_events` migrations (RLS, tenant-scoped), pgmq queue, dedicated worker, `IdentityAuthority` over `user_roles`/`user_profiles`/`tenants`, server-side runtime-controls store, per-step identity/controls reload, leases + fencing, retries, cancellation/pause, recovery. Synthetic jobs only; no operational writes. | H0 identity, controls | ✅ (worker not deployed) |
 | **H2** | Tool Gateway: exact `(tool, version)` bindings; strict input/output enforcement; two read tools; persistent approvals bound to the action digest (independent approver, single use, revocable, expiring); `awaiting_approval` run state; atomic idempotent approved work-order assignment on the operation shared with the human route; immutable tool audit. | H1 | ✅ (isolated DB only; no worker deployed; production refused in code) |
-| **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ⏳ |
+| **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ✅ (isolated DB only; paid calls never enabled; no worker deployed; production refused in code) |
 | **H4** | Customer billing: `CustomerPricingPolicy` persistence, credit quotes from reconciled cost, reconciliation job for `unreconciled` usage, overage opt-in UX + Stripe true-up (no automatic overage by default). | H3 | ⏳ |
 | **H5** | First specialist agents for Operations (Engineering, Housekeeping) at observe / human-approved autonomy. | H2–H4 | ⏳ |
 | **H6** | AI Control Center: per-hotel enablement, autonomy grants, pauses/emergency stops, approval inbox, audit viewer. | H1–H5 | ⏳ |
@@ -72,3 +72,21 @@ Tool Gateway, in a reviewed PR.
 | Production activation | ⏳ separate decision (refused in code) |
 
 See [tool-gateway.md](tool-gateway.md).
+
+## H3: implemented vs. deferred
+
+| Item | Status |
+|---|---|
+| Usage normalisation (OpenAI cached/written inside input, Anthropic outside), versioned tiered price book | ✅ |
+| USD provider-spend ledger: atomic reservations, dispatch marker, settlement, uncertain/unreconciled, reconciliation, recovery (244-245) | ✅ real-DB concurrency/crash tested |
+| Native OpenAI Responses / Anthropic Messages adapters, no SDK retries, sanitized errors | ✅ fake transports through the real SDK clients |
+| Model catalog and capability-aware routing; fallback/override never more expensive | ✅ |
+| Agents SDK planner behind `BudgetedModel` (every SDK request reserved), tracing off | ✅ |
+| Deterministic plan validation against H2 contracts; proposals never execute | ✅ |
+| H1 planning runs: `harness.orchestrator` v1 / `model_planning` (246-247) | ✅ real-DB tested |
+| Live paid provider calls | ⏳ never enabled in H3 |
+| Staging application of 244-247 | ⏳ needs the reviewed staging preview (246 is destructive by the guard's definition) |
+| Proposal handoff to the Tool Gateway | ⏳ H5 |
+| Customer credits from settled provider cost | ⏳ H4 |
+
+See [orchestrator.md](orchestrator.md) and [ADR-0002](adr-0002-h3-orchestration-and-spend.md).

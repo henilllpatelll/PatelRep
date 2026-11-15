@@ -15,6 +15,29 @@ python -m services.agent_execution probe --tenant T --operation noop|transient_f
 `diagnostics` returns `runs_by_state`, `oldest_queued_at`, `expired_leases`, `missing_dispatch`, `dead_letters`,
 `queue` (depth, visible, oldest message, max `read_ct`, archived), `controls` and `workers`.
 
+## H3 provider spend
+
+```bash
+python -m services.agent_execution spend-diagnostics            # open exposure, attempts needing reconciliation
+python -m services.agent_execution spend-recover [--stale-seconds 900]
+python -m services.agent_execution spend-switch --off --operator NAME [--reason CODE]   # --on is refused in production
+python -m services.agent_execution spend-policy --scope agent --tenant T --agent harness.orchestrator --agent-version 1 \
+    --period-usd 5 --run-usd 0.25 --step-usd 0.25 --call-usd 0.05 --max-uncertain 1 --operator NAME
+python -m services.agent_execution spend-reconcile --tenant T --attempt A --resolution settled|released|acknowledged \
+    [--actual-usd X] --evidence CODE --operator NAME
+```
+
+* **Stop all paid calls now:** `spend-switch --off` (or `control --scope platform --cost-stop`). The dispatch marker
+  re-checks both immediately before every network call.
+* **Uncertain attempt** (timeout/5xx/disconnect after dispatch, or a worker that died mid-call): check the provider's
+  usage export for the attempt's `provider_request_id` / time window, then `spend-reconcile --resolution settled
+  --actual-usd <cost>` or, only with evidence of no charge, `--resolution released`. Never edit ledger rows by hand
+  (triggers refuse it).
+* **Unreconciled attempt** (response without usage, unknown model price, non-standard tier): same procedure; add a
+  reviewed price schedule (new version + migration) if a model or tier is legitimately new.
+* **Overrun** (`overrun_detected` event): the full cost is already committed; investigate the bound, then
+  `--resolution acknowledged`.
+
 ## Diagnose a stuck run
 
 1. `diagnostics` → find the run in `expired_leases` or by state. For one run's full history use the tenant-scoped RPCs
@@ -67,8 +90,10 @@ on the next claim or sweep.
 ## Verify no operational agent actions are enabled
 
 1. `python -c "from services.agent_harness.controls import H0_EXECUTION_SUPPORTED as x; print(x)"` → `False`.
-2. `SELECT conname FROM pg_constraint WHERE conname = 'agent_runs_h1_synthetic_only';` → present.
-3. `SELECT DISTINCT agent_id FROM public.agent_runs;` → only `harness.synthetic` (or empty).
+2. `SELECT conname FROM pg_constraint WHERE conname = 'agent_runs_h3_agent_allowlist';` → present (it admits
+   exactly `harness.synthetic` v1, `engineering.dispatch_assistant` v1 and `harness.orchestrator` v1).
+3. `SELECT agent_id, count(*) FROM public.agent_runs GROUP BY 1;` → only the agents above (or empty).
+6. `SELECT enabled FROM public.agent_model_enablement;` → `false` unless paid calls were deliberately authorized.
 4. In production `diagnostics.workers` should be empty or show `disabled`; a production worker refuses to process.
 5. `grep -rn "services.agent_execution" apps/api --include=*.py` outside the package and tests → nothing (enforced by
    `tests/smoke/test_agent_execution_isolation.py`).

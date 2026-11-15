@@ -95,7 +95,12 @@ The harness package doesn't import settings or provider clients at all (enforced
 - Write tools require an immutable, append-only event per attempt (pattern: `ai_recommendation_events`).
 - **OpenAI Agents SDK tracing (H3):** sensitive payload capture (model inputs/outputs, tool arguments) must be
   **disabled by default** for hotel data unless explicitly reviewed and authorized. Traces may carry ids, timings,
-  token counts and reason codes only.
+  token counts and reason codes only. **Implemented (H3):** SDK tracing is disabled globally and per run, the
+  default exporter is removed and `trace_include_sensitive_data=False` (the SDK's own default is `True`); H3 logs
+  only allowlisted, redacted metadata (`services/agent_orchestrator/observability.py`), pinned by canary tests.
+- **Provider spend (H3):** every potentially paid request is reserved atomically before dispatch; timeouts after
+  dispatch are *uncertain* (exposure kept), never free; unknown usage or prices are *unreconciled*, never
+  estimated; overruns are recorded in full. Provider credentials are read only by `providers_factory.py`.
 
 ## 9. Fail-closed behavior
 

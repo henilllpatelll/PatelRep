@@ -225,5 +225,9 @@ identity/controls reload (feed `policy.evaluate`), and `require_execution_suppor
 with the gateway, in a reviewed PR). H2 must also relax `agent_runs_h1_synthetic_only` in a reviewed forward migration
 and add an admission path that is subject to `policy.evaluate` and the `ai_agents` entitlement.
 
+**H3 status:** migration 246 adds exactly `harness.orchestrator` v1 and step type `model_planning` to the
+allowlists; planning steps run only through `services.agent_orchestrator.steps` behind
+`AGENT_ORCHESTRATOR_EXECUTION_ENABLED` (never in production) -- see [orchestrator.md](orchestrator.md).
+
 **H2 status:** implemented in migrations 241-243 and `services/agent_gateway` -- see [tool-gateway.md](tool-gateway.md)
 §11. `require_execution_supported()` was NOT flipped; the gateway uses the exact `H2_EXECUTABLE_TOOLS` boundary instead.

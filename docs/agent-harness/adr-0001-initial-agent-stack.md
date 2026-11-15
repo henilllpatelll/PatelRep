@@ -1,6 +1,7 @@
 # ADR-0001: Initial Agent Harness Stack
 
-- **Status:** Accepted for planning (H0). Nothing in this ADR is deployed by H0.
+- **Status:** Accepted for planning (H0). Nothing in this ADR is deployed by H0. Refined for H3 by
+  [ADR-0002](adr-0002-h3-orchestration-and-spend.md) (budgeted SDK `Model`, native adapters, USD spend ledger).
 - **Date:** 2026-11-13
 - **Context:** PatelRep (FastAPI + Supabase Postgres + Railway; existing OpenAI/Anthropic usage with token-based credit
   metering) plans about 12 specialist agents over 28 capabilities across five product families. A small team runs it,
