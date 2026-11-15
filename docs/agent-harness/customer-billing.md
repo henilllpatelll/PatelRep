@@ -193,9 +193,12 @@ overage.
 3. **Allowance order:** the attribution rule when legacy usage consumes allowance that an agent hold reserved. The
    current rule is chronological, so legacy usage after the allowance is exhausted is legacy overage under existing
    terms.
-4. **Cancellation billing (F5):** how to bill legacy overage at cancellation. Options are a final invoice or no charge;
-   today it creates a pending item with no next invoice.
-5. **Legacy true-up onto the outbox (F6):** whether to move the legacy true-up onto the H4 outbox.
+4. **Cancellation billing (F5):** how to bill legacy overage at cancellation. Options are a final invoice or no
+   charge. Until this is decided, a cancellation is recorded in `billing_trueup_operations` as `manual_intervention`
+   (`cancellation_policy_pending`) and never submitted.
+5. **Legacy true-up onto the outbox (F6):** done in migration 250. The legacy charge uses its own outbox table
+   (`billing_trueup_operations`, `services/billing_trueup.py`) with the same concepts as H4's. It is not gated by
+   the H4 switches, because it is the existing billing path, and its pricing is unchanged.
 6. **Consent terms:** customer-facing terms text and the `terms_version` scheme.
 7. **Unbilled work:** whether usage settled while billing was disabled (dev/staging only) should ever be billed.
    Current answer: never.

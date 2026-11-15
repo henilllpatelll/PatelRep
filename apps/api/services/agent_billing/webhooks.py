@@ -51,8 +51,10 @@ def invoice_item_ids(invoice: Any) -> list[str]:
     return ids
 
 
-def handle_invoice_event(event: Any, store: CustomerBillingStore) -> int:
-    """Apply one verified invoice event to matching H4 operations. Returns how many operations it touched."""
+def handle_invoice_event(event: Any, store: CustomerBillingStore, item_ids: Optional[list[str]] = None) -> int:
+    """Apply one verified invoice event to matching H4 operations. Returns how many operations it touched.
+
+    ``item_ids`` lets the caller pass the invoice item ids of ALL invoice lines (webhook payloads carry one page)."""
     event_type = _get(event, "type")
     if event_type not in INVOICE_EVENTS:
         return 0
@@ -63,7 +65,7 @@ def handle_invoice_event(event: Any, store: CustomerBillingStore) -> int:
     status = "payment_failed" if event_type == "invoice.payment_failed" else _get(invoice, "status")
     if status not in ("draft", "open", "paid", "void", "uncollectible", "payment_failed"):
         return 0
-    item_ids = invoice_item_ids(invoice)
+    item_ids = invoice_item_ids(invoice) if item_ids is None else item_ids
     operations = store.find_operations(invoice_item_ids=item_ids, invoice_id=invoice_id)
     event_id = _get(event, "id")
     created = _get(event, "created")

@@ -104,6 +104,7 @@ See [orchestrator.md](orchestrator.md) and [ADR-0002](adr-0002-h3-orchestration-
 | Billing & Usage UX: usage breakdown, overage controls, AI billing history | ✅ browser-verified (hermetic) |
 | Any pricing policy for a real hotel; customer billing mode `enforced` anywhere | ⏳ human/product decision |
 | Scheduling reconciliation or true-up; live Stripe | ⏳ separate authorization (code + migration change for live) |
-| Moving the legacy true-up onto the outbox; cancellation billing | ⏳ product decision (ADR-0003 F5/F6) |
+| Legacy true-up on a durable outbox (250) + full dispatch-authorization trigger (250) | ✅ real-DB tested |
+| Cancellation billing policy (held in manual review until decided) | ⏳ product decision (ADR-0003 F5) |
 
 See [customer-billing.md](customer-billing.md) and [ADR-0003](adr-0003-h4-customer-billing.md).

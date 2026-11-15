@@ -47,19 +47,33 @@ per period. It is called by the in-process scheduler (`billing.monthly-trueup`) 
   is gone in current Stripe API versions (now `parent.subscription_details.subscription`). Fix: both shapes are
   accepted.
 
+**Hardening findings (fixed in migration 250, each with negative real-database tests):**
+
+- **F9: the bare H3 dispatch RPC bypassed revoked or stale authorization.** Migration 249's trigger only required that
+  a `held` hold existed. Calling `agent_model_attempt_dispatch` directly dispatched a held attempt after the GM revoked
+  overage, after the policy was superseded or retired, or after consent was narrowed below the overage already held
+  (all reproduced on a real database, including changes committing during the dispatch). Fix:
+  `agent__customer_dispatch_refusal()` is the single definition of a dispatchable hold. The trigger enforces it for
+  every writer while billing is enforced, and the H4 wrapper uses it too. It serializes with policy changes (shared
+  advisory lock) and consent changes (ledger row lock). With billing disabled the trigger stays a no-op.
+- **F6 (fixed): duplicate legacy charge after a failed stamp.** Reproduced on a real database. Stripe accepted the
+  item, the record write failed, and the retry after the 24-hour key window created a second item. Fix: the legacy
+  true-up now runs through `billing_trueup_operations`, a durable outbox built on the same concepts as H4's.
+  There is one operation per hotel-month, created with the ledger finalization before any Stripe call. Its id is the
+  idempotency key and item metadata. The worker searches before every create, reconciles ambiguous outcomes, and stops
+  in `manual_intervention` on unexplained legacy-format items. Already-finalized periods are never touched.
+- **F7 (fixed): webhook retry after failure.** A failed handler now releases the event's de-duplication marker (HTTP
+  500), so Stripe's redelivery is processed. Invoice events use the item ids from every page of invoice lines.
+- **F5 (contained): cancellation billing.** `customer.subscription.deleted` now records the period in the legacy
+  outbox as `manual_intervention` (`cancellation_policy_pending`). It never submits anything to Stripe and never
+  finalizes the ledger. An operator cannot resubmit it until a commercial policy is approved.
+
 **Findings documented, not changed (they need a product or ops decision, see customer-billing.md §12):**
 
-- **F5: cancellation finalizes mid-cycle.** On `customer.subscription.deleted` the legacy path finalizes the period
-  mid-cycle (by design, BILLING-08). It then creates a *pending* invoice item for a customer that has no further
-  subscription invoice, so Stripe has no next invoice to put it on and the overage stays unbilled until someone
-  creates an invoice by hand. H4 never auto-bills a cancelled subscription; it goes to `manual_intervention`.
-- **F6: a duplicate charge is possible after a failed stamp.** If the legacy Stripe call succeeds but the `is_finalized`
-  stamp write fails, the run after Stripe's 24-hour idempotency window would create a second item. It is logged as
-  CRITICAL today. The H4 outbox removes this class of failure for agent overage. Moving the legacy true-up onto the
-  outbox is a recommended follow-up.
-- **F7: webhook de-duplication has gaps.** It is select-then-insert, and the event is recorded *before* its handler
-  runs, so a handler crash is never retried. H4's handler is idempotent and the reconciler re-reads Stripe, so H4 does
-  not depend on webhook delivery.
+- **F5 (policy still open):** whether and how to bill legacy overage at cancellation (final invoice or no charge).
+  Until it is decided, cancellations stay in manual review (see above).
+- **F7 (residual):** de-duplication is still select-then-insert. A duplicate delivery inside that window is harmless
+  because every handler is idempotent.
 - **F8: a NULL `cap_cents` means no cap.** For legacy usage that is unchanged pricing. For agent usage H4 requires a
   non-null policy cap.
 
@@ -70,7 +84,7 @@ per period. It is called by the in-process scheduler (`billing.monthly-trueup`) 
 | Customer total | `credit_ledger.credits_used` stays the single customer-facing total. H4 adds *breakdown* columns (`agent_credits_used`, `agent_overage_credits`, `agent_overage_usd`, `agent_held_*`), updated in the same statement as `credits_used`. There is no second balance. The reconciler checks the breakdown against the journal and open holds exactly. |
 | Charge source | Only **settled, costed** H3 provider expense. Uncertain/unreconciled attempts keep their hold in `awaiting_reconciliation` with no charge. Missing evidence is never estimated. |
 | Charge identity | One charge per H3 attempt, enforced by a partial unique index. Retries, replays, crashes and concurrent reconcilers converge on that row. Corrections are compensating, two-person adjustments; a charge is never edited. |
-| Pre-dispatch authorization | A customer-credit **hold** is created in the same transaction as the H3 provider reservation. If the customer cannot cover the conservative quote, the provider reservation is released in that transaction. Dispatch re-checks hold, policy and consent immediately before the H3 dispatch marker. A trigger on `agent_model_attempts` refuses any `reserved → dispatched` without a live hold while billing is enforced, so calling the bare H3 RPC cannot bypass billing. |
+| Pre-dispatch authorization | A customer-credit **hold** is created in the same transaction as the H3 provider reservation. If the customer cannot cover the conservative quote, the provider reservation is released in that transaction. Dispatch re-checks hold, policy and consent immediately before the H3 dispatch marker. A trigger on `agent_model_attempts` refuses any `reserved → dispatched` without a live hold while billing is enforced, so calling the bare H3 RPC cannot bypass billing. Since migration 250 the same trigger also re-verifies the policy and the overage consent through `agent__customer_dispatch_refusal()`, the single check shared with the wrapper. |
 | Pricing policy | Versioned per hotel. Proposed by one operator and approved by a different one. Immutable once approved. Charges snapshot the policy id and rates. `usd_per_credit` must equal the legacy 2 cents while both kinds of usage share `credit_ledger` (otherwise one balance would mean two prices). |
 | Overage consent | Append-only versions. Only the hotel's active GM can authorize or revoke, via the authenticated API, and the database re-verifies the GM. Authorizing requires the exact current policy id, its terms version and the exact server-computed maximum charge. Consent is bound to a policy, so a new policy pauses overage until it is reconfirmed. Revocation applies to every undispatched hold. Already-incurred charges remain. |
 | Caps | Per billing period. (a) The GM's authorized overage credits. (b) The policy's hard agent-overage cap in USD (always set). (c) The subscription's `cap_cents` whole-bill cap when set. All three are checked under the ledger row lock, so concurrent requests cannot pass them. |

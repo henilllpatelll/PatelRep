@@ -26,7 +26,8 @@ from services.agent_harness import metering
 
 API_ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = API_ROOT.parents[1] / "supabase" / "migrations"
-H4_MIGRATIONS = ("248_agent_customer_billing_schema.sql", "249_agent_customer_billing_rpcs.sql")
+H4_MIGRATIONS = ("248_agent_customer_billing_schema.sql", "249_agent_customer_billing_rpcs.sql",
+                 "250_billing_dispatch_guard_and_legacy_trueup_outbox.sql")
 RATES = PolicyRates(Decimal("0.02"), Decimal("1.5"), Decimal("0.05"))
 
 

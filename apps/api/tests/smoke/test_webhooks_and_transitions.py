@@ -710,6 +710,9 @@ async def test_stripe_payment_failed_reads_the_current_invoice_shape(monkeypatch
         "stripe_webhook_events": [],
     })
     monkeypatch.setattr(webhooks_router, "supabase", db)
+    # Invoice events also reach the legacy true-up outbox (an RPC this table fake does not model); no operation matches.
+    import services.billing_trueup as billing_trueup
+    monkeypatch.setattr(billing_trueup, "apply_invoice_event", lambda *_a, **_k: 0)
     invoice = SimpleNamespace(id="in_789",
                               parent=SimpleNamespace(subscription_details=SimpleNamespace(subscription="sub_123")))
     monkeypatch.setattr(webhooks_router.stripe.Webhook, "construct_event",
