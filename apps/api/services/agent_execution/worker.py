@@ -5,9 +5,11 @@ It runs OUTSIDE the FastAPI app (``python -m services.agent_execution worker``);
 runs simply wait, and crash recovery is driven by the database (leases, fencing, ``agent_runs_recover``).
 
 Per claimed run the worker, for every step:
-  1. refuses anything but the synthetic probe and the H2 dispatch assistant through the H0 gate
+  1. refuses anything but the synthetic probe, the H2 dispatch assistant and the H3 orchestrator through the H0 gate
      ``require_execution_supported()``; dispatch-assistant steps go ONLY through the Tool Gateway
-     (``services.agent_gateway.steps``), which re-checks identity, controls, policy and approval itself,
+     (``services.agent_gateway.steps``), which re-checks identity, controls, policy and approval itself; orchestrator
+     ``model_planning`` steps go ONLY through ``services.agent_orchestrator.steps`` (proposal-only planning whose every
+     paid model attempt is reserved in the provider-spend ledger), and only when the orchestrator process gate is open,
   2. re-establishes the principal from CURRENT authoritative membership (``revalidate_principal``),
   3. re-reads runtime controls (pauses / cost stop) from the database,
   4. executes the closed synthetic step, heartbeating at cooperative checkpoints,
@@ -44,6 +46,13 @@ from services.agent_gateway.steps import execute_tool_step
 from services.agent_gateway.store import GatewayStore
 from services.agent_harness.controls import require_execution_supported
 from services.agent_harness.identity import IdentityAuthority
+from services.agent_orchestrator import ORCHESTRATOR_AGENT_ID, ORCHESTRATOR_AGENT_VERSION, PLANNING_STEP_TYPE
+from services.agent_orchestrator.budget_store import SupabaseSpendLedger
+from services.agent_orchestrator.config import OrchestratorSettings, process_allows_orchestration
+from services.agent_orchestrator.errors import PlanningBlocked, PlanningLeaseLost
+from services.agent_orchestrator.providers_factory import build_live_adapters
+from services.agent_orchestrator.steps import execute_planning_step
+from services.agent_orchestrator.store import PlanningStore
 
 logger = logging.getLogger("patelrep.agent_worker")
 
@@ -111,6 +120,9 @@ class Worker:
         sleep: Callable[[float], None] = time.sleep,
         rng: Callable[[], float] = random.random,
         gateway_settings: Optional[GatewaySettings] = None,
+        orchestrator_settings: Optional[OrchestratorSettings] = None,
+        provider_factory: Optional[Callable[[], Any]] = None,
+        planner: Any = None,
     ) -> None:
         self.settings = settings
         self.app_env = app_env
@@ -126,6 +138,11 @@ class Worker:
         self._lock = threading.Lock()
         self.started_at = clock()
         self.gateway_settings = gateway_settings or GatewaySettings()
+        self.orchestrator_settings = orchestrator_settings or OrchestratorSettings()
+        # Live adapters are built only when the paid-call process gate is open (never in production).
+        self._provider_factory = provider_factory or (lambda: build_live_adapters(
+            app_env=self.app_env, settings=self.orchestrator_settings))
+        self._planner = planner
 
     # ---- policy ----------------------------------------------------------------------------------------------
     @property
@@ -138,8 +155,13 @@ class Worker:
         return process_allows_execution(app_env=self.app_env, settings=self.gateway_settings)
 
     @property
+    def orchestrator_allowed(self) -> bool:
+        """Process-level orchestrator gate (APP_ENV + AGENT_ORCHESTRATOR_EXECUTION_ENABLED); never true in production."""
+        return process_allows_orchestration(app_env=self.app_env, settings=self.orchestrator_settings)
+
+    @property
     def may_process(self) -> bool:
-        return self.settings.enabled and (self.synthetic_allowed or self.gateway_allowed)
+        return self.settings.enabled and (self.synthetic_allowed or self.gateway_allowed or self.orchestrator_allowed)
 
     # ---- one claim -------------------------------------------------------------------------------------------
     def process_one(self, store: AgentRunStore, authority: IdentityAuthority) -> str:
@@ -192,6 +214,24 @@ class Worker:
                     if result.action == "cancel":
                         raise CooperativeStop("cancel", "cancel_requested")
                     meta = result.meta
+                elif agent_key == (ORCHESTRATOR_AGENT_ID, ORCHESTRATOR_AGENT_VERSION):
+                    if not self.orchestrator_allowed:
+                        raise CooperativeStop("yield", "orchestrator_disabled")
+                    if step.get("step_type") != PLANNING_STEP_TYPE:
+                        raise InvalidJob("orchestrator runs only contain model_planning steps")
+                    try:
+                        meta = execute_planning_step(
+                            pstore=PlanningStore(store.client), ledger=SupabaseSpendLedger(store.client), run=job.run,
+                            step=step, fencing_token=job.token, worker_id=self.settings.worker_id, authority=authority,
+                            clock=self.clock, adapters_factory=self._provider_factory,
+                            heartbeat=lambda: store.heartbeat(
+                                run_id=job.run["id"], fencing_token=job.token, worker_id=self.settings.worker_id,
+                                lease_seconds=self.settings.lease_seconds, vt_margin=self.settings.vt_margin_seconds),
+                            monotonic=self.monotonic, planner=self._planner)
+                    except PlanningBlocked as blocked_exc:
+                        raise CooperativeStop(blocked_exc.action, blocked_exc.reason) from None
+                    except PlanningLeaseLost:
+                        raise LeaseLost() from None
                 else:
                     if agent_key != (SYNTHETIC_AGENT_ID, SYNTHETIC_AGENT_VERSION):
                         require_execution_supported()  # everything outside the two reviewed agents: always refused
@@ -262,6 +302,10 @@ class Worker:
                         swept = GatewayStore(store.client).approvals_expire(limit=self.settings.recovery_batch)
                         if swept and any(swept.values()):
                             log_event("approval_sweep", **{k: v for k, v in swept.items() if isinstance(v, int)})
+                    if self.orchestrator_allowed:
+                        spend = SupabaseSpendLedger(store.client).recover(limit=self.settings.recovery_batch)
+                        if spend and any(spend.values()):
+                            log_event("spend_recovery", **{k: v for k, v in spend.items() if isinstance(v, int)})
                 outcome = self.process_one(store, authority)
             except Exception as exc:
                 log_event("slot_error", slot=slot, error_class=classify(exc).error_class.value)

@@ -163,8 +163,11 @@ def test_no_application_code_imports_the_gateway():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
-        if rel.startswith(("services/agent_gateway/", "services/agent_execution/", "tests/", ".venv/")) \
-                or "/site-packages/" in rel:
+        # H3: services/agent_orchestrator/ validates proposals against the gateway's frozen bindings/schemas and reuses
+        # its redaction; it never calls prepare/admission/approvals/adapters and is itself never imported by
+        # application code (test_agent_orchestrator_isolation.py).
+        if rel.startswith(("services/agent_gateway/", "services/agent_execution/", "services/agent_orchestrator/",
+                           "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         source = path.read_text(encoding="utf-8", errors="ignore")
         if rel.startswith("services/agent_harness/"):  # contracts may NAME the gateway in docs, never import it

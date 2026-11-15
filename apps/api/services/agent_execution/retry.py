@@ -15,6 +15,7 @@ from typing import Callable
 import httpx
 
 from services.agent_gateway.errors import GatewayRefused, ToolTimeout
+from services.agent_orchestrator.errors import OrchestratorError
 from services.agent_harness.errors import AgentExecutionDisabled, IdentityError
 
 BACKOFF_BASE_SECONDS = 2.0
@@ -79,6 +80,14 @@ def classify(exc: BaseException) -> Classification:
         return Classification(ErrorClass.TRANSIENT_INFRASTRUCTURE, "tool_timeout", True)
     if isinstance(exc, GatewayRefused):
         return Classification(ErrorClass.AUTHORIZATION_DENIED, _safe_code(exc.code, "gateway_refused"), exc.retryable)
+    if isinstance(exc, OrchestratorError):
+        # H3 errors carry their own sanitized code, H1 class and retry decision (a retry is a NEW attempt with new
+        # reservations; uncertain/unreconciled/overrun outcomes are never retryable).
+        try:
+            error_class = ErrorClass(exc.error_class)
+        except ValueError:
+            error_class = ErrorClass.PERMANENT_FAILURE
+        return Classification(error_class, _safe_code(exc.code, "orchestrator_error"), bool(exc.retryable))
     if isinstance(exc, AgentExecutionDisabled):
         return Classification(ErrorClass.INVALID_AGENT, "agent_execution_disabled", False)
     if isinstance(exc, InvalidJob):
