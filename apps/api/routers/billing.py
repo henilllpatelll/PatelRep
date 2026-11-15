@@ -5,6 +5,11 @@ from middleware.auth import require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
 from datetime import date, datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 stripe.api_key = settings.stripe_secret_key
 
@@ -193,6 +198,211 @@ async def list_invoices(current_user: CurrentUser = Depends(require_role("gm")))
     return {"data": result}
 
 
+# ---------------------------------------------------------------------------
+# H4: AI usage breakdown and controlled overage (GM only; hotel and user come from the verified token, never the body)
+# ---------------------------------------------------------------------------
+
+class OverageAuthorizeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    limit_credits: StrictInt = Field(gt=0, le=10_000_000)
+    policy_id: UUID
+    terms_version: StrictStr = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$")
+    acknowledged_max_exposure_usd: StrictStr = Field(min_length=1, max_length=16, pattern=r"^\d{1,10}(\.\d{1,2})?$")
+    confirm: Literal[True]
+
+
+class OverageRevokeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    confirm: Literal[True]
+
+
+_OVERAGE_ERRORS = {
+    "not_authorized": (403, "Only this hotel's general manager can change AI overage."),
+    "pricing_policy_missing": (409, "AI overage is not available for your hotel yet."),
+    "terms_changed": (409, "The AI pricing terms changed. Review the new terms and confirm again."),
+    "exposure_not_acknowledged": (409, "The confirmed maximum charge does not match this limit. Review and confirm again."),
+    "exceeds_hard_cap": (422, "That limit is above your hotel's monthly AI overage cap."),
+    "invalid_limit": (422, "Enter a whole number of credits greater than zero."),
+}
+
+
+def _billing_store():
+    from services.agent_billing.store import CustomerBillingStore
+    return CustomerBillingStore(supabase)
+
+
+def _d(value) -> Decimal:
+    return Decimal(str(value)) if value is not None else Decimal(0)
+
+
+def _cents(usd: Decimal) -> int:
+    return int((usd * 100).quantize(Decimal(1), ROUND_HALF_UP))
+
+
+def build_ai_usage(summary: dict, sub: dict) -> dict:
+    """Server-side AI usage breakdown. Every amount the UI shows comes from here (decimal strings / integer cents)."""
+    from services.agent_billing.pricing import legacy_overage_cents
+
+    ledger = summary.get("ledger") or {}
+    policy = summary.get("policy")
+    auth = summary.get("authorization")
+    included = _d(ledger.get("credits_included"))
+    used = _d(ledger.get("credits_used"))
+    agent_used = _d(ledger.get("agent_credits_used"))
+    agent_over = _d(ledger.get("agent_overage_credits"))
+    agent_over_usd = _d(ledger.get("agent_overage_usd"))
+    base_fee_cents = int(sub.get("base_fee_cents") or 9900)
+    cap_cents = sub.get("cap_cents")
+
+    enabled = bool(auth and auth.get("state") == "authorized" and auth.get("current_policy"))
+    state = "off"
+    if auth and auth.get("state") == "authorized":
+        state = "on" if auth.get("current_policy") else "needs_reconfirmation"
+    limit = _d(auth.get("authorized_limit_credits")) if enabled else Decimal(0)
+    legacy_cents = legacy_overage_cents(overage_cost_cents=str(ledger.get("overage_cost_cents") or 0),
+                                        agent_overage_credits=str(agent_over), cap_cents=cap_cents,
+                                        base_fee_cents=base_fee_cents) if ledger else 0
+    agent_cents = _cents(agent_over_usd)
+    return {
+        "customer_billing_mode": summary.get("customer_billing_mode", "disabled"),
+        "period_start": ledger.get("period_start"),
+        "period_end": ledger.get("period_end"),
+        "included_credits": str(included),
+        "credits_used": str(used),
+        "legacy_credits_used": str(used - agent_used),
+        "agent_credits_used": str(agent_used),
+        "remaining_credits": str(max(Decimal(0), included - used)),
+        "pending_reconciliation_credits": str(_d(summary.get("pending_reconciliation_credits"))),
+        "in_flight_credits": str(_d(ledger.get("agent_held_credits"))),
+        "overage": {
+            "state": state,
+            "enabled": enabled,
+            "version": auth.get("version") if auth else None,
+            "updated_at": auth.get("created_at") if auth else None,
+            "authorized_limit_credits": str(limit) if enabled else None,
+            "max_exposure_usd": auth.get("max_exposure_usd") if enabled else None,
+            "accrued_credits": str(agent_over),
+            "accrued_usd": str(agent_over_usd.quantize(Decimal("0.01"), ROUND_HALF_UP)),
+            "remaining_credits": str(max(Decimal(0), limit - agent_over - _d(ledger.get("agent_held_overage_credits"))))
+            if enabled else "0",
+        },
+        "policy": None if not policy else {
+            "id": policy.get("id"),
+            "version": policy.get("version"),
+            "usd_per_credit": policy.get("usd_per_credit"),
+            "terms_version": policy.get("terms_version"),
+            "monthly_overage_cap_usd": policy.get("hard_cap_usd"),
+        },
+        "subscription_cap_cents": cap_cents,
+        "estimate": {
+            "is_estimate": True,
+            "base_fee_cents": base_fee_cents,
+            "legacy_overage_cents": legacy_cents,
+            "agent_overage_cents": agent_cents,
+            "total_cents": base_fee_cents + legacy_cents + agent_cents,
+        },
+    }
+
+
+def _subscription_caps(hotel_id: str) -> dict:
+    result = supabase.table("subscriptions").select("cap_cents, base_fee_cents")\
+        .eq("tenant_id", hotel_id).maybe_single().execute()
+    return (result.data if result else None) or {}
+
+
+@router.get("/ai-usage")
+async def get_ai_usage(current_user: CurrentUser = Depends(require_role("gm"))):
+    from middleware.credits import get_or_create_current_period_ledger
+
+    get_or_create_current_period_ledger(current_user.hotel_id)
+    try:
+        summary = _billing_store().summary(tenant_id=current_user.hotel_id)
+    except Exception:
+        logger.error("AI usage summary unavailable for hotel_id=%s", current_user.hotel_id)
+        raise HTTPException(status_code=503, detail="AI usage details are temporarily unavailable.")
+    return {"data": build_ai_usage(summary, _subscription_caps(current_user.hotel_id))}
+
+
+@router.post("/overage/authorize")
+async def authorize_overage(body: OverageAuthorizeRequest,
+                            current_user: CurrentUser = Depends(require_role("gm"))):
+    try:
+        result = _billing_store().authorize_overage(
+            tenant_id=current_user.hotel_id, user_id=current_user.user_id, limit_credits=Decimal(body.limit_credits),
+            expected_policy_id=str(body.policy_id), terms_version=body.terms_version,
+            expected_max_exposure_usd=Decimal(body.acknowledged_max_exposure_usd))
+    except Exception:
+        logger.error("overage authorization failed for hotel_id=%s", current_user.hotel_id)
+        raise HTTPException(status_code=503, detail="AI overage settings are temporarily unavailable.")
+    if not result.get("ok"):
+        status, message = _OVERAGE_ERRORS.get(result.get("reason"), (409, "AI overage could not be changed."))
+        raise HTTPException(status_code=status, detail=message)
+    return {"data": {
+        "state": "on", "version": result.get("version"),
+        "authorized_limit_credits": result.get("authorized_limit_credits"),
+        "max_exposure_usd": result.get("max_exposure_usd"), "recorded_at": result.get("created_at"),
+    }}
+
+
+@router.post("/overage/revoke")
+async def revoke_overage(body: OverageRevokeRequest, current_user: CurrentUser = Depends(require_role("gm"))):
+    try:
+        result = _billing_store().revoke_overage(tenant_id=current_user.hotel_id, user_id=current_user.user_id)
+    except Exception:
+        logger.error("overage revocation failed for hotel_id=%s", current_user.hotel_id)
+        raise HTTPException(status_code=503, detail="AI overage settings are temporarily unavailable.")
+    if not result.get("ok"):
+        status, message = _OVERAGE_ERRORS.get(result.get("reason"), (409, "AI overage could not be changed."))
+        raise HTTPException(status_code=status, detail=message)
+    return {"data": {"state": "off", "version": result.get("version"), "recorded_at": result.get("created_at"),
+                     "already_off": bool(result.get("already_off"))}}
+
+
+@router.get("/history")
+async def get_billing_history(current_user: CurrentUser = Depends(require_role("gm"))):
+    try:
+        periods = _billing_store().history(tenant_id=current_user.hotel_id, limit=12)
+    except Exception:
+        logger.error("billing history unavailable for hotel_id=%s", current_user.hotel_id)
+        raise HTTPException(status_code=503, detail="Billing history is temporarily unavailable.")
+    return {"data": [_history_period(p) for p in periods or []]}
+
+
+_OPERATION_LABELS = {
+    "prepared": "pending", "submitting": "pending", "ambiguous": "pending", "item_created": "pending_invoice",
+    "invoiced": "invoiced", "paid": "paid", "payment_failed": "payment_failed", "void": "void",
+    "uncollectible": "uncollectible", "nothing_to_bill": "nothing_to_bill", "manual_intervention": "under_review",
+}
+
+
+def _history_period(p: dict) -> dict:
+    agent_over_usd = _d(p.get("agent_overage_usd"))
+    return {
+        "period_start": p.get("period_start"),
+        "period_end": p.get("period_end"),
+        "is_finalized": bool(p.get("is_finalized")),
+        "included_credits": p.get("credits_included"),
+        "credits_used": p.get("credits_used"),
+        "agent_credits_used": p.get("agent_credits_used"),
+        "legacy_credits_used": str(_d(p.get("credits_used")) - _d(p.get("agent_credits_used"))),
+        "agent_overage_credits": p.get("agent_overage_credits"),
+        "agent_overage_cents": _cents(agent_over_usd),
+        "adjustment_credits": p.get("adjustment_credits"),
+        "late_charge_credits": p.get("late_charge_credits"),
+        "pending_reconciliation_credits": p.get("pending_reconciliation_credits"),
+        "billing_actions": [{
+            "id": op.get("id"),
+            "status": _OPERATION_LABELS.get(op.get("state"), "under_review"),
+            "amount_cents": op.get("amount_cents"),
+            "overage_credits": op.get("overage_credits"),
+            # Only an actual Stripe invoice gets a link; a pending invoice item has none.
+            "invoice_url": op.get("hosted_invoice_url") if op.get("has_invoice") else None,
+        } for op in (p.get("operations") or [])],
+    }
+
+
 def true_up_tenant(
     tenant_id: str,
     period_start: date,
@@ -215,8 +425,17 @@ def true_up_tenant(
     silently stops being tracked/billed. Finalizing on an early cron firing
     (e.g. day 28 of a 30-day month) before the period has truly ended would
     permanently drop the last 1-3 days of usage every month. This function
-    refuses to finalize while `today < ledger.period_end` UNLESS the caller
-    explicitly passes require_period_ended=False.
+    refuses to finalize while `today <= ledger.period_end` UNLESS the caller
+    explicitly passes require_period_ended=False. period_end is the LAST DAY of
+    the period (inclusive), so the period has ended only once today is after it;
+    the previous `today < period_end` check finalized at 00:00 on the last day
+    and silently dropped that whole day's usage (H4 audit, ADR-0003 F3).
+
+    H4 coexistence: consented agent overage (credit_ledger.agent_overage_credits)
+    is billed by the H4 outbox, never here; the amount is rounded once to whole
+    cents (Stripe requires integers; overage_cost_cents is NUMERIC(10,4)); and the
+    Stripe invoice ITEM id is stored in stripe_invoice_item_id, never in
+    stripe_invoice_id (which must hold an invoice id).
 
     Called by:
       - internal.py::run_monthly_trueup (cron) with require_active=True,
@@ -246,7 +465,7 @@ def true_up_tenant(
         return {"status": "already_finalized"}
 
     period_end = date.fromisoformat(ledger["period_end"])
-    if require_period_ended and current_day < period_end:
+    if require_period_ended and current_day <= period_end:
         return {"status": "period_not_yet_ended"}
 
     sub_result = supabase.table("subscriptions")\
@@ -267,14 +486,19 @@ def true_up_tenant(
     # credits_purchased) instead of recomputing overage in Python -- keeps
     # this in sync with get_credits()'s math and avoids a future overbill
     # once a credit-purchase feature writes credits_purchased.
-    overage_credits = ledger.get("overage_credits", 0)
-    overage_cost_cents = ledger.get("overage_cost_cents", 0)
+    from services.agent_billing.pricing import legacy_overage_cents
+
+    agent_overage_credits = ledger.get("agent_overage_credits") or 0
+    overage_credits = Decimal(str(ledger.get("overage_credits") or 0)) - Decimal(str(agent_overage_credits))
     base_fee_cents = sub.get("base_fee_cents") or 9900
     cap_cents = sub.get("cap_cents")
 
-    overage_cents = overage_cost_cents
-    if cap_cents:
-        overage_cents = max(0, min(overage_cents, cap_cents - base_fee_cents))
+    overage_cents = legacy_overage_cents(
+        overage_cost_cents=str(ledger.get("overage_cost_cents") or 0),
+        agent_overage_credits=str(agent_overage_credits),
+        cap_cents=cap_cents,
+        base_fee_cents=base_fee_cents,
+    )
 
     finalize_patch = {
         "is_finalized": True,
@@ -291,14 +515,14 @@ def true_up_tenant(
             customer=stripe_cid,
             amount=overage_cents,
             currency="usd",
-            description=f"AI Credits Overage: {overage_credits} credits @ $0.02",
+            description=f"AI Credits Overage: {max(overage_credits, Decimal(0)).normalize():f} credits @ $0.02",
             idempotency_key=f"trueup-{tenant_id}-{period_start.isoformat()}",
         )
     except Exception as e:
         logger.error("Stripe true-up invoice failed for tenant=%s customer=%s: %s", tenant_id, stripe_cid, e, exc_info=True)
         return {"status": "error", "error": str(e)}
 
-    finalize_patch["stripe_invoice_id"] = invoice_item.id
+    finalize_patch["stripe_invoice_item_id"] = invoice_item.id
     try:
         supabase.table("credit_ledger").update(finalize_patch)\
             .eq("tenant_id", tenant_id).eq("period_start", period_start.isoformat()).execute()
@@ -311,6 +535,6 @@ def true_up_tenant(
             "stamp failed to write -- manual reconciliation required: %s",
             invoice_item.id, tenant_id, e, exc_info=True,
         )
-        return {"status": "invoiced_stamp_failed", "stripe_invoice_id": invoice_item.id}
+        return {"status": "invoiced_stamp_failed", "stripe_invoice_item_id": invoice_item.id}
 
-    return {"status": "invoiced", "stripe_invoice_id": invoice_item.id, "overage_cents": overage_cents}
+    return {"status": "invoiced", "stripe_invoice_item_id": invoice_item.id, "overage_cents": overage_cents}

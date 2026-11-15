@@ -45,8 +45,11 @@ CRON_SCHEDULE: dict[str, dict] = {
     # Nightly.
     "ai.failure-predictions": {"hour": 0, "minute": 0},
     "logbook.cleanup-expired": {"hour": 3, "minute": 0},
-    # Month-end.
-    "billing.monthly-trueup": {"day": "28-31", "hour": 0, "minute": 0},
+    # Just after month end: a period has ended only once its last day is over
+    # (H4 audit F3 -- the old 28-31 firing finalized at 00:00 on the last day and
+    # dropped that day's usage). Three nightly firings make it self-healing; the
+    # credit_ledger.is_finalized stamp makes repeats no-ops.
+    "billing.monthly-trueup": {"day": "1-3", "hour": 1, "minute": 0},
 }
 
 

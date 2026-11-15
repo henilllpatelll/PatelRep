@@ -45,7 +45,7 @@ def test_true_up_tenant_invoices_overage_and_finalizes_ledger(monkeypatch):
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 6000,
             "credits_included": 5000,
             "overage_credits": 1000,
@@ -69,7 +69,9 @@ def test_true_up_tenant_invoices_overage_and_finalizes_ledger(monkeypatch):
     assert len(calls) == 1
     assert calls[0]["idempotency_key"] == f"trueup-hotel-a-{period_start.isoformat()}"
     assert db.rows["credit_ledger"][0]["is_finalized"] is True
-    assert db.rows["credit_ledger"][0]["stripe_invoice_id"] == "ii_1"
+    assert db.rows["credit_ledger"][0]["stripe_invoice_item_id"] == "ii_1"
+    # An invoice ITEM id is never written where an invoice id belongs (H4 audit F1).
+    assert db.rows["credit_ledger"][0].get("stripe_invoice_id") is None
     assert result["status"] == "invoiced"
 
 
@@ -79,7 +81,7 @@ def test_true_up_tenant_skips_already_finalized_ledger(monkeypatch):
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 6000,
             "credits_included": 5000,
             "overage_credits": 1000,
@@ -110,7 +112,7 @@ def test_true_up_tenant_finalizes_without_invoicing_when_no_overage(monkeypatch)
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 100,
             "credits_included": 5000,
             "overage_credits": 0,
@@ -142,7 +144,7 @@ def test_true_up_tenant_skips_inactive_when_require_active_true(monkeypatch):
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 6000,
             "credits_included": 5000,
             "overage_credits": 1000,
@@ -174,7 +176,7 @@ def test_true_up_tenant_bills_inactive_when_require_active_false(monkeypatch):
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 6000,
             "credits_included": 5000,
             "overage_credits": 1000,
@@ -271,7 +273,7 @@ async def test_monthly_trueup_cron_running_twice_does_not_double_invoice(monkeyp
         "credit_ledger": [{
             "tenant_id": "hotel-a",
             "period_start": period_start.isoformat(),
-            "period_end": date.today().isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
             "credits_used": 6000,
             "credits_included": 5000,
             "overage_credits": 1000,
@@ -388,10 +390,30 @@ async def test_early_cron_firing_does_not_lose_usage_that_accrues_before_true_pe
     monkeypatch.setattr(internal_router, "date", _FixedDate30)
     monkeypatch.setattr(billing_router, "date", _FixedDate30)
 
+    # H4 audit F3: the cron used to finalize at 00:00 on the LAST day (period_end <= today), dropping that day's
+    # usage. period_end is inclusive, so on April 30 the period is still open.
+    await internal_router.monthly_trueup(x_cron_secret="test-secret")
+
+    assert calls == []
+    assert db.rows["credit_ledger"][0]["is_finalized"] is False
+
+    # Usage on the last day itself is still billable.
+    ledger_row["credits_used"] += 500
+    ledger_row["overage_credits"] += 500
+    ledger_row["overage_cost_cents"] += 1000
+
+    class _FixedDateMay1(date):
+        @classmethod
+        def today(cls):
+            return date(2026, 5, 1)
+
+    monkeypatch.setattr(internal_router, "date", _FixedDateMay1)
+    monkeypatch.setattr(billing_router, "date", _FixedDateMay1)
+
     await internal_router.monthly_trueup(x_cron_secret="test-secret")
 
     assert len(calls) == 1
-    assert calls[0]["amount"] == 3000
+    assert calls[0]["amount"] == 4000
     assert db.rows["credit_ledger"][0]["is_finalized"] is True
 
 
@@ -531,3 +553,38 @@ async def test_subscription_deleted_true_up_failure_does_not_block_cancellation(
 
     assert response == {"status": "ok"}
     assert db.rows["subscriptions"][0]["plan_status"] == "cancelled"
+
+
+def test_true_up_tenant_excludes_h4_agent_overage_and_sends_whole_cents(monkeypatch):
+    """H4 coexistence + audit F2: consented agent overage is billed by the H4 outbox only, and Stripe receives an
+    integer amount (overage_cost_cents is NUMERIC(10,4); a fractional value used to make the call fail every night)."""
+    period_start = date(date.today().year, date.today().month, 1)
+    db = FakeDB({
+        "credit_ledger": [{
+            "tenant_id": "hotel-a",
+            "period_start": period_start.isoformat(),
+            "period_end": (date.today() - timedelta(days=1)).isoformat(),
+            "credits_used": 6100.25,
+            "credits_included": 5000,
+            "overage_credits": 1100.25,
+            "overage_cost_cents": 2200.5,
+            "agent_overage_credits": 100,
+            "is_finalized": False,
+        }],
+        "subscriptions": [{
+            "tenant_id": "hotel-a",
+            "stripe_customer_id": "cus_1",
+            "plan_status": "active",
+            "cap_cents": None,
+            "base_fee_cents": 9900,
+        }],
+    })
+    monkeypatch.setattr(billing_router, "supabase", db)
+    calls = []
+    _stub_invoice_item_create(monkeypatch, calls)
+
+    result = billing_router.true_up_tenant("hotel-a", period_start, require_active=True)
+
+    assert result["status"] == "invoiced"
+    assert calls[0]["amount"] == 2001 and isinstance(calls[0]["amount"], int)  # 2200.5 - 200 agent cents, half-up
+    assert calls[0]["description"] == "AI Credits Overage: 1000.25 credits @ $0.02"

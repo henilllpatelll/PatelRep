@@ -300,14 +300,16 @@ def run_monthly_trueup(*, today: date | None = None) -> dict:
 
     # Query by period_end, NOT by "this month's period_start" — this is the
     # primary fix for the early-finalization bug: a cron firing on day 28 of
-    # a 30-day month finds ZERO rows here (period_end=day 30 is not <=
-    # day 28), so no premature finalization is even attempted. Also
-    # self-healing: any previously-skipped period gets picked up once its
-    # period_end finally passes, without needing to know which month it was.
+    # a 30-day month finds ZERO rows here (period_end=day 30 is not <
+    # day 28), so no premature finalization is even attempted. Strictly
+    # less-than: period_end is the last day (inclusive), so on that day the
+    # period is still open (H4 audit F3). Also self-healing: any
+    # previously-skipped period gets picked up once its period_end finally
+    # passes, without needing to know which month it was.
     ledgers = supabase.table("credit_ledger")\
         .select("tenant_id, period_start")\
         .eq("is_finalized", False)\
-        .lte("period_end", current_day.isoformat())\
+        .lt("period_end", current_day.isoformat())\
         .execute()
 
     invoiced = errors = skipped = 0

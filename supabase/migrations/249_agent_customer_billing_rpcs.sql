@@ -1165,7 +1165,8 @@ DECLARE
   v_from   text;
   v_state  text;
   v_err    text := CASE WHEN p_error_code ~ '^[a-z][a-z0-9_]{0,63}$' THEN p_error_code END;
-  v_url    text := CASE WHEN p_hosted_invoice_url ~ '^https://[A-Za-z0-9.-]+\.stripe\.com/[A-Za-z0-9/_.~?=&%-]{1,500}$'
+  v_url    text := CASE WHEN length(p_hosted_invoice_url) <= 600
+                             AND p_hosted_invoice_url ~ '^https://[A-Za-z0-9.-]+\.stripe\.com/[A-Za-z0-9/_.~?=&%-]+$'
                         THEN p_hosted_invoice_url END;
 BEGIN
   IF p_actor_kind NOT IN ('worker', 'webhook', 'reconciler', 'operator')

@@ -284,7 +284,8 @@ CREATE TABLE IF NOT EXISTS public.agent_billing_operations (
   stripe_invoice_item_id   text          CHECK (stripe_invoice_item_id ~ '^ii_[A-Za-z0-9]{1,250}$'),
   stripe_invoice_id        text          CHECK (stripe_invoice_id ~ '^in_[A-Za-z0-9]{1,250}$'),
   invoice_status           text          CHECK (invoice_status IN ('draft', 'open', 'paid', 'void', 'uncollectible')),
-  hosted_invoice_url       text          CHECK (hosted_invoice_url ~ '^https://[A-Za-z0-9.-]+\.stripe\.com/[A-Za-z0-9/_.~?=&%-]{1,500}$'),
+  hosted_invoice_url       text          CHECK (length(hosted_invoice_url) <= 600
+                             AND hosted_invoice_url ~ '^https://[A-Za-z0-9.-]+\.stripe\.com/[A-Za-z0-9/_.~?=&%-]+$'),
   livemode                 boolean       NOT NULL DEFAULT false CHECK (livemode = false),
   submit_attempts          integer       NOT NULL DEFAULT 0 CHECK (submit_attempts BETWEEN 0 AND 20),
   last_error_code          text          CHECK (last_error_code ~ '^[a-z][a-z0-9_]{0,63}$'),

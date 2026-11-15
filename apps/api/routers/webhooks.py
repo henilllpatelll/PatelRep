@@ -209,7 +209,7 @@ async def stripe_webhook(request: Request):
             }).eq("tenant_id", hotel_id).execute()
 
     elif event.type == "invoice.payment_failed":
-        sub_id = event.data.object.subscription
+        sub_id = _invoice_subscription_id(event.data.object)
         if sub_id:
             supabase.table("subscriptions")\
                 .update({"plan_status": "past_due"})\
@@ -218,7 +218,7 @@ async def stripe_webhook(request: Request):
 
     elif event.type == "invoice.paid":
         inv = event.data.object
-        sub_id = getattr(inv, "subscription", None)
+        sub_id = _invoice_subscription_id(inv)
         stripe_invoice_id = inv.id
         if sub_id and stripe_invoice_id:
             # Resolve tenant from subscription
@@ -228,16 +228,41 @@ async def stripe_webhook(request: Request):
                 .maybe_single()\
                 .execute()
             if sub_row and sub_row.data:
-                tenant_id = sub_row.data["tenant_id"]
-                today = date.today().isoformat()
-                supabase.table("credit_ledger")\
-                    .update({"stripe_invoice_id": stripe_invoice_id})\
-                    .eq("tenant_id", tenant_id)\
-                    .lte("period_start", today)\
-                    .gte("period_end", today)\
-                    .execute()
+                # Stamp only the ledger whose legacy true-up invoice ITEM is on this invoice. The old code stamped
+                # whichever period was current on the day the webhook arrived -- the overage item for month N is on
+                # the renewal invoice paid in month N+1, so it stamped the wrong period (H4 audit F1).
+                from services.agent_billing.webhooks import invoice_item_ids
+                item_ids = invoice_item_ids(inv)
+                if item_ids:
+                    supabase.table("credit_ledger")\
+                        .update({"stripe_invoice_id": stripe_invoice_id})\
+                        .eq("tenant_id", sub_row.data["tenant_id"])\
+                        .in_("stripe_invoice_item_id", item_ids)\
+                        .execute()
+
+    if event.type.startswith("invoice."):
+        # H4 outbox (agent overage). Idempotent, customer-checked, live-mode refusing; a failure here must not undo
+        # the legacy handling above, and the H4 reconciler re-derives anything missed from Stripe itself.
+        try:
+            from services.agent_billing.store import CustomerBillingStore
+            from services.agent_billing.webhooks import handle_invoice_event
+            handle_invoice_event(event, CustomerBillingStore(supabase))
+        except Exception:  # noqa: BLE001
+            logger.error("H4 invoice event handling failed for event type=%s (reconciler will retry from Stripe)",
+                         event.type)
 
     return {"status": "ok"}
+
+
+def _invoice_subscription_id(invoice) -> str | None:
+    """Subscription id of an invoice for both API shapes: ``parent.subscription_details.subscription`` (current
+    API versions, where the top-level field was removed) and the older top-level ``subscription``."""
+    from services.agent_billing.webhooks import _get, _id
+
+    parent = _get(invoice, "parent")
+    sub = _get(_get(parent, "subscription_details"), "subscription") or _get(invoice, "subscription")
+    sub = _id(sub)
+    return sub if isinstance(sub, str) else None
 
 
 @router.post("/twilio-sms")

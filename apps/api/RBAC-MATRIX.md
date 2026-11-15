@@ -79,11 +79,15 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | assets.py | /v1/assets/pm-schedules/{schedule_id}/completions/{completion_id} | GET | none |  |
 | auth.py | /v1/auth/me | GET | none |  |
 | auth.py | /v1/auth/hotel-context | POST | none |  |
-| billing.py | /v1/billing/subscription | GET | gm | require_role('gm') [L17] |
-| billing.py | /v1/billing/credits | GET | gm | require_role('gm') [L29] |
-| billing.py | /v1/billing/portal | POST | gm | require_role('gm') [L113] |
-| billing.py | /v1/billing/checkout | POST | gm | require_role('gm') [L133] |
-| billing.py | /v1/billing/invoices | GET | gm | require_role('gm') [L165] |
+| billing.py | /v1/billing/subscription | GET | gm | require_role('gm') [L22] |
+| billing.py | /v1/billing/credits | GET | gm | require_role('gm') [L34] |
+| billing.py | /v1/billing/portal | POST | gm | require_role('gm') [L118] |
+| billing.py | /v1/billing/checkout | POST | gm | require_role('gm') [L138] |
+| billing.py | /v1/billing/invoices | GET | gm | require_role('gm') [L170] |
+| billing.py | /v1/billing/ai-usage | GET | gm | require_role('gm') [L316] |
+| billing.py | /v1/billing/overage/authorize | POST | gm | require_role('gm') [L330] |
+| billing.py | /v1/billing/overage/revoke | POST | gm | require_role('gm') [L350] |
+| billing.py | /v1/billing/history | GET | gm | require_role('gm') [L364] |
 | clean_sessions.py | /v1/clean-sessions | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L340] |
 | clean_sessions.py | /v1/clean-sessions | GET | none |  |
 | clean_sessions.py | /v1/clean-sessions/active | GET | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L515] |
@@ -216,17 +220,17 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | internal.py | /v1/internal/pm/check-due | POST | N/A (not role-based) | verify_cron(...) [L193] |
 | internal.py | /v1/internal/tasks/generate-recurring | POST | N/A (not role-based) | verify_cron(...) [L257] |
 | internal.py | /v1/internal/ai/failure-predictions | POST | N/A (not role-based) | verify_cron(...) [L290] |
-| internal.py | /v1/internal/billing/monthly-trueup | POST | N/A (not role-based) | verify_cron(...) [L338] |
-| internal.py | /v1/internal/logbook/shift-summary | POST | N/A (not role-based) | verify_cron(...) [L359] |
-| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L427] |
-| internal.py | /v1/internal/reports/run-schedules | POST | N/A (not role-based) | verify_cron(...) [L556] |
-| internal.py | /v1/internal/schedule/notifications | POST | N/A (not role-based) | verify_cron(...) [L567] |
-| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L581] |
-| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L606] |
-| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L685] |
-| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L870] |
-| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L934] |
-| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L976] |
+| internal.py | /v1/internal/billing/monthly-trueup | POST | N/A (not role-based) | verify_cron(...) [L340] |
+| internal.py | /v1/internal/logbook/shift-summary | POST | N/A (not role-based) | verify_cron(...) [L361] |
+| internal.py | /v1/internal/reports/daily-summary-email | POST | N/A (not role-based) | verify_cron(...) [L429] |
+| internal.py | /v1/internal/reports/run-schedules | POST | N/A (not role-based) | verify_cron(...) [L558] |
+| internal.py | /v1/internal/schedule/notifications | POST | N/A (not role-based) | verify_cron(...) [L569] |
+| internal.py | /v1/internal/opera/sync-reservations | POST | N/A (not role-based) | verify_cron(...) [L583] |
+| internal.py | /v1/internal/opera/sftp-sync-reports | POST | N/A (not role-based) | verify_cron(...) [L608] |
+| internal.py | /v1/internal/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L687] |
+| internal.py | /v1/internal/predictions/escalations/check | POST | N/A (not role-based) | verify_cron(...) [L872] |
+| internal.py | /v1/internal/lost-found/retention-check | POST | N/A (not role-based) | verify_cron(...) [L936] |
+| internal.py | /v1/internal/logbook/cleanup-expired | POST | N/A (not role-based) | verify_cron(...) [L978] |
 | inventory.py | /v1/inventory/locations | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L79] |
 | inventory.py | /v1/inventory/locations | GET | none |  |
 | inventory.py | /v1/inventory/parts | POST | chief_engineer, engineer, gm | require_role(*_MANAGER_ROLES) [L109] |
@@ -625,4 +629,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2357] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2431] |
 
-**55 routers, 614 routes.**
+**55 routers, 618 routes.**

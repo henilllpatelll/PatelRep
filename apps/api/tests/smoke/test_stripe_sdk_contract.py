@@ -9,7 +9,7 @@ the idempotency key, and response parsing into the attributes the router reads.
 """
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import parse_qsl
 
 import pytest
@@ -128,7 +128,7 @@ def test_invoice_item_creation_via_true_up(monkeypatch, http):
                 {
                     "tenant_id": "hotel-a",
                     "period_start": period_start.isoformat(),
-                    "period_end": date.today().isoformat(),
+                    "period_end": (date.today() - timedelta(days=1)).isoformat(),  # ended yesterday
                     "credits_used": 6000,
                     "credits_included": 5000,
                     "overage_credits": 1000,
@@ -162,7 +162,7 @@ def test_invoice_item_creation_via_true_up(monkeypatch, http):
         "currency": "usd",
         "description": "AI Credits Overage: 1000 credits @ $0.02",
     }
-    assert db.rows["credit_ledger"][0]["stripe_invoice_id"] == "ii_test_1"
+    assert db.rows["credit_ledger"][0]["stripe_invoice_item_id"] == "ii_test_1"
     assert db.rows["credit_ledger"][0]["is_finalized"] is True
 
 
