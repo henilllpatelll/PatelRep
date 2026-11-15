@@ -18,7 +18,8 @@ BEGIN
     'agent_tool_invocations', 'agent_tool_approvals', 'agent_tool_executions', 'agent_tool_events',
     'agent_tool_grants', 'agent_tool_controls', 'agent_execution_enablement',
     'agent_model_enablement', 'agent_model_price_schedules', 'agent_model_budget_policies',
-    'agent_model_budget_counters', 'agent_model_attempts', 'agent_model_spend_events', 'agent_planning_runs'
+    'agent_model_budget_counters', 'agent_model_attempts', 'agent_model_spend_events', 'agent_planning_runs',
+    'agent_planning_events', 'agent_proposal_handoffs'
   ] LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_class relations
@@ -62,13 +63,14 @@ BEGIN
     JOIN pg_namespace namespaces ON namespaces.oid = relations.relnamespace
     CROSS JOIN unnest(ARRAY['anon', 'authenticated']) AS end_users(role_name)
     WHERE namespaces.nspname = 'public' AND relations.relkind = 'r'
-      AND (relations.relname LIKE 'agent_model_%' OR relations.relname = 'agent_planning_runs')
+      AND (relations.relname LIKE 'agent_model_%'
+           OR relations.relname IN ('agent_planning_runs', 'agent_planning_events', 'agent_proposal_handoffs'))
       AND (has_table_privilege(end_users.role_name, relations.oid, 'SELECT')
            OR has_table_privilege(end_users.role_name, relations.oid, 'INSERT')
            OR has_table_privilege(end_users.role_name, relations.oid, 'UPDATE')
            OR has_table_privilege(end_users.role_name, relations.oid, 'DELETE'))
   ) THEN
-    RAISE EXCEPTION 'An H3 ledger or planning table is accessible to anon or authenticated';
+    RAISE EXCEPTION 'An H3/H5 ledger, planning or handoff table is accessible to anon or authenticated';
   END IF;
   IF (SELECT count(*) FROM public.agent_model_enablement) <> 1 THEN
     RAISE EXCEPTION 'agent_model_enablement must hold exactly one row';
@@ -78,8 +80,16 @@ BEGIN
     RAISE EXCEPTION 'The reviewed H3 price book seed is missing';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
-                   AND conname = 'agent_runs_h3_agent_allowlist' AND convalidated) THEN
-    RAISE EXCEPTION 'agent_runs_h3_agent_allowlist is missing';
+                   AND conname = 'agent_runs_h5_agent_allowlist' AND convalidated) THEN
+    RAISE EXCEPTION 'agent_runs_h5_agent_allowlist is missing';
+  END IF;
+  IF public.agent__gateway_tool_spec('housekeeping.room_readiness_assistant', 1, 'engineering.work_orders.assign', 2)
+       IS NOT NULL
+     OR public.agent__gateway_tool_spec('engineering.dispatch_assistant', 2, 'housekeeping.room_assignments.assign', 1)
+       IS NOT NULL
+     OR public.agent__gateway_tool_spec('housekeeping.room_readiness_assistant', 1, 'housekeeping.room_assignments.assign', 1)
+          ->>'risk' IS DISTINCT FROM 'high' THEN
+    RAISE EXCEPTION 'The H5 gateway allowlist crosses departments or lost the high-risk classification';
   END IF;
 END;
 $$;

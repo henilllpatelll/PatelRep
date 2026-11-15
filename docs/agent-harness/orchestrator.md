@@ -255,7 +255,7 @@ the four files' digests, a dispatch restating them, and an environment approval 
 | H1 planning runs (admission, fenced context, worker step) | ✅ 🧪 |
 | Live paid provider calls | ⏳ never enabled in H3 |
 | Staging application of 244–247 | ⏳ reviewed preview needs approval |
-| Submitting proposals to the Tool Gateway | ⏳ H5 |
+| Submitting proposals to the Tool Gateway | ✅ H5 ([handoff.md](handoff.md)) |
 | Customer credits from provider cost | ⏳ H4 |
 | Per-hotel model override storage, control-center UI | ⏳ H6 |
 | Worker deployment, production activation | ⏳ separate authorization |

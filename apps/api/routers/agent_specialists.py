@@ -27,12 +27,14 @@ from core.config import settings
 from core.database import supabase
 from middleware.auth import CurrentUser, require_role
 from services.agent_handoff import handoff as handoffs
-from services.agent_handoff.api import VIEWER_ROLES, gateway_settings, http_status, request_recommendation, specialists_enabled
+from services.agent_handoff.api import gateway_settings, http_status, request_recommendation, specialists_enabled
 from services.agent_handoff.handoff import HandoffRefused
 from services.agent_handoff.preview import build_preview
 
 router = APIRouter(prefix="/agent-specialists", tags=["agent-specialists"])
-_viewer = require_role(*sorted(VIEWER_ROLES))
+# The union of the H5 intents' initiator roles (pinned to services.agent_handoff.api.VIEWER_ROLES by a smoke test).
+# Coarse gate only: every request is re-authorized per intent / per approval in the database.
+SPECIALIST_VIEWER_ROLES = ("chief_engineer", "engineer", "gm", "housekeeping_supervisor")
 
 
 def _now() -> datetime:
@@ -71,7 +73,7 @@ class DecisionRequest(BaseModel):
 
 @router.post("/recommendations", status_code=202)
 async def request_specialist_recommendation(body: RecommendationRequest,
-                                            current_user: CurrentUser = Depends(_viewer)):
+                                            current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         data = request_recommendation(supabase, current_user, intent=body.intent, intent_version=body.intent_version,
@@ -83,7 +85,7 @@ async def request_specialist_recommendation(body: RecommendationRequest,
 
 
 @router.get("/recommendations/{run_id}")
-async def get_specialist_recommendation(run_id: UUID, current_user: CurrentUser = Depends(_viewer)):
+async def get_specialist_recommendation(run_id: UUID, current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": build_preview(supabase, current_user, str(run_id), clock=_now)}
@@ -93,7 +95,7 @@ async def get_specialist_recommendation(run_id: UUID, current_user: CurrentUser 
 
 @router.post("/recommendations/{run_id}/dismiss")
 async def dismiss_specialist_recommendation(run_id: UUID, body: DecisionRequest,
-                                            current_user: CurrentUser = Depends(_viewer)):
+                                            current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": handoffs.dismiss(supabase, current_user, str(run_id), reason_code=body.reason_code)}
@@ -103,7 +105,7 @@ async def dismiss_specialist_recommendation(run_id: UUID, body: DecisionRequest,
 
 @router.post("/recommendations/{run_id}/proposals/{step_number}/submit", status_code=202)
 async def submit_specialist_proposal(run_id: UUID, step_number: int, body: SubmitRequest,
-                                     current_user: CurrentUser = Depends(_viewer)):
+                                     current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         admission = handoffs.submit_proposal(supabase, current_user, planning_run_id=str(run_id),
@@ -116,7 +118,7 @@ async def submit_specialist_proposal(run_id: UUID, step_number: int, body: Submi
 
 
 @router.get("/handoffs/{handoff_id}")
-async def get_specialist_handoff(handoff_id: UUID, current_user: CurrentUser = Depends(_viewer)):
+async def get_specialist_handoff(handoff_id: UUID, current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": handoffs.handoff_status(supabase, current_user, str(handoff_id))}
@@ -126,7 +128,7 @@ async def get_specialist_handoff(handoff_id: UUID, current_user: CurrentUser = D
 
 @router.post("/handoffs/{handoff_id}/approve")
 async def approve_specialist_handoff(handoff_id: UUID, body: DecisionRequest,
-                                     current_user: CurrentUser = Depends(_viewer)):
+                                     current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": handoffs.approve(supabase, current_user, str(handoff_id), reason_code=body.reason_code)}
@@ -136,7 +138,7 @@ async def approve_specialist_handoff(handoff_id: UUID, body: DecisionRequest,
 
 @router.post("/handoffs/{handoff_id}/reject")
 async def reject_specialist_handoff(handoff_id: UUID, body: DecisionRequest,
-                                    current_user: CurrentUser = Depends(_viewer)):
+                                    current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": handoffs.reject(supabase, current_user, str(handoff_id), reason_code=body.reason_code)}
@@ -145,7 +147,7 @@ async def reject_specialist_handoff(handoff_id: UUID, body: DecisionRequest,
 
 
 @router.post("/handoffs/{handoff_id}/withdraw")
-async def withdraw_specialist_handoff(handoff_id: UUID, current_user: CurrentUser = Depends(_viewer)):
+async def withdraw_specialist_handoff(handoff_id: UUID, current_user: CurrentUser = Depends(require_role(*SPECIALIST_VIEWER_ROLES))):
     _enabled()
     try:
         return {"data": handoffs.cancel(supabase, current_user, str(handoff_id))}

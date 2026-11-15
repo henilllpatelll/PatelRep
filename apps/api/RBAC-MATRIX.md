@@ -10,6 +10,14 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
+| agent_specialists.py | /v1/agent-specialists/recommendations | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L76] |
+| agent_specialists.py | /v1/agent-specialists/recommendations/{run_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L88] |
+| agent_specialists.py | /v1/agent-specialists/recommendations/{run_id}/dismiss | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L98] |
+| agent_specialists.py | /v1/agent-specialists/recommendations/{run_id}/proposals/{step_number}/submit | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L108] |
+| agent_specialists.py | /v1/agent-specialists/handoffs/{handoff_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L121] |
+| agent_specialists.py | /v1/agent-specialists/handoffs/{handoff_id}/approve | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L131] |
+| agent_specialists.py | /v1/agent-specialists/handoffs/{handoff_id}/reject | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L141] |
+| agent_specialists.py | /v1/agent-specialists/handoffs/{handoff_id}/withdraw | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L150] |
 | ai_copilot.py | /v1/ai/copilot/chat | POST | none |  |
 | ai_copilot.py | /v1/ai/housekeeping/briefing | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L577] |
 | ai_copilot.py | /v1/ai/housekeeping/shift-summary | POST | housekeeper, housekeeping_supervisor | require_role('housekeeper', 'housekeeping_supervisor') [L652] |
@@ -630,4 +638,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2357] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2431] |
 
-**55 routers, 619 routes.**
+**56 routers, 627 routes.**

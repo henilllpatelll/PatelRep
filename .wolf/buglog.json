@@ -35389,6 +35389,57 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-14T23:00:00-06:00"
+    },
+    {
+      "id": "bug-2145",
+      "timestamp": "2026-11-15T12:00:00-06:00",
+      "error_message": "AttributeError: 'NoneType' object has no attribute 'get' in execute_planning_step after adding H5 verified context",
+      "file": "apps/api/services/agent_orchestrator/steps.py",
+      "root_cause": "new local variable 'context' shadowed the fenced step-context dict read later for deadline_at/db_now",
+      "fix": "renamed the verified-context variable to 'verified'",
+      "tags": [
+        "python",
+        "shadowing",
+        "agent-harness",
+        "h5"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-15T12:00:00-06:00"
+    },
+    {
+      "id": "bug-2146",
+      "timestamp": "2026-11-15T12:00:00-06:00",
+      "error_message": "gateway isolation test: adapters_h5.py writes a table directly (match '.update(')",
+      "file": "apps/api/services/agent_gateway/adapters_h5.py",
+      "root_cause": "the isolation regex \\.(insert|update|upsert|delete)\\( also matches collections.Counter.update(",
+      "fix": "build the Counter directly (Counter(generator)) instead of calling .update",
+      "tags": [
+        "isolation-test",
+        "regex",
+        "agent-harness",
+        "h5"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-15T12:00:00-06:00"
+    },
+    {
+      "id": "bug-2147",
+      "timestamp": "2026-11-15T12:00:00-06:00",
+      "error_message": "SyntaxError: unterminated string literal after a scripted python edit; isolation-test edits silently failed to match",
+      "file": "apps/api/services/agent_orchestrator/orchestrator.py",
+      "root_cause": "bash heredoc python edits: '\\n' and '\\' line continuations inside replacement strings were turned into real newlines / mismatched",
+      "fix": "used chr(92) for the backslash and the Edit tool for regex-heavy test files",
+      "tags": [
+        "tooling",
+        "heredoc",
+        "escaping",
+        "windows"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-11-15T12:00:00-06:00"
     }
   ]
 }

@@ -9,7 +9,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | **H2** | Tool Gateway: exact `(tool, version)` bindings; strict input/output enforcement; two read tools; persistent approvals bound to the action digest (independent approver, single use, revocable, expiring); `awaiting_approval` run state; atomic idempotent approved work-order assignment on the operation shared with the human route; immutable tool audit. | H1 | ✅ (isolated DB only; no worker deployed; production refused in code) |
 | **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ✅ (isolated DB only; paid calls never enabled; no worker deployed; production refused in code) |
 | **H4** | Customer billing: versioned two-person pricing policies, pre-dispatch customer-credit holds bound to the H3 reservation, one immutable charge per settled attempt, reconciliation (dry-run, metadata-only), GM-only overage consent (off by default) with caps, durable Stripe true-up outbox, Billing & Usage UX. | H3 | ✅ (default disabled; Stripe test mode only; nothing scheduled; production refused in code) |
-| **H5** | First specialist agents for Operations (Engineering, Housekeeping) at observe / human-approved autonomy. | H2–H4 | ⏳ |
+| **H5** | First Operations specialists (Engineering `engineering.dispatch_assistant` v2, Housekeeping `housekeeping.room_readiness_assistant` v1) at observe / human-approved autonomy; verified planning context; plan schema v2; the H3 → H2 proposal handoff; human-approved one-room Housekeeping assignment on `publish_assignment_batch`; backend recommendation preview. | H2–H4 | ✅ (default disabled; isolated DB only until the reviewed staging preview; no worker deployed; production refused in code) |
 | **H6** | AI Control Center: per-hotel enablement, autonomy grants, pauses/emergency stops, approval inbox, audit viewer. | H1–H5 | ⏳ |
 | **H7** | Bounded autonomy (level 3) for expressly granted low-risk operational tools; requires a new manifest schema version and a reviewed risk model. | H6 | ⏳ |
 | **H8** | Coordinated autonomy (level 4), cross-product agents (Guest, Growth, Owner, Connect), persistent memory with trust boundaries. | H7 | ⏳ |
@@ -86,7 +86,7 @@ See [tool-gateway.md](tool-gateway.md).
 | H1 planning runs: `harness.orchestrator` v1 / `model_planning` (246-247) | ✅ real-DB tested |
 | Live paid provider calls | ⏳ never enabled in H3 |
 | Staging application of 244-247 | ⏳ needs the reviewed staging preview (246 is destructive by the guard's definition) |
-| Proposal handoff to the Tool Gateway | ⏳ H5 |
+| Proposal handoff to the Tool Gateway | ✅ H5 |
 | Customer credits from settled provider cost | ✅ H4 |
 
 See [orchestrator.md](orchestrator.md) and [ADR-0002](adr-0002-h3-orchestration-and-spend.md).
@@ -108,3 +108,25 @@ See [orchestrator.md](orchestrator.md) and [ADR-0002](adr-0002-h3-orchestration-
 | Cancellation billing policy (held in manual review until decided) | ⏳ product decision (ADR-0003 F5) |
 
 See [customer-billing.md](customer-billing.md) and [ADR-0003](adr-0003-h4-customer-billing.md).
+
+## H5: implemented vs. deferred
+
+| Item | Status |
+|---|---|
+| Engineering specialist (dispatch assistant v2) + `engineering.work_orders.assignment_candidates` v1 | ✅ real-DB tested |
+| Housekeeping specialist (room readiness v1) + readiness / candidates reads + `housekeeping.room_assignments.assign` v1 | ✅ real-DB tested |
+| Four reviewed intents, plan schema v2 with fact-checked findings (251-252) | ✅ |
+| Verified context gathered through the gateway before any paid call | ✅ |
+| H3 → H2 proposal handoff (immutable handoff rows, fresh-fact re-check, atomic admission) (252) | ✅ real-DB tested |
+| Human-approved one-room assignment through `publish_assignment_batch` (253) | ✅ real-DB concurrency/staleness tested |
+| Planning audit events (specialist selected, context, plan, dismissal, handoff) | ✅ |
+| Post-commit staff push for gateway writes (both writes) | ✅ best effort, never on replay |
+| Backend recommendation preview + decision routes (404 unless gates on) | ✅ |
+| Web / mobile UI | ⏳ H6 (active-surface rule; no button offered while the backend cannot act) |
+| Hotel-wide queue intents, asset/PM context, assignment removal, multi-room plans | ⏳ deferred (ADR-0004 §5) |
+| Staging application of 251-253 | ⏳ reviewed preview (251 is destructive by the guard's definition) + approval |
+| Worker deployment, paid calls, production | ⏳ separate authorization |
+
+See [ADR-0004](adr-0004-h5-operations-specialists.md), [handoff.md](handoff.md),
+[tool-intent-matrix.md](tool-intent-matrix.md), [threat-model-h5.md](threat-model-h5.md),
+[runbook-h5.md](runbook-h5.md) and [rollout-h5.md](rollout-h5.md).
