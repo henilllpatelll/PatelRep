@@ -41,6 +41,46 @@
         { "name": "no_tool_grants_and_no_gateway_runs", "probe": "select not exists (select 1 from public.agent_tool_grants) and not exists (select 1 from public.agent_runs where agent_id <> 'harness.synthetic')" },
         { "name": "h1_queue_still_logged", "probe": "select exists (select 1 from pgmq.meta where queue_name = 'patelrep_agent_runs_v1' and not is_unlogged) and (select count(*) from pgmq.meta) = 1" }
       ]
+    },
+    {
+      "id": "h3-orchestrator-244-247",
+      "repository": "henilllpatelll/PatelRep",
+      "pr_number": 220,
+      "head_ref": "feat/agent-harness-h3-orchestrator",
+      "head_sha": "a8f44cc60b35299e459f8a3a24e0d6a8884f7f23",
+      "base_staging_version": "243",
+      "approved_at": "2026-11-15T00:00:00Z",
+      "expires_at": "2026-11-29T00:00:00Z",
+      "review_document": "docs/staging-previews/h3-orchestrator-244-247.md",
+      "files": [
+        { "filename": "244_agent_model_spend_schema.sql", "sha256": "143562a1b6cdf7493287e9d6687d33aee21220d932b132ac9e8c6213273e6942" },
+        { "filename": "245_agent_model_spend_rpcs.sql", "sha256": "643e862c391d72636e33a8c2d6f0286f4209bda8a565d05681c43ed9f611af92" },
+        { "filename": "246_agent_orchestrator_h1_allowlist.sql", "sha256": "5cc7f4a75ec5c2521448c2e7aa41f9cd41e3e4333187a213c251b8cf9488b5cd" },
+        { "filename": "247_agent_planning_runs.sql", "sha256": "be5d7f4697d8f5f99f94e7fc70e0adf7b275332c667b53d6f327f452a6b1ffb2" }
+      ],
+      "preconditions": [
+        { "name": "h2_allowlist_present_without_orchestrator", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h2_agent_allowlist' and contype = 'c' and convalidated and pg_get_constraintdef(oid) not like '%harness.orchestrator%') and not exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h3_agent_allowlist')" },
+        { "name": "h2_step_allowlist_without_model_planning", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_run_steps'::regclass and conname = 'agent_run_steps_step_type_allowlist' and contype = 'c' and convalidated and pg_get_constraintdef(oid) not like '%model_planning%')" },
+        { "name": "gateway_insert_trigger_present_without_planning_marker", "probe": "select exists (select 1 from pg_trigger t join pg_proc p on p.oid = t.tgfoid where t.tgrelid = 'public.agent_runs'::regclass and t.tgname = 'agent_runs_guard_gateway_insert' and t.tgenabled = 'O' and p.proname = 'agent__guard_gateway_run_insert' and p.prosrc not like '%agent_planning_admission%')" },
+        { "name": "h3_objects_absent", "probe": "select to_regclass('public.agent_model_enablement') is null and to_regclass('public.agent_model_price_schedules') is null and to_regclass('public.agent_model_budget_policies') is null and to_regclass('public.agent_model_budget_counters') is null and to_regclass('public.agent_model_attempts') is null and to_regclass('public.agent_model_spend_events') is null and to_regclass('public.agent_planning_runs') is null and not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and (proname like 'agent_model%' or proname like 'agent__model%' or proname like 'agent_planning%' or proname like 'agent__planning%' or proname = 'agent__guard_planning_run'))" },
+        { "name": "existing_runs_fit_h3_allowlist", "probe": "select not exists (select 1 from public.agent_runs where not ((agent_id = 'harness.synthetic' and agent_version = 1) or (agent_id = 'engineering.dispatch_assistant' and agent_version = 1 and synthetic_spec = '{}'::jsonb)))" },
+        { "name": "h1_queue_present_and_logged", "probe": "select exists (select 1 from pgmq.meta where queue_name = 'patelrep_agent_runs_v1' and not is_unlogged) and (select count(*) from pgmq.meta) = 1" },
+        { "name": "gateway_execution_disabled", "probe": "select count(*) = 1 and bool_and(not enabled) from public.agent_execution_enablement" }
+      ],
+      "postconditions": [
+        { "name": "h3_allowlist_replaces_h2", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h3_agent_allowlist' and contype = 'c' and convalidated and pg_get_constraintdef(oid) like '%harness.orchestrator%' and pg_get_constraintdef(oid) like '%engineering.dispatch_assistant%' and pg_get_constraintdef(oid) like '%harness.synthetic%') and not exists (select 1 from pg_constraint where conrelid = 'public.agent_runs'::regclass and conname = 'agent_runs_h2_agent_allowlist')" },
+        { "name": "step_allowlist_adds_only_model_planning", "probe": "select exists (select 1 from pg_constraint where conrelid = 'public.agent_run_steps'::regclass and conname = 'agent_run_steps_step_type_allowlist' and contype = 'c' and convalidated and pg_get_constraintdef(oid) like '%model_planning%' and pg_get_constraintdef(oid) like '%tool_invocation%' and pg_get_constraintdef(oid) like '%synthetic_noop%' and pg_get_constraintdef(oid) like '%synthetic_delay%')" },
+        { "name": "insert_guard_requires_planning_marker", "probe": "select exists (select 1 from pg_trigger t join pg_proc p on p.oid = t.tgfoid where t.tgrelid = 'public.agent_runs'::regclass and t.tgname = 'agent_runs_guard_gateway_insert' and t.tgenabled = 'O' and p.proname = 'agent__guard_gateway_run_insert' and p.prosrc like '%agent_planning_admission%' and p.prosrc like '%agent_gateway_admission%')" },
+        { "name": "h3_tables_rls_enabled", "probe": "select count(*) = 7 and bool_and(relrowsecurity) from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and relname in ('agent_model_enablement', 'agent_model_price_schedules', 'agent_model_budget_policies', 'agent_model_budget_counters', 'agent_model_attempts', 'agent_model_spend_events', 'agent_planning_runs')" },
+        { "name": "h3_tables_closed_to_end_users", "probe": "select not exists (select 1 from pg_class c cross join unnest(array['anon', 'authenticated']) as r(role_name) where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and c.relname in ('agent_model_enablement', 'agent_model_price_schedules', 'agent_model_budget_policies', 'agent_model_budget_counters', 'agent_model_attempts', 'agent_model_spend_events', 'agent_planning_runs') and (has_table_privilege(r.role_name, c.oid, 'SELECT') or has_table_privilege(r.role_name, c.oid, 'INSERT') or has_table_privilege(r.role_name, c.oid, 'UPDATE') or has_table_privilege(r.role_name, c.oid, 'DELETE')))" },
+        { "name": "agent_functions_backend_only", "probe": "select not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and (p.proname like 'agent%' or p.proname = 'work_order_assign_apply') and (p.prosecdef or has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')))" },
+        { "name": "paid_calls_disabled", "probe": "select count(*) = 1 and bool_and(not enabled) from public.agent_model_enablement" },
+        { "name": "no_budget_policies_no_spend", "probe": "select not exists (select 1 from public.agent_model_budget_policies) and not exists (select 1 from public.agent_model_budget_counters) and not exists (select 1 from public.agent_model_attempts) and not exists (select 1 from public.agent_model_spend_events)" },
+        { "name": "price_book_seeded_exactly", "probe": "select count(*) = 4 and count(distinct (provider, model)) = 4 from public.agent_model_price_schedules" },
+        { "name": "no_orchestrator_runs_or_plans", "probe": "select not exists (select 1 from public.agent_runs where agent_id = 'harness.orchestrator') and not exists (select 1 from public.agent_planning_runs) and not exists (select 1 from public.agent_run_steps where step_type = 'model_planning')" },
+        { "name": "gateway_execution_still_disabled", "probe": "select count(*) = 1 and bool_and(not enabled) from public.agent_execution_enablement" },
+        { "name": "h1_queue_still_logged", "probe": "select exists (select 1 from pgmq.meta where queue_name = 'patelrep_agent_runs_v1' and not is_unlogged) and (select count(*) from pgmq.meta) = 1" }
+      ]
     }
   ]
 }
