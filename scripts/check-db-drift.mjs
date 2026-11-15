@@ -554,21 +554,58 @@ export function remoteAttestedStatements(databaseUrl, remoteIds) {
       '--command', 'SET default_transaction_read_only = on', '--command', attestedStatementsQuery(remoteIds),
     ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     return parseAttestedStatements(output);
-  } catch {
-    throw new Error('Unable to read remote migration statements with psql.');
+  } catch (error) {
+    throw new Error(`Unable to read remote migration statements with psql (${classifyPsqlFailure(error)}).`);
   }
 }
 
-export function remoteMigrationHistory(databaseUrl) {
-  try {
-    const output = execFileSync('psql', [
-      '--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align',
-      '--command', REMOTE_HISTORY_QUERY,
-    ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return parsePsqlRemoteMigrations(output);
-  } catch {
-    throw new Error('Unable to read remote migration history with psql.');
+// Fixed, credential-free failure categories. psql's stderr can name the host, port, user or pooler tenant, so it is
+// matched against these patterns and NEVER echoed; only the category label (and psql's exit code) reaches logs.
+const PSQL_FAILURE_CATEGORIES = [
+  [/password authentication failed|SASL authentication failed|authentication failed for user/i, 'authentication failed: the database password or user in the URL was rejected'],
+  [/Tenant or user not found/i, 'pooler tenant or user not found: the pooler username must be postgres.<project-ref> for this host'],
+  [/circuit breaker|too many authentication (errors|failures)/i, 'pooler temporarily blocked authentication after repeated failures'],
+  [/MaxClients|max(imum)? (number of )?(client )?(clients|connections)( reached)?|too many (connections|clients)|remaining connection slots|no more connections allowed/i, 'connection limit reached on the database or pooler'],
+  [/could not translate host name|Name or service not known|Temporary failure in name resolution|nodename nor servname/i, 'DNS lookup of the database host failed'],
+  [/certificate|SSL (error|SYSCALL)|sslmode|SSL is not enabled|server does not support SSL/i, 'TLS/SSL negotiation failed'],
+  [/timeout expired|timed out|Connection timed out/i, 'connection timed out'],
+  [/Connection refused/i, 'connection refused by the database host'],
+  [/Network is unreachable|No route to host/i, 'database host unreachable from the runner'],
+  [/server closed the connection unexpectedly|terminating connection|connection to server .* failed: FATAL/i, 'the server closed or rejected the connection'],
+  [/invalid (URI|integer value|connection option|sslmode value)|missing "=" after|invalid percent-encoded token/i, 'the database URL is malformed'],
+  [/permission denied/i, 'permission denied for the migration history query'],
+  [/(relation|schema) "?supabase_migrations(\.schema_migrations)?"? does not exist/i, 'supabase_migrations.schema_migrations does not exist on the target'],
+  [/read-only transaction/i, 'the server rejected the query as a read-only transaction violation'],
+];
+
+/** Map a psql/child-process failure to a fixed safe label. Never returns any substring of stderr. */
+export function classifyPsqlFailure(error) {
+  if (error?.code === 'ENOENT') return 'psql is not installed or not on PATH';
+  if (error?.code === 'ETIMEDOUT' || error?.signal) return `psql was terminated (${error.signal ?? 'timeout'})`;
+  const stderr = String(error?.stderr ?? '');
+  for (const [pattern, label] of PSQL_FAILURE_CATEGORIES) {
+    if (pattern.test(stderr)) return label;
   }
+  const exit = Number.isInteger(error?.status) ? `psql exit ${error.status}` : 'no exit status';
+  return `unclassified failure, ${exit}${stderr.trim() ? '' : ', no stderr'}`;
+}
+
+function runPsqlHistoryQuery(databaseUrl) {
+  return execFileSync('psql', [
+    '--set', 'ON_ERROR_STOP=1', databaseUrl, '--tuples-only', '--no-align',
+    '--command', REMOTE_HISTORY_QUERY,
+  ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+export function remoteMigrationHistory(databaseUrl, runQuery = runPsqlHistoryQuery) {
+  let output;
+  try {
+    output = runQuery(databaseUrl);
+  } catch (error) {
+    throw new Error(`Unable to read remote migration history with psql (${classifyPsqlFailure(error)}).`);
+  }
+  // Parsing is outside the try so a malformed row reports itself instead of looking like a connection failure.
+  return parsePsqlRemoteMigrations(output);
 }
 
 function printMigrationRows(label, rows) {

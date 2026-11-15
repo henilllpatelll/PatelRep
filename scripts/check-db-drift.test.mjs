@@ -6,11 +6,13 @@ import {
   applyProductionMigrationAliases,
   buildLocalMigrationInventory,
   checkDuplicateMigrationCoverage,
+  classifyPsqlFailure,
   compareMigrationVersions,
   getDriftCheckConfig,
   loadProductionMigrationAliasRegistry,
   parsePsqlMigrationVersions,
   parsePsqlRemoteMigrations,
+  remoteMigrationHistory,
   shouldAllowPendingDrift,
   validateProductionMigrationAliasRegistry,
 } from './check-db-drift.mjs';
@@ -413,4 +415,61 @@ test('production preflight retains pipefail and excludes bypasses and migration 
   assert.match(workflow, /set -o pipefail\s+node scripts\/check-db-drift\.mjs --environment production --allow-pending \| tee drift\.txt/);
   assert.doesNotMatch(workflow, /continue-on-error/);
   assert.doesNotMatch(workflow, /migration repair/);
+});
+
+const SECRET_URL = 'postgresql://postgres.abcdefghijklmnop:s3cr3t-P%40ss@aws-0-us-east-1.pooler.supabase.com:5432/postgres';
+
+function psqlError(stderr, status = 2) {
+  return Object.assign(new Error(`Command failed: psql ${SECRET_URL}`), { status, stderr });
+}
+
+test('psql failures are classified into fixed labels that never echo stderr, the URL or credentials', () => {
+  const cases = [
+    ['psql: error: connection to server at "aws-0-us-east-1.pooler.supabase.com" (3.1.2.3), port 5432 failed: FATAL:  password authentication failed for user "postgres.abcdefghijklmnop"', /authentication failed/],
+    ['psql: error: connection to server at "aws-0-us-east-1.pooler.supabase.com" (3.1.2.3), port 5432 failed: FATAL:  Tenant or user not found', /tenant or user not found/],
+    ['psql: error: could not translate host name "aws-0-us-east-1.pooler.supabase.com" to address: Name or service not known', /DNS lookup/],
+    ['psql: error: connection to server at "h" (1.2.3.4), port 5432 failed: FATAL:  Max client connections reached', /connection limit/],
+    ['psql: error: FATAL:  MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size', /connection limit/],
+    ['psql: error: connection to server at "h" (1.2.3.4), port 5432 failed: SSL error: certificate verify failed', /TLS\/SSL/],
+    ['psql: error: connection to server at "h" (1.2.3.4), port 5432 failed: timeout expired', /timed out/],
+    ['psql: error: connection to server at "h" (1.2.3.4), port 5432 failed: Connection refused', /refused/],
+    ['psql: error: invalid integer value "x" for connection option "port"', /malformed/],
+    ['ERROR:  permission denied for schema supabase_migrations', /permission denied/],
+    ['ERROR:  relation "supabase_migrations.schema_migrations" does not exist', /does not exist/],
+    ['psql: error: connection to server at "h" (1.2.3.4), port 5432 failed: FATAL:  Circuit breaker open: too many authentication errors', /authentication failed|blocked authentication/],
+  ];
+  for (const [stderr, expected] of cases) {
+    const label = classifyPsqlFailure(psqlError(stderr));
+    assert.match(label, expected, stderr);
+    for (const forbidden of ['pooler.supabase.com', 'abcdefghijklmnop', 's3cr3t', '1.2.3.4', '3.1.2.3', 'postgres://', 'postgresql://']) {
+      assert.ok(!label.includes(forbidden), `label leaked ${forbidden}: ${label}`);
+    }
+  }
+  assert.equal(classifyPsqlFailure(Object.assign(new Error('spawn psql ENOENT'), { code: 'ENOENT' })), 'psql is not installed or not on PATH');
+  assert.equal(classifyPsqlFailure(psqlError('something new and unexpected', 3)), 'unclassified failure, psql exit 3');
+  assert.equal(classifyPsqlFailure(psqlError('', 2)), 'unclassified failure, psql exit 2, no stderr');
+  assert.equal(classifyPsqlFailure(undefined), 'unclassified failure, no exit status, no stderr');
+});
+
+test('remote migration history reports a safe psql failure category and never the URL or stderr', () => {
+  const stderr = `psql: error: connection to server at "aws-0-us-east-1.pooler.supabase.com" (3.1.2.3), port 5432 failed: FATAL:  password authentication failed for user "postgres.abcdefghijklmnop"`;
+  assert.throws(
+    () => remoteMigrationHistory(SECRET_URL, () => { throw psqlError(stderr); }),
+    (error) => {
+      assert.match(error.message, /^Unable to read remote migration history with psql \(authentication failed: /);
+      for (const forbidden of ['pooler.supabase.com', 'abcdefghijklmnop', 's3cr3t', '3.1.2.3', 'postgresql://']) {
+        assert.ok(!error.message.includes(forbidden), `message leaked ${forbidden}`);
+      }
+      return true;
+    },
+  );
+});
+
+test('remote migration history keeps parse failures distinct from psql connection failures', () => {
+  assert.deepEqual(
+    remoteMigrationHistory(SECRET_URL, () => '{"version":"241","name":"agent_gateway_schema"}\n'),
+    [{ version: '241', name: 'agent_gateway_schema' }],
+  );
+  assert.throws(() => remoteMigrationHistory(SECRET_URL, () => 'not json\n'), /^Error: Unable to parse remote migration history row\.$/);
+  assert.throws(() => remoteMigrationHistory(SECRET_URL, () => '{"version":"1"}\n'), /must include version and name/);
 });
