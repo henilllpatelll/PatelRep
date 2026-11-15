@@ -35440,6 +35440,23 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-11-15T12:00:00-06:00"
+    },
+    {
+      "id": "bug-2148",
+      "timestamp": "2026-11-15T16:00:00-06:00",
+      "error_message": "test_assignment_batch_publish_api::test_it_requires_authentication got 429 instead of 401 only in the full suite",
+      "file": "apps/api/tests/smoke/test_agent_specialists_routes.py",
+      "root_cause": "new route tests made ~30 TestClient requests from the same client address and exhausted the app-wide RateLimitMiddleware bucket shared by later tests",
+      "fix": "route tests send a unique synthetic X-Forwarded-For per request",
+      "tags": [
+        "rate-limit",
+        "test-isolation",
+        "order-dependent",
+        "h5"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-15T16:00:00-06:00"
     }
   ]
 }

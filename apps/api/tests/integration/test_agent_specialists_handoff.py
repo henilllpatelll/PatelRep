@@ -6,11 +6,13 @@ between steps fails closed."""
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 
 from agent_execution_support import requires_db
 from agent_specialists_support import (
+    ENABLED,
     HK,
     change,
     drain,
@@ -140,7 +142,9 @@ def test_submission_refusals_are_enforced_in_code_and_database():
         submit(hotel, run_id, step=2)
     assert exc.value.code == "proposal_not_found"
     with pytest.raises(HandoffRefused) as exc:
-        submit(other, run_id, user=other.user(other.supervisor, "housekeeping_supervisor"))  # another hotel
+        handoffs.submit_proposal(new_client(), other.user(other.supervisor, "housekeeping_supervisor"),
+                                 planning_run_id=run_id, plan_digest=record["plan_digest"], step_number=1,
+                                 app_env="test", settings=ENABLED, clock=lambda: datetime.now(timezone.utc))  # other hotel
     assert exc.value.code == "not_found"
 
     step = record["plan"]["steps"][0]

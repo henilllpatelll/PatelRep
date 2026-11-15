@@ -30,7 +30,10 @@ ENDPOINTS = [
 def _auth(role: str) -> dict:
     token = jwt.encode({"sub": str(uuid.uuid4()), "role": role, "hotel_id": str(uuid.uuid4()), "aud": "authenticated"},
                        settings.supabase_jwt_secret, algorithm="HS256")
-    return {"Authorization": f"Bearer {token}"}
+    # A unique synthetic client address per request keeps these tests out of the app-wide rate-limit bucket that
+    # later tests in the same process share (otherwise they would see 429 instead of 401/403).
+    ip = ".".join(str(b) for b in uuid.uuid4().bytes[:4])
+    return {"Authorization": f"Bearer {token}", "X-Forwarded-For": f"10.{ip.split('.', 1)[1]}"}
 
 
 def _call(client, method, path, body, role):
