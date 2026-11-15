@@ -16,15 +16,16 @@ from services.agent_gateway.store import GatewayStore
 
 
 def set_tool_grant(store: GatewayStore, user: CurrentUser, *, tool_id: str, tool_version: int, max_level: int,
-                   expires_at: Optional[datetime] = None, revoke: bool = False) -> dict:
+                   expires_at: Optional[datetime] = None, revoke: bool = False,
+                   agent_id: str = DISPATCH_AGENT_ID, agent_version: int = DISPATCH_AGENT_VERSION) -> dict:
     if not isinstance(user, CurrentUser) or not user.hotel_id or not user.user_id:
         raise GatewayRefused("unauthenticated")
     if user.role != "gm":
         raise GatewayRefused("not_authorized")
-    if (DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION, tool_id, tool_version) not in DB_ALLOWLIST:
-        raise GatewayRefused("tool_not_allowed")
-    result = store.grant_set(tenant_id=user.hotel_id, actor_user_id=user.user_id, agent_id=DISPATCH_AGENT_ID,
-                             agent_version=DISPATCH_AGENT_VERSION, tool_id=tool_id, tool_version=tool_version,
+    if (agent_id, agent_version, tool_id, tool_version) not in DB_ALLOWLIST:
+        raise GatewayRefused("tool_not_allowed")  # exact (agent, version, tool, version) pins only; no wildcard
+    result = store.grant_set(tenant_id=user.hotel_id, actor_user_id=user.user_id, agent_id=agent_id,
+                             agent_version=agent_version, tool_id=tool_id, tool_version=tool_version,
                              max_level=max_level, expires_at=expires_at, revoke=revoke)
     if not result.get("ok"):
         raise GatewayRefused(str(result.get("reason") or "grant_refused"))

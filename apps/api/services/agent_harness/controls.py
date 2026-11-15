@@ -28,10 +28,18 @@ H0_EXECUTION_SUPPORTED: Final[bool] = False
 # (APP_ENV + AGENT_GATEWAY_EXECUTION_ENABLED + the database switch), the tenant entitlement, a per-property grant,
 # current identity and, for writes, a valid single-use human approval. There is no blanket "execution supported" flag:
 # H0_EXECUTION_SUPPORTED stays False and require_execution_supported() still refuses everything outside this set.
+#
+# H5 adds exactly four reviewed versions (three bounded reads and one human-approved Housekeeping write); the H2 set is
+# unchanged. Historical versions are never removed from or rewritten in this set.
 H2_EXECUTABLE_TOOLS: Final[frozenset[tuple[str, int]]] = frozenset({
     ("engineering.work_orders.lookup", 2),
     ("housekeeping.rooms.status_lookup", 1),
     ("engineering.work_orders.assign", 2),
+    # H5 (ADR-0004)
+    ("engineering.work_orders.assignment_candidates", 1),
+    ("housekeeping.rooms.readiness_lookup", 1),
+    ("housekeeping.room_assignments.candidates", 1),
+    ("housekeeping.room_assignments.assign", 1),
 })
 MAX_CONTROL_AGE = timedelta(seconds=30)
 

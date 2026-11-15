@@ -76,8 +76,10 @@ def test_no_application_code_wires_the_harness_in():
         # H3: services/agent_orchestrator/ (planner + provider-spend ledger) are the ONLY sanctioned consumers of the
         # contracts. None is imported by application code -- see test_agent_execution_isolation.py,
         # test_agent_gateway_isolation.py and test_agent_orchestrator_isolation.py.
+        # H5: services/agent_handoff/ is the reviewed plan -> gateway bridge (ADR-0004); routers reach the harness
+        # only through it (routers/agent_specialists.py, guarded by test_agent_handoff_isolation.py).
         if rel.startswith(("services/agent_harness/", "services/agent_execution/", "services/agent_gateway/",
-                           "services/agent_orchestrator/", "tests/", ".venv/")) or "/site-packages/" in rel:
+                           "services/agent_orchestrator/", "services/agent_handoff/", "tests/", ".venv/"))                 or "/site-packages/" in rel:
             continue
         if pattern.search(path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)

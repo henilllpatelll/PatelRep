@@ -161,6 +161,17 @@ _CAPABILITIES: tuple[CapabilityDef, ...] = (
         description="Read room status in the caller's hotel.",
     ),
     CapabilityDef(
+        # H5: read today's room ownership and the eligible receivers' workload. Mirrors the assignment authority
+        # (supervisor + GM), not the wider housekeeping module, because it exposes staff workload.
+        capability_id="housekeeping.room_assignments.read",
+        domain="housekeeping",
+        access=AccessMode.READ,
+        consequence=Consequence.OPERATIONAL,
+        granted_roles=frozenset(ROOM_ASSIGNMENT_WRITE_ROLES),
+        mirrors="routers/housekeeping.py batch-publish / smart-balance require_role('gm', 'housekeeping_supervisor')",
+        description="Read today's room ownership and eligible housekeepers' assigned-room counts.",
+    ),
+    CapabilityDef(
         capability_id="housekeeping.room_assignments.write",
         domain="housekeeping",
         access=AccessMode.WRITE,

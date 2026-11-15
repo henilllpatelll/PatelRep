@@ -36,5 +36,12 @@ class PlanningStore:
             "p_plan": plan, "p_plan_digest": plan_digest, "p_reason_codes": reason_codes,
             "p_model_attempts": model_attempts}) or {}
 
+    def record_context(self, *, run_id: str, fencing_token: int, worker_id: str, agent_id: str, agent_version: int,
+                       context_digest: str, fact_keys: list[str]) -> dict:
+        """H5: audit which specialist was selected and which verified facts (by tool key + digest) it planned over."""
+        return self._rpc("agent_planning_record_context", {
+            "p_run_id": run_id, "p_fencing_token": fencing_token, "p_worker": worker_id, "p_agent_id": agent_id,
+            "p_agent_version": agent_version, "p_context_digest": context_digest, "p_fact_keys": fact_keys}) or {}
+
     def get(self, *, tenant_id: str, run_id: str) -> Optional[dict]:
         return self._rpc("agent_planning_run_get", {"p_tenant_id": tenant_id, "p_run_id": run_id})
