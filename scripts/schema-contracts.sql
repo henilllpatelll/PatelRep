@@ -4,6 +4,9 @@ DO $$
 DECLARE
   readiness jsonb;
   rls_table text;
+  h5_recorded integer;
+  h5_present text[];
+  h5_unexpected integer;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -77,9 +80,175 @@ BEGIN
         ('openai-2026-11-14', 'anthropic-2026-11-14')) <> 4 THEN
     RAISE EXCEPTION 'The reviewed H3 price book seed is missing';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
-                   AND conname = 'agent_runs_h3_agent_allowlist' AND convalidated) THEN
-    RAISE EXCEPTION 'agent_runs_h3_agent_allowlist is missing';
+
+  -- H5 (migrations 251-253, PR #223) is applied to staging by reviewed preview before it merges, so this same trusted
+  -- copy must hold for BOTH schema versions. The version is read from migration history BY NAME (CI and local replays
+  -- record synthetic version numbers, remote databases the real ones; the names are identical in both):
+  --   none of the three recorded -> the H4 schema: the H3 agent allowlist and H3 planning checks, and NO H5 object;
+  --   all three recorded         -> the complete H5 schema, checked below;
+  --   anything else              -> a partially applied H5 schema, which fails closed.
+  -- An H5 object without its recorded migration (or the reverse) also fails closed.
+  IF to_regclass('supabase_migrations.schema_migrations') IS NULL THEN
+    RAISE EXCEPTION 'Migration history (supabase_migrations.schema_migrations) is missing; the H5 schema version cannot be proven';
+  END IF;
+  SELECT count(DISTINCT history.name) INTO h5_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name IN ('agent_h5_specialist_allowlists', 'agent_h5_planning_and_handoff', 'agent_h5_gateway_tools');
+  SELECT array_remove(ARRAY[
+    CASE WHEN EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
+                        AND conname = 'agent_runs_h5_agent_allowlist') THEN 'agent_runs_h5_agent_allowlist' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_planning_runs'::regclass
+                        AND conname IN ('agent_planning_runs_intent_allowlist', 'agent_planning_runs_resource_type_allowlist',
+                                        'agent_planning_runs_plan_outcome_allowlist', 'agent_planning_runs_record_shape_v2'))
+         THEN 'agent_planning_runs H5 checks' END,
+    CASE WHEN to_regclass('public.agent_planning_events') IS NOT NULL THEN 'agent_planning_events' END,
+    CASE WHEN to_regclass('public.agent_proposal_handoffs') IS NOT NULL THEN 'agent_proposal_handoffs' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs JOIN pg_namespace namespaces ON namespaces.oid = procs.pronamespace
+                       WHERE namespaces.nspname = 'public' AND procs.proname IN (
+                         'agent__planning_intent_spec', 'agent__planning_event', 'agent__handoff_json',
+                         'agent_planning_record_context', 'agent_proposal_handoff_admit', 'agent_proposal_handoff_get',
+                         'agent_proposal_handoffs_for_run', 'agent_proposal_handoff_cancel', 'agent_planning_dismiss',
+                         'agent_planning_events_page', 'agent_tool_execute_room_assignment'))
+         THEN 'H5 functions' END,
+    CASE WHEN public.agent__gateway_tool_spec('housekeeping.room_readiness_assistant', 1, 'housekeeping.rooms.status_lookup', 1) IS NOT NULL
+           OR public.agent__gateway_tool_spec('engineering.dispatch_assistant', 2, 'engineering.work_orders.lookup', 2) IS NOT NULL
+         THEN 'H5 gateway allowlist' END], NULL) INTO h5_present;
+
+  IF h5_recorded = 0 THEN
+    -- H4 schema (history ends at or before 250).
+    IF cardinality(h5_present) > 0 THEN
+      RAISE EXCEPTION 'H5 objects exist without their recorded migrations: %', h5_present;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
+                     AND conname = 'agent_runs_h3_agent_allowlist' AND convalidated) THEN
+      RAISE EXCEPTION 'agent_runs_h3_agent_allowlist is missing';
+    END IF;
+    IF (SELECT count(*) FROM pg_constraint WHERE conrelid = 'public.agent_planning_runs'::regclass AND contype = 'c'
+          AND convalidated AND conname IN ('agent_planning_runs_intent_check', 'agent_planning_runs_resource_type_check',
+                                           'agent_planning_runs_plan_outcome_check', 'agent_planning_runs_record_shape')) <> 4 THEN
+      RAISE EXCEPTION 'The H3 agent_planning_runs checks are missing';
+    END IF;
+  ELSIF h5_recorded = 3 THEN
+    -- Complete H5 schema.
+    IF cardinality(h5_present) <> 6 THEN
+      RAISE EXCEPTION 'H5 migrations are recorded but H5 objects are missing (present: %)', h5_present;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
+                 AND conname = 'agent_runs_h3_agent_allowlist')
+       OR EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_planning_runs'::regclass
+                    AND conname IN ('agent_planning_runs_intent_check', 'agent_planning_runs_resource_type_check',
+                                    'agent_planning_runs_plan_outcome_check', 'agent_planning_runs_record_shape')) THEN
+      RAISE EXCEPTION 'An H3 check that migration 251 replaces still exists';
+    END IF;
+    -- Agent allowlist: exactly the five reviewed (agent, version) pairs, validated.
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint constraints, LATERAL pg_get_constraintdef(constraints.oid) AS definition(src)
+      WHERE constraints.conrelid = 'public.agent_runs'::regclass AND constraints.conname = 'agent_runs_h5_agent_allowlist'
+        AND constraints.contype = 'c' AND constraints.convalidated
+        AND (length(definition.src) - length(replace(definition.src, 'agent_id = ', ''))) / length('agent_id = ') = 5
+        AND definition.src LIKE '%(agent_id = ''harness.synthetic''::text) AND (agent_version = 1))%'
+        AND definition.src LIKE '%(agent_id = ''engineering.dispatch_assistant''::text) AND (agent_version = 1) AND (synthetic_spec = ''{}''::jsonb)%'
+        AND definition.src LIKE '%(agent_id = ''harness.orchestrator''::text) AND (agent_version = 1) AND (synthetic_spec = ''{}''::jsonb)%'
+        AND definition.src LIKE '%(agent_id = ''engineering.dispatch_assistant''::text) AND (agent_version = 2) AND (synthetic_spec = ''{}''::jsonb)%'
+        AND definition.src LIKE '%(agent_id = ''housekeeping.room_readiness_assistant''::text) AND (agent_version = 1) AND (synthetic_spec = ''{}''::jsonb)%'
+    ) THEN
+      RAISE EXCEPTION 'agent_runs_h5_agent_allowlist is missing, unvalidated or not exactly the reviewed five agents';
+    END IF;
+    IF (SELECT count(*) FROM pg_constraint WHERE conrelid = 'public.agent_planning_runs'::regclass AND contype = 'c'
+          AND convalidated AND conname IN ('agent_planning_runs_intent_allowlist', 'agent_planning_runs_resource_type_allowlist',
+                                           'agent_planning_runs_plan_outcome_allowlist', 'agent_planning_runs_record_shape_v2',
+                                           'agent_planning_runs_intent_version_check')) <> 5 THEN
+      RAISE EXCEPTION 'The H5 agent_planning_runs checks are missing or unvalidated';
+    END IF;
+    -- Planning events and proposal handoffs: RLS on with no policy, closed to end users, and append-only through an
+    -- enabled BEFORE UPDATE OR DELETE row trigger (the backend's table rights come from platform default privileges,
+    -- exactly as for every earlier agent table).
+    IF EXISTS (
+      SELECT 1 FROM pg_class relations
+      WHERE relations.oid IN ('public.agent_planning_events'::regclass, 'public.agent_proposal_handoffs'::regclass)
+        AND (NOT relations.relrowsecurity
+             OR EXISTS (SELECT 1 FROM pg_policy policies WHERE policies.polrelid = relations.oid)
+             OR EXISTS (SELECT 1 FROM unnest(ARRAY['anon', 'authenticated']) AS end_users(role_name)
+                         CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'])
+                           AS privileges(name)
+                         WHERE has_table_privilege(end_users.role_name, relations.oid, privileges.name)))
+    ) OR (SELECT count(*) FROM pg_trigger
+           WHERE tgenabled = 'O' AND tgfoid = 'public.agent__guard_tool_immutable()'::regprocedure
+             AND (tgtype & 27) = 27  -- ROW (1) + BEFORE (2) + DELETE (8) + UPDATE (16)
+             AND (tgrelid, tgname) IN (
+               ('public.agent_planning_events'::regclass, 'agent_planning_events_immutable'),
+               ('public.agent_proposal_handoffs'::regclass, 'agent_proposal_handoffs_immutable'))) <> 2 THEN
+      RAISE EXCEPTION 'An H5 planning-event or handoff table is exposed, has a policy, is mutable, or lost RLS';
+    END IF;
+    -- Every H5 function: SECURITY INVOKER, empty search_path, callable by the backend only (no PUBLIC grant).
+    IF (SELECT count(*) FROM pg_proc procs
+         WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__planning_intent_spec', 'agent__planning_event', 'agent__handoff_json', 'agent_planning_record_context',
+           'agent_proposal_handoff_admit', 'agent_proposal_handoff_get', 'agent_proposal_handoffs_for_run',
+           'agent_proposal_handoff_cancel', 'agent_planning_dismiss', 'agent_planning_events_page',
+           'agent_tool_execute_room_assignment', 'agent__gateway_tool_spec', 'agent__planning_intent_roles',
+           'agent_planning_run_admit', 'agent_planning_record_plan')
+           AND NOT procs.prosecdef AND procs.proconfig = ARRAY['search_path=""']
+           AND has_function_privilege('service_role', procs.oid, 'EXECUTE')
+           AND procs.proacl IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM aclexplode(procs.proacl) AS acl WHERE acl.grantee = 0)) <> 15 THEN
+      RAISE EXCEPTION 'An H5 function is missing, overloaded, SECURITY DEFINER, has a search_path, or is granted to PUBLIC';
+    END IF;
+    -- Gateway allowlist: across every agent/tool/version combination, EXACTLY the ten reviewed pins resolve, so no agent
+    -- reaches another department's tools; the two writes keep their reviewed risk and roles.
+    SELECT count(*) INTO h5_unexpected
+      FROM unnest(ARRAY['harness.synthetic', 'harness.orchestrator', 'engineering.dispatch_assistant',
+                        'housekeeping.room_readiness_assistant']) AS agents(id)
+      CROSS JOIN generate_series(1, 3) AS agent_versions(v)
+      CROSS JOIN unnest(ARRAY['engineering.work_orders.lookup', 'engineering.work_orders.assignment_candidates',
+                              'engineering.work_orders.assign', 'housekeeping.rooms.status_lookup',
+                              'housekeeping.rooms.readiness_lookup', 'housekeeping.room_assignments.candidates',
+                              'housekeeping.room_assignments.assign']) AS tools(id)
+      CROSS JOIN generate_series(1, 3) AS tool_versions(v)
+     WHERE (public.agent__gateway_tool_spec(agents.id, agent_versions.v, tools.id, tool_versions.v) IS NOT NULL)
+           <> ((agents.id, agent_versions.v, tools.id, tool_versions.v) IN (
+                ('engineering.dispatch_assistant', 1, 'engineering.work_orders.lookup', 2),
+                ('engineering.dispatch_assistant', 1, 'housekeeping.rooms.status_lookup', 1),
+                ('engineering.dispatch_assistant', 1, 'engineering.work_orders.assign', 2),
+                ('engineering.dispatch_assistant', 2, 'engineering.work_orders.lookup', 2),
+                ('engineering.dispatch_assistant', 2, 'engineering.work_orders.assignment_candidates', 1),
+                ('engineering.dispatch_assistant', 2, 'engineering.work_orders.assign', 2),
+                ('housekeeping.room_readiness_assistant', 1, 'housekeeping.rooms.status_lookup', 1),
+                ('housekeeping.room_readiness_assistant', 1, 'housekeeping.rooms.readiness_lookup', 1),
+                ('housekeeping.room_readiness_assistant', 1, 'housekeeping.room_assignments.candidates', 1),
+                ('housekeeping.room_readiness_assistant', 1, 'housekeeping.room_assignments.assign', 1)));
+    IF h5_unexpected <> 0
+       OR public.agent__gateway_tool_spec('engineering.dispatch_assistant', 1, 'engineering.work_orders.assign', 2)
+            IS DISTINCT FROM '{"access": "write", "risk": "medium", "resource_type": "work_order", "roles": ["chief_engineer", "gm"]}'::jsonb
+       OR public.agent__gateway_tool_spec('engineering.dispatch_assistant', 2, 'engineering.work_orders.assign', 2)
+            IS DISTINCT FROM '{"access": "write", "risk": "medium", "resource_type": "work_order", "roles": ["chief_engineer", "gm"]}'::jsonb
+       OR public.agent__gateway_tool_spec('housekeeping.room_readiness_assistant', 1, 'housekeeping.room_assignments.assign', 1)
+            IS DISTINCT FROM '{"access": "write", "risk": "high", "resource_type": "room", "roles": ["gm", "housekeeping_supervisor"]}'::jsonb THEN
+      RAISE EXCEPTION 'The H5 gateway allowlist crosses departments, widened, or lost the reviewed write classification';
+    END IF;
+    -- Intent catalog: each specialist intent stays inside its department, and only the two recommendation intents may
+    -- propose a write (their own department's).
+    IF public.agent__planning_intent_roles('engineering.work_order_dispatch_plan', 1) IS DISTINCT FROM ARRAY['chief_engineer', 'gm']
+       OR public.agent__planning_intent_roles('engineering.work_order_triage', 1) IS DISTINCT FROM ARRAY['chief_engineer', 'engineer', 'gm']
+       OR public.agent__planning_intent_roles('engineering.work_order_dispatch_recommendation', 1) IS DISTINCT FROM ARRAY['chief_engineer', 'gm']
+       OR public.agent__planning_intent_roles('housekeeping.room_readiness_review', 1) IS DISTINCT FROM ARRAY['gm', 'housekeeping_supervisor']
+       OR public.agent__planning_intent_roles('housekeeping.room_assignment_recommendation', 1) IS DISTINCT FROM ARRAY['gm', 'housekeeping_supervisor']
+       OR public.agent__planning_intent_spec('engineering.work_order_dispatch_recommendation', 1)->'write'
+            IS DISTINCT FROM '{"tool_id": "engineering.work_orders.assign", "tool_version": 2}'::jsonb
+       OR public.agent__planning_intent_spec('housekeeping.room_assignment_recommendation', 1)->'write'
+            IS DISTINCT FROM '{"tool_id": "housekeeping.room_assignments.assign", "tool_version": 1}'::jsonb
+       OR public.agent__planning_intent_spec('housekeeping.room_readiness_review', 1)->'write' IS DISTINCT FROM 'null'::jsonb
+       OR public.agent__planning_intent_spec('engineering.work_order_triage', 1)->'write' IS DISTINCT FROM 'null'::jsonb
+       OR public.agent__planning_intent_spec('engineering.work_order_dispatch_plan', 1)->'write' IS DISTINCT FROM 'null'::jsonb
+       OR public.agent__planning_intent_spec('housekeeping.room_assignment_recommendation', 1)->'specialist'->>'agent_id'
+            IS DISTINCT FROM 'housekeeping.room_readiness_assistant'
+       OR public.agent__planning_intent_spec('engineering.work_order_dispatch_recommendation', 1)->'specialist'->>'agent_id'
+            IS DISTINCT FROM 'engineering.dispatch_assistant'
+       OR public.agent__planning_intent_roles('housekeeping.room_assignment_recommendation', 2) IS NOT NULL
+       OR public.agent__planning_intent_spec('housekeeping.room_assignment_recommendation', 2) IS NOT NULL THEN
+      RAISE EXCEPTION 'The H5 planning intent catalog crosses departments or proposes an unreviewed write';
+    END IF;
+  ELSE
+    RAISE EXCEPTION 'H5 migrations 251-253 are partially applied (% of 3 recorded); the schema version is not trusted', h5_recorded;
   END IF;
 END;
 $$;
