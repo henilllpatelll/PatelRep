@@ -48,6 +48,7 @@ from services.agent_harness.controls import require_execution_supported
 from services.agent_harness.identity import IdentityAuthority
 from services.agent_orchestrator import ORCHESTRATOR_AGENT_ID, ORCHESTRATOR_AGENT_VERSION, PLANNING_STEP_TYPE
 from services.agent_orchestrator.budget_store import SupabaseSpendLedger
+from services.agent_orchestrator.customer_billing_ledger import CustomerBilledSpendLedger
 from services.agent_orchestrator.config import OrchestratorSettings, process_allows_orchestration
 from services.agent_orchestrator.errors import PlanningBlocked, PlanningLeaseLost
 from services.agent_orchestrator.providers_factory import build_live_adapters
@@ -221,7 +222,7 @@ class Worker:
                         raise InvalidJob("orchestrator runs only contain model_planning steps")
                     try:
                         meta = execute_planning_step(
-                            pstore=PlanningStore(store.client), ledger=SupabaseSpendLedger(store.client), run=job.run,
+                            pstore=PlanningStore(store.client), ledger=CustomerBilledSpendLedger(store.client), run=job.run,
                             step=step, fencing_token=job.token, worker_id=self.settings.worker_id, authority=authority,
                             clock=self.clock, adapters_factory=self._provider_factory,
                             heartbeat=lambda: store.heartbeat(
