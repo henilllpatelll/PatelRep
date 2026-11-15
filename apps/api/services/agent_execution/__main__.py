@@ -11,6 +11,13 @@
                                              entitlement, grant and approval are separate; production refuses in code)
   tool-pause --tool T [--paused] --operator O   H2: pause / unpause one tool
   approvals-expire                           H2: expire overdue approvals and end the runs waiting on them
+  spend-diagnostics                          H3: open provider exposure, attempts needing reconciliation, counters
+  spend-recover [--stale-seconds N]          H3: release never-dispatched attempts of dead workers; mark unsettled
+                                             dispatched attempts uncertain (never releases a dispatched attempt)
+  spend-switch --on|--off --operator O       H3: the database paid model-call switch (refuses --on in production)
+  spend-policy --scope ... --period-usd X    H3: set a versioned USD budget policy (platform|provider|hotel|agent)
+  spend-reconcile --tenant T --attempt A --resolution settled|released|acknowledged --evidence CODE --operator O
+                                             H3: resolve an uncertain/unreconciled attempt or acknowledge an overrun
 
 There is deliberately NO approve command: an approval needs a verified human (services.agent_gateway.approvals).
 
@@ -137,6 +144,95 @@ def cmd_approvals_expire(args: argparse.Namespace) -> int:
     return 0
 
 
+def _ledger():
+    from services.agent_orchestrator.budget_store import SupabaseSpendLedger
+
+    return SupabaseSpendLedger(_store().client)
+
+
+def _dump(value) -> int:
+    print(json.dumps(value, indent=2, sort_keys=True, default=str))
+    return 0
+
+
+def cmd_spend_diagnostics(args: argparse.Namespace) -> int:
+    return _dump(_ledger().diagnostics(limit=args.limit))
+
+
+def cmd_spend_recover(args: argparse.Namespace) -> int:
+    return _dump(_ledger().recover(stale_seconds=args.stale_seconds, limit=args.limit))
+
+
+def cmd_spend_switch(args: argparse.Namespace) -> int:
+    from core.config import settings
+
+    if args.on and settings.app_env == "production":
+        print(json.dumps({"ok": False, "reason": "production_refused"}))
+        return 2
+    return _dump(_ledger().set_enablement(enabled=args.on, updated_by=args.operator, reason=args.reason))
+
+
+def cmd_spend_policy(args: argparse.Namespace) -> int:
+    from decimal import Decimal
+
+    def usd(value):
+        return None if value is None else Decimal(value)
+
+    return _dump(_ledger().set_policy(
+        scope=args.scope, operator=args.operator, period_limit_usd=usd(args.period_usd), tenant_id=args.tenant,
+        provider=args.provider, agent_id=args.agent, agent_version=args.agent_version, run_limit_usd=usd(args.run_usd),
+        step_limit_usd=usd(args.step_usd), call_limit_usd=usd(args.call_usd),
+        max_uncertain_per_run=args.max_uncertain, reason=args.reason))
+
+
+def cmd_spend_reconcile(args: argparse.Namespace) -> int:
+    from decimal import Decimal
+
+    return _dump(_ledger().reconcile(
+        tenant_id=args.tenant, attempt_id=args.attempt, resolution=args.resolution,
+        actual_usd=None if args.actual_usd is None else Decimal(args.actual_usd), operator=args.operator,
+        evidence_code=args.evidence))
+
+
+def _add_spend_commands(sub) -> None:
+    p = sub.add_parser("spend-diagnostics")
+    p.add_argument("--limit", type=int, default=20)
+    p.set_defaults(func=cmd_spend_diagnostics)
+    p = sub.add_parser("spend-recover")
+    p.add_argument("--stale-seconds", type=int, default=900)
+    p.add_argument("--limit", type=int, default=100)
+    p.set_defaults(func=cmd_spend_recover)
+    p = sub.add_parser("spend-switch")
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--on", dest="on", action="store_true")
+    group.add_argument("--off", dest="on", action="store_false")
+    p.add_argument("--operator", required=True)
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_spend_switch)
+    p = sub.add_parser("spend-policy")
+    p.add_argument("--scope", choices=["platform", "provider", "hotel", "agent"], required=True)
+    p.add_argument("--tenant")
+    p.add_argument("--provider", choices=["openai", "anthropic"])
+    p.add_argument("--agent")
+    p.add_argument("--agent-version", type=int)
+    p.add_argument("--period-usd", required=True)
+    p.add_argument("--run-usd")
+    p.add_argument("--step-usd")
+    p.add_argument("--call-usd")
+    p.add_argument("--max-uncertain", type=int)
+    p.add_argument("--operator", required=True)
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_spend_policy)
+    p = sub.add_parser("spend-reconcile")
+    p.add_argument("--tenant", required=True)
+    p.add_argument("--attempt", required=True)
+    p.add_argument("--resolution", choices=["settled", "released", "acknowledged"], required=True)
+    p.add_argument("--actual-usd")
+    p.add_argument("--evidence", required=True)
+    p.add_argument("--operator", required=True)
+    p.set_defaults(func=cmd_spend_reconcile)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m services.agent_execution")
     sub = parser.add_subparsers(dest="command")
@@ -186,6 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("approvals-expire")
     p.add_argument("--limit", type=int, default=100)
     p.set_defaults(func=cmd_approvals_expire)
+    _add_spend_commands(sub)
     return parser
 
 
