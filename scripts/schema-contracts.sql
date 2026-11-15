@@ -16,7 +16,9 @@ BEGIN
     'shift_summary_generation_claims', 'shift_summary_credit_charges',
     'agent_runs', 'agent_run_steps', 'agent_run_events', 'agent_runtime_controls', 'agent_worker_heartbeats',
     'agent_tool_invocations', 'agent_tool_approvals', 'agent_tool_executions', 'agent_tool_events',
-    'agent_tool_grants', 'agent_tool_controls', 'agent_execution_enablement'
+    'agent_tool_grants', 'agent_tool_controls', 'agent_execution_enablement',
+    'agent_model_enablement', 'agent_model_price_schedules', 'agent_model_budget_policies',
+    'agent_model_budget_counters', 'agent_model_attempts', 'agent_model_spend_events', 'agent_planning_runs'
   ] LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_class relations
@@ -47,6 +49,37 @@ BEGIN
       AND (has_function_privilege('anon', procs.oid, 'EXECUTE') OR has_function_privilege('authenticated', procs.oid, 'EXECUTE'))
   ) THEN
     RAISE EXCEPTION 'work_order_assign_apply is executable by anon or authenticated';
+  END IF;
+  -- H3: the provider-spend ledger and planning runs are backend-only, never SECURITY DEFINER, and exactly as reviewed.
+  IF EXISTS (
+    SELECT 1 FROM pg_proc procs JOIN pg_namespace namespaces ON namespaces.oid = procs.pronamespace
+    WHERE namespaces.nspname = 'public' AND procs.proname LIKE 'agent%' AND procs.prosecdef
+  ) THEN
+    RAISE EXCEPTION 'An Agent Harness function is SECURITY DEFINER';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class relations
+    JOIN pg_namespace namespaces ON namespaces.oid = relations.relnamespace
+    CROSS JOIN unnest(ARRAY['anon', 'authenticated']) AS end_users(role_name)
+    WHERE namespaces.nspname = 'public' AND relations.relkind = 'r'
+      AND (relations.relname LIKE 'agent_model_%' OR relations.relname = 'agent_planning_runs')
+      AND (has_table_privilege(end_users.role_name, relations.oid, 'SELECT')
+           OR has_table_privilege(end_users.role_name, relations.oid, 'INSERT')
+           OR has_table_privilege(end_users.role_name, relations.oid, 'UPDATE')
+           OR has_table_privilege(end_users.role_name, relations.oid, 'DELETE'))
+  ) THEN
+    RAISE EXCEPTION 'An H3 ledger or planning table is accessible to anon or authenticated';
+  END IF;
+  IF (SELECT count(*) FROM public.agent_model_enablement) <> 1 THEN
+    RAISE EXCEPTION 'agent_model_enablement must hold exactly one row';
+  END IF;
+  IF (SELECT count(*) FROM public.agent_model_price_schedules WHERE schedule_version IN
+        ('openai-2026-11-14', 'anthropic-2026-11-14')) <> 4 THEN
+    RAISE EXCEPTION 'The reviewed H3 price book seed is missing';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = 'public.agent_runs'::regclass
+                   AND conname = 'agent_runs_h3_agent_allowlist' AND convalidated) THEN
+    RAISE EXCEPTION 'agent_runs_h3_agent_allowlist is missing';
   END IF;
 END;
 $$;

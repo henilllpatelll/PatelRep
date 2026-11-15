@@ -1,6 +1,6 @@
 # PatelRep Agent Harness: Architecture
 
-Status: **H0 contracts + H1 durable execution infrastructure (synthetic jobs only)**. Agent execution is disabled in
+Status: **H0 contracts + H1 durable execution + H2 Tool Gateway + H3 orchestrator and provider-spend ledger (implemented, not activated)**. Agent execution is disabled in
 code. This document describes the target system and marks exactly which parts exist today. The implemented H1 design
 is in [durable-execution.md](durable-execution.md) and supersedes §4 and §8 where they differ.
 
@@ -49,7 +49,7 @@ any of that from becoming a side effect.
 | Runtime controls (`controls.py`) | Hard H0 execution ceiling, pause and emergency-stop snapshot shape, tenant snapshot. | **Implemented**. Always off. |
 | Durable execution (`services/agent_execution/`, migrations 238-240) | Run/step tables, pgmq queue, dedicated worker, leases/fencing, retries, cancellation, recovery. | **Implemented in H1** for synthetic jobs; worker not deployed. |
 | Tool Gateway dispatch | Binds a `ToolSpec` to a shared business operation, enforces timeouts and output limits. | H2 |
-| Orchestrator + model adapters | OpenAI Agents SDK planner, provider abstraction, metered calls. | H3 |
+| Orchestrator + model adapters (`services/agent_orchestrator/`, migrations 244-247) | Agents SDK planner behind a budgeted `Model`, native OpenAI/Anthropic adapters, USD provider-spend ledger, plan validation. | **Implemented in H3**; proposal-only, paid calls off, see [orchestrator.md](orchestrator.md). |
 
 ## 3. Request-to-execution flow (target, H2+)
 

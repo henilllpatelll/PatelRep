@@ -1196,3 +1196,19 @@ $//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator
 - Key Learning: on Windows, Python text-mode writes produce CRLF; `git diff --cached --check` then flags every line. Normalize with sed 's/$//' — except apps/api/RBAC-MATRIX.md, which the repo stores CRLF (regenerate it instead).
 - Do-Not-Repeat (2026-11-14): never put a CASE expression inside a PL/pgSQL IF condition (IF scans to the first THEN); compute it into a variable first.
 - Do-Not-Repeat (2026-11-14): rewriting .wolf/buglog.json with json.dump reformats ~70k lines; append entries textually.
+
+## Agent Harness H3 (orchestrator + provider-spend ledger) — learnings (2026-11-14)
+
+- Do-Not-Repeat (2026-11-14): scripted file edits on Windows must use `open(path, newline='')` for BOTH read and write;
+  text-mode writes silently convert LF files to CRLF and every line shows as changed in git.
+- openai 3.x and anthropic 2.x run on the separate `httpx2` package (not httpx). anthropic refuses httpx objects
+  (timeouts, clients, transports); httpx2 exception classes do not subclass httpx ones. Use httpx2 in code and test fakes.
+- OpenAI Agents SDK 0.24: `RunConfig.trace_include_sensitive_data` defaults to TRUE (env
+  OPENAI_AGENTS_TRACE_INCLUDE_SENSITIVE_DATA); SDK `Usage` zero-fills missing usage; `ModelSettings.retry=None` still allows
+  legacy lock retries for stateful requests. H3 uses a custom `agents.Model` so every SDK request is a reserved attempt.
+- OpenAI Responses `input_tokens` INCLUDES cached reads and cache writes; Anthropic `input_tokens` EXCLUDES cache
+  reads/writes. Normalize before pricing (services/agent_harness/provider_usage.py).
+- A migration containing `DELETE FROM` or `ALTER TABLE ... DROP` (even inside a plpgsql body or for a CHECK swap) is
+  "destructive" for the staging guard; the whole pending set is refused until a reviewed preview registry entry exists.
+- Decision Log: H3 provider expense (USD, agent_model_* tables) is separate from customer credits (credit_ledger); H4
+  converts settled rows to credits. Paid calls default off at three layers (process env, DB switch, budget policies).
