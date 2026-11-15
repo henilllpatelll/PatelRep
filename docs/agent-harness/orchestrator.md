@@ -93,8 +93,8 @@ Initial catalog (catalog version `h3.1`):
 |---|---|---|---|---|---|
 | openai | `gpt-6-luna` | Responses `text.format` json_schema strict | 64,000 | 4,096 | fast classification, routine reasoning, tool proposals (primary) |
 | anthropic | `claude-haiku-5-5` | Messages `output_config.format` json_schema | 64,000 | 4,096 | fallback for the above |
-| openai | `gpt-6.1-terra` | json_schema strict | 64,000 | 8,192 | multistep planning (primary) |
-| anthropic | `claude-sonnet-5-5` | json_schema | 64,000 | 8,192 | complex analysis (primary), multistep fallback |
+| openai | `gpt-6.1-terra` | json_schema strict | 64,000 | 8,192 | multistep planning (primary, no fallback: every alternative costs more), complex-analysis fallback |
+| anthropic | `claude-sonnet-5-5` | json_schema | 64,000 | 8,192 | complex analysis (primary) |
 
 Input caps sit below every long-context tier threshold (OpenAI >272K, Haiku 5.5 >100K), so the base tier always
 applies; the price book still models the tiers so exposure stays correct if a cap is ever raised.
