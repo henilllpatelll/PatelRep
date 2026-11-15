@@ -14,8 +14,11 @@ import { useRole } from '@/lib/hooks/useRole'
 import { errorMessage, errorStatus } from '@/lib/settings/apiErrors'
 import { safeStripeUrl, subscriptionNotice, subscriptionRows, subscriptionStatusMeta, isTrialExpired } from '@/lib/settings/billing'
 import { useHotelStore } from '@/stores/hotelStore'
+import { AiBillingHistoryCard } from './AiBillingHistoryCard'
+import { AiUsageBreakdownCard } from './AiUsageBreakdownCard'
 import { CreditUsageCard } from './CreditUsageCard'
 import { InvoicesCard } from './InvoicesCard'
+import { OverageControlsCard } from './OverageControlsCard'
 
 const QUERY = { staleTime: 5 * 60_000, refetchInterval: false as const, retry: (n: number, err: unknown) => errorStatus(err) !== 404 && n < 1 }
 
@@ -77,6 +80,20 @@ export function BillingSettings() {
     queryKey: ['billing-credits', hotelId],
     queryFn: () => billingApi.getCredits(),
     select: (res) => res.data,
+    enabled,
+    ...QUERY,
+  })
+  const aiUsage = useQuery({
+    queryKey: ['billing-ai-usage', hotelId],
+    queryFn: () => billingApi.getAiUsage(),
+    select: (res) => res.data,
+    enabled,
+    ...QUERY,
+  })
+  const aiHistory = useQuery({
+    queryKey: ['billing-ai-history', hotelId],
+    queryFn: () => billingApi.getHistory(),
+    select: (res) => res.data ?? [],
     enabled,
     ...QUERY,
   })
@@ -160,10 +177,16 @@ export function BillingSettings() {
 
       <CreditUsageCard query={credits} />
 
+      <AiUsageBreakdownCard query={aiUsage} />
+
+      <OverageControlsCard query={aiUsage} hotelId={hotelId} />
+
       <SettingsCard aria-labelledby="billing-invoices-heading" className="space-y-4">
         <h2 id="billing-invoices-heading" className="flex items-center gap-2 text-base font-semibold text-ink"><Receipt size={16} className="text-ink-3" aria-hidden="true" /> Invoices</h2>
         <InvoicesCard query={invoices} />
       </SettingsCard>
+
+      <AiBillingHistoryCard query={aiHistory} />
     </div>
   )
 }

@@ -85,9 +85,10 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | billing.py | /v1/billing/checkout | POST | gm | require_role('gm') [L138] |
 | billing.py | /v1/billing/invoices | GET | gm | require_role('gm') [L170] |
 | billing.py | /v1/billing/ai-usage | GET | gm | require_role('gm') [L316] |
-| billing.py | /v1/billing/overage/authorize | POST | gm | require_role('gm') [L330] |
-| billing.py | /v1/billing/overage/revoke | POST | gm | require_role('gm') [L350] |
-| billing.py | /v1/billing/history | GET | gm | require_role('gm') [L364] |
+| billing.py | /v1/billing/overage/quote | GET | gm | require_role('gm') [L330] |
+| billing.py | /v1/billing/overage/authorize | POST | gm | require_role('gm') [L355] |
+| billing.py | /v1/billing/overage/revoke | POST | gm | require_role('gm') [L375] |
+| billing.py | /v1/billing/history | GET | gm | require_role('gm') [L389] |
 | clean_sessions.py | /v1/clean-sessions | POST | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L340] |
 | clean_sessions.py | /v1/clean-sessions | GET | none |  |
 | clean_sessions.py | /v1/clean-sessions/active | GET | housekeeper, housekeeping_supervisor | require_role(*SESSION_ROLES) [L515] |
@@ -629,4 +630,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2357] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2431] |
 
-**55 routers, 618 routes.**
+**55 routers, 619 routes.**

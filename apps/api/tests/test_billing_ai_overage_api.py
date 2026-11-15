@@ -195,3 +195,15 @@ def test_history_links_only_real_invoices_and_never_labels_pending_as_paid(monke
     assert actions[0]["invoice_url"] is None and actions[2]["invoice_url"] is None
     assert actions[1]["invoice_url"] == "https://invoice.stripe.com/i/test_y"
     assert data[0]["agent_overage_cents"] == 100 and data[0]["legacy_credits_used"] == "5000"
+
+
+def test_overage_quote_is_server_calculated_and_gm_only(monkeypatch):
+    store = FakeStore(summary=SUMMARY)
+    data = client(monkeypatch, store).get("/billing/overage/quote?limit_credits=1234").json()["data"]
+    assert data["max_exposure_usd"] == "24.68" and data["within_cap"] is True
+    assert data["policy_id"] == POLICY and data["terms_version"] == "h4-terms-1"
+    assert client(monkeypatch, store).get("/billing/overage/quote?limit_credits=9999").json()["data"]["within_cap"] is False
+    assert client(monkeypatch, store).get("/billing/overage/quote?limit_credits=0").status_code == 422
+    assert client(monkeypatch, store, role="engineer").get("/billing/overage/quote?limit_credits=5").status_code == 403
+    no_policy = FakeStore(summary={**SUMMARY, "policy": None})
+    assert client(monkeypatch, no_policy).get("/billing/overage/quote?limit_credits=5").status_code == 409

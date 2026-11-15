@@ -1,6 +1,6 @@
 import logging
 import stripe
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from middleware.auth import require_role, CurrentUser
 from core.database import supabase
 from core.config import settings
@@ -323,6 +323,31 @@ async def get_ai_usage(current_user: CurrentUser = Depends(require_role("gm"))):
         logger.error("AI usage summary unavailable for hotel_id=%s", current_user.hotel_id)
         raise HTTPException(status_code=503, detail="AI usage details are temporarily unavailable.")
     return {"data": build_ai_usage(summary, _subscription_caps(current_user.hotel_id))}
+
+
+@router.get("/overage/quote")
+async def quote_overage(limit_credits: int = Query(gt=0, le=10_000_000),
+                        current_user: CurrentUser = Depends(require_role("gm"))):
+    """The exact maximum charge for a proposed limit under the hotel's current terms -- the figure the GM confirms.
+    The authorize call re-computes it in the database and refuses any mismatch."""
+    from services.agent_billing.pricing import max_exposure_usd
+
+    try:
+        summary = _billing_store().summary(tenant_id=current_user.hotel_id)
+    except Exception:
+        logger.error("overage quote unavailable for hotel_id=%s", current_user.hotel_id)
+        raise HTTPException(status_code=503, detail="AI overage settings are temporarily unavailable.")
+    policy = summary.get("policy")
+    if not policy:
+        raise HTTPException(status_code=409, detail=_OVERAGE_ERRORS["pricing_policy_missing"][1])
+    exposure = max_exposure_usd(limit_credits, policy["usd_per_credit"])
+    cap = _d(policy.get("hard_cap_usd"))
+    return {"data": {
+        "limit_credits": limit_credits, "max_exposure_usd": f"{exposure:.2f}",
+        "monthly_overage_cap_usd": policy.get("hard_cap_usd"), "within_cap": exposure <= cap,
+        "policy_id": policy.get("id"), "terms_version": policy.get("terms_version"),
+        "usd_per_credit": policy.get("usd_per_credit"),
+    }}
 
 
 @router.post("/overage/authorize")
