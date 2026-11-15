@@ -108,7 +108,8 @@ def test_admission_refuses_unknown_members_inactive_hotels_and_real_agents(db):
                 step_max_attempts=1)
     # H2 (migration 241): the gateway-admission trigger refuses any non-synthetic insert outside agent_tool_run_admit
     # before the CHECK runs; the replacement allowlist CHECK independently refuses every agent but the reviewed ones
-    # (H3 migration 246 renamed it agent_runs_h3_agent_allowlist and added exactly harness.orchestrator v1).
+    # (H3 migration 246 renamed it agent_runs_h3_agent_allowlist and added exactly harness.orchestrator v1; H5 migration
+    # 251 renamed it agent_runs_h5_agent_allowlist and added exactly dispatch assistant v2 + room readiness v1).
     assert "admitted only through agent_tool_run_admit" in str(err.value)
     with pytest.raises(AssertionError) as sql_err:
         run_sql(f"""
@@ -120,7 +121,7 @@ def test_admission_refuses_unknown_members_inactive_hotels_and_real_agents(db):
           VALUES ('{tenant}', 'engineering.work_orders', 1, 'system', 'harness.scheduled_observer', 'schedule',
                   'real-{uuid.uuid4().hex}', repeat('a', 64), 'c', 'p', now() + interval '1 minute', 1);
           COMMIT;""")
-    assert "agent_runs_h3_agent_allowlist" in str(sql_err.value)
+    assert "agent_runs_h5_agent_allowlist" in str(sql_err.value)
 
 
 # --- scenario 1: normal completion --------------------------------------------------------------------------------
