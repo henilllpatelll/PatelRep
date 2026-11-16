@@ -37,28 +37,34 @@ class PlanningAdmission:
     state: str
 
 
-def admit_planning_run(store: PlanningStore, user: CurrentUser, *, intent: str, intent_version: int, work_order_id: str,
+def admit_planning_run(store: PlanningStore, user: CurrentUser, *, intent: str, intent_version: int,
                        idempotency_key: str, app_env: str, settings: OrchestratorSettings,
-                       clock: Callable[[], datetime], correlation_id: Optional[str] = None,
+                       clock: Callable[[], datetime], work_order_id: Optional[str] = None,
+                       resource_id: Optional[str] = None, correlation_id: Optional[str] = None,
                        deadline_seconds: int = 900) -> PlanningAdmission:
+    """``resource_id`` names the intent's resource (a work order or, for H5 Housekeeping intents, a room).
+    ``work_order_id`` is the H3 spelling and is accepted for work-order intents only."""
     if not isinstance(user, CurrentUser) or not user.hotel_id or not user.user_id:
         raise PlanningRefused("unauthenticated")
     if not process_allows_orchestration(app_env=app_env, settings=settings):
         raise PlanningRefused("orchestration_disabled")
     if not isinstance(idempotency_key, str) or not _KEY_RE.match(idempotency_key):
         raise PlanningRefused("invalid_idempotency_key")
-    if not isinstance(work_order_id, str) or not _UUID_RE.match(work_order_id):
-        raise PlanningRefused("invalid_resource")
     spec = intent_for(intent, intent_version)
+    if work_order_id is not None and (resource_id is not None or spec.resource_type != "work_order"):
+        raise PlanningRefused("invalid_resource")
+    resource_id = work_order_id if work_order_id is not None else resource_id
+    if not isinstance(resource_id, str) or not _UUID_RE.match(resource_id):
+        raise PlanningRefused("invalid_resource")
     if user.role not in spec.initiator_roles:
         raise PlanningRefused("actor_not_authorized")
     ctx = context_from_verified_user(user, agent_id=ORCHESTRATOR_AGENT_ID, agent_version=ORCHESTRATOR_AGENT_VERSION,
                                      now=clock(), correlation_id=correlation_id)
     digest = hashlib.sha256(json.dumps({
         "tenant": ctx.hotel_id, "user": ctx.user_id, "intent": [spec.intent, spec.version],
-        "resource": ["work_order", work_order_id]}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        "resource": [spec.resource_type, resource_id]}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     result = store.admit(tenant_id=ctx.hotel_id, user_id=ctx.user_id, intent=spec.intent, intent_version=spec.version,
-                         resource_type="work_order", resource_id=work_order_id, idempotency_key=idempotency_key,
+                         resource_type=spec.resource_type, resource_id=resource_id, idempotency_key=idempotency_key,
                          request_digest=digest, correlation_id=ctx.correlation_id or f"plan:{idempotency_key}"[:100],
                          policy_version=POLICY_VERSION, deadline_seconds=deadline_seconds, max_attempts=3,
                          step_max_attempts=2)

@@ -1085,3 +1085,19 @@
 - `apps/api/services/agent_harness/provider_usage.py` / `provider_pricing.py` — pure usage normalisation, tiered price book, exposure (~5k tok)
 - `supabase/migrations/244-247` — spend ledger schema/RPCs, reviewed H1 allowlist swap, planning runs
 - `docs/agent-harness/orchestrator.md`, `adr-0002-h3-orchestration-and-spend.md`, `docs/staging-previews/h3-orchestrator-244-247.md`
+
+## H5 Operations specialists (ADR-0004)
+
+- `apps/api/services/agent_gateway/catalog_h5.py` — H5 ToolSpecs (wo assignment_candidates v1, rooms.readiness_lookup v1, room_assignments.candidates v1, room_assignments.assign v1 HIGH) + dispatch v2 / room readiness v1 manifest builders (~3.0k tok)
+- `apps/api/services/agent_gateway/adapters_h5.py` — tenant-scoped H5 reads mirroring work_order_assign_apply / publish_assignment_batch eligibility, owner and blocker rules; hotel_today (~1.6k tok)
+- `apps/api/services/agent_gateway/context.py` — gather_verified_context: prepare -> decide -> bounded read -> enforce_output under the initiator's reloaded identity; ContextRefused (~1.2k tok)
+- `apps/api/services/agent_orchestrator/intents.py` — 4 reviewed H5 intents (triage, dispatch recommendation, readiness review, room assignment recommendation) + findings vocabularies (~1.6k tok)
+- `apps/api/services/agent_orchestrator/plans_v2.py` — patelrep.plan/v2 PlanDraftV2 + validate_plan_v2 (findings fact-checked, proposal vs verified candidates/owner/date/blockers) + check_proposal_against_facts (~2.8k tok)
+- `apps/api/services/agent_handoff/` — bridge package: handoff.py (submit/approve/reject/withdraw/dismiss), preview.py (verified facts vs labelled AI recommendation), api.py (route gate), store.py, context_provider.py, notifier.py (post-commit push) (~6k tok)
+- `apps/api/routers/agent_specialists.py` — /v1/agent-specialists/* (404 unless both agent process gates on) (~1.5k tok)
+- `supabase/migrations/251_agent_h5_specialist_allowlists.sql` — destructive-reviewed: 5 CHECK swaps only (agent_runs_h5_agent_allowlist, planning intent/resource/outcome/shape) (~0.8k tok)
+- `supabase/migrations/252_agent_h5_planning_and_handoff.sql` — intent catalog fns, agent_planning_events, agent_proposal_handoffs + admit/get/cancel/dismiss RPCs, record_context, redefined planning admit/record (~6k tok)
+- `supabase/migrations/253_agent_h5_gateway_tools.sql` — agent__gateway_tool_spec (10 rows) + agent_tool_execute_room_assignment -> publish_assignment_batch (~3.5k tok)
+- `apps/api/tests/smoke/test_agent_specialists_{contracts,plans,routes}.py` — H5 registry/migration/drift, plan v2 + handoff unit, route gate tests (~5k tok)
+- `apps/api/tests/integration/agent_specialists_support.py` + `test_agent_specialists_{planning,handoff,engineering}.py` — H5 real-DB suites (~8k tok)
+- `docs/agent-harness/` H5: adr-0004, specialists-engineering.md, specialists-housekeeping.md, tool-intent-matrix.md, handoff.md, threat-model-h5.md, runbook-h5.md, rollout-h5.md

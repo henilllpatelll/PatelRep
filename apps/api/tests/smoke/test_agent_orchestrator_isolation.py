@@ -39,7 +39,12 @@ FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "open"}
 GATEWAY_IMPORTS = {
     "services.agent_gateway.bindings": {"GATEWAY_BINDINGS"},
     "services.agent_gateway.catalog": {"GATEWAY_AGENTS", "DISPATCH_AGENT_ID", "DISPATCH_AGENT_VERSION",
-                                       "WORK_ORDER_ASSIGN_V2", "WORK_ORDER_LOOKUP_V2"},
+                                       "WORK_ORDER_ASSIGN_V2", "WORK_ORDER_LOOKUP_V2",
+                                       # H5 intents (intents.py): contract data only
+                                       "ENGINEERING_SPECIALIST_V2", "HOUSEKEEPING_SPECIALIST_V1",
+                                       "ROOM_STATUS_LOOKUP_V1"},
+    "services.agent_gateway.catalog_h5": {"ASSIGNMENT_CANDIDATES_V1", "HOUSEKEEPING_CANDIDATES_V1",
+                                          "ROOM_ASSIGNMENT_ASSIGN_V1", "ROOM_READINESS_LOOKUP_V1"},
     "services.agent_gateway.schema": {"SchemaViolation", "canonical_json", "validate_arguments"},
     "services.agent_gateway.output": {"redact"},
     "services.agent_gateway.authorization": {"parse_ts"},
@@ -103,8 +108,9 @@ def test_no_application_code_imports_the_orchestrator():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
-        if rel.startswith(("services/agent_orchestrator/", "services/agent_execution/", "tests/", ".venv/")) \
-                or "/site-packages/" in rel:
+        # H5: services/agent_handoff/ is the reviewed plan -> gateway bridge (ADR-0004).
+        if rel.startswith(("services/agent_orchestrator/", "services/agent_execution/", "services/agent_handoff/",
+                           "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         if re.search(r"services[./]agent_orchestrator", path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)
@@ -178,13 +184,18 @@ def test_price_book_equals_the_migration_seed():
 
 
 def test_intent_roles_and_planning_outcomes_match_the_database():
-    sql = _sql("247_agent_planning_runs.sql")
+    # H5: the latest definitions are agent__planning_intent_roles (252) and the CHECK allowlists (251).
+    roles_sql = _sql("252_agent_h5_planning_and_handoff.sql").split(
+        "FUNCTION public.agent__planning_intent_roles(", 1)[1].split("$function$;", 1)[0]
+    checks = _sql("251_agent_h5_specialist_allowlists.sql")
+    intents_check = checks.split("agent_planning_runs_intent_allowlist CHECK (intent IN (", 1)[1].split("));", 1)[0]
+    assert set(re.findall(r"'([a-z_.]+)'", intents_check)) == {i for i, _ in INTENTS}
     for (intent, version), spec in INTENTS.items():
-        m = re.search(rf"p_intent = '{re.escape(intent)}' AND p_intent_version = {version}\s+THEN ARRAY\[([^\]]+)\]", sql)
-        assert m and set(re.findall(r"'([a-z_]+)'", m.group(1))) == spec.initiator_roles
-        assert f"'{intent}'" in sql.split("intent                text", 1)[1].split("\n", 1)[0]
-    assert set(re.findall(r"'(proposed|refused|escalated|rejected)'", sql.split("plan_outcome          text", 1)[1]
-                          .split("\n", 1)[0])) == {"proposed", "refused", "escalated", "rejected"}
+        m = re.search(rf"p_intent = '{re.escape(intent)}' AND p_intent_version = {version}\s+THEN ARRAY\[([^\]]+)\]",
+                      roles_sql)
+        assert m and set(re.findall(r"'([a-z_]+)'", m.group(1))) == spec.initiator_roles, intent
+    outcomes = checks.split("agent_planning_runs_plan_outcome_allowlist CHECK (", 1)[1].split(");", 1)[0]
+    assert set(re.findall(r"'([a-z]+)'", outcomes)) == {"proposed", "recommended", "refused", "escalated", "rejected"}
 
 
 def test_orchestrator_holds_no_tool_and_is_invisible_to_the_gateway():
@@ -194,7 +205,12 @@ def test_orchestrator_holds_no_tool_and_is_invisible_to_the_gateway():
     assert ORCHESTRATOR_AGENT_ID not in _sql("243_agent_gateway_rpcs.sql")
     assert H0_EXECUTION_SUPPORTED is False
     assert H2_EXECUTABLE_TOOLS == frozenset({("engineering.work_orders.lookup", 2), ("housekeeping.rooms.status_lookup", 1),
-                                            ("engineering.work_orders.assign", 2)})
+                                            ("engineering.work_orders.assign", 2),
+                                            # H5 (ADR-0004): exactly these four, nothing broader
+                                            ("engineering.work_orders.assignment_candidates", 1),
+                                            ("housekeeping.rooms.readiness_lookup", 1),
+                                            ("housekeeping.room_assignments.candidates", 1),
+                                            ("housekeeping.room_assignments.assign", 1)})
 
 
 # --- catalog ----------------------------------------------------------------------------------------------------------

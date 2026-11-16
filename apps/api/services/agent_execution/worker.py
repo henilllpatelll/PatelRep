@@ -40,9 +40,11 @@ from services.agent_execution.retry import DeadlineExceeded, InvalidJob, LeaseLo
 from services.agent_execution.store import AgentRunStore
 from services.agent_execution.synthetic import execute_step, next_step_type, parse_spec
 from services.agent_gateway.authorization import GatewaySettings, process_allows_execution
-from services.agent_gateway.catalog import DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION
+from services.agent_gateway.catalog import GATEWAY_AGENT_KEYS
 from services.agent_gateway.errors import GatewayBlocked
 from services.agent_gateway.steps import execute_tool_step
+from services.agent_handoff.context_provider import make_context_provider
+from services.agent_handoff.notifier import notify_committed_write
 from services.agent_gateway.store import GatewayStore
 from services.agent_harness.controls import require_execution_supported
 from services.agent_harness.identity import IdentityAuthority
@@ -124,6 +126,7 @@ class Worker:
         orchestrator_settings: Optional[OrchestratorSettings] = None,
         provider_factory: Optional[Callable[[], Any]] = None,
         planner: Any = None,
+        write_notifier: Optional[Callable[[Any, dict], None]] = None,
     ) -> None:
         self.settings = settings
         self.app_env = app_env
@@ -144,6 +147,8 @@ class Worker:
         self._provider_factory = provider_factory or (lambda: build_live_adapters(
             app_env=self.app_env, settings=self.orchestrator_settings))
         self._planner = planner
+        # H5: best-effort staff push after a NEWLY committed approved write (mirrors the human routes; never on replay).
+        self._write_notifier = write_notifier if write_notifier is not None else notify_committed_write
 
     # ---- policy ----------------------------------------------------------------------------------------------
     @property
@@ -195,9 +200,11 @@ class Worker:
         while True:
             step = job.step
             next_type: Optional[str] = None
+            committed: Optional[dict] = None
             try:
                 agent_key = (job.run.get("agent_id"), job.run.get("agent_version"))
-                if agent_key == (DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION):
+                # Exact reviewed allowlist (dispatch assistant v1/v2, housekeeping room-readiness v1): never a prefix.
+                if isinstance(agent_key[0], str) and isinstance(agent_key[1], int) and agent_key in GATEWAY_AGENT_KEYS:
                     if not self.gateway_allowed:
                         raise CooperativeStop("yield", "gateway_disabled")
                     if step.get("step_type") != "tool_invocation":
@@ -215,6 +222,7 @@ class Worker:
                     if result.action == "cancel":
                         raise CooperativeStop("cancel", "cancel_requested")
                     meta = result.meta
+                    committed = result.committed
                 elif agent_key == (ORCHESTRATOR_AGENT_ID, ORCHESTRATOR_AGENT_VERSION):
                     if not self.orchestrator_allowed:
                         raise CooperativeStop("yield", "orchestrator_disabled")
@@ -228,14 +236,17 @@ class Worker:
                             heartbeat=lambda: store.heartbeat(
                                 run_id=job.run["id"], fencing_token=job.token, worker_id=self.settings.worker_id,
                                 lease_seconds=self.settings.lease_seconds, vt_margin=self.settings.vt_margin_seconds),
-                            monotonic=self.monotonic, planner=self._planner)
+                            monotonic=self.monotonic, planner=self._planner,
+                            context_provider=make_context_provider(
+                                store.client, authority=authority, clock=self.clock,
+                                process_enabled=self.gateway_allowed))
                     except PlanningBlocked as blocked_exc:
                         raise CooperativeStop(blocked_exc.action, blocked_exc.reason) from None
                     except PlanningLeaseLost:
                         raise LeaseLost() from None
                 else:
                     if agent_key != (SYNTHETIC_AGENT_ID, SYNTHETIC_AGENT_VERSION):
-                        require_execution_supported()  # everything outside the two reviewed agents: always refused
+                        require_execution_supported()  # everything outside the reviewed agents: always refused
                     if not self.synthetic_allowed:
                         raise CooperativeStop("yield", "synthetic_disabled")
                     revalidate_principal(job.run, authority, clock=self.clock)
@@ -273,6 +284,11 @@ class Worker:
                                                             next_step_type=next_type, **common))
             outcome = (result or {}).get("outcome", "store_unavailable")
             log_event("step_completed", run_id=job.run["id"], step=step["step_number"], outcome=outcome)
+            if committed is not None:
+                try:
+                    self._write_notifier(store.client, committed)
+                except Exception:  # noqa: BLE001 - a notification never affects the committed change
+                    log_event("write_notify_failed", run_id=job.run["id"])
             if outcome == "next_step":
                 job.step = result["step"]
                 continue

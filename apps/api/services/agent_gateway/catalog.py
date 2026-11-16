@@ -22,6 +22,7 @@ from decimal import Decimal
 from types import MappingProxyType
 from typing import Mapping
 
+from services.agent_gateway.catalog_h5 import H5_TOOL_SPECS, engineering_specialist_v2, housekeeping_specialist_v1
 from services.agent_gateway.schema import assert_supported_schema
 from services.agent_harness.agents import AGENT_HARNESS_FLAG, AGENT_MANIFEST_SCHEMA_V1, AgentRegistry, AgentSpec, ExecutionLimits
 from services.agent_harness.tools import ToolRef, ToolRegistry, ToolSpec
@@ -161,26 +162,44 @@ DISPATCH_AGENT_V1 = AgentSpec(
 )
 
 
+# H5 (ADR-0004): the two Operations specialists and their four new tool versions. The H2 contracts above are unchanged.
+ENGINEERING_SPECIALIST_V2 = engineering_specialist_v2(WORK_ORDER_LOOKUP_V2, WORK_ORDER_ASSIGN_V2)
+HOUSEKEEPING_SPECIALIST_V1 = housekeeping_specialist_v1(ROOM_STATUS_LOOKUP_V1)
+ALL_TOOL_SPECS: tuple[ToolSpec, ...] = GATEWAY_TOOL_SPECS + H5_TOOL_SPECS
+GATEWAY_AGENT_SPECS: tuple[AgentSpec, ...] = (DISPATCH_AGENT_V1, ENGINEERING_SPECIALIST_V2, HOUSEKEEPING_SPECIALIST_V1)
+# The exact set of agents whose runs the H1 worker hands to the gateway step executor (and the database admits).
+GATEWAY_AGENT_KEYS: frozenset[tuple[str, int]] = frozenset(a.key for a in GATEWAY_AGENT_SPECS)
+
+
 def _build() -> tuple[ToolRegistry, AgentRegistry]:
-    for spec in GATEWAY_TOOL_SPECS:
+    for spec in ALL_TOOL_SPECS:
         assert_supported_schema(spec.input_schema)
         assert_supported_schema(spec.output_schema)
     tools = ToolRegistry()
-    for spec in GATEWAY_TOOL_SPECS:
+    for spec in ALL_TOOL_SPECS:
         tools.register(spec)
     tools.freeze()
     agents = AgentRegistry(tools)
-    agents.register(DISPATCH_AGENT_V1)
+    for agent in GATEWAY_AGENT_SPECS:
+        agents.register(agent)
     return tools, agents.freeze()
 
 
 GATEWAY_TOOLS, GATEWAY_AGENTS = _build()
 
-# Mirror of the database allowlist (agent__gateway_tool_spec, migration 243). A drift test compares the two.
-DB_ALLOWLIST: Mapping[tuple[str, int, str, int], Mapping[str, object]] = MappingProxyType({
-    (DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION, s.tool_id, s.version): MappingProxyType({
-        "access": s.access.value, "risk": s.risk.value, "resource_type": s.resource_type.value,
-        "roles": tuple(sorted(s.allowed_roles)),
-    })
-    for s in GATEWAY_TOOL_SPECS
-})
+
+def _allowlist() -> Mapping[tuple[str, int, str, int], Mapping[str, object]]:
+    rows: dict[tuple[str, int, str, int], Mapping[str, object]] = {}
+    for agent in GATEWAY_AGENT_SPECS:
+        for ref in agent.tools:
+            s = GATEWAY_TOOLS.get(ref.tool_id, ref.version)
+            rows[(agent.agent_id, agent.agent_version, s.tool_id, s.version)] = MappingProxyType({
+                "access": s.access.value, "risk": s.risk.value, "resource_type": s.resource_type.value,
+                "roles": tuple(sorted(s.allowed_roles)),
+            })
+    return MappingProxyType(rows)
+
+
+# Mirror of the database allowlist (agent__gateway_tool_spec, migrations 243 + 253): exactly each agent's manifest pins.
+# A drift test compares the two; a tool pinned by one agent is never reachable through another agent's key.
+DB_ALLOWLIST: Mapping[tuple[str, int, str, int], Mapping[str, object]] = _allowlist()

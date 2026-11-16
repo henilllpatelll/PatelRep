@@ -1,4 +1,4 @@
-"""Admission of a gateway run: one verified human asks the dispatch assistant to perform ONE tool invocation.
+"""Admission of a gateway run: one verified human asks a registered gateway agent to perform ONE tool invocation.
 
 H2 has no model: the invocation is supplied by a trusted backend caller (H3's orchestrator will propose invocations
 the same way, as untrusted suggestions). Authority comes only from a verified ``CurrentUser``; the hotel, user and role
@@ -49,7 +49,16 @@ def admit_tool_run(
     clock: Callable[[], datetime],
     correlation_id: Optional[str] = None,
     deadline_seconds: int = 7_200,
+    agent_id: str = DISPATCH_AGENT_ID,
+    agent_version: int = DISPATCH_AGENT_VERSION,
+    store_admit: Optional[Callable[..., dict]] = None,
 ) -> ToolRunAdmission:
+    """Admit one invocation for an exact gateway-registered agent version (default: the H2 dispatch assistant v1).
+
+    ``store_admit`` lets the H5 proposal handoff persist the SAME validated request through its own transactional RPC
+    (which re-checks the recorded plan and then calls ``agent_tool_run_admit`` in one transaction). It receives exactly
+    the keyword arguments ``GatewayStore.run_admit`` takes; nothing in the request can change through it.
+    """
     if not isinstance(user, CurrentUser) or not user.hotel_id or not user.user_id:
         raise GatewayRefused("unauthenticated")
     if not process_allows_execution(app_env=app_env, settings=settings):
@@ -57,7 +66,7 @@ def admit_tool_run(
     if not isinstance(idempotency_key, str) or not _IDEMPOTENCY_KEY_RE.match(idempotency_key):
         raise GatewayRefused("invalid_idempotency_key")
 
-    agent = agent_for(DISPATCH_AGENT_ID, DISPATCH_AGENT_VERSION)
+    agent = agent_for(agent_id, agent_version)
     try:
         ctx = context_from_verified_user(user, agent_id=agent.agent_id, agent_version=agent.agent_version, now=clock())
     except IdentityError as exc:
@@ -78,7 +87,7 @@ def admit_tool_run(
     if decision.outcome is not expected:
         raise GatewayRefused(decision.reason.value)
 
-    result = store.run_admit(
+    result = (store_admit or store.run_admit)(
         tenant_id=ctx.hotel_id, agent_id=agent.agent_id, agent_version=agent.agent_version, user_id=user.user_id,
         idempotency_key=idempotency_key,
         request_digest=request_digest(hotel_id=ctx.hotel_id, agent=agent, user_id=user.user_id, prepared=prepared),

@@ -18,8 +18,14 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Callable, Mapping, Optional
 
-from services.agent_gateway import adapters
+from services.agent_gateway import adapters, adapters_h5
 from services.agent_gateway.catalog import GATEWAY_TOOLS, ROOM_STATUS_LOOKUP_V1, WORK_ORDER_ASSIGN_V2, WORK_ORDER_LOOKUP_V2
+from services.agent_gateway.catalog_h5 import (
+    ASSIGNMENT_CANDIDATES_V1,
+    HOUSEKEEPING_CANDIDATES_V1,
+    ROOM_ASSIGNMENT_ASSIGN_V1,
+    ROOM_READINESS_LOOKUP_V1,
+)
 from services.agent_harness.controls import tool_is_executable
 from services.agent_harness.errors import RegistryError
 from services.agent_harness.policy import VerifiedResource
@@ -27,6 +33,9 @@ from services.agent_harness.tools import TOOL_ID_PATTERN, ToolSpec
 from services.agent_harness.vocabulary import AccessMode
 
 _TOOL_ID_RE = re.compile(TOOL_ID_PATTERN)
+# The exact atomic write RPCs a binding may name (one per write tool version). The step executor refuses any other
+# name, so a binding typo can never reach an arbitrary database function.
+WRITE_RPCS: frozenset[str] = frozenset({"agent_tool_execute_work_order_assign", "agent_tool_execute_room_assignment"})
 
 Resolver = Callable[[Any, str, Mapping[str, Any]], Optional[VerifiedResource]]
 ReadHandler = Callable[[Any, str, VerifiedResource], Optional[dict]]
@@ -61,8 +70,10 @@ class BindingRegistry:
             raise RegistryError("duplicate binding", code="duplicate_binding")
         if spec.access is AccessMode.READ and (binding.read is None or binding.write_rpc is not None):
             raise RegistryError("read tools bind exactly one read handler", code="invalid_binding")
-        if spec.access is AccessMode.WRITE and (binding.read is not None or binding.write_rpc is None):
-            raise RegistryError("write tools bind exactly one atomic RPC", code="invalid_binding")
+        if spec.access is AccessMode.WRITE and (binding.read is not None or binding.write_rpc not in WRITE_RPCS):
+            raise RegistryError("write tools bind exactly one reviewed atomic RPC", code="invalid_binding")
+        if binding.write_rpc is not None and any(b.write_rpc == binding.write_rpc for b in self._bindings.values()):
+            raise RegistryError("a write RPC serves exactly one tool version", code="invalid_binding")
         self._bindings[spec.key] = binding
 
     def freeze(self) -> "BindingRegistry":
@@ -95,6 +106,15 @@ def _build() -> BindingRegistry:
                                   read=adapters.read_room_status, write_rpc=None))
     registry.register(ToolBinding(spec=WORK_ORDER_ASSIGN_V2, resolve=adapters.resolve_work_order,
                                   read=None, write_rpc="agent_tool_execute_work_order_assign"))
+    # H5 (ADR-0004)
+    registry.register(ToolBinding(spec=ASSIGNMENT_CANDIDATES_V1, resolve=adapters.resolve_work_order,
+                                  read=adapters_h5.read_assignment_candidates, write_rpc=None))
+    registry.register(ToolBinding(spec=ROOM_READINESS_LOOKUP_V1, resolve=adapters.resolve_room,
+                                  read=adapters_h5.read_room_readiness, write_rpc=None))
+    registry.register(ToolBinding(spec=HOUSEKEEPING_CANDIDATES_V1, resolve=adapters.resolve_room,
+                                  read=adapters_h5.read_housekeeping_candidates, write_rpc=None))
+    registry.register(ToolBinding(spec=ROOM_ASSIGNMENT_ASSIGN_V1, resolve=adapters.resolve_room,
+                                  read=None, write_rpc="agent_tool_execute_room_assignment"))
     return registry.freeze()
 
 

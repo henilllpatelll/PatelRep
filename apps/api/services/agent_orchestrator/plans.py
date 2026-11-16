@@ -15,7 +15,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Optional
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -77,6 +77,12 @@ class IntentSpec:
     resource_argument: Mapping[tuple[str, int], str]  # tool -> argument that must equal the verified resource id
     initiator_roles: frozenset[str]
     description: str
+    # H5 (ADR-0004). Defaults keep every H3 intent exactly as it was (plan schema v1, no context, no findings).
+    plan_schema: str = PLAN_SCHEMA_V1
+    context_reads: tuple[tuple[str, int, str], ...] = ()  # (tool_id, version, argument) gathered before planning
+    allowed_findings: frozenset[str] = frozenset()
+    write_tool: Optional[tuple[str, int]] = None  # the ONE write this intent may propose (None = recommend only)
+    specialist: Optional[tuple[str, int]] = None  # the gateway agent whose grants/identity the context reads use
 
 
 @dataclass(frozen=True)
@@ -153,6 +159,8 @@ def _jsonable(value: Any) -> Any:
 def validate_plan(raw: Any, *, intent: IntentSpec, resource_id: str, limits: PlanLimits = PlanLimits()) -> ValidatedPlan:
     if limits.max_delegation_depth != 0:
         raise PlanRejected("delegation_not_supported")
+    if intent.plan_schema != PLAN_SCHEMA_V1:
+        raise PlanRejected("plan_schema_mismatch")  # H5 intents are validated only by plans_v2.validate_plan_v2
     draft = parse_draft(raw)
     agent_key = (draft.agent_id, draft.agent_version)
     if agent_key not in intent.candidate_agents:

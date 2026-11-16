@@ -92,6 +92,11 @@ class Store:
         self.calls.append(("execute", kw))
         return self.execute_result
 
+    def execute_write(self, rpc, **kw):
+        # H5: the step executor names the binding's single reviewed RPC; for this tool it must be the WO assign RPC.
+        assert rpc == "agent_tool_execute_work_order_assign"
+        return self.execute_work_order_assign(**kw)
+
     def names(self):
         return [n for n, _ in self.calls]
 

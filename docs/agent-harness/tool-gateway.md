@@ -190,7 +190,11 @@ H3 proposes invocations as **untrusted** `(tool_id, version, arguments)` triples
 `as_untrusted_tool_result` envelopes. Paid model calls need an atomic budget reservation before execution; the gateway
 records deterministic tool execution separately (no credits are charged in H2) and honours the cost emergency stop.
 
-**H3 status:** proposal-only. H3 validates proposals against these frozen bindings and strict schemas
+**H5 status:** the handoff exists ([handoff.md](handoff.md)): a verified initiator submits ONE validated write
+proposal; it is re-checked against fresh facts and admitted through this same `prepare`/`decide`/admission path for the
+specialist agent version (dispatch v2 or room readiness v1). See [tool-intent-matrix.md](tool-intent-matrix.md).
+
+**H3 status (historical):** proposal-only. H3 validates proposals against these frozen bindings and strict schemas
 (`services/agent_orchestrator/plans.py`) but does NOT submit them to `prepare`/admission; that handoff is H5. Paid
 model calls are reserved in the H3 provider-spend ledger (migrations 244-245), not here.
 
@@ -204,6 +208,7 @@ model calls are reserved in the H3 provider-spend ledger (migrations 244-245), n
 | Atomic approved work-order assignment, ledger, audit, replay | ✅ 🧪 (real PostgreSQL concurrency tests) |
 | Human route on the same shared operation | ✅ |
 | Staging verification with a deployed worker | ⏳ no authorized staging worker |
-| Approval inbox / HTTP routes, AI Control Center | ⏳ H6 |
+| Per-recommendation decision routes (`/v1/agent-specialists/handoffs/*`) | ✅ H5 (404 unless gates on) |
+| Global approval inbox, AI Control Center | ⏳ H6 |
 | Model orchestration, budgets, billing | ⏳ H3/H4 |
 | Production activation | ⏳ separate decision |

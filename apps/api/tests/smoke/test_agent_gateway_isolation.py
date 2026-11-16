@@ -21,7 +21,11 @@ from services.agent_gateway.authorization import GatewaySettings, process_allows
 from services.agent_gateway.bindings import GATEWAY_BINDINGS, BindingRegistry, ToolBinding
 from services.agent_gateway.catalog import (
     DB_ALLOWLIST,
+    ALL_TOOL_SPECS,
+    DISPATCH_AGENT_ID,
     DISPATCH_AGENT_V1,
+    GATEWAY_AGENT_KEYS,
+    GATEWAY_AGENT_SPECS,
     GATEWAY_AGENTS,
     GATEWAY_TOOL_SPECS,
     ROOM_STATUS_LOOKUP_V1,
@@ -54,21 +58,31 @@ def _sources():
 
 def test_bindings_executable_set_and_database_allowlist_are_one_exact_set():
     bound = set(GATEWAY_BINDINGS.all())
-    assert bound == set(H2_EXECUTABLE_TOOLS) == {s.key for s in GATEWAY_TOOL_SPECS}
+    # H5 (ADR-0004) adds exactly four tool versions; the H2 three are unchanged and still bound.
+    assert bound == set(H2_EXECUTABLE_TOOLS) == {s.key for s in ALL_TOOL_SPECS}
+    assert {s.key for s in GATEWAY_TOOL_SPECS} <= bound
     assert {(t, v) for (_, _, t, v) in DB_ALLOWLIST} == bound
-    assert {ref.key for ref in DISPATCH_AGENT_V1.tools} == bound
+    assert {ref.key for ref in DISPATCH_AGENT_V1.tools} == {s.key for s in GATEWAY_TOOL_SPECS}  # v1 pins unchanged
+    assert {ref.key for agent in GATEWAY_AGENT_SPECS for ref in agent.tools} == bound
     assert H0_EXECUTION_SUPPORTED is False  # no blanket switch exists; only the exact set above
 
 
-def _sql_allowlist() -> dict:
-    sql = (MIGRATIONS / "243_agent_gateway_rpcs.sql").read_text(encoding="utf-8")
+def _sql_allowlist(migration: str = "253_agent_h5_gateway_tools.sql") -> dict:
+    """Parse the LATEST definition of agent__gateway_tool_spec (one CASE block per exact agent version)."""
+    sql = (MIGRATIONS / migration).read_text(encoding="utf-8")
     body = sql.split("CREATE OR REPLACE FUNCTION public.agent__gateway_tool_spec(", 1)[1].split("$function$;", 1)[0]
-    agent = re.search(r"p_agent_id = '([^']+)' AND p_agent_version = (\d+)", body)
     found = {}
-    for tool, version, spec in re.findall(
-            r"WHEN p_tool_id = '([^']+)' AND p_tool_version = (\d+) THEN\s+'(\{.*?\})'::jsonb", body, re.S):
-        found[(agent.group(1), int(agent.group(2)), tool, int(version))] = json.loads(spec)
+    blocks = re.split(r"WHEN p_agent_id = ", body)[1:]
+    for block in blocks:
+        agent = re.match(r"'([^']+)' AND p_agent_version = (\d+)", block)
+        for tool, version, spec in re.findall(
+                r"WHEN p_tool_id = '([^']+)' AND p_tool_version = (\d+) THEN\s+'(\{.*?\})'::jsonb", block, re.S):
+            found[(agent.group(1), int(agent.group(2)), tool, int(version))] = json.loads(spec)
     return found
+
+
+def test_h2_dispatch_v1_allowlist_is_unchanged_by_h5():
+    assert {k: v for k, v in _sql_allowlist().items() if k[:2] == (DISPATCH_AGENT_ID, 1)} ==         _sql_allowlist("243_agent_gateway_rpcs.sql")
 
 
 def test_python_catalog_matches_the_database_allowlist_exactly():
@@ -114,14 +128,16 @@ def test_binding_registry_is_frozen_and_refuses_unreviewed_bindings():
     assert err.value.code == "invalid_binding"
 
 
-def test_registries_are_frozen_and_hold_only_the_dispatch_agent():
+def test_registries_are_frozen_and_hold_only_the_reviewed_agents():
     assert GATEWAY_AGENTS.frozen and GATEWAY_AGENTS.tools.frozen
-    assert set(GATEWAY_AGENTS.all()) == {(DISPATCH_AGENT_V1.agent_id, DISPATCH_AGENT_V1.agent_version)}
-    assert DISPATCH_AGENT_V1.approval_policies == frozenset({"human_approval.independent_manager.v1"})
+    assert set(GATEWAY_AGENTS.all()) == {("engineering.dispatch_assistant", 1), ("engineering.dispatch_assistant", 2),
+                                         ("housekeeping.room_readiness_assistant", 1)} == GATEWAY_AGENT_KEYS
+    for agent in GATEWAY_AGENT_SPECS:
+        assert agent.approval_policies == frozenset({"human_approval.independent_manager.v1"})
 
 
-def test_no_system_principal_holds_any_h2_tool():
-    assert all(not s.allowed_system_principals for s in GATEWAY_TOOL_SPECS)
+def test_no_system_principal_holds_any_gateway_tool():
+    assert all(not s.allowed_system_principals for s in ALL_TOOL_SPECS)
 
 
 def test_role_sets_never_widen_the_domain_routes():
@@ -149,11 +165,15 @@ def test_package_imports_no_model_router_shell_or_dynamic_code(path):
             assert node.func.id not in FORBIDDEN_CALLS, f"{path.name} calls {node.func.id}()"
 
 
-def test_package_touches_only_two_business_tables_and_agent_tool_rpcs():
+# H2 read two business tables; H5's reads (adapters_h5.py, reviewed in ADR-0004 §2) add exactly these, all READ-only.
+GATEWAY_READ_TABLES = {"work_orders", "rooms", "tenants", "user_roles", "room_assignments", "room_occupancy_discrepancies"}
+
+
+def test_package_touches_only_reviewed_business_tables_and_agent_tool_rpcs():
     for path in _sources():
         source = path.read_text(encoding="utf-8")
         for table in re.findall(r"\.table\(\"([a-z_]+)\"\)", source):
-            assert table in {"work_orders", "rooms"}, f"{path.name} reads {table}"
+            assert table in GATEWAY_READ_TABLES, f"{path.name} reads {table}"
         assert not re.search(r"\.(insert|update|upsert|delete)\(", source), f"{path.name} writes a table directly"
         for rpc in re.findall(r"_rpc\(\"([a-z_]+)\"", source):
             assert rpc.startswith("agent_tool_") or rpc == "agent_execution_enablement_set", f"{path.name} calls {rpc}"
@@ -166,8 +186,10 @@ def test_no_application_code_imports_the_gateway():
         # H3: services/agent_orchestrator/ validates proposals against the gateway's frozen bindings/schemas and reuses
         # its redaction; it never calls prepare/admission/approvals/adapters and is itself never imported by
         # application code (test_agent_orchestrator_isolation.py).
+        # H5: services/agent_handoff/ is the reviewed bridge (proposal handoff, verified context, preview); it is the
+        # only package routers may import (routers/agent_specialists.py imports agent_handoff, never the gateway).
         if rel.startswith(("services/agent_gateway/", "services/agent_execution/", "services/agent_orchestrator/",
-                           "tests/", ".venv/")) or "/site-packages/" in rel:
+                           "services/agent_handoff/", "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         source = path.read_text(encoding="utf-8", errors="ignore")
         if rel.startswith("services/agent_harness/"):  # contracts may NAME the gateway in docs, never import it

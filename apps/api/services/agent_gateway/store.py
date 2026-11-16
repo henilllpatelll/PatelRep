@@ -60,7 +60,17 @@ class GatewayStore:
 
     def execute_work_order_assign(self, *, run_id: str, fencing_token: int, worker_id: str, invocation_id: str,
                                   action_digest: str) -> dict:
-        return self._rpc("agent_tool_execute_work_order_assign", {
+        return self.execute_write("agent_tool_execute_work_order_assign", run_id=run_id, fencing_token=fencing_token,
+                                  worker_id=worker_id, invocation_id=invocation_id, action_digest=action_digest)
+
+    def execute_write(self, rpc: str, *, run_id: str, fencing_token: int, worker_id: str, invocation_id: str,
+                      action_digest: str) -> dict:
+        """Call ONE reviewed approved-write RPC (exact allowlist in bindings.WRITE_RPCS; all share this signature)."""
+        from services.agent_gateway.bindings import WRITE_RPCS  # local: bindings imports adapters, not the store
+
+        if rpc not in WRITE_RPCS:
+            raise ValueError("write RPC is not in the reviewed allowlist")
+        return self._rpc(rpc, {
             "p_run_id": run_id, "p_fencing_token": fencing_token, "p_worker": worker_id,
             "p_invocation_id": invocation_id, "p_action_digest": action_digest}) or {}
 

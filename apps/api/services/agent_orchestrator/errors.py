@@ -131,3 +131,9 @@ class PlanningLeaseLost(OrchestratorError):
     """The worker's fencing token was refused. Stop and write nothing more to the run."""
 
     code = "lease_lost"
+
+
+class ContextUnavailable(OrchestratorError):
+    """H5: the verified context could not be gathered for an authorization or data reason (no model call is made)."""
+
+    error_class = "authorization_denied"

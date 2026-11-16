@@ -42,6 +42,9 @@ BLOCKING_REASONS = frozenset({"cost_emergency_stop", "platform_paused", "hotel_p
 class StepResult:
     action: str  # "complete" | "await_approval" | "cancel"
     meta: dict = field(default_factory=dict)
+    # Set ONLY for a write this attempt newly committed with a real change (never for a replay). Not persisted: the
+    # worker hands it to the post-commit notifier (best effort, like the human routes' pushes after commit).
+    committed: Optional[dict] = None
 
 
 def tool_roles(binding: ToolBinding) -> frozenset[str]:
@@ -196,11 +199,17 @@ class _Step:
         if decision.outcome is not Outcome.ALLOW or not decision.authorizes_execution:
             self._fail(inv_id, decision.reason.value)
 
-        result = self._check(self.g.execute_work_order_assign(invocation_id=inv_id, action_digest=prepared.digest,
-                                                              **self.common))
+        result = self._check(self.g.execute_write(binding.write_rpc, invocation_id=inv_id,
+                                                  action_digest=prepared.digest, **self.common))
         outcome = result.get("outcome")
         if outcome in ("succeeded", "failed", "replayed"):
-            return self._from_execution(binding, inv, result.get("execution") or {})
+            done = self._from_execution(binding, inv, result.get("execution") or {})
+            execution = result.get("execution") or {}
+            if outcome == "succeeded" and (execution.get("result") or {}).get("changed") is True:
+                return StepResult(done.action, done.meta, committed={
+                    "tool_id": binding.spec.tool_id, "tool_version": binding.spec.version, "hotel_id": self.hotel,
+                    "result": dict(execution.get("result") or {})})
+            return done
         reason = str(result.get("reason") or outcome or "execution_refused")
         if reason in BLOCKING_REASONS:
             raise GatewayBlocked(reason)
