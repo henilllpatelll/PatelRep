@@ -30,6 +30,29 @@ test('no workflow wipes, repairs history, or drops a database/schema', () => {
   }
 })
 
+// A blanket table grant re-opens TRUNCATE (and UPDATE/DELETE on append-only tables) on the protected agent audit
+// tables (#230). Every workflow step that issues one must re-assert least privilege with the migration-254 function
+// AFTER the grant and in the SAME transaction (one psql --command, or --single-transaction), so no run can leave the
+// restrictions silently undone.
+const BLANKET_TABLE_GRANT = /grant\s+all(?:\s+privileges)?\s+on\s+all\s+tables\s+in\s+schema\s+public\s+to\s+service_role/i
+const workflowSteps = (text) => stripComments(text).split(/\n\s*-\s+(?=name:|uses:|run:)/)
+
+test('every blanket service_role table grant re-asserts agent audit least privilege in the same transaction', () => {
+  let grantSteps = 0
+  for (const { name, text } of workflows) {
+    for (const step of workflowSteps(text).filter((candidate) => BLANKET_TABLE_GRANT.test(candidate))) {
+      grantSteps += 1
+      const grantAt = step.search(BLANKET_TABLE_GRANT)
+      const enforceAt = step.indexOf('public.agent_audit_privileges_enforce()', grantAt)
+      assert.ok(enforceAt > grantAt, `${name}: a blanket table grant must be followed by agent_audit_privileges_enforce()`)
+      assert.match(step, /PERFORM public\.agent_audit_privileges_enforce\(\)/i, `${name}: the enforcement must run, not just be named`)
+      const oneCommand = /--command\s+"[^"]*grant\s+all[^"]*agent_audit_privileges_enforce\(\)[^"]*"/i.test(step)
+      assert.ok(oneCommand || /--single-transaction/.test(step), `${name}: grant and enforcement must share one transaction`)
+    }
+  }
+  assert.equal(grantSteps, 2, 'expected exactly the CI Gate and Staging Candidate blanket grants; review any new one')
+})
+
 test('the from-scratch replay tool is not wired into any workflow', () => {
   for (const { name, text } of workflows) {
     assert.doesNotMatch(stripComments(text), /remote-migration-apply[.]mjs/, name)

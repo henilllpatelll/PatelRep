@@ -245,10 +245,14 @@ jobs:
           STAGING_EXPECTED_SUPABASE_HOST: ${{ vars.STAGING_EXPECTED_SUPABASE_HOST }}
           PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
           PRODUCTION_SUPABASE_HOST: ${{ vars.PRODUCTION_SUPABASE_HOST }}
+      # The blanket table grant would re-open bulk emptying (and UPDATE/DELETE on append-only tables) of the protected
+      # agent audit tables. agent_audit_privileges_enforce() (migration 254) revokes them again in the SAME transaction (one
+      # --command is one implicit transaction) and fails this step closed if any forbidden right remains. Before 254 is
+      # applied the call is skipped; once 254 is recorded the trusted schema contracts require the function.
       - name: Grant staging fixture service access
         working-directory: .trusted-control-plane
         run: |
-          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; notify pgrst, 'reload schema';"
+          psql --set ON_ERROR_STOP=1 "$STAGING_SUPABASE_DB_URL" --command "grant usage on schema public to service_role; grant all privileges on all tables in schema public to service_role; grant usage, select on all sequences in schema public to service_role; do \$\$ begin if to_regprocedure('public.agent_audit_privileges_enforce()') is not null then perform public.agent_audit_privileges_enforce(); end if; end \$\$; notify pgrst, 'reload schema';"
         env:
           STAGING_SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
       # Fixture seeding and flag changes use the staging service-role key, so they run trusted main's scripts with

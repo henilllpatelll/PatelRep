@@ -148,12 +148,23 @@ jobs:
         # grant service_role on tables created by the replayed migrations, so the real-DB
         # integration tests fail with `permission denied for table tenants`. This only
         # touches the ephemeral CI database; it never runs against staging/production.
+        # The blanket table grant is immediately followed, in the same transaction, by the
+        # migration-254 re-assertion of least privilege on the protected agent audit tables
+        # (skipped when 254 is not part of the replay), so the integration tests run against
+        # the same privileges as staging and production.
         run: |
-          psql --set ON_ERROR_STOP=1 "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
+          psql --set ON_ERROR_STOP=1 --single-transaction "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
           GRANT USAGE ON SCHEMA public TO service_role;
           GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
           GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
           GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+          DO $$
+          BEGIN
+            IF to_regprocedure('public.agent_audit_privileges_enforce()') IS NOT NULL THEN
+              PERFORM public.agent_audit_privileges_enforce();
+            END IF;
+          END
+          $$;
           SQL
       - name: Verify API schema compatibility against the migrated Supabase API
         run: |
