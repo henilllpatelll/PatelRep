@@ -6,8 +6,11 @@ This document reviews registry entry `h6-control-center-255-256` in `supabase/st
 - **Merging the entry applies nothing.** It only records the review.
 - **Applying needs two more steps:** a dispatch of the Staging Reviewed Migration Preview workflow that restates both
   digests, and a `staging-migration-approval` environment approval.
-- **Do not dispatch yet.** Blocker **B1** below must be resolved on `main` first. Otherwise the apply job fails its
-  trusted schema-contract step after the push, and so does every later Staging Candidate.
+- **Blocker B1 is resolved by merging this PR.** It now also carries the H6 gate in `scripts/schema-contracts.sql`,
+  as the H5 and 254 registry PRs did for theirs (see B1).
+- **Do not dispatch yet.** Dispatch stays prohibited until (1) this PR is merged, so `main`'s trusted contract has the
+  H6 gate, and (2) a fresh staging backup is verified (see [Recovery](#recovery)). Dispatching before the merge would
+  apply 255/256 and then fail the apply job's trusted schema-contract step, and every later Staging Candidate.
 - **Before the approval,** a human must separately confirm the staging backup and recovery capability (see
   [Recovery](#recovery)).
 
@@ -48,8 +51,8 @@ These were computed independently three ways and agree:
 - from the GitHub contents API at the pinned SHA;
 - with `check-migrations.mjs` over a `git archive` of the pinned SHA.
 
-PR #235 changes nothing else under `supabase/`. Its only other control-plane file is `scripts/schema-contracts.sql`
-(see B1).
+PR #235 changes nothing else under `supabase/`. Its only other control-plane file is `scripts/schema-contracts.sql`,
+which this PR brings to `main` (see B1).
 
 ## Why a preview is needed
 
@@ -108,11 +111,12 @@ disabled. No `ai_control_center` flag row is created. No credential is issued. N
 Write paths stay behind the H1–H5 functions, unchanged and pinned by md5 before and after. So every tenant check, lease
 fence, approval-consumption rule and migration-254 trigger still applies to the worker's writes.
 
-Findings. **B1 blocks dispatch** (not the registry merge). The others do not block this staging preview.
+Findings. **B1 is resolved by merging this PR**; dispatch stays prohibited until it is merged and a fresh staging
+backup is verified. The others do not block this staging preview.
 
 | # | Severity | Finding |
 |---|---|---|
-| B1 | **blocking for dispatch** | **`main`'s `scripts/schema-contracts.sql` has no H6 gate.** <br>After the apply it raises `An Agent Harness function is SECURITY DEFINER`, reproduced on the rehearsal. The preview's apply job runs main's trusted copy right after the push. So would every later Staging Candidate (all PRs, including `main`), Staging Database Migrate and Production Release run. <br>Result: the migrations would be applied and the postconditions would pass, but the apply job fails, and staging verification is red for every PR until main's contract changes. <br>**Fix before dispatch:** land PR #235's `scripts/schema-contracts.sql` change on `main` (the H6 block is version-gated by migration name, as for H5 and 254). The rehearsal shows #235's copy: <br>(a) passes on a 254 database without H6, so it is safe on staging today; <br>(b) passes after 255/256; <br>(c) passes after Staging Candidate's blanket-grant + enforce step. <br>Per the scope of this PR, that file is **not** changed here. The H5 and 254 registry PRs carried their contract change in the same PR. |
+| B1 | **resolved by merging this PR** (blocks dispatch until then) | **`main`'s `scripts/schema-contracts.sql` had no H6 gate.** <br>After the apply, main's copy raises `An Agent Harness function is SECURITY DEFINER` (reproduced). The preview's apply job runs main's trusted copy right after the push. So does every later Staging Candidate (all PRs, including `main`), Staging Database Migrate and Production Release run. Dispatching before this PR merges would apply the migrations, pass the postconditions, then fail the apply job, and staging verification would be red for every PR. <br>**Resolution (this PR, scope expanded with approval, as for the H5 and 254 registry PRs):** <br>• Commit 1 brings PR #235's H6 contract change **byte-identical** to the pinned SHA's blob (version-gated by migration NAME, like H5 and 254). <br>• Commit 2 only **tightens** it, closing two gaps found in review (B1-a, B1-b below). It relaxes nothing, and #235's schema passes it. <br>**B1-a, SECURITY DEFINER allowlist (fixed):** #235's allowlist exempted definers by **name** only, and its wrapper check counted only pinned wrappers. So an allowlisted definer with a mutable `search_path`, or a new SECURITY DEFINER overload under an allowlisted or wrapper name (even one executable by `agent_worker`), passed. Now: the exemption requires `search_path=''`, and exactly 23 wrappers and 5 helper definers exist across **all** overloads, each pinned. <br>**B1-b, unrecorded H6 objects (fixed):** the not-recorded check matched only `agent_worker_rpc__*` / `agent_control_center_*` functions and the two tables. An orphaned `agent_worker` role (cluster-wide, so it survives a database-only restore) with `authenticator` membership and column reads, an INVOKER H6 helper, or an H6 trigger passed. They are now all refused by exact name. <br>Verification: see Rehearsal item 9. **Consequence for #235:** its own copy is now weaker than `main`'s. #235 must not change before the preview applies (its head stays `34744160`). After the apply, when #235 is brought up to date with `main`, it must take `main`'s `scripts/schema-contracts.sql` and keep 255/256 byte-identical. |
 | F1 | low (process) | **255 has mixed line endings:** 247 of its 626 lines end in CRLF, and it is the only migration in the repository with CR bytes. <br>Effects: the registry digest is the LF-normalized one (`819e0306…`), while a raw `sha256sum` gives `967f1fcc…`. Every H6 body pin uses `md5(replace(prosrc, chr(13), ''))`, so the postconditions do not depend on whether the CLI keeps the CRs. <br>Recommendation: normalize to LF only if #235's head changes for another reason. Any head change needs a new entry anyway. The normalized digest would not change. |
 | F2 | low, by design | **Cross-tenant reads.** The worker credential is platform-wide: `agent_worker_read` checks only the credential, so the worker can read the 44 reviewed columns for **every** tenant. <br>Tenant scoping of writes stays in the wrapped RPCs. A leaked token exposes those columns (no guest PII, notes or free text) for at most 31 days, until revoked. Revocation takes effect on the next request. |
 | F3 | low, residual | **Pre-existing `TO public` policies also apply to `agent_worker`.** Each of the 8 tables already has permissive policies keyed on the JWT `hotel_id` and `auth.uid()`, and those policies are ORed with `agent_worker_read`. <br>A worker token minted **with** a `hotel_id` claim would keep that hotel's reviewed columns readable even after its `jti` is revoked, until the JWT expires. Wrappers still refuse. #235's issuer and worker refuse such tokens (`worker-identity.md`), but the database does not. Follow-up: an `agent_worker_read` RESTRICTIVE policy, or a claim check, in a later migration. |
@@ -121,6 +125,7 @@ Findings. **B1 blocks dispatch** (not the registry merge). The others do not blo
 | F6 | info | **Hotel offboarding deletes the hotel's journal rows** (FK cascade; the guard allows it only once the tenant row is gone). Platform rows (`tenant_id` NULL) are never deletable. Retention after offboarding is out of scope here. |
 | F7 | info | **Wrappers use late-bound named-argument calls (plpgsql),** so a signature drift would surface at runtime rather than at migration time. Pre- and postconditions pin all 29 wrapped and called H1–H5 functions by identity arguments, md5 and INVOKER status. 22 of those 29 pins were not already proven on staging by an earlier entry. A mismatch fails in the **plan** job, before approval, and nothing is applied. |
 | F8 | info | **Server version.** The membership postcondition reads `pg_auth_members.set_option` and `inherit_option`, which need PG16+ (the repo pins `major_version = 17`). Precondition `authenticator_ready` reads the same columns, so an older server fails in the plan job, not after the apply. |
+| F9 | info, residual | **The schema contract does not require the INVOKER Control Center read models to exist.** If one, e.g. `agent_control_center_overview`, is dropped after the apply, the contract still passes. This widens no privilege: the API call would fail closed. Postcondition `control_center_functions_exact` covers the applied state. Follow-up: pin the set in the contract when #235 next changes. |
 
 ## Preconditions (22, read-only; the preview refuses unless all are true)
 
@@ -216,10 +221,30 @@ time. All were stopped with `docker stop`; volumes were kept.
 8. **Body pins.** The md5 of every one of the 50 function bodies defined in 255/256 was computed straight from the
    pinned file bytes (CRLF→LF) and equals `md5(replace(prosrc, chr(13), ''))` in the database. So the pins do not
    depend on the applier or its line-ending handling (F1).
-9. **Schema contracts.**
-   - **`main`'s copy fails** on the applied state with `An Agent Harness function is SECURITY DEFINER` (B1).
-   - **#235's copy passes** on the 254 state without H6, on the applied state, and after Staging Candidate's exact
-     blanket-grant + `agent_audit_privileges_enforce()` command, which leaves 0 violations (F5).
+9. **Schema contracts.** Re-run 2026-11-17 on a normalized replay workspace (`build-migration-replay-workspace.mjs`),
+   running as `postgres` like CI:
+   - **Pre-B1 `main` copy fails** on every H6 state with `An Agent Harness function is SECURITY DEFINER` (B1).
+   - **The revised copy (this PR)** and #235's exact copy **both pass** on:
+     - a clean 254 database without H6 (fresh `db reset`, no `agent_worker` role in the cluster);
+     - a clean 256 database (fresh `db reset`);
+     - 256 applied incrementally on 254 by `supabase migration up` (the preview path);
+     - each of these after Staging Candidate's exact blanket-grant + `agent_audit_privileges_enforce()` command
+       (committed and in-transaction) and after CI's blanket table + function grant step, with 0 violations (F5).
+   - **The revised copy fails closed** on:
+     - missing, partial and unrecorded H6 states: 255/256 SQL applied unrecorded (both, or 255 only); only 255 or only
+       256 recorded; 255/256 recorded without their objects; 256 without 254 recorded;
+     - unrecorded partial objects: an orphaned `agent_worker` role (alone, or with `authenticator` membership and a
+       column grant), an INVOKER H6 helper, an H6 trigger name, an `agent_control_center_*` function;
+     - 27 of 28 object mutations of an applied 256 (incremental and clean give identical results): a dropped, extra, unpinned or `service_role`-executable wrapper; dropped or
+       disabled journal, immutability, credential-guard or TRUNCATE triggers; role attribute or membership changes;
+       `authenticator` membership revoked; an unreviewed column or harness-table read; Control Center functions
+       executable by `authenticated` or `agent_worker`, or made SECURITY DEFINER; the journal writer executable by, or
+       journal INSERT granted to, `service_role`; TRUNCATE granted; an extra `agent_*` table; a dropped refusal
+       recorder or violations function; and the 4 B1-a definer cases.
+   - #235's exact copy misses the 4 B1-a cases, the 4 B1-b cases and the dropped refusal recorder; the revised copy
+     catches all of them.
+   - Remaining (F9): a dropped INVOKER Control Center read model, e.g. `agent_control_center_overview`, is not
+     detected by either copy.
 10. **Behaviour.** A single DO block, run as superuser and rolled back, checked 14 assertions:
     - Without token claims, the worker is refused (`agent_worker_credential_invalid`).
     - Registering a credential journals exactly one `worker_credential_issued` row, with actor kind `operator`.
@@ -292,8 +317,9 @@ time. All were stopped with `docker stop`; volumes were kept.
   - an append-only journal written only by triggers;
   - `service_role`-only Control Center functions;
   - the 254 registry extended to 33/12.
-- [ ] Accept F1–F8 as non-blocking for staging (follow-ups: F3, and F5 together with 254's F2).
-- [ ] **Resolve B1 first:** land PR #235's `scripts/schema-contracts.sql` change on `main` before dispatching.
+- [ ] Accept F1–F9 as non-blocking for staging (follow-ups: F3, F9, and F5 together with 254's F2).
+- [ ] **B1:** resolved by merging this PR, which carries #235's H6 contract plus the B1-a/B1-b tightening. Do not
+      dispatch until this PR is merged and a fresh staging backup at head 254 is verified.
 - [ ] PR #235's head must stay `34744160` until the preview applies. Once applied, 255 and 256 are frozen on staging,
       and #235 must merge with these exact files.
 - [ ] Before approving the environment:
