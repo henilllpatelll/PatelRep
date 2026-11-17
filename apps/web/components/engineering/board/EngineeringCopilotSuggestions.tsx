@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { Sparkles } from 'lucide-react'
 import type { WorkOrder } from '@/lib/api/engineering'
@@ -21,7 +22,7 @@ interface Suggestion {
  * data, no invented "merge"/"assign" backend calls; each suggestion just
  * opens the real work order so the engineer decides.
  */
-export function buildCopilotSuggestions(workOrders: WorkOrder[], t: (key: string, opts?: Record<string, unknown>) => string): Suggestion[] {
+export function buildCopilotSuggestions(workOrders: WorkOrder[], t: TFunction): Suggestion[] {
   const suggestions: Suggestion[] = []
   const active = workOrders.filter((wo) => wo.status !== 'completed' && wo.status !== 'cancelled')
 
