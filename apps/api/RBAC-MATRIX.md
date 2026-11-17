@@ -10,6 +10,19 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 
 | Router | Route | Method | Required Role(s) | Source |
 |---|---|---|---|---|
+| agent_control_center.py | /v1/agent-control-center/session | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L101] |
+| agent_control_center.py | /v1/agent-control-center/overview | GET | chief_engineer, gm, housekeeping_supervisor | require_role(*OVERVIEW_ROLES) [L107] |
+| agent_control_center.py | /v1/agent-control-center/agents | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L116] |
+| agent_control_center.py | /v1/agent-control-center/runs | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L128] |
+| agent_control_center.py | /v1/agent-control-center/runs/{run_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L138] |
+| agent_control_center.py | /v1/agent-control-center/runs/{run_id}/{action} | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L147] |
+| agent_control_center.py | /v1/agent-control-center/approvals | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L159] |
+| agent_control_center.py | /v1/agent-control-center/approvals/{approval_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L170] |
+| agent_control_center.py | /v1/agent-control-center/approvals/{approval_id}/{decision} | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*CONTROL_CENTER_ROLES) [L181] |
+| agent_control_center.py | /v1/agent-control-center/controls | GET | gm | require_role(*GM_ROLES) [L191] |
+| agent_control_center.py | /v1/agent-control-center/controls/hotel-pause | POST | gm | require_role(*GM_ROLES) [L200] |
+| agent_control_center.py | /v1/agent-control-center/grants/revoke | POST | gm | require_role(*GM_ROLES) [L209] |
+| agent_control_center.py | /v1/agent-control-center/audit | GET | gm | require_role(*GM_ROLES) [L222] |
 | agent_specialists.py | /v1/agent-specialists/recommendations | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L76] |
 | agent_specialists.py | /v1/agent-specialists/recommendations/{run_id} | GET | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L88] |
 | agent_specialists.py | /v1/agent-specialists/recommendations/{run_id}/dismiss | POST | chief_engineer, engineer, gm, housekeeping_supervisor | require_role(*SPECIALIST_VIEWER_ROLES) [L98] |
@@ -638,4 +651,4 @@ Every route in `apps/api/routers/` (API prefix `/v1`), its required role(s), and
 | work_orders.py | /v1/work-orders/{wo_id}/merge | POST | chief_engineer, gm | require_role('chief_engineer', 'gm') [L2357] |
 | work_orders.py | /v1/work-orders/{wo_id}/snooze | POST | chief_engineer, engineer, gm | require_role('engineer', 'chief_engineer', 'gm') [L2431] |
 
-**56 routers, 627 routes.**
+**57 routers, 640 routes.**

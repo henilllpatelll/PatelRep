@@ -9,6 +9,10 @@ DECLARE
   h5_unexpected integer;
   hardening_recorded integer;
   hardening_present text[];
+  h6_recorded integer;
+  h6_present text[];
+  protected_tables integer := 31;
+  append_only_tables integer := 11;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -59,6 +63,14 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_proc procs JOIN pg_namespace namespaces ON namespaces.oid = procs.pronamespace
     WHERE namespaces.nspname = 'public' AND procs.proname LIKE 'agent%' AND procs.prosecdef
+      -- H6 (255/256, recorded): ONLY the reviewed worker wrappers, the credential check, the journal writer and its
+      -- trigger, and the refusal recorder are SECURITY DEFINER (each audited in ADR-0005 §4). Nothing else, ever.
+      AND NOT (EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations history
+                        WHERE history.name = 'agent_control_center')
+               AND (procs.proname LIKE 'agent\_worker\_rpc\_\_%'
+                    OR procs.proname IN ('agent__worker_credential_ok', 'agent__worker_assert',
+                                         'agent__control_center_journal', 'agent__journal_control_change',
+                                         'agent_control_center_record_refusal')))
   ) THEN
     RAISE EXCEPTION 'An Agent Harness function is SECURITY DEFINER';
   END IF;
@@ -253,6 +265,14 @@ BEGIN
     RAISE EXCEPTION 'H5 migrations 251-253 are partially applied (% of 3 recorded); the schema version is not trusted', h5_recorded;
   END IF;
 
+  -- H6 (255 worker identity, 256 Control Center) extends the 254 registry by two tables (one append-only).
+  SELECT count(DISTINCT history.name) INTO h6_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name IN ('agent_worker_database_identity', 'agent_control_center');
+  IF h6_recorded = 2 THEN
+    protected_tables := 33;
+    append_only_tables := 12;
+  END IF;
+
   -- Pre-H6 hardening (migration 254: append-only audit integrity #230, independent approval #231). Version-gated by
   -- migration NAME exactly like H5: staging receives 254 through a reviewed preview before it merges.
   --   not recorded -> no hardening object may exist;  recorded -> the complete hardening is enforced below.
@@ -287,9 +307,10 @@ BEGIN
            AND NOT EXISTS (SELECT 1 FROM aclexplode(procs.proacl) AS acl WHERE acl.grantee = 0)) <> 6 THEN
       RAISE EXCEPTION 'A hardening function is missing, overloaded, SECURITY DEFINER, has a search_path, or is exposed';
     END IF;
-    -- The registry is exactly every harness table (31, of which 11 append-only) and names only existing tables.
-    IF (SELECT count(*) FROM public.agent__audit_protected_tables()) <> 31
-       OR (SELECT count(*) FROM public.agent__audit_protected_tables() WHERE append_only) <> 11
+    -- The registry is exactly every harness table (31 / 11 append-only; 33 / 12 once H6 is recorded) and names only
+    -- existing tables.
+    IF (SELECT count(*) FROM public.agent__audit_protected_tables()) <> protected_tables
+       OR (SELECT count(*) FROM public.agent__audit_protected_tables() WHERE append_only) <> append_only_tables
        OR EXISTS (SELECT 1 FROM public.agent__audit_protected_tables() registry
                    WHERE to_regclass(format('public.%I', registry.table_name)) IS NULL)
        OR EXISTS (SELECT 1 FROM pg_class relations
@@ -304,11 +325,11 @@ BEGIN
     IF (SELECT count(*) FROM public.agent__audit_protected_tables() registry
           JOIN pg_trigger triggers ON triggers.tgrelid = format('public.%I', registry.table_name)::regclass
          WHERE triggers.tgname = 'agent_refuse_truncate' AND triggers.tgenabled = 'O' AND triggers.tgtype = 34
-           AND triggers.tgfoid = 'public.agent__refuse_truncate()'::regprocedure) <> 31
+           AND triggers.tgfoid = 'public.agent__refuse_truncate()'::regprocedure) <> protected_tables
        OR (SELECT count(DISTINCT registry.table_name) FROM public.agent__audit_protected_tables() registry
              JOIN pg_trigger triggers ON triggers.tgrelid = format('public.%I', registry.table_name)::regclass
             WHERE registry.append_only AND triggers.tgenabled = 'O' AND NOT triggers.tgisinternal
-              AND (triggers.tgtype & 27) = 27) <> 11
+              AND (triggers.tgtype & 27) = 27) <> append_only_tables
        OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers
                        WHERE triggers.tgrelid = 'public.agent_tool_approvals'::regclass
                          AND triggers.tgname = 'agent_tool_approvals_independence' AND triggers.tgenabled = 'O'
@@ -343,6 +364,56 @@ BEGIN
                   AND public.agent__gateway_tool_spec(agents.id, agent_versions.v, tools.id, tool_versions.v)->>'risk'
                       IS DISTINCT FROM 'high') THEN
       RAISE EXCEPTION 'A reviewed gateway write is no longer medium or high risk';
+    END IF;
+  END IF;
+  -- H6 (migrations 255 + 256). Version-gated by migration NAME like H5 and 254: staging receives them only through a
+  -- reviewed preview.  not recorded -> no H6 object may exist;  both recorded -> the complete contract below.
+  SELECT array_remove(ARRAY[
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+                       AND (procs.proname LIKE 'agent\_worker\_rpc\_\_%' OR procs.proname LIKE 'agent\_control\_center\_%'))
+         THEN 'H6 functions' END,
+    CASE WHEN to_regclass('public.agent_worker_credentials') IS NOT NULL
+           OR to_regclass('public.agent_control_center_events') IS NOT NULL THEN 'H6 tables' END], NULL) INTO h6_present;
+  IF h6_recorded = 0 THEN
+    IF cardinality(h6_present) > 0 THEN
+      RAISE EXCEPTION 'Agent H6 objects exist without migrations 255/256 recorded: %', h6_present;
+    END IF;
+  ELSIF h6_recorded <> 2 OR hardening_recorded = 0 THEN
+    RAISE EXCEPTION 'H6 migrations 255/256 are partially applied or recorded without 254; the schema version is not trusted';
+  ELSE
+    -- The worker identity: exact attributes, no memberships, nothing beyond the reviewed wrappers and columns.
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agent_worker' AND NOT rolcanlogin AND NOT rolinherit
+                    AND NOT rolbypassrls AND NOT rolsuper AND NOT rolcreaterole AND NOT rolcreatedb)
+       OR NOT pg_has_role('authenticator', 'agent_worker', 'MEMBER')
+       OR EXISTS (SELECT 1 FROM public.agent_worker_privilege_violations()) THEN
+      RAISE EXCEPTION 'The agent_worker identity exceeds its reviewed privileges: %',
+        (SELECT string_agg(v.object_name || ':' || v.violation, ', ') FROM public.agent_worker_privilege_violations() v);
+    END IF;
+    IF (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+          AND procs.proname LIKE 'agent\_worker\_rpc\_\_%' AND procs.prosecdef
+          AND procs.proconfig = ARRAY['search_path=""']) <> 23 THEN
+      RAISE EXCEPTION 'The reviewed agent_worker wrapper set is missing, extended or not pinned';
+    END IF;
+    -- Every control table journals its changes in the same transaction; the journal is immutable.
+    IF (SELECT count(*) FROM pg_trigger triggers
+         WHERE triggers.tgname = 'agent_control_center_journal' AND triggers.tgenabled = 'O'
+           AND triggers.tgrelid IN ('public.agent_runtime_controls'::regclass, 'public.agent_tool_grants'::regclass,
+                                    'public.agent_execution_enablement'::regclass, 'public.agent_model_enablement'::regclass,
+                                    'public.agent_tool_controls'::regclass, 'public.agent_customer_billing_controls'::regclass,
+                                    'public.agent_worker_credentials'::regclass)) <> 7
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_center_events_immutable'
+                       AND triggers.tgrelid = 'public.agent_control_center_events'::regclass AND triggers.tgenabled = 'O')
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_worker_credentials_guard'
+                       AND triggers.tgrelid = 'public.agent_worker_credentials'::regclass AND triggers.tgenabled = 'O') THEN
+      RAISE EXCEPTION 'An H6 journal or credential guard trigger is missing or disabled';
+    END IF;
+    -- Read models and controls: service_role only; never end users.
+    IF EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+                 AND procs.proname LIKE 'agent\_control\_center\_%'
+                 AND (has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      OR has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      OR has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))) THEN
+      RAISE EXCEPTION 'An AI Control Center function is executable by an end-user or worker role';
     END IF;
   END IF;
 END;

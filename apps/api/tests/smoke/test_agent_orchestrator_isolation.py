@@ -108,8 +108,9 @@ def test_no_application_code_imports_the_orchestrator():
     offenders = []
     for path in API_ROOT.rglob("*.py"):
         rel = path.relative_to(API_ROOT).as_posix()
+        # H6: services/agent_control_center/ is the Control Center bridge (ADR-0005); routers import only it.
         # H5: services/agent_handoff/ is the reviewed plan -> gateway bridge (ADR-0004).
-        if rel.startswith(("services/agent_orchestrator/", "services/agent_execution/", "services/agent_handoff/",
+        if rel.startswith(("services/agent_orchestrator/", "services/agent_execution/", "services/agent_handoff/", "services/agent_control_center/",
                            "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         if re.search(r"services[./]agent_orchestrator", path.read_text(encoding="utf-8", errors="ignore")):

@@ -77,4 +77,13 @@ export const FEATURE_REGISTRY: Record<string, FeatureFlagDef> = {
     owner: 'agent-harness',
     created: '2026-11-13',
   },
+  ai_control_center: {
+    key: 'ai_control_center',
+    description:
+      'AI Control Center UI release flag (H6): the /ai-control-center page and the /agent-control-center API for this hotel. Default off; when off the API answers 404 and the navigation entry is hidden. Visibility and human governance only: it never enables agent execution, paid model calls, customer billing or an autonomy level, and is independent of the ai_agents entitlement.',
+    type: 'release',
+    backendEnforced: true,
+    owner: 'agent-harness',
+    created: '2026-11-17',
+  },
 }
