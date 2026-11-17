@@ -274,7 +274,8 @@ BEGIN
     IF h5_recorded <> 3 THEN
       RAISE EXCEPTION 'Migration 254 is recorded on a schema without the complete H5 migrations';
     END IF;
-    -- Six functions: SECURITY INVOKER, empty search_path, never callable by end users or PUBLIC.
+    -- Six functions: SECURITY INVOKER, empty search_path, owner-only (never callable by end users, PUBLIC or
+    -- service_role; 254 revokes all four, and this contract runs before CI's blanket function grant).
     IF (SELECT count(*) FROM pg_proc procs
          WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
            'agent__audit_protected_tables', 'agent__refuse_truncate', 'agent_audit_privilege_violations',
@@ -282,6 +283,7 @@ BEGIN
            AND NOT procs.prosecdef AND procs.proconfig = ARRAY['search_path=""'] AND procs.proacl IS NOT NULL
            AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
            AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+           AND NOT has_function_privilege('service_role', procs.oid, 'EXECUTE')
            AND NOT EXISTS (SELECT 1 FROM aclexplode(procs.proacl) AS acl WHERE acl.grantee = 0)) <> 6 THEN
       RAISE EXCEPTION 'A hardening function is missing, overloaded, SECURITY DEFINER, has a search_path, or is exposed';
     END IF;
