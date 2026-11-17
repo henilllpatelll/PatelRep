@@ -29,9 +29,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
+import re
 import sys
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 def _now() -> datetime:
@@ -45,15 +48,25 @@ def _store():
     return AgentRunStore(get_supabase())
 
 
-def _new_store():
-    from supabase import create_client
+_APP_ENVS = frozenset({"development", "test", "staging", "production"})
+_RELEASE_SHA_RE = re.compile(r"^[a-f0-9]{7,64}$")
 
-    from core.config import settings
-    from core.database import _build_client_options
-    from services.agent_execution.store import AgentRunStore
 
-    return AgentRunStore(create_client(settings.supabase_project_url, settings.supabase_service_role_key,
-                                       _build_client_options()))
+def _packaged_release_sha() -> str:
+    """Public build metadata only (same file and pattern core.config reads); never a credential."""
+    try:
+        raw = json.loads((Path(__file__).resolve().parents[2] / "core" / "release_identity.json").read_text("utf-8"))
+    except (OSError, ValueError):
+        return "unknown"
+    sha = raw.get("release_sha") if isinstance(raw, dict) else None
+    return sha.lower() if isinstance(sha, str) and _RELEASE_SHA_RE.match(sha.lower()) else "unknown"
+
+
+def _defer_write_notification(_client, committed: dict) -> None:
+    """H6: the restricted worker identity cannot read device tokens or call the push service (both need service_role).
+    The committed change stands; the staff push is deferred to an API-side outbox (ADR-0005 §8, limitation L3)."""
+    print(json.dumps({"event": "write_notify_deferred", "tool_id": committed.get("tool_id"),
+                      "reason": "restricted_worker_identity"}), flush=True)
 
 
 def cmd_worker(_: argparse.Namespace) -> int:
@@ -61,17 +74,39 @@ def cmd_worker(_: argparse.Namespace) -> int:
 
     worker_settings = WorkerSettings()
     if not worker_settings.enabled:
-        # Checked before the application settings load, so a disabled worker starts safely with incomplete config.
+        # Checked before anything else loads, so a disabled worker starts safely with incomplete config.
         print(json.dumps({"event": "worker_disabled", "reason": "not_enabled"}))
         return 0
 
-    from core.config import settings  # enabled: incomplete or inconsistent configuration fails closed here
+    # H6 (ADR-0005 §3): the worker runs ONLY as the least-privileged agent_worker database identity. It never reads
+    # core.config (which requires the API's service-role key) and refuses to start if that key is present at all.
     from services.agent_execution.identity_authority import SupabaseIdentityAuthority
+    from services.agent_execution.store import AgentRunStore
     from services.agent_execution.worker import Worker
+    from services.agent_execution.worker_identity import (
+        WorkerDatabaseSettings,
+        WorkerIdentityError,
+        build_worker_client,
+        enforce_target,
+        refuse_service_role_environment,
+    )
 
-    worker = Worker(worker_settings, app_env=settings.app_env, version=settings.release_sha,
-                    store_factory=_new_store,  # one HTTP client per slot thread
-                    authority_factory=lambda client: SupabaseIdentityAuthority(client, clock=_now))
+    app_env = os.environ.get("APP_ENV", "development").strip().lower()
+    try:
+        if app_env not in _APP_ENVS:
+            raise WorkerIdentityError("app_env_invalid")
+        refuse_service_role_environment(os.environ)
+        db_settings = WorkerDatabaseSettings()
+        enforce_target(db_settings, app_env=app_env, environ=os.environ)
+        build_worker_client(db_settings, now=_now())  # validate once before any slot starts
+    except WorkerIdentityError as exc:
+        print(json.dumps({"event": "worker_refused", "reason": exc.code}))
+        return 2
+
+    worker = Worker(worker_settings, app_env=app_env, version=_packaged_release_sha(),
+                    store_factory=lambda: AgentRunStore(build_worker_client(db_settings, now=_now())),  # one per slot
+                    authority_factory=lambda client: SupabaseIdentityAuthority(client, clock=_now),
+                    write_notifier=_defer_write_notification)
     return worker.run()
 
 
@@ -283,6 +318,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=100)
     p.set_defaults(func=cmd_approvals_expire)
     _add_spend_commands(sub)
+    from services.agent_execution.worker_credentials import add_credential_commands
+
+    add_credential_commands(sub, store=_store)
     return parser
 
 

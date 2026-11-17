@@ -10,14 +10,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
+from services.agent_execution.worker_identity import RestrictedWorkerClient
 from services.agent_harness.controls import RuntimeControls
 
 CONTROL_SOURCE = "agent_runtime_controls"
 
 
 def load_runtime_controls_from_store(client: Any, now: datetime) -> RuntimeControls:
-    rows = (client.table("agent_runtime_controls")
-            .select("scope, tenant_id, agent_id, paused, cost_emergency_stop").limit(1000).execute().data or [])
+    if isinstance(client, RestrictedWorkerClient):
+        # H6: the worker identity holds no table rights on harness state; it reads the same rows via a reviewed RPC.
+        rows = client.rpc("agent_runtime_controls_snapshot", {}).execute().data or []
+    else:
+        rows = (client.table("agent_runtime_controls")
+                .select("scope, tenant_id, agent_id, paused, cost_emergency_stop").limit(1000).execute().data or [])
     return controls_from_rows(rows, now)
 
 
