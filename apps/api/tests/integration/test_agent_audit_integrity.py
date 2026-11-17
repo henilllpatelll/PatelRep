@@ -190,6 +190,25 @@ def test_service_role_cannot_disable_triggers_bypass_them_or_re_grant():
                      "FROM pg_roles WHERE rolname = 'service_role';") == "f"
 
 
+OWNER_ONLY_FUNCTIONS = ("agent__audit_protected_tables", "agent__refuse_truncate", "agent_audit_privilege_violations",
+                        "agent_audit_privileges_enforce", "agent__guard_approval_independence",
+                        "agent__guard_execution_approval")
+
+
+def test_owner_only_hardening_functions_are_not_executable_by_application_roles():
+    # CI's blanket GRANT EXECUTE ON ALL FUNCTIONS re-revokes these in the same transaction, so this holds in CI exactly
+    # as in staging and production (where no blanket function grant exists).
+    for fn in OWNER_ONLY_FUNCTIONS:
+        for role in ("anon", "authenticated", "service_role"):
+            assert sql_value(f"SELECT has_function_privilege('{role}', 'public.{fn}()', 'EXECUTE');") == "f", (fn, role)
+    for fn in ("agent__audit_protected_tables", "agent_audit_privilege_violations", "agent_audit_privileges_enforce"):
+        assert "permission denied for function" in as_service_role(f"SELECT public.{fn}();"), fn
+    # the real service-role API path (PostgREST RPC) is refused too
+    with pytest.raises(Exception) as err:
+        new_client().rpc("agent_audit_privilege_violations", {}).execute()
+    assert "42501" in str(err.value) or "permission denied" in str(err.value)
+
+
 # --- legitimate flows are unchanged ---------------------------------------------------------------------------------
 
 def test_normal_writes_reads_and_tenant_deletion_cascade_still_work_under_least_privilege():
