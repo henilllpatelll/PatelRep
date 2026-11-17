@@ -7,6 +7,8 @@ DECLARE
   h5_recorded integer;
   h5_present text[];
   h5_unexpected integer;
+  hardening_recorded integer;
+  hardening_present text[];
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -249,6 +251,99 @@ BEGIN
     END IF;
   ELSE
     RAISE EXCEPTION 'H5 migrations 251-253 are partially applied (% of 3 recorded); the schema version is not trusted', h5_recorded;
+  END IF;
+
+  -- Pre-H6 hardening (migration 254: append-only audit integrity #230, independent approval #231). Version-gated by
+  -- migration NAME exactly like H5: staging receives 254 through a reviewed preview before it merges.
+  --   not recorded -> no hardening object may exist;  recorded -> the complete hardening is enforced below.
+  SELECT count(DISTINCT history.name) INTO hardening_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_audit_integrity_and_independent_approval';
+  SELECT array_remove(ARRAY[
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__audit_protected_tables', 'agent__refuse_truncate', 'agent_audit_privilege_violations',
+           'agent_audit_privileges_enforce', 'agent__guard_approval_independence', 'agent__guard_execution_approval'))
+         THEN 'hardening functions' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_trigger WHERE tgname IN (
+           'agent_refuse_truncate', 'agent_tool_approvals_independence', 'agent_tool_executions_approval_guard'))
+         THEN 'hardening triggers' END], NULL) INTO hardening_present;
+  IF hardening_recorded = 0 THEN
+    IF cardinality(hardening_present) > 0 THEN
+      RAISE EXCEPTION 'Agent hardening objects exist without migration 254 recorded: %', hardening_present;
+    END IF;
+  ELSE
+    IF h5_recorded <> 3 THEN
+      RAISE EXCEPTION 'Migration 254 is recorded on a schema without the complete H5 migrations';
+    END IF;
+    -- Six functions: SECURITY INVOKER, empty search_path, owner-only (never callable by end users, PUBLIC or
+    -- service_role; 254 revokes all four, and this contract runs before CI's blanket function grant).
+    IF (SELECT count(*) FROM pg_proc procs
+         WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__audit_protected_tables', 'agent__refuse_truncate', 'agent_audit_privilege_violations',
+           'agent_audit_privileges_enforce', 'agent__guard_approval_independence', 'agent__guard_execution_approval')
+           AND NOT procs.prosecdef AND procs.proconfig = ARRAY['search_path=""'] AND procs.proacl IS NOT NULL
+           AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+           AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+           AND NOT has_function_privilege('service_role', procs.oid, 'EXECUTE')
+           AND NOT EXISTS (SELECT 1 FROM aclexplode(procs.proacl) AS acl WHERE acl.grantee = 0)) <> 6 THEN
+      RAISE EXCEPTION 'A hardening function is missing, overloaded, SECURITY DEFINER, has a search_path, or is exposed';
+    END IF;
+    -- The registry is exactly every harness table (31, of which 11 append-only) and names only existing tables.
+    IF (SELECT count(*) FROM public.agent__audit_protected_tables()) <> 31
+       OR (SELECT count(*) FROM public.agent__audit_protected_tables() WHERE append_only) <> 11
+       OR EXISTS (SELECT 1 FROM public.agent__audit_protected_tables() registry
+                   WHERE to_regclass(format('public.%I', registry.table_name)) IS NULL)
+       OR EXISTS (SELECT 1 FROM pg_class relations
+                   WHERE relations.relnamespace = 'public'::regnamespace AND relations.relkind IN ('r', 'p')
+                     AND relations.relname ~ '^(agent_|billing_trueup_)'
+                     AND relations.relname NOT IN (SELECT registry.table_name FROM public.agent__audit_protected_tables() registry)) THEN
+      RAISE EXCEPTION 'The protected agent table registry does not cover exactly the harness tables';
+    END IF;
+    -- Privilege-independent controls: one enabled statement-level BEFORE TRUNCATE refusal on every registered table
+    -- (tgtype 34 = BEFORE 2 + TRUNCATE 32, no ROW bit); an enabled BEFORE UPDATE OR DELETE row guard on every
+    -- append-only table; the two approval-independence guards.
+    IF (SELECT count(*) FROM public.agent__audit_protected_tables() registry
+          JOIN pg_trigger triggers ON triggers.tgrelid = format('public.%I', registry.table_name)::regclass
+         WHERE triggers.tgname = 'agent_refuse_truncate' AND triggers.tgenabled = 'O' AND triggers.tgtype = 34
+           AND triggers.tgfoid = 'public.agent__refuse_truncate()'::regprocedure) <> 31
+       OR (SELECT count(DISTINCT registry.table_name) FROM public.agent__audit_protected_tables() registry
+             JOIN pg_trigger triggers ON triggers.tgrelid = format('public.%I', registry.table_name)::regclass
+            WHERE registry.append_only AND triggers.tgenabled = 'O' AND NOT triggers.tgisinternal
+              AND (triggers.tgtype & 27) = 27) <> 11
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers
+                       WHERE triggers.tgrelid = 'public.agent_tool_approvals'::regclass
+                         AND triggers.tgname = 'agent_tool_approvals_independence' AND triggers.tgenabled = 'O'
+                         AND triggers.tgtype = 23  -- ROW 1 + BEFORE 2 + INSERT 4 + UPDATE 16
+                         AND triggers.tgfoid = 'public.agent__guard_approval_independence()'::regprocedure)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers
+                       WHERE triggers.tgrelid = 'public.agent_tool_executions'::regclass
+                         AND triggers.tgname = 'agent_tool_executions_approval_guard' AND triggers.tgenabled = 'O'
+                         AND triggers.tgtype = 7  -- ROW 1 + BEFORE 2 + INSERT 4
+                         AND triggers.tgfoid = 'public.agent__guard_execution_approval()'::regprocedure)
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers
+                       WHERE triggers.tgrelid = 'public.agent_tool_approvals'::regclass
+                         AND triggers.tgname = 'agent_tool_approvals_guard_update' AND triggers.tgenabled = 'O') THEN
+      RAISE EXCEPTION 'An agent audit-integrity or approval-independence trigger is missing, disabled or altered';
+    END IF;
+    -- Least privilege. Every workflow that grants blanket table rights re-runs agent_audit_privileges_enforce() in the
+    -- same transaction, so no protected right may be present here.
+    IF EXISTS (SELECT 1 FROM public.agent_audit_privilege_violations()) THEN
+      RAISE EXCEPTION 'A role holds TRUNCATE on an agent table, or UPDATE/DELETE on an append-only agent table: %',
+        (SELECT string_agg(format('%s:%s:%s', v.table_name, v.role_name, v.privilege), ', ')
+           FROM public.agent_audit_privilege_violations() v);
+    END IF;
+    -- Approver independence cannot be granted to any reviewed write: none is low risk.
+    IF EXISTS (SELECT 1
+                 FROM unnest(ARRAY['engineering.dispatch_assistant', 'housekeeping.room_readiness_assistant']) AS agents(id)
+                CROSS JOIN generate_series(1, 3) AS agent_versions(v)
+                CROSS JOIN unnest(ARRAY['engineering.work_orders.assign', 'housekeeping.room_assignments.assign']) AS tools(id)
+                CROSS JOIN generate_series(1, 3) AS tool_versions(v)
+                WHERE public.agent__gateway_tool_spec(agents.id, agent_versions.v, tools.id, tool_versions.v)->>'access' = 'write'
+                  AND public.agent__gateway_tool_spec(agents.id, agent_versions.v, tools.id, tool_versions.v)->>'risk'
+                      IS DISTINCT FROM 'medium'
+                  AND public.agent__gateway_tool_spec(agents.id, agent_versions.v, tools.id, tool_versions.v)->>'risk'
+                      IS DISTINCT FROM 'high') THEN
+      RAISE EXCEPTION 'A reviewed gateway write is no longer medium or high risk';
+    END IF;
   END IF;
 END;
 $$;
