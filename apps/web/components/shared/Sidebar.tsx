@@ -82,7 +82,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose, redesigned }: Sideb
     : 'transition-colors duration-150'
 
   const visibleNavItems = role
-    ? getAllowedNavItems({ role, customRoleModules, frontDeskModules: hotel?.front_desk_modules ?? null })
+    ? getAllowedNavItems({ role, customRoleModules, frontDeskModules: hotel?.front_desk_modules ?? null, enabledFeatures: hotel?.enabled_features ?? null })
         .map(item =>
           item.href === '/housekeeping' && role === 'housekeeper'
             ? { ...item, label: 'My Rooms' }

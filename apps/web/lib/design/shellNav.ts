@@ -15,6 +15,7 @@ export function buildShellNavGroups(params: {
   role: UserRole | null
   customRoleModules?: string[] | null
   frontDeskModules?: string[] | null
+  enabledFeatures?: string[] | null
 }): ShellNavGroup[] {
   const allowed = params.role
     ? getAllowedNavItems(params).map((item) =>

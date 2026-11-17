@@ -66,7 +66,7 @@ export function SidebarContent({ rail, themeVars, onNavigate, onToggleRail, rail
     user?.email ||
     'User'
   const navLabel = (label: string) => t(NAV_LABEL_KEYS[label] ?? label)
-  const groups = buildShellNavGroups({ role, customRoleModules, frontDeskModules: hotel?.front_desk_modules ?? null })
+  const groups = buildShellNavGroups({ role, customRoleModules, frontDeskModules: hotel?.front_desk_modules ?? null, enabledFeatures: hotel?.enabled_features ?? null })
   const showSettings = canAccessSettings(baseRole ?? role)
 
   const renderItem = ({ href, label, icon: Icon, subNav, tag }: NavItem) => {

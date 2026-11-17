@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Bed, Wrench, Users, Calendar, BookOpen,
   FileText, Library, Settings, ClipboardList, ShieldCheck, LifeBuoy,
-  Package, Sparkles, TrendingUp, ListChecks,
+  Package, Sparkles, TrendingUp, ListChecks, Bot,
 } from 'lucide-react'
 import type { UserRole } from '@/stores/authStore'
 import { SETTINGS_DESTINATIONS } from '@/lib/settings/navigation'
@@ -25,6 +25,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/logbook',        label: 'Logbook',        icon: BookOpen },
   { href: '/staff',          label: 'People',         icon: Users },
   { href: '/scheduling',     label: 'Schedule',       icon: Calendar },
+  { href: '/ai-control-center', label: 'AI Control Center', icon: Bot, tag: 'AI' },
 ]
 
 // Sidebar sub-navigation mirrors the Settings workspace IA (lib/settings/navigation.ts) so the two
@@ -37,11 +38,11 @@ export const SETTINGS_NAV_ITEM: NavItem = {
 }
 
 export const NAV_BY_ROLE: Record<UserRole, string[]> = {
-  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai'],
-  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  gm: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/staff','/scheduling','/logbook','/sop','/evidence','/safety','/reports','/management-roi','/ai','/ai-control-center'],
+  housekeeping_supervisor: ['/dashboard','/housekeeping','/engineering','/programs','/lost-found','/tasks','/scheduling','/logbook','/sop','/reports','/ai','/ai-control-center'],
   housekeeper:    ['/dashboard','/housekeeping','/tasks'],
   engineer:       ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
-  chief_engineer: ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai'],
+  chief_engineer: ['/dashboard','/engineering','/programs','/tasks','/scheduling','/logbook','/sop','/reports','/ai','/ai-control-center'],
   front_desk:     ['/dashboard','/housekeeping','/tasks','/logbook','/lost-found','/ai'],
 }
 
@@ -61,6 +62,7 @@ export const NAV_LABEL_KEYS: Record<string, string> = {
   'Guest Requests': 'nav.guestRequests',
   Tasks: 'nav.tasks',
   'AI Copilot': 'nav.aiCopilot',
+  'AI Control Center': 'nav.aiControlCenter',
   'SOP Library': 'nav.sopLibrary',
   Evidence: 'nav.evidence',
   Safety: 'nav.safety',
@@ -91,7 +93,7 @@ export const PRIMARY_NAV_HREFS = [
 
 /** Important but lower-frequency records and focused tools, kept reachable without crowding the start-of-shift flow. */
 export const MORE_NAV_HREFS = [
-  '/lost-found', '/reports', '/staff', '/logbook',
+  '/lost-found', '/reports', '/staff', '/logbook', '/ai-control-center',
 ]
 
 /** The persistent PatelRep brand link returns to the dashboard. */
@@ -107,6 +109,19 @@ export interface AllowedNavParams {
   role: UserRole | null
   customRoleModules?: string[] | null
   frontDeskModules?: string[] | null
+  /** The hotel's enabled feature flags. A feature-gated destination is hidden unless its flag is listed (fail closed
+   *  when omitted). The backend enforces the same flag; this only keeps the link from being offered. */
+  enabledFeatures?: string[] | null
+}
+
+/** Destinations that exist only while a tenant release flag is on. */
+export const FEATURE_GATED_NAV_HREFS: Record<string, string> = {
+  '/ai-control-center': 'ai_control_center',
+}
+
+function featureAllowed(href: string, enabledFeatures?: string[] | null): boolean {
+  const flag = FEATURE_GATED_NAV_HREFS[href]
+  return !flag || (enabledFeatures ?? []).includes(flag)
 }
 
 /** Legacy saved module slugs that no longer map to a standalone route — normalized to their
@@ -119,16 +134,17 @@ function normalizeModules(modules: string[]): string[] {
 
 /** Single source of truth for "which routes can this user reach" — Sidebar, CommandPalette,
  * and Breadcrumbs all read through this so nothing can drift out of sync with RBAC. */
-export function getAllowedHrefs({ role, customRoleModules, frontDeskModules }: AllowedNavParams): string[] {
-  if (customRoleModules) return ['/dashboard', ...normalizeModules(customRoleModules).map((m) => `/${m}`)]
-  if (role === 'front_desk') {
-    return ['/dashboard', ...normalizeModules(frontDeskModules ?? DEFAULT_FRONT_DESK_MODULES).map((m) => `/${m}`)]
-  }
-  return role ? (NAV_BY_ROLE[role] ?? []) : []
+export function getAllowedHrefs({ role, customRoleModules, frontDeskModules, enabledFeatures }: AllowedNavParams): string[] {
+  let hrefs: string[]
+  if (customRoleModules) hrefs = ['/dashboard', ...normalizeModules(customRoleModules).map((m) => `/${m}`)]
+  else if (role === 'front_desk') {
+    hrefs = ['/dashboard', ...normalizeModules(frontDeskModules ?? DEFAULT_FRONT_DESK_MODULES).map((m) => `/${m}`)]
+  } else hrefs = role ? (NAV_BY_ROLE[role] ?? []) : []
+  return hrefs.filter((href) => featureAllowed(href, enabledFeatures))
 }
 
 export function getAllowedNavItems(params: AllowedNavParams): NavItem[] {
-  if (!params.role) return ALL_NAV_ITEMS
+  if (!params.role) return ALL_NAV_ITEMS.filter((item) => featureAllowed(item.href, params.enabledFeatures))
   const allowed = getAllowedHrefs(params)
   return ALL_NAV_ITEMS.filter((item) => allowed.includes(item.href))
 }

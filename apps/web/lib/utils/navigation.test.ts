@@ -53,7 +53,7 @@ test('keeps core workspaces primary while demoting secondary records to More', (
     '/housekeeping', '/engineering', '/tasks',
   ])
   assert.deepEqual(MORE_NAV_HREFS, [
-    '/lost-found', '/reports', '/staff', '/logbook',
+    '/lost-found', '/reports', '/staff', '/logbook', '/ai-control-center',
   ])
   assert.deepEqual(CONTEXTUAL_NAV_HREFS, ['/scheduling', '/management-roi'])
 })
@@ -95,4 +95,21 @@ test('keeps supplemental pages direct-accessible without sidebar tabs', () => {
     assert.equal(MORE_NAV_HREFS.includes(href), false)
     assert.ok(getAllowedNavItems({ role: 'gm' }).some((item) => item.href === href))
   }
+})
+
+test('H6: the AI Control Center appears only for its roles AND only while the hotel flag is on', () => {
+  const href = '/ai-control-center'
+  const flag = { enabledFeatures: ['ai_control_center'] }
+  for (const role of ['gm', 'chief_engineer', 'housekeeping_supervisor'] as const) {
+    assert.equal(getAllowedNavItems({ role }).some((i) => i.href === href), false, `${role} without the flag`)
+    assert.equal(getAllowedNavItems({ role, enabledFeatures: [] }).some((i) => i.href === href), false)
+    assert.equal(getAllowedNavItems({ role, ...flag }).some((i) => i.href === href), true, `${role} with the flag`)
+  }
+  for (const role of ['housekeeper', 'engineer', 'front_desk'] as const) {
+    assert.equal(getAllowedNavItems({ role, ...flag }).some((i) => i.href === href), false, role)
+  }
+  // custom roles and front-desk module lists can never reach it, and the ai_agents entitlement is not the switch
+  assert.equal(getAllowedNavItems({ role: 'front_desk', frontDeskModules: ['ai-control-center'], enabledFeatures: ['ai_agents'] })
+    .some((i) => i.href === href), false)
+  assert.equal(getAllowedNavItems({ role: null }).some((i) => i.href === href), false)
 })

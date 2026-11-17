@@ -29,3 +29,8 @@ if (!process.env.HERMETIC_SKIP_BUILD) {
   cpSync('.next/static', '.next/standalone/.next/static', { recursive: true })
 }
 run('npx', ['playwright', 'test', '--config=playwright.hermetic.config.ts', ...process.argv.slice(2)])
+// H6: AI Control Center browser checks against the SAME build (flag-gated navigation, role sections, approval review,
+// race refusals, controls, phone width + dark mode). Skipped only when snapshot arguments are passed for the gate.
+if (process.argv.length <= 2) {
+  run('npx', ['playwright', 'test', '--config=playwright.ai-control-center.config.ts'])
+}

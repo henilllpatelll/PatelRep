@@ -158,6 +158,7 @@ const es = {
     guestRequests: "Solicitudes",
     tasks: "Tareas",
     aiCopilot: "Copiloto IA",
+    aiControlCenter: "Centro de control de IA",
     sopLibrary: "Biblioteca SOP",
     evidence: "Evidencia",
     safety: "Seguridad",

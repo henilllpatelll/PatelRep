@@ -27,6 +27,8 @@ const ROLE_ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   { prefix: '/lost-found', roles: ['gm', 'housekeeping_supervisor', 'front_desk'] },
   { prefix: '/reports', roles: ['gm', 'housekeeping_supervisor', 'engineer', 'chief_engineer'] },
   { prefix: '/billing', roles: ['gm'] },
+  // H6 AI Control Center (also hidden unless the ai_control_center flag is on; the API re-checks role and flag).
+  { prefix: '/ai-control-center', roles: ['gm', 'chief_engineer', 'housekeeping_supervisor'] },
   { prefix: '/settings', roles: [...SETTINGS_ROLES] },
 ]
 
