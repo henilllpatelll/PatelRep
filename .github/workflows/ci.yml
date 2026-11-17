@@ -152,6 +152,9 @@ jobs:
         # migration-254 re-assertion of least privilege on the protected agent audit tables
         # (skipped when 254 is not part of the replay), so the integration tests run against
         # the same privileges as staging and production.
+        # The blanket function grant would also re-open the six owner-only migration-254 functions to service_role
+        # (no deployed environment grants them), so the same transaction revokes them again; the list must equal the
+        # one in scripts/schema-contracts.sql (enforced by scripts/database-safety-contract.test.mjs).
         run: |
           psql --set ON_ERROR_STOP=1 --single-transaction "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
           GRANT USAGE ON SCHEMA public TO service_role;
@@ -162,6 +165,10 @@ jobs:
           BEGIN
             IF to_regprocedure('public.agent_audit_privileges_enforce()') IS NOT NULL THEN
               PERFORM public.agent_audit_privileges_enforce();
+              REVOKE ALL ON FUNCTION public.agent__audit_protected_tables(), public.agent__refuse_truncate(),
+                public.agent_audit_privilege_violations(), public.agent_audit_privileges_enforce(),
+                public.agent__guard_approval_independence(), public.agent__guard_execution_approval()
+                FROM service_role;
             END IF;
           END
           $$;

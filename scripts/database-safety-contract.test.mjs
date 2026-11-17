@@ -53,6 +53,33 @@ test('every blanket service_role table grant re-asserts agent audit least privil
   assert.equal(grantSteps, 2, 'expected exactly the CI Gate and Staging Candidate blanket grants; review any new one')
 })
 
+// A blanket service_role function grant re-opens the owner-only migration-254 functions (#230). Only the throwaway
+// CI database may issue one, and it must revoke exactly the functions the schema contract requires to be owner-only,
+// after the grant and in the same transaction, so the integration tests run with deployed function privileges.
+const BLANKET_FUNCTION_GRANT = /grant\s+execute\s+on\s+all\s+functions\s+in\s+schema\s+public\s+to\s+service_role/i
+const OWNER_ONLY_CONTRACT = /owner-only[\s\S]*?procs\.proname IN \(([^)]*)\)[\s\S]*?NOT has_function_privilege\('service_role'/
+
+test('every blanket service_role function grant re-revokes the owner-only hardening functions', () => {
+  const contract = readFileSync('scripts/schema-contracts.sql', 'utf8').match(OWNER_ONLY_CONTRACT)
+  assert.ok(contract, 'schema-contracts.sql must keep the owner-only hardening function check')
+  const ownerOnly = [...contract[1].matchAll(/'([a-z_]+)'/g)].map((match) => match[1]).sort()
+  assert.equal(ownerOnly.length, 6)
+  let grantSteps = 0
+  for (const { name, text } of workflows) {
+    for (const step of workflowSteps(text).filter((candidate) => BLANKET_FUNCTION_GRANT.test(candidate))) {
+      grantSteps += 1
+      assert.equal(name, 'ci.yml', `${name}: only the throwaway CI database may grant every function to service_role`)
+      assert.match(step, /--single-transaction/, `${name}: grant and revoke must share one transaction`)
+      const tail = step.slice(step.search(BLANKET_FUNCTION_GRANT))
+      const revoke = tail.match(/REVOKE ALL ON FUNCTION ([^;]*?)\s+FROM service_role;/)
+      assert.ok(revoke, `${name}: the blanket function grant must be followed by a REVOKE ... FROM service_role`)
+      const revoked = [...revoke[1].matchAll(/public\.([a-z_]+)\(\)/g)].map((match) => match[1]).sort()
+      assert.deepEqual(revoked, ownerOnly, `${name}: revoke exactly the schema contract's owner-only functions`)
+    }
+  }
+  assert.equal(grantSteps, 1, 'expected exactly the CI Gate blanket function grant; review any new one')
+})
+
 test('the from-scratch replay tool is not wired into any workflow', () => {
   for (const { name, text } of workflows) {
     assert.doesNotMatch(stripComments(text), /remote-migration-apply[.]mjs/, name)
