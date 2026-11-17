@@ -95,8 +95,17 @@ def test_end_user_roles_have_no_access_to_execution_tables_functions_or_queue():
     assert public_exec == "0"
     for table in TABLES:
         assert sql_value(f"SELECT relrowsecurity FROM pg_class WHERE oid = 'public.{table}'::regclass;") == "t"
-    assert sql_value("""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE n.nspname = 'public' AND p.proname LIKE 'agent%' AND p.prosecdef;""") == "0"
+    # H6 (ADR-0005 §3.1): the ONLY SECURITY DEFINER agent functions are the 23 reviewed agent_worker wrappers and five
+    # audited helpers; every other harness function stays SECURITY INVOKER. (Before H6 this set was empty.)
+    definers = sql_value(r"""SELECT string_agg(p.proname, ',' ORDER BY p.proname) FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname LIKE 'agent%' AND p.prosecdef
+          AND p.proname NOT LIKE 'agent\_worker\_rpc\_\_%';""")
+    assert set(definers.split(",")) == {"agent__worker_credential_ok", "agent__worker_assert",
+                                        "agent__control_center_journal", "agent__journal_control_change",
+                                        "agent_control_center_record_refusal"}, definers
+    assert sql_value(r"""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname LIKE 'agent\_worker\_rpc\_\_%' AND p.prosecdef;""") == "23"
 
 
 def test_anon_api_key_cannot_reach_runs_or_rpcs(db):
