@@ -135,6 +135,7 @@ test('migrates persistent staging forward only, guarded, and proves API/web iden
   assert.ok(fixtureAccess > driftCheck && fixtureAccess < fixtureSeed, 'fixture service access must be established only after clean drift verification and before seeding')
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role/i)
   assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*notify pgrst, 'reload schema'/i, 'PostgREST must reload its schema cache after the migrations and grants, before the API serves the smoke')
+  assert.match(workflow, /grant all privileges on all tables in schema public to service_role;[^"]*perform public\.agent_audit_privileges_enforce\(\);[^"]*notify pgrst, 'reload schema'/i, 'the blanket grant must be followed, in the same --command transaction, by the agent audit least-privilege re-assertion (#230)')
   assert.match(workflow, /npm run check:staging-health/)
   assert.match(workflow, /npm run test:e2e:staging/)
   assert.match(workflow, /npm run check:deployment-drift/)
