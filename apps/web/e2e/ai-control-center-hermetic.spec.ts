@@ -109,6 +109,7 @@ test.describe('GM', () => {
     await expect(tabs).toHaveText(['Overview', 'Agents', 'Approvals', 'Activity', 'Controls', 'Audit'])
     await page.getByRole('tab', { name: 'Overview' }).focus()
     await page.keyboard.press('ArrowRight')
+    await expect(page.getByRole('tab', { name: 'Agents' })).toBeFocused()  // focus moves on the next frame
     await page.keyboard.press('ArrowRight')
     await expect(page.getByRole('tab', { name: 'Approvals' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByRole('tab', { name: 'Approvals' })).toBeFocused()
