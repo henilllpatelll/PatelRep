@@ -127,3 +127,17 @@ finalization before any Stripe call.
   resubmitted.
 - Never edit a row by hand. Amounts, identity and recorded Stripe ids are immutable (trigger
   `billing_trueup_operations_guard`).
+
+## H6 AI Control Center and worker identity
+
+* Worker credentials (issue, rotate, revoke, emergency kill switch): [worker-identity.md](worker-identity.md). The
+  worker must never be given `SUPABASE_SERVICE_ROLE_KEY`; it refuses to start if it is present.
+* Verify privileges on any environment: `SELECT * FROM public.agent_audit_privilege_violations();` and
+  `SELECT * FROM public.agent_worker_privilege_violations();` must both be empty.
+* Who changed a control: `SELECT event_type, actor_kind, actor_user_id, actor_ref, subject_ref, reason_code, detail,
+  created_at FROM public.agent_control_center_events ORDER BY id DESC LIMIT 50;` (operator CLI changes appear with
+  `actor_kind = 'operator'`).
+* A GM hotel pause shows `updated_by = 'user:<uuid>'`; an operator pause cannot be lifted from the Control Center
+  (`operator_pause_locked`) — clear it with `control --scope hotel --tenant T --operator O` (no `--paused`).
+* The Control Center is visible only where the tenant flag `ai_control_center` is on; it never changes any execution,
+  paid-call or billing switch.

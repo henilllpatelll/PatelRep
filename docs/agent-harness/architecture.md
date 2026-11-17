@@ -121,3 +121,16 @@ no flag, setting or environment variable overrides.
 
 See also: [security.md](security.md), [contracts.md](contracts.md), [roadmap.md](roadmap.md),
 [adr-0001-initial-agent-stack.md](adr-0001-initial-agent-stack.md).
+
+## 10. H6: Control Center and identities
+
+```
+Browser ─JWT─▶ routers/agent_control_center.py ─▶ services/agent_control_center (access, catalog, store, service)
+                                                     ├─ H1 SupabaseIdentityAuthority (per-request role re-read)
+                                                     ├─ H2 approvals service (approve/reject/withdraw)
+                                                     └─ migration-256 read models + audited controls (service_role)
+Worker ─agent_worker JWT─▶ PostgREST ─▶ agent_worker_rpc__* (DEFINER) ─▶ unchanged H1–H5 RPCs
+Control tables ─AFTER trigger─▶ agent_control_center_events (append-only journal)
+```
+
+The API keeps `service_role`; the worker holds only its own registered token. Details: ADR-0005.

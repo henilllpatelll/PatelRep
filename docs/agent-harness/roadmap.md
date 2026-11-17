@@ -10,7 +10,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | **H3** | Orchestrator + provider abstraction: OpenAI Agents SDK planner, OpenAI/Anthropic adapters, metered calls producing `ProviderUsage`, price book, budget reservations (atomic SQL), tracing with sensitive payloads off. | H2 | ✅ (isolated DB only; paid calls never enabled; no worker deployed; production refused in code) |
 | **H4** | Customer billing: versioned two-person pricing policies, pre-dispatch customer-credit holds bound to the H3 reservation, one immutable charge per settled attempt, reconciliation (dry-run, metadata-only), GM-only overage consent (off by default) with caps, durable Stripe true-up outbox, Billing & Usage UX. | H3 | ✅ (default disabled; Stripe test mode only; nothing scheduled; production refused in code) |
 | **H5** | First Operations specialists (Engineering `engineering.dispatch_assistant` v2, Housekeeping `housekeeping.room_readiness_assistant` v1) at observe / human-approved autonomy; verified planning context; plan schema v2; the H3 → H2 proposal handoff; human-approved one-room Housekeeping assignment on `publish_assignment_batch`; backend recommendation preview. | H2–H4 | ✅ (default disabled; isolated DB only until the reviewed staging preview; no worker deployed; production refused in code) |
-| **H6** | AI Control Center: per-hotel enablement, autonomy grants, pauses/emergency stops, approval inbox, audit viewer. | H1–H5 | ⏳ |
+| **H6** | AI Control Center (visibility + human governance) and the least-privileged worker database identity (`agent_worker`): approval inbox and decisions through H2, hotel pause, grant revocation, activity, agent directory, governance journal and audit viewer. Never activation. | H1–H5 | ✅ (default disabled behind `ai_control_center`; 255–256 isolated DB only until the reviewed staging preview; no worker credential issued, no worker deployed) |
 | **H7** | Bounded autonomy (level 3) for expressly granted low-risk operational tools; requires a new manifest schema version and a reviewed risk model. | H6 | ⏳ |
 | **H8** | Coordinated autonomy (level 4), cross-product agents (Guest, Growth, Owner, Connect), persistent memory with trust boundaries. | H7 | ⏳ |
 
@@ -130,3 +130,21 @@ See [customer-billing.md](customer-billing.md) and [ADR-0003](adr-0003-h4-custom
 See [ADR-0004](adr-0004-h5-operations-specialists.md), [handoff.md](handoff.md),
 [tool-intent-matrix.md](tool-intent-matrix.md), [threat-model-h5.md](threat-model-h5.md),
 [runbook-h5.md](runbook-h5.md) and [rollout-h5.md](rollout-h5.md).
+
+## H6: implemented vs. deferred
+
+| Item | Status |
+|---|---|
+| `agent_worker` role via PostgREST custom JWT; 23 reviewed DEFINER wrappers; column-scoped reads; credential registry with revocation (255) | ✅ real restricted-principal tested |
+| Worker refuses `service_role`; no `core.config` in the worker path; provider keys read without the API settings | ✅ |
+| Governance journal written only by control-table triggers + refusal recorder; 254 registry 33/12; enforcement extended (256) | ✅ real-DB tested |
+| `/v1/agent-control-center` (session, overview, agents, runs, approvals, controls, audit) with per-request identity re-validation | ✅ real-DB tested |
+| `/ai-control-center` web UI (six sections), flag-gated navigation | ✅ browser-verified (hermetic) |
+| Staging application of 255–256 | ⏳ reviewed preview + human approval |
+| Issuing a worker credential / deploying a worker | ⏳ separate authorization |
+| Post-commit staff push from the restricted worker (API-side outbox) | ⏳ H7 candidate (ADR-0005 L3) |
+| DB-verified human principal for decisions (removes the trusted-API residual) | ⏳ H7+ (ADR-0005 L1) |
+| Mobile Control Center surface | ⏳ product decision |
+
+See [ADR-0005](adr-0005-h6-control-center.md), [threat-model-h6.md](threat-model-h6.md) and
+[worker-identity.md](worker-identity.md).
