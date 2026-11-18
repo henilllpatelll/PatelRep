@@ -28,6 +28,7 @@ from agent_gateway_support import (
     tool_events,
 )
 from agent_worker_identity_support import (
+    default_tenant,
     denied,
     issue_token,
     raw_worker_client,
@@ -38,7 +39,7 @@ from agent_worker_identity_support import (
     worker_client,
 )
 from batch_support import new_client
-from services.agent_execution.worker_identity import WORKER_READ_COLUMNS, WORKER_RPCS, WorkerIdentityError
+from services.agent_execution.worker_identity import WORKER_READ_COLUMNS, WORKER_RPCS, WorkerIdentityError, bound_worker_id
 from services.agent_gateway import approvals
 
 pytestmark = requires_db
@@ -84,7 +85,7 @@ def test_a_synthetic_run_completes_under_the_restricted_principal():
     reset_execution_state()
     tenant_id, _ = make_hotel(new_client())
     admitted = admit(store(), tenant_id, spec={"operation": "noop", "steps": 2})
-    w, s = restricted_worker("it-h6-synth", synthetic=True)
+    w, s = restricted_worker("it-h6-synth", tenant_id=tenant_id, synthetic=True)
     outcomes = [restricted_process(w, s) for _ in range(4)]
     assert "run_succeeded" in outcomes, outcomes
     assert store().get_run(tenant_id=tenant_id, run_id=admitted["run_id"])["run"]["state"] == "succeeded"
@@ -93,7 +94,7 @@ def test_a_synthetic_run_completes_under_the_restricted_principal():
 def test_an_approved_assignment_runs_end_to_end_under_the_restricted_principal():
     hotel = make_gateway_hotel()
     admitted = admit_tool(hotel, ASSIGN, assign_args(hotel, note="h6 restricted worker"))
-    w, s = restricted_worker("it-h6-gw", gateway=True)
+    w, s = restricted_worker("it-h6-gw", tenant_id=hotel.tenant_id, gateway=True)
     assert restricted_process(w, s) == "awaiting_approval"
     approval = approval_for(hotel, admitted.run_id)
     # The worker requested the approval but can never decide it; a different, current GM decides through the API path.
@@ -124,6 +125,8 @@ DENIED_RPCS = {
     "agent_run_claim": {"p_worker": "w"},  # even an ALLOWED operation is refused when called without its wrapper
     "agent_worker_credential_register": {"p_id": X, "p_label": "self", "p_app_env": "test",
                                          "p_expires_at": "2030-01-01T00:00:00Z", "p_issued_by": "w"},
+    "agent_worker_credential_register_v2": {"p_id": X, "p_label": "self", "p_app_env": "test",
+                                            "p_expires_at": "2030-01-01T00:00:00Z", "p_issued_by": "w", "p_tenant_id": X},
     "agent_audit_privileges_enforce": {},
     "work_order_assign_apply": {"p_tenant_id": X, "p_work_order_id": X, "p_assignee_user_id": X,
                                 "p_expected_assigned_to": None, "p_actor_id": X, "p_actor_role": "gm",
@@ -146,10 +149,10 @@ def test_the_database_refuses_every_unreviewed_rpc_for_the_worker(rpc):
 def test_a_real_pending_approval_cannot_be_decided_with_worker_credentials():
     hotel = make_gateway_hotel()
     admitted = admit_tool(hotel, ASSIGN, assign_args(hotel))
-    w, s = restricted_worker("it-h6-decide", gateway=True)
+    w, s = restricted_worker("it-h6-decide", tenant_id=hotel.tenant_id, gateway=True)
     assert restricted_process(w, s) == "awaiting_approval"
     approval = approval_for(hotel, admitted.run_id)
-    raw = raw_worker_client()
+    raw = raw_worker_client(tenant_id=hotel.tenant_id)
     for name in ("agent_worker_rpc__agent_tool_approval_decide", "agent_tool_approval_decide"):
         code = denied(lambda n=name: raw.rpc(n, {"p_tenant_id": hotel.tenant_id, "p_approval_id": approval["id"],
                                                  "p_actor_user_id": hotel.gm, "p_decision": "approve",
@@ -161,12 +164,13 @@ def test_a_real_pending_approval_cannot_be_decided_with_worker_credentials():
 def test_fabricated_success_and_unapproved_execution_are_refused_for_the_worker():
     hotel = make_gateway_hotel()
     admitted = admit_tool(hotel, ASSIGN, assign_args(hotel))
-    w, s = restricted_worker("it-h6-forge", gateway=True)
+    w, s = restricted_worker("it-h6-forge", tenant_id=hotel.tenant_id, gateway=True)
     assert restricted_process(w, s) == "awaiting_approval"
     approval = approval_for(hotel, admitted.run_id)
     run = run_row(hotel.tenant_id, admitted.run_id)
-    client = worker_client()
-    common = {"p_run_id": admitted.run_id, "p_fencing_token": run["fencing_token"] or 0, "p_worker": "it-h6-forge",
+    client = worker_client(tenant_id=hotel.tenant_id)
+    common = {"p_run_id": admitted.run_id, "p_fencing_token": run["fencing_token"] or 0,
+              "p_worker": bound_worker_id(hotel.tenant_id, "it-h6-forge"),
               "p_invocation_id": approval["invocation_id"]}
     executed = client.rpc("agent_tool_execute_work_order_assign",
                           {**common, "p_action_digest": approval["action_digest"]}).execute().data
@@ -186,6 +190,8 @@ DIRECT_WRITES = [
     ("agent_control_center_events", "insert", {"tenant_id": X, "event_type": "hotel_paused"}),
     ("agent_runtime_controls", "update", {"paused": False}),
     ("agent_worker_credentials", "insert", {"id": X, "label": "self-issued"}),
+    ("agent_worker_credential_scopes", "insert", {"credential_id": X, "tenant_id": X}),
+    ("agent_deployment_identity", "insert", {"id": 1, "environment": "staging"}),
     ("operational_audit_events", "insert", {"tenant_id": X}),
     ("work_orders", "update", {"assigned_to": X}),
     ("room_assignments", "insert", {"tenant_id": X}),
@@ -255,8 +261,13 @@ def test_a_revoked_credential_cannot_be_reactivated_or_deleted():
                       f"UPDATE public.agent_worker_credentials SET expires_at = expires_at + interval '1 day' WHERE id = '{credential}'"):
         with pytest.raises(AssertionError):
             run_sql(statement)
-    over = new_client().rpc("agent_worker_credential_register", {
+    # 257 fixture change: the unbound 255 path now refuses outright; the 31-day ceiling is enforced on the bound path.
+    legacy = new_client().rpc("agent_worker_credential_register", {
+        "p_id": str(uuid.uuid4()), "p_label": "unbound", "p_app_env": "test",
+        "p_expires_at": "2030-01-01T00:00:00Z", "p_issued_by": "it"}).execute().data
+    assert legacy == {"ok": False, "reason": "tenant_binding_required"}
+    over = new_client().rpc("agent_worker_credential_register_v2", {
         "p_id": str(uuid.uuid4()), "p_label": "too-long", "p_app_env": "test",
-        "p_expires_at": "2099-01-01T00:00:00Z", "p_issued_by": "it"})
+        "p_expires_at": "2099-01-01T00:00:00Z", "p_issued_by": "it", "p_tenant_id": default_tenant()})
     with pytest.raises(Exception):
         over.execute()

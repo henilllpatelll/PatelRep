@@ -11,6 +11,8 @@ DECLARE
   hardening_present text[];
   h6_recorded integer;
   h6_present text[];
+  p1_recorded integer;
+  p1_present text[];
   protected_tables integer := 31;
   append_only_tables integer := 11;
 BEGIN
@@ -71,6 +73,11 @@ BEGIN
                     OR procs.proname IN ('agent__worker_credential_ok', 'agent__worker_assert',
                                          'agent__control_center_journal', 'agent__journal_control_change',
                                          'agent_control_center_record_refusal')))
+      -- H6 P1 (257, recorded): the registry-bound tenant source evaluated by the RESTRICTIVE gates, and nothing else.
+      AND NOT (EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations history
+                        WHERE history.name = 'agent_worker_tenant_binding')
+               AND procs.proname = 'agent__worker_tenant' AND procs.pronargs = 0
+               AND procs.proconfig IS NOT DISTINCT FROM ARRAY['search_path=""'])
   ) THEN
     RAISE EXCEPTION 'An Agent Harness function is SECURITY DEFINER';
   END IF;
@@ -272,6 +279,13 @@ BEGIN
     protected_tables := 33;
     append_only_tables := 12;
   END IF;
+  -- H6 P1 (257) adds the credential scopes and the deployment identity, both append-only.
+  SELECT count(DISTINCT history.name) INTO p1_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_worker_tenant_binding';
+  IF p1_recorded = 1 AND h6_recorded = 2 THEN
+    protected_tables := 35;
+    append_only_tables := 14;
+  END IF;
 
   -- Pre-H6 hardening (migration 254: append-only audit integrity #230, independent approval #231). Version-gated by
   -- migration NAME exactly like H5: staging receives 254 through a reviewed preview before it merges.
@@ -414,6 +428,147 @@ BEGIN
                       OR has_function_privilege('authenticated', procs.oid, 'EXECUTE')
                       OR has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))) THEN
       RAISE EXCEPTION 'An AI Control Center function is executable by an end-user or worker role';
+    END IF;
+  END IF;
+  -- H6 P1 (migration 257). Version-gated by migration NAME: not recorded -> no 257 object may exist; recorded -> the
+  -- tenant binding, the gates, the definer surface and the reviewed bodies (CR-stripped md5, every overload) hold.
+  SELECT array_remove(ARRAY[
+    CASE WHEN to_regclass('public.agent_deployment_identity') IS NOT NULL
+           OR to_regclass('public.agent_worker_credential_scopes') IS NOT NULL THEN 'P1 tables' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__worker_tenant', 'agent__worker_check_tenant', 'agent__worker_tenant_columns',
+           'agent__guard_deployment_identity', 'agent__guard_worker_scope', 'agent__guard_worker_credential_insert',
+           'agent_worker_credential_register_v2', 'agent__run_claim_scoped', 'agent__runs_recover_scoped',
+           'agent__tool_approvals_expire_scoped', 'agent__model_attempts_recover_scoped'))
+         THEN 'P1 functions' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'agent_worker_tenant_gate') THEN 'P1 tenant gates' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_trigger WHERE tgname IN ('agent_deployment_identity_guard',
+           'agent_worker_credential_scopes_guard', 'agent_worker_credentials_environment_guard'))
+         THEN 'P1 triggers' END], NULL) INTO p1_present;
+  IF p1_recorded = 0 THEN
+    IF cardinality(p1_present) > 0 THEN
+      RAISE EXCEPTION 'Agent H6 P1 objects exist without migration 257 recorded: %', p1_present;
+    END IF;
+  ELSIF h6_recorded <> 2 THEN
+    RAISE EXCEPTION 'Migration 257 is recorded without 255/256; the schema version is not trusted';
+  ELSE
+    -- One RESTRICTIVE gate per worker-readable table, exactly as reviewed (the verifier also requires it on every table
+    -- the worker can read); the verifier itself must be clean.
+    IF (SELECT count(*) FROM public.agent__worker_tenant_columns() gates
+          JOIN pg_policy policies ON policies.polrelid = format('public.%I', gates.table_name)::regclass
+           AND policies.polname = 'agent_worker_tenant_gate' AND NOT policies.polpermissive AND policies.polcmd = '*'
+           AND policies.polroles = ARRAY['agent_worker'::regrole::oid]
+           AND pg_get_expr(policies.polqual, policies.polrelid)
+               = format('(%I = ( SELECT agent__worker_tenant() AS agent__worker_tenant))', gates.column_name)) <> 8
+       OR (SELECT count(*) FROM pg_policy WHERE polname = 'agent_worker_tenant_gate') <> 8
+       OR EXISTS (SELECT 1 FROM public.agent_worker_privilege_violations()) THEN
+      RAISE EXCEPTION 'The H6 P1 agent_worker tenant gates are missing, permissive or not as reviewed';
+    END IF;
+    -- Exactly one overload of each reviewed body, byte-identical to review (an overload under a reviewed name is never
+    -- exempt). Covers the tenant source, the 23 wrappers, the scoped copies AND the unchanged originals they copy.
+    IF (SELECT count(*) FROM pg_proc procs JOIN (VALUES
+      ('agent__guard_deployment_identity', '912523371852d722d49e3d5a7372e7ea'),
+      ('agent__guard_worker_credential_insert', '4f23d283658b4255b5b54248b321d22d'),
+      ('agent__guard_worker_scope', '96863deae849af424b924f3c465be57f'),
+      ('agent__model_attempts_recover_scoped', 'a2a47c8bf7d0cb3913a648d029fa49db'),
+      ('agent__run_claim_scoped', 'd72df21b2232d30331f5718386574987'),
+      ('agent__runs_recover_scoped', '89ec8fd77ada7edc6a43c671a8b2ae31'),
+      ('agent__tool_approvals_expire_scoped', 'd9a53620d556189ebbb06a866583376d'),
+      ('agent__worker_assert', 'a023066fbaeef6310b63e2bf0b57f091'),
+      ('agent__worker_check_tenant', '04d55a82a1a6713ec9c47a0c4e5c90fc'),
+      ('agent__worker_credential_ok', '72d3bac9263ac497fc014b77b6151bc7'),
+      ('agent__worker_tenant', '98a7c41ae4b7c2f24bbf1c34b23de4ef'),
+      ('agent_model_attempts_recover', '5da9c7b8897f25a344954e9178296ac8'),
+      ('agent_run_claim', 'fa90e788d9885ba202996104d04cfe6f'),
+      ('agent_runs_recover', '316e0651e584ef5e187ee24b2af86acd'),
+      ('agent_tool_approvals_expire', '21835f066137a596c5002d82d510a20e'),
+      ('agent_worker_credential_register_v2', 'f7615788b8355926644330303c2718f3'),
+      ('agent_worker_credential_register', '9d0638223ba9995c01c735b69adcc6ec'),
+      ('agent_worker_rpc__agent_billing_attempt_dispatch', 'b00795a727880c4156165bb253521ca1'),
+      ('agent_worker_rpc__agent_billing_attempt_release', 'd0376b79a12e86fb596719cbd60b63f0'),
+      ('agent_worker_rpc__agent_billing_attempt_reserve', '30f050fb024de3bc488b190dc4a4b30a'),
+      ('agent_worker_rpc__agent_billing_attempt_settle', '63da6043c1131151bb7cea729d5772e3'),
+      ('agent_worker_rpc__agent_model_attempts_recover', '0821439f53d79dd91b06febd3513286a'),
+      ('agent_worker_rpc__agent_planning_record_context', 'ad6f6c400f9bdc832a66f2d38078c2a1'),
+      ('agent_worker_rpc__agent_planning_record_plan', 'cb7262460d0e51d5e1d8a8d9c95c881b'),
+      ('agent_worker_rpc__agent_planning_step_context', 'f842feb50c97005c05d2c2ba75acd632'),
+      ('agent_worker_rpc__agent_run_acknowledge', 'be9a23632d8ba82ca3e1a726f4cc7474'),
+      ('agent_worker_rpc__agent_run_claim', '4b0de437224a254c5362a22809861d59'),
+      ('agent_worker_rpc__agent_run_heartbeat', '1834080ab13543fd410414cf3dac8b66'),
+      ('agent_worker_rpc__agent_runs_recover', 'd5031fb4a92fd2c8523f3ae76247d695'),
+      ('agent_worker_rpc__agent_runtime_controls_snapshot', '085dfade9b983a84d042d78bd19fe405'),
+      ('agent_worker_rpc__agent_step_complete', 'c449a8e8a3de47395769dfeddeeec7a0'),
+      ('agent_worker_rpc__agent_step_fail', '0509a60fd87b08859906859b3f8d69ed'),
+      ('agent_worker_rpc__agent_tool_approvals_expire', 'd1a812dc85deafc9db3976caa5971f5b'),
+      ('agent_worker_rpc__agent_tool_authorization_snapshot', '36a01549958d7780d84a9e10c4b837e8'),
+      ('agent_worker_rpc__agent_tool_execute_room_assignment', 'c58d58426072a8b172aaa52dd4b3e55c'),
+      ('agent_worker_rpc__agent_tool_execute_work_order_assign', '40298a74885ee3189e2602510e6e0852'),
+      ('agent_worker_rpc__agent_tool_record_outcome', '534a1849ddca3e979c2ad62ca38cfeb2'),
+      ('agent_worker_rpc__agent_tool_request_approval', '505b5eee6b862f29aa9eb962748c655c'),
+      ('agent_worker_rpc__agent_tool_step_context', 'f1273f6cf8f3248f3c5c845f0682c992'),
+      ('agent_worker_rpc__agent_worker_heartbeat', 'aded91ae2d2539813bd04f4cfa449e56')
+         ) AS pins(proname, body_md5) ON pins.proname = procs.proname
+         WHERE procs.pronamespace = 'public'::regnamespace AND md5(replace(procs.prosrc, chr(13), '')) = pins.body_md5) <> 40
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+             'agent__guard_deployment_identity',
+             'agent__guard_worker_credential_insert',
+             'agent__guard_worker_scope',
+             'agent__model_attempts_recover_scoped',
+             'agent__run_claim_scoped',
+             'agent__runs_recover_scoped',
+             'agent__tool_approvals_expire_scoped',
+             'agent__worker_assert',
+             'agent__worker_check_tenant',
+             'agent__worker_credential_ok',
+             'agent__worker_tenant',
+             'agent_model_attempts_recover',
+             'agent_run_claim',
+             'agent_runs_recover',
+             'agent_tool_approvals_expire',
+             'agent_worker_credential_register_v2',
+             'agent_worker_credential_register',
+             'agent_worker_rpc__agent_billing_attempt_dispatch',
+             'agent_worker_rpc__agent_billing_attempt_release',
+             'agent_worker_rpc__agent_billing_attempt_reserve',
+             'agent_worker_rpc__agent_billing_attempt_settle',
+             'agent_worker_rpc__agent_model_attempts_recover',
+             'agent_worker_rpc__agent_planning_record_context',
+             'agent_worker_rpc__agent_planning_record_plan',
+             'agent_worker_rpc__agent_planning_step_context',
+             'agent_worker_rpc__agent_run_acknowledge',
+             'agent_worker_rpc__agent_run_claim',
+             'agent_worker_rpc__agent_run_heartbeat',
+             'agent_worker_rpc__agent_runs_recover',
+             'agent_worker_rpc__agent_runtime_controls_snapshot',
+             'agent_worker_rpc__agent_step_complete',
+             'agent_worker_rpc__agent_step_fail',
+             'agent_worker_rpc__agent_tool_approvals_expire',
+             'agent_worker_rpc__agent_tool_authorization_snapshot',
+             'agent_worker_rpc__agent_tool_execute_room_assignment',
+             'agent_worker_rpc__agent_tool_execute_work_order_assign',
+             'agent_worker_rpc__agent_tool_record_outcome',
+             'agent_worker_rpc__agent_tool_request_approval',
+             'agent_worker_rpc__agent_tool_step_context',
+             'agent_worker_rpc__agent_worker_heartbeat')) <> 40 THEN
+      RAISE EXCEPTION 'An H6 P1 reviewed function body changed, is missing or is overloaded';
+    END IF;
+    -- Owner-only helpers stay owner-only; the tenant source is executable by agent_worker alone; scoped copies are INVOKER.
+    IF EXISTS (SELECT 1 FROM public.agent_audit_privilege_violations())
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+             AND procs.proname IN ('agent__run_claim_scoped', 'agent__runs_recover_scoped',
+                                   'agent__tool_approvals_expire_scoped', 'agent__model_attempts_recover_scoped',
+                                   'agent__worker_check_tenant')
+             AND NOT procs.prosecdef AND procs.proconfig = ARRAY['search_path=""']) <> 5
+       OR has_function_privilege('service_role', 'public.agent__worker_tenant()'::regprocedure, 'EXECUTE')
+       OR NOT has_function_privilege('agent_worker', 'public.agent__worker_tenant()'::regprocedure, 'EXECUTE') THEN
+      RAISE EXCEPTION 'An H6 P1 helper is exposed, SECURITY DEFINER or not pinned to an empty search_path';
+    END IF;
+    IF (SELECT count(*) FROM pg_trigger triggers WHERE triggers.tgenabled = 'O' AND (
+          (triggers.tgname = 'agent_deployment_identity_guard' AND triggers.tgrelid = 'public.agent_deployment_identity'::regclass)
+          OR (triggers.tgname = 'agent_worker_credential_scopes_guard' AND triggers.tgrelid = 'public.agent_worker_credential_scopes'::regclass)
+          OR (triggers.tgname = 'agent_worker_credentials_environment_guard' AND triggers.tgrelid = 'public.agent_worker_credentials'::regclass))) <> 3
+       OR has_any_column_privilege('service_role', 'public.agent_deployment_identity'::regclass, 'INSERT') THEN
+      RAISE EXCEPTION 'An H6 P1 binding guard trigger is missing or disabled, or the deployment identity is writable';
     END IF;
   END IF;
 END;
