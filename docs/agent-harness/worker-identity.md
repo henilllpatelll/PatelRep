@@ -10,10 +10,10 @@ authorized step that does.
 |---|---|---|
 | `AGENT_WORKER_ENABLED` | `false` (default). The worker exits 0 before reading anything else. | no |
 | `APP_ENV` | `development` / `test` / `staging` (production refuses all work in code) | no |
-| `AGENT_WORKER_DB_URL` | the project URL (`https://<ref>.supabase.co`) | no |
+| `AGENT_WORKER_DB_URL` | the project URL, exactly `scheme://host[:port]` (an optional trailing `/rest/v1` is accepted). `staging`: `https://<ref>.supabase.co` only (HTTPS, default port or `:443`; plain HTTP is `worker_db_transport_insecure`, any other port `worker_db_port_not_allowed`). `development`/`test`: HTTP or HTTPS to `127.0.0.1`/`localhost` only, any port. A URL with userinfo, a path, a query or fragment, an invalid hostname or port, or any scheme other than `https`/`http` is `worker_db_url_invalid` | no |
 | `AGENT_WORKER_DB_API_KEY` | the project's **public** anon/publishable key | no |
 | `AGENT_WORKER_DB_TOKEN` | the `agent_worker` JWT from `worker-credential-issue` | **yes** |
-| `STAGING_EXPECTED_SUPABASE_HOST`, `PRODUCTION_SUPABASE_HOST` | target allowlist (P1): `development`/`test` reach a loopback host only; `staging` must equal `STAGING_EXPECTED_SUPABASE_HOST`, which must differ from `PRODUCTION_SUPABASE_HOST`, and both must be set; `production` and the production host are refused under every `APP_ENV` | no |
+| `STAGING_EXPECTED_SUPABASE_HOST`, `PRODUCTION_SUPABASE_HOST` | target allowlist (P1): `development`/`test` reach a loopback host only; `staging` must equal `STAGING_EXPECTED_SUPABASE_HOST`, which must differ from `PRODUCTION_SUPABASE_HOST`, and both must be set as bare hostnames (a URL, port or trailing dot counts as unset and refuses staging); `production` and the production host are refused under every `APP_ENV` | no |
 
 Must **not** be set (the worker refuses to start): `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`,
 `AGENT_WORKER_DB_SERVICE_ROLE_KEY`. Startup also refuses a token whose role is not `agent_worker`, without a UUID
@@ -55,11 +55,19 @@ refused in H6.
 
 ## Rotate (no downtime)
 
-1. Issue a new credential (different label, e.g. `…-b`).
+A hotel-scoped worker credential lives **at most 7 days** (H6 P1). The ceiling is enforced at issuance (`--days 1..7`),
+at worker startup (token inspection), and in the database by migration 257 (registration refuses
+`lifetime_out_of_range`, and `agent__worker_tenant()` grants nothing to an over-long or expired row). 255's 31-day
+CHECK is only the outer bound and no longer the operating limit. An expired credential is not renewed or extended: the
+worker's reads return no rows and its wrapper calls fail, so rotate **before** expiry.
+
+1. Issue a new credential for the **same hotel**, with a different label (e.g. `…-b`) and `--tenant <same hotel uuid>`.
 2. Update `AGENT_WORKER_DB_TOKEN` and restart the worker; confirm `agent_worker_heartbeats.last_seen_at` advances.
 3. Revoke the old one: `python -m services.agent_execution worker-credential-revoke --id <old jti> --operator <you> --reason rotated`.
 
-Rotate at least every 14 days (hard maximum 31).
+Rotate at least every 5 days, so that a failed rotation still leaves about 2 days before the old token expires. Check
+remaining lifetime with `worker-credential-list`. Never issue with more than 7 days, and never reuse a revoked or
+expired `jti`.
 
 ## Revoke / emergency
 

@@ -66,6 +66,95 @@ def test_every_refusal_has_a_specific_reason():
         wi.enforce_target(bad, app_env="test", environ={})
 
 
+# ---------------------------------------------------------------- transport: scheme, port and URL shape (P1 review)
+def _url_outcome(url: str, app_env: str = "staging", environ: dict | None = None) -> str:
+    settings = wi.WorkerDatabaseSettings(url=url, api_key="k", token="t")
+    try:
+        wi.enforce_target(settings, app_env=app_env, environ=ENVIRONS["both"] if environ is None else environ)
+    except wi.WorkerIdentityError as exc:
+        return exc.code
+    return "ALLOW"
+
+
+@pytest.mark.parametrize("url", [
+    f"https://{STG}", f"https://{STG}/", f"https://{STG}/rest/v1", f"https://{STG}/rest/v1/", f"https://{STG}:443",
+    f"https://{STG.upper()}",
+])
+def test_staging_allows_only_https_on_the_default_port(url):
+    assert _url_outcome(url) == "ALLOW"
+
+
+@pytest.mark.parametrize("url", [f"http://{STG}", f"http://{STG}/rest/v1", f"http://{STG}:443", f"http://{STG}:80"])
+def test_staging_refuses_plain_http(url):
+    assert _url_outcome(url) == "worker_db_transport_insecure"
+
+
+@pytest.mark.parametrize("port", [1, 80, 444, 5432, 6543, 8443, 54321, 65535])
+def test_staging_refuses_nonstandard_ports(port):
+    assert _url_outcome(f"https://{STG}:{port}") == "worker_db_port_not_allowed"
+
+
+MALFORMED = [
+    "", "   ", "https://", "https:///rest/v1", f"{STG}", f"//{STG}", f"https:/{STG}", f"https:{STG}",
+    f"HTTPS://{STG}", f"Https://{STG}", f"ftp://{STG}", f"ws://{STG}", f"wss://{STG}", f"file://{STG}",
+    f"postgres://{STG}:5432", f"postgresql://{STG}", f"javascript://{STG}", f"git+https://{STG}",
+    f"https://user@{STG}", f"https://user:pw@{STG}", f"https://{PROD}@{STG}", f"https://{STG}@{PROD}",
+    f"https://{STG}:@evil.example.com", f"https://:pw@{STG}",
+    f"https://{STG}/rest/v2", f"https://{STG}/x", f"https://{STG}/rest/v1/x",
+    f"https://{STG}?", f"https://{STG}?x=1", f"https://{STG}#", f"https://{STG}#frag", f"https://{STG}/?a",
+    f"https://{STG}:", f"https://{STG}:0", f"https://{STG}:-1", f"https://{STG}:65536", f"https://{STG}:99999",
+    f"https://{STG}:0443", f"https://{STG}:443x", f"https://{STG}:abc", f"https://{STG}: 443",
+    f"https://{STG}.", f"https://.{STG}", f"https://{STG.replace('.', '..', 1)}", f"https://-{STG}",
+    f"https://{STG}\\@{PROD}", f"https://{STG}\n.evil", "https://st ghost.supabase.co",
+    f"https://{STG}%2F", "https://[::1]", "https://[::1]:443", f"https://{'a' * 64}.supabase.co",
+    f"https://xn--{STG}\x00",
+]
+
+
+@pytest.mark.parametrize("url", MALFORMED)
+def test_malformed_or_alternate_scheme_targets_are_refused_under_every_app_env(url):
+    for app_env in ("development", "test", "staging"):
+        assert _url_outcome(url, app_env) == "worker_db_url_invalid", (url, app_env)
+
+
+@pytest.mark.parametrize("url", [
+    "http://127.0.0.1", "http://127.0.0.1:54321", "http://localhost:54321", "http://localhost:54321/rest/v1",
+    "https://127.0.0.1:54321", "https://localhost", "http://127.0.0.1:1", "http://localhost:65535",
+])
+def test_development_and_test_allow_http_only_to_approved_loopback_hosts(url):
+    for app_env in ("development", "test"):
+        assert _url_outcome(url, app_env) == "ALLOW", (url, app_env)
+
+
+@pytest.mark.parametrize("host", [
+    STG, PROD, "evil.example.com", "127.0.0.2", "0.0.0.0", "localhost.evil.example.com", "127.0.0.1.nip.io",
+    "kong", "host.docker.internal", "2130706433",
+])
+def test_development_and_test_refuse_every_non_loopback_host_over_http_and_https(host):
+    for scheme, app_env in itertools.product(("http", "https"), ("development", "test")):
+        expected = "worker_db_target_production" if host == PROD else "worker_db_target_not_local"
+        assert _url_outcome(f"{scheme}://{host}:54321", app_env) == expected, (scheme, host, app_env)
+
+
+def test_production_and_loopback_are_never_reachable_from_staging_whatever_the_transport():
+    for url in (f"https://{PROD}", f"http://{PROD}", "https://127.0.0.1", "http://127.0.0.1:54321", "https://localhost"):
+        assert _url_outcome(url) != "ALLOW", url
+    assert _url_outcome(f"https://{PROD}") == "worker_db_target_production"
+    assert _url_outcome("https://localhost") == "worker_db_target_not_staging"
+
+
+@pytest.mark.parametrize("environ", [
+    {"PRODUCTION_SUPABASE_HOST": f"https://{PROD}", "STAGING_EXPECTED_SUPABASE_HOST": STG},
+    {"PRODUCTION_SUPABASE_HOST": f"{PROD}.", "STAGING_EXPECTED_SUPABASE_HOST": STG},
+    {"PRODUCTION_SUPABASE_HOST": f"{PROD}:443", "STAGING_EXPECTED_SUPABASE_HOST": STG},
+    {"PRODUCTION_SUPABASE_HOST": PROD, "STAGING_EXPECTED_SUPABASE_HOST": f"https://{STG}"},
+    {"PRODUCTION_SUPABASE_HOST": PROD, "STAGING_EXPECTED_SUPABASE_HOST": f"{STG}/"},
+    {"PRODUCTION_SUPABASE_HOST": PROD, "STAGING_EXPECTED_SUPABASE_HOST": f"{STG}:443"},
+])
+def test_malformed_host_variables_fail_closed_for_staging(environ):
+    assert _url_outcome(f"https://{STG}", environ=environ) in ("production_host_unknown", "worker_db_target_not_staging")
+
+
 # ---------------------------------------------------------------- the bound-hotel startup proof (fake client)
 class _Query:
     def __init__(self, rows, log):

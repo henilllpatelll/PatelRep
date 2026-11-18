@@ -163,13 +163,15 @@ def enforce_target(settings: WorkerDatabaseSettings, *, app_env: str, environ: M
       production           always refused in H6 (no production worker exists).
 
     Any APP_ENV outside the four is refused, and the production host is refused under every APP_ENV. The database
-    independently refuses a credential whose environment differs from its own stamped environment (migration 257)."""
-    if not settings.project_url.startswith(("https://", "http://")) or not settings.host:
-        raise WorkerIdentityError("worker_db_url_invalid")
+    independently refuses a credential whose environment differs from its own stamped environment (migration 257).
+
+    Transport (P1 review): the URL must be exactly ``scheme://host[:port]`` (an optional trailing ``/rest/v1`` is
+    stripped first) with no userinfo, path, query or fragment and a strictly valid hostname. Staging is HTTPS only on
+    the default port (none or 443). Plain HTTP is allowed only for development/test, and only to a loopback host."""
+    scheme, host, port = _parse_target(settings)
     if app_env not in ("development", "test", "staging", "production"):
         raise WorkerIdentityError("app_env_invalid")
-    host = settings.host
-    production = (environ.get("PRODUCTION_SUPABASE_HOST") or "").strip().lower()
+    production = _configured_host(environ, "PRODUCTION_SUPABASE_HOST")
     if production and host == production:
         raise WorkerIdentityError("worker_db_target_production")
     if app_env == "production":
@@ -179,11 +181,45 @@ def enforce_target(settings: WorkerDatabaseSettings, *, app_env: str, environ: M
             raise WorkerIdentityError("worker_db_target_not_local")
         return
     # staging
-    expected = (environ.get("STAGING_EXPECTED_SUPABASE_HOST") or "").strip().lower()
+    if scheme != "https":
+        raise WorkerIdentityError("worker_db_transport_insecure")
+    if port not in (None, 443):
+        raise WorkerIdentityError("worker_db_port_not_allowed")
+    expected = _configured_host(environ, "STAGING_EXPECTED_SUPABASE_HOST")
     if not production:
         raise WorkerIdentityError("production_host_unknown")
     if not expected or expected == production or host != expected:
         raise WorkerIdentityError("worker_db_target_not_staging")
+
+
+# One or more dot-separated DNS labels: 1-63 chars each, alphanumeric at both ends; no empty label (so no trailing dot).
+_HOSTNAME_RE = re.compile(r"^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$")
+
+
+# The whole target, after project_url strips trailing "/" and "/rest/v1": a lowercase http(s) scheme, a host, and an
+# optional decimal port without leading zeros. Anything else (userinfo, path, query, fragment, whitespace) cannot match.
+# A full-match regex on purpose: this package may not import urllib (tests/smoke/test_agent_execution_isolation.py).
+_TARGET_RE = re.compile(r"(https|http)://([A-Za-z0-9.-]{1,253})(?::([1-9][0-9]{0,4}))?")
+
+
+def _parse_target(settings: WorkerDatabaseSettings) -> tuple[str, str, Optional[int]]:
+    """Strictly parse the worker's database URL. Any ambiguity (userinfo, path, query, fragment, bad port, odd
+    characters, a disagreement with ``settings.host``) is ``worker_db_url_invalid``."""
+    match = _TARGET_RE.fullmatch(settings.project_url)
+    if not match:
+        raise WorkerIdentityError("worker_db_url_invalid")
+    scheme, host = match.group(1), match.group(2).lower()
+    port = int(match.group(3)) if match.group(3) else None
+    if not _HOSTNAME_RE.fullmatch(host) or host != settings.host or (port is not None and port > 65535):
+        raise WorkerIdentityError("worker_db_url_invalid")
+    return scheme, host, port
+
+
+def _configured_host(environ: Mapping[str, str], name: str) -> str:
+    """A configured host variable must be a bare hostname; a URL or anything malformed is treated as unset (which
+    refuses staging) rather than compared as an opaque string."""
+    value = (environ.get(name) or "").strip().lower()
+    return value if _HOSTNAME_RE.fullmatch(value) else ""
 
 
 def bound_worker_id(tenant_id: str, worker_id: str) -> str:
