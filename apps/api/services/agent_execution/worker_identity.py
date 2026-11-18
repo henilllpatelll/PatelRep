@@ -4,7 +4,7 @@ The worker never holds the API's ``service_role`` key. It talks to PostgREST wit
 
   * ``apikey``        the project's public (anon / publishable) key, which grants nothing by itself, and
   * ``Authorization`` a short-lived JWT whose ``role`` claim is ``agent_worker`` and whose ``jti`` is registered in
-                      ``agent_worker_credentials`` (max 31 days, revocable; minted by an operator, never by the worker).
+                      ``agent_worker_credentials`` (max 7 days since H6 P1, revocable; minted by an operator, never by the worker).
 
 PostgreSQL then runs every request as ``agent_worker``: it may EXECUTE only the ``agent_worker_rpc__*`` wrappers of
 the reviewed RPCs below and SELECT only the reviewed columns. This module mirrors that contract in-process so a
@@ -59,7 +59,8 @@ WORKER_READ_COLUMNS: Mapping[str, frozenset[str]] = {
 # Must equal public.agent__worker_tenant_columns() in migration 257.
 WORKER_TENANT_COLUMNS: Mapping[str, str] = {name: ("id" if name == "tenants" else "tenant_id") for name in WORKER_READ_COLUMNS}
 
-MAX_TOKEN_LIFETIME_SECONDS = 31 * 24 * 3600
+# H6 P1: hotel-scoped worker credentials live at most 7 days (migration 257 enforces the same ceiling in the database).
+MAX_TOKEN_LIFETIME_SECONDS = 7 * 24 * 3600
 _URL_RE = re.compile(r"^https?://([A-Za-z0-9.-]{1,253})(?::[0-9]{1,5})?(?:/.*)?$")
 _WORKER_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
 _UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")

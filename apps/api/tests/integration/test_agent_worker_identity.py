@@ -261,7 +261,8 @@ def test_a_revoked_credential_cannot_be_reactivated_or_deleted():
                       f"UPDATE public.agent_worker_credentials SET expires_at = expires_at + interval '1 day' WHERE id = '{credential}'"):
         with pytest.raises(AssertionError):
             run_sql(statement)
-    # 257 fixture change: the unbound 255 path now refuses outright; the 31-day ceiling is enforced on the bound path.
+    # 257 fixture change: the unbound 255 path now refuses outright; the P1 7-day ceiling is enforced on the bound path
+    # (the registration RPC refuses before inserting; the 255 31-day CHECK and the 257 insert trigger stay underneath).
     legacy = new_client().rpc("agent_worker_credential_register", {
         "p_id": str(uuid.uuid4()), "p_label": "unbound", "p_app_env": "test",
         "p_expires_at": "2030-01-01T00:00:00Z", "p_issued_by": "it"}).execute().data
@@ -269,5 +270,4 @@ def test_a_revoked_credential_cannot_be_reactivated_or_deleted():
     over = new_client().rpc("agent_worker_credential_register_v2", {
         "p_id": str(uuid.uuid4()), "p_label": "too-long", "p_app_env": "test",
         "p_expires_at": "2099-01-01T00:00:00Z", "p_issued_by": "it", "p_tenant_id": default_tenant()})
-    with pytest.raises(Exception):
-        over.execute()
+    assert over.execute().data == {"ok": False, "reason": "lifetime_out_of_range"}

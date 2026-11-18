@@ -9,9 +9,11 @@
 --       by the table owner (never service_role, never the worker), immutable afterwards. Unstamped = no worker access.
 --   (2) agent_worker_credential_scopes: the immutable binding of each worker credential to exactly ONE hotel and one
 --       environment, created in the same transaction as the credential (agent_worker_credential_register_v2). The
---       unbound 255 registration path now refuses. A credential is never re-bound, deleted or truncated.
+--       unbound 255 registration path now refuses. A credential is never re-bound, deleted or truncated. A new
+--       credential lives at most 7 days (registration RPC, insert trigger, binding trigger and the tenant source all
+--       enforce it; the 255 31-day CHECK stays as the outer bound).
 --   (3) agent__worker_tenant(): the ONLY source of worker tenancy. role = agent_worker, a registered, active,
---       unexpired jti, bound, environment = the stamp, hotel active, stamp not production (no production worker in
+--       unexpired jti with a lifetime of at most 7 days, bound, environment = the stamp, hotel active, stamp not production (no production worker in
 --       P1), and no person/hotel claims at all. Every other JWT claim is ignored or refused; nothing is read from
 --       hotel_id. agent__worker_credential_ok() (255) now means exactly "agent__worker_tenant() IS NOT NULL", so the
 --       255 policies and every wrapper's agent__worker_assert() require a bound credential.
@@ -124,6 +126,9 @@ BEGIN
   IF v_cred.revoked_at IS NOT NULL OR v_cred.expires_at <= now() THEN
     RAISE EXCEPTION 'agent_worker_credential_not_active' USING ERRCODE = '42501';
   END IF;
+  IF v_cred.expires_at > v_cred.issued_at + interval '7 days' THEN
+    RAISE EXCEPTION 'agent_worker_credential_lifetime_out_of_range' USING ERRCODE = '42501';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM public.tenants t WHERE t.id = NEW.tenant_id AND t.is_active) THEN
     RAISE EXCEPTION 'agent_worker_tenant_not_active' USING ERRCODE = '42501';
   END IF;
@@ -131,7 +136,8 @@ BEGIN
 END;
 $function$;
 
--- Every NEW credential must name the stamped, non-production environment (a backstop below the registration RPC).
+-- Every NEW credential must name the stamped, non-production environment and live at most 7 days from an issue time
+-- that is not in the future (a backstop below the registration RPC; the 255 CHECK still caps every row at 31 days).
 CREATE OR REPLACE FUNCTION public.agent__guard_worker_credential_insert()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
 AS $function$
@@ -147,6 +153,10 @@ BEGIN
   END IF;
   IF NEW.app_env IS DISTINCT FROM v_env THEN
     RAISE EXCEPTION 'agent_worker_environment_mismatch' USING ERRCODE = '42501';
+  END IF;
+  IF NEW.issued_at IS NULL OR NEW.issued_at > now() OR NEW.expires_at IS NULL OR NEW.expires_at <= now()
+     OR NEW.expires_at > NEW.issued_at + interval '7 days' THEN
+    RAISE EXCEPTION 'agent_worker_credential_lifetime_out_of_range' USING ERRCODE = '42501';
   END IF;
   RETURN NEW;
 END;
@@ -216,6 +226,7 @@ BEGIN
     JOIN public.agent_deployment_identity d ON d.id = 1 AND d.environment = c.app_env
     JOIN public.tenants t ON t.id = s.tenant_id AND t.is_active
    WHERE c.id = v_jti::uuid AND c.revoked_at IS NULL AND c.expires_at > now()
+     AND c.expires_at <= c.issued_at + interval '7 days'  -- P1 lifetime ceiling, independent of the 255 31-day CHECK
      AND d.environment <> 'production';  -- P1: no production worker, whatever is stamped or issued
   RETURN v_tenant;
 END;
@@ -282,6 +293,10 @@ BEGIN
   END IF;
   IF p_tenant_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.tenants t WHERE t.id = p_tenant_id AND t.is_active) THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'tenant_not_active');
+  END IF;
+  -- P1: at most 7 days from now (issued_at defaults to now() in this same transaction).
+  IF p_expires_at IS NULL OR p_expires_at <= now() OR p_expires_at > now() + interval '7 days' THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'lifetime_out_of_range');
   END IF;
   INSERT INTO public.agent_worker_credentials (id, label, app_env, issued_by, expires_at)
   VALUES (p_id, p_label, p_app_env, p_issued_by, p_expires_at)

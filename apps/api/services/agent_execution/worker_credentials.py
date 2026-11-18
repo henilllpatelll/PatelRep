@@ -23,6 +23,8 @@ from typing import Any, Callable
 
 from services.agent_execution.worker_identity import MAX_TOKEN_LIFETIME_SECONDS, WORKER_DB_ROLE
 
+MAX_TOKEN_LIFETIME_DAYS = MAX_TOKEN_LIFETIME_SECONDS // 86400  # 7 (H6 P1)
+
 _LABEL_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{2,63}$")
 _OPERATOR_RE = re.compile(r"^[A-Za-z0-9._:@-]{1,100}$")
 _REASON_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
@@ -47,7 +49,7 @@ def issue(client: Any, *, label: str, days: int, operator: str, app_env: str, se
           now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> dict:
     if app_env == "production":
         return {"ok": False, "reason": "production_refused"}
-    if not _LABEL_RE.match(label or "") or not _OPERATOR_RE.match(operator or "") or not 1 <= days <= 31:
+    if not _LABEL_RE.match(label or "") or not _OPERATOR_RE.match(operator or "") or not 1 <= days <= MAX_TOKEN_LIFETIME_DAYS:
         return {"ok": False, "reason": "invalid_arguments"}
     try:
         tenant_id = str(uuid.UUID(tenant_id))
@@ -55,7 +57,7 @@ def issue(client: Any, *, label: str, days: int, operator: str, app_env: str, se
         return {"ok": False, "reason": "invalid_arguments"}
     issued_at = now().replace(microsecond=0)
     # A little under the database maximum so clock skew between operator and database never trips the CHECK.
-    expires_at = min(issued_at + timedelta(days=days), issued_at + timedelta(days=31) - timedelta(minutes=5))
+    expires_at = min(issued_at + timedelta(days=days), issued_at + timedelta(days=MAX_TOKEN_LIFETIME_DAYS) - timedelta(minutes=5))
     jti = str(uuid.uuid4())
     registered = client.rpc("agent_worker_credential_register_v2", {
         "p_id": jti, "p_label": label, "p_app_env": app_env, "p_expires_at": expires_at.isoformat(),
@@ -98,7 +100,7 @@ def add_credential_commands(sub: Any, *, store: Callable[[], Any]) -> None:
 
     p = sub.add_parser("worker-credential-issue")
     p.add_argument("--label", required=True)
-    p.add_argument("--days", type=int, default=14)
+    p.add_argument("--days", type=int, default=MAX_TOKEN_LIFETIME_DAYS)
     p.add_argument("--operator", required=True)
     p.add_argument("--tenant", required=True)
     p.set_defaults(func=cmd_issue)

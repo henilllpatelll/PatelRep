@@ -99,7 +99,7 @@ def raw_worker_client(token: Optional[str] = None, *, tenant_id: Optional[str] =
 
 def unregistered_token(*, role: str = "agent_worker", hours: int = 1) -> str:
     issued_at = datetime.now(timezone.utc).replace(microsecond=0)
-    if role == "agent_worker" and hours <= 24 * 31:
+    if role == "agent_worker" and hours <= 24 * 7:
         return mint_worker_token(jti=str(uuid.uuid4()), issued_at=issued_at, expires_at=issued_at + timedelta(hours=hours),
                                  secret=stack_secret())
     import jwt

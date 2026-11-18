@@ -186,6 +186,107 @@ def test_a_registry_expired_credential_reads_nothing_while_its_jwt_is_still_vali
         assert all(not v for v in _visible_tenants(t).values())
 
 
+def _register(tenant_id: str, expires_at: datetime, label: str = "it-p1-life") -> tuple[str, dict]:
+    credential = str(uuid.uuid4())
+    return credential, new_client().rpc("agent_worker_credential_register_v2", {
+        "p_id": credential, "p_label": label, "p_app_env": "test", "p_expires_at": expires_at.isoformat(),
+        "p_issued_by": "it", "p_tenant_id": tenant_id}).execute().data
+
+
+def _credential_rows(credential: str) -> str:
+    return sql_value(f"SELECT (SELECT count(*) FROM public.agent_worker_credentials WHERE id = '{credential}') || ':' || "
+                     f"(SELECT count(*) FROM public.agent_worker_credential_scopes WHERE credential_id = '{credential}');")
+
+
+def test_new_credentials_live_at_most_seven_days(two_hotels):
+    """H6 P1 lifetime ceiling: 7 days (minus a minute) registers, binds and reads its hotel; anything longer or already
+    expired is refused by the registration RPC before any row exists."""
+    a, _ = two_hotels
+    now = datetime.now(timezone.utc)
+    ok_id, ok = _register(a.tenant_id, now + timedelta(days=7) - timedelta(minutes=1), "it-p1-seven")
+    assert ok["ok"] is True and ok["tenant_id"] == a.tenant_id, ok
+    assert _visible_tenants(_mint({"role": "agent_worker", "jti": ok_id}))["tenants"] == {a.tenant_id}
+    for label, expires in (("over-by-an-hour", now + timedelta(days=7, hours=1)), ("eight-days", now + timedelta(days=8)),
+                           ("thirty-one-days", now + timedelta(days=31) - timedelta(minutes=5)),
+                           ("already-expired", now - timedelta(seconds=1))):
+        refused_id, refused = _register(a.tenant_id, expires, f"it-p1-{label}")
+        assert refused == {"ok": False, "reason": "lifetime_out_of_range"}, (label, refused)
+        assert _credential_rows(refused_id) == "0:0", label
+
+
+def test_the_lifetime_ceiling_holds_below_the_rpc_and_at_validation(two_hotels):
+    """Direct inserts (service_role) cannot create an over-long or future-dated credential, a binding cannot attach to
+    one, and agent__worker_tenant() grants nothing to an over-long bound row even when every guard is bypassed (rows
+    that predate the ceiling, or any future drift, fail closed at validation). All in rolled-back transactions."""
+    a, _ = two_hotels
+    direct = {
+        "eight-days": "(id, label, app_env, issued_by, expires_at) VALUES ('{cid}', 'it-p1-direct', 'test', 'it', "
+                      "now() + interval '8 days')",
+        "future-dated": "(id, label, app_env, issued_by, issued_at, expires_at) VALUES ('{cid}', 'it-p1-direct', 'test', "
+                        "'it', now() + interval '1 hour', now() + interval '1 day')",
+    }
+    for label, values in direct.items():
+        cid = str(uuid.uuid4())
+        with pytest.raises(AssertionError) as err:
+            run_sql(f"BEGIN; SET LOCAL ROLE service_role; INSERT INTO public.agent_worker_credentials "
+                    f"{values.format(cid=cid)}; ROLLBACK;")
+        assert "agent_worker_credential_lifetime_out_of_range" in str(err.value), (label, err.value)
+        assert _credential_rows(cid) == "0:0", label
+    # binding guard: an over-long credential row (insert guard disabled inside the transaction) cannot be bound
+    cid = str(uuid.uuid4())
+    with pytest.raises(AssertionError) as err:
+        run_sql("BEGIN; ALTER TABLE public.agent_worker_credentials DISABLE TRIGGER agent_worker_credentials_environment_guard;"
+                f" INSERT INTO public.agent_worker_credentials (id, label, app_env, issued_by, expires_at)"
+                f" VALUES ('{cid}', 'it-p1-long', 'test', 'it', now() + interval '10 days');"
+                f" INSERT INTO public.agent_worker_credential_scopes (credential_id, tenant_id, app_env, bound_by)"
+                f" VALUES ('{cid}', '{a.tenant_id}', 'test', 'it'); ROLLBACK;")
+    assert "agent_worker_credential_lifetime_out_of_range" in str(err.value), err.value
+    assert _credential_rows(cid) == "0:0"
+    # validation: every guard bypassed, an 8-day bound row still yields no tenancy; a 7-day one does (control)
+    long_id, short_id = str(uuid.uuid4()), str(uuid.uuid4())
+    lines = ["BEGIN;",
+             "ALTER TABLE public.agent_worker_credentials DISABLE TRIGGER agent_worker_credentials_environment_guard;",
+             "ALTER TABLE public.agent_worker_credential_scopes DISABLE TRIGGER agent_worker_credential_scopes_guard;"]
+    for cid, life in ((long_id, "8 days"), (short_id, "7 days")):
+        claims = json.dumps({"role": "agent_worker", "jti": cid})
+        lines.append(f"INSERT INTO public.agent_worker_credentials (id, label, app_env, issued_by, expires_at) "
+                     f"VALUES ('{cid}', 'it-p1-validate', 'test', 'it', now() + interval '{life}');")
+        lines.append(f"INSERT INTO public.agent_worker_credential_scopes (credential_id, tenant_id, app_env, bound_by) "
+                     f"VALUES ('{cid}', '{a.tenant_id}', 'test', 'it');")
+        lines.append(f"SET LOCAL ROLE agent_worker; SET LOCAL request.jwt.claims = '{claims}';")
+        lines.append(f"SELECT 'L|{life}|' || COALESCE(public.agent__worker_tenant()::text, 'none') || '|' "
+                     f"|| (SELECT count(id) FROM public.tenants);")
+        lines.append("RESET ROLE;")
+    lines.append("ROLLBACK;")
+    out = run_sql("\\pset tuples_only on\n\\pset format unaligned\n" + "\n".join(lines))
+    results = {line.split("|")[1]: line.split("|")[2:] for line in out.splitlines() if line.startswith("L|")}
+    assert results == {"8 days": ["none", "0"], "7 days": [a.tenant_id, "1"]}, out
+    assert _credential_rows(long_id) == "0:0" and _credential_rows(short_id) == "0:0"
+
+
+def test_rotation_issues_a_new_bound_credential_and_revocation_retires_the_old_one(two_hotels):
+    """Rotation runbook: issue new -> confirm it works -> revoke old. The old token reads nothing on the very next
+    request; the new one keeps exactly its hotel; revoking twice is refused; a revoked id cannot be re-registered."""
+    a, b = two_hotels
+    old_id, old = issue_token("it-p1-rot-old", tenant_id=a.tenant_id)
+    new_id, new = issue_token("it-p1-rot-new", tenant_id=a.tenant_id)
+    assert old_id != new_id
+    assert _visible_tenants(old)["tenants"] == _visible_tenants(new)["tenants"] == {a.tenant_id}
+    assert revoke(old_id)["ok"] is True
+    assert all(not v for v in _visible_tenants(old).values())
+    assert _visible_tenants(new) == {table: {a.tenant_id} for table in WORKER_TENANT_COLUMNS}
+    assert revoke(old_id)["ok"] is False
+    again = new_client().rpc("agent_worker_credential_register_v2", {
+        "p_id": old_id, "p_label": "it-p1-rot-again", "p_app_env": "test",
+        "p_expires_at": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(), "p_issued_by": "it",
+        "p_tenant_id": b.tenant_id}).execute().data
+    assert again == {"ok": False, "reason": "credential_exists"}
+    assert all(not v for v in _visible_tenants(old).values())
+    with pytest.raises(WorkerIdentityError):
+        bound_client(old)
+    assert bound_client(new).tenant_id == a.tenant_id
+
+
 def test_forged_and_expired_jwts_are_rejected_by_postgrest(two_hotels):
     a, _ = two_hotels
     active_id, _ = issue_token("it-p1-sig", tenant_id=a.tenant_id)

@@ -10,7 +10,7 @@ import json
 import re
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -144,6 +144,8 @@ def test_restricted_client_maps_allowed_rpcs_to_wrappers_and_refuses_everything_
     ({"sub": str(uuid.uuid4())}, "worker_token_carries_user_claims"),
     ({"hotel_id": str(uuid.uuid4())}, "worker_token_carries_user_claims"),
     ({"exp": int(NOW.timestamp()) + 40 * 86400}, "worker_token_lifetime_too_long"),
+    ({"iat": int(NOW.timestamp()), "exp": int(NOW.timestamp()) + 7 * 86400 + 1}, "worker_token_lifetime_too_long"),
+    ({"iat": int(NOW.timestamp()), "exp": int(NOW.timestamp()) + 8 * 86400}, "worker_token_lifetime_too_long"),
     ({"exp": int(NOW.timestamp()) - 1}, "worker_token_expired"),
 ])
 def test_worker_token_shape_is_refused_unless_least_privileged(override, code):
@@ -232,3 +234,46 @@ def test_minted_tokens_carry_only_the_worker_role_and_production_issuance_is_ref
     with pytest.raises(ValueError):
         mint_worker_token(jti=str(uuid.uuid4()), issued_at=issued_at,
                           expires_at=datetime.fromtimestamp(time.time() + 40 * 86400, timezone.utc), secret="s" * 40)
+
+
+class _RecordingClient:
+    """Records the registration RPC and answers like the database would for a valid bound registration."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, dict]] = []
+
+    def rpc(self, name, params):
+        self.calls.append((name, params))
+
+        class _Call:
+            def execute(self):
+                return type("R", (), {"data": {"ok": True, "id": params["p_id"], "tenant_id": params["p_tenant_id"]}})()
+
+        return _Call()
+
+
+def test_credentials_live_at_most_seven_days_at_issuance_and_startup():
+    """H6 P1: 7 days is accepted (minus the skew margin), 8+ days is refused before any database call, and a token
+    whose iat..exp exceeds 7 days is refused by the startup inspection."""
+    assert wi.MAX_TOKEN_LIFETIME_SECONDS == 7 * 86400
+    fixed = datetime(2026, 11, 18, 12, 0, tzinfo=timezone.utc)
+    client = _RecordingClient()
+    issued = issue(client, label="w-seven", days=7, operator="op", app_env="test", secret="s" * 40,
+                   tenant_id=str(uuid.uuid4()), now=lambda: fixed)
+    assert issued["ok"] is True and len(client.calls) == 1
+    name, params = client.calls[0]
+    assert name == "agent_worker_credential_register_v2"
+    expires = datetime.fromisoformat(params["p_expires_at"])
+    assert expires == fixed + timedelta(days=7) - timedelta(minutes=5)
+    claims = wi.inspect_worker_token(issued["token"], now=fixed)
+    assert claims["exp"] - claims["iat"] <= 7 * 86400 and claims["exp"] == int(expires.timestamp())
+    for days in (0, 8, 14, 31):
+        refused = _RecordingClient()
+        assert issue(refused, label="w-long", days=days, operator="op", app_env="test", secret="s" * 40,
+                     tenant_id=str(uuid.uuid4()), now=lambda: fixed) == {"ok": False, "reason": "invalid_arguments"}
+        assert refused.calls == []
+    with pytest.raises(ValueError):
+        mint_worker_token(jti=str(uuid.uuid4()), issued_at=fixed, expires_at=fixed + timedelta(days=7, seconds=1),
+                          secret="s" * 40)
+    assert mint_worker_token(jti=str(uuid.uuid4()), issued_at=fixed, expires_at=fixed + timedelta(days=7),
+                             secret="s" * 40)

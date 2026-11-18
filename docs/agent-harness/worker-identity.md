@@ -17,7 +17,7 @@ authorized step that does.
 
 Must **not** be set (the worker refuses to start): `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`,
 `AGENT_WORKER_DB_SERVICE_ROLE_KEY`. Startup also refuses a token whose role is not `agent_worker`, without a UUID
-`jti`, carrying user claims (`sub`, `hotel_id`, …), living longer than 31 days or already expired, and an apikey that
+`jti`, carrying user claims (`sub`, `hotel_id`, …), living longer than 7 days (H6 P1; migration 257 enforces the same ceiling in the database) or already expired, and an apikey that
 is a service-role/secret key. Before any slot starts (P1, migration 257) it proves through the database that the
 credential is bound to exactly one active hotel (`worker_credential_not_bound` otherwise), prefixes its worker id with
 that hotel (`<tenant>:<name>`) and sends a `starting` heartbeat that the database refuses unless `APP_ENV` equals the
@@ -40,7 +40,7 @@ no worker tenancy at all in P1, whatever is issued.
 Needs the API's service-role key (to register the `jti`) and the project JWT secret (to sign):
 
 ```bash
-python -m services.agent_execution worker-credential-issue --label staging-worker-a --days 14 --operator <you>   --tenant <hotel uuid>
+python -m services.agent_execution worker-credential-issue --label staging-worker-a --days 7 --operator <you>   --tenant <hotel uuid>
 ```
 
 Each credential is bound, in its own registration transaction, to exactly ONE hotel and to the database's stamped
