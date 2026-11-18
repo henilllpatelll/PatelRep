@@ -13,6 +13,7 @@ DECLARE
   h6_present text[];
   protected_tables integer := 31;
   append_only_tables integer := 11;
+  public_create_fixed integer;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -440,6 +441,32 @@ BEGIN
                       OR has_function_privilege('authenticated', procs.oid, 'EXECUTE')
                       OR has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))) THEN
       RAISE EXCEPTION 'An AI Control Center function is executable by an end-user or worker role';
+    END IF;
+  END IF;
+
+  -- Legacy hosted default: PUBLIC holds CREATE on schema public (pre-PG15). Version-gated by migration NAME, like
+  -- H5/254/H6: schemas 254 and 256 as deployed still carry the grant and stay compatible until the fix is recorded.
+  --   not recorded -> tolerated;  recorded -> only the schema owner (and superusers) may create in public.
+  SELECT count(DISTINCT history.name) INTO public_create_fixed FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'public_schema_create_revoked';
+  IF public_create_fixed > 0 THEN
+    IF EXISTS (SELECT 1 FROM pg_namespace n, aclexplode(n.nspacl) a
+                WHERE n.nspname = 'public' AND a.grantee = 0 AND a.privilege_type = 'CREATE') THEN
+      RAISE EXCEPTION 'PUBLIC holds CREATE on schema public although migration public_schema_create_revoked is recorded';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles r
+                WHERE r.rolname !~ '^pg_' AND NOT r.rolsuper
+                  AND NOT pg_has_role(r.oid, (SELECT nspowner FROM pg_namespace WHERE nspname = 'public'), 'MEMBER')
+                  AND has_schema_privilege(r.oid, 'public', 'CREATE')) THEN
+      RAISE EXCEPTION 'A role other than the schema owner holds CREATE on schema public: %',
+        (SELECT string_agg(r.rolname, ', ' ORDER BY r.rolname) FROM pg_roles r
+          WHERE r.rolname !~ '^pg_' AND NOT r.rolsuper
+            AND NOT pg_has_role(r.oid, (SELECT nspowner FROM pg_namespace WHERE nspname = 'public'), 'MEMBER')
+            AND has_schema_privilege(r.oid, 'public', 'CREATE'));
+    END IF;
+    IF NOT has_schema_privilege('anon', 'public', 'USAGE') OR NOT has_schema_privilege('authenticated', 'public', 'USAGE')
+       OR NOT has_schema_privilege('service_role', 'public', 'USAGE') THEN
+      RAISE EXCEPTION 'An API role lost USAGE on schema public';
     END IF;
   END IF;
 END;
