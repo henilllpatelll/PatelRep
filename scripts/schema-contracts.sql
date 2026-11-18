@@ -70,7 +70,9 @@ BEGIN
                AND (procs.proname LIKE 'agent\_worker\_rpc\_\_%'
                     OR procs.proname IN ('agent__worker_credential_ok', 'agent__worker_assert',
                                          'agent__control_center_journal', 'agent__journal_control_change',
-                                         'agent_control_center_record_refusal')))
+                                         'agent_control_center_record_refusal'))
+               -- An allowlisted name is no exemption for a definer with a mutable search_path.
+               AND procs.proconfig IS NOT DISTINCT FROM ARRAY['search_path=""'])
   ) THEN
     RAISE EXCEPTION 'An Agent Harness function is SECURITY DEFINER';
   END IF;
@@ -373,7 +375,20 @@ BEGIN
                        AND (procs.proname LIKE 'agent\_worker\_rpc\_\_%' OR procs.proname LIKE 'agent\_control\_center\_%'))
          THEN 'H6 functions' END,
     CASE WHEN to_regclass('public.agent_worker_credentials') IS NOT NULL
-           OR to_regclass('public.agent_control_center_events') IS NOT NULL THEN 'H6 tables' END], NULL) INTO h6_present;
+           OR to_regclass('public.agent_control_center_events') IS NOT NULL THEN 'H6 tables' END,
+    -- Every other 255/256 object, by exact name: the role (cluster-wide, so it survives a database-only restore),
+    -- the helpers the two patterns above do not match, and the H6 triggers.
+    CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agent_worker') THEN 'H6 role agent_worker' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__worker_credential_ok', 'agent__worker_assert', 'agent__guard_worker_credential',
+           'agent_worker_credential_register', 'agent_worker_credential_revoke', 'agent_worker_credentials_list',
+           'agent__worker_allowed_rpcs', 'agent__worker_read_columns', 'agent_worker_privilege_violations',
+           'agent_runtime_controls_snapshot', 'agent__guard_control_center_event', 'agent__control_center_journal',
+           'agent__journal_control_change', 'agent__control_center_run_json', 'agent__try_uuid'))
+         THEN 'H6 helper functions' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_trigger WHERE tgname IN (
+           'agent_control_center_journal', 'agent_control_center_events_immutable', 'agent_worker_credentials_guard'))
+         THEN 'H6 triggers' END], NULL) INTO h6_present;
   IF h6_recorded = 0 THEN
     IF cardinality(h6_present) > 0 THEN
       RAISE EXCEPTION 'Agent H6 objects exist without migrations 255/256 recorded: %', h6_present;
@@ -389,10 +404,21 @@ BEGIN
       RAISE EXCEPTION 'The agent_worker identity exceeds its reviewed privileges: %',
         (SELECT string_agg(v.object_name || ':' || v.violation, ', ') FROM public.agent_worker_privilege_violations() v);
     END IF;
+    -- Exactly 23 wrappers and 5 other definers, counted over every overload, each SECURITY DEFINER with an empty
+    -- search_path: an overload under a reviewed name is never exempt.
     IF (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
           AND procs.proname LIKE 'agent\_worker\_rpc\_\_%' AND procs.prosecdef
-          AND procs.proconfig = ARRAY['search_path=""']) <> 23 THEN
-      RAISE EXCEPTION 'The reviewed agent_worker wrapper set is missing, extended or not pinned';
+          AND procs.proconfig = ARRAY['search_path=""']) <> 23
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+             AND procs.proname LIKE 'agent\_worker\_rpc\_\_%') <> 23
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+             AND procs.proname IN ('agent__worker_credential_ok', 'agent__worker_assert', 'agent__control_center_journal',
+                                   'agent__journal_control_change', 'agent_control_center_record_refusal')) <> 5
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+             AND procs.proname IN ('agent__worker_credential_ok', 'agent__worker_assert', 'agent__control_center_journal',
+                                   'agent__journal_control_change', 'agent_control_center_record_refusal')
+             AND procs.prosecdef AND procs.proconfig = ARRAY['search_path=""']) <> 5 THEN
+      RAISE EXCEPTION 'The reviewed H6 SECURITY DEFINER set (23 wrappers, 5 helpers) is missing, extended, overloaded or not pinned';
     END IF;
     -- Every control table journals its changes in the same transaction; the journal is immutable.
     IF (SELECT count(*) FROM pg_trigger triggers
