@@ -14,6 +14,8 @@ DECLARE
   protected_tables integer := 31;
   append_only_tables integer := 11;
   public_create_fixed integer;
+  exact_privileges_recorded integer;
+  exact_privilege_drift text;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -467,6 +469,65 @@ BEGIN
     IF NOT has_schema_privilege('anon', 'public', 'USAGE') OR NOT has_schema_privilege('authenticated', 'public', 'USAGE')
        OR NOT has_schema_privilege('service_role', 'public', 'USAGE') THEN
       RAISE EXCEPTION 'An API role lost USAGE on schema public';
+    END IF;
+  END IF;
+
+  -- Exact backend privilege matrix on the protected harness tables, and no TRIGGER/REFERENCES/MAINTAIN for application
+  -- roles on any relation in public (migration 258). Version-gated by migration NAME.
+  -- Computed here independently of agent_audit_privilege_violations(), so a weakened function body is still caught.
+  --   not recorded -> tolerated (254-257 enumerate a subset);  recorded -> exact matrix, nothing for anyone else.
+  SELECT count(DISTINCT history.name) INTO exact_privileges_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_audit_exact_backend_privileges';
+  IF exact_privileges_recorded > 0 THEN
+    IF hardening_recorded = 0 OR h6_recorded <> 2 THEN
+      RAISE EXCEPTION 'Migration 258 is recorded on a schema without migrations 254-256';
+    END IF;
+    -- The detector and the remover are pinned to their reviewed 258 bodies, so a weakened function cannot pass this gate
+    -- by reporting nothing (the matrix below is also recomputed without them).
+    IF (SELECT count(*) FROM pg_proc procs
+         WHERE procs.pronamespace = 'public'::regnamespace AND NOT procs.prosecdef
+           AND procs.proconfig = ARRAY['search_path=""']
+           AND (procs.proname, md5(replace(procs.prosrc, chr(13), ''))) IN (
+                 ('agent_audit_privilege_violations', 'e03f461a4923252de8996af8fdfbf39f'),
+                 ('agent_audit_privileges_enforce', '37248313075777a945bad80155845f7d'))) <> 2 THEN
+      RAISE EXCEPTION 'agent_audit_privilege_violations() or agent_audit_privileges_enforce() differs from its reviewed migration-258 body';
+    END IF;
+    SELECT string_agg(format('%s:%s:%s', drift.table_name, drift.role_name, drift.privilege), ', '
+                      ORDER BY drift.table_name, drift.role_name, drift.privilege) INTO exact_privilege_drift
+      FROM (
+        SELECT registry.table_name, grantees.role_name, rights.privilege_type AS privilege
+          FROM public.agent__audit_protected_tables() registry
+         CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+         CROSS JOIN (SELECT DISTINCT acl.privilege_type FROM aclexplode(acldefault('r', 10::oid)) acl) rights
+         WHERE (has_table_privilege(grantees.role_name, format('public.%I', registry.table_name), rights.privilege_type)
+                OR (rights.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+                    AND has_any_column_privilege(grantees.role_name, format('public.%I', registry.table_name), rights.privilege_type)))
+           AND NOT (grantees.role_name = 'service_role' AND rights.privilege_type = ANY (CASE
+                      WHEN registry.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
+                      WHEN registry.append_only THEN ARRAY['SELECT', 'INSERT']
+                      ELSE ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE'] END))
+        UNION ALL
+        SELECT relations.relname::text, grantees.role_name, rights.privilege_type
+          FROM pg_class relations
+         CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+         CROSS JOIN (SELECT DISTINCT acl.privilege_type FROM aclexplode(acldefault('r', 10::oid)) acl
+                      WHERE acl.privilege_type IN ('TRIGGER', 'REFERENCES', 'MAINTAIN')) rights
+         WHERE relations.relnamespace = 'public'::regnamespace AND relations.relkind IN ('r', 'p', 'v', 'm', 'f')
+           AND relations.relname NOT IN (SELECT registry.table_name FROM public.agent__audit_protected_tables() registry)
+           AND (has_table_privilege(grantees.role_name, relations.oid, rights.privilege_type)
+                OR (rights.privilege_type = 'REFERENCES'
+                    AND has_any_column_privilege(grantees.role_name, relations.oid, rights.privilege_type)))
+        UNION ALL
+        SELECT registry.table_name, 'service_role (missing)', wanted.privilege
+          FROM public.agent__audit_protected_tables() registry
+         CROSS JOIN LATERAL unnest(CASE
+                 WHEN registry.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
+                 WHEN registry.append_only THEN ARRAY['SELECT', 'INSERT']
+                 ELSE ARRAY['SELECT', 'INSERT', 'UPDATE'] END) AS wanted(privilege)
+         WHERE NOT has_table_privilege('service_role', format('public.%I', registry.table_name), wanted.privilege)
+      ) drift;
+    IF exact_privilege_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'Protected agent table privileges differ from the reviewed matrix: %', exact_privilege_drift;
     END IF;
   END IF;
 END;

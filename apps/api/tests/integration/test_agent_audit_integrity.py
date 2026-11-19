@@ -167,8 +167,11 @@ def test_enforcement_reverses_a_blanket_grant_in_the_same_transaction():
                   "SELECT 'left=' || count(*) FROM public.agent_audit_privilege_violations();\n"
                   "ROLLBACK;")
     granted = int(out.split("granted=")[1].split()[0])
-    # TRUNCATE on 33 tables + UPDATE/DELETE on 12 append-only + INSERT on the H6 journal
-    assert granted == 33 + 2 * 12 + 1 and "enforced=33" in out and "left=0" in out
+    relations = int(sql_value("SELECT count(*) FROM pg_class WHERE relnamespace = 'public'::regnamespace"
+                              " AND relkind IN ('r', 'p', 'v', 'm', 'f');"))
+    # TRUNCATE on 33 tables + UPDATE/DELETE on 12 append-only + INSERT on the H6 journal, and (migration 258) TRIGGER,
+    # REFERENCES and MAINTAIN on every relation in public, the 33 included
+    assert granted == 33 + 2 * 12 + 1 + 3 * relations and "enforced=33" in out and "left=0" in out
 
 
 def test_enforcement_fails_closed_when_a_right_it_cannot_revoke_remains_inherited():
