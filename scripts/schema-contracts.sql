@@ -15,6 +15,8 @@ DECLARE
   append_only_tables integer := 11;
   public_create_fixed integer;
   exact_privileges_recorded integer;
+  delete_guard_recorded integer;
+  delete_guard_drift text;
   exact_privilege_drift text;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
@@ -478,6 +480,9 @@ BEGIN
   --   not recorded -> tolerated (254-257 enumerate a subset);  recorded -> exact matrix, nothing for anyone else.
   SELECT count(DISTINCT history.name) INTO exact_privileges_recorded FROM supabase_migrations.schema_migrations history
    WHERE history.name = 'agent_audit_exact_backend_privileges';
+  -- Migration 259 (agent_control_delete_guard) removes the tolerated DELETE and replaces the detector body.
+  SELECT count(DISTINCT history.name) INTO delete_guard_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_control_delete_guard';
   IF exact_privileges_recorded > 0 THEN
     IF hardening_recorded = 0 OR h6_recorded <> 2 THEN
       RAISE EXCEPTION 'Migration 258 is recorded on a schema without migrations 254-256';
@@ -488,9 +493,11 @@ BEGIN
          WHERE procs.pronamespace = 'public'::regnamespace AND NOT procs.prosecdef
            AND procs.proconfig = ARRAY['search_path=""']
            AND (procs.proname, md5(replace(procs.prosrc, chr(13), ''))) IN (
-                 ('agent_audit_privilege_violations', 'e03f461a4923252de8996af8fdfbf39f'),
+                 ('agent_audit_privilege_violations', CASE WHEN delete_guard_recorded > 0
+                                                        THEN '9b368df4cb0eb890ebaa7f7e58d3f582'   -- 259 body
+                                                        ELSE 'e03f461a4923252de8996af8fdfbf39f' END),
                  ('agent_audit_privileges_enforce', '37248313075777a945bad80155845f7d'))) <> 2 THEN
-      RAISE EXCEPTION 'agent_audit_privilege_violations() or agent_audit_privileges_enforce() differs from its reviewed migration-258 body';
+      RAISE EXCEPTION 'agent_audit_privilege_violations() or agent_audit_privileges_enforce() differs from its reviewed migration-258/259 body';
     END IF;
     SELECT string_agg(format('%s:%s:%s', drift.table_name, drift.role_name, drift.privilege), ', '
                       ORDER BY drift.table_name, drift.role_name, drift.privilege) INTO exact_privilege_drift
@@ -505,6 +512,7 @@ BEGIN
            AND NOT (grantees.role_name = 'service_role' AND rights.privilege_type = ANY (CASE
                       WHEN registry.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
                       WHEN registry.append_only THEN ARRAY['SELECT', 'INSERT']
+                      WHEN delete_guard_recorded > 0 THEN ARRAY['SELECT', 'INSERT', 'UPDATE']
                       ELSE ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE'] END))
         UNION ALL
         SELECT relations.relname::text, grantees.role_name, rights.privilege_type
@@ -553,6 +561,70 @@ BEGIN
     IF exact_privilege_drift IS NOT NULL THEN
       RAISE EXCEPTION 'Protected agent table privileges differ from the reviewed matrix: %', exact_privilege_drift;
     END IF;
+  END IF;
+
+  -- No DELETE of agent safety controls, grants or approvals (migration 259). Version-gated by migration NAME.
+  --   recorded -> the guard function is pinned, the BEFORE DELETE row guard is on exactly the 7 reviewed tables, and no
+  --   application role holds DELETE on any registered table (the maximum above no longer tolerates it).
+  IF delete_guard_recorded > 0 THEN
+    IF exact_privileges_recorded = 0 THEN
+      RAISE EXCEPTION 'Migration 259 is recorded on a schema without migration 258';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc procs
+                    WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_delete'
+                      AND NOT procs.prosecdef AND procs.proowner = 'postgres'::regrole
+                      AND procs.proconfig = ARRAY['search_path=""']
+                      AND md5(replace(procs.prosrc, chr(13), '')) = '203d70028c0e96f7463b1fe327a17e5a'
+                      AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE')) THEN
+      -- service_role EXECUTE is tolerated: the CI fixture grants EXECUTE on all functions, and a trigger function cannot
+      -- be called directly ("trigger functions can only be called as triggers").
+      RAISE EXCEPTION 'agent__guard_control_delete() differs from its reviewed migration-259 body or ACL';
+    END IF;
+    SELECT string_agg(coalesce(wanted.table_name, found.table_name), ', ') INTO delete_guard_drift
+      FROM (VALUES ('agent_runtime_controls'), ('agent_tool_controls'), ('agent_execution_enablement'),
+                   ('agent_model_enablement'), ('agent_customer_billing_controls'), ('agent_tool_grants'),
+                   ('agent_tool_approvals')) AS wanted(table_name)
+      FULL JOIN (SELECT triggers.tgrelid::regclass::text AS qualified, relations.relname::text AS table_name
+                   FROM pg_trigger triggers JOIN pg_class relations ON relations.oid = triggers.tgrelid
+                  WHERE triggers.tgfoid = 'public.agent__guard_control_delete()'::regprocedure
+                    AND triggers.tgname = 'agent_control_delete_guard' AND triggers.tgenabled = 'O'
+                    AND triggers.tgtype = 11  -- exactly ROW (1) + BEFORE (2) + DELETE (8): not AFTER, not statement-level
+                    AND NOT triggers.tgisinternal AND triggers.tgconstraint = 0  -- a plain trigger, not a constraint trigger
+                    AND triggers.tgqual IS NULL AND triggers.tgnargs = 0      -- no WHEN clause, no arguments
+                    AND triggers.tgattr = ''::int2vector                       -- no column list
+                    AND relations.relnamespace = 'public'::regnamespace) found ON found.table_name = wanted.table_name
+     WHERE wanted.table_name IS NULL OR found.table_name IS NULL;
+    IF delete_guard_drift IS NOT NULL
+       OR (SELECT count(*) FROM pg_trigger triggers
+            WHERE triggers.tgfoid = 'public.agent__guard_control_delete()'::regprocedure) <> 7
+       OR (SELECT count(*) FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_delete_guard') <> 7 THEN
+      RAISE EXCEPTION 'The migration-259 DELETE guard is missing, disabled or misplaced: %', coalesce(delete_guard_drift, 'trigger count');
+    END IF;
+    SELECT string_agg(format('%s:%s', registry.table_name, grantees.role_name), ', ') INTO delete_guard_drift
+      FROM public.agent__audit_protected_tables() registry
+     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+     WHERE has_table_privilege(grantees.role_name, format('public.%I', registry.table_name), 'DELETE');
+    IF delete_guard_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'An application role holds DELETE on a protected agent table: %', delete_guard_drift;
+    END IF;
+    -- The offboarding exception ("tenant row already gone") must not be reachable by deferring a foreign key: every
+    -- foreign key on the tenant-scoped guarded tables, and on agent_runs (which carries approvals), is NOT DEFERRABLE.
+    SELECT string_agg(format('%s.%s', constraints.conrelid::regclass, constraints.conname), ', ') INTO delete_guard_drift
+      FROM pg_constraint constraints
+     WHERE constraints.contype = 'f' AND constraints.condeferrable
+       AND constraints.conrelid IN ('public.agent_runtime_controls'::regclass, 'public.agent_tool_grants'::regclass,
+                                    'public.agent_tool_approvals'::regclass, 'public.agent_runs'::regclass);
+    IF delete_guard_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'A foreign key behind the migration-259 offboarding exception is deferrable: %', delete_guard_drift;
+    END IF;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc procs
+                 WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_delete')
+        OR EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_delete_guard') THEN
+    -- Fail closed on look-alike guard objects that exist before migration 259 is recorded.
+    RAISE EXCEPTION 'Migration-259 guard objects exist but migration 259 (agent_control_delete_guard) is not recorded';
   END IF;
 END;
 $$;

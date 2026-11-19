@@ -4,11 +4,12 @@ Regression guard for the staging fixture privilege drift: Staging Candidate's "G
 CI's service-role grant run ``GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role``. Before 258 the enforcement
 left REFERENCES, TRIGGER and MAINTAIN behind, so the reviewed Control Center journal postcondition (service_role:
 SELECT only) was false on persistent staging, and the structural rights were broader than any application path needs.
-DELETE on the mutable tables is the reviewed backend right and is tolerated here (not required, not removed).
+Migration 259 removed the fixture-only DELETE: no application role may hold DELETE on a protected table, and the enforcement
+strips it again after every fixture grant (rows leave only through a tenant offboarding cascade, run as the owner).
 
 Two matrices, kept apart on purpose:
   * MAXIMUM (``_allowed``): what a role may hold. Derived from the reviewed registry flag (the journal: SELECT; append-only:
-    SELECT, INSERT; mutable-registered: SELECT, INSERT, UPDATE, DELETE). Anything beyond it is a violation.
+    SELECT, INSERT; mutable-registered: SELECT, INSERT, UPDATE). Anything beyond it is a violation (259: DELETE included).
   * MINIMUM (``MINIMUM``): what service_role must keep. Listed per table from the creating migrations' grants. It is NOT
     derived from the flag: agent_model_price_schedules is mutable-registered but 244 granted it SELECT, INSERT only, and the
     first 258 derived UPDATE from the flag, which failed every pristine replay (CI run 44465879069).
@@ -73,7 +74,7 @@ def _allowed(table: str, append_only: bool) -> set[str]:
         return {"SELECT"}
     if append_only:
         return {"SELECT", "INSERT"}
-    return {"SELECT", "INSERT", "UPDATE", "DELETE"}  # DELETE: tolerated reviewed 254/H6 backend right
+    return {"SELECT", "INSERT", "UPDATE"}  # 259: DELETE is no longer tolerated on any protected table
 
 
 def _state_after(prefix_sql: str) -> dict[str, set[str]]:
@@ -149,7 +150,8 @@ def test_a_blanket_grant_without_enforcement_is_fully_reported():
     for privilege in STRUCTURAL:
         assert int(counts[privilege]) == relations, (privilege, counts)  # every relation in public, registry included
     assert int(counts["TRUNCATE"]) == 33
-    assert int(counts["UPDATE"]) == 12 and int(counts["DELETE"]) == 12  # append-only tables + the journal
+    assert int(counts["UPDATE"]) == 12  # append-only tables + the journal
+    assert int(counts["DELETE"]) == 33  # 259: DELETE is a violation on every protected table
 
 
 def test_each_structural_or_column_grant_is_reported_and_removed():
@@ -315,16 +317,19 @@ def test_losing_a_released_right_still_fails_closed_in_the_postcondition_and_the
 
 def test_price_schedules_keep_their_rights_and_stay_immutable():
     state = _state_after("")
-    assert MINIMUM[PRICE] <= state[PRICE] <= {"SELECT", "INSERT", "UPDATE", "DELETE"}
+    assert MINIMUM[PRICE] <= state[PRICE] <= {"SELECT", "INSERT", "UPDATE"}
     assert not state[PRICE] & {"TRUNCATE", "TRIGGER", "REFERENCES", "MAINTAIN"}
     model = sql_value(f"SELECT model FROM public.{PRICE} WHERE effective_to IS NULL ORDER BY model LIMIT 1;")
     assert model and int(sql_value(f"SELECT count(*) FROM public.{PRICE};")) > 0
-    for statement, message in (
-        (f"UPDATE public.{PRICE} SET output_per_mtok = 0 WHERE model = '{model}'", "may only be closed once"),
-        (f"DELETE FROM public.{PRICE} WHERE model = '{model}'", "rows are immutable"),
+    for statement, message, grant in (
+        (f"UPDATE public.{PRICE} SET output_per_mtok = 0 WHERE model = '{model}'", "may only be closed once",
+         _staging_fixture_grant()),
+        # 259: the fixture grant no longer leaves DELETE behind, so grant it explicitly to reach the row guard
+        (f"DELETE FROM public.{PRICE} WHERE model = '{model}'", "rows are immutable",
+         f"GRANT DELETE ON public.{PRICE} TO service_role;"),
     ):
-        # under a fixture grant (UPDATE/DELETE tolerated by the maximum) the row guard refuses the change
-        err = _refused(f"{_staging_fixture_grant()}\nSET LOCAL ROLE service_role;\n{statement};")
+        # with the right held, the row guard still refuses the change
+        err = _refused(f"{grant}\nSET LOCAL ROLE service_role;\n{statement};")
         assert message in err, (statement, err)
         # on pristine released grants service_role has no UPDATE/DELETE at all
         err = _refused(f"{_pristine_release_grants()}\nSET LOCAL ROLE service_role;\n{statement};")

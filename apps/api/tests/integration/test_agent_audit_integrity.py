@@ -103,6 +103,8 @@ def test_least_privilege_is_in_force_and_end_users_hold_nothing():
         assert sql_value(f"SELECT has_table_privilege('service_role', 'public.{name}', 'INSERT');") == expected_insert, name
         if not append_only:
             assert sql_value(f"SELECT has_table_privilege('service_role', 'public.{name}', 'UPDATE');") == "t", name
+        # 259: no application role deletes a protected row; only a tenant offboarding cascade removes them
+        assert sql_value(f"SELECT has_table_privilege('service_role', 'public.{name}', 'DELETE');") == "f", name
 
 
 # --- TRUNCATE ------------------------------------------------------------------------------------------------------
@@ -170,8 +172,10 @@ def test_enforcement_reverses_a_blanket_grant_in_the_same_transaction():
     relations = int(sql_value("SELECT count(*) FROM pg_class WHERE relnamespace = 'public'::regnamespace"
                               " AND relkind IN ('r', 'p', 'v', 'm', 'f');"))
     # TRUNCATE on 33 tables + UPDATE/DELETE on 12 append-only + INSERT on the H6 journal, and (migration 258) TRIGGER,
-    # REFERENCES and MAINTAIN on every relation in public, the 33 included
-    assert granted == 33 + 2 * 12 + 1 + 3 * relations and "enforced=33" in out and "left=0" in out
+    # REFERENCES and MAINTAIN on every relation in public, the 33 included; (migration 259) DELETE on the 21 mutable tables
+    mutable = sum(not flag for _, flag in registry())
+    assert mutable == 21
+    assert granted == 33 + 2 * 12 + 1 + 3 * relations + mutable and "enforced=33" in out and "left=0" in out
 
 
 def test_enforcement_fails_closed_when_a_right_it_cannot_revoke_remains_inherited():
@@ -241,3 +245,30 @@ def test_hotel_offboarding_through_the_service_role_api_still_cascades_append_on
     db.table("tenants").delete().eq("id", tenant).execute()  # the real service-role API path
     assert sql_value(f"SELECT count(*) FROM public.agent_run_events WHERE run_id = '{run_id}';") == "0"
     assert sql_value(f"SELECT count(*) FROM public.agent_runs WHERE id = '{run_id}';") == "0"
+
+
+def test_hotel_offboarding_cascades_the_hotels_controls_grants_and_approvals_but_nothing_else():
+    # 259 guards controls, grants and approvals against DELETE; the offboarding cascade still removes the hotel's own rows
+    # (its tenant row is already gone), while platform controls and another hotel's rows stay.
+    hotel = make_gateway_hotel()
+    other = make_gateway_hotel()
+    admitted = admit(hotel, ASSIGN, assign_args(hotel))
+    assert drain_run(gateway_worker(), admitted.run_id) == ["awaiting_approval"]
+    run_sql(f"""
+      SELECT public.agent_runtime_control_set('hotel', '{hotel.tenant_id}', NULL, true, false, 'it-offboard', 'incident');
+      SELECT public.agent_runtime_control_set('hotel', '{other.tenant_id}', NULL, true, false, 'it-offboard', 'incident');
+      SELECT pgmq.purge_queue('{QUEUE}');
+    """)
+    count = ("SELECT (SELECT count(*) FROM public.agent_runtime_controls WHERE tenant_id = '{t}') || ',' ||"
+             " (SELECT count(*) FROM public.agent_tool_grants WHERE tenant_id = '{t}') || ',' ||"
+             " (SELECT count(*) FROM public.agent_tool_approvals WHERE tenant_id = '{t}');")
+    before = sql_value(count.format(t=hotel.tenant_id)).split(",")
+    assert before[0] == "1" and int(before[1]) >= 1 and before[2] == "1", before
+    other_before = sql_value(count.format(t=other.tenant_id))
+    platform = sql_value("SELECT count(*) FROM public.agent_runtime_controls WHERE tenant_id IS NULL;")
+    new_client().table("tenants").delete().eq("id", hotel.tenant_id).execute()  # the real service-role API path
+    assert sql_value(count.format(t=hotel.tenant_id)) == "0,0,0"
+    assert sql_value(count.format(t=other.tenant_id)) == other_before
+    assert sql_value("SELECT count(*) FROM public.agent_runtime_controls WHERE tenant_id IS NULL;") == platform
+    run_sql(f"SELECT public.agent_runtime_control_set('hotel', '{other.tenant_id}', NULL, false, false, 'it-offboard',"
+            " 'resolved');")
