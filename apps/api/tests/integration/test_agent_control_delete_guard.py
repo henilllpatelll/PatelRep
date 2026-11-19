@@ -188,13 +188,15 @@ def test_the_offboarding_exception_is_not_reachable_through_orphans_or_deferred_
          AND conrelid IN ('public.agent_runtime_controls'::regclass, 'public.agent_tool_grants'::regclass,
                           'public.agent_tool_approvals'::regclass, 'public.agent_runs'::regclass);""") == "0"
     # pointing the row at a tenant that does not exist (to make "tenant gone" true) is refused immediately, even with
-    # every constraint deferred, by the owner and by the service role under a blanket grant
+    # every constraint deferred, by the owner and by the service role under a blanket grant (from migration 260 the
+    # identity guard refuses it before the non-deferrable foreign key is even checked)
     orphan = (f"UPDATE public.agent_runtime_controls SET tenant_id = gen_random_uuid() "
               f"WHERE scope = 'hotel' AND tenant_id = '{hotel.tenant_id}'")
     for prefix in ("SET CONSTRAINTS ALL DEFERRED;", f"{BLANKET_GRANT}\nSET CONSTRAINTS ALL DEFERRED;\nSET LOCAL ROLE service_role;"):
         with pytest.raises(AssertionError) as err:
             run_sql(f"BEGIN;\n{prefix}\n{orphan};\nROLLBACK;")
-        assert "violates foreign key constraint" in str(err.value), (prefix, err.value)
+        assert ("violates foreign key constraint" in str(err.value)
+                or "runtime control identity is immutable" in str(err.value)), (prefix, err.value)
     assert sql_value("SELECT count(*) FROM public.agent_tool_approvals a "
                      "WHERE NOT EXISTS (SELECT 1 FROM public.tenants t WHERE t.id = a.tenant_id);") == "0"
     assert sql_value(f"SELECT public.agent__control_block_reason('{hotel.tenant_id}', 'x.y');") == "hotel_paused"
@@ -217,6 +219,8 @@ def test_service_role_cannot_switch_the_guard_off():
 
 def test_legitimate_control_changes_still_work_and_are_journaled(hotel):
     out = run_sql("\\pset tuples_only on\n\\pset format unaligned\nBEGIN;\n"
+                  # order independence: an earlier module may leave the paid-model switch on (rolled back below)
+                  "SELECT public.agent_model_enablement_set(false, 'it-op', 'it');\n"
                   "SELECT 'j0=' || count(*) FROM public.agent_control_center_events;\n"
                   "SET LOCAL ROLE service_role;\n"
                   "SELECT public.agent_runtime_control_set('platform', NULL, NULL, true, false, 'it-op', 'incident');\n"

@@ -17,6 +17,8 @@ DECLARE
   exact_privileges_recorded integer;
   delete_guard_recorded integer;
   delete_guard_drift text;
+  update_guard_recorded integer;
+  update_guard_drift text;
   exact_privilege_drift text;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
@@ -625,6 +627,71 @@ BEGIN
         OR EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_delete_guard') THEN
     -- Fail closed on look-alike guard objects that exist before migration 259 is recorded.
     RAISE EXCEPTION 'Migration-259 guard objects exist but migration 259 (agent_control_delete_guard) is not recorded';
+  END IF;
+
+  -- UPDATE integrity of agent safety controls, grants and approvals (migration 260). Version-gated by migration NAME.
+  --   H6 recorded -> the SECURITY DEFINER journal trigger function is pinned to its reviewed body (256, or 260 once
+  --   recorded), so a weakened journal cannot pass by journaling less;
+  --   260 recorded -> the update guard is pinned and is a plain BEFORE UPDATE row trigger on exactly 4 reviewed tables;
+  --   260 not recorded -> no migration-260 guard object may exist.
+  SELECT count(DISTINCT history.name) INTO update_guard_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_control_update_integrity';
+  -- nested IF: the regprocedure literal must not be evaluated on a schema without H6
+  IF h6_recorded = 2 THEN IF NOT EXISTS (
+       SELECT 1 FROM pg_proc procs
+        WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__journal_control_change'
+          AND procs.pronargs = 0
+          AND procs.prosecdef AND procs.proowner = 'postgres'::regrole AND procs.proconfig = ARRAY['search_path=""']
+          AND md5(replace(procs.prosrc, chr(13), '')) = CASE WHEN update_guard_recorded > 0
+                                                           THEN '30071c963f16c289896055d8e0507a42'   -- 260 body
+                                                           ELSE 'e1353767acaeedce750579365ca0fc17' END  -- 256 body
+          AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE')) THEN
+    -- service_role EXECUTE is tolerated (CI fixture blanket function grant; a trigger function cannot be called directly).
+    RAISE EXCEPTION 'agent__journal_control_change() differs from its reviewed migration-256/260 body, owner or ACL';
+  END IF; END IF;
+  IF update_guard_recorded > 0 THEN
+    IF delete_guard_recorded = 0 THEN
+      RAISE EXCEPTION 'Migration 260 is recorded on a schema without migration 259';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc procs
+                    WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update'
+                      AND NOT procs.prosecdef AND procs.proowner = 'postgres'::regrole
+                      AND procs.proconfig = ARRAY['search_path=""']
+                      AND md5(replace(procs.prosrc, chr(13), '')) = '28451748327504469ba6383959ddb805'
+                      AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))
+       OR (SELECT count(*) FROM pg_proc procs
+            WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update') <> 1 THEN
+      RAISE EXCEPTION 'agent__guard_control_update() differs from its reviewed migration-260 body or ACL';
+    END IF;
+    SELECT string_agg(coalesce(wanted.table_name, found.table_name), ', ') INTO update_guard_drift
+      FROM (VALUES ('agent_runtime_controls'), ('agent_tool_controls'), ('agent_tool_grants'),
+                   ('agent_tool_approvals')) AS wanted(table_name)
+      FULL JOIN (SELECT relations.relname::text AS table_name
+                   FROM pg_trigger triggers JOIN pg_class relations ON relations.oid = triggers.tgrelid
+                  WHERE triggers.tgfoid = 'public.agent__guard_control_update()'::regprocedure
+                    AND triggers.tgname = 'agent_control_update_guard' AND triggers.tgenabled = 'O'
+                    AND triggers.tgtype = 19  -- exactly ROW (1) + BEFORE (2) + UPDATE (16)
+                    AND NOT triggers.tgisinternal AND triggers.tgconstraint = 0
+                    AND triggers.tgqual IS NULL AND triggers.tgnargs = 0
+                    AND triggers.tgattr = ''::int2vector                       -- no column list: every UPDATE fires
+                    AND relations.relnamespace = 'public'::regnamespace) found ON found.table_name = wanted.table_name
+     WHERE wanted.table_name IS NULL OR found.table_name IS NULL;
+    IF update_guard_drift IS NOT NULL
+       OR (SELECT count(*) FROM pg_trigger triggers
+            WHERE triggers.tgfoid = 'public.agent__guard_control_update()'::regprocedure) <> 4
+       OR (SELECT count(*) FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_update_guard') <> 4 THEN
+      RAISE EXCEPTION 'The migration-260 UPDATE guard is missing, disabled or misplaced: %', coalesce(update_guard_drift, 'trigger count');
+    END IF;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc procs
+                 WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update')
+        OR EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_update_guard') THEN
+    RAISE EXCEPTION 'Migration-260 guard objects exist but migration 260 (agent_control_update_integrity) is not recorded';
   END IF;
 END;
 $$;
