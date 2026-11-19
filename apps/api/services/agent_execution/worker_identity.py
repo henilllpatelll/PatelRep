@@ -4,7 +4,7 @@ The worker never holds the API's ``service_role`` key. It talks to PostgREST wit
 
   * ``apikey``        the project's public (anon / publishable) key, which grants nothing by itself, and
   * ``Authorization`` a short-lived JWT whose ``role`` claim is ``agent_worker`` and whose ``jti`` is registered in
-                      ``agent_worker_credentials`` (max 31 days, revocable; minted by an operator, never by the worker).
+                      ``agent_worker_credentials`` (max 7 days since H6 P1, revocable; minted by an operator, never by the worker).
 
 PostgreSQL then runs every request as ``agent_worker``: it may EXECUTE only the ``agent_worker_rpc__*`` wrappers of
 the reviewed RPCs below and SELECT only the reviewed columns. This module mirrors that contract in-process so a
@@ -56,8 +56,13 @@ WORKER_READ_COLUMNS: Mapping[str, frozenset[str]] = {
     "room_occupancy_discrepancies": frozenset({"id", "tenant_id", "room_id", "status"}),
 }
 
-MAX_TOKEN_LIFETIME_SECONDS = 31 * 24 * 3600
+# Must equal public.agent__worker_tenant_columns() in migration 257.
+WORKER_TENANT_COLUMNS: Mapping[str, str] = {name: ("id" if name == "tenants" else "tenant_id") for name in WORKER_READ_COLUMNS}
+
+# H6 P1: hotel-scoped worker credentials live at most 7 days (migration 257 enforces the same ceiling in the database).
+MAX_TOKEN_LIFETIME_SECONDS = 7 * 24 * 3600
 _URL_RE = re.compile(r"^https?://([A-Za-z0-9.-]{1,253})(?::[0-9]{1,5})?(?:/.*)?$")
+_WORKER_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,100}$")
 _UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 # Claims that would make PostgREST or the API treat the token as a person or a hotel. A worker token carries none.
 _FORBIDDEN_CLAIMS = frozenset({"sub", "hotel_id", "user_role", "app_metadata", "user_metadata", "email", "aal"})
@@ -146,23 +151,104 @@ def refuse_service_role_environment(environ: Mapping[str, str]) -> None:
             raise WorkerIdentityError("service_role_credential_present")
 
 
+LOCAL_DB_HOSTS = frozenset({"127.0.0.1", "localhost"})
+
+
 def enforce_target(settings: WorkerDatabaseSettings, *, app_env: str, environ: Mapping[str, str]) -> None:
-    """Same target guard as the API settings (core.config), without importing them: staging must point at the
-    configured staging host and never at production."""
-    if not settings.project_url.startswith(("https://", "http://")) or not settings.host:
+    """An allowlist, not a staging-only check (H6 P1). The worker may reach exactly one kind of database per APP_ENV:
+
+      development / test   a loopback host only (it can never be the hosted production project);
+      staging              exactly STAGING_EXPECTED_SUPABASE_HOST, which must be set and differ from
+                           PRODUCTION_SUPABASE_HOST, which must also be set (otherwise "not production" is unprovable);
+      production           always refused in H6 (no production worker exists).
+
+    Any APP_ENV outside the four is refused, and the production host is refused under every APP_ENV. The database
+    independently refuses a credential whose environment differs from its own stamped environment (migration 257).
+
+    Transport (P1 review): the URL must be exactly ``scheme://host[:port]`` (an optional trailing ``/rest/v1`` is
+    stripped first) with no userinfo, path, query or fragment and a strictly valid hostname. Staging is HTTPS only on
+    the default port (none or 443). Plain HTTP is allowed only for development/test, and only to a loopback host."""
+    scheme, host, port = _parse_target(settings)
+    if app_env not in ("development", "test", "staging", "production"):
+        raise WorkerIdentityError("app_env_invalid")
+    production = _configured_host(environ, "PRODUCTION_SUPABASE_HOST")
+    if production and host == production:
+        raise WorkerIdentityError("worker_db_target_production")
+    if app_env == "production":
+        raise WorkerIdentityError("production_worker_refused")
+    if app_env in ("development", "test"):
+        if host not in LOCAL_DB_HOSTS:
+            raise WorkerIdentityError("worker_db_target_not_local")
+        return
+    # staging
+    if scheme != "https":
+        raise WorkerIdentityError("worker_db_transport_insecure")
+    if port not in (None, 443):
+        raise WorkerIdentityError("worker_db_port_not_allowed")
+    expected = _configured_host(environ, "STAGING_EXPECTED_SUPABASE_HOST")
+    if not production:
+        raise WorkerIdentityError("production_host_unknown")
+    if not expected or expected == production or host != expected:
+        raise WorkerIdentityError("worker_db_target_not_staging")
+
+
+# One or more dot-separated DNS labels: 1-63 chars each, alphanumeric at both ends; no empty label (so no trailing dot).
+_HOSTNAME_RE = re.compile(r"^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$")
+
+
+# The whole target, after project_url strips trailing "/" and "/rest/v1": a lowercase http(s) scheme, a host, and an
+# optional decimal port without leading zeros. Anything else (userinfo, path, query, fragment, whitespace) cannot match.
+# A full-match regex on purpose: this package may not import urllib (tests/smoke/test_agent_execution_isolation.py).
+_TARGET_RE = re.compile(r"(https|http)://([A-Za-z0-9.-]{1,253})(?::([1-9][0-9]{0,4}))?")
+
+
+def _parse_target(settings: WorkerDatabaseSettings) -> tuple[str, str, Optional[int]]:
+    """Strictly parse the worker's database URL. Any ambiguity (userinfo, path, query, fragment, bad port, odd
+    characters, a disagreement with ``settings.host``) is ``worker_db_url_invalid``."""
+    match = _TARGET_RE.fullmatch(settings.project_url)
+    if not match:
         raise WorkerIdentityError("worker_db_url_invalid")
-    production = (environ.get("PRODUCTION_SUPABASE_HOST") or "").strip().lower()
-    if app_env == "staging":
-        expected = (environ.get("STAGING_EXPECTED_SUPABASE_HOST") or "").strip().lower()
-        if not expected or settings.host != expected or (production and settings.host == production):
-            raise WorkerIdentityError("worker_db_target_not_staging")
+    scheme, host = match.group(1), match.group(2).lower()
+    port = int(match.group(3)) if match.group(3) else None
+    if not _HOSTNAME_RE.fullmatch(host) or host != settings.host or (port is not None and port > 65535):
+        raise WorkerIdentityError("worker_db_url_invalid")
+    return scheme, host, port
+
+
+def _configured_host(environ: Mapping[str, str], name: str) -> str:
+    """A configured host variable must be a bare hostname; a URL or anything malformed is treated as unset (which
+    refuses staging) rather than compared as an opaque string."""
+    value = (environ.get(name) or "").strip().lower()
+    return value if _HOSTNAME_RE.fullmatch(value) else ""
+
+
+def bound_worker_id(tenant_id: str, worker_id: str) -> str:
+    """The database accepts a worker heartbeat only under "<bound tenant>:<name>" (migration 257)."""
+    prefix = f"{tenant_id}:"
+    bound = worker_id if worker_id.startswith(prefix) else prefix + worker_id
+    if not _WORKER_ID_RE.match(bound) or len(bound) <= len(prefix):
+        raise WorkerIdentityError("worker_id_invalid")
+    return bound
+
+
+def verify_bound_identity(client: "RestrictedWorkerClient") -> str:
+    """Startup proof that the credential is registered, active, bound to exactly one active hotel and matches the
+    database's environment: through the RESTRICTIVE gate, ``tenants`` returns exactly the bound hotel, and nothing at all
+    for any other credential state. Returns the bound tenant id and pins the client to it."""
+    rows = client.table("tenants").select("id").execute().data or []
+    ids = {str(row.get("id")) for row in rows if isinstance(row, dict) and row.get("id")}
+    if len(rows) != 1 or len(ids) != 1 or not _UUID_RE.match(next(iter(ids))):
+        raise WorkerIdentityError("worker_credential_not_bound")
+    tenant_id = next(iter(ids)).lower()
+    client.bind_tenant(tenant_id)
+    return tenant_id
 
 
 class _ReadOnlyTable:
     """``client.table(name)`` for the worker: only ``select`` of reviewed columns. No insert/update/upsert/delete."""
 
-    def __init__(self, inner: Any, name: str) -> None:
-        self._inner, self._name = inner, name
+    def __init__(self, inner: Any, name: str, tenant_id: Optional[str] = None) -> None:
+        self._inner, self._name, self._tenant_id = inner, name, tenant_id
 
     def select(self, columns: str, *args: Any, **kwargs: Any) -> Any:
         if args or kwargs:
@@ -179,7 +265,12 @@ class _ReadOnlyTable:
                         raise WorkerIdentityError("column_not_allowed")
             elif part not in allowed:
                 raise WorkerIdentityError("column_not_allowed")
-        return self._inner.table(self._name).select(columns)
+        query = self._inner.table(self._name).select(columns)
+        # Defence in depth over the database's RESTRICTIVE gate (migration 257): once the bound hotel is known, every
+        # read is explicitly filtered to it.
+        if self._tenant_id is not None:
+            query = query.eq(WORKER_TENANT_COLUMNS[self._name], self._tenant_id)
+        return query
 
 
 def _top_level_columns(columns: str) -> list[str]:
@@ -206,6 +297,20 @@ class RestrictedWorkerClient:
 
     def __init__(self, inner: Any) -> None:
         self._inner = inner
+        self._tenant_id: Optional[str] = None
+
+    @property
+    def tenant_id(self) -> Optional[str]:
+        return self._tenant_id
+
+    def bind_tenant(self, tenant_id: str) -> None:
+        """Pin reads to the hotel the database derived from the credential. Never re-bound to another hotel."""
+        if not _UUID_RE.match(tenant_id or ""):
+            raise WorkerIdentityError("worker_tenant_invalid")
+        tenant_id = tenant_id.lower()
+        if self._tenant_id is not None and self._tenant_id != tenant_id:
+            raise WorkerIdentityError("worker_tenant_rebind_refused")
+        self._tenant_id = tenant_id
 
     def rpc(self, name: str, params: Optional[dict] = None) -> Any:
         if name not in WORKER_RPCS:
@@ -215,7 +320,7 @@ class RestrictedWorkerClient:
     def table(self, name: str) -> _ReadOnlyTable:
         if name not in WORKER_READ_COLUMNS:
             raise WorkerIdentityError("table_not_allowed")
-        return _ReadOnlyTable(self._inner, name)
+        return _ReadOnlyTable(self._inner, name, self._tenant_id)
 
     def __getattr__(self, item: str) -> Any:  # storage, auth, functions, postgrest, schema, from_ ...: none exist here
         raise AttributeError(f"client_surface_not_allowed: {item}")

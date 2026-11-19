@@ -86,9 +86,11 @@ def cmd_worker(_: argparse.Namespace) -> int:
     from services.agent_execution.worker_identity import (
         WorkerDatabaseSettings,
         WorkerIdentityError,
+        bound_worker_id,
         build_worker_client,
         enforce_target,
         refuse_service_role_environment,
+        verify_bound_identity,
     )
 
     app_env = os.environ.get("APP_ENV", "development").strip().lower()
@@ -98,13 +100,29 @@ def cmd_worker(_: argparse.Namespace) -> int:
         refuse_service_role_environment(os.environ)
         db_settings = WorkerDatabaseSettings()
         enforce_target(db_settings, app_env=app_env, environ=os.environ)
-        build_worker_client(db_settings, now=_now())  # validate once before any slot starts
+        probe = build_worker_client(db_settings, now=_now())  # validate once before any slot starts
+        # H6 P1: the database (not a claim, not configuration) names the one hotel this credential serves; the first
+        # heartbeat proves the database's stamped environment equals APP_ENV. Either failing refuses to start.
+        tenant_id = verify_bound_identity(probe)
+        worker_settings = worker_settings.model_copy(update={"worker_id": bound_worker_id(tenant_id, worker_settings.worker_id)})
+        AgentRunStore(probe).worker_heartbeat(worker_id=worker_settings.worker_id, status="starting", app_env=app_env,
+                                              version=_packaged_release_sha(), concurrency=worker_settings.concurrency,
+                                              in_flight=0, started_at=_now())
     except WorkerIdentityError as exc:
         print(json.dumps({"event": "worker_refused", "reason": exc.code}))
         return 2
+    except Exception as exc:  # noqa: BLE001 - any database refusal at startup is a refusal to start
+        print(json.dumps({"event": "worker_refused", "reason": "worker_identity_unverified",
+                          "error_class": type(exc).__name__}))
+        return 2
+
+    def _bound_client():
+        client = build_worker_client(db_settings, now=_now())
+        client.bind_tenant(tenant_id)
+        return client
 
     worker = Worker(worker_settings, app_env=app_env, version=_packaged_release_sha(),
-                    store_factory=lambda: AgentRunStore(build_worker_client(db_settings, now=_now())),  # one per slot
+                    store_factory=lambda: AgentRunStore(_bound_client()),  # one per slot
                     authority_factory=lambda client: SupabaseIdentityAuthority(client, clock=_now),
                     write_notifier=_defer_write_notification)
     return worker.run()
