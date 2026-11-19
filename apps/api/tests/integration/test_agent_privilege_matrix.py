@@ -175,7 +175,8 @@ def test_enforcement_fails_closed_on_a_grant_made_by_an_unexpected_grantor():
     # the owner's REVOKE does not remove a grant whose grantor is another role; the check still sees it
     err = _refused("CREATE ROLE it_grantor NOLOGIN;\n"
                    "GRANT TRIGGER ON public.tenants TO it_grantor WITH GRANT OPTION;\n"
-                   "GRANT it_grantor TO current_user WITH SET TRUE, INHERIT FALSE;\n"
+                   # explicit role name: "GRANT ... TO current_user WITH SET ..." crashes the local Supabase image
+                   "GRANT it_grantor TO postgres WITH SET TRUE, INHERIT FALSE;\n"
                    "SET LOCAL ROLE it_grantor;\n"
                    "GRANT TRIGGER ON public.tenants TO service_role;\n"
                    "RESET ROLE;\n"
