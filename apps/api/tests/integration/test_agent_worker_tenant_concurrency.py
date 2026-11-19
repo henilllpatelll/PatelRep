@@ -160,10 +160,8 @@ class _RowLockHolder:
         if self._released:
             return
         self._released = True
-        self._send("COMMIT;\n")
-        assert self.process.stdin is not None
-        self.process.stdin.close()
-        _, err = self.process.communicate(timeout=60)
+        # communicate() writes the COMMIT, then closes stdin itself (closing it first breaks communicate() on POSIX)
+        _, err = self.process.communicate(input="COMMIT;\n", timeout=60)
         assert self.process.returncode == 0, f"lock holder failed: {err}"
 
 
