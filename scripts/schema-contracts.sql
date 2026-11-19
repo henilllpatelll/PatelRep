@@ -518,13 +518,37 @@ BEGIN
                 OR (rights.privilege_type = 'REFERENCES'
                     AND has_any_column_privilege(grantees.role_name, relations.oid, rights.privilege_type)))
         UNION ALL
-        SELECT registry.table_name, 'service_role (missing)', wanted.privilege
+        -- MINIMUM: the rights each table's creating migration granted to service_role, listed per table (not derived from
+        -- append_only: agent_model_price_schedules is registered mutable but 244 granted it SELECT, INSERT only). The
+        -- maximum above still tolerates UPDATE/DELETE on every mutable-registered table. A registry table missing from this
+        -- list, or a listed table missing from the registry, is drift too.
+        SELECT coalesce(registry.table_name, minimum.table_name), 'service_role (missing)',
+               CASE WHEN registry.table_name IS NULL THEN 'not registered' ELSE wanted.privilege END
           FROM public.agent__audit_protected_tables() registry
-         CROSS JOIN LATERAL unnest(CASE
-                 WHEN registry.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
-                 WHEN registry.append_only THEN ARRAY['SELECT', 'INSERT']
-                 ELSE ARRAY['SELECT', 'INSERT', 'UPDATE'] END) AS wanted(privilege)
-         WHERE NOT has_table_privilege('service_role', format('public.%I', registry.table_name), wanted.privilege)
+          FULL JOIN (VALUES
+                 ('agent_runs', 'SIU'), ('agent_run_steps', 'SIU'), ('agent_run_events', 'SI'),
+                 ('agent_runtime_controls', 'SIU'), ('agent_worker_heartbeats', 'SIU'),
+                 ('agent_execution_enablement', 'SIU'), ('agent_tool_controls', 'SIU'), ('agent_tool_grants', 'SIU'),
+                 ('agent_tool_approvals', 'SIU'), ('agent_tool_invocations', 'SI'), ('agent_tool_executions', 'SI'),
+                 ('agent_tool_events', 'SI'),
+                 ('agent_model_enablement', 'SIU'), ('agent_model_budget_policies', 'SIU'),
+                 ('agent_model_budget_counters', 'SIU'), ('agent_model_attempts', 'SIU'),
+                 ('agent_model_price_schedules', 'SI'), ('agent_model_spend_events', 'SI'), ('agent_planning_runs', 'SIU'),
+                 ('agent_customer_billing_controls', 'SIU'), ('agent_customer_pricing_policies', 'SIU'),
+                 ('agent_customer_credit_holds', 'SIU'), ('agent_customer_credit_charges', 'SIU'),
+                 ('agent_billing_operations', 'SIU'), ('agent_customer_overage_authorizations', 'SI'),
+                 ('agent_customer_billing_events', 'SI'), ('agent_billing_operation_events', 'SI'),
+                 ('billing_trueup_operations', 'SIU'), ('billing_trueup_operation_events', 'SI'),
+                 ('agent_planning_events', 'SI'), ('agent_proposal_handoffs', 'SI'),
+                 ('agent_worker_credentials', 'SIU'), ('agent_control_center_events', 'S')
+               ) AS minimum(table_name, rights) ON minimum.table_name = registry.table_name
+          LEFT JOIN LATERAL unnest(CASE WHEN minimum.rights IS NULL THEN ARRAY['unlisted'] ELSE
+                 array_remove(ARRAY[CASE WHEN strpos(minimum.rights, 'S') > 0 THEN 'SELECT' END,
+                                    CASE WHEN strpos(minimum.rights, 'I') > 0 THEN 'INSERT' END,
+                                    CASE WHEN strpos(minimum.rights, 'U') > 0 THEN 'UPDATE' END], NULL) END)
+                 AS wanted(privilege) ON true
+         WHERE CASE WHEN registry.table_name IS NULL OR minimum.table_name IS NULL THEN true
+                    ELSE NOT has_table_privilege('service_role', format('public.%I', registry.table_name), wanted.privilege) END
       ) drift;
     IF exact_privilege_drift IS NOT NULL THEN
       RAISE EXCEPTION 'Protected agent table privileges differ from the reviewed matrix: %', exact_privilege_drift;

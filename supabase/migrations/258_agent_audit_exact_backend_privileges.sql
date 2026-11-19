@@ -29,6 +29,8 @@
 --     through role membership or granted by a non-owner grantor is not revocable here and therefore fails closed).
 --     Repeated calls are no-ops. CI and Staging Candidate call it in the same transaction as their blanket grant.
 --   Same signatures, SECURITY INVOKER, empty search_path, owner-only EXECUTE (CREATE OR REPLACE keeps the ACL).
+--   Minimum vs maximum: the detector's matrix is the MAXIMUM a role may hold; the final check below asserts the MINIMUM
+--   service_role must keep, listed per table from the creating migrations' grants (see the comment there).
 -- Coordination: #239 (worker tenant binding) follows as 259; a table it registers needs its matrix row here.
 -- =============================================================================
 
@@ -156,22 +158,63 @@ REVOKE ALL ON FUNCTION public.agent_audit_privileges_enforce() FROM PUBLIC, anon
 -- Repair the current state (removes the fixture leftovers on persistent staging; a no-op where none exist).
 SELECT public.agent_audit_privileges_enforce();
 
--- Fail closed unless the matrix is now exact: no violation, and service_role still holds every reviewed right.
+-- Fail closed unless the matrix is now exact: no violation, and service_role still holds every right its creating
+-- migration granted. The minimum is listed per table from the released grants (238, 241, 244, 247, 248, 250, 252, 255,
+-- 256), NOT derived from append_only: agent_model_price_schedules is registered mutable (append_only = false, so UPDATE
+-- and DELETE stay tolerated by the maximum above) but 244 granted it only SELECT, INSERT (rows are immutable; closing
+-- effective_to is done by migrations as the owner). Requiring UPDATE there failed on every clean replay.
 DO $post$
 DECLARE
-  v_missing text;
+  -- table -> rights its creating migration granted to service_role (the reviewed minimum)
+  v_minimum constant jsonb := jsonb_build_object(
+    -- 238 (H1)
+    'agent_runs', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_run_steps', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_run_events', '["SELECT","INSERT"]'::jsonb, 'agent_runtime_controls', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_worker_heartbeats', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    -- 241 (H2)
+    'agent_execution_enablement', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_tool_controls', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_tool_grants', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_tool_approvals', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_tool_invocations', '["SELECT","INSERT"]'::jsonb,
+    'agent_tool_executions', '["SELECT","INSERT"]'::jsonb, 'agent_tool_events', '["SELECT","INSERT"]'::jsonb,
+    -- 244, 247 (H3); price schedules: SELECT, INSERT only (244)
+    'agent_model_enablement', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_budget_policies', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_budget_counters', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_attempts', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_price_schedules', '["SELECT","INSERT"]'::jsonb, 'agent_model_spend_events', '["SELECT","INSERT"]'::jsonb,
+    'agent_planning_runs', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    -- 248, 250 (H4)
+    'agent_customer_billing_controls', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_pricing_policies', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_credit_holds', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_credit_charges', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_billing_operations', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_overage_authorizations', '["SELECT","INSERT"]'::jsonb,
+    'agent_customer_billing_events', '["SELECT","INSERT"]'::jsonb, 'agent_billing_operation_events', '["SELECT","INSERT"]'::jsonb,
+    'billing_trueup_operations', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'billing_trueup_operation_events', '["SELECT","INSERT"]'::jsonb,
+    -- 252 (H5)
+    'agent_planning_events', '["SELECT","INSERT"]'::jsonb, 'agent_proposal_handoffs', '["SELECT","INSERT"]'::jsonb,
+    -- 255, 256 (H6)
+    'agent_worker_credentials', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_control_center_events', '["SELECT"]'::jsonb);
+  v_missing  text;
+  v_unlisted text;
 BEGIN
   IF EXISTS (SELECT 1 FROM public.agent_audit_privilege_violations()) THEN
     RAISE EXCEPTION 'agent audit privilege violations remain after migration 258' USING ERRCODE = '42501';
   END IF;
-  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s', t.table_name, p.privilege), ', ') INTO v_missing
+  -- The minimum must cover exactly the registry (a newly registered table needs its entry here and in the contract).
+  SELECT pg_catalog.string_agg(coalesce(t.table_name, m.key), ', ') INTO v_unlisted
     FROM public.agent__audit_protected_tables() t
-   CROSS JOIN LATERAL unnest(CASE
-           WHEN t.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
-           WHEN t.append_only THEN ARRAY['SELECT', 'INSERT']
-           ELSE ARRAY['SELECT', 'INSERT', 'UPDATE']
-         END) AS p(privilege)
-   WHERE NOT pg_catalog.has_table_privilege('service_role', pg_catalog.format('public.%I', t.table_name), p.privilege);
+    FULL JOIN pg_catalog.jsonb_object_keys(v_minimum) AS m(key) ON m.key = t.table_name
+   WHERE t.table_name IS NULL OR m.key IS NULL;
+  IF v_unlisted IS NOT NULL THEN
+    RAISE EXCEPTION 'migration 258 minimum matrix does not match the protected registry: %', v_unlisted USING ERRCODE = '42501';
+  END IF;
+  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s', m.key, p.privilege), ', ') INTO v_missing
+    FROM pg_catalog.jsonb_each(v_minimum) AS m(key, rights)
+   CROSS JOIN LATERAL pg_catalog.jsonb_array_elements_text(m.rights) AS p(privilege)
+   WHERE NOT pg_catalog.has_table_privilege('service_role', pg_catalog.format('public.%I', m.key), p.privilege);
   IF v_missing IS NOT NULL THEN
     RAISE EXCEPTION 'service_role lost a reviewed backend right: %', v_missing USING ERRCODE = '42501';
   END IF;
