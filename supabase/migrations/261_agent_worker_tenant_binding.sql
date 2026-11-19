@@ -1,10 +1,10 @@
 -- =============================================================================
--- Migration 257: Agent Harness H6 P1 -- per-hotel worker credentials, database environment identity, tenant gates
+-- Migration 261: Agent Harness H6 P1 -- per-hotel worker credentials, database environment identity, tenant gates
 -- =============================================================================
 -- migration-safety: destructive-reviewed
 -- rollback-plan: forward-only. Nothing is dropped, renamed, deleted or rewritten; no existing row changes. The
 --   destructive-SQL guard flags this file only because it contains the TRUNCATE keyword (BEFORE TRUNCATE refusal
---   triggers on the two new registry tables). Requires 254, 255 and 256 recorded. Exact effect:
+--   triggers on the two new registry tables). Requires 254-260 recorded (checked below). Exact effect:
 --   (1) agent_deployment_identity: the database's OWN environment (development|test|staging|production), written once
 --       by the table owner (never service_role, never the worker), immutable afterwards. Unstamped = no worker access.
 --   (2) agent_worker_credential_scopes: the immutable binding of each worker credential to exactly ONE hotel and one
@@ -28,10 +28,18 @@
 --       substitutions); the originals keep their exact behaviour for service_role. The runtime-controls snapshot shows
 --       only platform rows and the bound hotel; the worker heartbeat requires a "<tenant>:" worker id and an APP_ENV
 --       equal to the stamp.
---   (6) The 255 verifier, the 256 registry (35 tables / 14 append-only), its privilege violations and enforcement are
---       re-created as strict supersets (gate present and exact on every worker-readable table, the new tables and
---       helpers owner-only). No credential, stamp, switch or worker deployment is created here. Agent execution, paid
---       model calls and customer billing stay disabled. REVOKE agent_worker FROM authenticator remains the kill switch.
+--   (6) The 255 verifier and the 254/256 registry (35 tables / 14 append-only) are re-created as strict supersets (gate
+--       present and exact on every worker-readable table). The privilege detector is the 259 allowlist body plus the
+--       two new tables' matrix rows (deployment identity: SELECT; credential scopes: SELECT, INSERT, as append-only)
+--       and the owner-only check of the new helpers; the remover is the 258 body plus the helpers' revocation. Both
+--       keep 258's universe-wide allowlist, the structural TRIGGER/REFERENCES/MAINTAIN check on every relation in
+--       public, and 259's "no DELETE for any application role". No credential, stamp, switch or worker deployment is
+--       created here. Agent execution, paid model calls and customer billing stay disabled. REVOKE agent_worker FROM
+--       authenticator remains the kill switch.
+-- Numbering: written and reviewed as migration 257 (PR #239), renumbered to 261 after 257-260 merged with #235. Function
+--   bodies are byte-identical to that review (their comments still say "257" = this migration) EXCEPT
+--   agent_audit_privilege_violations() and agent_audit_privileges_enforce(), rebuilt on 258/259 below. 258/259/260
+--   are not modified: the 259 DELETE guards and the 260 UPDATE guards / journal body stay as they are.
 -- =============================================================================
 
 DO $require$
@@ -40,7 +48,22 @@ BEGIN
      OR to_regprocedure('public.agent__worker_credential_ok()') IS NULL
      OR to_regprocedure('public.agent__refuse_truncate()') IS NULL
      OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'agent_worker') THEN
-    RAISE EXCEPTION 'migration 257 requires migrations 254, 255 and 256' USING ERRCODE = '55000';
+    RAISE EXCEPTION 'migration 261 requires migrations 254, 255 and 256' USING ERRCODE = '55000';
+  END IF;
+  -- 261 replaces the privilege detector and remover, so it must replace exactly the reviewed 259/258 bodies, on a schema
+  -- that carries the 259 DELETE guard and the 260 UPDATE guard + journal (never an older or out-of-band variant).
+  IF (SELECT pg_catalog.md5(pg_catalog.replace(p.prosrc, pg_catalog.chr(13), '')) FROM pg_catalog.pg_proc p
+       WHERE p.oid = 'public.agent_audit_privilege_violations()'::pg_catalog.regprocedure)
+       IS DISTINCT FROM '9b368df4cb0eb890ebaa7f7e58d3f582'
+     OR (SELECT pg_catalog.md5(pg_catalog.replace(p.prosrc, pg_catalog.chr(13), '')) FROM pg_catalog.pg_proc p
+          WHERE p.oid = 'public.agent_audit_privileges_enforce()'::pg_catalog.regprocedure)
+       IS DISTINCT FROM '37248313075777a945bad80155845f7d'
+     OR to_regprocedure('public.agent__guard_control_delete()') IS NULL
+     OR to_regprocedure('public.agent__guard_control_update()') IS NULL
+     OR (SELECT pg_catalog.md5(pg_catalog.replace(p.prosrc, pg_catalog.chr(13), '')) FROM pg_catalog.pg_proc p
+          WHERE p.oid = 'public.agent__journal_control_change()'::pg_catalog.regprocedure)
+       IS DISTINCT FROM '30071c963f16c289896055d8e0507a42' THEN
+    RAISE EXCEPTION 'migration 261 requires the reviewed migrations 258, 259 and 260' USING ERRCODE = '55000';
   END IF;
 END;
 $require$;
@@ -58,7 +81,7 @@ ALTER TABLE public.agent_deployment_identity ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.agent_deployment_identity FROM PUBLIC, anon, authenticated, service_role, agent_worker;
 GRANT SELECT ON TABLE public.agent_deployment_identity TO service_role;
 COMMENT ON TABLE public.agent_deployment_identity IS
-  'H6 P1 (migration 257): the database''s own environment, stamped ONCE by the table owner (psql as postgres, reviewed runbook step), never by service_role or the worker. Worker credentials must match it; production never grants worker tenancy in P1.';
+  'H6 P1 (migration 261): the database''s own environment, stamped ONCE by the table owner (psql as postgres, reviewed runbook step), never by service_role or the worker. Worker credentials must match it; production never grants worker tenancy in P1.';
 
 -- Written once, only by the table owner (or a superuser); never changed, deleted or truncated. Independent of grants:
 -- a blanket GRANT to service_role still cannot stamp or restamp.
@@ -94,7 +117,7 @@ ALTER TABLE public.agent_worker_credential_scopes ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.agent_worker_credential_scopes FROM PUBLIC, anon, authenticated, service_role, agent_worker;
 GRANT SELECT, INSERT ON TABLE public.agent_worker_credential_scopes TO service_role;
 COMMENT ON TABLE public.agent_worker_credential_scopes IS
-  'H6 P1 (migration 257): immutable binding of a worker credential (jti) to exactly one hotel and environment, created in the credential''s own registration transaction. Never updated, deleted or truncated.';
+  'H6 P1 (migration 261): immutable binding of a worker credential (jti) to exactly one hotel and environment, created in the credential''s own registration transaction. Never updated, deleted or truncated.';
 
 CREATE OR REPLACE FUNCTION public.agent__guard_worker_scope()
 RETURNS trigger LANGUAGE plpgsql SET search_path = ''
@@ -1153,70 +1176,95 @@ AS $function$
 $function$;
 
 COMMENT ON FUNCTION public.agent__audit_protected_tables() IS
-  'Reviewed registry (migrations 254, 256, 257) of the 35 H1-H6 harness tables protected from TRUNCATE; append_only marks the 14 whose backend rights are SELECT and INSERT only (the H6 journal and the deployment identity: SELECT only).';
+  'Reviewed registry (migrations 254, 256, 261) of the 35 H1-H6 harness tables protected from TRUNCATE; append_only marks the 14 whose backend rights are at most SELECT and INSERT (the H6 journal and the deployment identity: SELECT only).';
 
+-- The 259 allowlist detector with exactly two additions (everything else is the 259 body): the deployment identity is
+-- SELECT-only for service_role like the journal (the two P1 tables reach the registry through
+-- agent__audit_protected_tables() above, so the credential scopes get the append-only SELECT, INSERT), and the P1
+-- owner-only helpers are executable by no API role.
 CREATE OR REPLACE FUNCTION public.agent_audit_privilege_violations()
 RETURNS TABLE (table_name text, role_name text, privilege text)
 LANGUAGE sql
 STABLE
 SET search_path = ''
 AS $function$
+  WITH registry AS (
+    SELECT t.table_name, t.append_only, pg_catalog.format('public.%I', t.table_name)::pg_catalog.regclass AS rel
+      FROM public.agent__audit_protected_tables() t
+  ), universe AS (
+    -- every right a table can carry on this server (PostgreSQL 17: arwdDxtm); oid 10 is the bootstrap superuser
+    SELECT DISTINCT a.privilege_type AS privilege
+      FROM pg_catalog.aclexplode(pg_catalog.acldefault('r', 10::pg_catalog.oid)) a
+  ), allowed AS (
+    -- the reviewed backend matrix (migrations 238-256 grant S/I/U, S/I and S; 259 removed the fixture-only DELETE;
+    -- 261 grants the credential scopes S/I and the deployment identity S)
+    SELECT r.table_name, p.privilege
+      FROM registry r
+     CROSS JOIN LATERAL unnest(CASE
+             WHEN r.table_name IN ('agent_control_center_events', 'agent_deployment_identity') THEN ARRAY['SELECT']
+             WHEN r.append_only THEN ARRAY['SELECT', 'INSERT']
+             -- 259: DELETE is no longer tolerated; rows leave only through a tenant offboarding cascade, which
+             -- PostgreSQL runs as the table owner and the row guards admit (tenant row already gone)
+             ELSE ARRAY['SELECT', 'INSERT', 'UPDATE']
+           END) AS p(privilege)
+  ), held AS (
+    SELECT r.table_name, g.role_name, u.privilege
+      FROM registry r
+     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS g(role_name)
+     CROSS JOIN universe u
+     WHERE pg_catalog.has_table_privilege(g.role_name, r.rel, u.privilege)
+        OR (u.privilege IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+            AND pg_catalog.has_any_column_privilege(g.role_name, r.rel, u.privilege))
+  ), structural AS (
+    -- schema-changing rights on ANY relation in public; no application role needs them (only migrations, as owner)
+    SELECT c.relname::text AS table_name, g.role_name, u.privilege
+      FROM pg_catalog.pg_class c
+     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS g(role_name)
+     CROSS JOIN universe u
+     WHERE c.relnamespace = 'public'::pg_catalog.regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+       AND u.privilege IN ('TRIGGER', 'REFERENCES', 'MAINTAIN')
+       AND c.relname NOT IN (SELECT r.table_name FROM registry r)
+       AND (pg_catalog.has_table_privilege(g.role_name, c.oid, u.privilege)
+            OR (u.privilege = 'REFERENCES' AND pg_catalog.has_any_column_privilege(g.role_name, c.oid, u.privilege)))
+  )
   SELECT x.table_name, x.role_name, x.privilege FROM (
-    -- 254: TRUNCATE anywhere; UPDATE/DELETE on append-only tables
-    SELECT t.table_name, r.role_name, p.privilege
-      FROM public.agent__audit_protected_tables() t
-     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role']) AS r(role_name)
-     CROSS JOIN unnest(ARRAY['TRUNCATE', 'UPDATE', 'DELETE']) AS p(privilege)
-     WHERE (p.privilege = 'TRUNCATE' OR t.append_only)
-       AND CASE p.privilege
-             WHEN 'UPDATE' THEN has_any_column_privilege(r.role_name, format('public.%I', t.table_name)::regclass, 'UPDATE')
-             ELSE has_table_privilege(r.role_name, format('public.%I', t.table_name)::regclass, p.privilege)
-           END
+    -- 258: nothing for end users, PUBLIC or the worker; service_role only within the matrix
+    SELECT h.table_name, h.role_name, h.privilege
+      FROM held h
+     WHERE h.role_name <> 'service_role'
+        OR NOT EXISTS (SELECT 1 FROM allowed a WHERE a.table_name = h.table_name AND a.privilege = h.privilege)
     UNION ALL
-    -- 256: the journal is written only by its reviewed SECURITY DEFINER writer; 257: the deployment identity only by
-    -- its owner; the credential scopes never by an end user
-    SELECT w.table_name, r.role_name, 'INSERT'
-      FROM unnest(ARRAY['agent_control_center_events', 'agent_deployment_identity']) AS w(table_name)
-     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role']) AS r(role_name)
-     WHERE has_any_column_privilege(r.role_name, format('public.%I', w.table_name)::regclass, 'INSERT')
-    UNION ALL
-    SELECT 'agent_worker_credential_scopes', r.role_name, p.privilege
-      FROM unnest(ARRAY['public', 'anon', 'authenticated']) AS r(role_name)
-     CROSS JOIN unnest(ARRAY['SELECT', 'INSERT']) AS p(privilege)
-     WHERE has_any_column_privilege(r.role_name, 'public.agent_worker_credential_scopes'::regclass, p.privilege)
-    UNION ALL
-    -- 256: the worker identity holds no right at all on harness tables
-    SELECT t.table_name, 'agent_worker', p.privilege
-      FROM public.agent__audit_protected_tables() t
-     CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) AS p(privilege)
-     WHERE CASE WHEN p.privilege IN ('SELECT', 'INSERT', 'UPDATE')
-                THEN has_any_column_privilege('agent_worker', format('public.%I', t.table_name)::regclass, p.privilege)
-                ELSE has_table_privilege('agent_worker', format('public.%I', t.table_name)::regclass, p.privilege)
-           END
+    -- 258: TRIGGER/REFERENCES/MAINTAIN on every other relation in public (a trigger attached by a non-owner runs as
+    --      whoever writes the table, including SECURITY DEFINER code running as the owner)
+    SELECT s.table_name, s.role_name, s.privilege FROM structural s
     UNION ALL
     -- 256: the journal writer (SECURITY DEFINER) is executable by no role; only owner-defined triggers call it
     SELECT 'agent__control_center_journal', r.role_name, 'EXECUTE'
       FROM unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS r(role_name)
-     WHERE has_function_privilege(r.role_name,
-             'public.agent__control_center_journal(uuid, text, text, text, text, text, jsonb)'::regprocedure, 'EXECUTE')
+     WHERE pg_catalog.has_function_privilege(r.role_name,
+             'public.agent__control_center_journal(uuid, text, text, text, text, text, jsonb)'::pg_catalog.regprocedure,
+             'EXECUTE')
     UNION ALL
-    -- 257: owner-only helpers (guards, tenant check, scoped claim/sweeps) are executable by no API role
-    SELECT p.oid::regprocedure::text, r.role_name, 'EXECUTE'
+    -- 261 (H6 P1): the owner-only helpers (row guards, tenant check, scoped claim/sweeps) are executable by no API role
+    SELECT p.oid::pg_catalog.regprocedure::text, r.role_name, 'EXECUTE'
       FROM pg_catalog.pg_proc p
      CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS r(role_name)
-     WHERE p.pronamespace = 'public'::regnamespace
+     WHERE p.pronamespace = 'public'::pg_catalog.regnamespace
        AND p.proname IN ('agent__guard_deployment_identity', 'agent__guard_worker_scope',
                          'agent__guard_worker_credential_insert', 'agent__worker_check_tenant',
                          'agent__run_claim_scoped', 'agent__runs_recover_scoped',
                          'agent__tool_approvals_expire_scoped', 'agent__model_attempts_recover_scoped')
-       AND has_function_privilege(r.role_name, p.oid, 'EXECUTE')
+       AND pg_catalog.has_function_privilege(r.role_name, p.oid, 'EXECUTE')
     UNION ALL
-    -- 255: everything else the worker contract forbids (role attributes, functions, columns, wrapper grantees, gates)
+    -- 255: everything else the worker contract forbids (role attributes, functions, columns, wrapper grantees; 261: the
+    --      tenant gates and the two tenant helpers)
     SELECT w.object_name, 'agent_worker', w.violation FROM public.agent_worker_privilege_violations() w
   ) x
   ORDER BY 1, 2, 3;
 $function$;
 
+-- The 258 remover with one addition: it also revokes the P1 helpers (owner-only) and keeps the two tenant helpers the
+-- RLS policies evaluate executable by agent_worker alone. Everything else is the 258 body.
 CREATE OR REPLACE FUNCTION public.agent_audit_privileges_enforce()
 RETURNS integer
 LANGUAGE plpgsql
@@ -1224,70 +1272,165 @@ SECURITY INVOKER
 SET search_path = ''
 AS $function$
 DECLARE
-  v_table record;
+  v_row   record;
   v_fn    record;
   v_left  text;
-  v_count integer := 0;
+  v_count integer;
 BEGIN
-  FOR v_table IN SELECT * FROM public.agent__audit_protected_tables() LOOP
-    EXECUTE format('REVOKE TRUNCATE ON TABLE public.%I FROM PUBLIC, anon, authenticated, service_role',
-                   v_table.table_name);
-    IF v_table.append_only THEN
-      EXECUTE format('REVOKE UPDATE, DELETE ON TABLE public.%I FROM PUBLIC, anon, authenticated, service_role',
-                     v_table.table_name);
-    END IF;
-    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM agent_worker', v_table.table_name);
-    v_count := v_count + 1;
+  -- Remove exactly what the detector reports on relations in public: any right on a registered table, and the
+  -- structural rights (TRIGGER, REFERENCES, MAINTAIN) elsewhere. A table-level REVOKE also clears the same right
+  -- granted per column. A right that reaches a role only through membership survives and fails closed below.
+  FOR v_row IN SELECT DISTINCT v.table_name, v.role_name, v.privilege
+                 FROM public.agent_audit_privilege_violations() v
+                 JOIN pg_catalog.pg_class c ON c.relname = v.table_name
+                  AND c.relnamespace = 'public'::pg_catalog.regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
+                WHERE v.role_name IN ('public', 'anon', 'authenticated', 'service_role', 'agent_worker')
+                  AND v.privilege IN (SELECT DISTINCT a.privilege_type
+                                        FROM pg_catalog.aclexplode(pg_catalog.acldefault('r', 10::pg_catalog.oid)) a)
+                  AND (v.table_name IN (SELECT t.table_name FROM public.agent__audit_protected_tables() t)
+                       OR v.privilege IN ('TRIGGER', 'REFERENCES', 'MAINTAIN')) LOOP
+    EXECUTE pg_catalog.format('REVOKE %s ON TABLE public.%I FROM %s', v_row.privilege, v_row.table_name,
+      CASE v_row.role_name WHEN 'public' THEN 'PUBLIC' ELSE pg_catalog.quote_ident(v_row.role_name) END);
   END LOOP;
-  REVOKE INSERT ON TABLE public.agent_control_center_events FROM PUBLIC, anon, authenticated, service_role;
-  REVOKE INSERT ON TABLE public.agent_deployment_identity FROM PUBLIC, anon, authenticated, service_role;
-  REVOKE ALL ON TABLE public.agent_worker_credential_scopes FROM PUBLIC, anon, authenticated;
   REVOKE ALL ON FUNCTION public.agent__control_center_journal(uuid, text, text, text, text, text, jsonb)
     FROM PUBLIC, anon, authenticated, service_role, agent_worker;
-  FOR v_fn IN SELECT p.oid::regprocedure AS sig FROM pg_catalog.pg_proc p
-               WHERE p.pronamespace = 'public'::regnamespace AND p.proname LIKE 'agent\_worker\_rpc\_\_%' LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', v_fn.sig);
+  FOR v_fn IN SELECT p.oid::pg_catalog.regprocedure AS sig FROM pg_catalog.pg_proc p
+               WHERE p.pronamespace = 'public'::pg_catalog.regnamespace AND p.proname LIKE 'agent\_worker\_rpc\_\_%' LOOP
+    EXECUTE pg_catalog.format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role', v_fn.sig);
   END LOOP;
-  FOR v_fn IN SELECT p.oid::regprocedure AS sig FROM pg_catalog.pg_proc p
-               WHERE p.pronamespace = 'public'::regnamespace
+  -- 261 (H6 P1): owner-only helpers; the tenant source and the credential check stay executable by agent_worker only
+  FOR v_fn IN SELECT p.oid::pg_catalog.regprocedure AS sig FROM pg_catalog.pg_proc p
+               WHERE p.pronamespace = 'public'::pg_catalog.regnamespace
                  AND p.proname IN ('agent__guard_deployment_identity', 'agent__guard_worker_scope',
                                    'agent__guard_worker_credential_insert', 'agent__worker_check_tenant',
                                    'agent__run_claim_scoped', 'agent__runs_recover_scoped',
                                    'agent__tool_approvals_expire_scoped', 'agent__model_attempts_recover_scoped') LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role, agent_worker', v_fn.sig);
+    EXECUTE pg_catalog.format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated, service_role, agent_worker',
+                              v_fn.sig);
   END LOOP;
   REVOKE ALL ON FUNCTION public.agent__worker_tenant() FROM PUBLIC, anon, authenticated, service_role;
   REVOKE ALL ON FUNCTION public.agent__worker_credential_ok() FROM PUBLIC, anon, authenticated, service_role;
-  SELECT string_agg(format('%s:%s:%s', v.table_name, v.role_name, v.privilege), ', ') INTO v_left
+  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s:%s', v.table_name, v.role_name, v.privilege), ', ') INTO v_left
     FROM public.agent_audit_privilege_violations() v;
   IF v_left IS NOT NULL THEN
     RAISE EXCEPTION 'agent audit privileges could not be enforced; still granted: %', v_left USING ERRCODE = '42501';
   END IF;
+  SELECT pg_catalog.count(*)::integer INTO v_count FROM public.agent__audit_protected_tables();
   RETURN v_count;
 END;
 $function$;
 
+COMMENT ON FUNCTION public.agent_audit_privilege_violations() IS
+  'Allowlist check (migrations 258, 259, 261) for the protected harness tables: any table right of PUBLIC, anon, authenticated or agent_worker, any service_role right outside SELECT/INSERT/UPDATE (mutable), SELECT/INSERT (append-only) or SELECT (H6 journal, deployment identity), table- or column-level; TRIGGER/REFERENCES/MAINTAIN of those roles on any relation in public; the H6 journal-writer and P1 owner-only helper EXECUTE; plus the worker-identity checks.';
 COMMENT ON FUNCTION public.agent_audit_privileges_enforce() IS
-  'Re-asserts least privilege on the protected harness tables, the worker identity and the 257 owner-only helpers after any blanket grant and fails closed if a forbidden right remains. Run as the table owner (migrations, CI, Staging Candidate).';
+  'Revokes exactly the rights agent_audit_privilege_violations() reports on the protected harness tables after any blanket grant, re-asserts the H6 and H6 P1 function revocations, and fails closed if a forbidden right remains. Run as the table owner (migrations, CI, Staging Candidate).';
 
 REVOKE ALL ON FUNCTION public.agent__audit_protected_tables() FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.agent_audit_privilege_violations() FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.agent_audit_privileges_enforce() FROM PUBLIC, anon, authenticated, service_role;
 
-DO $verify$
+-- Repair and postcondition, as in 258/259: snapshot service_role's rights on the protected tables, let the extended
+-- remover run, and fail closed unless nothing service_role held within the matrix changed, nothing forbidden remains,
+-- the reviewed minimum (258's 33 tables + the two P1 tables) holds exactly over the registry, no application role holds
+-- DELETE on a protected table, and the 259 DELETE guards and 260 UPDATE guards are still in place.
+DO $post$
 DECLARE
-  v_left text;
+  -- table -> rights its creating migration granted to service_role (the reviewed minimum; 258's list + 261)
+  v_minimum constant jsonb := jsonb_build_object(
+    -- 238 (H1)
+    'agent_runs', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_run_steps', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_run_events', '["SELECT","INSERT"]'::jsonb, 'agent_runtime_controls', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_worker_heartbeats', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    -- 241 (H2)
+    'agent_execution_enablement', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_tool_controls', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_tool_grants', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_tool_approvals', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_tool_invocations', '["SELECT","INSERT"]'::jsonb,
+    'agent_tool_executions', '["SELECT","INSERT"]'::jsonb, 'agent_tool_events', '["SELECT","INSERT"]'::jsonb,
+    -- 244, 247 (H3); price schedules: SELECT, INSERT only (244)
+    'agent_model_enablement', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_budget_policies', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_budget_counters', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_attempts', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_model_price_schedules', '["SELECT","INSERT"]'::jsonb, 'agent_model_spend_events', '["SELECT","INSERT"]'::jsonb,
+    'agent_planning_runs', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    -- 248, 250 (H4)
+    'agent_customer_billing_controls', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_pricing_policies', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_credit_holds', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_credit_charges', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_billing_operations', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'agent_customer_overage_authorizations', '["SELECT","INSERT"]'::jsonb,
+    'agent_customer_billing_events', '["SELECT","INSERT"]'::jsonb, 'agent_billing_operation_events', '["SELECT","INSERT"]'::jsonb,
+    'billing_trueup_operations', '["SELECT","INSERT","UPDATE"]'::jsonb,
+    'billing_trueup_operation_events', '["SELECT","INSERT"]'::jsonb,
+    -- 252 (H5)
+    'agent_planning_events', '["SELECT","INSERT"]'::jsonb, 'agent_proposal_handoffs', '["SELECT","INSERT"]'::jsonb,
+    -- 255, 256 (H6)
+    'agent_worker_credentials', '["SELECT","INSERT","UPDATE"]'::jsonb, 'agent_control_center_events', '["SELECT"]'::jsonb,
+    -- 261 (H6 P1)
+    'agent_worker_credential_scopes', '["SELECT","INSERT"]'::jsonb, 'agent_deployment_identity', '["SELECT"]'::jsonb);
+  v_before   text[];
+  v_after    text[];
+  v_left     text;
+  v_missing  text;
+  v_unlisted text;
 BEGIN
-  SELECT string_agg(v.object_name || ':' || v.violation, ', ') INTO v_left FROM public.agent_worker_privilege_violations() v;
+  -- service_role's in-matrix rights before and after the remover (the identity's only in-matrix right is SELECT)
+  SELECT pg_catalog.array_agg(pg_catalog.format('%s:%s', t.table_name, p.privilege) ORDER BY 1) INTO v_before
+    FROM public.agent__audit_protected_tables() t
+   CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE']) AS p(privilege)
+   WHERE pg_catalog.has_table_privilege('service_role', pg_catalog.format('public.%I', t.table_name), p.privilege)
+     AND NOT (t.table_name = 'agent_deployment_identity' AND p.privilege <> 'SELECT');
+  PERFORM public.agent_audit_privileges_enforce();
+  SELECT pg_catalog.array_agg(pg_catalog.format('%s:%s', t.table_name, p.privilege) ORDER BY 1) INTO v_after
+    FROM public.agent__audit_protected_tables() t
+   CROSS JOIN unnest(ARRAY['SELECT', 'INSERT', 'UPDATE']) AS p(privilege)
+   WHERE pg_catalog.has_table_privilege('service_role', pg_catalog.format('public.%I', t.table_name), p.privilege)
+     AND NOT (t.table_name = 'agent_deployment_identity' AND p.privilege <> 'SELECT');
+  IF v_before IS DISTINCT FROM v_after THEN
+    RAISE EXCEPTION 'migration 261 changed a service_role right it should have kept' USING ERRCODE = '42501';
+  END IF;
+  SELECT pg_catalog.string_agg(v.object_name || ':' || v.violation, ', ') INTO v_left
+    FROM public.agent_worker_privilege_violations() v;
   IF v_left IS NOT NULL THEN
     RAISE EXCEPTION 'agent_worker exceeds its reviewed privileges: %', v_left USING ERRCODE = '42501';
   END IF;
-  SELECT string_agg(format('%s:%s:%s', v.table_name, v.role_name, v.privilege), ', ') INTO v_left
+  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s:%s', v.table_name, v.role_name, v.privilege), ', ') INTO v_left
     FROM public.agent_audit_privilege_violations() v;
   IF v_left IS NOT NULL THEN
-    RAISE EXCEPTION 'agent audit privileges violated after 257: %', v_left USING ERRCODE = '42501';
+    RAISE EXCEPTION 'agent audit privileges violated after 261: %', v_left USING ERRCODE = '42501';
   END IF;
-END;
-$verify$;
+  -- The minimum must cover exactly the registry (a newly registered table needs its entry here and in the contract).
+  SELECT pg_catalog.string_agg(coalesce(t.table_name, m.key), ', ') INTO v_unlisted
+    FROM public.agent__audit_protected_tables() t
+    FULL JOIN pg_catalog.jsonb_object_keys(v_minimum) AS m(key) ON m.key = t.table_name
+   WHERE t.table_name IS NULL OR m.key IS NULL;
+  IF v_unlisted IS NOT NULL THEN
+    RAISE EXCEPTION 'migration 261 minimum matrix does not match the protected registry: %', v_unlisted USING ERRCODE = '42501';
+  END IF;
+  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s', m.key, p.privilege), ', ') INTO v_missing
+    FROM pg_catalog.jsonb_each(v_minimum) AS m(key, rights)
+   CROSS JOIN LATERAL pg_catalog.jsonb_array_elements_text(m.rights) AS p(privilege)
+   WHERE NOT pg_catalog.has_table_privilege('service_role', pg_catalog.format('public.%I', m.key), p.privilege);
+  IF v_missing IS NOT NULL THEN
+    RAISE EXCEPTION 'service_role lost a reviewed backend right: %', v_missing USING ERRCODE = '42501';
+  END IF;
+  SELECT pg_catalog.string_agg(pg_catalog.format('%s:%s', t.table_name, g.role_name), ', ') INTO v_left
+    FROM public.agent__audit_protected_tables() t
+   CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS g(role_name)
+   WHERE pg_catalog.has_table_privilege(g.role_name, pg_catalog.format('public.%I', t.table_name), 'DELETE');
+  IF v_left IS NOT NULL THEN
+    RAISE EXCEPTION 'DELETE held on a protected agent table after 261: %', v_left USING ERRCODE = '42501';
+  END IF;
+  IF (SELECT pg_catalog.count(*) FROM pg_catalog.pg_trigger tr
+       WHERE tr.tgname = 'agent_control_delete_guard' AND tr.tgenabled = 'O'
+         AND tr.tgfoid = 'public.agent__guard_control_delete()'::pg_catalog.regprocedure) <> 7
+     OR (SELECT pg_catalog.count(*) FROM pg_catalog.pg_trigger tr
+          WHERE tr.tgname = 'agent_control_update_guard' AND tr.tgenabled = 'O'
+            AND tr.tgfoid = 'public.agent__guard_control_update()'::pg_catalog.regprocedure) <> 4 THEN
+    RAISE EXCEPTION 'migration 261 found the 259 DELETE guards or the 260 UPDATE guards altered' USING ERRCODE = '42501';
+  END IF;
+END
+$post$;
 
 NOTIFY pgrst, 'reload schema';

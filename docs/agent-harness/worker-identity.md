@@ -1,4 +1,4 @@
-# Runbook: the worker's database identity (H6, migrations 255 and 257)
+# Runbook: the worker's database identity (H6, migrations 255 and 261)
 
 The agent worker connects as the PostgreSQL role `agent_worker` through PostgREST. It never holds the API's
 `service_role` key. Nothing in H6 issues a credential or deploys a worker; this runbook is for the separately
@@ -17,13 +17,13 @@ authorized step that does.
 
 Must **not** be set (the worker refuses to start): `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`,
 `AGENT_WORKER_DB_SERVICE_ROLE_KEY`. Startup also refuses a token whose role is not `agent_worker`, without a UUID
-`jti`, carrying user claims (`sub`, `hotel_id`, …), living longer than 7 days (H6 P1; migration 257 enforces the same ceiling in the database) or already expired, and an apikey that
-is a service-role/secret key. Before any slot starts (P1, migration 257) it proves through the database that the
+`jti`, carrying user claims (`sub`, `hotel_id`, …), living longer than 7 days (H6 P1; migration 261 enforces the same ceiling in the database) or already expired, and an apikey that
+is a service-role/secret key. Before any slot starts (P1, migration 261) it proves through the database that the
 credential is bound to exactly one active hotel (`worker_credential_not_bound` otherwise), prefixes its worker id with
 that hotel (`<tenant>:<name>`) and sends a `starting` heartbeat that the database refuses unless `APP_ENV` equals the
 database's own stamped environment. Refusals print `{"event": "worker_refused", "reason": "<code>"}` and exit 2.
 
-## One-time: stamp the database environment (P1, migration 257)
+## One-time: stamp the database environment (P1, migration 261)
 
 Each database must know what it is, independently of any process's `APP_ENV`. A reviewed operator step, as the table
 owner (psql as `postgres`; `service_role` and the worker can never stamp, and the row can never change afterwards):
@@ -56,7 +56,7 @@ refused in H6.
 ## Rotate (no downtime)
 
 A hotel-scoped worker credential lives **at most 7 days** (H6 P1). The ceiling is enforced at issuance (`--days 1..7`),
-at worker startup (token inspection), and in the database by migration 257 (registration refuses
+at worker startup (token inspection), and in the database by migration 261 (registration refuses
 `lifetime_out_of_range`, and `agent__worker_tenant()` grants nothing to an over-long or expired row). 255's 31-day
 CHECK is only the outer bound and no longer the operating limit. An expired credential is not renewed or extended: the
 worker's reads return no rows and its wrapper calls fail, so rotate **before** expiry.
@@ -72,7 +72,7 @@ expired `jti`.
 ## Revoke / emergency
 
 * One token: `worker-credential-revoke` — the next request fails with `agent_worker_credential_invalid` and reads
-  return no rows (the RESTRICTIVE `agent_worker_tenant_gate` of 257 makes this hold even for the legacy `TO public`
+  return no rows (the RESTRICTIVE `agent_worker_tenant_gate` of 261 makes this hold even for the legacy `TO public`
   hotel policies).
 * Every worker token at once: a reviewed migration or administrator runs `REVOKE agent_worker FROM authenticator;`
   (restore with `GRANT agent_worker TO authenticator;`). Combine with the H1 platform pause for a full stop.
@@ -85,11 +85,11 @@ SELECT * FROM public.agent_worker_privilege_violations();   -- must be empty
 SELECT count(*) FROM pg_proc WHERE proname LIKE 'agent\_worker\_rpc\_\_%';   -- 23
 SELECT rolcanlogin, rolinherit, rolbypassrls FROM pg_roles WHERE rolname = 'agent_worker';   -- f, f, f
 
-SELECT environment FROM public.agent_deployment_identity;   -- the stamp (257)
-SELECT count(*) FROM pg_policy WHERE polname = 'agent_worker_tenant_gate' AND NOT polpermissive;   -- 8 (257)
+SELECT environment FROM public.agent_deployment_identity;   -- the stamp (261)
+SELECT count(*) FROM pg_policy WHERE polname = 'agent_worker_tenant_gate' AND NOT polpermissive;   -- 8 (261)
 ```
 
-`scripts/schema-contracts.sql` asserts all of this whenever 255/256 (and 257) are recorded.
+`scripts/schema-contracts.sql` asserts all of this whenever 255/256 (and 261) are recorded.
 
 ## Known limitation
 

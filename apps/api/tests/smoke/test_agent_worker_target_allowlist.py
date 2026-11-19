@@ -17,7 +17,7 @@ from services.agent_execution import worker_identity as wi
 
 API_ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = API_ROOT.parents[1] / "supabase" / "migrations"
-M257 = (MIGRATIONS / "257_agent_worker_tenant_binding.sql").read_text(encoding="utf-8")
+M257 = (MIGRATIONS / "261_agent_worker_tenant_binding.sql").read_text(encoding="utf-8")
 PROD, STG = "prodhost.supabase.co", "staginghost.supabase.co"
 APP_ENVS = ("development", "test", "staging", "production", "Production", "prod", "", "staging ", "TEST", "dev")
 HOSTS = (PROD, PROD.upper(), STG, "127.0.0.1", "localhost", "evil.example.com", f"{PROD}.evil.example.com", "kong")

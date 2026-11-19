@@ -317,10 +317,18 @@ def test_exposed_non_public_schemas_leak_nothing_to_the_worker(two_hotels):
 
 def test_authenticated_hotel_users_and_service_role_keep_their_access(two_hotels):
     a, b = two_hotels
-    user = _mint({"role": "authenticated", "sub": a.gm, "hotel_id": a.tenant_id, "user_role": "gm",
-                  "aud": "authenticated"})
-    rows = _get(user, "work_orders?select=tenant_id").json()
-    assert rows and {r["tenant_id"] for r in rows} == {a.tenant_id}  # the legacy hotel policy still applies to users
+    claims = json.dumps({"role": "authenticated", "sub": a.gm, "hotel_id": a.tenant_id, "user_role": "gm",
+                         "aud": "authenticated"})
+    # Hosted Supabase gives authenticated its table grants through default privileges; CI's pristine replay does not, so
+    # the RLS outcome is read as authenticated in SQL with that grant made inside a rolled-back transaction. The policies
+    # evaluated (the legacy hotel policy, and the RESTRICTIVE gate that names only agent_worker) are the real ones.
+    out = run_sql("\\pset tuples_only on\n\\pset format unaligned\nBEGIN;\n"
+                  "GRANT SELECT ON public.work_orders TO authenticated;\n"
+                  f"SET LOCAL ROLE authenticated;\nSET LOCAL request.jwt.claims = '{claims}';\n"
+                  "SELECT 'tenants=' || coalesce(string_agg(DISTINCT tenant_id::text, ','), '') || ';rows=' || count(*)"
+                  f" FROM public.work_orders WHERE tenant_id IN ('{a.tenant_id}', '{b.tenant_id}');\nROLLBACK;")
+    seen = next(line for line in out.splitlines() if line.startswith("tenants="))
+    assert seen.startswith(f"tenants={a.tenant_id};rows=") and not seen.endswith("rows=0"), seen  # the legacy hotel policy still applies to users
     both = new_client().table("work_orders").select("tenant_id").in_("tenant_id", [a.tenant_id, b.tenant_id]).execute().data
     assert {r["tenant_id"] for r in both} == {a.tenant_id, b.tenant_id}  # service_role is unaffected
 
@@ -786,5 +794,5 @@ def test_contract_detects_a_replaced_wrapper_or_tenant_source_body():
 
 
 def test_no_production_switch_exists_in_p1():
-    m257 = (REPO / "supabase" / "migrations" / "257_agent_worker_tenant_binding.sql").read_text(encoding="utf-8")
+    m257 = (REPO / "supabase" / "migrations" / "261_agent_worker_tenant_binding.sql").read_text(encoding="utf-8")
     assert "worker_activation_allowed" not in m257 and "d.environment <> 'production'" in m257
