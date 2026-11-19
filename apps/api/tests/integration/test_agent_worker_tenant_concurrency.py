@@ -17,10 +17,11 @@ Contamination: hotels/runs/credentials created here persist in the disposable da
 """
 from __future__ import annotations
 
+import subprocess
 import threading
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from decimal import Decimal
 from pathlib import Path
 
@@ -49,7 +50,7 @@ from agent_worker_identity_support import (
     restricted_worker,
 )
 from agent_worker_scoped_copies import SCOPED_COPIES
-from batch_support import new_client, start_sql
+from batch_support import new_client, psql_command
 from services.agent_execution.worker_identity import bound_worker_id
 from services.agent_gateway import approvals
 
@@ -123,32 +124,81 @@ def test_simultaneous_claims_by_hotel_a_and_b_workers_are_disjoint_and_tenant_pu
                      f"AND run_id IN ('{ids}');") == "8"
 
 
+class _RowLockHolder:
+    """A psql session that holds FOR UPDATE on the given rows until release() — no timer decides how long.
+
+    The session tags itself with application_name '<tag>-<locked row count>' only AFTER the FOR UPDATE statement has
+    completed inside the open transaction, so 'idle in transaction' + that exact tag proves the lock is held right now.
+    """
+
+    def __init__(self, table: str, where: str):
+        self.tag = f"it-p1-sl-{uuid.uuid4().hex[:12]}"
+        self.process = subprocess.Popen(psql_command(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE, text=True)
+        self._send("BEGIN;\n"
+                   f"SELECT set_config('application_name', '{self.tag}-' || "
+                   f"(SELECT count(*) FROM (SELECT 1 FROM {table} WHERE {where} FOR UPDATE) locked), false);\n")
+        self._released = False
+
+    def _send(self, sql: str) -> None:
+        assert self.process.stdin is not None
+        self.process.stdin.write(sql)
+        self.process.stdin.flush()
+
+    def holding(self, rows: int) -> bool:
+        return sql_value("SELECT count(*) FROM pg_stat_activity "
+                         f"WHERE application_name = '{self.tag}-{rows}' AND state = 'idle in transaction';") == "1"
+
+    def wait_until_holding(self, rows: int, timeout: float = 60) -> None:
+        deadline = time.monotonic() + timeout
+        while not self.holding(rows):
+            assert self.process.poll() is None, f"lock holder exited: {self.process.stderr.read() if self.process.stderr else ''}"
+            assert time.monotonic() < deadline, "lock holder did not acquire the row lock"
+            time.sleep(0.1)
+
+    def release(self) -> None:
+        if self._released:
+            return
+        self._released = True
+        self._send("COMMIT;\n")
+        assert self.process.stdin is not None
+        self.process.stdin.close()
+        _, err = self.process.communicate(timeout=60)
+        assert self.process.returncode == 0, f"lock holder failed: {err}"
+
+
 def test_skip_locked_a_locked_message_of_one_hotel_never_blocks_a_claim():
     reset_execution_state()
     a, _ = make_hotel(new_client())
     b, _ = make_hotel(new_client())
     a_run = admit(store(), a, spec={"operation": "noop", "steps": 1})["run_id"]  # FIRST in the queue
     b_run = admit(store(), b, spec={"operation": "noop", "steps": 1})["run_id"]
-    holder = start_sql("BEGIN;\n"
-                       f"SELECT 1 FROM pgmq.q_patelrep_agent_runs_v1 WHERE message->>'run_id' = '{a_run}' FOR UPDATE;\n"
-                       "SELECT pg_sleep(8);\nCOMMIT;\n")
+    holder = _RowLockHolder("pgmq.q_patelrep_agent_runs_v1", f"message->>'run_id' = '{a_run}'")
     try:
-        deadline = time.monotonic() + 10
-        while sql_value("SELECT count(*) FROM pg_stat_activity WHERE query LIKE 'SELECT pg_sleep(8)%';") != "1":
-            assert time.monotonic() < deadline, "lock holder did not start"
-            time.sleep(0.2)
+        holder.wait_until_holding(rows=1)  # exactly hotel A's message is locked, and the transaction is still open
         raw_a, raw_b = raw_worker_client(tenant_id=a), raw_worker_client(tenant_id=b)
-        started = time.monotonic()
-        got_b, got_a = _race(
-            lambda: raw_b.rpc(CLAIM, {"p_worker": bound_worker_id(b, "it-p1-sl")}).execute().data,
-            lambda: raw_a.rpc(CLAIM, {"p_worker": bound_worker_id(a, "it-p1-sl")}).execute().data)
-        elapsed = time.monotonic() - started
+        barrier = threading.Barrier(2)
+
+        def claim(client, tenant):
+            barrier.wait(timeout=30)
+            return client.rpc(CLAIM, {"p_worker": bound_worker_id(tenant, "it-p1-sl")}).execute().data
+
+        pool = ThreadPoolExecutor(max_workers=2)
+        futures = [pool.submit(claim, raw_b, b), pool.submit(claim, raw_a, a)]
+        done, pending = wait(futures, timeout=60)
+        if pending:  # a claim is WAITING on the held row lock: release it so the claim can finish, then fail
+            holder.release()
+            pool.shutdown(wait=True)
+            pytest.fail("a claim blocked on hotel A's locked queue message instead of skipping it (no SKIP LOCKED)")
+        pool.shutdown(wait=True)
+        got_b, got_a = (f.result() for f in futures)
+        # Both claims returned while the lock was provably still held, so neither of them waited for it.
+        assert holder.holding(rows=1), "the row lock was released before the claims returned; the race proves nothing"
         assert got_b["outcome"] == "claimed" and got_b["run"]["id"] == b_run, got_b
         assert got_a == {"outcome": "empty"}, got_a  # skipped the locked row instead of waiting on it
-        assert elapsed < 5, elapsed  # neither call waited for the 8 s lock
         assert _run_row(a_run).split("|")[1] == "queued"
     finally:
-        holder.wait(timeout=30)
+        holder.release()
     claimed = raw_worker_client(tenant_id=a).rpc(CLAIM, {"p_worker": bound_worker_id(a, "it-p1-sl2")}).execute().data
     assert claimed["outcome"] == "claimed" and claimed["run"]["id"] == a_run
 
