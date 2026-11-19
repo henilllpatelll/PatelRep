@@ -23,8 +23,11 @@ Applies from H0 onward. Every rule below that H0 enforces is pinned by a test in
   `VerifiedResource.hotel_id` and `ApprovalEvidence.hotel_id` must all equal it, or the request is denied.
 - Every future harness query keeps the existing convention: `.eq("tenant_id", hotel_id)` in code, with RLS as a second
   layer.
-- **Service-role/RLS limitation:** the API and the future worker use the Supabase service role, which bypasses RLS. RLS
-  therefore doesn't protect harness writes. Tenant scoping must be enforced in code (query filters plus this policy).
+- **Service-role/RLS limitation:** the API uses the Supabase service role, which bypasses RLS. RLS therefore doesn't
+  protect harness writes made by the API. Tenant scoping must be enforced in code (query filters plus this policy).
+- **H6 worker identity:** the worker no longer uses the service role. It runs as `agent_worker` (PostgREST custom JWT
+  role, migration 255): EXECUTE only on 23 reviewed wrappers, SELECT only on reviewed domain columns, no right on any
+  harness table, no human decision/control/admission RPC. See [ADR-0005](adr-0005-h6-control-center.md) §3–§4.
   H1 migrations must still enable RLS on new tables, so an `authenticated` client can never read another hotel's runs.
 
 ## 3. Trusted identities
@@ -125,3 +128,15 @@ and a cost emergency stop. Each one is an input to every decision. H1 must:
 4. Make the cost emergency stop independent of Stripe availability.
 
 No emergency-stop UI exists in H0.
+
+## 11. H6 Control Center and worker identity
+
+* The Control Center API re-validates the caller's CURRENT membership and role on every request (reads included) and
+  never trusts a hotel, role or user id from a request. Decisions go through the unchanged H2 service; the database
+  re-reads the decider's role again and 254's triggers enforce independence.
+* Every control-table change (any path) is journaled in the same transaction in the append-only
+  `agent_control_center_events`; no application role can write, rewrite or erase it.
+* No Control Center path can enable execution, paid calls, customer billing, a grant or an autonomy level; approving
+  additionally requires the gateway's own process gate.
+* Residuals: the API is the trusted boundary for the human principal (L1); the worker's reviewed reads are
+  cross-tenant by role (L2). Threat model: [threat-model-h6.md](threat-model-h6.md).

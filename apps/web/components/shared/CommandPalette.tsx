@@ -92,6 +92,7 @@ export function CommandPalette({ redesigned }: { redesigned?: boolean }) {
     role,
     customRoleModules,
     frontDeskModules: hotel?.front_desk_modules ?? null,
+    enabledFeatures: hotel?.enabled_features ?? null,
   })
 
   const navResults: PaletteResult[] = items

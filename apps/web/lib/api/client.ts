@@ -15,10 +15,15 @@ export class ApiClientError extends Error {
   path: string
   isNetworkError: boolean
   retryAfterSeconds: number | null
+  /** Stable reason code when the API answered `{"detail": {"code": "..."}}` (agent APIs); null otherwise. */
+  code: string | null
 
   constructor(
     message: string,
-    options: { status?: number | null; path: string; isNetworkError?: boolean; retryAfterSeconds?: number | null },
+    options: {
+      status?: number | null; path: string; isNetworkError?: boolean; retryAfterSeconds?: number | null
+      code?: string | null
+    },
   ) {
     super(message)
     this.name = 'ApiClientError'
@@ -26,6 +31,7 @@ export class ApiClientError extends Error {
     this.path = options.path
     this.isNetworkError = options.isNetworkError ?? false
     this.retryAfterSeconds = options.retryAfterSeconds ?? null
+    this.code = options.code ?? null
   }
 }
 
@@ -118,7 +124,10 @@ async function request(method: string, path: string, body?: any, options: Reques
           return loc ? `[${loc}] ${msg}` : msg
         }).join(', ')
       : err.detail
-    const detail = toFriendlyError(err.error?.message || rawDetail)
+    // Agent APIs answer {"detail": {"code": "..."}}: keep the stable code, and never hand an object to the string
+    // formatter (it calls .includes and would throw a TypeError that hides the real refusal).
+    const detailCode = rawDetail && typeof rawDetail === 'object' && typeof rawDetail.code === 'string' ? rawDetail.code : null
+    const detail = toFriendlyError(err.error?.message || (typeof rawDetail === 'string' ? rawDetail : detailCode ?? undefined))
     if (res.status === 401 && typeof window !== 'undefined') {
       useAuthStore.getState().clear()
       createClient().auth.signOut().catch(() => undefined)
@@ -129,6 +138,7 @@ async function request(method: string, path: string, body?: any, options: Reques
       status: res.status,
       path,
       retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
+      code: detailCode,
     })
   }
 

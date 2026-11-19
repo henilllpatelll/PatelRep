@@ -58,9 +58,10 @@ def test_no_application_code_imports_or_starts_the_worker():
         # revalidation and LeaseLost). It is itself never imported by application code -- test_agent_gateway_isolation.py.
         # H3: services/agent_orchestrator/ is likewise a sibling runtime (its planning step reuses the same identity
         # revalidation, controls store and InvalidJob); it is never imported by application code either.
+        # H6: services/agent_control_center/ is the Control Center bridge (ADR-0005); routers import only it.
         # H5: services/agent_handoff/ (the plan -> gateway bridge) reuses the same identity authority and run reads.
         if rel.startswith(("services/agent_execution/", "services/agent_gateway/", "services/agent_orchestrator/",
-                           "services/agent_handoff/", "tests/", ".venv/")) or "/site-packages/" in rel:
+                           "services/agent_handoff/", "services/agent_control_center/", "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         if re.search(r"services[./]agent_execution", path.read_text(encoding="utf-8", errors="ignore")):
             offenders.append(rel)

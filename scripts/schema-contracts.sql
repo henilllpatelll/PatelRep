@@ -13,6 +13,13 @@ DECLARE
   h6_present text[];
   protected_tables integer := 31;
   append_only_tables integer := 11;
+  public_create_fixed integer;
+  exact_privileges_recorded integer;
+  delete_guard_recorded integer;
+  delete_guard_drift text;
+  update_guard_recorded integer;
+  update_guard_drift text;
+  exact_privilege_drift text;
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
@@ -441,6 +448,250 @@ BEGIN
                       OR has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))) THEN
       RAISE EXCEPTION 'An AI Control Center function is executable by an end-user or worker role';
     END IF;
+  END IF;
+
+  -- Legacy hosted default: PUBLIC holds CREATE on schema public (pre-PG15). Version-gated by migration NAME, like
+  -- H5/254/H6: schemas 254 and 256 as deployed still carry the grant and stay compatible until the fix is recorded.
+  --   not recorded -> tolerated;  recorded -> only the schema owner (and superusers) may create in public.
+  SELECT count(DISTINCT history.name) INTO public_create_fixed FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'public_schema_create_revoked';
+  IF public_create_fixed > 0 THEN
+    IF EXISTS (SELECT 1 FROM pg_namespace n, aclexplode(n.nspacl) a
+                WHERE n.nspname = 'public' AND a.grantee = 0 AND a.privilege_type = 'CREATE') THEN
+      RAISE EXCEPTION 'PUBLIC holds CREATE on schema public although migration public_schema_create_revoked is recorded';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles r
+                WHERE r.rolname !~ '^pg_' AND NOT r.rolsuper
+                  AND NOT pg_has_role(r.oid, (SELECT nspowner FROM pg_namespace WHERE nspname = 'public'), 'MEMBER')
+                  AND has_schema_privilege(r.oid, 'public', 'CREATE')) THEN
+      RAISE EXCEPTION 'A role other than the schema owner holds CREATE on schema public: %',
+        (SELECT string_agg(r.rolname, ', ' ORDER BY r.rolname) FROM pg_roles r
+          WHERE r.rolname !~ '^pg_' AND NOT r.rolsuper
+            AND NOT pg_has_role(r.oid, (SELECT nspowner FROM pg_namespace WHERE nspname = 'public'), 'MEMBER')
+            AND has_schema_privilege(r.oid, 'public', 'CREATE'));
+    END IF;
+    IF NOT has_schema_privilege('anon', 'public', 'USAGE') OR NOT has_schema_privilege('authenticated', 'public', 'USAGE')
+       OR NOT has_schema_privilege('service_role', 'public', 'USAGE') THEN
+      RAISE EXCEPTION 'An API role lost USAGE on schema public';
+    END IF;
+  END IF;
+
+  -- Exact backend privilege matrix on the protected harness tables, and no TRIGGER/REFERENCES/MAINTAIN for application
+  -- roles on any relation in public (migration 258). Version-gated by migration NAME.
+  -- Computed here independently of agent_audit_privilege_violations(), so a weakened function body is still caught.
+  --   not recorded -> tolerated (254-257 enumerate a subset);  recorded -> exact matrix, nothing for anyone else.
+  SELECT count(DISTINCT history.name) INTO exact_privileges_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_audit_exact_backend_privileges';
+  -- Migration 259 (agent_control_delete_guard) removes the tolerated DELETE and replaces the detector body.
+  SELECT count(DISTINCT history.name) INTO delete_guard_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_control_delete_guard';
+  IF exact_privileges_recorded > 0 THEN
+    IF hardening_recorded = 0 OR h6_recorded <> 2 THEN
+      RAISE EXCEPTION 'Migration 258 is recorded on a schema without migrations 254-256';
+    END IF;
+    -- The detector and the remover are pinned to their reviewed 258 bodies, so a weakened function cannot pass this gate
+    -- by reporting nothing (the matrix below is also recomputed without them).
+    IF (SELECT count(*) FROM pg_proc procs
+         WHERE procs.pronamespace = 'public'::regnamespace AND NOT procs.prosecdef
+           AND procs.proconfig = ARRAY['search_path=""']
+           AND (procs.proname, md5(replace(procs.prosrc, chr(13), ''))) IN (
+                 ('agent_audit_privilege_violations', CASE WHEN delete_guard_recorded > 0
+                                                        THEN '9b368df4cb0eb890ebaa7f7e58d3f582'   -- 259 body
+                                                        ELSE 'e03f461a4923252de8996af8fdfbf39f' END),
+                 ('agent_audit_privileges_enforce', '37248313075777a945bad80155845f7d'))) <> 2 THEN
+      RAISE EXCEPTION 'agent_audit_privilege_violations() or agent_audit_privileges_enforce() differs from its reviewed migration-258/259 body';
+    END IF;
+    SELECT string_agg(format('%s:%s:%s', drift.table_name, drift.role_name, drift.privilege), ', '
+                      ORDER BY drift.table_name, drift.role_name, drift.privilege) INTO exact_privilege_drift
+      FROM (
+        SELECT registry.table_name, grantees.role_name, rights.privilege_type AS privilege
+          FROM public.agent__audit_protected_tables() registry
+         CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+         CROSS JOIN (SELECT DISTINCT acl.privilege_type FROM aclexplode(acldefault('r', 10::oid)) acl) rights
+         WHERE (has_table_privilege(grantees.role_name, format('public.%I', registry.table_name), rights.privilege_type)
+                OR (rights.privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+                    AND has_any_column_privilege(grantees.role_name, format('public.%I', registry.table_name), rights.privilege_type)))
+           AND NOT (grantees.role_name = 'service_role' AND rights.privilege_type = ANY (CASE
+                      WHEN registry.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']
+                      WHEN registry.append_only THEN ARRAY['SELECT', 'INSERT']
+                      WHEN delete_guard_recorded > 0 THEN ARRAY['SELECT', 'INSERT', 'UPDATE']
+                      ELSE ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE'] END))
+        UNION ALL
+        SELECT relations.relname::text, grantees.role_name, rights.privilege_type
+          FROM pg_class relations
+         CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+         CROSS JOIN (SELECT DISTINCT acl.privilege_type FROM aclexplode(acldefault('r', 10::oid)) acl
+                      WHERE acl.privilege_type IN ('TRIGGER', 'REFERENCES', 'MAINTAIN')) rights
+         WHERE relations.relnamespace = 'public'::regnamespace AND relations.relkind IN ('r', 'p', 'v', 'm', 'f')
+           AND relations.relname NOT IN (SELECT registry.table_name FROM public.agent__audit_protected_tables() registry)
+           AND (has_table_privilege(grantees.role_name, relations.oid, rights.privilege_type)
+                OR (rights.privilege_type = 'REFERENCES'
+                    AND has_any_column_privilege(grantees.role_name, relations.oid, rights.privilege_type)))
+        UNION ALL
+        -- MINIMUM: the rights each table's creating migration granted to service_role, listed per table (not derived from
+        -- append_only: agent_model_price_schedules is registered mutable but 244 granted it SELECT, INSERT only). The
+        -- maximum above still tolerates UPDATE/DELETE on every mutable-registered table. A registry table missing from this
+        -- list, or a listed table missing from the registry, is drift too.
+        SELECT coalesce(registry.table_name, minimum.table_name), 'service_role (missing)',
+               CASE WHEN registry.table_name IS NULL THEN 'not registered' ELSE wanted.privilege END
+          FROM public.agent__audit_protected_tables() registry
+          FULL JOIN (VALUES
+                 ('agent_runs', 'SIU'), ('agent_run_steps', 'SIU'), ('agent_run_events', 'SI'),
+                 ('agent_runtime_controls', 'SIU'), ('agent_worker_heartbeats', 'SIU'),
+                 ('agent_execution_enablement', 'SIU'), ('agent_tool_controls', 'SIU'), ('agent_tool_grants', 'SIU'),
+                 ('agent_tool_approvals', 'SIU'), ('agent_tool_invocations', 'SI'), ('agent_tool_executions', 'SI'),
+                 ('agent_tool_events', 'SI'),
+                 ('agent_model_enablement', 'SIU'), ('agent_model_budget_policies', 'SIU'),
+                 ('agent_model_budget_counters', 'SIU'), ('agent_model_attempts', 'SIU'),
+                 ('agent_model_price_schedules', 'SI'), ('agent_model_spend_events', 'SI'), ('agent_planning_runs', 'SIU'),
+                 ('agent_customer_billing_controls', 'SIU'), ('agent_customer_pricing_policies', 'SIU'),
+                 ('agent_customer_credit_holds', 'SIU'), ('agent_customer_credit_charges', 'SIU'),
+                 ('agent_billing_operations', 'SIU'), ('agent_customer_overage_authorizations', 'SI'),
+                 ('agent_customer_billing_events', 'SI'), ('agent_billing_operation_events', 'SI'),
+                 ('billing_trueup_operations', 'SIU'), ('billing_trueup_operation_events', 'SI'),
+                 ('agent_planning_events', 'SI'), ('agent_proposal_handoffs', 'SI'),
+                 ('agent_worker_credentials', 'SIU'), ('agent_control_center_events', 'S')
+               ) AS minimum(table_name, rights) ON minimum.table_name = registry.table_name
+          LEFT JOIN LATERAL unnest(CASE WHEN minimum.rights IS NULL THEN ARRAY['unlisted'] ELSE
+                 array_remove(ARRAY[CASE WHEN strpos(minimum.rights, 'S') > 0 THEN 'SELECT' END,
+                                    CASE WHEN strpos(minimum.rights, 'I') > 0 THEN 'INSERT' END,
+                                    CASE WHEN strpos(minimum.rights, 'U') > 0 THEN 'UPDATE' END], NULL) END)
+                 AS wanted(privilege) ON true
+         WHERE CASE WHEN registry.table_name IS NULL OR minimum.table_name IS NULL THEN true
+                    ELSE NOT has_table_privilege('service_role', format('public.%I', registry.table_name), wanted.privilege) END
+      ) drift;
+    IF exact_privilege_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'Protected agent table privileges differ from the reviewed matrix: %', exact_privilege_drift;
+    END IF;
+  END IF;
+
+  -- No DELETE of agent safety controls, grants or approvals (migration 259). Version-gated by migration NAME.
+  --   recorded -> the guard function is pinned, the BEFORE DELETE row guard is on exactly the 7 reviewed tables, and no
+  --   application role holds DELETE on any registered table (the maximum above no longer tolerates it).
+  IF delete_guard_recorded > 0 THEN
+    IF exact_privileges_recorded = 0 THEN
+      RAISE EXCEPTION 'Migration 259 is recorded on a schema without migration 258';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc procs
+                    WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_delete'
+                      AND NOT procs.prosecdef AND procs.proowner = 'postgres'::regrole
+                      AND procs.proconfig = ARRAY['search_path=""']
+                      AND md5(replace(procs.prosrc, chr(13), '')) = '203d70028c0e96f7463b1fe327a17e5a'
+                      AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE')) THEN
+      -- service_role EXECUTE is tolerated: the CI fixture grants EXECUTE on all functions, and a trigger function cannot
+      -- be called directly ("trigger functions can only be called as triggers").
+      RAISE EXCEPTION 'agent__guard_control_delete() differs from its reviewed migration-259 body or ACL';
+    END IF;
+    SELECT string_agg(coalesce(wanted.table_name, found.table_name), ', ') INTO delete_guard_drift
+      FROM (VALUES ('agent_runtime_controls'), ('agent_tool_controls'), ('agent_execution_enablement'),
+                   ('agent_model_enablement'), ('agent_customer_billing_controls'), ('agent_tool_grants'),
+                   ('agent_tool_approvals')) AS wanted(table_name)
+      FULL JOIN (SELECT triggers.tgrelid::regclass::text AS qualified, relations.relname::text AS table_name
+                   FROM pg_trigger triggers JOIN pg_class relations ON relations.oid = triggers.tgrelid
+                  WHERE triggers.tgfoid = 'public.agent__guard_control_delete()'::regprocedure
+                    AND triggers.tgname = 'agent_control_delete_guard' AND triggers.tgenabled = 'O'
+                    AND triggers.tgtype = 11  -- exactly ROW (1) + BEFORE (2) + DELETE (8): not AFTER, not statement-level
+                    AND NOT triggers.tgisinternal AND triggers.tgconstraint = 0  -- a plain trigger, not a constraint trigger
+                    AND triggers.tgqual IS NULL AND triggers.tgnargs = 0      -- no WHEN clause, no arguments
+                    AND triggers.tgattr = ''::int2vector                       -- no column list
+                    AND relations.relnamespace = 'public'::regnamespace) found ON found.table_name = wanted.table_name
+     WHERE wanted.table_name IS NULL OR found.table_name IS NULL;
+    IF delete_guard_drift IS NOT NULL
+       OR (SELECT count(*) FROM pg_trigger triggers
+            WHERE triggers.tgfoid = 'public.agent__guard_control_delete()'::regprocedure) <> 7
+       OR (SELECT count(*) FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_delete_guard') <> 7 THEN
+      RAISE EXCEPTION 'The migration-259 DELETE guard is missing, disabled or misplaced: %', coalesce(delete_guard_drift, 'trigger count');
+    END IF;
+    SELECT string_agg(format('%s:%s', registry.table_name, grantees.role_name), ', ') INTO delete_guard_drift
+      FROM public.agent__audit_protected_tables() registry
+     CROSS JOIN unnest(ARRAY['public', 'anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+     WHERE has_table_privilege(grantees.role_name, format('public.%I', registry.table_name), 'DELETE');
+    IF delete_guard_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'An application role holds DELETE on a protected agent table: %', delete_guard_drift;
+    END IF;
+    -- The offboarding exception ("tenant row already gone") must not be reachable by deferring a foreign key: every
+    -- foreign key on the tenant-scoped guarded tables, and on agent_runs (which carries approvals), is NOT DEFERRABLE.
+    SELECT string_agg(format('%s.%s', constraints.conrelid::regclass, constraints.conname), ', ') INTO delete_guard_drift
+      FROM pg_constraint constraints
+     WHERE constraints.contype = 'f' AND constraints.condeferrable
+       AND constraints.conrelid IN ('public.agent_runtime_controls'::regclass, 'public.agent_tool_grants'::regclass,
+                                    'public.agent_tool_approvals'::regclass, 'public.agent_runs'::regclass);
+    IF delete_guard_drift IS NOT NULL THEN
+      RAISE EXCEPTION 'A foreign key behind the migration-259 offboarding exception is deferrable: %', delete_guard_drift;
+    END IF;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc procs
+                 WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_delete')
+        OR EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_delete_guard') THEN
+    -- Fail closed on look-alike guard objects that exist before migration 259 is recorded.
+    RAISE EXCEPTION 'Migration-259 guard objects exist but migration 259 (agent_control_delete_guard) is not recorded';
+  END IF;
+
+  -- UPDATE integrity of agent safety controls, grants and approvals (migration 260). Version-gated by migration NAME.
+  --   H6 recorded -> the SECURITY DEFINER journal trigger function is pinned to its reviewed body (256, or 260 once
+  --   recorded), so a weakened journal cannot pass by journaling less;
+  --   260 recorded -> the update guard is pinned and is a plain BEFORE UPDATE row trigger on exactly 4 reviewed tables;
+  --   260 not recorded -> no migration-260 guard object may exist.
+  SELECT count(DISTINCT history.name) INTO update_guard_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_control_update_integrity';
+  -- nested IF: the regprocedure literal must not be evaluated on a schema without H6
+  IF h6_recorded = 2 THEN IF NOT EXISTS (
+       SELECT 1 FROM pg_proc procs
+        WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__journal_control_change'
+          AND procs.pronargs = 0
+          AND procs.prosecdef AND procs.proowner = 'postgres'::regrole AND procs.proconfig = ARRAY['search_path=""']
+          AND md5(replace(procs.prosrc, chr(13), '')) = CASE WHEN update_guard_recorded > 0
+                                                           THEN '30071c963f16c289896055d8e0507a42'   -- 260 body
+                                                           ELSE 'e1353767acaeedce750579365ca0fc17' END  -- 256 body
+          AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+          AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE')) THEN
+    -- service_role EXECUTE is tolerated (CI fixture blanket function grant; a trigger function cannot be called directly).
+    RAISE EXCEPTION 'agent__journal_control_change() differs from its reviewed migration-256/260 body, owner or ACL';
+  END IF; END IF;
+  IF update_guard_recorded > 0 THEN
+    IF delete_guard_recorded = 0 THEN
+      RAISE EXCEPTION 'Migration 260 is recorded on a schema without migration 259';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc procs
+                    WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update'
+                      AND NOT procs.prosecdef AND procs.proowner = 'postgres'::regrole
+                      AND procs.proconfig = ARRAY['search_path=""']
+                      AND md5(replace(procs.prosrc, chr(13), '')) = '28451748327504469ba6383959ddb805'
+                      AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))
+       OR (SELECT count(*) FROM pg_proc procs
+            WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update') <> 1 THEN
+      RAISE EXCEPTION 'agent__guard_control_update() differs from its reviewed migration-260 body or ACL';
+    END IF;
+    SELECT string_agg(coalesce(wanted.table_name, found.table_name), ', ') INTO update_guard_drift
+      FROM (VALUES ('agent_runtime_controls'), ('agent_tool_controls'), ('agent_tool_grants'),
+                   ('agent_tool_approvals')) AS wanted(table_name)
+      FULL JOIN (SELECT relations.relname::text AS table_name
+                   FROM pg_trigger triggers JOIN pg_class relations ON relations.oid = triggers.tgrelid
+                  WHERE triggers.tgfoid = 'public.agent__guard_control_update()'::regprocedure
+                    AND triggers.tgname = 'agent_control_update_guard' AND triggers.tgenabled = 'O'
+                    AND triggers.tgtype = 19  -- exactly ROW (1) + BEFORE (2) + UPDATE (16)
+                    AND NOT triggers.tgisinternal AND triggers.tgconstraint = 0
+                    AND triggers.tgqual IS NULL AND triggers.tgnargs = 0
+                    AND triggers.tgattr = ''::int2vector                       -- no column list: every UPDATE fires
+                    AND relations.relnamespace = 'public'::regnamespace) found ON found.table_name = wanted.table_name
+     WHERE wanted.table_name IS NULL OR found.table_name IS NULL;
+    IF update_guard_drift IS NOT NULL
+       OR (SELECT count(*) FROM pg_trigger triggers
+            WHERE triggers.tgfoid = 'public.agent__guard_control_update()'::regprocedure) <> 4
+       OR (SELECT count(*) FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_update_guard') <> 4 THEN
+      RAISE EXCEPTION 'The migration-260 UPDATE guard is missing, disabled or misplaced: %', coalesce(update_guard_drift, 'trigger count');
+    END IF;
+  ELSIF EXISTS (SELECT 1 FROM pg_proc procs
+                 WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname = 'agent__guard_control_update')
+        OR EXISTS (SELECT 1 FROM pg_trigger triggers WHERE triggers.tgname = 'agent_control_update_guard') THEN
+    RAISE EXCEPTION 'Migration-260 guard objects exist but migration 260 (agent_control_update_integrity) is not recorded';
   END IF;
 END;
 $$;

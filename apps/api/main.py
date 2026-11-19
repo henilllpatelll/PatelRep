@@ -31,6 +31,7 @@ from routers import (
     ai_copilot,
     sop,
     billing,
+    agent_control_center,
     agent_specialists,
     webhooks,
     integrations,
@@ -359,6 +360,7 @@ app.include_router(ai_copilot.router, prefix=PREFIX)
 app.include_router(sop.router, prefix=PREFIX)
 app.include_router(billing.router, prefix=PREFIX)
 app.include_router(agent_specialists.router, prefix=PREFIX)  # H5: 404 unless agent gates are on
+app.include_router(agent_control_center.router, prefix=PREFIX)  # H6: 404 unless ai_control_center; never activates
 app.include_router(webhooks.router, prefix=PREFIX)
 app.include_router(integrations.router, prefix=PREFIX)
 app.include_router(internal.router, prefix=PREFIX)

@@ -208,11 +208,14 @@ def test_forged_approval_rows_are_refused():
                 f"agent_version, tool_id, tool_version, resource_type, resource_id, action_digest, initiated_by_user_id, "
                 f"approval_policy_id, approver_may_be_initiator, required_approver_roles, expires_at, 'approved', "
                 f"'{hotel.gm}', 'gm', now() FROM public.agent_tool_approvals WHERE id = '{approval['id']}';")
-    # a direct service-role UPDATE naming an unauthorized "approver" is caught by the execution-time authority check
-    run_sql(f"UPDATE public.agent_tool_approvals SET state = 'approved', decided_by_user_id = '{hotel.engineer_b}', "
-            f"decided_role = 'gm', decided_at = now() WHERE id = '{approval['id']}';")
-    run_sql(f"UPDATE public.agent_runs SET state = 'queued' WHERE id = '{admitted.run_id}';"
-            f"SELECT public.agent__dispatch('{admitted.run_id}', 0);")
+    # a direct service-role UPDATE naming an unauthorized "approver" is refused by the database (migration 260)
+    with pytest.raises(AssertionError) as err:
+        run_sql(f"UPDATE public.agent_tool_approvals SET state = 'approved', decided_by_user_id = '{hotel.engineer_b}', "
+                f"decided_role = 'gm', decided_at = now() WHERE id = '{approval['id']}';")
+    assert "decided only by a current member holding one of its approver roles" in str(err.value)
+    # and an approver who loses authority after deciding is still caught by the execution-time authority check
+    approvals.approve(gstore(), hotel.user(hotel.gm, "gm"), approval["id"])
+    run_sql(f"UPDATE public.user_roles SET is_active = false WHERE user_id = '{hotel.gm}';")
     assert drain_run(gateway_worker(), admitted.run_id)[0] == "run_failed"
     assert assigned_to(hotel.work_order) == ""
 

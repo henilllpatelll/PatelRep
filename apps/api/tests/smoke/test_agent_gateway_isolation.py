@@ -186,10 +186,11 @@ def test_no_application_code_imports_the_gateway():
         # H3: services/agent_orchestrator/ validates proposals against the gateway's frozen bindings/schemas and reuses
         # its redaction; it never calls prepare/admission/approvals/adapters and is itself never imported by
         # application code (test_agent_orchestrator_isolation.py).
+        # H6: services/agent_control_center/ is the Control Center bridge (ADR-0005); routers import only it.
         # H5: services/agent_handoff/ is the reviewed bridge (proposal handoff, verified context, preview); it is the
         # only package routers may import (routers/agent_specialists.py imports agent_handoff, never the gateway).
         if rel.startswith(("services/agent_gateway/", "services/agent_execution/", "services/agent_orchestrator/",
-                           "services/agent_handoff/", "tests/", ".venv/")) or "/site-packages/" in rel:
+                           "services/agent_handoff/", "services/agent_control_center/", "tests/", ".venv/")) or "/site-packages/" in rel:
             continue
         source = path.read_text(encoding="utf-8", errors="ignore")
         if rel.startswith("services/agent_harness/"):  # contracts may NAME the gateway in docs, never import it

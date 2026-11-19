@@ -158,6 +158,7 @@ const en = {
     guestRequests: "Guest Requests",
     tasks: "Tasks",
     aiCopilot: "AI Copilot",
+    aiControlCenter: "AI Control Center",
     sopLibrary: "SOP Library",
     evidence: "Evidence",
     safety: "Safety",

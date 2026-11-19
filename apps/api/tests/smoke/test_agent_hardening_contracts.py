@@ -31,7 +31,8 @@ def _code(sql: str) -> str:
 
 def test_254_is_the_next_forward_migration_and_nothing_after_253_is_rewritten():
     versions = sorted(int(p.name.split("_", 1)[0]) for p in MIGRATIONS.glob("*.sql"))
-    assert versions[-1] == 254 and versions.count(254) == 1
+    # H6 (255+) follows; 254 stays a single, unique version and every later migration is strictly newer.
+    assert versions.count(254) == 1 and versions.index(254) == len([v for v in versions if v < 254])
 
 
 def test_the_only_destructive_token_is_truncate_and_the_migration_is_reviewed():
@@ -61,7 +62,8 @@ def test_every_function_is_new_invoker_pinned_and_revoked():
         assert re.search(rf"REVOKE ALL ON FUNCTION {re.escape(fn)}\(\) FROM PUBLIC, anon, authenticated, service_role;",
                          sql), fn
     # none of them existed before 254, so no reviewed H1-H5 body is replaced
-    earlier = "\n".join(p.read_text(encoding="utf-8") for p in MIGRATIONS.glob("*.sql") if p.name != NAME)
+    earlier = "\n".join(p.read_text(encoding="utf-8") for p in MIGRATIONS.glob("*.sql")
+                        if int(p.name.split("_", 1)[0]) < 254)
     for fn in defined:
         assert f"FUNCTION {fn}(" not in earlier, fn
 
