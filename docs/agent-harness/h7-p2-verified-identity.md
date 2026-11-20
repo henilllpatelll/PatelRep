@@ -220,29 +220,29 @@ definers; in CI the in-function role check is what refuses it, and the integrati
 entry point (`test_service_role_with_a_broad_function_grant_still_cannot_use_any_entry_point`). The schema contract
 tolerates only service_role in the CI column and fails on any end-user widening (8 mutations tested).
 
-## 12. Staging-safe PR plan (not executed)
+## 12. Staging path for 262 (reviewed preview; no auto-apply)
 
-Fact (verified in `.github/workflows/staging-candidate.yml` on `main`): CI runs on every same-repository PR to `main`
-(drafts included); a successful CI `workflow_run` makes `resolve-candidate` eligible for any open same-repo PR whose head
-is not `main` (no draft check), and `prepare-staging-database` then runs `staging-migration-apply-workspace.mjs plan`
-and, when `has_pending == 'true'`, `apply` against persistent staging. The plan refuses only migrations matching the
-destructive-SQL pattern; 262 does not match. All privileged scripts run from a second checkout of trusted `main`; the PR
-contributes migrations as data only.
+History: before PR #244 the trusted staging plan refused only destructive SQL, so a Phase 2 PR would have auto-applied
+262 to persistent staging on its first green CI Gate. Two routes were weighed (owner-authorized PR vs. a reviewed-preview
+gate first); the gate was chosen and merged to `main` as #244 (`aed1852d`). That earlier analysis is superseded.
 
-* **Route 1 — owner-authorized PR.** The owner explicitly authorizes opening the Phase 2 PR, acknowledging that the first
-  green CI Gate applies 262 to persistent staging (forward-only; any later change to 262 then needs a new migration or
-  a staging restore). Cheap; no control-plane change; but an unreviewed security migration (SECURITY DEFINER reading
-  Auth tables) reaches shared staging before review, with no digest pin and no approval gate.
-* **Route 2 — reviewed-preview gate first (recommended).** A separate, reviewed control-plane PR on `main` (with contract
-  tests) makes the trusted staging plan refuse to **auto**-apply any pending migration whose content is
-  security-sensitive by rule — e.g. it defines a `SECURITY DEFINER` function or references `auth.` relations — exactly
-  as it refuses destructive SQL today. Content-based, so a PR cannot strip a marker to evade it; it does not
-  misclassify 262 as destructive. Then 262 follows the existing reviewed-preview procedure: registry entry on `main`
-  pinning PR / head SHA / 262 digest and the window, fresh restore-verified staging backup, read-only preflight,
-  dispatch of `staging-reviewed-migration-preview.yml`, human approval in the `staging-migration-approval` environment,
-  then Staging Candidate for the exact head. Only after that is the Phase 2 PR opened (its Staging Candidate then finds
-  262 already applied with the pinned digest).
+Current fact (trusted `main` at or after `aed1852d`): `scripts/migration-security-classifier.mjs` classifies pending
+migrations by content, and `assertPendingPolicy` (shared by the planner and the pre-push recheck in `runApply`) refuses
+to auto-apply a security-sensitive pending migration unless an exact reviewed-preview registry entry covers it. 262
+classifies as `auth_schema` + `privilege_grant` + `protected_object` + `security_definer`. Consequently:
 
-Recommendation: **Route 2.** 262 is the trust root for human identity at the database boundary; it should be applied to
-shared staging only after review, with its digest pinned and a named human approving the apply. Route 1 is acceptable
-only with the owner's explicit, informed authorization.
+* **Opening the Phase 2 PR does not apply 262.** CI runs normally; Staging Candidate for the PR head is expected to
+  **refuse** 262 (fail closed before any push) and staging stays at 261. That refusal is the intended safety boundary,
+  not a defect: do not change the migration, the classifier or any staging workflow to make it pass.
+* **The PR must exist before the preview.** The registry entry pins the live PR number, head branch, full head SHA,
+  every file digest, the staging base (261) and an approval window of at most 14 days, and the preview workflow checks
+  that the PR is open with exactly that head (`assertLivePullRequest`). Any later push to the Phase 2 branch invalidates
+  the entry and needs a new reviewed entry.
+
+Order: (1) Phase 2 draft PR opened, head stable; (2) separate registry-only PR adds the entry and
+`docs/staging-previews/` review document, reviewed and merged by a human (applies nothing); (3) fresh restore-verified
+staging backup; (4) a human dispatches `staging-reviewed-migration-preview.yml` from `main` restating id / PR / SHA /
+digest and reads the plan job (preconditions PASS, dry run proposes exactly 262); (5) a required reviewer approves the
+`staging-migration-approval` environment for that run; (6) apply job: `CLEAN`, 262 recorded by name, postconditions and
+main's schema contracts PASS; (7) Staging Candidate re-run for the same head finds nothing pending and the binding check
+confirms the digest. Every step from (2) on is a human decision; none is taken by the Phase 2 PR.
