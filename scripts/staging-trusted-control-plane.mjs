@@ -39,6 +39,7 @@ export const PRIVILEGED_STAGING_FILES = [
   'scripts/staging-target-guard.mjs',
   'scripts/production-target-guard.mjs',
   'scripts/staging-migration-plan.mjs',
+  'scripts/migration-security-classifier.mjs',
   'scripts/staging-reviewed-migration-preview.mjs',
   'scripts/staging-reviewed-migrations.mjs',
   'scripts/production-migration-apply-workspace.mjs',

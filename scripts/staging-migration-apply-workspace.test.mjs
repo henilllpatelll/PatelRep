@@ -309,3 +309,41 @@ test('--include-all is only used inside the verified workspace (always with --wo
   for (const line of script.split('\n').filter((l) => l.includes("'--include-all'"))) assert.match(line, /--workdir|workspace/)
   assert.equal([...script.matchAll(/'--include-all'/g)].length, 2)
 })
+
+// ---- security-sensitive migrations (H7 P2 staging security gate) ---------------------------------------------------
+const SENSITIVE_SQL = "create function public.f() returns int language sql security definer set search_path = '' as $$ select count(*)::int from auth.sessions $$;\n"
+const withPendingContent = (content) => () => ({
+  ...baseLive(),
+  migrations: baseLive().migrations.map((m) => (m.filename === '232_new.sql' ? { ...m, content } : m)),
+})
+
+failing('a security-sensitive pending migration (no destructive keyword)', { live: withPendingContent(SENSITIVE_SQL) },
+  /security-sensitive pending migration\(s\).*232_new\.sql \(auth_schema, security_definer\)/s)
+
+test('HARD FAIL before mutation: the bytes in the push workspace are re-checked, so a file that turned sensitive after the plan is refused', () => {
+  const h = harness()  // the live read (what the planner classified) is benign ...
+  writeFileSync(join(h.options.migrationsDirectory, '232_new.sql'), SENSITIVE_SQL)  // ... the copied bytes are not
+  assert.throws(() => runApply(h.options, h.deps), /security-sensitive pending migration\(s\).*232_new\.sql/s)
+  assert.ok(!h.calls.includes('db push'), 'the mutating push never runs')
+  assert.ok(h.calls.filter((call) => call === 'db push --dry-run').length >= 1, 'the refusal happens after the verified dry run, immediately before mutation')
+  assert.deepEqual(leftovers(h), [], 'no workspace is left behind')
+})
+
+const reviewedHarness = (pinnedContent, diskContent = pinnedContent) => {
+  const h = harness({ live: withPendingContent(pinnedContent) })
+  writeFileSync(join(h.options.migrationsDirectory, '232_new.sql'), diskContent)
+  h.options.reviewedMigrations = { id: 'h7-p2-test-entry', files: new Map([['232_new.sql', sha256(pinnedContent)]]) }
+  return h
+}
+
+test('the reviewed preview still applies an exactly pinned security-sensitive migration', () => {
+  const h = reviewedHarness(SENSITIVE_SQL)
+  assert.deepEqual(runApply(h.options, h.deps), { applied: ['232_new.sql'] })
+  assert.ok(h.calls.includes('db push'))
+})
+
+test('HARD FAIL before mutation: a reviewed pin whose pushed bytes differ from the approved digest is refused', () => {
+  const h = reviewedHarness(SENSITIVE_SQL, `${SENSITIVE_SQL}-- appended after review\n`)
+  assert.throws(() => runApply(h.options, h.deps), /differ\(s\) from the approved digest/)
+  assert.ok(!h.calls.includes('db push'), 'the mutating push never runs')
+})

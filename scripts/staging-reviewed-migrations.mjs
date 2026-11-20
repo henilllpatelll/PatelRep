@@ -1,16 +1,18 @@
 /**
- * Reviewed staging migration previews: the ONLY way a pending migration that matches DESTRUCTIVE_PATTERN can reach the
- * persistent shared staging database before its PR merges.
+ * Reviewed staging migration previews: the ONLY way a pending migration that matches DESTRUCTIVE_PATTERN, or that the
+ * security-sensitive classifier (migration-security-classifier.mjs) flags, can reach the persistent shared staging
+ * database before its PR merges.
  *
- * Normal Staging Candidate behaviour is unchanged: staging-migration-plan.mjs still refuses every destructive pending
- * migration. A preview is a narrow, single-use exception that needs ALL of the following, each checked independently:
+ * Normal Staging Candidate behaviour: staging-migration-plan.mjs refuses every destructive and every security-sensitive
+ * pending migration. A preview is a narrow, single-use exception that needs ALL of the following, each checked independently:
  *   1. an entry in supabase/staging-reviewed-migrations.json ON MAIN (reached main through a reviewed, human-merged PR)
  *      that pins the repository, PR number, head branch, exact 40-hex head SHA, the staging history head it expects, a
  *      short approval window, and a SHA-256 digest for EVERY file it authorizes,
  *   2. the operator restating every filename=digest pair at dispatch (must equal the entry exactly),
  *   3. the candidate files at the pinned SHA hashing to those digests, with the pending set equal to the approved set,
  *   4. read-only precondition probes against staging, and a GitHub Environment approval before anything is applied.
- * There is no flag, input or environment variable that relaxes the destructive-SQL rule for any other file.
+ * There is no flag, input or environment variable that relaxes the destructive-SQL or security-sensitive rule for any other
+ * file.
  *
  * After a preview is applied, verifyReviewedBindings keeps the approval honest for every later candidate: a candidate
  * whose copy of an applied, reviewed file differs from the approved digest is refused (the applied SQL can never be
