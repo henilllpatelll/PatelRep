@@ -1103,5 +1103,5 @@
 - `docs/agent-harness/` H5: adr-0004, specialists-engineering.md, specialists-housekeeping.md, tool-intent-matrix.md, handoff.md, threat-model-h5.md, runbook-h5.md, rollout-h5.md
 
 ## Staging security gate (2026-11-20)
-- `scripts/migration-security-classifier.mjs` — content-only classifier: pending migrations with SECURITY DEFINER / auth.* relations / dynamic SQL / role authority need the reviewed preview (pinned privileged file)
-- `scripts/migration-security-classifier.test.mjs` — 73 classifier, planner and trust-boundary tests (in CI node list)
+- `scripts/migration-security-classifier.mjs` — content-only classifier: pending migrations with SECURITY DEFINER / auth.* relations or auth-function DDL+privileges / dynamic SQL / role authority / any GRANT or ALTER DEFAULT PRIVILEGES (sole carve-out: grant to service_role on a table or signature-matched function created in the same file, never agent_*/JWT hook) / policy+RLS+view widening need the reviewed preview (pinned privileged file)
+- `scripts/migration-security-classifier.test.mjs` — ~145 classifier, planner and trust-boundary tests (in CI node list)

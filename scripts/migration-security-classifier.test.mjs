@@ -85,6 +85,91 @@ for (const [name, sql, reason] of EVASION) {
   })
 }
 
+// ---------------------------------------------------------------- privilege changes
+const DECIDE_V2 = 'public.agent_tool_approval_decide_v2(uuid, text, text)'
+const ACTIVATE_DECIDE_V2 = `GRANT EXECUTE ON FUNCTION ${DECIDE_V2} TO authenticated;\n`
+const PRIVILEGE = [
+  ['standalone grant activating decide_v2', ACTIVATE_DECIDE_V2],
+  ['decide_v2 grant to service_role', `grant execute on function ${DECIDE_V2} to service_role;`],
+  ['decide_v2 grant ALL PRIVILEGES', `GRANT ALL PRIVILEGES ON FUNCTION ${DECIDE_V2} TO authenticated;`],
+  ['decide_v2 grant on ROUTINE', `grant all on routine ${DECIDE_V2} to authenticated, anon;`],
+  ['decide_v2 grant with quoted names', 'grant execute on function "public"."agent_tool_approval_decide_v2"(uuid, text, text) to "authenticated";'],
+  ['decide_v2 grant split by comments', 'GRANT/**/EXECUTE -- x\n ON FUNCTION public.agent_tool_approval_decide_v2(uuid,text,text) TO authenticated;'],
+  ['decide_v2 grant inside a DO block', `DO $$ BEGIN GRANT EXECUTE ON FUNCTION ${DECIDE_V2} TO authenticated; END $$;`],
+  ['decide_v2 grant after a decoy create in a dollar-quoted comment',
+    `comment on table public.t is $c$ x; create function public.agent_tool_approval_decide_v2(a uuid, b text, c text) $c$;\n${ACTIVATE_DECIDE_V2}`],
+  ['decide_v2 grant next to an invoker overload this file creates',
+    `create function public.agent_tool_approval_decide_v2(p int) returns int language sql as $$ select 1 $$;\n${ACTIVATE_DECIDE_V2}`],
+  ['decide_v2 grant next to a same-signature invoker replacement',
+    `create or replace function ${DECIDE_V2.replace('(uuid, text, text)', '(a uuid, b text, c text)')} returns int language sql as $$ select 1 $$;\ngrant execute on function ${DECIDE_V2} to service_role;`],
+  ['grant on a function the file does not create, to service_role', 'grant execute on function public.app_schema_readiness() to service_role;'],
+  ['grant on an overload the file does not create', 'create function public.f(p int) returns int language sql as $$ select 1 $$; grant execute on function public.f(uuid) to service_role;'],
+  ['grant on a created function to authenticated', 'create function public.f() returns int language sql as $$ select 1 $$; grant execute on function public.f() to authenticated;'],
+  ['grant on a created function with grant option', 'create function public.f() returns int language sql as $$ select 1 $$; grant execute on function public.f() to service_role with grant option;'],
+  ['grant on a created function without a signature', 'create function public.f() returns int language sql as $$ select 1 $$; grant execute on function public.f to service_role;'],
+  ['grant execute on all functions in schema', 'grant execute on all functions in schema public to authenticated;'],
+  ['grant all on a pre-existing table', 'grant all on table public.agent_tool_approvals to authenticated;'],
+  ['grant on a protected table even if "created"', 'create table if not exists public.agent_tool_approvals (id int); grant all on public.agent_tool_approvals to service_role;'],
+  ['grant on a table the file does not create', 'grant select on public.user_roles to service_role;'],
+  ['grant table privileges to authenticated', 'create table public.t (id int); grant select on public.t to authenticated;'],
+  ['grant usage on schema', 'grant usage on schema public to agent_worker;'],
+  ['grant usage on a sequence', 'grant usage, select on sequence public.s to anon;'],
+  ['grant create on schema', 'GRANT CREATE ON SCHEMA public TO PUBLIC;'],
+  ['alter default privileges grant', 'alter default privileges in schema public grant execute on functions to authenticated;'],
+  ['alter default privileges revoke', 'alter default privileges for role postgres revoke execute on functions from public;'],
+  ['grant in a later statement of an exempt file', 'create table public.t (id int); grant all on public.t to service_role; grant all on public.t to anon;'],
+]
+for (const [name, sql] of PRIVILEGE) {
+  test(`privilege change is review-required: ${name}`, () => {
+    assert.ok(reasons(sql).includes('privilege_grant'), `${name}: ${JSON.stringify(reasons(sql))}`)
+  })
+}
+
+const AUTH_FUNCTIONS = []
+for (const helper of AUTH_HELPER_FUNCTIONS) {
+  AUTH_FUNCTIONS.push(
+    `create or replace function auth.${helper}() returns text language sql stable as $$ select 'x' $$;`,
+    `CREATE OR REPLACE FUNCTION "auth"."${helper}"() RETURNS text LANGUAGE sql AS $$ select 'x' $$;`,
+    `alter function auth.${helper}() set search_path = public;`,
+    `alter function auth . ${helper}() owner to authenticated;`,
+    `grant execute on function auth.${helper}() to anon;`,
+    `revoke execute on function auth.${helper}() from authenticated;`,
+    `revoke all on function public.f(), auth.${helper}() from authenticated;`,
+    `comment on function auth.${helper}() is 'x';`,
+  )
+}
+AUTH_FUNCTIONS.push('create schema if not exists auth;', 'alter function public.f() set schema auth;')
+for (const sql of AUTH_FUNCTIONS) {
+  test(`auth-schema function change is review-required: ${JSON.stringify(sql).slice(0, 70)}`, () => {
+    assert.ok(reasons(sql).includes('auth_schema'), JSON.stringify(reasons(sql)))
+  })
+}
+
+const POLICY = [
+  ['policy using (true)', 'create policy open on public.t for select to anon using (true);', 'policy_authority'],
+  ['policy with check ( TRUE )', 'create policy open on public.t for insert with check ( TRUE );', 'policy_authority'],
+  ['policy using (1 = 1)', 'create policy open on public.t using (1 = 1);', 'policy_authority'],
+  ['alter policy', "alter policy t_select on public.t to authenticated using (tenant_id is not null);", 'policy_authority'],
+  ['policy on a protected agent table', "create policy mine on public.agent_tool_approvals for update to authenticated using (hotel_id = (auth.jwt() ->> 'hotel_id')::uuid);", 'policy_authority'],
+  ['policy on a quoted protected agent table', 'create policy mine on "public"."agent_tool_grants" for select using (auth.uid() is not null);', 'policy_authority'],
+  ['no force row level security', 'alter table public.t no force row level security;', 'policy_authority'],
+  ['owner-rights view (bypasses RLS)', 'create view public.v as select * from public.agent_runs;', 'policy_authority'],
+  ['explicit security_invoker = false', 'create or replace view public.v with (security_invoker = false) as select 1;', 'policy_authority'],
+  ['view switched to owner rights', 'alter view public.v set (security_invoker = off);', 'policy_authority'],
+  ['view security_invoker reset', 'alter view public.v reset (security_invoker);', 'policy_authority'],
+  ['materialized view', 'create materialized view public.mv as select * from public.t;', 'policy_authority'],
+  ['leakproof function', 'alter function public.f(int) leakproof;', 'policy_authority'],
+  ['replacing a protected agent function in place', 'create or replace function public.agent_tool_approval_decide(a uuid) returns int language sql as $$ select 1 $$;', 'protected_object'],
+  ['altering the JWT hook', 'alter function public.custom_access_token_hook(jsonb) set search_path = public;', 'protected_object'],
+  ['replacing the JWT hook', "create or replace function public.custom_access_token_hook(event jsonb) returns jsonb language sql as $$ select event $$;", 'protected_object'],
+  ['event trigger', 'create event trigger e on ddl_command_end execute function public.f();', 'role_authority'],
+]
+for (const [name, sql, reason] of POLICY) {
+  test(`policy / RLS / protected-object widening is review-required: ${name}`, () => {
+    assert.ok(reasons(sql).includes(reason), `${name}: ${JSON.stringify(reasons(sql))}`)
+  })
+}
+
 const ORDINARY = [
   'create table public.t (id uuid primary key, tenant_id uuid not null);',
   'alter table public.t add column note text; create index if not exists t_note on public.t (note);',
@@ -95,7 +180,17 @@ const ORDINARY = [
   "CREATE FUNCTION public.f() RETURNS uuid LANGUAGE sql STABLE SET search_path = '' AS $$ select auth.uid() $$;",
   'create trigger t_touch before update on public.t for each row execute function public.touch();',
   'create trigger t_touch2 before update on public.t for each row execute procedure public.touch();',
-  'grant execute on function public.f() to authenticated; revoke execute on function public.f() from anon;',
+  'revoke execute on function public.f() from anon; revoke all on function public.g(uuid) from public, anon, authenticated;',
+  'revoke grant option for execute on function public.f() from authenticated;',
+  // The single GRANT exemption: to exactly service_role, on a table / function this same file creates.
+  'create table if not exists public.t (id uuid primary key); alter table public.t enable row level security;\ngrant all on table public.t to service_role;',
+  'create table public.t (id int); grant select, insert, update on public.t to service_role;',
+  'create function public.f(p_id uuid, p_note text default null) returns int language sql security invoker as $$ select 1 $$;\ngrant execute on function public.f(uuid, text) to service_role;',
+  'create or replace function public.g(p numeric(10, 2), variadic xs text[]) returns int language sql as $$ select 1 $$;\nGRANT   EXECUTE ON FUNCTION public.g(numeric(10,2), variadic text[]) TO service_role;',
+  'create function public.h() returns int language sql as $$ select 1 $$; grant execute on function h() to service_role;',
+  "create view public.v with (security_invoker = true) as select id from public.t;",
+  'create or replace view public.v with (security_invoker) as select id from public.t;',
+  "create policy t_restrict on public.t as restrictive for update to authenticated using (tenant_id = (auth.jwt() ->> 'hotel_id')::uuid);",
   "comment on table public.t is 'the worker may execute nothing here; security is definitely on';",
   'alter table public.t enable row level security;',
   'insert into public.settings (key, value) values (\'x\', \'y\');',
@@ -164,13 +259,36 @@ test('destructive pending migrations remain refused with the unchanged message',
 test('a SECURITY DEFINER / auth-reading migration with no destructive keyword is refused, as a distinct reason', () => {
   assert.equal(DESTRUCTIVE_PATTERN.test(SENSITIVE_262.content), false)
   assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262']), migrations: [...HISTORY, SENSITIVE_262] }),
-    (error) => /security-sensitive pending migration\(s\).*262_m262\.sql \(auth_schema, security_definer\)/.test(error.message)
+    (error) => /security-sensitive pending migration\(s\).*262_m262\.sql \(auth_schema, privilege_grant, security_definer\)/.test(error.message)
       && /Staging Reviewed Migration Preview/.test(error.message) && !/destructive/.test(error.message))
+})
+
+test('BYPASS: a standalone pending grant that would activate decide_v2 is refused by the trusted planner', () => {
+  assert.equal(DESTRUCTIVE_PATTERN.test(ACTIVATE_DECIDE_V2), false, 'not destructive: only the security rule can stop it')
+  for (const content of [ACTIVATE_DECIDE_V2, `grant execute on function ${DECIDE_V2} to service_role;\n`]) {
+    assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262']), migrations: [...HISTORY, file('262', content)] }),
+      (error) => /security-sensitive pending migration\(s\).*262_m262\.sql \(privilege_grant\)/.test(error.message) && !/destructive/.test(error.message))
+    assert.throws(() => assertPendingPolicy([file('262', content)]), /262_m262\.sql \(privilege_grant\)/)
+  }
+})
+
+test('BYPASS: the activating grant cannot ride along with an exempt-looking ordinary migration', () => {
+  const ordinary = 'create table public.t (id int); grant all on public.t to service_role;\n'
+  assert.deepEqual(planStagingMigrations({ evaluation: evaluation(['262']), migrations: [...HISTORY, file('262', ordinary)] }), { pending: ['262_m262.sql'] })
+  assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262']), migrations: [...HISTORY, file('262', ordinary + ACTIVATE_DECIDE_V2)] }), /privilege_grant/)
+  assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262', '263']), migrations: [...HISTORY, file('262', ordinary), file('263', ACTIVATE_DECIDE_V2)] }), /263_m263\.sql \(privilege_grant\)/)
+})
+
+test('a reviewed pin is still the only way through for the activating grant', () => {
+  const grant = file('262', ACTIVATE_DECIDE_V2)
+  const reviewed = { id: 'h7-p2-activate-decide-v2', files: new Map([['262_m262.sql', sha256(grant.content)]]) }
+  assert.deepEqual(planStagingMigrations({ evaluation: evaluation(['262']), migrations: [...HISTORY, grant], reviewed }),
+    { pending: ['262_m262.sql'], reviewed: 'h7-p2-activate-decide-v2' })
 })
 
 test('a sensitive file hidden among ordinary pending files is still refused, and named', () => {
   const migrations = [...HISTORY, file('262', 'select 1;'), { ...SENSITIVE_262, filename: '263_m263.sql', version: '263' }, file('264', 'select 2;')]
-  assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262', '263', '264']), migrations }), /263_m263\.sql \(auth_schema, security_definer\)/)
+  assert.throws(() => planStagingMigrations({ evaluation: evaluation(['262', '263', '264']), migrations }), /263_m263\.sql \(auth_schema, privilege_grant, security_definer\)/)
 })
 
 test('the candidate cannot bypass the rule: no evaluation field, marker or environment variable relaxes it', () => {
