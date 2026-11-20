@@ -58,13 +58,22 @@ only). The helpers are not reachable through PostgREST (tested).
   `{ok, operation, role, hotel_id, verified_by:'database', step_up:'none'}` or `{ok:false, reason, operation}`.
 * `agent_tool_approval_decide_v2(p_approval_id, p_decision, p_reason_code)` — the 243 decision with the actor and hotel
   derived by the database; same lock order (approval → run → role rows), same state machine, independence, expiry,
-  events (plus `detail.identity = 'database_verified'`), resume / fail behaviour. It re-checks in SQL the gates the
+  events (plus `detail.identity = 'database_verified'`), resume / fail behaviour. **Unlike 243, the full current
+  authority (identity, live session, hotel, exactly one active approver role) is verified immediately after the two
+  row locks and before anything else**: an unauthorized caller cannot expire / revoke a stale approval, end its run or
+  learn its state; its only possible write is the append-only `policy_denied` event 243 also records. Real-DB tests:
+  demoted, inactive, cross-hotel, non-approver and signed-out callers on an expired approval leave the approval, run,
+  lifecycle events and run events byte-for-byte unchanged; a current approver still runs the cleanup. It re-checks in SQL the gates the
   API applies: `ai_control_center` entitlement (approve and reject), and for approve a deployment stamp that exists and
   is not `production` plus platform execution enabled. **Inactive: no grant.** Its logic is tested over real PostgREST
   under a test-only grant that the fixture always revokes.
 * API plumbing: `services/agent_control_center/verified_identity.py` forwards the caller's own bearer token
   (`HumanAccessToken`, redacted, unpicklable) with the PUBLIC key only (service-role / secret keys refused) to the probe.
-  Disabled by default (`AGENT_VERIFIED_HUMAN_ENABLED`), mounted on no route.
+  The target must be **exactly** the origin of the API's own Supabase project (`settings.supabase_project_url`: same
+  scheme, host and effective port; no userinfo, path, query or fragment; http only for loopback); anything else is
+  refused before a request exists, redirects are never followed and any 3xx is refused (15 look-alike / smuggling
+  targets tested with a transport that fails the test if called). Disabled by default (`AGENT_VERIFIED_HUMAN_ENABLED`),
+  mounted on no route.
 
 Activation (separate, explicit request; not part of Phase 2): a reviewed migration `GRANT EXECUTE ON FUNCTION
 public.agent_tool_approval_decide_v2(uuid, text, text) TO authenticated` + contract update, an API route that forwards
@@ -187,3 +196,53 @@ helpers fail closed (`session_not_live` / `user_not_eligible`), they never fail 
 * Threat-model §E — level-2 stops are not linearized with in-flight approved writes (§7); proposed separate PR.
 * `agent_control_center_overview.live_workers` counts heartbeats platform-wide (a count, no credential data) — low.
 * Step-up — deferred (§8); production grant issuance stays prohibited.
+
+## 11. Effective privilege matrix (measured on a fresh replay of 1–262)
+
+EXECUTE on the 262 entry points (`X` = may execute; `-` = may not). `public` and `anon` and `agent_worker` are `-`
+everywhere in every column.
+
+| Function | after 262 (= intended; = staging; = production) | after the CI fixture's `GRANT EXECUTE ON ALL FUNCTIONS … TO service_role` |
+|---|---|---|
+| `agent_verified_human_probe` | authenticated `X`, service_role `-` | authenticated `X`, service_role `X` (refused inside: `not_authenticated_role`) |
+| `agent_tool_approval_decide_v2` | **nobody** (inactive) | service_role `X` (refused inside); authenticated `-` |
+| `agent__verified_human_claims`, `agent__verified_human`, `agent__audit_approval_transition` | nobody | service_role `X` (refused inside / trigger function) |
+| `agent_control_center_events_page` (replaced read model) | service_role `X` only (unchanged) | unchanged |
+| `agent_tool_approval_decide` (243, unchanged) | service_role `X` only | unchanged |
+
+No application role can read `auth.sessions` / `auth.users` in either state. Why the columns differ: only the CI
+Database Migration Gate fixture (`ci.yml`) grants EXECUTE on all functions to service_role (the throwaway stack lacks
+hosted default grants). Staging Candidate's `prepare-staging-database` grants service_role **tables and sequences
+only**, then re-runs `agent_audit_privileges_enforce()`; it grants no function. Hosted default privileges grant new
+public functions to anon / authenticated / service_role at creation, which 262 revokes in the same transaction. So on
+staging and production the effective ACL is the intended one (left column) and service_role cannot even call the
+definers; in CI the in-function role check is what refuses it, and the integration suite proves that refusal for every
+entry point (`test_service_role_with_a_broad_function_grant_still_cannot_use_any_entry_point`). The schema contract
+tolerates only service_role in the CI column and fails on any end-user widening (8 mutations tested).
+
+## 12. Staging-safe PR plan (not executed)
+
+Fact (verified in `.github/workflows/staging-candidate.yml` on `main`): CI runs on every same-repository PR to `main`
+(drafts included); a successful CI `workflow_run` makes `resolve-candidate` eligible for any open same-repo PR whose head
+is not `main` (no draft check), and `prepare-staging-database` then runs `staging-migration-apply-workspace.mjs plan`
+and, when `has_pending == 'true'`, `apply` against persistent staging. The plan refuses only migrations matching the
+destructive-SQL pattern; 262 does not match. All privileged scripts run from a second checkout of trusted `main`; the PR
+contributes migrations as data only.
+
+* **Route 1 — owner-authorized PR.** The owner explicitly authorizes opening the Phase 2 PR, acknowledging that the first
+  green CI Gate applies 262 to persistent staging (forward-only; any later change to 262 then needs a new migration or
+  a staging restore). Cheap; no control-plane change; but an unreviewed security migration (SECURITY DEFINER reading
+  Auth tables) reaches shared staging before review, with no digest pin and no approval gate.
+* **Route 2 — reviewed-preview gate first (recommended).** A separate, reviewed control-plane PR on `main` (with contract
+  tests) makes the trusted staging plan refuse to **auto**-apply any pending migration whose content is
+  security-sensitive by rule — e.g. it defines a `SECURITY DEFINER` function or references `auth.` relations — exactly
+  as it refuses destructive SQL today. Content-based, so a PR cannot strip a marker to evade it; it does not
+  misclassify 262 as destructive. Then 262 follows the existing reviewed-preview procedure: registry entry on `main`
+  pinning PR / head SHA / 262 digest and the window, fresh restore-verified staging backup, read-only preflight,
+  dispatch of `staging-reviewed-migration-preview.yml`, human approval in the `staging-migration-approval` environment,
+  then Staging Candidate for the exact head. Only after that is the Phase 2 PR opened (its Staging Candidate then finds
+  262 already applied with the pinned digest).
+
+Recommendation: **Route 2.** 262 is the trust root for human identity at the database boundary; it should be applied to
+shared staging only after review, with its digest pinned and a named human approving the apply. Route 1 is acceptable
+only with the owner's explicit, informed authorization.

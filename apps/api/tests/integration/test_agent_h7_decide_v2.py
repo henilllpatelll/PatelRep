@@ -214,3 +214,102 @@ def test_a_demotion_between_sign_in_and_decision_is_honoured():
         assert _decide(gm_token, approval)[1] == {"ok": False, "reason": "approver_not_authorized"}
     assert _state(approval) == "requested"
     assert claims_of(gm_token)["role"] == "authenticated"
+
+
+# ---------------------------------------------------------------- no mutation before full authorization (expired path)
+def _expire_in_place(approval_id: str) -> None:
+    """Fault injection: make a pending approval stale without changing its state (the sweep has not run yet)."""
+    run_sql("BEGIN; ALTER TABLE public.agent_tool_approvals DISABLE TRIGGER agent_tool_approvals_guard_update;"
+            f"UPDATE public.agent_tool_approvals SET created_at = now() - interval '2 hours', "
+            f"expires_at = now() - interval '1 second' WHERE id = '{approval_id}';"
+            "ALTER TABLE public.agent_tool_approvals ENABLE TRIGGER agent_tool_approvals_guard_update; COMMIT;")
+
+
+def _fingerprint(approval_id: str, run_id: str) -> str:
+    """Everything the cleanup branch could change: approval row, run row, their events and the dispatch queue."""
+    return sql_value(
+        "SELECT concat_ws('|', a.state, coalesce(a.ended_by, '-'), coalesce(a.ended_at::text, '-'), a.updated_at::text, "
+        "r.state, r.updated_at::text, coalesce(r.last_error_code, '-'), "
+        f"(SELECT count(*) FROM public.agent_tool_events e WHERE e.approval_id = a.id AND e.event_type <> 'policy_denied'), "
+        f"(SELECT count(*) FROM public.agent_run_events e WHERE e.run_id = r.id)) "
+        f"FROM public.agent_tool_approvals a JOIN public.agent_runs r ON r.id = a.run_id "
+        f"WHERE a.id = '{approval_id}' AND r.id = '{run_id}';")
+
+
+def _stale(hotel) -> tuple[str, str, str]:
+    run_id, approval = _pending(hotel)
+    _expire_in_place(approval)
+    assert _state(approval) == "requested"
+    return run_id, approval, _fingerprint(approval, run_id)
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_a_demoted_user_cannot_trigger_the_stale_approval_cleanup(decision):
+    _ensure_stamp()
+    hotel = _hotel()
+    gm_id, gm_token = _signed_in(hotel, "gm", f"gm-v2-stale-demoted-{decision}")
+    run_id, approval, before = _stale(hotel)
+    run_sql(f"UPDATE public.user_roles SET role = 'engineer' WHERE user_id = '{gm_id}';")
+    with V2Granted():
+        assert _decide(gm_token, approval, decision)[1] == {"ok": False, "reason": "approver_not_authorized"}
+    assert _fingerprint(approval, run_id) == before  # not expired, run not ended, no lifecycle event
+    denied = sql_value(f"SELECT count(*) FROM public.agent_tool_events WHERE approval_id = '{approval}' "
+                       "AND event_type = 'policy_denied' AND reason_code = 'approver_not_authorized';")
+    assert denied == "1"  # the only write: the append-only refusal record (as 243)
+
+
+def test_an_inactive_user_cannot_trigger_the_stale_approval_cleanup():
+    _ensure_stamp()
+    hotel = _hotel()
+    gm_id, gm_token = _signed_in(hotel, "gm", "gm-v2-stale-inactive")
+    run_id, approval, before = _stale(hotel)
+    run_sql(f"UPDATE public.user_profiles SET is_active = false WHERE id = '{gm_id}';")
+    with V2Granted():
+        assert _decide(gm_token, approval)[1] == {"ok": False, "reason": "not_a_member"}
+    run_sql(f"UPDATE public.user_profiles SET is_active = true WHERE id = '{gm_id}';")
+    run_sql(f"UPDATE public.user_roles SET is_active = false WHERE user_id = '{gm_id}';")
+    with V2Granted():
+        assert _decide(gm_token, approval)[1] == {"ok": False, "reason": "not_a_member"}  # no active role at all
+    assert _fingerprint(approval, run_id) == before
+    assert sql_value(f"SELECT count(*) FROM public.agent_tool_events WHERE approval_id = '{approval}' "
+                     "AND event_type = 'policy_denied';") == "0"  # an unverified member writes nothing at all
+
+
+def test_a_cross_hotel_user_cannot_trigger_the_stale_approval_cleanup():
+    _ensure_stamp()
+    hotel, other = _hotel(), _hotel()
+    _, other_gm = _signed_in(other, "gm", "gm-v2-stale-other")
+    run_id, approval, before = _stale(hotel)
+    with V2Granted():
+        assert _decide(other_gm, approval)[1] == {"ok": False, "reason": "not_found"}
+        assert _decide(other_gm, approval, "reject")[1] == {"ok": False, "reason": "not_found"}
+    assert _fingerprint(approval, run_id) == before
+    assert sql_value(f"SELECT count(*) FROM public.agent_tool_events WHERE approval_id = '{approval}';") \
+        == sql_value(f"SELECT count(*) FROM public.agent_tool_events WHERE approval_id = '{approval}' "
+                     "AND event_type IN ('approval_requested', 'invocation_admitted');")
+
+
+def test_a_non_approver_and_a_signed_out_approver_cannot_trigger_the_cleanup():
+    _ensure_stamp()
+    hotel = _hotel()
+    _, hk_token = _signed_in(hotel, "housekeeper", "hk-v2-stale")
+    _, gm_token = _signed_in(hotel, "gm", "gm-v2-stale-out")
+    run_id, approval, before = _stale(hotel)
+    sign_out(gm_token)
+    with V2Granted():
+        assert _decide(hk_token, approval)[1] == {"ok": False, "reason": "approver_not_authorized"}
+        assert _decide(gm_token, approval)[1] == {"ok": False, "reason": "session_not_live"}
+    assert _fingerprint(approval, run_id) == before
+
+
+def test_control_a_verified_current_approver_does_run_the_cleanup():
+    _ensure_stamp()
+    hotel = _hotel()
+    _, gm_token = _signed_in(hotel, "gm", "gm-v2-stale-ok")
+    run_id, approval, _ = _stale(hotel)
+    with V2Granted():
+        assert _decide(gm_token, approval)[1] == {"ok": False, "reason": "expired", "state": "expired"}
+    assert _state(approval) == "expired" and run_row(hotel.tenant_id, run_id)["state"] == "failed"
+    events = sql_value(f"SELECT string_agg(actor_kind || ':' || coalesce(actor_ref, '-'), ',') FROM public.agent_tool_events "
+                       f"WHERE approval_id = '{approval}' AND event_type = 'approval_expired';")
+    assert events == "recovery:agent_tool_approval_decide_v2"  # one event; the 262 audit trigger added no duplicate

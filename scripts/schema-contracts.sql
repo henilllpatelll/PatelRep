@@ -963,7 +963,7 @@ BEGIN
   --   not recorded -> no 262 object may exist;
   --   recorded -> 5 SECURITY DEFINER functions pinned (body, owner, search_path, volatility); only the probe is
   --   executable by an end-user role (authenticated, never anon/public/agent_worker); the v2 decision is executable
-  --   by NO end-user role (inactive); service_role EXECUTE is tolerated (CI / Staging Candidate blanket function grant)
+  --   by NO end-user role (inactive); service_role EXECUTE is tolerated (only the CI fixture's blanket function grant; Staging Candidate grants tables and sequences only)
   --   because every one of them refuses any PostgREST role but authenticated internally (integration tests prove it);
   --   the credential-isolating events read model and the deferred approval-transition audit trigger are pinned.
   SELECT array_remove(ARRAY[
@@ -985,7 +985,7 @@ BEGIN
           JOIN (VALUES ('agent__verified_human_claims', 'd6432bb37b07b699531592f5b4a0fef7', 's', ''),
                        ('agent__verified_human', '050cb30550f2c62120c03bf2ba1a8a48', 'v', 'p_roles text[]'),
                        ('agent_verified_human_probe', '5f97b31f94db0448377b9fe923cd3615', 'v', 'p_operation text'),
-                       ('agent_tool_approval_decide_v2', 'ce1c0f8a31466b960d4e3edf7f0b6899', 'v',
+                       ('agent_tool_approval_decide_v2', 'f7112eeb1fcd20e59d1b2c79a0ad90a2', 'v',
                         'p_approval_id uuid, p_decision text, p_reason_code text'),
                        ('agent__audit_approval_transition', 'c861c515688c4628b8f1228c4ec5f82f', 'v', '')
                ) AS pins(proname, body_md5, volatility, identity_args) ON pins.proname = procs.proname

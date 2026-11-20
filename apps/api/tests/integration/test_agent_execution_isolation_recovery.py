@@ -85,9 +85,12 @@ def test_end_user_roles_have_no_access_to_execution_tables_functions_or_queue():
             assert "permission denied" in sql_fails(f"SET ROLE {role}; SELECT count(*) FROM public.{table};")
         for q in (f"pgmq.q_{QUEUE}", f"pgmq.a_{QUEUE}"):
             assert sql_value(f"SELECT has_table_privilege('{role}', '{q}', 'SELECT,INSERT,UPDATE,DELETE');") == "f"
-        exposed = sql_value(f"""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        exposed = sql_value(f"""SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')
+            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
             WHERE n.nspname = 'public' AND p.proname LIKE 'agent%' AND has_function_privilege('{role}', p.oid, 'EXECUTE');""")
-        assert exposed == "0"
+        # H7 P2 (262): exactly ONE agent function is executable by an end-user role -- the non-mutating database-verified
+        # identity probe, for authenticated only. Nothing for anon; nothing else for authenticated.
+        assert exposed == ("agent_verified_human_probe" if role == "authenticated" else ""), (role, exposed)
     public_exec = sql_value("""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname = 'public' AND p.proname LIKE 'agent%'
           AND EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
@@ -104,7 +107,11 @@ def test_end_user_roles_have_no_access_to_execution_tables_functions_or_queue():
     # H6 P1 (257) adds exactly one: agent__worker_tenant, the registry-bound tenant source the RESTRICTIVE gates evaluate.
     assert set(definers.split(",")) == {"agent__worker_credential_ok", "agent__worker_assert",
                                         "agent__control_center_journal", "agent__journal_control_change",
-                                        "agent_control_center_record_refusal", "agent__worker_tenant"}, definers
+                                        "agent_control_center_record_refusal", "agent__worker_tenant",
+                                        # H7 P2 (262): the reviewed verified-human set (Auth tables are owner-readable)
+                                        "agent__verified_human_claims", "agent__verified_human",
+                                        "agent_verified_human_probe", "agent_tool_approval_decide_v2",
+                                        "agent__audit_approval_transition"}, definers
     assert sql_value(r"""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname = 'public' AND p.proname LIKE 'agent\_worker\_rpc\_\_%' AND p.prosecdef;""") == "23"
 

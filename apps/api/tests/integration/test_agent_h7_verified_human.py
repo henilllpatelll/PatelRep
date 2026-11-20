@@ -95,7 +95,7 @@ def test_service_role_is_never_a_verified_human(hotel_a):
     service_key = settings.supabase_service_role_key
     status, body = probe(service_key, api_key=service_key)
     assert refused(status, body), (status, body)
-    if status == 200:  # CI / Staging Candidate grant service_role EXECUTE on every function; the body still refuses
+    if status == 200:  # the CI fixture grants service_role EXECUTE on every function; the body still refuses
         assert body == {"ok": False, "reason": "not_authenticated_role", "operation": "control_center_gm"}
     # Even a service_role token that ALSO names the GM and the GM's live session is not a human.
     now = int(time.time())
@@ -329,3 +329,22 @@ def settings_anon() -> str:
     import os
 
     return os.getenv("ANON_KEY", "") or os.getenv("PUBLISHABLE_KEY", "")
+
+
+def test_service_role_with_a_broad_function_grant_still_cannot_use_any_entry_point():
+    """The CI fixture grants service_role EXECUTE on every public function; each definer must still refuse it.
+
+    Under the migration's own ACL service_role cannot execute these at all (HTTP 401/403); either way nothing is
+    verified and nothing changes."""
+    key = settings.supabase_service_role_key
+    before = agent_row_counts()
+    calls = {"agent__verified_human_claims": {}, "agent__verified_human": {"p_roles": ["gm"]},
+             PROBE: {"p_operation": "control_center_gm"},
+             "agent_tool_approval_decide_v2": {"p_approval_id": str(uuid.uuid4()), "p_decision": "approve",
+                                               "p_reason_code": None}}
+    for name, params in calls.items():
+        status, body = rpc(name, params, token=key, api_key=key)
+        assert refused(status, body), (name, status, body)
+        if status == 200:
+            assert body.get("reason") == "not_authenticated_role", (name, body)
+    assert agent_row_counts() == before

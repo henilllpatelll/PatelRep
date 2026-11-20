@@ -119,6 +119,14 @@ def test_262_does_not_redefine_any_legacy_decision_grant_or_journal_function():
 
 
 # ---------------------------------------------------------------- the forwarding client
+APPROVED = "https://example.supabase.co"
+
+
+def _probe(*args, **kw):
+    kw.setdefault("approved_project_url", APPROVED)
+    return vi.probe(*args, **kw)
+
+
 def _settings(**kw) -> vi.VerifiedIdentitySettings:
     base = {"enabled": True, "url": "https://example.supabase.co", "public_api_key": SecretStr(_jwt("anon"))}
     base.update(kw)
@@ -144,7 +152,7 @@ def test_malformed_tokens_are_refused(value):
 def test_disabled_by_default_and_no_route_mounts_it():
     assert vi.VerifiedIdentitySettings().enabled is False
     with pytest.raises(vi.VerifiedIdentityError) as err:
-        vi.probe(vi.VerifiedIdentitySettings(), vi.HumanAccessToken(TOKEN), "control_center_gm")
+        _probe(vi.VerifiedIdentitySettings(), vi.HumanAccessToken(TOKEN), "control_center_gm")
     assert err.value.code == "verified_identity_disabled"
     api = ROOT / "apps" / "api"
     users = [p for p in api.rglob("*.py") if "verified_identity" in p.read_text(encoding="utf-8", errors="ignore")
@@ -155,7 +163,7 @@ def test_disabled_by_default_and_no_route_mounts_it():
 @pytest.mark.parametrize("key", [_jwt("service_role"), "sb_secret_abc", _jwt("authenticated"), ""])
 def test_a_privileged_or_missing_api_key_is_refused(key):
     with pytest.raises(vi.VerifiedIdentityError):
-        vi.probe(_settings(public_api_key=SecretStr(key)), vi.HumanAccessToken(TOKEN), "control_center_gm")
+        _probe(_settings(public_api_key=SecretStr(key)), vi.HumanAccessToken(TOKEN), "control_center_gm")
 
 
 def test_the_probe_sends_only_the_users_token_to_the_one_reviewed_rpc():
@@ -169,7 +177,7 @@ def test_the_probe_sends_only_the_users_token_to_the_one_reviewed_rpc():
         return httpx.Response(200, json={"ok": True, "operation": "control_center_gm", "role": "gm", "hotel_id": "h",
                                          "verified_by": "database", "step_up": "none", "extra": "dropped"})
 
-    result = vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(handler))
+    result = _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(handler))
     assert seen["url"] == "https://example.supabase.co/rest/v1/rpc/agent_verified_human_probe"
     assert seen["auth"] == f"Bearer {TOKEN}" and seen["body"] == {"p_operation": "control_center_gm"}
     assert seen["apikey"] == _jwt("anon")
@@ -185,7 +193,7 @@ def test_the_probe_sends_only_the_users_token_to_the_one_reviewed_rpc():
 ])
 def test_refusals_map_to_stable_codes(status, body, expected):
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json=body))
-    assert vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=transport) == expected
+    assert _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=transport) == expected
 
 
 @pytest.mark.parametrize("response", [
@@ -197,7 +205,7 @@ def test_refusals_map_to_stable_codes(status, body, expected):
 def test_errors_never_carry_the_token_or_an_unverified_success(response):
     transport = httpx.MockTransport(lambda request: response)
     with pytest.raises(vi.VerifiedIdentityError) as err:
-        vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=transport)
+        _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=transport)
     assert TOKEN not in str(err.value) and TOKEN not in repr(err.value) and err.value.__cause__ is None
 
 
@@ -206,15 +214,78 @@ def test_network_failures_are_sanitized():
         raise httpx.ConnectError(f"cannot reach with {request.headers['authorization']}")
 
     with pytest.raises(vi.VerifiedIdentityError) as err:
-        vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(handler))
+        _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(handler))
     assert err.value.code == "identity_unavailable" and err.value.__cause__ is None and TOKEN not in str(err.value)
 
 
-def test_unknown_operations_and_insecure_urls_are_refused():
+def test_unknown_operations_are_refused():
     with pytest.raises(vi.VerifiedIdentityError):
-        vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "decide")
+        _probe(_settings(), vi.HumanAccessToken(TOKEN), "decide")
+
+
+def _never_called(request: httpx.Request) -> httpx.Response:
+    raise AssertionError(f"the human token was sent to {request.url}")
+
+
+@pytest.mark.parametrize("configured", [
+    "https://evil.example",                           # another host
+    "https://example.supabase.co.evil.example",       # suffix look-alike
+    "https://evil-example.supabase.co",               # sibling project
+    "https://example.supabase.co@evil.example",       # userinfo smuggling
+    "https://evil.example#@example.supabase.co",      # fragment trick
+    "https://evil.example/?x=example.supabase.co",    # query trick
+    "https://example.supabase.co/rest/v1",            # unexpected path
+    "https://example.supabase.co/../evil",            # path traversal
+    "https://example.supabase.co:8443",               # other port
+    "https://example.supabase.co.",                   # trailing-dot host
+    "http://example.supabase.co",                     # downgrade to http
+    " https://example.supabase.co",                   # whitespace
+    "https://example.supabase.co\@evil.example",     # backslash confusion
+    "ftp://example.supabase.co",                      # scheme
+    "",
+])
+def test_the_token_is_never_forwarded_to_an_unapproved_target(configured):
+    with pytest.raises(vi.VerifiedIdentityError) as err:
+        _probe(_settings(url=configured), vi.HumanAccessToken(TOKEN), "control_center_gm",
+               transport=httpx.MockTransport(_never_called))
+    assert err.value.code in ("identity_url_not_approved", "identity_url_invalid")
+    assert TOKEN not in str(err.value)
+
+
+@pytest.mark.parametrize("approved", ["", "https://example.supabase.co/rest/v1/x", "http://example.supabase.co"])
+def test_an_invalid_approved_project_url_refuses_everything(approved):
     with pytest.raises(vi.VerifiedIdentityError):
-        vi.probe(_settings(url="http://evil.example"), vi.HumanAccessToken(TOKEN), "control_center_gm")
+        _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", approved_project_url=approved,
+               transport=httpx.MockTransport(_never_called))
+
+
+def test_only_the_exact_approved_origin_is_used_with_equivalent_spellings():
+    assert vi.approved_target("https://EXAMPLE.supabase.co/", APPROVED) == APPROVED
+    assert vi.approved_target("https://example.supabase.co:443", APPROVED) == APPROVED
+    assert vi.approved_target("http://127.0.0.1:54321", "http://127.0.0.1:54321/") == "http://127.0.0.1:54321"
+    with pytest.raises(vi.VerifiedIdentityError):
+        vi.approved_target("http://127.0.0.1:54322", "http://127.0.0.1:54321")
+
+
+def test_the_default_approved_target_is_the_apis_own_supabase_project(monkeypatch):
+    monkeypatch.setattr(vi, "_approved_project_url", lambda: "https://approved-project.supabase.co")
+    with pytest.raises(vi.VerifiedIdentityError) as err:
+        vi.probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(_never_called))
+    assert err.value.code == "identity_url_not_approved"
+
+
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_redirects_are_never_followed_and_are_refused(status):
+    sent = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(str(request.url))
+        return httpx.Response(status, headers={"location": "https://evil.example/steal"})
+
+    with pytest.raises(vi.VerifiedIdentityError) as err:
+        _probe(_settings(), vi.HumanAccessToken(TOKEN), "control_center_gm", transport=httpx.MockTransport(handler))
+    assert err.value.code == "identity_redirect_refused"
+    assert sent == [f"{APPROVED}/rest/v1/rpc/agent_verified_human_probe"]  # exactly one request, to the approved host
 
 
 def test_bearer_extraction():

@@ -327,15 +327,35 @@ BEGIN
     END IF;
   END IF;
 
-  -- From here: the 243 decision, with the verified actor and hotel (lock order unchanged: approval, run, roles).
+  -- From here: the 243 decision, with the verified actor and hotel. Lock order is unchanged (approval, run, role rows),
+  -- but the FULL current authority is verified right after the two row locks and BEFORE any approval or run change:
+  -- an unauthorized caller (demoted, inactive, other hotel, no approver role) can neither expire / revoke a stale
+  -- approval, nor end its run, nor learn its state. The only write it can cause is the append-only policy_denied
+  -- tool event that 243 also records for an approver without authority.
   SELECT * INTO v_appr FROM public.agent_tool_approvals WHERE id = p_approval_id AND tenant_id = v_tenant FOR UPDATE;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_found');
   END IF;
+  SELECT * INTO v_run FROM public.agent_runs WHERE id = v_appr.run_id AND tenant_id = v_tenant FOR UPDATE;
+  v_who := public.agent__verified_human(v_appr.required_approver_roles);
+  IF NOT COALESCE((v_who->>'ok')::boolean, false) THEN
+    IF v_who->>'reason' = 'role_not_permitted' THEN
+      PERFORM public.agent__tool_event(v_tenant, v_appr.run_id, v_appr.invocation_id, v_appr.id, NULL,
+                                       'policy_denied', 'human', v_actor, 'approver_not_authorized', NULL,
+                                       '{"identity": "database_verified"}'::jsonb);
+      RETURN jsonb_build_object('ok', false, 'reason', 'approver_not_authorized');
+    END IF;
+    RETURN jsonb_build_object('ok', false, 'reason', v_who->>'reason');
+  END IF;
+  IF (v_who->>'tenant_id')::uuid IS DISTINCT FROM v_tenant OR (v_who->>'user_id')::uuid IS DISTINCT FROM v_uid THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'not_found');
+  END IF;
+  v_role := v_who->>'role';
+
+  -- Authorized from here on. The 243 state checks and the stale-approval cleanup, unchanged in effect.
   IF v_appr.state <> 'requested' THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'not_pending', 'state', v_appr.state);
   END IF;
-  SELECT * INTO v_run FROM public.agent_runs WHERE id = v_appr.run_id AND tenant_id = v_tenant FOR UPDATE;
   IF v_appr.expires_at <= now() OR v_run.state IN ('succeeded', 'failed', 'cancelled', 'dead_letter') THEN
     UPDATE public.agent_tool_approvals
        SET state = CASE WHEN v_appr.expires_at <= now() THEN 'expired' ELSE 'revoked' END,
@@ -352,21 +372,6 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', CASE WHEN v_appr.state = 'expired' THEN 'expired' ELSE 'run_terminal' END,
                               'state', v_appr.state);
   END IF;
-
-  v_who := public.agent__verified_human(v_appr.required_approver_roles);
-  IF NOT COALESCE((v_who->>'ok')::boolean, false) THEN
-    IF v_who->>'reason' = 'role_not_permitted' THEN
-      PERFORM public.agent__tool_event(v_tenant, v_appr.run_id, v_appr.invocation_id, v_appr.id, NULL,
-                                       'policy_denied', 'human', v_actor, 'approver_not_authorized', NULL,
-                                       '{"identity": "database_verified"}'::jsonb);
-      RETURN jsonb_build_object('ok', false, 'reason', 'approver_not_authorized');
-    END IF;
-    RETURN jsonb_build_object('ok', false, 'reason', v_who->>'reason');
-  END IF;
-  IF (v_who->>'tenant_id')::uuid IS DISTINCT FROM v_tenant OR (v_who->>'user_id')::uuid IS DISTINCT FROM v_uid THEN
-    RETURN jsonb_build_object('ok', false, 'reason', 'not_found');
-  END IF;
-  v_role := v_who->>'role';
   IF p_decision = 'approve' AND NOT v_appr.approver_may_be_initiator AND v_uid = v_appr.initiated_by_user_id THEN
     PERFORM public.agent__tool_event(v_tenant, v_appr.run_id, v_appr.invocation_id, v_appr.id, NULL,
                                      'policy_denied', 'human', v_actor, 'self_approval_forbidden', NULL,
