@@ -1101,3 +1101,7 @@
 - `apps/api/tests/smoke/test_agent_specialists_{contracts,plans,routes}.py` — H5 registry/migration/drift, plan v2 + handoff unit, route gate tests (~5k tok)
 - `apps/api/tests/integration/agent_specialists_support.py` + `test_agent_specialists_{planning,handoff,engineering}.py` — H5 real-DB suites (~8k tok)
 - `docs/agent-harness/` H5: adr-0004, specialists-engineering.md, specialists-housekeeping.md, tool-intent-matrix.md, handoff.md, threat-model-h5.md, runbook-h5.md, rollout-h5.md
+
+## Staging security gate (2026-11-20)
+- `scripts/migration-security-classifier.mjs` — content-only classifier: pending migrations with SECURITY DEFINER / auth.* relations / dynamic SQL / role authority need the reviewed preview (pinned privileged file)
+- `scripts/migration-security-classifier.test.mjs` — 73 classifier, planner and trust-boundary tests (in CI node list)

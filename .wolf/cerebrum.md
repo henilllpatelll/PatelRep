@@ -1214,3 +1214,8 @@ $//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator
   "destructive" for the staging guard; the whole pending set is refused until a reviewed preview registry entry exists.
 - Decision Log: H3 provider expense (USD, agent_model_* tables) is separate from customer credits (credit_ledger); H4
   converts settled rows to credits. Paid calls default off at three layers (process env, DB switch, budget policies).
+
+## Staging security gate (2026-11-20) — learnings
+- Staging Candidate, Staging Database Migrate and the reviewed preview all plan through staging-migration-apply-workspace.mjs from the trusted main checkout; runApply builds the workspace twice and now re-asserts assertPendingPolicy on the exact pushed bytes.
+- main schema-contracts.sql FAILS on a 262 database (probe is authenticated-callable): the infra contract (= P2 blob f715c9f8) must merge before H7 P2.
+- ~40% of historical migrations would classify as security-sensitive (mostly REFERENCES auth.users; some table aliases named auth): expect reviewed previews for future such migrations.
