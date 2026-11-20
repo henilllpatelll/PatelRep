@@ -57,9 +57,9 @@ be registered without becoming executable (§5 still needs the code set, the bin
 | `resource_scope` | `resource_type` + closed scope keys (e.g. `building`, `floor`, `work_order_category`); no free-form filters |
 | `authorization_triggers` | closed enum (`user_request`, `schedule`, `event:<reviewed_event>`); level 3 requires a reviewed trigger list |
 | `execution_limits` | v1 `ExecutionLimits` + `max_writes_per_run` (≤ 1 in H7) |
-| `idempotency` | `required_key` for every write; key derivation declared (grant id + trigger event id + resource + action) |
+| `idempotency` | `required_key` for every write; the run key is server-derived from (binding, trigger event id, resource, action) at admission and the invocation key keeps the H2 `tool:<run_id>:<step>` format (§5.3) |
 | `audit` | `immutable_event` for every write |
-| `approval` | `human_approval` or `bounded_grant`; `bounded_grant` only if effect ∈ {`advisory_annotation`, `internal_review_record`}, risk = low, consequence = operational, no system principal without a grant |
+| `approval` | `human_approval` or `bounded_grant` (a code-side declaration; the database authority is the SQL spec function, §5.1.1); `bounded_grant` only if effect ∈ {`advisory_annotation`, `internal_review_record`}, risk = low, consequence = operational, no system principal without a grant |
 | `argument_schema` | closed object, no identity keys, **closed enums / ids only** for level-3 tools (no free text) |
 | `manifest_digest`, `policy_digest` | SHA-256 of canonical JSON of the spec / of the policy inputs; the DB spec function returns the same digests and execution refuses on mismatch |
 | `max_autonomy` | `bounded` only when every rule above holds; never `coordinated` in H7 |
@@ -136,8 +136,8 @@ wrapper (261 tenant check first).
     `(invocation_id, tenant_id) → agent_tool_invocations (id, tenant_id)`; `(run_id, tenant_id) → agent_runs`.
   * `UNIQUE (invocation_id)`, `UNIQUE (tenant_id, idempotency_key)`, `UNIQUE (id, tenant_id)`.
   * BEFORE INSERT guard: the grant is `active`, unexpired, same tenant, and its binding and digests equal the
-    invocation's; the invocation's agent, tool, digest, idempotency key, resource and run equal the row's; the
-    invocation's approval mode is `bounded_grant`.
+    invocation's; the invocation's agent, tool, digest, idempotency key, resource and run equal the row's; and the
+    invocation is a **bounded-grant invocation** as proven by §5.1.1 (never by a stored or caller-supplied flag).
   * Row guard refusing UPDATE/DELETE for every role including the owner; BEFORE TRUNCATE refusal; in the 254/261
     registry as append-only.
   * **Deferred constraint trigger** (`CREATE CONSTRAINT TRIGGER … AFTER INSERT … DEFERRABLE INITIALLY DEFERRED`): at
@@ -160,6 +160,35 @@ wrapper (261 tenant check first).
   Neither or both → refuse. A failed execution must have `autonomy_consumption_id IS NULL`. The approval branch keeps
   254's exact predicate; Phase 5 re-runs the existing 254 integration tests unchanged against the new function.
 
+#### 5.1.1 Approval-mode authority (no `approval_mode` column)
+
+`agent_tool_invocations` (241) has no approval-mode column, and H7 does **not** add one. The authorization mode of an
+invocation is a pure function of its exact `(agent_id, agent_version, tool_id, tool_version)`, read from
+database-authoritative specifications reviewed in migrations:
+
+* `agent__gateway_tool_spec(agent, version, tool, version)` (243/253, unchanged): the **human-approved** set.
+* `agent__autonomy_tool_spec(agent, version, tool, version)` (new, Phase 5; `IMMUTABLE`, `search_path = ''`, owner
+  only, no EXECUTE for any application role): the **bounded-grant** set. It returns `approval = 'bounded_grant'`,
+  `risk = 'low'`, the effect type, resource type, argument shape and the `manifest_digest` / `policy_digest`, or NULL.
+* **Disjointness:** no binding may be returned by both functions. A Phase 5 postcondition, the schema contract and a
+  smoke contract (Python registry vs. both SQL specs) enforce it; each later migration that edits either function
+  re-asserts it.
+
+The consumption guard and the bounded execute RPC therefore prove a bounded-grant invocation by:
+`agent__autonomy_tool_spec(inv.agent_id, inv.agent_version, inv.tool_id, inv.tool_version) IS NOT NULL`, **and**
+`agent__gateway_tool_spec(…same…) IS NULL`, **and** the spec's `manifest_digest` / `policy_digest` equal the grant's,
+**and** `inv.access = 'write'` and `inv.resource_type` equal the spec's. NULL from the autonomy spec (unknown version,
+partial migration) refuses. Consequences, all fail closed: a bounded tool version can never be approved through H2
+(`agent__gateway_refusal` already returns `tool_not_allowed` for a binding the gateway spec does not know), and an
+approved tool version can never be consumed under a grant.
+
+Alternative considered: a separately reviewed schema extension adding
+`agent_tool_invocations.authorization_mode text NOT NULL DEFAULT 'human_approval' CHECK (… IN ('human_approval',
+'bounded_grant'))`. Not chosen: it duplicates what the spec already determines, gives a second source of truth that
+could disagree with the spec, and alters a reviewed H2 table. If ever adopted it would need its own migration review,
+a BEFORE INSERT guard requiring the column to equal the spec-derived mode, and an immutability guard, and the spec
+check above would still be required.
+
 Why this ordering works: the **consumption is inserted before the execution** in the same transaction, so the
 execution's BEFORE INSERT guard can see it. The deferred trigger covers the reverse direction (no orphan
 consumption). The FKs and `UNIQUE (autonomy_consumption_id)` stop a consumption being attached to an unrelated or a
@@ -173,10 +202,11 @@ order, so no deadlock cycle exists.
 
 1. Wrapper: 261 credential and tenant check.
 2. `agent_runs` row `FOR UPDATE` via `agent__owned_run` (lease fence); `lease_lost` before anything else.
-3. `pg_advisory_xact_lock(hashtextextended('agent_autonomy_idem:' || tenant_id || ':' || idempotency_key, 0))`
-   serialises every transaction carrying the same key, including ones from different runs. A hash collision only
-   adds waiting; the unique constraints remain the backstop.
-4. **Replay lookup** (§5.3) on `agent_tool_executions (tenant_id, idempotency_key)`. A committed outcome returns here.
+3. Load the invocation for this run and step (`tenant_id`, `run_id`, `step_number`) and prove it is a bounded-grant
+   invocation (§5.1.1); otherwise `invocation_invalid`.
+4. **Replay lookup** (§5.3) on `agent_tool_executions (tenant_id, idempotency_key)` using the invocation's key. A
+   committed outcome returns here. The run row lock from step 2 already serialises every execute call for this
+   invocation (an invocation belongs to exactly one run), so no extra lock is needed.
 5. `agent_autonomy_platform_state` (id = 1) `FOR SHARE` (must exist and be enabled; platform pause, cost stop and the
    autonomy switch are written to this row), then `agent_autonomy_tenant_state (tenant_id)` `FOR SHARE` (must exist;
    hotel pause, agent/tool pause projections and credential revocations bump `epoch` on it via trigger), then the
@@ -204,21 +234,45 @@ H7 must not copy it.)
 
 ### 5.3 Idempotency and replay
 
-* Key: `sha256(grant binding ‖ trigger event id ‖ resource id ‖ canonical action)`, computed by the server when the
-  invocation is created. The model cannot choose it.
-* The replay lookup runs **after** the lease fence and the per-key advisory lock, and **before** controls, grant and
-  quota. If an execution exists for `(tenant_id, idempotency_key)`:
-  * same invocation and digest → return the committed outcome (`replayed`). No domain call, no consumption, no quota
-    change, no new execution; only a replay event is written;
-  * different invocation or digest → `idempotency_conflict`, refuse.
-* A replay is returned **even if the grant has since been revoked or a pause is active**. It reports an effect that
+Idempotency is enforced in **two layers**, both on existing H1/H2 structures, and the H2 baseline is unchanged:
+`agent_runs UNIQUE (tenant_id, idempotency_key)` (238), `agent_tool_invocations UNIQUE (tenant_id, idempotency_key)`
+and `UNIQUE (run_id, step_number)` (241), and `agent_tool_executions UNIQUE (tenant_id, idempotency_key)` and
+`UNIQUE (invocation_id)` (241).
+
+**Layer A — one action, one run (admission).** Duplicate triggers for the same action are collapsed **before any
+invocation exists**:
+
+* The future bounded admission RPC (Phase 5; the bounded counterpart of `agent_tool_run_admit`) derives the **run**
+  idempotency key on the server: `autonomy:` ‖ `sha256(canonical(binding, trigger event id, resource id, canonical
+  action))`, and a `request_digest` over the same canonical body. The model and the caller cannot choose either.
+* It admits through the unchanged `agent_run_admit`, which already inserts with `ON CONFLICT (tenant_id,
+  idempotency_key) DO NOTHING`: a concurrent or repeated admission of the same action returns the **existing** run
+  (`created = false`); a different digest under the same key returns `idempotency_conflict`.
+* Only the admission that created the run inserts its single invocation, with the unchanged H2 key format
+  `tool:<run_id>:<step_number>` (as `agent_tool_run_admit` does in 243). A non-creating admission re-reads that
+  invocation and refuses `idempotency_conflict` if its digest differs.
+* A run admitted for an action is never re-admitted: if it ended `failed`, `dead_letter` or `cancelled`, a duplicate
+  trigger gets the terminal run back and no new attempt starts. A genuinely new attempt needs a new trigger event
+  (new key), which then faces full authorization, quota and `resource_changed` checks.
+
+**Layer B — one invocation, one execution (execute RPC).** The execution's key is copied from its invocation, so each
+execution key belongs to exactly one invocation and one run.
+
+* Replay lookup runs **after** the lease fence (step 2) and the invocation proof (step 3), and **before** controls,
+  grant and quota. If an execution exists for `(tenant_id, idempotency_key)`:
+  * its `invocation_id` and `action_digest` equal the current invocation's → return the committed outcome
+    (`replayed`). No domain call, no consumption, no quota change, no new execution; only a replay event;
+  * anything else → `idempotency_conflict`, refuse and write a refusal event. Under the unique constraints this
+    cannot happen through any reviewed path; the check is defence in depth and fails closed.
+* A replay is returned **even if the grant has since been revoked or a pause is active**: it reports an effect that
   committed before the revocation's linearization point and causes no new effect. It still requires the 261 tenant
   check and a valid lease.
 * No execution found → full authorization from step 5; a revoked grant now refuses.
-* Concurrent first attempts with the same key: the advisory lock makes the second wait. Once the first commits, the
-  second's replay lookup (a new statement, so a new READ COMMITTED snapshot) finds the committed execution and
-  replays. If the first rolled back, the second proceeds normally. `UNIQUE (tenant_id, idempotency_key)` on both
-  executions and consumptions turns any path that bypassed the lock into a unique violation and a full rollback.
+* Concurrent execute calls for the same invocation (e.g. a lease takeover after a stalled worker) are serialised by
+  the run row lock in step 2: the stale holder gets `lease_lost`; the current holder either performs the action once
+  or, after a committed attempt, replays it.
+* Backstops: `UNIQUE (tenant_id, idempotency_key)` on executions and on consumptions, `UNIQUE (invocation_id)` on
+  both, and the invocation-level unique key make any bypass a unique violation and a full rollback.
 
 ### 5.4 Quota counters
 
@@ -258,7 +312,17 @@ never increment.
    or digest → guard refuses or FK fails.
 4. UPDATE/DELETE/TRUNCATE on consumptions by every role, owner included → refused.
 5. Domain error after the consumption insert → no consumption, counter change, execution or business change persists.
-6. Two concurrent transactions, same key, different runs → one effect, one consumption, quota +1, the second `replayed`.
+6. Idempotency, both layers:
+   a. N concurrent bounded admissions of the same action (same trigger event, resource, action) → exactly one run and
+      one invocation (`tool:<run_id>:1`); the others return that run with `created = false`. Same run key with a
+      different request digest → `idempotency_conflict`, no run.
+   b. A duplicate admission after the run ended `failed`/`dead_letter`/`cancelled` → the terminal run is returned; no
+      new invocation, execution, consumption or quota change.
+   c. Two concurrent execute calls for one invocation (lease takeover) → the stale lease gets `lease_lost`; exactly
+      one effect, one consumption, quota +1; a later call `replayed` with counters unchanged.
+   d. A forged execution or consumption whose key belongs to a different invocation, and a direct second invocation
+      insert with an existing key → unique violation / `idempotency_conflict`; nothing persists.
+   e. The unchanged H2 admission and execution idempotency integration tests pass.
 7. Replay after revocation and during a hotel pause → `replayed`, counters unchanged, no domain call.
 8. New key after revocation → refused. A revoke concurrent with an in-flight execution → the revoke waits; the
    execution either commits before it or is refused after it.
@@ -267,6 +331,10 @@ never increment.
 10. Revoke and re-issue within a window → usage is not reset.
 11. Day boundary in the hotel's timezone (including a DST change) → correct window; missing timezone → refuse.
 12. The unchanged 254 approval-path integration tests pass against the replaced guard.
+13. Approval-mode authority (§5.1.1): a binding present in both spec functions fails the migration postcondition and
+    the schema contract; a bounded tool version cannot be admitted or approved through H2 (`tool_not_allowed`); an
+    approved tool version cannot be consumed under a grant; an autonomy-spec digest that differs from the grant's
+    refuses; a missing `agent__autonomy_tool_spec` (partial migration) refuses.
 
 ## 6. Emergency controls
 
@@ -290,7 +358,7 @@ production refusal, the 261 production stamp. A grant cannot override any of the
 
 | Situation | Rule |
 |---|---|
-| Duplicate trigger / redelivery | server-derived key; advisory lock + unique indexes; replay (§5.3) |
+| Duplicate trigger / redelivery | layer A: server-derived run key collapses duplicates at admission into one run and one invocation; layer B: execution replay for that invocation (§5.3) |
 | Stale facts | the action carries the expected version; step 7 re-checks; `resource_changed` → failed execution, no quota, escalate |
 | Concurrent human update | step 7 serialises; whichever commits second sees the change and refuses |
 | Lease loss | step 2 refuses before any other lock |

@@ -73,7 +73,11 @@ consumption, the quota increments, the execution and the audit event. The consum
 execution, so the replaced 254 BEFORE INSERT guard can require that a succeeded write carries **exactly one** of a
 valid approval or a consumption bound to the same tenant, run, invocation, tool version, digest and key. A deferred
 constraint trigger rejects, at commit, any consumption without its succeeded execution, and
-`UNIQUE (autonomy_consumption_id)` prevents re-use. The approval branch keeps 254's predicate unchanged. Lock order and the revocation linearization point:
+`UNIQUE (autonomy_consumption_id)` prevents re-use. The approval branch keeps 254's predicate unchanged.
+Whether an invocation is bounded-grant is decided only by a new database-authoritative spec function
+(`agent__autonomy_tool_spec`) that is disjoint from the existing `agent__gateway_tool_spec`; H7 adds no
+approval-mode column. Duplicate triggers are collapsed at admission into one run and one invocation (the existing
+run and invocation unique keys); the execute RPC replays only that invocation's committed execution. Lock order and the revocation linearization point:
 h7-authorization-contract.md §5.
 
 ### D5. Human identity provenance at the PostgreSQL boundary (prerequisite, Phase 2)
