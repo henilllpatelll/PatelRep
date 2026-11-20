@@ -101,9 +101,10 @@ def test_end_user_roles_have_no_access_to_execution_tables_functions_or_queue():
         JOIN pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname = 'public' AND p.proname LIKE 'agent%' AND p.prosecdef
           AND p.proname NOT LIKE 'agent\_worker\_rpc\_\_%';""")
+    # H6 P1 (257) adds exactly one: agent__worker_tenant, the registry-bound tenant source the RESTRICTIVE gates evaluate.
     assert set(definers.split(",")) == {"agent__worker_credential_ok", "agent__worker_assert",
                                         "agent__control_center_journal", "agent__journal_control_change",
-                                        "agent_control_center_record_refusal"}, definers
+                                        "agent_control_center_record_refusal", "agent__worker_tenant"}, definers
     assert sql_value(r"""SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
         WHERE n.nspname = 'public' AND p.proname LIKE 'agent\_worker\_rpc\_\_%' AND p.prosecdef;""") == "23"
 

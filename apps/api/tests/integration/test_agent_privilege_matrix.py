@@ -6,6 +6,9 @@ left REFERENCES, TRIGGER and MAINTAIN behind, so the reviewed Control Center jou
 SELECT only) was false on persistent staging, and the structural rights were broader than any application path needs.
 Migration 259 removed the fixture-only DELETE: no application role may hold DELETE on a protected table, and the enforcement
 strips it again after every fixture grant (rows leave only through a tenant offboarding cascade, run as the owner).
+Migration 261 (H6 P1) registers two more tables: the credential scopes (append-only: SELECT, INSERT) and the
+deployment identity (SELECT only, like the journal: only the table owner stamps it), and its postcondition replaces 258's
+as the latest one (same checks over the 35-table registry).
 
 Two matrices, kept apart on purpose:
   * MAXIMUM (``_allowed``): what a role may hold. Derived from the reviewed registry flag (the journal: SELECT; append-only:
@@ -31,6 +34,7 @@ pytestmark = requires_db
 
 REPO = Path(__file__).resolve().parents[4]
 JOURNAL = "agent_control_center_events"
+IDENTITY = "agent_deployment_identity"
 STRUCTURAL = ("TRIGGER", "REFERENCES", "MAINTAIN")
 
 
@@ -50,7 +54,8 @@ def _ci_service_role_grant() -> str:
 
 SIU = frozenset({"SELECT", "INSERT", "UPDATE"})
 SI = frozenset({"SELECT", "INSERT"})
-# Rights each protected table's creating migration granted to service_role (238, 241, 244, 247, 248, 250, 252, 255, 256).
+# Rights each protected table's creating migration granted to service_role (238, 241, 244, 247, 248, 250, 252, 255, 256,
+# 261).
 MINIMUM: dict[str, frozenset[str]] = {
     "agent_runs": SIU, "agent_run_steps": SIU, "agent_run_events": SI, "agent_runtime_controls": SIU,
     "agent_worker_heartbeats": SIU,
@@ -65,12 +70,13 @@ MINIMUM: dict[str, frozenset[str]] = {
     "billing_trueup_operations": SIU, "billing_trueup_operation_events": SI,
     "agent_planning_events": SI, "agent_proposal_handoffs": SI,
     "agent_worker_credentials": SIU, JOURNAL: frozenset({"SELECT"}),
+    "agent_worker_credential_scopes": SI, IDENTITY: frozenset({"SELECT"}),
 }
 PRICE = "agent_model_price_schedules"
 
 
 def _allowed(table: str, append_only: bool) -> set[str]:
-    if table == JOURNAL:
+    if table in (JOURNAL, IDENTITY):
         return {"SELECT"}
     if append_only:
         return {"SELECT", "INSERT"}
@@ -111,13 +117,13 @@ def _state_after(prefix_sql: str) -> dict[str, set[str]]:
 
 def _assert_exact(state: dict[str, set[str]]) -> None:
     tables = [k for k in state if not k.startswith("#") and "#" not in k]
-    assert len(tables) == 33 and set(tables) == set(MINIMUM)
+    assert len(tables) == 35 and set(tables) == set(MINIMUM)
     for table in tables:
         append_only = state[table + "#append_only"] == {"t"} or state[table + "#append_only"] == {"true"}
         allowed = _allowed(table, append_only)
         assert MINIMUM[table] <= allowed, table  # the floor never exceeds the ceiling
         assert MINIMUM[table] <= state[table] <= allowed, (table, sorted(state[table]))
-    assert state[JOURNAL] == {"SELECT"}
+    assert state[JOURNAL] == {"SELECT"} and state[IDENTITY] == {"SELECT"}
     assert state["#structural"] == {"0"}
     assert state["#violations"] == {"0"}
 
@@ -149,9 +155,10 @@ def test_a_blanket_grant_without_enforcement_is_fully_reported():
                                                "UPDATE"}
     for privilege in STRUCTURAL:
         assert int(counts[privilege]) == relations, (privilege, counts)  # every relation in public, registry included
-    assert int(counts["TRUNCATE"]) == 33
-    assert int(counts["UPDATE"]) == 12  # append-only tables + the journal
-    assert int(counts["DELETE"]) == 33  # 259: DELETE is a violation on every protected table
+    assert int(counts["TRUNCATE"]) == 35
+    assert int(counts["UPDATE"]) == 14  # append-only tables (the journal and the 261 identity included)
+    assert int(counts["INSERT"]) == 2  # the journal and the 261 deployment identity
+    assert int(counts["DELETE"]) == 35  # 259: DELETE is a violation on every protected table
 
 
 def test_each_structural_or_column_grant_is_reported_and_removed():
@@ -219,7 +226,7 @@ def test_enforcement_is_repeatable():
                   "SELECT 'first=' || public.agent_audit_privileges_enforce();\n"
                   "SELECT 'second=' || public.agent_audit_privileges_enforce();\n"
                   "SELECT 'left=' || count(*) FROM public.agent_audit_privilege_violations();\nROLLBACK;")
-    assert "first=33" in out and "second=33" in out and "left=0" in out
+    assert "first=35" in out and "second=35" in out and "left=0" in out
 
 
 def test_workflow_grants_and_cleanup_share_one_transaction():
@@ -245,10 +252,10 @@ _GRANT = re.compile(r"\bGRANT\s+([A-Z, ]+?)\s+ON\s+(?:TABLE\s+)?((?:public\.\w+\
 
 
 def _released_service_role_grants() -> dict[str, set[str]]:
-    """Table rights granted to service_role by released migrations 238-257, read from the files."""
+    """Table rights granted to service_role by released migrations 238-261, read from the files."""
     granted: dict[str, set[str]] = {}
-    for path in sorted(_MIGRATIONS.glob("2[3-5][0-9]_*.sql")):
-        if not 238 <= int(path.name[:3]) <= 257:
+    for path in sorted(_MIGRATIONS.glob("2[3-6][0-9]_*.sql")):
+        if not 238 <= int(path.name[:3]) <= 261:
             continue
         text = re.sub(r"--[^\n]*", "", path.read_text(encoding="utf-8"))
         for rights, tables, grantees in _GRANT.findall(text):
@@ -273,13 +280,15 @@ def _contract() -> str:
 
 
 def _post_block() -> str:
-    text = (_MIGRATIONS / "258_agent_audit_exact_backend_privileges.sql").read_text(encoding="utf-8")
+    # the latest privilege postcondition: 261 re-states 258's (minimum over the now 35-table registry), so 258's own
+    # block, which lists 33, no longer matches the registry it checks
+    text = (_MIGRATIONS / "261_agent_worker_tenant_binding.sql").read_text(encoding="utf-8")
     start = text.index("DO $post$")
     return text[start:text.index("$post$;", start) + len("$post$;")]
 
 
 def _pristine_release_grants() -> str:
-    """Rewind service_role on the 33 tables to exactly what the released migrations granted (a clean replay's state)."""
+    """Rewind service_role on the 35 tables to exactly what the released migrations granted (a clean replay's state)."""
     lines = [f"REVOKE ALL ON public.{t} FROM service_role;" for t in MINIMUM]
     lines += [f"GRANT {', '.join(sorted(r))} ON public.{t} TO service_role;" for t, r in MINIMUM.items()]
     return "\n".join(lines)
@@ -288,7 +297,8 @@ def _pristine_release_grants() -> str:
 # the first 258's floor, derived from the registry flag (kept here only to prove the regression)
 _FLAG_DERIVED_FLOOR = ("SELECT 'flagfloor=' || coalesce(string_agg(t.table_name || ':' || p.privilege, ','), '')"
                        " FROM public.agent__audit_protected_tables() t CROSS JOIN LATERAL unnest(CASE"
-                       " WHEN t.table_name = 'agent_control_center_events' THEN ARRAY['SELECT']"
+                       " WHEN t.table_name IN ('agent_control_center_events', 'agent_deployment_identity')"
+                       " THEN ARRAY['SELECT']"
                        " WHEN t.append_only THEN ARRAY['SELECT','INSERT'] ELSE ARRAY['SELECT','INSERT','UPDATE'] END)"
                        " p(privilege)"
                        " WHERE NOT has_table_privilege('service_role', format('public.%I', t.table_name), p.privilege);")

@@ -10,7 +10,7 @@ import json
 import re
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -32,6 +32,7 @@ NEVER_FOR_WORKER = {
     "agent_run_resume", "agent_model_attempt_reserve", "agent_model_attempt_dispatch", "agent_model_attempt_settle",
     "agent_model_attempt_release", "work_order_assign_apply", "publish_assignment_batch",
     "agent_audit_privileges_enforce", "agent_worker_credential_register", "agent_worker_credential_revoke",
+    "agent_worker_credential_register_v2",
     "agent_control_center_hotel_pause_set", "agent_control_center_run_control",
 }
 
@@ -143,6 +144,8 @@ def test_restricted_client_maps_allowed_rpcs_to_wrappers_and_refuses_everything_
     ({"sub": str(uuid.uuid4())}, "worker_token_carries_user_claims"),
     ({"hotel_id": str(uuid.uuid4())}, "worker_token_carries_user_claims"),
     ({"exp": int(NOW.timestamp()) + 40 * 86400}, "worker_token_lifetime_too_long"),
+    ({"iat": int(NOW.timestamp()), "exp": int(NOW.timestamp()) + 7 * 86400 + 1}, "worker_token_lifetime_too_long"),
+    ({"iat": int(NOW.timestamp()), "exp": int(NOW.timestamp()) + 8 * 86400}, "worker_token_lifetime_too_long"),
     ({"exp": int(NOW.timestamp()) - 1}, "worker_token_expired"),
 ])
 def test_worker_token_shape_is_refused_unless_least_privileged(override, code):
@@ -168,8 +171,12 @@ def test_privileged_api_keys_and_service_role_environments_are_refused():
 
 def test_staging_target_guard_is_enforced_without_the_api_settings():
     s = wi.WorkerDatabaseSettings(url="https://abc.supabase.co", api_key="k", token="t")
-    wi.enforce_target(s, app_env="staging", environ={"STAGING_EXPECTED_SUPABASE_HOST": "abc.supabase.co"})
-    for env in ({}, {"STAGING_EXPECTED_SUPABASE_HOST": "other.supabase.co"},
+    # H6 P1 fixture change: PRODUCTION_SUPABASE_HOST is now mandatory for a staging worker (else "not production" is
+    # unprovable); the refusals below are unchanged and test_agent_worker_target_allowlist.py adds the full matrix.
+    wi.enforce_target(s, app_env="staging", environ={"STAGING_EXPECTED_SUPABASE_HOST": "abc.supabase.co",
+                                                     "PRODUCTION_SUPABASE_HOST": "prod.supabase.co"})
+    for env in ({}, {"STAGING_EXPECTED_SUPABASE_HOST": "abc.supabase.co"},
+                {"STAGING_EXPECTED_SUPABASE_HOST": "other.supabase.co"},
                 {"STAGING_EXPECTED_SUPABASE_HOST": "abc.supabase.co", "PRODUCTION_SUPABASE_HOST": "abc.supabase.co"}):
         with pytest.raises(wi.WorkerIdentityError):
             wi.enforce_target(s, app_env="staging", environ=env)
@@ -220,8 +227,53 @@ def test_minted_tokens_carry_only_the_worker_role_and_production_issuance_is_ref
                               expires_at=datetime.fromtimestamp(time.time() + 3600, timezone.utc), secret="s" * 40)
     claims = json.loads(base64.urlsafe_b64decode(token.split(".")[1] + "=="))
     assert set(claims) == {"role", "jti", "iss", "iat", "exp"} and claims["role"] == "agent_worker"
-    assert issue(object(), label="w-1", days=1, operator="op", app_env="production", secret="s" * 40) == {
-        "ok": False, "reason": "production_refused"}
+    assert issue(object(), label="w-1", days=1, operator="op", app_env="production", secret="s" * 40,
+                 tenant_id=str(uuid.uuid4())) == {"ok": False, "reason": "production_refused"}
+    assert issue(object(), label="w-1", days=1, operator="op", app_env="test", secret="s" * 40,
+                 tenant_id="not-a-hotel") == {"ok": False, "reason": "invalid_arguments"}
     with pytest.raises(ValueError):
         mint_worker_token(jti=str(uuid.uuid4()), issued_at=issued_at,
                           expires_at=datetime.fromtimestamp(time.time() + 40 * 86400, timezone.utc), secret="s" * 40)
+
+
+class _RecordingClient:
+    """Records the registration RPC and answers like the database would for a valid bound registration."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, dict]] = []
+
+    def rpc(self, name, params):
+        self.calls.append((name, params))
+
+        class _Call:
+            def execute(self):
+                return type("R", (), {"data": {"ok": True, "id": params["p_id"], "tenant_id": params["p_tenant_id"]}})()
+
+        return _Call()
+
+
+def test_credentials_live_at_most_seven_days_at_issuance_and_startup():
+    """H6 P1: 7 days is accepted (minus the skew margin), 8+ days is refused before any database call, and a token
+    whose iat..exp exceeds 7 days is refused by the startup inspection."""
+    assert wi.MAX_TOKEN_LIFETIME_SECONDS == 7 * 86400
+    fixed = datetime(2026, 11, 18, 12, 0, tzinfo=timezone.utc)
+    client = _RecordingClient()
+    issued = issue(client, label="w-seven", days=7, operator="op", app_env="test", secret="s" * 40,
+                   tenant_id=str(uuid.uuid4()), now=lambda: fixed)
+    assert issued["ok"] is True and len(client.calls) == 1
+    name, params = client.calls[0]
+    assert name == "agent_worker_credential_register_v2"
+    expires = datetime.fromisoformat(params["p_expires_at"])
+    assert expires == fixed + timedelta(days=7) - timedelta(minutes=5)
+    claims = wi.inspect_worker_token(issued["token"], now=fixed)
+    assert claims["exp"] - claims["iat"] <= 7 * 86400 and claims["exp"] == int(expires.timestamp())
+    for days in (0, 8, 14, 31):
+        refused = _RecordingClient()
+        assert issue(refused, label="w-long", days=days, operator="op", app_env="test", secret="s" * 40,
+                     tenant_id=str(uuid.uuid4()), now=lambda: fixed) == {"ok": False, "reason": "invalid_arguments"}
+        assert refused.calls == []
+    with pytest.raises(ValueError):
+        mint_worker_token(jti=str(uuid.uuid4()), issued_at=fixed, expires_at=fixed + timedelta(days=7, seconds=1),
+                          secret="s" * 40)
+    assert mint_worker_token(jti=str(uuid.uuid4()), issued_at=fixed, expires_at=fixed + timedelta(days=7),
+                             secret="s" * 40)

@@ -184,7 +184,9 @@ def test_already_finalized_periods_and_their_items_are_never_touched():
 
 
 def test_open_period_inactive_subscription_and_no_overage_paths():
-    today = __import__("datetime").date.today()
+    # "Not yet ended" is decided in SQL with CURRENT_DATE (database timezone), so the open period is derived from the
+    # database's date -- never this machine's local date.today(), which differs from it for part of every day.
+    today = __import__("datetime").date.fromisoformat(sql_value("SELECT CURRENT_DATE;"))
     bh, start = legacy_hotel(period=(today.replace(day=1), today))
     f = fake()
     assert worker(f).run_period(bh.tenant_id, start.isoformat())["status"] == "period_not_yet_ended"
