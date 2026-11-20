@@ -138,5 +138,14 @@ No emergency-stop UI exists in H0.
   `agent_control_center_events`; no application role can write, rewrite or erase it.
 * No Control Center path can enable execution, paid calls, customer billing, a grant or an autonomy level; approving
   additionally requires the gateway's own process gate.
-* Residuals: the API is the trusted boundary for the human principal (L1); the worker's reviewed reads are
-  cross-tenant by role (L2). Threat model: [threat-model-h6.md](threat-model-h6.md).
+* Residuals: the API is the trusted boundary for the human principal (L1). The worker's reviewed reads were
+  cross-tenant by role (L2) until migration 261 bound each worker credential to one hotel and the database's stamped
+  environment. Threat model: [threat-model-h6.md](threat-model-h6.md).
+
+## 12. H7 bounded autonomy (design only)
+
+Level 3 is not implemented. The design keeps the database as the final authority: grants issued only by a
+database-verified human (the GM's own token, `auth.uid()`), one fenced RPC per level-3 tool that checks controls,
+grant, quota, tenant, resource freshness, digest and idempotency under a fixed lock order, and revocation that is
+linearized with execution. Residual analysis and new threats: [threat-model-h7.md](threat-model-h7.md); contract:
+[h7-authorization-contract.md](h7-authorization-contract.md).
