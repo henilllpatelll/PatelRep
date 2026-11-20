@@ -14,8 +14,8 @@ model, and the complete approval-transition audit.
   recorded.
 - **Do not dispatch until:**
   1. this PR is merged;
-  2. a fresh staging backup at head 261 is taken and restore-verified (see [Recovery](#recovery));
-  3. the staging-shaped rehearsal below is run and recorded (it is **outstanding**; see [Rehearsal](#rehearsal-outstanding));
+  2. a fresh staging backup at head 261 is taken and restore-verified (done 2026-11-20, `PatelRep-Staging-Backup-20261120-225938`; see [Recovery](#recovery));
+  3. the staging-shaped rehearsal below is run and recorded (done 2026-11-20; see [Rehearsal](#rehearsal-measured-2026-11-20));
   4. a read-only preflight shows all 13 preconditions true on live staging.
 
 Background: `docs/STAGING_REVIEWED_MIGRATION_PREVIEW.md`.
@@ -129,26 +129,78 @@ Expected for PR #245: Staging Candidate refuses it (fails closed). That refusal 
 
 Each body md5 is the md5 of the exact text between the `$function$` delimiters in the migration file (CR stripped),
 which is what PostgreSQL stores in `pg_proc.prosrc`. The method reproduces all 9 md5s that 262's own `$pre$` pins from
-migrations 241, 243, 254, 256 and 260, and the 262 values come from the approved file itself. The probes were **not yet
-measured** against a database: see the next section.
+migrations 241, 243, 254, 256 and 260, and the 262 values come from the approved file itself. The probes were then measured
+against a restore of staging at 261: see the next section.
 
-## Rehearsal (OUTSTANDING)
+## Rehearsal (measured 2026-11-20)
 
-This PR was prepared while local Docker/WSL/Supabase were deliberately shut down, so **no staging-shaped rehearsal has
-been run yet.** It must be completed, and its results recorded here, before dispatch:
+Every result below was read from command output. None is inferred. Nothing here contacted staging except the read-only
+backup in step 1. #245, 262 and this registry entry were not changed.
 
-1. Take a fresh staging backup at head 261 (187 rows) and restore-verify it (checksums, `main`'s contract exit 0, fingerprint). The
-   current backup `PatelRep-Staging-Backup-20261119-231442` is at **260** (pre-261) and is not a valid recovery point for 262.
-2. In a `--network none` throwaway container restored from that backup, plus the exact Staging Candidate fixture
-   grant:
-   - `main`'s contract at 261 (expect exit 0); 13/13 preconditions; the 262-specific postconditions fail;
-   - apply 262 in one transaction plus the history row, as the preview does; 15/15 postconditions; `main`'s
-     contract at 262 (expect exit 0); 15/15 again after a second fixture grant;
-   - a re-apply is refused by `$pre$`;
-   - mutations (rolled back) each fail their postcondition: an EXECUTE grant on decide v2 to authenticated, EXECUTE on
-     a helper to service_role, the trigger made non-deferrable, an extra overload of the probe.
-3. If a hosted ACL or catalog difference makes a probe fail, re-measure it in the read-only preflight and re-review.
-   Never edit a probe at dispatch.
+**1. Fresh recovery point at 261.** `PatelRep-Staging-Backup-20261120-225938` (local only, owner-only ACL, not uploaded):
+
+- Both guards passed first: the local guard 8/8 and `scripts/staging-target-guard.mjs` exit 0.
+- Live preflight inside `BEGIN READ ONLY` read `transaction_read_only=on`, 187 rows, head `261 agent_worker_tenant_binding`
+  and no 262.
+- Dump window 2026-11-20T22:59:58Z to 23:00:39Z, `pg_dump` 17.11 (`supabase/postgres:17.11.0.006`). Every stderr log is
+  empty.
+- The fingerprint before and after the dump is identical: 234 lines, 711 rows across the public, auth, storage, pgmq,
+  supabase_migrations, cron and vault schemas.
+- `staging-full.dump` sha256 `edeca08b9862d3944c73e5f528519ee171c2ec84d85eb6ec8dd6b07427198dde`.
+
+**2. Restore-verify** in a `--network none` throwaway container (1.5 GB memory cap), removed afterwards:
+
+- The roles load exits 0. `pg_restore --single-transaction --exit-on-error` exits 0 with 0 stderr lines.
+- The `pgmq.meta` fix-up was applied.
+- The restored fingerprint is **identical** to the staging fingerprint taken at dump time (234 lines).
+- The object-signature diff is 75 lines, only in the known-gap classes of `RESTORE-RUNBOOK.md`: auth, pgmq and realtime
+  table ACLs, `auth.jwt()`, the graphql schema grants, and 2 local pgmq default ACLs. These signatures are md5s, so this
+  run did not re-prove that the auth ACL differences are ordering only.
+
+**3. At 261**, as `postgres`, after the exact Staging Candidate fixture grant (extracted from `main` @ `aed1852d`'s
+`staging-candidate.yml`, identical at `e2d65736`):
+
+| Check | Result |
+|---|---|
+| `main`'s `scripts/schema-contracts.sql` @ `aed1852d` (blob `f715c9f8…`) | exit 0 |
+| 13 preconditions (`BEGIN READ ONLY`, before and after the grant) | **13/13 true** both times |
+| 15 postconditions, each in its own read-only transaction | The 9 invariant ones are true. The 6 specific to 262 fail: `p2_recorded_by_name_after_261` false, `p2_functions_exact_definer_owner_search_path_body` false, `events_page_262_body_service_role_only_invoker` false; `only_the_probe_is_executable_and_only_by_authenticated`, `decide_v2_inactive_no_grant` and `approval_transition_audit_trigger_deferred_exact` raise "function … does not exist" |
+
+**4. Apply 262.** The file came from `e2d65736` with sha256 `3ae6dbe5…aba9e`, checked inside the container. It ran as
+`begin; <file>; insert history ('262','agent_verified_human_identity'); commit;`.
+
+This mirrors the bookkeeping in `scripts/remote-migration-apply.mjs`. It is **not** the preview's pinned-CLI `runApply`.
+
+| Check | Result |
+|---|---|
+| Apply | exit 0. Its NOTICE: 0 historical approval transitions lack their tool event, and 0 platform-scoped credential journal rows changed visibility |
+| History | 188 rows, head 262 |
+| 15 postconditions | **15/15 true** |
+| `main`'s contract @ `aed1852d` at 262 | exit 0 |
+| Second fixture grant, then the 15 postconditions | **15/15 true** |
+| `agent_audit_privilege_violations()` / `agent_worker_privilege_violations()` | 0 / 0 |
+
+**5. Re-apply refused.** The whole wrapper ran again and exited 3: `$pre$` raised
+`55000: migration 262 expects the reviewed bodies of: agent_control_center_events_page`. History stayed at 188/262.
+
+**6. Mutations.** Each ran with all 15 postconditions in one transaction, then rolled back. Each one fails its target:
+
+| Mutation | Failed postconditions |
+|---|---|
+| `GRANT EXECUTE` on decide v2 to `authenticated` | `only_the_probe_is_executable_and_only_by_authenticated`, `decide_v2_inactive_no_grant` |
+| `GRANT EXECUTE` on `agent__verified_human(text[])` to `service_role` | `only_the_probe_is_executable_and_only_by_authenticated` |
+| Audit trigger recreated `NOT DEFERRABLE` | `approval_transition_audit_trigger_deferred_exact` |
+| Extra overload `agent_verified_human_probe(text, integer)` | `p2_functions_exact_definer_owner_search_path_body`, `only_the_probe_is_executable_and_only_by_authenticated`, `privilege_contracts_clean_and_no_delete_after_apply` |
+
+After the rollbacks, the postconditions are 15/15 true again and `main`'s contract exits 0.
+
+**Not covered here:**
+
+- The hosted ACL and catalog state at dispatch time. Rollout step 4 re-measures the 13 preconditions read-only on live
+  staging.
+- The preview workflow's own CLI apply path.
+
+Never edit a probe at dispatch. If a hosted difference makes a probe fail, stop and re-review.
 
 PR #245's own evidence: the CI real-database integration suite on a clean 1–262 replay, the contract mutation
 catalog, and the API and node suites.
@@ -157,7 +209,8 @@ catalog, and the API and node suites.
 
 1. Independent review of this PR, then a human merges it (it applies nothing).
 2. Confirm `main`'s Staging Candidate is still green at 261 after the merge (`CLEAN 187/261`).
-3. Fresh backup at 261 plus the rehearsal above, recorded in this document by a follow-up PR if anything changes.
+3. Fresh backup at 261 plus the rehearsal above: done 2026-11-20 and recorded in this document. Repeat it if staging changes
+   schema before dispatch.
 4. Read-only preflight on live staging inside `BEGIN READ ONLY` (the pooler ignores `PGOPTIONS`). Check that:
    - all 13 preconditions are true;
    - #245 is open at `e2d65736…`;
@@ -181,7 +234,8 @@ catalog, and the API and node suites.
   probe, or a reviewed CREATE OR REPLACE), never by editing 262.
 - **Immediate containment:** `REVOKE EXECUTE ON FUNCTION public.agent_verified_human_probe(text) FROM authenticated`
   (decide v2 already has no grant).
-- **Full restore:** the fresh head-261 backup from rollout step 3, restored per `RESTORE-RUNBOOK.md`.
+- **Full restore:** the head-261 backup `PatelRep-Staging-Backup-20261120-225938` (dump sha256 `edeca08b…8dde`),
+  restored per `RESTORE-RUNBOOK.md`.
 - **Failure modes:**
   - a failing precondition means nothing was applied: stop and re-review;
   - a failing apply means the single transaction rolls back: staging stays at 261;
