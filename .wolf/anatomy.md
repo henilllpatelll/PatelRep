@@ -1109,3 +1109,7 @@
 - `apps/api/tests/integration/test_agent_h7_{verified_human,decide_v2,credential_audit_isolation,approval_audit,level2_race}.py` — real-DB P2 proofs
 - `apps/api/tests/smoke/test_agent_h7_p2_verified_identity_contracts.py` — static 262 + forwarding-client contracts
 - `docs/agent-harness/h7-p2-verified-identity.md` — P2 evidence matrix, trust boundary, race findings, step-up design
+
+## Staging security gate (2026-11-20)
+- `scripts/migration-security-classifier.mjs` — content-only classifier: pending migrations with SECURITY DEFINER / auth.* relations or auth-function DDL+privileges / dynamic SQL / role authority / any GRANT or ALTER DEFAULT PRIVILEGES (sole carve-out: grant to service_role on a table or signature-matched function created in the same file, never agent_*/JWT hook) / policy+RLS+view widening need the reviewed preview (pinned privileged file)
+- `scripts/migration-security-classifier.test.mjs` — ~145 classifier, planner and trust-boundary tests (in CI node list)

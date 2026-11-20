@@ -36,7 +36,7 @@ import {
   versionOfCliFilename,
 } from './production-migration-apply-workspace.mjs';
 import { assertStagingTarget } from './staging-target-guard.mjs';
-import { planStagingMigrations } from './staging-migration-plan.mjs';
+import { assertPendingPolicy, planStagingMigrations } from './staging-migration-plan.mjs';
 import { REVIEWED_REGISTRY_PATH, loadReviewedRegistry, verifyReviewedBindings } from './staging-reviewed-migrations.mjs';
 import {
   CANDIDATE_MIGRATIONS_ENV,
@@ -299,6 +299,13 @@ export function runApply(options, deps = {}) {
       second.context.log('No pending staging migrations; nothing to apply.');
       return { applied: [] };
     }
+    // Last check before mutation, on the EXACT bytes `db push` will send (not on an earlier read): the same pending
+    // policy as the planner -- reviewed digests in preview mode, otherwise no destructive and no security-sensitive SQL.
+    const workspaceMigrations = join(second.workspace, 'supabase', 'migrations');
+    assertPendingPolicy(
+      expected.map((filename) => ({ filename, content: readFileSync(join(workspaceMigrations, filename), 'utf8') })),
+      second.context.options.reviewedMigrations ?? null,
+    );
     const result = runCli(
       second.context, 'db push',
       ['db', 'push', '--db-url', options.databaseUrl, '--workdir', second.workspace, '--include-all', '--yes'],
