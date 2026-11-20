@@ -66,11 +66,14 @@ may **revoke**, because revocation only removes authority.
 
 Python policy (`policy.evaluate`) remains a pre-check and explanation layer; an `allow` from Python never authorizes a
 write. Each level-3 tool version gets exactly one fenced, atomic SQL RPC that, in one transaction and in a fixed lock
-order, validates lease fence, controls, autonomy switches, grant, quota, tenant, resource ownership and freshness,
-action digest and idempotency, performs the domain change through the shared domain operation, records the execution,
-the grant consumption and the audit event. The 254 execution guard is extended by a new forward function so that a
-succeeded write must carry **either** a valid approval **or** a valid grant consumption written in the same
-transaction; the approval branch is not relaxed. Lock order and the revocation linearization point:
+order, validates the lease fence and idempotency (a committed outcome is replayed before any authorization or quota
+step, with no new effect), then controls, autonomy switches, grant, quota, tenant, resource ownership and freshness
+and the action digest. It performs the domain change through the shared domain operation, then records the grant
+consumption, the quota increments, the execution and the audit event. The consumption row is inserted **before** the
+execution, so the replaced 254 BEFORE INSERT guard can require that a succeeded write carries **exactly one** of a
+valid approval or a consumption bound to the same tenant, run, invocation, tool version, digest and key. A deferred
+constraint trigger rejects, at commit, any consumption without its succeeded execution, and
+`UNIQUE (autonomy_consumption_id)` prevents re-use. The approval branch keeps 254's predicate unchanged. Lock order and the revocation linearization point:
 h7-authorization-contract.md §5.
 
 ### D5. Human identity provenance at the PostgreSQL boundary (prerequisite, Phase 2)
@@ -78,9 +81,16 @@ h7-authorization-contract.md §5.
 Before any grant table exists, the database must be able to prove which human issued a control write. Chosen
 mechanism: issuance RPCs are executed **with the human's own Supabase access token** through PostgREST (role
 `authenticated`), are SECURITY DEFINER with `search_path = ''`, derive the actor from `auth.uid()` (never a parameter),
-re-read the actor's single active role in the token's hotel (`agent__human_authority … FOR SHARE`), and require a
-fresh token (`iat` within a short step-up window). The API forwards the user's bearer token for these calls only; it
-cannot mint one. This closes GHSA-frh4 for the new grant path and is the pattern later reused for approval decisions.
+check that the token's `session_id` is a live row in `auth.sessions`, and re-read the actor's single active role in
+the token's hotel (`agent__human_authority … FOR SHARE`). The API forwards the user's bearer token for these calls
+only; it cannot mint one. This closes GHSA-frh4 for the new grant path and is the pattern later reused for approval
+decisions.
+
+A recent `iat` is **not** step-up: refreshed tokens are re-minted without re-authentication, so it proves neither a
+fresh login nor MFA. Step-up is a separate, **deferred** requirement (h7-authorization-contract.md §4.1). Until a
+reviewed, database-checked mechanism exists, a production-stamped database refuses every grant issuance
+(`step_up_required`); non-production databases may issue on verified identity, live session and current role, and
+record `step_up_evidence = 'none'`.
 
 ### D6. Emergency controls are preserved and become linearizable
 
@@ -123,8 +133,11 @@ write is considered. Live execution and production remain separate human decisio
 
 ## 5. Trade-offs
 
-* Issuance with the human's own token adds an API plumbing path (forwarding the bearer for one RPC) and a step-up UX;
-  in exchange the most powerful control write is no longer API-trusted.
+* Issuance with the human's own token adds an API plumbing path (forwarding the bearer for one RPC); in exchange the
+  most powerful control write is no longer API-trusted. Deferring step-up means no production grant can be issued
+  until that mechanism is reviewed.
+* Notifications are at-least-once through a transactional outbox; staff may occasionally see a duplicate push, which
+  is preferred to a lost one or one for an uncommitted change.
 * Fixed lock ordering with FOR SHARE on control and grant rows serialises revocations behind in-flight level-3
   transactions (bounded by `statement_timeout`); a revoke can wait up to that bound.
 * Closed-enum arguments sharply limit what level-3 tools can express; that is the point.

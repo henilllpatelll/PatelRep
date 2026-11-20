@@ -285,3 +285,43 @@ def test_the_254_execution_guard_still_requires_an_approval_for_every_succeeded_
     body = _sql("254_agent_audit_integrity_and_independent_approval.sql")
     assert "a succeeded tool write requires a valid independent approval" in body
     assert "OR NEW.approval_id IS NULL" in body
+
+
+# --- 9. Runtime facts the H7 design (h7-authorization-contract.md §5-§6) depends on --------------------------------
+
+def _latest_function(name: str) -> str:
+    """Body of the most recent CREATE OR REPLACE of ``public.<name>(`` across the migration history."""
+    marker = f"CREATE OR REPLACE FUNCTION public.{name}("
+    sources = [p for p in sorted(MIGRATIONS.glob("*.sql")) if marker in p.read_text(encoding="utf-8")]
+    assert sources, f"{name} is not defined by any migration"
+    text = sources[-1].read_text(encoding="utf-8")
+    start = text.rindex(marker)
+    return text[start:text.index("$function$;", start)]
+
+
+def test_the_execution_approval_guard_is_a_before_insert_row_trigger():
+    # §5.1 relies on this: the consumption row must be inserted BEFORE the execution so the guard can see it.
+    body = _sql("254_agent_audit_integrity_and_independent_approval.sql")
+    assert ("CREATE TRIGGER agent_tool_executions_approval_guard BEFORE INSERT ON public.agent_tool_executions\n"
+            "  FOR EACH ROW EXECUTE FUNCTION public.agent__guard_execution_approval();") in body
+    redefinitions = [p.name for p in sorted(MIGRATIONS.glob("*.sql"))
+                     if "agent_tool_executions_approval_guard" in p.read_text(encoding="utf-8")]
+    assert redefinitions == ["254_agent_audit_integrity_and_independent_approval.sql"]
+
+
+def test_the_execution_ledger_keeps_its_idempotency_and_single_invocation_keys():
+    # §5.3 replay and §5.1 binding rely on both unique constraints.
+    body = _sql("241_agent_gateway_schema.sql")
+    assert "CONSTRAINT agent_tool_executions_idempotency_key UNIQUE (tenant_id, idempotency_key)" in body
+    assert "CONSTRAINT agent_tool_executions_one_per_invocation UNIQUE (invocation_id)" in body
+    assert "autonomy_consumption_id" not in "".join(p.read_text(encoding="utf-8") for p in MIGRATIONS.glob("*.sql"))
+
+
+@pytest.mark.parametrize("function", ["agent_run_claim", "agent__run_claim_scoped"])
+def test_a_control_block_at_claim_redispatches_and_never_cancels(function):
+    # §6: a platform/hotel/agent pause or cost stop leaves the run queued and redispatches it; it does not cancel.
+    body = _latest_function(function)
+    branch = body[body.index("IF v_block IS NOT NULL THEN"):body.index("'outcome', 'blocked'")]
+    assert "public.agent__redispatch(" in branch
+    assert "'control_blocked'" in branch
+    assert "cancelled" not in branch and "agent__finish_run" not in branch

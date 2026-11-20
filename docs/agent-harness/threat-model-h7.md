@@ -36,9 +36,10 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
 
 * Evidence: `agent_execution/__main__.py` logs `write_notify_deferred` and drops the staff push because the restricted
   worker cannot read device tokens (ADR-0005 L3). There is no outbox; delivery is not durable.
-* H7 impact: level-3 candidate tools must not depend on a notification for correctness. A durable API-side outbox
-  (written in the execution transaction, delivered by the API) is Phase 7 and is required before any tool whose value
-  depends on a human noticing it.
+* H7 impact: level-3 candidate tools must not depend on a notification for correctness. A durable API-side
+  transactional outbox (written in the execution transaction, delivered by the API at-least-once with leases, retries
+  and a dead letter; exactly-once external delivery is not achievable) is Phase 7 and is required before any tool
+  whose value depends on a human noticing it.
 
 ### D. Effective role privileges and control/audit integrity — **partially addressed**
 
@@ -92,13 +93,16 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
 
 | # | Threat | Control (designed) |
 |---|---|---|
-| H7-T1 | Compromised API issues an autonomy grant on a GM's behalf | Issuance only as `authenticated` with the GM's own fresh token; actor = `auth.uid()`; no `service_role` EXECUTE (ADR-0006 D5) |
+| H7-T1 | Compromised API issues an autonomy grant on a GM's behalf | Issuance only as `authenticated` with the GM's own token; actor = `auth.uid()`; live `auth.sessions` row; current GM role re-read; no `service_role` EXECUTE (ADR-0006 D5) |
+| H7-T1b | Stolen but unexpired GM token used to issue a grant | The session must still be live (sign-out or revocation stops it). `iat` freshness is not step-up; step-up is deferred, so a production-stamped database refuses all issuance until it is designed (contract §4.1) |
 | H7-T2 | Model escalates risk/effect or picks a broader tool | Risk/effect from catalog + DB spec only; exact (id, version); closed-enum arguments |
 | H7-T3 | Grant used after revocation/pause | FOR SHARE on platform/tenant/grant rows; revocation linearization (contract §5) |
-| H7-T4 | Runaway volume | Per-hour/day/resource quotas under FOR UPDATE; `max_writes_per_run ≤ 1` |
+| H7-T4 | Runaway volume | Per-binding hour / day / resource-day counters created atomically and locked FOR UPDATE; incremented only after a successful effect; re-issue cannot reset them; `max_writes_per_run ≤ 1` (contract §5.4) |
 | H7-T5 | Cross-hotel action | 261 tenant check in wrapper + tenant predicate on every lock + grant tenant = run tenant |
 | H7-T6 | Stale or concurrently changed resource | expected-version check under resource row lock; refuse + escalate |
-| H7-T7 | Replay/duplicate | deterministic idempotency key; unique index; replay returns committed outcome |
+| H7-T7 | Replay/duplicate | server-derived key; per-key advisory lock; replay before authorization and quota returns the committed outcome with no effect, consumption or quota; unique indexes as backstop (contract §5.3) |
+| H7-T13 | Consumption forged, orphaned or attached to another execution | consumption inserted before the execution; replaced 254 guard requires exactly one of approval or bound consumption; deferred constraint trigger; composite FKs; `UNIQUE (autonomy_consumption_id)`; append-only (contract §5.1) |
+| H7-T14 | Duplicate or lost staff notification | transactional outbox row in the effect transaction; leased at-least-once delivery with dead letter; duplicates possible and tolerated (contract §7.1) |
 | H7-T8 | Grant widening by the agent (delegation) | `delegation_depth = 0`, `parent_grant_id IS NULL` CHECKs; no worker EXECUTE on issuance |
 | H7-T9 | Silent autonomous changes | immutable tool event + consumption ledger; Control Center activity; reversible internal effects only |
 | H7-T10 | Grant enables something else | issuance changes no switch/entitlement/level-2 grant; contract tests snapshot switches |
