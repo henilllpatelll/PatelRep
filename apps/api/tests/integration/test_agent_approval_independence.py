@@ -86,7 +86,9 @@ def inject_as_owner(sql: str) -> None:
     """Fault injection ONLY: forge a pre-254 ("legacy") row by suspending the new guard as the table owner."""
     # One transaction: if the forged write fails, no guard can be left disabled for later tests. Both the H2 binding
     # guard (which freezes the stored flag) and the 254 guard are suspended to model a row written before 254.
-    guards = ("agent_tool_approvals_guard_update", INDEPENDENT_FLAG_ONLY)
+    # A pre-254 row is also pre-262: the 262 deferred transition-audit trigger is suspended too (a queued deferred event
+    # would otherwise refuse the re-enabling ALTER TABLE with "pending trigger events"). Assertions are unchanged.
+    guards = ("agent_tool_approvals_guard_update", INDEPENDENT_FLAG_ONLY, "agent_tool_approvals_transition_audit")
     off = "".join(f"ALTER TABLE public.agent_tool_approvals DISABLE TRIGGER {g};\n" for g in guards)
     on = "".join(f"ALTER TABLE public.agent_tool_approvals ENABLE TRIGGER {g};\n" for g in guards)
     run_sql(f"BEGIN;\n{off}{sql}\n{on}COMMIT;")

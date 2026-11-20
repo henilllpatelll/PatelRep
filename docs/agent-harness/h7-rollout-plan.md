@@ -46,6 +46,11 @@ P3 depends on P2 (issuance needs provenance). P5 depends on P3 and P4. P8 depend
 | 265 (P6) | journal / tool event type extensions for shadow decisions | no new privilege | 264 recorded | closed event type lists extended | non-destructive expected | forward-only |
 | 266 (P7) | notification outbox (written in the execution txn; `UNIQUE (execution_id, kind)`; leased at-least-once delivery by the API, dead letter), review records | worker: insert only via the execute RPC; API: claim/deliver RPC; tenant-keyed | 264 recorded | outbox rows only created inside execute RPCs | per guard classification | forward-only |
 
+**262 as implemented (Phase 2):** see [h7-p2-verified-identity.md](h7-p2-verified-identity.md). The destructive-SQL
+guard classifies it **non-destructive**, so the Staging Candidate workflow (triggered by CI on any same-repository PR to
+`main`, draft or not) would auto-apply it to persistent staging on the first green CI Gate. Opening its PR is therefore
+itself the staging-application decision.
+
 Existing protections that apply unchanged: CI Gate (smoke + real-DB integration + Database Migration Gate +
 `scripts/schema-contracts.sql`), the destructive-SQL guard, Staging Candidate (auto-applies only non-destructive
 migrations), `staging-reviewed-migration-preview.yml` (registry on `main`, exact PR/SHA/digest pins, human approval),

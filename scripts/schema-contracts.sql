@@ -23,11 +23,16 @@ DECLARE
   p1_recorded integer;
   p1_present text[];
   p1_reviewed_functions text[];
+  verified_identity_recorded integer;
+  verified_identity_present text[];
 BEGIN
   SELECT public.app_schema_readiness() INTO readiness;
   IF readiness->>'ok' IS DISTINCT FROM 'true' THEN
     RAISE EXCEPTION 'Schema contract failure: %', readiness;
   END IF;
+  -- H7 P2 (migration 262, agent_verified_human_identity): version-gated by migration NAME like every harness block.
+  SELECT count(DISTINCT history.name) INTO verified_identity_recorded FROM supabase_migrations.schema_migrations history
+   WHERE history.name = 'agent_verified_human_identity';
 
   FOREACH rls_table IN ARRAY ARRAY[
     'room_status', 'room_assignments', 'tasks', 'work_orders', 'assets',
@@ -58,6 +63,10 @@ BEGIN
     SELECT 1 FROM pg_proc procs JOIN pg_namespace namespaces ON namespaces.oid = procs.pronamespace
     WHERE namespaces.nspname = 'public' AND procs.proname LIKE 'agent%'
       AND (has_function_privilege('anon', procs.oid, 'EXECUTE') OR has_function_privilege('authenticated', procs.oid, 'EXECUTE'))
+      -- H7 P2 (262, recorded): the ONE database-verified human entry point, the non-mutating identity probe, is
+      -- executable by authenticated (never anon); its body, ACL and definer shape are pinned in the 262 block below.
+      AND NOT (verified_identity_recorded > 0 AND procs.proname = 'agent_verified_human_probe' AND procs.pronargs = 1
+               AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE'))
   ) THEN
     RAISE EXCEPTION 'An Agent Harness function is executable by anon or authenticated';
   END IF;
@@ -87,6 +96,12 @@ BEGIN
       AND NOT (EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations history
                         WHERE history.name = 'agent_worker_tenant_binding')
                AND procs.proname = 'agent__worker_tenant' AND procs.pronargs = 0
+               AND procs.proconfig IS NOT DISTINCT FROM ARRAY['search_path=""'])
+      -- H7 P2 (262, recorded): the verified-human helpers (Auth tables are owner-readable only), the probe, the
+      -- inactive v2 decision and the approval-transition audit trigger function. Bodies pinned in the 262 block.
+      AND NOT (verified_identity_recorded > 0
+               AND procs.proname IN ('agent__verified_human_claims', 'agent__verified_human', 'agent_verified_human_probe',
+                                     'agent_tool_approval_decide_v2', 'agent__audit_approval_transition')
                AND procs.proconfig IS NOT DISTINCT FROM ARRAY['search_path=""'])
   ) THEN
     RAISE EXCEPTION 'An Agent Harness function is SECURITY DEFINER';
@@ -941,6 +956,80 @@ BEGIN
                                  AND events.subject_type = 'worker_credential'
                                  AND events.subject_ref = credentials.id::text)) THEN
       RAISE EXCEPTION 'A worker credential recorded as revoked is active again';
+    END IF;
+  END IF;
+
+  -- H7 P2 database-verified human identity (migration 262, agent_verified_human_identity). Version-gated by NAME.
+  --   not recorded -> no 262 object may exist;
+  --   recorded -> 5 SECURITY DEFINER functions pinned (body, owner, search_path, volatility); only the probe is
+  --   executable by an end-user role (authenticated, never anon/public/agent_worker); the v2 decision is executable
+  --   by NO end-user role (inactive); service_role EXECUTE is tolerated (CI / Staging Candidate blanket function grant)
+  --   because every one of them refuses any PostgREST role but authenticated internally (integration tests prove it);
+  --   the credential-isolating events read model and the deferred approval-transition audit trigger are pinned.
+  SELECT array_remove(ARRAY[
+    CASE WHEN EXISTS (SELECT 1 FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+           'agent__verified_human_claims', 'agent__verified_human', 'agent_verified_human_probe',
+           'agent_tool_approval_decide_v2', 'agent__audit_approval_transition')) THEN '262 functions' END,
+    CASE WHEN EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'agent_tool_approvals_transition_audit')
+         THEN '262 trigger' END], NULL) INTO verified_identity_present;
+  IF verified_identity_recorded = 0 THEN
+    IF cardinality(verified_identity_present) > 0 THEN
+      RAISE EXCEPTION 'H7 P2 objects exist without migration 262 (agent_verified_human_identity) recorded: %',
+        verified_identity_present;
+    END IF;
+  ELSE
+    IF p1_recorded = 0 THEN
+      RAISE EXCEPTION 'Migration 262 is recorded without migration 261; the schema version is not trusted';
+    END IF;
+    IF (SELECT count(*) FROM pg_proc procs
+          JOIN (VALUES ('agent__verified_human_claims', 'd6432bb37b07b699531592f5b4a0fef7', 's', ''),
+                       ('agent__verified_human', '050cb30550f2c62120c03bf2ba1a8a48', 'v', 'p_roles text[]'),
+                       ('agent_verified_human_probe', '5f97b31f94db0448377b9fe923cd3615', 'v', 'p_operation text'),
+                       ('agent_tool_approval_decide_v2', 'ce1c0f8a31466b960d4e3edf7f0b6899', 'v',
+                        'p_approval_id uuid, p_decision text, p_reason_code text'),
+                       ('agent__audit_approval_transition', 'c861c515688c4628b8f1228c4ec5f82f', 'v', '')
+               ) AS pins(proname, body_md5, volatility, identity_args) ON pins.proname = procs.proname
+         WHERE procs.pronamespace = 'public'::regnamespace AND procs.prosecdef
+           AND procs.proowner = 'postgres'::regrole AND procs.proconfig = ARRAY['search_path=""']
+           AND procs.provolatile = pins.volatility
+           AND pg_get_function_identity_arguments(procs.oid) = pins.identity_args
+           AND md5(replace(procs.prosrc, chr(13), '')) = pins.body_md5
+           AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+           AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+           AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE')
+           AND has_function_privilege('authenticated', procs.oid, 'EXECUTE') = (procs.proname = 'agent_verified_human_probe')) <> 5
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace AND procs.proname IN (
+             'agent__verified_human_claims', 'agent__verified_human', 'agent_verified_human_probe',
+             'agent_tool_approval_decide_v2', 'agent__audit_approval_transition')) <> 5 THEN
+      RAISE EXCEPTION 'An H7 P2 verified-identity function changed, is overloaded, is exposed beyond its reviewed ACL, or the v2 decision is active';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_proc procs
+                    WHERE procs.oid = 'public.agent_control_center_events_page(uuid, bigint, integer, text[])'::regprocedure
+                      AND NOT procs.prosecdef AND procs.provolatile = 's' AND procs.proconfig = ARRAY['search_path=""']
+                      AND md5(replace(procs.prosrc, chr(13), '')) = '439a57eeabaaa6753282c4be5bd1c37c'  -- 262 body
+                      AND NOT has_function_privilege('public', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('anon', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('authenticated', procs.oid, 'EXECUTE')
+                      AND NOT has_function_privilege('agent_worker', procs.oid, 'EXECUTE'))
+       OR (SELECT count(*) FROM pg_proc procs WHERE procs.pronamespace = 'public'::regnamespace
+             AND procs.proname = 'agent_control_center_events_page') <> 1 THEN
+      RAISE EXCEPTION 'agent_control_center_events_page() differs from its reviewed migration-262 body or ACL (credential isolation)';
+    END IF;
+    IF (SELECT count(*) FROM pg_trigger triggers
+         WHERE triggers.tgfoid = 'public.agent__audit_approval_transition()'::regprocedure) <> 1
+       OR NOT EXISTS (SELECT 1 FROM pg_trigger triggers
+                       WHERE triggers.tgrelid = 'public.agent_tool_approvals'::regclass
+                         AND triggers.tgname = 'agent_tool_approvals_transition_audit' AND triggers.tgenabled = 'O'
+                         AND triggers.tgtype = 17  -- ROW 1 + UPDATE 16 (AFTER)
+                         AND triggers.tgconstraint <> 0 AND triggers.tgdeferrable AND triggers.tginitdeferred
+                         AND pg_get_triggerdef(triggers.oid) LIKE '%WHEN ((old.state IS DISTINCT FROM new.state))%') THEN
+      RAISE EXCEPTION 'The H7 P2 approval-transition audit trigger is missing, disabled, not deferred or duplicated';
+    END IF;
+    -- No role may read Auth sessions or users directly; the verified-human helpers are the only path.
+    IF EXISTS (SELECT 1 FROM unnest(ARRAY['anon', 'authenticated', 'service_role', 'agent_worker']) AS grantees(role_name)
+                CROSS JOIN unnest(ARRAY['auth.sessions', 'auth.users']) AS auth_tables(name)
+                WHERE has_table_privilege(grantees.role_name, auth_tables.name, 'SELECT')) THEN
+      RAISE EXCEPTION 'An application role can read auth.sessions or auth.users directly';
     END IF;
   END IF;
 END;

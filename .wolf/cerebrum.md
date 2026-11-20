@@ -1214,3 +1214,16 @@ $//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator
   "destructive" for the staging guard; the whole pending set is refused until a reviewed preview registry entry exists.
 - Decision Log: H3 provider expense (USD, agent_model_* tables) is separate from customer credits (credit_ledger); H4
   converts settled rows to credits. Paid calls default off at three layers (process env, DB switch, budget policies).
+
+## H7 Phase 2 (verified human identity, migration 262) — learnings (2026-11-20)
+- Inside a SECURITY DEFINER function called through PostgREST: current_setting('role') = the caller's PostgREST role (authenticated/anon/service_role), session_user = authenticator, current_user = owner. Use the role GUC (+ session_user) to refuse non-human callers inside definers.
+- auth.uid() prefers the legacy request.jwt.claim.sub GUC; cross-check it with request.jwt.claims->>'sub'.
+- GoTrue sign-out deletes the auth.sessions row but the access token stays valid for PostgREST until exp; only a DB check of auth.sessions (owner-readable only; postgres has BYPASSRLS) makes sign-out effective. iat is re-minted on refresh -> never step-up.
+- service_role is NOT a member of authenticated; but CI's and Staging Candidate's blanket "GRANT EXECUTE ON ALL FUNCTIONS ... TO service_role" re-grants every new function to service_role, so an in-function role check (not the ACL) is the real barrier.
+- PostgREST v14 itself rejects future iat (PGRST303) and expired tokens before the DB sees them.
+- Staging Candidate auto-applies NON-destructive pending migrations to persistent staging for ANY same-repo PR to main (drafts included; CI runs only on PRs). Opening the PR of a non-destructive migration = applying it to staging.
+- agent_run_claim returns {outcome, fencing_token, run:{id,...}, step} (no run_id); the agent dispatch queue is shared across hotels (drain_run processes earlier approved runs first).
+- user_roles.role has a CHECK to the 6 canonical roles; custom roles live in custom_role_id.
+
+## Do-Not-Repeat (H7 P2, 2026-11-20)
+- [2026-11-20] SQL guards: never write `IF NOT (<comparison that can be NULL>)` -- a missing JSON key makes it NULL and the refusal branch is skipped (fail open). Use `IF NOT COALESCE(..., false)` / `IS NOT TRUE` / `IS DISTINCT FROM`.

@@ -35457,6 +35457,43 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-11-15T16:00:00-06:00"
+    },
+    {
+      "id": "bug-2149",
+      "timestamp": "2026-11-20T18:00:00-06:00",
+      "error_message": "H7 P2 probe accepted a validly signed token with NO aud claim (test_missing_or_malformed_claims_fail_closed: reason None != invalid_claims)",
+      "file": "supabase/migrations/262_agent_verified_human_identity.sql",
+      "root_cause": "IF NOT (claims->'aud' = '\"authenticated\"' OR (jsonb_typeof(aud)='array' AND ...)): a missing key makes every comparison NULL, NOT NULL is NULL, and plpgsql IF NULL skips the refusal branch (three-valued logic fails open)",
+      "fix": "IF NOT COALESCE(<condition>, false); also IF v_active IS NOT TRUE instead of IF NOT v_active. Caught before the migration left the branch (never applied anywhere persistent)",
+      "tags": [
+        "sql",
+        "null",
+        "three-valued-logic",
+        "fail-open",
+        "jwt",
+        "h7",
+        "security"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-20T18:00:00-06:00"
+    },
+    {
+      "id": "bug-2150",
+      "timestamp": "2026-11-20T18:10:00-06:00",
+      "error_message": "H7 P2 integration tests: KeyError 'run_id' on agent_run_claim result; _pending drained another hotel's approved run (['run_succeeded','awaiting_approval'])",
+      "file": "apps/api/tests/integration/test_agent_h7_level2_race.py, test_agent_h7_approval_audit.py",
+      "root_cause": "agent_run_claim returns the run nested under 'run' (run.id), not run_id; the dispatch queue is shared by all hotels so drain_run after an approval processes the earlier approved run first",
+      "fix": "use claimed['run']['id']; create every pending approval before deciding any of them",
+      "tags": [
+        "test",
+        "agent-harness",
+        "queue",
+        "h7"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-11-20T18:10:00-06:00"
     }
   ]
 }

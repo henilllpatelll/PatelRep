@@ -21,6 +21,10 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
 * Mitigations in place: the worker no longer holds `service_role` (255); the API verifies the JWT and re-reads
   membership per request (`agent_control_center/access.py:revalidate`); every control change is journaled (256/260).
 * H7 requirement: level-3 grant issuance must not exist until Phase 2 delivers DB-verified provenance (ADR-0006 D5).
+* **Phase 2 (262): partially addressed.** The DB-verified pattern exists (`agent__verified_human*`, live
+  `auth.sessions` row, no actor argument) and is proven over real PostgREST by the non-mutating probe; the v2 decision
+  is implemented but ungranted. Every legacy caller-asserted path above is unchanged. Remaining boundary: the API holds
+  the legacy HS256 secret PostgREST accepts ([h7-p2-verified-identity.md](h7-p2-verified-identity.md) §6).
 
 ### B. Per-tenant and per-environment worker authorization after 261 — **addressed (with two follow-ups)**
 
@@ -49,6 +53,8 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
   decider currently holds a valid role, and is journaled only as a control change, not as a tool event. GHSA-98wq
   (medium) — TRUNCATE on non-agent public tables outside the H6 registry. Neither lets the worker write, but both mean
   the API principal is broader than the harness needs.
+* **Phase 2 (262):** xm55 closed for new transitions (deferred constraint trigger journals an out-of-RPC transition as
+  `operator` / `unverified`, no duplicate for RPCs); 98wq inventoried only (h7-p2-verified-identity.md §10).
 * H7 requirement: the new autonomy tables must give `service_role` **no** INSERT/UPDATE (functions only), and must
   be in the registry and privilege matrix from their first migration.
 
@@ -63,6 +69,8 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
   the race window can only complete an action a human already approved. **Requires further validation**: a real-DB
   concurrency test that pauses/revokes between the control read and commit (Phase 2 test backlog).
 * H7 requirement: the level-3 RPC uses the lock order and linearization point in h7-authorization-contract.md §5.
+* **Phase 2: confirmed by real-Postgres two-session tests** (`test_agent_h7_level2_race.py`); behaviour unchanged;
+  a separate hardening PR is proposed (h7-p2-verified-identity.md §7).
 
 ### F. Platform audit visibility and information disclosure — **verified vulnerability (low) + design limitation**
 
@@ -75,6 +83,8 @@ further validation** (suspected; no evidence of exploitability yet). Nothing is 
   worker credentials. Not a privilege escalation (a jti cannot be used without the signing secret) and only reachable
   with `ai_control_center` enabled (default off). Confirming with a real-DB test and fixing (journal credential rows
   with the bound tenant, or omit `subject_ref`/`detail` for platform credential rows) is a Phase 2 item.
+* **Phase 2 (262): fixed** for historical and new rows by the read model (bound hotel only, label dropped; unbound →
+  no hotel); confirmed and tested with real-DB tests across three hotels.
 
 ### G. Other gaps that could permit an unauthorized autonomous write — **none found that are reachable today**
 
