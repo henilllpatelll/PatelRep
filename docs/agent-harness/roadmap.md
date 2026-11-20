@@ -11,7 +11,7 @@ Legend: ✅ implemented · 🧭 designed (contract or doc exists, nothing execut
 | **H4** | Customer billing: versioned two-person pricing policies, pre-dispatch customer-credit holds bound to the H3 reservation, one immutable charge per settled attempt, reconciliation (dry-run, metadata-only), GM-only overage consent (off by default) with caps, durable Stripe true-up outbox, Billing & Usage UX. | H3 | ✅ (default disabled; Stripe test mode only; nothing scheduled; production refused in code) |
 | **H5** | First Operations specialists (Engineering `engineering.dispatch_assistant` v2, Housekeeping `housekeeping.room_readiness_assistant` v1) at observe / human-approved autonomy; verified planning context; plan schema v2; the H3 → H2 proposal handoff; human-approved one-room Housekeeping assignment on `publish_assignment_batch`; backend recommendation preview. | H2–H4 | ✅ (default disabled; isolated DB only until the reviewed staging preview; no worker deployed; production refused in code) |
 | **H6** | AI Control Center (visibility + human governance) and the least-privileged worker database identity (`agent_worker`): approval inbox and decisions through H2, hotel pause, grant revocation, activity, agent directory, governance journal and audit viewer. Never activation. | H1–H5 | ✅ (default disabled behind `ai_control_center`; 255–256 isolated DB only until the reviewed staging preview; no worker credential issued, no worker deployed) |
-| **H7** | Bounded autonomy (level 3) for expressly granted low-risk operational tools; requires a new manifest schema version and a reviewed risk model. | H6 | ⏳ |
+| **H7** | Bounded autonomy (level 3) for expressly granted low-risk operational tools; requires a new manifest schema version and a reviewed risk model. | H6 | 🧭 Phase 1 (contracts + design only; nothing executes) |
 | **H8** | Coordinated autonomy (level 4), cross-product agents (Guest, Growth, Owner, Connect), persistent memory with trust boundaries. | H7 | ⏳ |
 
 ## H0: implemented vs. designed
@@ -143,8 +143,27 @@ See [ADR-0004](adr-0004-h5-operations-specialists.md), [handoff.md](handoff.md),
 | Staging application of 255–256 | ⏳ reviewed preview + human approval |
 | Issuing a worker credential / deploying a worker | ⏳ separate authorization |
 | Post-commit staff push from the restricted worker (API-side outbox) | ⏳ H7 candidate (ADR-0005 L3) |
-| DB-verified human principal for decisions (removes the trusted-API residual) | ⏳ H7+ (ADR-0005 L1) |
+| DB-verified human principal for decisions (removes the trusted-API residual) | ⏳ H7 P2 (ADR-0005 L1, GHSA-frh4) |
+| Worker reads bound to one hotel and the stamped environment (closes ADR-0005 L2) | ✅ migration 261 |
 | Mobile Control Center surface | ⏳ product decision |
 
 See [ADR-0005](adr-0005-h6-control-center.md), [threat-model-h6.md](threat-model-h6.md) and
 [worker-identity.md](worker-identity.md).
+
+## H7: designed vs. deferred (Phase 1)
+
+| Item | Status |
+|---|---|
+| ADR-0006, authorization contract (H0–H6 evidence matrix), threat model (H6 residuals A–G), risk model, rollout plan | 🧭 docs |
+| Non-executing contract tests pinning the H6 baseline (`tests/smoke/test_agent_h7_autonomy_contracts.py`) | ✅ |
+| DB-verified human provenance for grant issuance (GHSA-frh4) | ⏳ P2 |
+| Autonomy grants, consumption ledger, quotas, platform/tenant autonomy state | ⏳ P3 (no migration yet) |
+| Manifest v2 | ⏳ P4 |
+| Level-3 enforcement RPC + first candidate tool | ⏳ P5 (disabled) |
+| Shadow mode, notification outbox (ADR-0005 L3), grant UI | ⏳ P6–P7 |
+| Staging rehearsal | ⏳ P8; production is a separate decision |
+
+Level 3 stays unreachable at `961a012b`: `POLICY_AUTONOMY_CEILING = HUMAN_APPROVED`, `agent_tool_grants.max_level
+CHECK (1, 2)`, and manifest v1 cannot declare a low-risk or unapproved write. See
+[ADR-0006](adr-0006-h7-bounded-autonomy.md), [h7-authorization-contract.md](h7-authorization-contract.md),
+[threat-model-h7.md](threat-model-h7.md), [risk-model-h7.md](risk-model-h7.md) and [h7-rollout-plan.md](h7-rollout-plan.md).
