@@ -138,7 +138,7 @@ const PENDING = [
     'create table if not exists public.t_pm_events (id int primary key, tenant_id uuid);',
     'alter table public.t_pm_events enable row level security;',
     'do $policy$ begin if not exists (select 1 from pg_policies where schemaname = \'public\' and tablename = \'t_pm_events\' and policyname = \'t_pm_events_select\') then',
-    '  create policy t_pm_events_select on public.t_pm_events for select to postgres using (true); end if; end $policy$;',
+    '  create policy t_pm_events_select on public.t_pm_events for select to postgres using (tenant_id is not null); end if; end $policy$;',
     'create or replace function public.t_noop() returns trigger language plpgsql as $f$ begin return new; end $f$;',
     'create or replace trigger t_noop_trg before insert on public.t_pm_events for each row execute function public.t_noop();',
   ].join('\n')],
