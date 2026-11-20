@@ -153,9 +153,24 @@ backup in step 1. #245, 262 and this registry entry were not changed.
 - The roles load exits 0. `pg_restore --single-transaction --exit-on-error` exits 0 with 0 stderr lines.
 - The `pgmq.meta` fix-up was applied.
 - The restored fingerprint is **identical** to the staging fingerprint taken at dump time (234 lines).
-- The object-signature diff is 75 lines, only in the known-gap classes of `RESTORE-RUNBOOK.md`: auth, pgmq and realtime
-  table ACLs, `auth.jwt()`, the graphql schema grants, and 2 local pgmq default ACLs. These signatures are md5s, so this
-  run did not re-prove that the auth ACL differences are ordering only.
+- **Object signatures, all classified exactly.** The restore was compared with the staging signatures taken at dump
+  time. Of 6,350 staging rows, 6,322 are byte-identical, covering every column, constraint, index, policy, trigger,
+  event trigger, publication, sequence and type. The diff has 75 lines: 17 diff hunk markers and 58 signature rows. To
+  classify each row, the raw catalog values behind it were read on the restore and checked for which value reproduces
+  staging's md5:
+
+  | Objects | Classification | Effect |
+  |---|---|---|
+  | 22 `auth.*` tables, `auth.jwt()`, `pgmq.q_/a_patelrep_agent_runs_v1` (25) | **Proven ordering-only.** A permutation of the restore's own aclitems reproduces staging's md5, so the grantee/privilege set, owner, relkind and RLS/force-RLS flags are identical; for `auth.jwt()` the full definition and SECURITY DEFINER flag are identical too | None. No Auth table grants anything to `anon`, `authenticated`, `service_role` or `agent_worker` on either side |
+  | `realtime.schema_migrations` (1) | **Proven equivalent.** Staging stores the explicit owner-only ACL `{supabase_admin=arwdDxtm/supabase_admin}`; the restore stores NULL (the same default) | None |
+  | `graphql`, `graphql_public` schemas (2) | **Proven real difference, in the restore only.** Staging is `{supabase_admin=UC, postgres=U*, anon=U, authenticated=U, service_role=U}` (grantor `supabase_admin`); the restore is owner-only, because pg_dump does not carry these managed schemas' grants | The restore is *stricter*: pg_graphql is unusable there until re-granted. Hosted staging is unaffected. No 262 probe or contract reads these schemas |
+  | 2 restore-only `default_acl` rows `supabase_admin.pgmq.{r,S}` = `{pg_monitor=r/supabase_admin}` | **Restore artifact.** `CREATE EXTENSION pgmq` ran as `supabase_admin` during pg_restore, and pgmq's script runs `ALTER DEFAULT PRIVILEGES ... TO pg_monitor`. Staging's own `postgres.pgmq` rows are present and identical | Only future tables that `supabase_admin` creates in `pgmq` grant SELECT to `pg_monitor`. No existing object changes |
+
+  Function owners, SECURITY DEFINER flags, bodies and EXECUTE ACLs match for all 351 non-extension functions in the
+  compared schemas (296 in `public`). **Not compared:** the 145 extension-member functions in `public` (plus
+  `extensions`, `pgmq`, `cron` and `vault` members), because the signature query excludes extension members. Their ACLs
+  come from the dump's own ACL entries, which restored with no error, but they were not compared with live staging. A
+  catalog-only read of live staging would close this gap; it needs its own approval.
 
 **3. At 261**, as `postgres`, after the exact Staging Candidate fixture grant (extracted from `main` @ `aed1852d`'s
 `staging-candidate.yml`, identical at `e2d65736`):
@@ -193,6 +208,21 @@ This mirrors the bookkeeping in `scripts/remote-migration-apply.mjs`. It is **no
 | Extra overload `agent_verified_human_probe(text, integer)` | `p2_functions_exact_definer_owner_search_path_body`, `only_the_probe_is_executable_and_only_by_authenticated`, `privilege_contracts_clean_and_no_delete_after_apply` |
 
 After the rollbacks, the postconditions are 15/15 true again and `main`'s contract exits 0.
+
+**7. Live staging after the evidence push** (read-only, 2026-11-20 ~23:40Z, after Staging Candidate `44835821390` on
+`de90a64a`). The database job reported 187 mirrored versions, 0 pending and drift `CLEAN`, and the fixture seed
+converged its 7 role users. The API deploy failed (`railway up`: "Deploy failed"), so that Staging Gate is red. A
+read-only check (`BEGIN READ ONLY`, `transaction_read_only=on`) then found:
+
+- 187 history rows, head `261 agent_worker_tenant_binding`, no 262;
+- row counts identical to the backup except `auth.sessions`, `auth.refresh_tokens` and `auth.mfa_amr_claims`, each 5 → 0
+  (the fixture seed revoked the old fixture sessions);
+- per-table content hashes identical for 222 of the 228 tables. The other 6 are the three Auth session tables above,
+  plus `auth.users`, `public.tenants` and `public.user_profiles`, whose row contents converged. The id sets of
+  `auth.users`, `public.tenants`, `public.user_profiles` and `public.user_roles` are identical to the backup.
+
+So the head-261 backup is still a valid recovery point: same schema, same fixture identities. Restoring it would bring
+back 5 old synthetic fixture sessions, which the next fixture seed revokes again.
 
 **Not covered here:**
 
