@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-// Portable launcher for local-only Claude Code hooks (OpenWolf, dev servers, graphify).
-// Usage: node "$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs" <wolf <name> | dev-servers | graphify-update>
-// Every kind is a no-op when CI is set, so GitHub runners never start servers or mutate tracked files.
-import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, openSync } from 'node:fs'
-import net from 'node:net'
-import { tmpdir } from 'node:os'
+// Portable launcher for local-only Claude Code hooks (OpenWolf, graphify, Developer Harness V2 policy).
+// Usage: node "$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs" <wolf <name> | graphify-update | policy>
+// Advisory kinds (wolf, graphify) are no-ops when CI is set, so GitHub runners never mutate tracked files. The
+// `policy` kind is inert only on a GitHub Actions runner (GITHUB_ACTIONS + RUNNER_TEMP + GITHUB_RUN_ID), so CI agent
+// jobs keep the tool scopes their own workflows define. That is a compatibility switch for trusted runners, NOT an
+// authorization token: whoever controls the environment that launches Claude Code can set those variables (see
+// docs/developer-harness-v2/07-phase-2-policy-implementation.md).
+// Dev servers are never auto-started (Phase 2): `npm run dev:api` loads apps/api/.env, which may point at
+// production. Start them manually; see the Phase 2 document.
+import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,26 +26,6 @@ function runWolf(name, root) {
   return spawnSync(process.execPath, [script], { stdio: 'inherit', cwd: root }).status ?? 0
 }
 
-function portInUse(port) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ port, host: '127.0.0.1' })
-    socket.once('connect', () => { socket.destroy(); resolve(true) })
-    socket.once('error', () => resolve(false))
-  })
-}
-
-async function startDevServers(root) {
-  const servers = [
-    { port: 3000, script: 'dev:web', log: 'patelrep-dev-web.log' },
-    { port: 8000, script: 'dev:api', log: 'patelrep-dev-api.log' },
-  ]
-  for (const { port, script, log } of servers) {
-    if (await portInUse(port)) continue
-    const out = openSync(path.join(tmpdir(), log), 'a')
-    spawn('npm', ['run', script], { cwd: root, detached: true, stdio: ['ignore', out, out], shell: process.platform === 'win32' }).unref()
-  }
-}
-
 function graphifyUpdate(root) {
   const script = path.join(root, 'graphify-out', 'auto_update.py')
   const venvPython = process.platform === 'win32'
@@ -51,12 +35,16 @@ function graphifyUpdate(root) {
   return spawnSync(venvPython, [script], { stdio: 'inherit', cwd: root }).status ?? 0
 }
 
+// The enforcement hook is inert only on a real GitHub Actions runner (where CI agent jobs carry their own
+// workflow-defined tool scopes). A bare CI=1 — common in developer shells — does NOT disable enforcement.
+const isGitHubRunner = (env = process.env) => env.GITHUB_ACTIONS === 'true' && Boolean(env.RUNNER_TEMP) && Boolean(env.GITHUB_RUN_ID)
+
 async function main() {
-  if (isCI()) return 0
   const [kind, arg] = process.argv.slice(2)
+  if (kind === 'policy') return isGitHubRunner() ? 0 : (await import('./policy-hook.mjs')).main()
+  if (isCI()) return 0
   const root = projectDir()
   if (kind === 'wolf') return runWolf(arg, root)
-  if (kind === 'dev-servers') { await startDevServers(root); return 0 }
   if (kind === 'graphify-update') return graphifyUpdate(root)
   return 0
 }
