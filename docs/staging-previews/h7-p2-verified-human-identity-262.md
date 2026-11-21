@@ -167,10 +167,41 @@ backup in step 1. #245, 262 and this registry entry were not changed.
   | 2 restore-only `default_acl` rows `supabase_admin.pgmq.{r,S}` = `{pg_monitor=r/supabase_admin}` | **Restore artifact.** `CREATE EXTENSION pgmq` ran as `supabase_admin` during pg_restore, and pgmq's script runs `ALTER DEFAULT PRIVILEGES ... TO pg_monitor`. Staging's own `postgres.pgmq` rows are present and identical | Only future tables that `supabase_admin` creates in `pgmq` grant SELECT to `pg_monitor`. No existing object changes |
 
   Function owners, SECURITY DEFINER flags, bodies and EXECUTE ACLs match for all 351 non-extension functions in the
-  compared schemas (296 in `public`). **Not compared:** the 145 extension-member functions in `public` (plus
-  `extensions`, `pgmq`, `cron` and `vault` members), because the signature query excludes extension members. Their ACLs
-  come from the dump's own ACL entries, which restored with no error, but they were not compared with live staging. A
-  catalog-only read of live staging would close this gap; it needs its own approval.
+  compared schemas (296 in `public`). Extension members are excluded from that query; see the extension-member
+  read below.
+
+- **Extension members, read on live staging** (catalog only, 2026-11-21 06:16Z, `REPEATABLE READ READ ONLY`,
+  `transaction_read_only=on`, statement/lock/idle timeouts 60s/5s/120s; staging 187/261, no 262). There are 253 member
+  routines: `public` 149 (`vector` 114 + 4 aggregates, `pg_trgm` 31), `extensions` 49 (`pgcrypto` 36, `uuid-ossp`
+  10, `pg_stat_statements` 3), `pgmq` 40, `cron` 7, `vault` 5 and `pg_catalog` 3 (`plpgsql`). There are also 10 member
+  relations. Every extension is at its server's default version, and the server is PostgreSQL 17.11, the same as the
+  rehearsal image.
+  - **SECURITY DEFINER:** only `vault.create_secret` and `vault.update_secret` (owner `supabase_admin`,
+    `search_path=""`, EXECUTE `service_role` only). No other member has SECURITY DEFINER or a `proconfig`.
+  - **Effective EXECUTE for app roles:** `anon`/`authenticated` have nothing in `vault`. Their PUBLIC EXECUTE in `cron`
+    and `pgmq` is blocked by schema USAGE (`cron`: `postgres` only; `pgmq`: `postgres`, `pg_monitor`, `service_role`).
+    `service_role` can execute all 40 `pgmq` routines and 3 `vault` routines. This is the existing staging posture, not
+    something 262 introduces.
+  - **The dump captures every non-default member ACL.** 59 member functions have an ACL that differs from their
+    `pg_init_privs` entry. The dump has exactly one ACL block for each, with identical per-name overload counts. All 7
+    member relations with non-initial ACLs have dump blocks too. The other 194 functions equal their initial privileges
+    and have no block, which is what pg_dump does.
+  - **Cause of the `graphql`/`graphql_public` difference (live):** both schemas carry leftover extension-type
+    `pg_init_privs` entries equal to their current ACL, and `pg_graphql` is not installed. So pg_dump emits no GRANT
+    for them. Only 3 non-member objects carry such entries: these two schemas and `pgmq`, whose `service_role` delta is
+    in the dump.
+  - **262 references no extension member** and none of `extensions.`, `pgmq.`, `cron.`, `vault.` or `graphql`.
+- **Restored-copy side not measured for extension members.** The disposable restore was not re-run, and no
+  restore-side extension catalog was saved. So restore equivalence for the 253 routines and 10 relations is
+  **unverified**:
+  - **164 routines in `supabase_admin`-owned extensions** (`vector`, `pg_trgm`, `pg_cron`, `supabase_vault`,
+    `plpgsql`): owner and ACL should match by construction (install script plus the dump's deltas). Not measured.
+  - **89 routines, 3 relations and the `pgmq` sequence in `postgres`-owned extensions** (`pgcrypto`, `uuid-ossp`,
+    `pg_stat_statements`, `pgmq`): the restore ran `CREATE EXTENSION` as `supabase_admin`, and pg_dump does not carry
+    extension ownership. So these are **expected to differ in owner and grantor on the restore** (`supabase_admin`,
+    not `postgres`), with the same EXECUTE for PUBLIC/`anon`/`authenticated`/`service_role`/`agent_worker`. Not
+    measured.
+  - This affects disposable local restores only. A hosted recovery creates these extensions as `postgres`.
 
 **3. At 261**, as `postgres`, after the exact Staging Candidate fixture grant (extracted from `main` @ `aed1852d`'s
 `staging-candidate.yml`, identical at `e2d65736`):
@@ -222,7 +253,12 @@ read-only check (`BEGIN READ ONLY`, `transaction_read_only=on`) then found:
   `auth.users`, `public.tenants`, `public.user_profiles` and `public.user_roles` are identical to the backup.
 
 So the head-261 backup is still a valid recovery point: same schema, same fixture identities. Restoring it would bring
-back 5 old synthetic fixture sessions, which the next fixture seed revokes again.
+back 5 old synthetic fixture sessions; see [Recovery](#recovery) for how they are revoked before services resume.
+
+On the next head `9b0903a0`, Staging Candidate `44837706429` succeeded for the exact SHA, with `Pending on staging:
+<none>`. All its jobs passed: database, API deploy, web deploy, and release identity + smoke. The Staging Gate check is
+green. The earlier `de90a64a` API failure was Railway deployment `e54de4df…` ("Deploy failed"); its build log needs
+Railway access and was not read.
 
 **Not covered here:**
 
@@ -265,7 +301,25 @@ catalog, and the API and node suites.
 - **Immediate containment:** `REVOKE EXECUTE ON FUNCTION public.agent_verified_human_probe(text) FROM authenticated`
   (decide v2 already has no grant).
 - **Full restore:** the head-261 backup `PatelRep-Staging-Backup-20261120-225938` (dump sha256 `edeca08b…8dde`),
-  restored per `RESTORE-RUNBOOK.md`.
+  restored per `RESTORE-RUNBOOK.md`. A restore into persistent infrastructure needs its own authorization. Keep the
+  API, web and worker paused until the following checks are done:
+  - **Disposable/local restored copies only:** re-grant the managed GraphQL schemas as `supabase_admin`:
+    `GRANT USAGE ON SCHEMA graphql, graphql_public TO postgres WITH GRANT OPTION;`
+    `GRANT USAGE ON SCHEMA graphql, graphql_public TO anon, authenticated, service_role;`
+    Then check that `nspacl` equals
+    `{supabase_admin=UC/supabase_admin,postgres=U*/supabase_admin,anon=U/supabase_admin,authenticated=U/supabase_admin,service_role=U/supabase_admin}`
+    for both schemas. A hosted project already has these grants.
+  - **Disposable/local restored copies only:** measure the extension-member owners and ACLs (see the restored-copy
+    note in the rehearsal) before treating the copy as equivalent.
+  - **The 5 restored synthetic Auth sessions:**
+    1. Confirm that `auth.sessions` has 5 rows and that all of their `user_id`s are in the fixture id set (id hash
+       equals the backup's).
+    2. As `postgres`, run `DELETE FROM auth.sessions WHERE user_id IN (<fixture role user ids>)`. This cascades to
+       `auth.refresh_tokens` and `auth.mfa_amr_claims`.
+    3. Confirm 0/0/0, then resume services. A normal Staging Candidate run re-seeds the fixture.
+
+    Their access tokens expired long ago. Revoking the sessions also kills the refresh tokens, and 262's probe already
+    requires a live `auth.sessions` row.
 - **Failure modes:**
   - a failing precondition means nothing was applied: stop and re-review;
   - a failing apply means the single transaction rolls back: staging stays at 261;
