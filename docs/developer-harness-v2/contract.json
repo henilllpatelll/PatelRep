@@ -1,0 +1,187 @@
+{
+  "$comment": "Developer Harness V2 declarative architecture contract (Phase 1). This file DECLARES intended authority; it enforces nothing at runtime. Runtime enforcement is introduced in Phase 2+ and authoritative enforcement remains GitHub rulesets, environments and the existing CI/Staging gates. See 02-architecture-contract.md and 03-authority-and-threat-model.md.",
+  "version": 1,
+  "baseline": {
+    "repository": "henilllpatelll/PatelRep",
+    "main_sha": "218a882b15ed8f928f9a8b7d82b6ea8bb1ed0d37",
+    "audit_date": "2026-11-21"
+  },
+  "scope": {
+    "subject": "developer-agents",
+    "description": "Claude Code agents that help a human engineer change the PatelRep repository.",
+    "excludes": "customer-agents",
+    "customer_agent_description": "The customer-facing Agent Harness (H1-H7: docs/agent-harness/, apps/api agent runtime, migrations 238+). Developer-harness roles hold no runtime authority over it and cannot activate, grant, or bill it."
+  },
+  "pull_requests": {
+    "A": {
+      "title": "Developer Harness V2 Core — Phases 1–7",
+      "branch": "feat/developer-harness-v2-core",
+      "phases": [1, 2, 3, 4, 5, 6, 7],
+      "draft_until": "complete core project reviewed"
+    },
+    "B": {
+      "title": "Developer Harness V2 CI Integration and Final Verification",
+      "phases": [8]
+    }
+  },
+  "phases": [
+    { "number": 1, "name": "Baseline and architecture contract", "pr": "A", "model": "claude-opus-5-5" },
+    { "number": 2, "name": "Permission and action safety", "pr": "A", "model": "claude-opus-5-5" },
+    { "number": 3, "name": "Context and memory optimization", "pr": "A", "model": "claude-sonnet-5-5" },
+    { "number": 4, "name": "Developer roles and task routing", "pr": "A", "model": "claude-sonnet-5-5" },
+    { "number": 5, "name": "Coordination and checkpoint recovery", "pr": "A", "model": "claude-opus-5-5" },
+    { "number": 6, "name": "Smart testing and regression prevention", "pr": "A", "model": "claude-sonnet-5-5" },
+    { "number": 7, "name": "Cost, reliability, and evaluation", "pr": "A", "model": "claude-sonnet-5-5" },
+    { "number": 8, "name": "Protected CI integration and end-to-end verification", "pr": "B", "model": "claude-opus-5-5" }
+  ],
+  "models": {
+    "default": "claude-sonnet-5-5",
+    "high_risk_reasoning": "claude-opus-5-5",
+    "classification_and_context": "claude-haiku-5-5"
+  },
+  "topology": {
+    "default": "single-implementer-plus-independent-reviewer",
+    "persistent_swarm": false,
+    "max_concurrent_write_roles": 1,
+    "additional_agents": "only when the coordinator records a justification in the task plan"
+  },
+  "action_classes": {
+    "allowed": "Local, reversible, inside the task worktree on a dedicated non-protected branch.",
+    "task_authorized": "Permitted only when the human's task request explicitly includes it; has shared side effects (CI minutes, shared staging).",
+    "human_approval": "Requires an explicit, per-occurrence human approval naming the exact target; approval never carries over to a new SHA or a new target.",
+    "forbidden": "No developer-harness role may perform it, under any approval. Humans perform these through existing trusted workflows only."
+  },
+  "actions": {
+    "read_repository": "allowed",
+    "edit_files_in_task_worktree": "allowed",
+    "run_lightweight_local_checks": "allowed",
+    "commit_to_dedicated_branch": "allowed",
+    "push_dedicated_branch_fast_forward": "task_authorized",
+    "open_draft_pull_request": "task_authorized",
+    "read_github_state": "allowed",
+    "install_or_upgrade_dependencies": "human_approval",
+    "author_new_forward_only_migration": "human_approval",
+    "modify_control_plane_files": "human_approval",
+    "modify_agent_instructions_or_hooks": "human_approval",
+    "run_local_docker_or_database_stack": "human_approval",
+    "run_supabase_cli_against_remote_project": "forbidden",
+    "dispatch_any_workflow": "forbidden",
+    "push_to_protected_main": "forbidden",
+    "force_push_or_rewrite_reviewed_history": "forbidden",
+    "merge_pull_request": "forbidden",
+    "enable_auto_merge": "forbidden",
+    "approve_pull_request_as_gate": "forbidden",
+    "mark_pull_request_ready_for_review": "human_approval",
+    "modify_existing_migration": "forbidden",
+    "supabase_migration_repair": "forbidden",
+    "apply_migration_to_staging_or_production": "forbidden",
+    "deploy_production": "forbidden",
+    "dispatch_production_release_or_rollback": "forbidden",
+    "deploy_or_mutate_staging_directly": "forbidden",
+    "publish_mobile_build_or_ota_update": "forbidden",
+    "change_repository_rulesets_secrets_environments_or_permissions": "forbidden",
+    "read_production_or_publisher_credentials": "forbidden",
+    "access_customer_data": "forbidden",
+    "activate_customer_agent_execution": "forbidden",
+    "grant_customer_agent_autonomy_or_decide_v2": "forbidden",
+    "enable_customer_agent_billing": "forbidden",
+    "bypass_git_hooks_or_ci": "forbidden",
+    "create_alternate_publishing_or_deployment_path": "forbidden"
+  },
+  "roles": {
+    "coordinator": {
+      "model": "claude-sonnet-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository", "read_github_state", "run_lightweight_local_checks"]
+    },
+    "planner": {
+      "model": "claude-opus-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository", "read_github_state"]
+    },
+    "implementer": {
+      "model": "claude-sonnet-5-5",
+      "writes_code": true,
+      "may_perform": ["read_repository", "edit_files_in_task_worktree", "run_lightweight_local_checks", "commit_to_dedicated_branch", "push_dedicated_branch_fast_forward", "open_draft_pull_request", "read_github_state"]
+    },
+    "test_coordinator": {
+      "model": "claude-haiku-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository", "run_lightweight_local_checks"]
+    },
+    "independent_reviewer": {
+      "model": "claude-sonnet-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository", "read_github_state", "run_lightweight_local_checks"]
+    },
+    "security_reviewer": {
+      "model": "claude-opus-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository", "read_github_state", "run_lightweight_local_checks"]
+    },
+    "context_manager": {
+      "model": "claude-haiku-5-5",
+      "writes_code": false,
+      "may_perform": ["read_repository"]
+    }
+  },
+  "protected_paths": [
+    ".github/**",
+    "supabase/migrations/**",
+    "scripts/**",
+    ".githooks/**",
+    ".claude/settings.json",
+    ".claude/hooks/**",
+    ".wolf/hooks/**",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "supabase/staging-reviewed-migrations.json",
+    "docs/staging-previews/**"
+  ],
+  "protected_infrastructure": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/mobile-ci.yml",
+    ".github/workflows/staging-candidate.yml",
+    ".github/workflows/staging-reviewed-migration-preview.yml",
+    ".github/workflows/staging-db-migrate.yml",
+    ".github/workflows/production-release.yml",
+    ".github/workflows/production-rollback.yml",
+    ".github/workflows/claude-feature-orchestrator.yml",
+    ".github/workflows/autonomous-feature-builder.yml",
+    ".github/workflows/claude-release-engineer.yml",
+    ".github/workflows/claude-release-engineer-auto-merge.yml",
+    ".github/workflows/claude-release-engineer-production-request.yml",
+    "scripts/publish-feature-builder-change.mjs",
+    "scripts/publish-release-engineer-repair.mjs",
+    "scripts/merge-release-engineer-repair.mjs",
+    "scripts/release-engineer-auto-merge-policy.mjs",
+    "scripts/production-release-request-policy.mjs",
+    ".githooks/pre-push"
+  ],
+  "required_status_checks": ["CI Gate", "Staging Gate"],
+  "preserved_exceptions": [
+    {
+      "id": "release-engineer-recovery-auto-merge",
+      "workflow": ".github/workflows/claude-release-engineer-auto-merge.yml",
+      "actor": "PatelRep GitHub App (trusted merge job only)",
+      "status": "pre-existing; preserved unchanged; NOT a V2 grant",
+      "granted_to_v2_roles": false
+    },
+    {
+      "id": "release-engineer-production-request",
+      "workflow": ".github/workflows/claude-release-engineer-production-request.yml",
+      "actor": "PatelRep GitHub App (actions: write only)",
+      "status": "pre-existing; preserved unchanged; NOT a V2 grant",
+      "granted_to_v2_roles": false
+    }
+  ],
+  "external_constraints": [
+    { "id": "hs256-boundary", "owner": "customer Agent Harness security work", "reference": "docs/agent-harness/h7-p2-verified-identity.md" },
+    { "id": "level2-pause-race", "owner": "customer Agent Harness security work", "reference": "docs/agent-harness/h7-p2-verified-identity.md" },
+    { "id": "truncate-privileges", "owner": "customer Agent Harness security work", "reference": "docs/agent-harness/adr-0006-h7-bounded-autonomy.md" }
+  ],
+  "frozen_artifacts": {
+    "migration_262": "supabase/migrations/262_agent_verified_human_identity.sql",
+    "approval_records": ["docs/staging-previews/**", "supabase/staging-reviewed-migrations.json"]
+  }
+}
