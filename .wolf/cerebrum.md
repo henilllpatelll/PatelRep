@@ -1196,7 +1196,8 @@ $//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator
 
 - Decision Log: H2 never flips H0_EXECUTION_SUPPORTED; it adds the exact frozenset controls.H2_EXECUTABLE_TOOLS, pinned by drift tests to bindings.GATEWAY_BINDINGS and the DB allowlist agent__gateway_tool_spec (migration 243). Production execution is refused in code (authorization.process_allows_execution).
 - Decision Log: work-order assignment rules live ONLY in SQL work_order_assign_apply (migration 242), used by both POST /work-orders/{id}/assign and the gateway's single-transaction approved write; never re-implement them in Python.
-- Key Learning: on Windows, Python text-mode writes produce CRLF; `git diff --cached --check` then flags every line. Normalize with sed 's/$//' — except apps/api/RBAC-MATRIX.md, which the repo stores CRLF (regenerate it instead).
+- Key Learning: on Windows, Python text-mode writes produce CRLF; `git diff --cached --check` then flags every line. Normalize with sed 's/
+$//' — except apps/api/RBAC-MATRIX.md, which the repo stores CRLF (regenerate it instead).
 - Do-Not-Repeat (2026-11-14): never put a CASE expression inside a PL/pgSQL IF condition (IF scans to the first THEN); compute it into a variable first.
 - Do-Not-Repeat (2026-11-14): rewriting .wolf/buglog.json with json.dump reformats ~70k lines; append entries textually.
 
@@ -1215,6 +1216,20 @@ $//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator
   "destructive" for the staging guard; the whole pending set is refused until a reviewed preview registry entry exists.
 - Decision Log: H3 provider expense (USD, agent_model_* tables) is separate from customer credits (credit_ledger); H4
   converts settled rows to credits. Paid calls default off at three layers (process env, DB switch, budget policies).
+
+## H7 Phase 2 (verified human identity, migration 262) — learnings (2026-11-20)
+- Inside a SECURITY DEFINER function called through PostgREST: current_setting('role') = the caller's PostgREST role (authenticated/anon/service_role), session_user = authenticator, current_user = owner. Use the role GUC (+ session_user) to refuse non-human callers inside definers.
+- auth.uid() prefers the legacy request.jwt.claim.sub GUC; cross-check it with request.jwt.claims->>'sub'.
+- GoTrue sign-out deletes the auth.sessions row but the access token stays valid for PostgREST until exp; only a DB check of auth.sessions (owner-readable only; postgres has BYPASSRLS) makes sign-out effective. iat is re-minted on refresh -> never step-up.
+- service_role is NOT a member of authenticated; but CI's fixture (ci.yml, NOT Staging Candidate, which grants tables + sequences only) runs "GRANT EXECUTE ON ALL FUNCTIONS ... TO service_role", so in CI an in-function role check is the barrier; on staging the migration ACL itself already excludes service_role.
+- PostgREST v14 itself rejects future iat (PGRST303) and expired tokens before the DB sees them.
+- Staging Candidate auto-applies NON-destructive pending migrations to persistent staging for ANY same-repo PR to main (drafts included; CI runs only on PRs). Opening the PR of a non-destructive migration = applying it to staging.
+  SUPERSEDED by #244 (aed1852d): security-sensitive pending migrations (262 = auth_schema+privilege_grant+protected_object+security_definer) are now REFUSED by Staging Candidate's assertPendingPolicy; they reach staging only via an exact reviewed-preview registry entry + human-approved Staging Reviewed Migration Preview. The refusal on a 262 PR is the expected boundary.
+- agent_run_claim returns {outcome, fencing_token, run:{id,...}, step} (no run_id); the agent dispatch queue is shared across hotels (drain_run processes earlier approved runs first).
+- user_roles.role has a CHECK to the 6 canonical roles; custom roles live in custom_role_id.
+
+## Do-Not-Repeat (H7 P2, 2026-11-20)
+- [2026-11-20] SQL guards: never write `IF NOT (<comparison that can be NULL>)` -- a missing JSON key makes it NULL and the refusal branch is skipped (fail open). Use `IF NOT COALESCE(..., false)` / `IS NOT TRUE` / `IS DISTINCT FROM`.
 
 ## Staging security gate (2026-11-20) — learnings
 - Staging Candidate, Staging Database Migrate and the reviewed preview all plan through staging-migration-apply-workspace.mjs from the trusted main checkout; runApply builds the workspace twice and now re-asserts assertPendingPolicy on the exact pushed bytes.

@@ -46,10 +46,18 @@ P3 depends on P2 (issuance needs provenance). P5 depends on P3 and P4. P8 depend
 | 265 (P6) | journal / tool event type extensions for shadow decisions | no new privilege | 264 recorded | closed event type lists extended | non-destructive expected | forward-only |
 | 266 (P7) | notification outbox (written in the execution txn; `UNIQUE (execution_id, kind)`; leased at-least-once delivery by the API, dead letter), review records | worker: insert only via the execute RPC; API: claim/deliver RPC; tenant-keyed | 264 recorded | outbox rows only created inside execute RPCs | per guard classification | forward-only |
 
+**262 as implemented (Phase 2):** see [h7-p2-verified-identity.md](h7-p2-verified-identity.md). The destructive-SQL
+guard classifies it non-destructive, but the security classifier on `main` (#244, `aed1852d`) classifies it
+security-sensitive (`auth_schema`, `privilege_grant`, `protected_object`, `security_definer`). Staging Candidate therefore
+refuses to auto-apply it; opening its PR is **not** a staging-application decision. 262 reaches staging only through an
+exact reviewed-preview registry entry (pinning the open PR, head SHA, digest, base 261, window ≤ 14 days) plus a
+human-dispatched, environment-approved Staging Reviewed Migration Preview run. The PR is opened first, because the entry
+must pin it.
+
 Existing protections that apply unchanged: CI Gate (smoke + real-DB integration + Database Migration Gate +
 `scripts/schema-contracts.sql`), the destructive-SQL guard, Staging Candidate (auto-applies only non-destructive
-migrations), `staging-reviewed-migration-preview.yml` (registry on `main`, exact PR/SHA/digest pins, human approval),
-staging backup + restore verification. H7 does not modify any workflow or the registry.
+migrations that are not security-sensitive, per #244), `staging-reviewed-migration-preview.yml` (registry on `main`, exact PR/SHA/digest pins, human approval),
+staging backup + restore verification. H7 itself does not modify any workflow or the classifier; each security-sensitive H7 migration needs its own reviewed registry entry (a separate PR).
 
 ## 4. Never implied by any phase
 

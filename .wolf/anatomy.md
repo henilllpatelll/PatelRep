@@ -1102,6 +1102,14 @@
 - `apps/api/tests/integration/agent_specialists_support.py` + `test_agent_specialists_{planning,handoff,engineering}.py` — H5 real-DB suites (~8k tok)
 - `docs/agent-harness/` H5: adr-0004, specialists-engineering.md, specialists-housekeeping.md, tool-intent-matrix.md, handoff.md, threat-model-h5.md, runbook-h5.md, rollout-h5.md
 
+## H7 Phase 2 (2026-11-20)
+- `supabase/migrations/262_agent_verified_human_identity.sql` — DB-verified human (auth.uid + live auth.sessions + current role), non-mutating probe (authenticated only), inactive approval decide v2, credential-journal hotel isolation, deferred approval-transition audit trigger (~9k tok)
+- `apps/api/services/agent_control_center/verified_identity.py` — forwards the user's own token (redacted HumanAccessToken, public key only) to the probe; disabled by default, no route (~1.5k tok)
+- `apps/api/tests/integration/agent_verified_identity_support.py` — real GoTrue sign-in/out, PostgREST rpc, forged-token helper, V2Granted test-only grant
+- `apps/api/tests/integration/test_agent_h7_{verified_human,decide_v2,credential_audit_isolation,approval_audit,level2_race}.py` — real-DB P2 proofs
+- `apps/api/tests/smoke/test_agent_h7_p2_verified_identity_contracts.py` — static 262 + forwarding-client contracts
+- `docs/agent-harness/h7-p2-verified-identity.md` — P2 evidence matrix, trust boundary, race findings, step-up design
+
 ## Staging security gate (2026-11-20)
 - `scripts/migration-security-classifier.mjs` — content-only classifier: pending migrations with SECURITY DEFINER / auth.* relations or auth-function DDL+privileges / dynamic SQL / role authority / any GRANT or ALTER DEFAULT PRIVILEGES (sole carve-out: grant to service_role on a table or signature-matched function created in the same file, never agent_*/JWT hook) / policy+RLS+view widening need the reviewed preview (pinned privileged file)
 - `scripts/migration-security-classifier.test.mjs` — ~145 classifier, planner and trust-boundary tests (in CI node list)
