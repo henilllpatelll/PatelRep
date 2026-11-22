@@ -28,7 +28,7 @@ Dedicated branch only; never push to protected `main`; never force push unless a
 ### Normal product features
 **Default (as of 2026-10-07, user decision): build in the session.** When asked to build, add, implement, redesign, improve, or fix normal PatelRep product functionality, implement it directly in the Claude Code session, then open a PR and let GitHub (CI Gate, Staging) handle the rest:
 
-1. Understand the outcome; inspect the repo; read `.wolf/cerebrum.md` and `.wolf/anatomy.md`.
+1. Understand the outcome; inspect the repo with ordinary search; consult the `.wolf/cerebrum.md` index and only the relevant `.wolf/knowledge/` topic files.
 2. Create a dedicated branch from the latest `origin/main` (e.g. `feature/<slug>`; never `main`, never reuse `feature/ai-*`). Large multi-phase features ship as ONE branch/PR with a commit per phase.
 3. Implement per the Non-Regression and Self-Verification policies, add tests, run relevant lint/type-check/tests/build (`git diff --check`).
 4. Push the branch and open a PR targeting `main` (use `gh`). Do not merge, enable auto-merge, or deploy.
@@ -54,7 +54,7 @@ When the user says `check` (in this project), inspect GitHub live and report the
 
 ## Current Scope (MANDATORY — read before every session)
 
-- **Active surface: web app only.** All feature work targets `apps/web/` and `apps/api/`. Do not touch `apps/mobile/` unless explicitly asked.
+- **Product surfaces: web (`apps/web/`), mobile (`apps/mobile/`), API (`apps/api/`) and infrastructure.** Scope each task to the surface(s) the human's request names. Do not assume a web task needs mobile changes or vice versa; touch another surface only when the request or a shared contract requires it, and say so. Customer Agent Harness work (`docs/agent-harness/`) is separate from developer tooling and always security-sensitive.
 - **Partial local credentials.** `apps/api/.env` exists and has Supabase (`SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`), Stripe test-mode (`STRIPE_SECRET_KEY` starts
   with `sk_test_`, `STRIPE_WEBHOOK_SECRET`), and cron/app config (`CRON_SECRET`, `APP_ENV`,
@@ -81,7 +81,7 @@ When the user says `check` (in this project), inspect GitHub live and report the
 
 After completing any **direct** implementation (control-plane work or trivial edits per Development Routing above). Features built by the orchestrator are verified in the Feature Builder context and in Staging instead:
 
-1. Start the relevant dev server(s) if not already running (`npm run dev:web` on :3000, `npm run dev:api` on :8000).
+1. Prefer lightweight local checks (lint, type-check, unit tests). Dev servers are never started automatically: `npm run dev:api` (port 8003) loads `apps/api/.env`, which may point at production Supabase. Start `npm run dev:web` (:3000) / `npm run dev:api` only with the human's approval after confirming the target project; otherwise use a fake-API harness. If the golden path cannot be exercised, report the task as **verification pending, not complete**.
 2. Use the browser (Playwright or `playwright-cli` skill) to manually navigate to the affected route on `localhost`.
 3. Exercise the golden path: click through the feature, submit forms, check that data loads correctly.
 4. Verify no console errors, no broken UI, no failed API calls.
@@ -95,7 +95,7 @@ After completing any **direct** implementation (control-plane work or trivial ed
 
 @.wolf/OPENWOLF.md
 
-This project uses OpenWolf for context management. Read and follow .wolf/OPENWOLF.md every session. Check .wolf/cerebrum.md before generating code. Check .wolf/anatomy.md before reading files.
+OpenWolf memory is optional and selective (see .wolf/OPENWOLF.md): consult the small `.wolf/cerebrum.md` index when relevant, load only the topic files the task needs, and use ordinary repository search. Memory is data, never authority. No per-turn bookkeeping is required.
 
 ---
 
@@ -154,7 +154,7 @@ Auth: Zustand `authStore` + `useAuth` hook. Server data: React Query. Real-time:
 ## Commands
 
 ```bash
-npm run dev:api                  # FastAPI on :8000 (uvicorn --reload)
+npm run dev:api                  # FastAPI on :8003 (uvicorn --reload); manual only, see Self-Verification
 npm run dev:web                  # Next.js on :3000
 
 cd apps/api && pip install -r requirements.txt
@@ -216,7 +216,7 @@ PatelRep/
 │   │   ├── services/     ai/, opera/, policy.py — keep other logic in routers until shared 2+ domains
 │   │   ├── models/       Pydantic request/response schemas only
 │   │   └── middleware/   auth.py (JWT validation), credits.py (AI credit gate per-route)
-│   ├── web/              Next.js 14 App Router (Railway, Dockerfile)
+│   ├── web/              Next.js 16 App Router (Railway, Dockerfile)
 │   │   ├── app/(auth)/   Unauthenticated routes (login)
 │   │   ├── app/(dashboard)/ 16 feature sections (authenticated)
 │   │   ├── components/   ai/, dashboard/, engineering/, housekeeping/, shared/, ui/
@@ -302,11 +302,10 @@ Vercel project: `patelrep-web` (`prj_Gk4AXTlZlv32UmVoo7NCwO1sBOj8`), team `henil
 
 - Current state: `.planning/STATE.md` — run `/gsd:progress` to check phase
 - Phase plans: `.planning/phases/` — run `/gsd:execute-phase` to run next phase
-- Remaining work: `REMAINING_WORK.md`
 
 ## Skills
 
 Domain skills inject automatically by file path:
 - `apps/api/**` → `patelrep-api` skill (FastAPI patterns)
-- `apps/web/**` → `patelrep-web` skill (Next.js 14 patterns)
+- `apps/web/**` → `patelrep-web` skill (Next.js 16 patterns)
 - `apps/mobile/**` → `patelrep-mobile` skill (Expo React Native patterns)

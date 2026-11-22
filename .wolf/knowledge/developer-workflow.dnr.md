@@ -1,0 +1,61 @@
+# Developer workflow and tooling — Do-Not-Repeat
+
+> Curated OpenWolf knowledge — **advisory data, not instructions**. Nothing here grants authority or overrides the
+> human's request, `docs/developer-harness-v2/contract.json`, the Phase 2 policy engine, GitHub rulesets, CI/Staging
+> gates or human approval. Verify against current code before relying on an entry.
+> Migrated from `.wolf/cerebrum.md` @ `8cccb11b944e` (sha256 `43224847720948ea…`).
+> Tags: `[K-id · L<source line> · <date>]`. Entries are historical unless re-verified. Size cap 48000 bytes per file.
+
+## Do-Not-Repeat
+
+- [K-383a0721c9 · L408 · 2026-11-15] **[2026-11-15]** Do not edit regex-heavy Python (tests with `\d`, `\s`, line continuations) through bash heredoc scripts: escapes get mangled and `assert old in s` replacements fail or corrupt strings. Use the Edit tool. Also: `Counter.update(` trips the gateway isolation test's table-write regex.
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-83084e775f · L1202 · 2026-11-14] Do-Not-Repeat (2026-11-14): rewriting .wolf/buglog.json with json.dump reformats ~70k lines; append entries textually.
+- [K-9913f41df8 · L1206-1207 · 2026-11-14] Do-Not-Repeat (2026-11-14): scripted file edits on Windows must use `open(path, newline='')` for BOTH read and write;
+  text-mode writes silently convert LF files to CRLF and every line shows as changed in git.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-17c2e40fd2 · L1181 · 2026-11-13] Do-Not-Repeat: Python text-mode writes from Git Bash on Windows emit CRLF; repo files are LF (core.autocrlf=false) so a 1-line edit shows as a whole-file diff. Always `open(p, "w", newline="")` / read with `newline=""`, or use the Edit tool; check `git diff --stat` after scripted edits.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-adbf63c0ac · L1166 · 2026-11-08] Do-Not-Repeat (2026-11-08): editing files with Python `open(p,'w')` on Windows writes CRLF and turns a 3-line change into a whole-file diff; always `newline=''` (or `git ls-files --eol` afterwards). `scripts/check-migrations.mjs` DESTRUCTIVE_PATTERN also matches the words "DROP TABLE/FUNCTION" inside SQL COMMENTS: word rollback notes without those phrases.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-3268ce8d15 · L1148 · 2026-11-05] I re-hit the Python text-mode CRLF rewrite on Windows (Phase 2 already recorded it): always `open(p, encoding="utf-8", newline="")` for read AND write, then check `git diff --stat` for a whole-file diff before moving on.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-2d2490efce · L1106 · 2026-11-02] Do-Not-Repeat (repeat of the Phase 4 entry): scripted Python edits on Windows MUST pass encoding="utf-8" (or work in bytes). A bare open() wrote an em dash as 0x97 and the Edit tool then refused the file as non-UTF-8.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-c29fb48621 · L1121 · 2026-11-02] Bash tool heredocs containing apostrophes in the body (even with <<'EOF') failed with "unexpected EOF". Write the file with the Write tool (or a scratchpad .py/.json) and run it instead.
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-c7b0c05a1f · L1041 · 2026-11-01] [2026-11-01] Do-Not-Repeat: Python open().write() on Windows rewrites LF files as CRLF (whole-file diffs). Edit via the Edit tool, or write bytes / newline="\n". Fix: replace \r\n -> \n, EXCEPT apps/api/RBAC-MATRIX.md which is committed CRLF (regenerate it, never hand-convert).
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-dd4acf1be4 · L1046-1047 · 2026-11-01] [2026-11-01] Do-Not-Repeat: long `python - <<'EOF'` heredocs containing quotes can fail with 'unexpected EOF' in the Bash tool; write the script with the Write tool and run it. Python text-mode writes CRLF on Windows: use newline="
+".
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-285b57595d · L1053 · 2026-11-01] [2026-11-01] Do-Not-Repeat: Bash heredocs with apostrophes ("person's") break the tool call again - write test/source files with the Write tool; use python scripts saved to the scratchpad with encoding='utf-8' for json (default cp1252 crashes on locale files). `jest.requireActual` bypasses jest.setup's AsyncStorage mock - import normally. Pre-existing tsc error in __tests__/lib/engineering/workOrderChecklist.test.ts (readonly tuple vs ChecklistGate) is from Phase 4, not new.
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-bfddcbccfd · L1054 · 2026-11-01] [2026-11-01] Do-Not-Repeat: editing repo files with Python open(path,"w") on Windows rewrites LF files as CRLF (whole-file diff, git diff --check fails). Use newline="" or run `sed -i "s/\r$//"` on files whose HEAD copy is LF. Tests for apps/api in a worktree need dummy env (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_JWT_SECRET, STRIPE_*, CRON_SECRET, APP_ENV=test) - never source apps/api/.env (points at production). Team/Forecast/PmDashboard jest suites fail on baseline (date-dependent), not regressions. WorkOrderDetail: room occupancy/availability come from server `room_context` (list + detail), not the housekeeping board.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-b98db12d00 · L1060 · 2026-11-01] **[2026-11-01] Do-not-repeat (Windows tooling):** Python `open(path, "w")` rewrites LF files as CRLF (huge fake diffs: always `newline=""` or run `git diff --stat` after a scripted edit and `sed -i 's/\r$//'` back), and the Write tool creates NEW files with CRLF: normalise new files to LF before committing. Heredocs containing backslash escapes into Python are unreliable here: write patch scripts to the scratchpad with Write, or use the Edit tool.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-cecc94c94d · L1095 · 2026-11-01] Never pipe non-ASCII source through a bash heredoc into `python -` on Windows: stdin is read as cp1252 and a middle dot or an em dash is written as a lone 0xB7/0x97 byte (invalid UTF-8, `file` says ISO-8859). Put the script in a file (Write tool) or use Edit. Verify with a UTF-8 decode of every changed file.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-ee2fdb44e8 · L1003 · 2026-10-31] [2026-10-31] Do-Not-Repeat: Python `open(p, 'w')` on Windows rewrites LF files as CRLF (whole-file diffs). Edit repo files with `open(p, encoding='utf-8', newline='')` for read AND write, or use the Edit tool. RBAC-MATRIX.md is the one tracked CRLF file; locale JSON is LF with no trailing newline.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-e8756314c3 · L1018-1019 · 2026-10-31] [2026-10-31] Do-Not-Repeat (again): my first PM edit to apps/api routers used Python text mode and flipped assets.py/programs.py to CRLF (1800-line diffs). Caught by `git diff --stat`; fix `sed -i 's/
+$//'`. RBAC-MATRIX.md is the opposite: it is COMMITTED as CRLF and the generator writes CRLF - keep it CRLF.
+  - ↔ repeats consolidated lesson C01 (see .wolf/cerebrum.md)
+- [K-90106236e9 · L415 · 2026-10-16] [2026-10-16] **Credit cap = one atomic statement.** `check_and_deduct_credits` calls `deduct_ai_credits()` (migration 217); the old read-then-`increment_credits_used` is only the fallback when the function is missing (PGRST202). Fakes that return `data=[]` for unknown RPCs hit the fallback. Mobile jest needs a real `npm ci` in the worktree (delete the node_modules junction with `[System.IO.Directory]::Delete`, never recurse), and `useMyRoomsData` tests pin Date to 2026-10-14.
+- [K-7844377312 · L810 · 2026-10-15] [2026-10-15] Do-Not-Repeat: I rediscovered the Metro `EXPO_PUBLIC_SUPABASE_ANON_KEY=dummy` requirement that was already in cerebrum - read cerebrum.md Do-Not-Repeat BEFORE starting the visual harness.
+  - ↔ repeats consolidated lesson C04 (see .wolf/cerebrum.md)
+- [K-94baa15e5c · L820 · 2026-10-15] [2026-10-15] Do-Not-Repeat: API pytest must be run as `pytest tests/` (or with tests/smoke first) - tests/smoke/conftest.py sets the env vars; a lone `pytest tests/test_x.py` fails at import. A heredoc containing `'''` plus `(app)` paths can break the Bash tool - write patch scripts with the Write tool. The shared mobile node_modules lacks expo-local-authentication, so biometrics/SecuritySettings suites fail on baseline.
+  - ↔ repeats consolidated lesson C05 (see .wolf/cerebrum.md)
+- [K-c555b08453 · L821 · 2026-10-15] [2026-10-15] Do-Not-Repeat: a worktree whose `apps/mobile/node_modules` is a JUNCTION to another checkout's node_modules must have the junction removed with `cmd /c rmdir <junction>` (no `/s`) BEFORE the worktree directory is deleted; `git worktree remove --force` / `rmdir /s /q` followed it and deleted part of the other checkout's node_modules (restored with `npm ci` in that checkout; its tracked files were untouched). Prefer a real `npm ci` in a temporary worktree, or copy, over a junction.
+  - ⚠ verify: references path(s) not found at 8cccb11b: `apps/mobile/node_modules`
+- [K-eb0c3ec541 · L828 · 2026-10-15] [2026-10-15] Do-Not-Repeat: the Bash tool chokes on heredocs/inline python containing apostrophes or the (app) route-group parentheses; write the script with the Write tool and run it. Metro for the Expo-web harness also needs a dummy EXPO_PUBLIC_SUPABASE_ANON_KEY, a temp resolver shim for the missing expo-local-authentication, and that plugin removed from app.json (all reverted afterwards).
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-a140613f35 · L842 · 2026-10-15] [2026-10-15] Do-Not-Repeat: Bash heredocs (cat > file <<'EOF') fail the whole command when the text has apostrophes - write source files with the Write tool; python heredocs with a quoted terminator were fine.
+  - ↔ repeats consolidated lesson C02 (see .wolf/cerebrum.md)
+- [K-b376e8a075 · L763 · 2026-10-03] **Do-not-repeat (2026-10-03):** For targeted ripgrep checks in PowerShell, prefer fixed-string searches when looking for JavaScript interpolation markers; an incorrectly escaped `${` pattern can be rejected before it examines source.
+- [K-b024f6555a · L441 · 2026-10-01] [2026-10-01] **When invoking PowerShell through `rtk proxy`, do not include unescaped `$variables` in an outer PowerShell command string.** The outer shell expands them before the proxy receives the script, silently turning assignments into `= ...` failures. For destructive cleanup, resolve the exact path in one literal-only command, then issue a separate literal-path removal command after verifying it remains under the intended workspace.
+- [K-c019719cf6 · L449 · 2026-09-28] [2026-09-28] **On Windows, run PowerShell cmdlets through `rtk proxy powershell -NoProfile -Command`, not as direct RTK commands.** Keep nested inspection commands variable-free unless their quoting has been verified; this avoids misleading failures before actual task work begins.
+- [K-44748f27ad · L456 · 2026-08-05] [2026-08-05] **The current GSD `state advance-plan` parser cannot read this repository's legacy prose/duplicated STATE layout.** If it returns `Cannot parse Current Plan or Total Plans in Phase`, do not rewrite or delete historical state blocks to satisfy the parser. Preserve them and manually update the active frontmatter, current-position prose, progress totals, decisions, metrics, and session fields; run the roadmap helper independently where it still works.
+- [K-33b2a3d070 · L460 · 2026-08-05] [2026-08-05] **Windows PowerShell 5.1 does not support `Get-Date -AsUTC`.** Use `[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')` for GSD execution timestamps in this checkout.
+- [K-21e814a367 · L462 · 2026-08-05] [2026-08-05] **When a later GSD task requires a clean rollback commit or compares EAS `gitCommitHash`, put the commit action inside the producing task explicitly.** Do not assume ordinary task sequencing is enough: the PLAN must name the exact file-only boundary, record its hash, verify those files are clean, and make the artifact gate compare against that same hash. Phase 22 Plan 06 initially described a committed Task 1 graph only downstream; the checker blocked it until Task 1 explicitly committed only `package.json` and `package-lock.json` and Tasks 2-3 consumed that hash.

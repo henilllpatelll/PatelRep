@@ -197,9 +197,8 @@ test('settings: the blocking policy hook covers shell, read and edit tools and f
       assert.ok(!h.async, 'enforcement hook must not be async')
     }
   }
-  // OpenWolf advisory hooks are kept, separately, after the policy hook.
-  assert.ok(pre.some((e) => e.hooks.some((h) => /wolf pre-read/.test(h.command))))
-  assert.ok(pre.some((e) => e.hooks.some((h) => /wolf pre-write/.test(h.command))))
+  // Phase 3: OpenWolf advisory hooks are no longer registered (opt-in only); the policy hook is the sole PreToolUse entry.
+  assert.ok(!pre.some((e) => e.hooks.some((h) => /wolf (pre-read|pre-write)/.test(h.command))), 'advisory OpenWolf pre-hooks are opt-in, not registered')
 })
 
 test('settings: bypass mode is disabled and broad automatic allowances are gone', () => {
@@ -244,8 +243,8 @@ test('session start no longer launches dev servers (static proof)', () => {
   for (const banned of ['dev:web', 'dev:api', 'startDevServers', 'portInUse', '8000', "'node:net'", 'detached']) {
     assert.ok(!hookSrc.includes(banned), `local-hook.mjs no longer contains ${banned}`)
   }
-  const sessionCommands = settings.hooks.SessionStart.flatMap((e) => e.hooks.map((h) => h.command))
-  assert.ok(sessionCommands.length >= 1, 'OpenWolf session-start hook is preserved')
+  // Phase 3 removed the advisory OpenWolf session-start registration; whatever SessionStart hooks exist must not start servers.
+  const sessionCommands = (settings.hooks.SessionStart ?? []).flatMap((e) => e.hooks.map((h) => h.command))
   for (const c of sessionCommands) assert.doesNotMatch(c, /dev-servers|npm run dev/)
   assert.doesNotMatch(JSON.stringify(settings.hooks), /dev-servers|npm run dev:/)
   const pkg = JSON.parse(read('package.json'))

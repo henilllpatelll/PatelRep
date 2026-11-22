@@ -3,7 +3,7 @@
   "openwolf": {
     "enabled": true,
     "anatomy": {
-      "auto_scan_on_init": true,
+      "auto_scan_on_init": false,
       "rescan_interval_hours": 6,
       "max_description_length": 100,
       "max_files": 500,
@@ -37,7 +37,7 @@
       "chars_per_token_prose": 4.0
     },
     "cron": {
-      "enabled": true,
+      "enabled": false,
       "max_retry_attempts": 3,
       "dead_letter_enabled": true,
       "heartbeat_interval_minutes": 30,
