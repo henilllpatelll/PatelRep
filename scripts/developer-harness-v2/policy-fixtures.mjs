@@ -7,6 +7,7 @@
 //         FP (false-positive assessment: legitimate actions and the friction they now carry).
 
 import { GITHUB_WRITE_FIXTURES } from './policy-fixtures-github-writes.mjs'
+import { M1_FIXTURES } from './policy-fixtures-m1.mjs'
 
 export const ROOT = 'C:/work/PatelRep'
 export const EXISTING_FILES = new Set([
@@ -474,4 +475,6 @@ export const FIXTURES = [
   B('FP-20', 'FP', `node -e "fetch('https://api.github.com/repos/o/r/pulls/1/merge')"`, 'forbidden', { note: 'remediation A: mutation-only GitHub endpoint inside opaque code, even a GET' }),
   // GW/GM — Phase 2 final remediation: GitHub repository file writes (REST contents API + MCP)
   ...GITHUB_WRITE_FIXTURES,
+  // M1 - Phase 4 OpenWolf protected paths (human-approved)
+  ...M1_FIXTURES,
 ]

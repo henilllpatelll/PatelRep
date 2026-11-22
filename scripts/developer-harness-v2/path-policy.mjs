@@ -75,6 +75,9 @@ export function globToRegExp(glob) {
 
 const DEPENDENCY_MANIFESTS = /(^|\/)(package\.json|package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|requirements[^/]*\.txt|pyproject\.toml|poetry\.lock|pipfile(\.lock)?|uv\.lock|constraints[^/]*\.txt)$/i
 const AGENT_INSTRUCTION_GLOBS = ['CLAUDE.md', 'AGENTS.md', '.claude/**', '.wolf/hooks/**', '.mcp.json']
+// Phase 4 M1: OpenWolf instruction/memory files take the same label as other agent instructions. config.json, cron-manifest.json,
+// anatomy.md and buglog.json stay generic control-plane. Both labels are human_approval; the class is identical.
+AGENT_INSTRUCTION_GLOBS.push('.wolf/OPENWOLF.md', '.wolf/cerebrum.md', '.wolf/knowledge/**', '.wolf/reframe-frameworks.md', '.wolf/identity.md')
 const TEST_OR_DOC = /(^|\/)(tests?|__tests__|e2e|docs)\/|\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)test_[^/]*\.py$|_test\.py$|\.md$/i
 
 export function createPathPolicy(contract, ctx) {

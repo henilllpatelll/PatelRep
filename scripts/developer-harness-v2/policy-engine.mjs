@@ -82,6 +82,9 @@ export const ACTION_FLOOR = {
 const REQUIRED_PROTECTED_PATHS = ['.github/**', 'supabase/migrations/**', 'scripts/**', '.githooks/**', '.claude/settings.json', '.claude/hooks/**',
   '.claude/**', '.mcp.json', '.wolf/hooks/**', 'CLAUDE.md', 'AGENTS.md', '**/CLAUDE.md', '**/AGENTS.md', 'docs/developer-harness-v2/**',
   'supabase/staging-reviewed-migrations.json', 'docs/staging-previews/**']
+// Phase 4 M1 (human-approved): OpenWolf files that steer or record developer-agent behavior. Appended, never replacing.
+REQUIRED_PROTECTED_PATHS.push('.wolf/OPENWOLF.md', '.wolf/config.json', '.wolf/cron-manifest.json', '.wolf/cerebrum.md', '.wolf/knowledge/**', '.wolf/anatomy.md',
+  '.wolf/buglog.json', '.wolf/reframe-frameworks.md', '.wolf/identity.md')
 const REQUIRED_INFRASTRUCTURE = ['.github/workflows/ci.yml', '.github/workflows/staging-candidate.yml', '.github/workflows/production-release.yml',
   '.github/workflows/production-rollback.yml', '.github/workflows/claude-release-engineer-auto-merge.yml', 'scripts/publish-feature-builder-change.mjs',
   'scripts/publish-release-engineer-repair.mjs', 'scripts/merge-release-engineer-repair.mjs', '.githooks/pre-push']

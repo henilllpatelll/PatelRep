@@ -146,7 +146,32 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     ...readdirSync(path.join(REPO, '.wolf/hooks')).filter((f) => f.endsWith('.js') || f === 'package.json').map((f) => `.wolf/hooks/${f}`),
     ...readdirSync(path.join(REPO, 'scripts/developer-harness-v2')).filter((f) => f.endsWith('.mjs') && f !== 'policy-hook.test.mjs').map((f) => `scripts/developer-harness-v2/${f}`),
   ]
-  for (const rel of same) assert.equal(read(rel), gitShow(PHASE2, rel), `${rel} unchanged`)
+  // Phase 4 M1 (human-approved) is the ONLY permitted change to the Phase 2 enforcement set, and it must be purely additive:
+  // every Phase 2 line survives in order (a trailing comma added to a JSON list item is tolerated), nothing is removed or reworded.
+  const M1_FILES = new Set(['docs/developer-harness-v2/contract.json', 'scripts/developer-harness-v2/policy-engine.mjs', 'scripts/developer-harness-v2/path-policy.mjs', 'scripts/developer-harness-v2/policy-fixtures.mjs'])
+  const M1_NEW = new Set(['scripts/developer-harness-v2/policy-fixtures-m1.mjs', 'scripts/developer-harness-v2/m1-hardening.test.mjs'])
+  const LF = String.fromCharCode(10)
+  const CR = String.fromCharCode(13)
+  const norm = (l) => (l.endsWith(CR) ? l.slice(0, -1) : l).replace(/,\s*$/, '')
+  const additiveOver = (oldText, newText) => {
+    const next = newText.split(LF).map(norm)
+    let i = 0
+    for (const line of oldText.split(LF).map(norm)) {
+      while (i < next.length && next[i] !== line) i++
+      if (i === next.length) return line
+      i++
+    }
+    return null
+  }
+  for (const rel of same) {
+    if (M1_NEW.has(rel)) { assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in Phase 4`); continue }
+    if (M1_FILES.has(rel)) {
+      assert.equal(additiveOver(gitShow(PHASE2, rel), read(rel)), null, `${rel}: a Phase 2 line was removed or changed (M1 must be additive)`)
+      assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved M1 addition`)
+      continue
+    }
+    assert.equal(read(rel), gitShow(PHASE2, rel), `${rel} unchanged`)
+  }
 })
 
 test('existing local hook commands are syntactically valid', () => {

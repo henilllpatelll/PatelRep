@@ -160,7 +160,16 @@
     ".vscode/**",
     ".gitattributes",
     "supabase/staging-reviewed-migrations.json",
-    "docs/staging-previews/**"
+    "docs/staging-previews/**",
+    ".wolf/OPENWOLF.md",
+    ".wolf/config.json",
+    ".wolf/cron-manifest.json",
+    ".wolf/cerebrum.md",
+    ".wolf/knowledge/**",
+    ".wolf/anatomy.md",
+    ".wolf/buglog.json",
+    ".wolf/reframe-frameworks.md",
+    ".wolf/identity.md"
   ],
   "protected_infrastructure": [
     ".github/workflows/ci.yml",
@@ -213,6 +222,13 @@
     "added_actions": ["interact_with_pull_request_or_issue", "modify_pull_request_state", "run_unrecognized_command", "run_interpreter_inline_code", "run_unreviewed_script", "start_local_dev_server", "discard_or_rewrite_local_work", "manage_local_refs", "modify_git_configuration_or_remotes", "network_request_or_remote_shell", "read_remote_production_state", "edit_outside_task_worktree", "edit_credential_file", "terminate_processes", "launch_nested_agent_session", "run_unclassifiable_shell_input"],
     "added_protected_paths": [".claude/**", ".mcp.json", "**/CLAUDE.md", "**/AGENTS.md", "docs/developer-harness-v2/**", ".husky/**", ".vscode/**", ".gitattributes"],
     "rule": "Phase 2 additions only refine or tighten Phase 1. Every added action is human_approval or stricter, except interact_with_pull_request_or_issue (task_authorized, the same class as open_draft_pull_request). No Phase 1 action class changed."
+  },
+  "m1_hardening": {
+    "phase": 4,
+    "approved_by": "human owner, explicit per-occurrence approval for exactly these nine paths (including .wolf/identity.md)",
+    "added_protected_paths": [".wolf/OPENWOLF.md", ".wolf/config.json", ".wolf/cron-manifest.json", ".wolf/cerebrum.md", ".wolf/knowledge/**", ".wolf/anatomy.md", ".wolf/buglog.json", ".wolf/reframe-frameworks.md", ".wolf/identity.md"],
+    "not_protected_transient": [".wolf/memory.md", ".wolf/token-ledger.json", ".wolf/cron-state.json", ".wolf/suggestions.json"],
+    "rule": "Additive only: no action class, existing protected path or forbidden operation changed. Agent writes to these paths now classify as human_approval (modify_agent_instructions_or_hooks for instruction/memory files, modify_control_plane_files for config/manifest/index files). Memory remains data and never grants authority."
   },
   "frozen_artifacts": {
     "migration_262": "supabase/migrations/262_agent_verified_human_identity.sql",

@@ -1,7 +1,7 @@
 # Developer Harness V2 — Phase 4: Specialized Roles and Deterministic Routing
 
 Scope: PatelRep's internal **developer** harness. It has no authority over the customer Agent Harness (H1–H7).
-Status: implemented on PR #247 (draft). **The OpenWolf M1 protected-path hardening is NOT applied; it awaits explicit human approval (section 5).**
+Status: implemented on PR #247 (draft). The OpenWolf M1 protected-path hardening was **approved by the human owner and applied in a separate remediation commit** (section 5).
 
 ## 1. What was added
 
@@ -10,7 +10,7 @@ Status: implemented on PR #247 (draft). **The OpenWolf M1 protected-path hardeni
 | Seven Claude Code role definitions | `.claude/agents/{coordinator,planner,implementer,test-coordinator,independent-reviewer,security-reviewer,context-manager}.md` |
 | Tool → contract-action capability map, agent-file parser, subset check | `scripts/developer-harness-v2/routing/role-capabilities.mjs` |
 | Deterministic router, spawn guard, finding evaluator | `scripts/developer-harness-v2/routing/router.mjs` |
-| Tests (44) | `scripts/developer-harness-v2/routing/{roles,router}.test.mjs` |
+| Tests (44 + 10 M1) | `scripts/developer-harness-v2/routing/{roles,router}.test.mjs` |
 
 No Phase 1 or Phase 2 file, workflow, migration, product code or memory file was modified. Nothing here starts an agent: the router returns a **plan**.
 
@@ -72,34 +72,28 @@ The plan names a Phase 3 pack (`CATEGORIES`) and passes only that pack's instruc
 
 Default is two spawned agents. Extra roles require a recorded justification in the plan. No daemon, no persistent swarm, no recursive spawning, no background agents, no automatic paid background work. No billing logic was added; Phase 7 owns cost. Measured real usage of the runtime probe (7 one-turn calls, no tool use): ≈ US$0.19 total as reported by the CLI (`total_cost_usd`).
 
-## 5. M1: OpenWolf protected-path hardening — PROPOSAL, NOT APPLIED
+## 5. M1: OpenWolf protected-path hardening — APPROVED AND APPLIED
 
-Residual finding M1 (Phase 3): OpenWolf files that influence developer-agent instructions or memory are not protected paths, so an agent edit is `allowed`. `CLAUDE.md` imports `@.wolf/OPENWOLF.md`.
+Residual finding M1 (Phase 3): OpenWolf files that influence developer-agent instructions or memory were not protected paths, so an agent edit was `allowed`; `CLAUDE.md` imports `@.wolf/OPENWOLF.md`.
 
-**Proposed additive entries for `protected_paths` and `REQUIRED_PROTECTED_PATHS`:**
+**Human approval:** the owner approved M1 as proposed, **including `.wolf/identity.md`**, for exactly these nine paths and for changes limited to `contract.json`, `policy-engine.mjs`, `path-policy.mjs`, fixtures/tests and this document.
 
 ```
-.wolf/OPENWOLF.md        .wolf/config.json         .wolf/cron-manifest.json
-.wolf/cerebrum.md        .wolf/knowledge/**        .wolf/anatomy.md
-.wolf/buglog.json        .wolf/reframe-frameworks.md
+.wolf/OPENWOLF.md   .wolf/config.json   .wolf/cron-manifest.json   .wolf/cerebrum.md   .wolf/knowledge/**
+.wolf/anatomy.md    .wolf/buglog.json   .wolf/reframe-frameworks.md                      .wolf/identity.md
 ```
 
-Optional, owner's call: `.wolf/identity.md` (instruction-like constraints text; not imported by any hook today).
-Deliberately **not** proposed: `.wolf/memory.md`, `.wolf/token-ledger.json`, `.wolf/cron-state.json`, `.wolf/suggestions.json`, `.wolf/hooks/_session.json*` (transient runtime/generated data, rewritten constantly by hooks; protecting them would only create approval noise). `.wolf/hooks/**` is already protected.
+**What changed (all additive):**
+1. `contract.json` — nine entries appended to `protected_paths` (previous 19 kept, in order) and a `m1_hardening` audit block (approval, paths, the transient files deliberately not protected, the additive rule).
+2. `policy-engine.mjs` — the same nine appended to `REQUIRED_PROTECTED_PATHS`, so a contract that omits any one is rejected (`contract.paths_weakened`) and every call is denied.
+3. `path-policy.mjs` — `.wolf/OPENWOLF.md`, `.wolf/cerebrum.md`, `.wolf/knowledge/**`, `.wolf/reframe-frameworks.md` and `.wolf/identity.md` join `AGENT_INSTRUCTION_GLOBS`, so they report `modify_agent_instructions_or_hooks`; `config.json`, `cron-manifest.json`, `anatomy.md` and `buglog.json` report `modify_control_plane_files`. Both labels are `human_approval`; the class never differs.
+4. Tests: `policy-fixtures-m1.mjs` (61 fixtures), `m1-hardening.test.mjs` (10 tests), `fixtures-baseline-pre-m1.json` (the classification of all 528 earlier fixtures under the Phase 3 engine).
 
-**Source files that must change (all themselves protected):**
-1. `docs/developer-harness-v2/contract.json` — append the paths to `protected_paths` (and to `policy_enforcement.added_protected_paths` for the audit trail).
-2. `scripts/developer-harness-v2/policy-engine.mjs` — append the same paths to `REQUIRED_PROTECTED_PATHS`, so a tampered contract cannot drop them.
-3. `scripts/developer-harness-v2/path-policy.mjs` — add `.wolf/OPENWOLF.md` and `.wolf/knowledge/**`, `.wolf/cerebrum.md` to `AGENT_INSTRUCTION_GLOBS` so the class is `modify_agent_instructions_or_hooks` (same `human_approval`) rather than the generic control-plane class. Class is identical; only the label is more precise.
-4. Tests: add negative fixtures to `policy-fixtures.mjs` and assertions in `policy-engine.test.mjs` / `contract.test.mjs`.
+**Before → after (agent Write/Edit/shell/GitHub file write):** the nine paths `allowed` → `human_approval`. Nothing else moved: all 528 earlier fixtures classify identically (asserted per id, and no rank decreases), and `actions`, `protected_infrastructure`, `roles` and `topology` have unchanged digests.
 
-**Existing → proposed classification** (Write/Edit by an agent): `allowed` → `human_approval` (per-occurrence, names the exact path). No action class changes; no path becomes less restrictive; no role gains anything.
+**Deliberately not protected (transient, rewritten by hooks):** `.wolf/memory.md`, `token-ledger.json`, `cron-state.json`, `suggestions.json`. `.wolf/hooks/**` — including `_session.json` — was already protected. `.wolf/hooks/*.js` were not modified.
 
-**Regression tests to add:** each proposed path is `human_approval` for Write, Edit and shell redirection; ordinary `apps/**` edits unchanged; every pre-existing fixture classification is ≥ its previous strictness (ranked comparison against the Phase 2 matrix); `validateContract` rejects a contract that omits any proposed path; `.wolf/memory.md` and `.wolf/hooks/_session.json` stay `allowed`.
-
-**Compatibility impact:** low. Phase 3 made OpenWolf bookkeeping optional ("No per-turn bookkeeping is required"), and OpenWolf's own hooks write via Node, not through a tool call. An agent that edits `cerebrum.md`, `anatomy.md`, `buglog.json` or `knowledge/**` will now trigger an approval prompt; the Phase 3 curation scripts that rewrite `knowledge/**` must be run by the human or approved per run.
-
-**Approval requested:** a narrowly scoped, explicit "approve M1 as proposed (with / without `.wolf/identity.md`)". The instruction to begin Phase 4 is not that approval.
+**Compatibility:** an agent edit to `cerebrum.md`, `anatomy.md`, `buglog.json`, `identity.md` or `knowledge/**` now prompts for approval, and in `bypassPermissions`/`dontAsk`/`auto` modes it is denied. Phase 3 made OpenWolf bookkeeping optional and OpenWolf's own hooks write through Node, not a tool call, so routine sessions are unaffected. Reads are unchanged.
 
 ## 6. Verification evidence
 
