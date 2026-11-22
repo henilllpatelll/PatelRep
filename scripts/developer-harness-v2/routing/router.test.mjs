@@ -374,3 +374,39 @@ test('final review H4: --diff-base is implemented (changedFilesSince, plan CLI, 
   const r = spawnSync(process.execPath, [path.join(HERE, 'router.mjs'), '--task', 'x', '--bogus', 'y'], { encoding: 'utf8' })
   assert.notEqual(r.status, 0, 'unknown CLI options fail instead of being silently ignored')
 })
+
+test('re-review H1: plain phrasings (2FA, service key, tokens, guests, public, any origin, every hotel, who can approve) trigger security review', () => {
+  for (const t of ['disable 2FA', 'expose service key to the client', 'store the API token in localStorage', 'log the user token for debugging', 'allow guests to view rooms without logging in', 'make the endpoint public', 'allow any origin', "let staff read every hotel's reports", 'return reports across all properties', 'change who can approve requests', 'let housekeepers approve purchase orders']) {
+    assert.ok(needsSec(plan(t, ['apps/api/routers/reports.py'])), t)
+  }
+})
+test('re-review H2: real repository file shapes (crypto, supabase server client, invitations, hotels router, [userId], organization)', () => {
+  for (const f of ['apps/api/services/opera/crypto.py', 'apps/web/lib/supabase/server.ts', 'apps/api/routers/staff_invitations.py', 'apps/api/routers/hotels.py', 'apps/mobile/app/(app)/team/[userId].tsx', 'apps/api/services/organization.py']) {
+    assert.ok(plan('Small tweak', [f]).reviews.security, f)
+  }
+  for (const [t, f] of [['Fix a web button style', 'apps/web/components/Button.tsx'], ['Update the room list spacing', 'apps/web/components/HotelCard.tsx'], ['Show the author name on the card', 'apps/web/components/Card.tsx'], ['Fix an ordinary API validation error', 'apps/api/routers/tasks.py']]) {
+    assert.equal(plan(t, [f]).reviews.security, false, `${t}: ordinary work must not be over-escalated`)
+  }
+})
+test('re-review: verify-plan fails on an empty diff and sees staged, unstaged and untracked work', () => {
+  assert.equal(verifyDiffAgainstPlan(plan('Fix a web button style', ['apps/web/lib/x.ts']), []).ok, false)
+  assert.equal(verifyDiffAgainstPlan(plan('Fix a web button style', ['apps/web/lib/x.ts']), []).stops[0].code, 'STOP.EMPTY_DIFF')
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'diffbase2-'))
+  try {
+    const git = (...a) => execFileSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...a], { encoding: 'utf8' })
+    git('init', '-q')
+    mkdirSync(path.join(dir, 'apps/web/lib'), { recursive: true })
+    writeFileSync(path.join(dir, 'apps/web/lib/x.ts'), '1')
+    git('add', '-A'); git('commit', '-qm', 'base')
+    const base = git('rev-parse', 'HEAD').trim()
+    assert.deepEqual(changedFilesSince(base, dir), [], 'nothing changed yet')
+    writeFileSync(path.join(dir, 'apps/web/lib/x.ts'), '2')                       // unstaged
+    mkdirSync(path.join(dir, '.github/workflows'), { recursive: true })
+    writeFileSync(path.join(dir, '.github/workflows/ci.yml'), 'x')                // untracked
+    writeFileSync(path.join(dir, 'staged.txt'), 's'); git('add', 'staged.txt')    // staged
+    assert.deepEqual(changedFilesSince(base, dir).sort(), ['.github/workflows/ci.yml', 'apps/web/lib/x.ts', 'staged.txt'])
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+  for (const argv of [['--task'], ['--task', '--files', 'a'], ['stray']]) {
+    assert.notEqual(spawnSync(process.execPath, [path.join(HERE, 'router.mjs'), ...argv], { encoding: 'utf8' }).status, 0, JSON.stringify(argv))
+  }
+})

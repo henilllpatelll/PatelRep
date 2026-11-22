@@ -31,18 +31,18 @@ export const SECURITY_TRIGGERS = Object.freeze([
     /^(docs\/agent-harness\/|apps\/api\/(services\/)?agents?\/|apps\/api\/.*harness)|(^|[/_.()\[\]@ -])(agent[_-]?harness|decide[_-]?v2|agent[_-]?grants?)([/_.()\[\]@ -]|$)/i,
     /\b(agent harness|customer agents?|agent (grants?|execution|billing|autonomy)|decide_v2|h[1-7] harness|worker lease)\b/i, 'security'),
   T('SEC.AUTHN_AUTHZ', 'Authentication and authorization',
-    /(^|[/_.()\[\]@ -])(auth(?!ors?([/_.()\[\]@ -]|$))[a-z]*|login|logout|session|jwt|oauth|sso|password|mfa|permissions?|guards?|sign[_-]?(in|up)|access[_-]?control|anon(ymous)?|cors|csrf|webhooks?|signatures?|admin)([/_.()\[\]@ -]|$)|apps\/api\/(middleware|core)\//i,
-    /\b((un|de|non|re)?auth(?!ors?\b|ored\b)\w*|anonymous|public (endpoint|access)|cors|csrf|webhooks?|signature verification|encrypt\w*|rate[- ]?limit\w*|all hotels|own hotel|login|logout|log in|sign[- ]?(in|up|out)|jwt|oauth|sso|password|refresh tokens?|session (token|cookie)|permission check|access control|admin[- ]only|only (managers?|admins?|gms?)\b)/i, 'security'),
+    /(^|[/_.()\[\]@ -])(auth(?!ors?([/_.()\[\]@ -]|$))[a-z]*|login|logout|session|jwt|oauth|sso|password|mfa|permissions?|guards?|sign[_-]?(in|up)|access[_-]?control|anon(ymous)?|cors|csrf|webhooks?|signatures?|admin|crypto\w*|invit(e|es|ations?)|user[_-]?ids?)([/_.()\[\]@ -]|$)|apps\/api\/(middleware|core)\//i,
+    /\b((un|de|non|re)?auth(?!ors?\b|ored\b)\w*|2fa|mfa|two[- ]factor|anonymous|public|any origin|who can|approve (requests?|purchase|orders?)|log(ged|ging)? ?in|cors|csrf|webhooks?|signature verification|encrypt\w*|rate[- ]?limit\w*|all hotels|every hotel|every property|all properties|across (all )?(hotels|properties)|own hotel|login|logout|log in|sign[- ]?(in|up|out)|jwt|oauth|sso|password|refresh tokens?|session (token|cookie)|permission check|access control|admin[- ]only|only (managers?|admins?|gms?)\b)/i, 'security'),
   T('SEC.RBAC', 'Role-based access control', /(^|[/_.()\[\]@ -])(rbac|roles?|require_role|custom_roles?)([/_.()\[\]@ -]|$)|RBAC-MATRIX/i,
     /\b(rbac|require_role|role[- ]based|role gating|(custom|user|staff|new) roles?|roles\b|housekeeper role|gm role)/i, 'security'),
-  T('SEC.RLS_TENANT', 'Row-level security and tenant isolation', /(^|[/_.()\[\]@ -])(rls|tenant|tenancy|hotel[_-]?ids?)([/_.()\[\]@ -]|$)/i,
+  T('SEC.RLS_TENANT', 'Row-level security and tenant isolation', /(^|[/_.()\[\]@ -])(rls|tenant|tenancy|hotel[_-]?ids?|organi[sz]ations?)([/_.()\[\]@ -]|$)|apps\/api\/routers\/hotels?\./i,
     /\b(rls|row[- ]level|tenant|tenancy|hotel_id|cross[- ]hotel|other hotels?|multi[- ]tenant|tenant isolation)\b/i, 'database'),
   T('SEC.MIGRATIONS', 'Supabase migrations or schema-security contracts', /^supabase\//i,
     /\b(migrations?|schema|supabase (schema|migration)|alter table|create table|add (a |an )?(new )?(column|table|index)|drop (column|table)|ddl)\b/i, 'database'),
   T('SEC.DB_PRIVILEGES', 'Database privileges, triggers or sensitive RPCs', /(^|[/_.()\[\]@ -])(privileges?|triggers?|security[_-]definer|rpc)([/_.()\[\]@ -]|$)/i,
     /\b(grant|revoke|privileges?|triggers?|security definer|rpc|stored (procedure|function)|postgres function)\b/i, 'database'),
-  T('SEC.SECRETS', 'Secrets and credentials', /(^|[/_.()\[\]@ -])(secrets?|credentials?|\.env[a-z.]*|api[_-]?keys?|private[_-]?keys?|tokens?|supabase[_-]?admin|service[_-]?role|encrypt\w*)([/_.()\[\]@ -]|$)|\.(pem|key|p12|pfx)$/i,
-    /\b(secrets?|credentials?|api[_ -]?keys?|private keys?|service[_ -]role|env(ironment)? (var\w*|file)|\.env|access tokens?)\b/i, 'security'),
+  T('SEC.SECRETS', 'Secrets and credentials', /(^|[/_.()\[\]@ -])(secrets?|credentials?|\.env[a-z.]*|api[_-]?keys?|private[_-]?keys?|tokens?|supabase[_-]?admin|service[_-]?role|encrypt\w*)([/_.()\[\]@ -]|$)|(^|\/)supabase\/(server|service|admin)|\.(pem|key|p12|pfx)$/i,
+    /\b(secrets?|credentials?|api[_ -]?keys?|private keys?|service[_ -]?(role|key)|env(ironment)? (var\w*|file)|\.env|tokens?)\b/i, 'security'),
   T('SEC.PAYMENTS', 'Payments or Stripe integration', /(^|[/_.()\[\]@ -])(stripe|billing|payments?|subscriptions?|invoices?|credits?)([/_.()\[\]@ -]|$)/i,
     /\b(stripe|billing|payments?|subscriptions?|invoices?|checkout|ai credits?|metered|true[- ]up|charge)\b/i, 'security'),
   T('SEC.CLAUDE_CONTROL', 'Claude instructions, hooks, skills, memory policy or role permissions',
@@ -287,6 +287,9 @@ function handoffs(category, highRisk) {
  * insufficient and review must not proceed on it.
  */
 export function verifyDiffAgainstPlan(plan, changedFiles, opts = {}) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) {
+    return { ok: false, addedTriggers: [], addedRoles: [], addedApprovals: [], stops: [{ code: 'STOP.EMPTY_DIFF', message: 'No changed files were supplied. An empty diff cannot confirm a plan; commit or stage the work (or pass the real file list) and re-run.' }], actualPlan: null }
+  }
   const actual = planRouting({ ...plan.input_echo, files: changedFiles, modification: opts.modification ?? plan.input_echo.modification })
   const ids = (p) => p.reviews.security_triggers.map((t) => t.id)
   const roles = (p) => [...p.roles.required.map((r) => r.role)]
@@ -332,9 +335,10 @@ function parseArgs(argv) {
   const o = {}
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (!a.startsWith('--')) continue
+    if (!a.startsWith('--')) throw new Error(`unexpected argument ${a.slice(0, 40)}`)
     const k = a.slice(2)
     const v = argv[i + 1]
+    if (v === undefined || v.startsWith('--')) throw new Error(`option --${k} needs a value`)
     i++
     if (k === 'task') o.task = v
     else if (k === 'files') o.files = v.split(',').filter(Boolean)
@@ -349,11 +353,17 @@ function parseArgs(argv) {
   return o
 }
 
-/** Files changed since `base` (both sides of a rename are listed as separate paths). Read-only git. */
+/**
+ * Files changed since `base`: committed, staged, unstaged AND untracked work, measured from the merge base with HEAD
+ * (renames are split into old and new paths). Read-only git; refs are validated and passed without a shell.
+ */
 export function changedFilesSince(base, cwd = DEFAULT_REPO) {
   if (!/^[A-Za-z0-9._\/~^-]{1,200}$/.test(base) || base.startsWith('-')) throw new Error('invalid --diff-base ref')
-  const out = execFileSync('git', ['-C', cwd, 'diff', '--name-only', '--no-renames', `${base}...HEAD`], { encoding: 'utf8' })
-  return out.split('\n').filter(Boolean)
+  const git = (...args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' })
+  const mergeBase = git('merge-base', base, 'HEAD').trim()
+  const tracked = git('diff', '--name-only', '--no-renames', mergeBase).split('\n')
+  const untracked = git('ls-files', '--others', '--exclude-standard').split('\n')
+  return [...new Set([...tracked, ...untracked].filter(Boolean))]
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
