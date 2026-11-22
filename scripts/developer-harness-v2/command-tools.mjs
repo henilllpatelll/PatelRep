@@ -108,7 +108,7 @@ function ghApi(env, args) {
   // accepted; any other placeholder makes the mutation unverifiable.
   const endpointRest = endpointWord.text.replace(/^\/?repos\/\{owner\}\/\{repo\}(?=\/|$)/i, '')
   if (/\{(owner|repo|branch)\}/i.test(endpointRest)) return findings.push(F('run_unclassifiable_shell_input', 'gh.api_placeholder_endpoint', 'GitHub API mutation whose endpoint contains a placeholder gh fills in later ({branch}, or {owner}/{repo} outside the repos/{owner}/{repo}/ prefix) cannot be verified'))
-  findings.push(classifyRestMutation(methodDynamic ? 'POST' : method || 'POST', target.path, { fields: pairs, opaque: opaqueBody }))
+  findings.push(...classifyRestMutation(methodDynamic ? 'POST' : method || 'POST', target.path, { fields: pairs, opaque: opaqueBody, target, ctx: env.ctx }))
 }
 
 function stripGlobal(args, withValue) {

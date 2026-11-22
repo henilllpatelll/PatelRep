@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs'
 import { createPathPolicy, isSensitivePath, globToRegExp } from './path-policy.mjs'
 import { classifyCommand } from './command-policy.mjs'
 import { F, contentEffectFindings } from './policy-common.mjs'
+import { classifyRepoFileWrites } from './github-write-policy.mjs'
 
 export const CLASSES = ['allowed', 'task_authorized', 'human_approval', 'forbidden']
 const RANK = Object.fromEntries(CLASSES.map((c, i) => [c, i]))
@@ -203,7 +204,7 @@ function classifyTool(tool, input, ctx) {
     }
     default:
       if (HARMLESS_TOOLS.has(tool)) return [F('read_repository', 'tool.harmless', `${tool} has no external side effect`)]
-      if (/^mcp__/.test(tool)) return [classifyMcp(tool, input)]
+      if (/^mcp__/.test(tool)) return [].concat(classifyMcp(tool, input, ctx))
       return [F('run_unrecognized_command', 'event.unexpected_tool', `tool ${tool.slice(0, 60)} is not covered by the policy`)]
   }
 }
@@ -214,9 +215,49 @@ const HARMLESS_TOOLS = new Set(['Glob', 'LS', 'TodoWrite', 'TodoRead', 'Task', '
   'ToolSearch', 'Skill', 'WebSearch', 'ListAgents', 'SendMessage', 'ReadNotifications', 'TaskStop', 'BashOutput', 'KillShell', 'KillBash',
   'SlashCommand', 'ReportFindings', 'SendFeedback', 'ListMcpResourcesTool', 'ReadMcpResourceTool'])
 
-/** MCP tools: name- and input-based, conservative. Unknown servers need approval. */
-export function classifyMcp(tool, input = {}) {
+// GitHub MCP read operations, by name shape (get_*, list_*, search_*, *_read/_list/_get). A name that ALSO carries a
+// write verb (`get_or_create_file`, `search_and_replace_files`) is not a read. Everything else is not assumed read-only.
+const GITHUB_MCP_READ_SHAPE = /^(get|list|search)_[a-z0-9_]+$|^[a-z0-9_]+_(read|list|get)$/
+const GITHUB_MCP_WRITE_VERB = /(^|_)(create|update|delete|replace|write|put|push|set|add|remove|edit|upload|patch|move|rename)(_|$)/
+const GITHUB_MCP_READ = { test: (op) => GITHUB_MCP_READ_SHAPE.test(op) && !GITHUB_MCP_WRITE_VERB.test(op) }
+// Name tokens of operations that could write repository content (files, commits, trees, blobs, refs, tags).
+const GITHUB_MCP_CONTENT_EFFECT = /(^|_)(files?|contents?|commits?|trees?|blobs?|refs?|tags?|sha)(_|$)|push/
+const GITHUB_MCP_FILE_OPS = new Set(['push_files', 'create_or_update_file', 'delete_file'])
+const GITHUB_MCP_FILE_KEYS = new Set(['owner', 'repo', 'path', 'content', 'message', 'branch', 'sha', 'files', 'author', 'committer'])
+
+/**
+ * GitHub MCP repository file writes, evaluated per file through the same path policy as a local Write/Edit
+ * (github-write-policy). Returns null when `op` is not a file-write operation.
+ */
+function githubMcpFileWrite(op, input, ctx) {
+  if (!GITHUB_MCP_FILE_OPS.has(op)) {
+    return /push_files|create_or_update_file|delete_file/.test(op)
+      ? F('run_unclassifiable_shell_input', 'mcp.github_file_variant', `unrecognized variant of a GitHub file-write tool (${op.slice(0, 60)})`) : null
+  }
+  const keys = Object.keys(input ?? {})
+  const unknown = keys.filter((k) => !GITHUB_MCP_FILE_KEYS.has(k))
+  if (unknown.length) return F('run_unclassifiable_shell_input', 'mcp.github_file_unknown_input', `GitHub file-write input has unrecognized fields (${unknown.slice(0, 3).join(', ').slice(0, 60)}) that could change its destination`)
+  // Content must be a plain string so the content checks see what is written (no objects, no encoding switches).
+  if ('content' in input && typeof input.content !== 'string') return F('run_unclassifiable_shell_input', 'mcp.github_file_content', 'GitHub file-write content is not a plain string; it cannot be verified')
+  let files
+  if (op === 'push_files') {
+    const entries = Array.isArray(input.files) ? input.files : []
+    if (entries.some((f) => !f || typeof f !== 'object' || Array.isArray(f) || Object.keys(f).some((k) => k !== 'path' && k !== 'content') || typeof f.content !== 'string')) {
+      return F('run_unclassifiable_shell_input', 'mcp.github_file_entry', 'push_files entry is not exactly { path, content: string }; its effect cannot be verified')
+    }
+    files = entries.map((f) => ({ path: f.path, op: 'write', content: f.content }))
+  } else {
+    files = [{ path: input.path, op: op === 'delete_file' ? 'delete' : 'write', existing: 'sha' in input, content: typeof input.content === 'string' ? input.content : undefined }]
+  }
+  // MCP servers may fetch the current sha themselves (or push a tree with no sha precondition), so a migration
+  // target can never be proven new: treat it as existing (forbidden).
+  return classifyRepoFileWrites({ owner: input.owner, repo: input.repo, branch: 'branch' in input ? input.branch : undefined, files, migrationsAlwaysExisting: true }, ctx)
+}
+
+/** MCP tools: name- and input-based, conservative. Unknown servers need approval. May return several findings. */
+export function classifyMcp(tool, input = {}, ctx = null) {
   const name = tool.toLowerCase()
+  const op = name.slice(name.lastIndexOf('__') + 2)
   const mutating = /(execute_sql|apply_migration|deploy|redeploy|restart|domain|merge|dispatch|workflow_run|rollback|promote|delete|drop|reset|restore|pause|create|update|push|set_|_set|variable|secret|env|rebase|approve|cancel|rerun|publish|submit|service|volume|scale)/
   if (/supabase/.test(name)) {
     if (mutating.test(name) || /sql|migration|branch|logs|advisor/.test(name)) return F(/logs|advisor/.test(name) ? 'access_customer_data' : 'run_supabase_cli_against_remote_project', 'mcp.supabase', 'remote Supabase operation or production data via MCP')
@@ -231,14 +272,17 @@ export function classifyMcp(tool, input = {}) {
     if (mutating.test(name) && /repositor|ruleset|protection|secret|variable|environment|collaborator|webhook|hook|deploy_key|fork|transfer|archive|permission|ref\b|_ref|branch/.test(name)) {
       return F('change_repository_rulesets_secrets_environments_or_permissions', 'mcp.github_repo_controls', 'repository controls, refs and branches via MCP are human-owned')
     }
-    if (/push_files|create_or_update_file|delete_file/.test(name)) {
-      const branch = String(input?.branch ?? '').toLowerCase()
-      return !branch || ['main', 'master'].includes(branch.replace(/^refs\/heads\//, '')) ? F('push_to_protected_main', 'mcp.github_push_main', 'writes to the default/protected branch via MCP')
-        : F('push_dedicated_branch_fast_forward', 'mcp.github_push', 'writes to a dedicated branch via MCP')
-    }
+    const fileWrite = githubMcpFileWrite(op, input, ctx)
+    if (fileWrite) return fileWrite
     if (/comment/.test(name)) return F('interact_with_pull_request_or_issue', 'mcp.github_comment', 'comment via MCP')
     if (/review/.test(name) && /approve/i.test(String(input?.event ?? ''))) return F('approve_pull_request_as_gate', 'mcp.github_approve', 'agents cannot approve pull requests')
-    return mutating.test(name) || /review|add_|remove_|fork|close/.test(name) ? F('modify_pull_request_state', 'mcp.github_mutation', 'GitHub mutation via MCP') : F('read_github_state', 'mcp.github_read', 'reads GitHub via MCP')
+    const knownMutation = mutating.test(name) || /review|add_|remove_|fork|close/.test(name)
+    // Read-only operations are allowlisted by name shape; nothing else defaults to read. An unrecognized operation
+    // that could write repository content (files, commits, trees, blobs, refs, tags) has unverifiable effects → forbidden.
+    if (GITHUB_MCP_READ.test(op)) return knownMutation ? F('modify_pull_request_state', 'mcp.github_mutation', 'GitHub mutation via MCP') : F('read_github_state', 'mcp.github_read', 'reads GitHub via MCP')
+    if (GITHUB_MCP_CONTENT_EFFECT.test(op)) return F('run_unclassifiable_shell_input', 'mcp.github_unverified_content_write', `GitHub MCP operation '${op.slice(0, 60)}' may write repository content without verifiable paths/branch; denied`)
+    return knownMutation ? F('modify_pull_request_state', 'mcp.github_mutation', 'GitHub mutation via MCP')
+      : F('run_unrecognized_command', 'mcp.github_unrecognized', `GitHub MCP operation '${op.slice(0, 60)}' is not a recognized read; review required`)
   }
   if (/expo|eas/.test(name)) return mutating.test(name) ? F('publish_mobile_build_or_ota_update', 'mcp.publish', 'mobile publishing via MCP') : F('read_remote_production_state', 'mcp.read', 'reads remote state via MCP')
   if (/executecode|execute_code/.test(name)) return F('run_interpreter_inline_code', 'mcp.execute_code', 'executes code through an MCP server')

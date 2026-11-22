@@ -383,12 +383,12 @@ function envPrinter({ words, exe, findings }) {
   findings.push(F('read_repository', 'shell.env_builtin', 'shell variable builtin'))
 }
 
-function networkCommand({ words, findings, exe, state }) {
+function networkCommand({ ctx, words, findings, exe, state }) {
   const joined = words.map((w) => w.text).join(' ')
   if (REMOTE_DATABASE.test(joined)) { findings.push(F('access_customer_data', 'network.remote_database', 'direct request to a remote database or Supabase project')); return }
   // HTTP clients: classify the request by effect (method, target, body), not by flag spelling.
   const req = parseHttpRequest(exe, words, { pipedIn: state.pipedIn, line: state.source })
-  const effects = req ? httpMutationFindings(req) : null
+  const effects = req ? httpMutationFindings(req, ctx) : null
   const mutating = req ? Boolean(effects) || Boolean(req.method && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) || req.bodies.length > 0 || req.opaqueBody
     : /\s(-X|--request|-Method|--method)\s+(POST|PUT|PATCH|DELETE)\b|\s(-d|--data[\w-]*|-F|--form|-T|--upload-file|-Body|--json)\b/i.test(` ${joined}`)
   if (/\/billing\/monthly-trueup\b/i.test(joined) || (mutating && /\/v1\/agent[\w/-]*(grant|decide|activat|autonom|billing|pause|resume)/i.test(joined))) {

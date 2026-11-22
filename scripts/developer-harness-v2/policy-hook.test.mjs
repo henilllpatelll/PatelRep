@@ -74,6 +74,33 @@ test('forbidden actions: exit 2, reason on stderr, nothing on stdout, no secret 
   }
 })
 
+test('GitHub repository file writes (REST contents API + MCP) are classified per file and per branch end-to-end', () => {
+  const MIG = 'supabase/migrations/262_agent_verified_human_identity.sql'
+  const head = spawnSync('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
+  const branch = head.status === 0 ? head.stdout.trim() : null // CI checks out a detached merge ref: no verified task branch
+  const taskBranch = branch && !/^(main|master)$|^(claude\/recovery-|feature\/ai-)/i.test(branch) ? branch : null
+  const mcp = (op, input) => ev(`mcp__github__${op}`, { owner: 'henilllpatelll', repo: 'PatelRep', message: 'm', branch: taskBranch ?? 'feat/x', ...input })
+  const denied = [
+    [bash(`gh api -X PUT repos/henilllpatelll/PatelRep/contents/${MIG} -f message=m -f content=eA== -f sha=abc -f branch=${taskBranch ?? 'feat/x'}`), /github_write\.existing_migration/],
+    [mcp('push_files', { files: [{ path: 'apps/web/lib/y.ts', content: 'x' }, { path: MIG, content: 'x' }] }), /github_write\.existing_migration/],
+    [mcp('create_or_update_file', { path: 'apps/web/lib/y.ts', content: 'x', branch: 'claude/recovery-1' }), /github_write\.reserved_branch/],
+    [mcp('create_or_update_file', { path: '../.github/workflows/ci.yml', content: 'x' }), /github_write\.unverifiable_destination/],
+    [ev('mcp__github__create_tree', { owner: 'o', repo: 'r', tree: [] }), /mcp\.github_unverified_content_write/],
+  ]
+  for (const [event, re] of denied) {
+    const r = runHook(event)
+    assert.equal(r.code, 2, JSON.stringify(event).slice(0, 120))
+    assert.match(r.stderr, re)
+  }
+  const ask = (event) => { const r = runHook(event); assert.equal(r.code, 0, r.stderr); return JSON.parse(r.stdout).hookSpecificOutput }
+  const workflow = ask(mcp('create_or_update_file', { path: '.github/workflows/ci.yml', content: 'x', sha: 'abc' }))
+  assert.equal(workflow.permissionDecision, 'ask')
+  assert.match(workflow.permissionDecisionReason, /human_approval/)
+  const ordinary = ask(mcp('create_or_update_file', { path: 'apps/web/lib/y.ts', content: 'x' }))
+  assert.equal(ordinary.permissionDecision, 'ask')
+  assert.match(ordinary.permissionDecisionReason, taskBranch ? /task_authorized: .*verified dedicated task branch/ : /human_approval/)
+})
+
 test('malformed input fails closed with exit 2', () => {
   for (const raw of ['', 'not json', '{', '[]', 'null', '{"hook_event_name":"PreToolUse"}', JSON.stringify({ ...bash('git status'), cwd: undefined })]) {
     const r = runHook(null, { raw })

@@ -173,13 +173,13 @@ test('reasons never echo secret values, file contents or full commands', () => {
 })
 
 test('every action the policy modules can emit is declared in the contract and the floor', () => {
-  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'policy-engine.mjs', 'policy-common.mjs', 'github-api-policy.mjs', 'http-request-policy.mjs']
+  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'policy-engine.mjs', 'policy-common.mjs', 'github-api-policy.mjs', 'http-request-policy.mjs', 'github-write-policy.mjs']
   const all = readdirSync(HERE).filter((f) => f.endsWith('.mjs') && !/test|fixtures|runtime|shell-recognizer/.test(f))
   assert.deepEqual([...all].sort(), [...files].sort(), 'every policy module is scanned')
   const emitted = new Set()
   for (const f of files) {
     const src = readFileSync(path.join(HERE, f), 'utf8')
-    for (const m of src.matchAll(/\b(?:F|G|push|f)\(\s*'([a-z_]+)'/g)) emitted.add(m[1])
+    for (const m of src.matchAll(/\b(?:F|G|W|push|f)\(\s*'([a-z_]+)'/g)) emitted.add(m[1])
     for (const m of src.matchAll(/\[\s*'([a-z_]{8,})',\s*'[a-z_]+'\s*\]\]/g)) emitted.add(m[1]) // [name, ['action', 'code']] map entries
     for (const m of src.matchAll(/action:\s*'([a-z_]+)'/g)) emitted.add(m[1])
     for (const m of src.matchAll(/\?\s*'([a-z_]{8,})'\s*:\s*'([a-z_]{8,})'/g)) { emitted.add(m[1]); emitted.add(m[2]) }

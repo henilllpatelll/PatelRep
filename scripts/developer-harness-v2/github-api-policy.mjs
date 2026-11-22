@@ -8,6 +8,7 @@
 // mutation field, a request body read from a file, a computed endpoint — is FORBIDDEN (fail closed), because the
 // GitHub API surface contains merges, dispatches, releases and repository controls.
 import { F } from './policy-common.mjs'
+import { classifyRepoFileWrites, decodeBase64Content } from './github-write-policy.mjs'
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 export const isReadMethod = (method) => READ_METHODS.has(String(method ?? '').toUpperCase())
@@ -25,7 +26,12 @@ function decodeAll(text) {
 
 /** Split a URL or API path into a lower-cased host (or null) and a normalized, dot-segment-resolved path. */
 export function parseTarget(text) {
-  const s = decodeAll(String(text ?? '').trim()).replace(/\\/g, '/')
+  const original = String(text ?? '').trim()
+  const s = decodeAll(original).replace(/\\/g, '/')
+  // `ambiguous`: the path was percent-encoded, used backslashes, or contained empty/`.`/`..` segments, so the
+  // normalized path is not literally what was written. Repository file writes refuse such destinations.
+  const rawPath = original.replace(/^(?:[a-z][a-z0-9+.-]*:)?\/\/[^/?#]*/i, '').split(/[?#]/)[0].replace(/^\/+/, '')
+  const ambiguous = s !== original.replace(/\\/g, '/') || /\\/.test(original) || rawPath.split('/').some((seg, i, a) => seg === '.' || seg === '..' || (!seg && i < a.length - 1))
   let host = null
   let rest = s
   const withScheme = /^(?:[a-z][a-z0-9+.-]*:)?\/\/([^/?#]*)(.*)$/i.exec(s)
@@ -40,7 +46,7 @@ export function parseTarget(text) {
     else segs.push(seg.toLowerCase())
   }
   const path = segs.join('/').replace(/^api\/v3\//, '').replace(/^api\/graphql$/, 'graphql')
-  return { host, path, query: queryParts.join('?') }
+  return { host, path, query: queryParts.join('?'), ambiguous }
 }
 
 export const isGithubHost = (host) => Boolean(host) && /(^|\.)(github\.com|ghe\.com|githubusercontent\.com)$|^github\./.test(host)
@@ -88,9 +94,16 @@ const fieldValues = (fields, key, { anyCase = false } = {}) => (fields
  * substrings of other fields — and treat zero, duplicated or unparseable values as the unsafe case.
  * @param {string} method
  * @param {string} path      normalized path from parseTarget
- * @param {{ fields?: Array<[string, unknown]>|null, opaque?: boolean }} body  parsed top-level fields (null = not parseable)
+ * @param {{ fields?: Array<[string, unknown]>|null, opaque?: boolean, target?: object, ctx?: object }} body  parsed top-level
+ *   fields (null = not parseable); `target` = parseTarget result (ambiguity flags); `ctx` = engine context (path policy, git state)
+ * @returns {Array<object>} findings (a repository file write yields several; the engine keeps the strictest)
  */
-export function classifyRestMutation(method, path, { fields = [], opaque = false } = {}) {
+export function classifyRestMutation(method, path, opts = {}) {
+  const r = classifyRestMutationInner(method, path, opts)
+  return Array.isArray(r) ? r : [r]
+}
+
+function classifyRestMutationInner(method, path, { fields = [], opaque = false, target = null, ctx = null } = {}) {
   const parsed = opaque ? null : fields
   const repo = /^repos\/[^/]+\/[^/]+/.exec(path)
   if (!repo) {
@@ -102,12 +115,23 @@ export function classifyRestMutation(method, path, { fields = [], opaque = false
   }
   const sub = path.slice(repo[0].length)
   for (const rule of REPO_RULES) if (rule.re.test(sub)) return G(rule.action, rule.code, rule.detail)
-  if (/^\/contents\//.test(sub)) {
+  if (/^\/contents(\/|$)/.test(sub)) {
+    // Repository file write: classified by destination repository + branch AND by the target file, through the same
+    // path policy as a local Write/Edit (github-write-policy). A branch field alone never proves authorization.
+    if (!parsed) return G('push_to_protected_main', 'contents_main', 'contents API write whose body cannot be inspected (no verifiable branch field) may target the default/protected branch')
+    if (target?.ambiguous || target?.query) return G('run_unclassifiable_shell_input', 'contents_ambiguous', 'contents API write to an encoded, traversing or query-qualified path; the destination cannot be verified')
     const branches = fieldValues(parsed, 'branch')
-    const branch = branches && branches.length === 1 ? branches[0].toLowerCase().replace(/^refs\/heads\//, '') : null
-    return !branch || ['main', 'master'].includes(branch)
-      ? G('push_to_protected_main', 'contents_main', 'contents API write to the default/protected branch (no single verifiable branch field)')
-      : G('push_dedicated_branch_fast_forward', 'contents_branch', 'contents API write to a dedicated branch')
+    // Content must be inspectable exactly as sent: a repeated `content` (gh keeps the last, we would read one) or a
+    // value that is not clean base64 (a lenient server decoder might still accept it) skips the content checks.
+    const contents = fieldValues(parsed, 'content')
+    if (contents.length > 1) return G('run_unclassifiable_shell_input', 'contents_ambiguous', 'contents API write with a duplicated content field; the content sent cannot be verified')
+    const content = contents.length ? decodeBase64Content(contents[0]) : undefined
+    if (contents.length && content === undefined) return G('run_unclassifiable_shell_input', 'contents_ambiguous', 'contents API write whose content is not clean base64; the content cannot be verified')
+    const [, owner, repoName] = /^repos\/([^/]+)\/([^/]+)/.exec(path)
+    return classifyRepoFileWrites({
+      owner, repo: repoName, branch: branches.length ? branches[0] : undefined, branchCount: branches.length,
+      files: [{ path: sub.slice('/contents/'.length), op: method === 'DELETE' ? 'delete' : 'write', existing: fieldValues(parsed, 'sha').length > 0, content }],
+    }, ctx)
   }
   if (COMMENT_PATH.test(sub)) return G('interact_with_pull_request_or_issue', 'comment', 'comment via the API')
   if (/^\/pulls$/.test(sub)) {

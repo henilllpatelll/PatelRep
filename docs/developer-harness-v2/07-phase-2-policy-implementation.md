@@ -562,3 +562,129 @@ previous looser regex had masked. R3 now names that layer and R3b proves the hoo
   running as the developer; the hook blocks the known reads, not the OS boundary.
 - **GitHub API coverage is an allowlist**: new GitHub endpoints are forbidden until classified (fail closed, may add
   friction).
+
+## 16. Phase 2 final authorization-boundary remediation (GitHub API file writes)
+
+The independent review of head `f75961f2` returned **NO-GO** with one finding: GitHub API file writes bypassed the
+protected-path classification. This section records the root cause, the fix, the tests and the residual limits. No
+permission was broadened (§16.4); the authority matrix in `contract.json`, CI, Staging, release workflows, rulesets,
+environments and the recovery auto-merge exception are unchanged.
+
+### 16.1 Root cause
+
+- **REST contents API.** `classifyRestMutation` mapped `PUT|DELETE repos/{o}/{r}/contents/{path}` to
+  `push_dedicated_branch_fast_forward` (`task_authorized`) whenever the body had one `branch` field other than
+  `main`/`master`. It never looked at `{path}`, the repository, or whether the branch was the session's task branch.
+  Editing migration 262, `.github/workflows/ci.yml` or `.claude/settings.json`, or writing to `claude/recovery-*`,
+  was therefore *less* protected than the same change through `Write`/`Edit` (proven against the `f75961f2` engine:
+  GW-01a…GW-08f were all `task_authorized`).
+- **GitHub MCP.** `push_files` / `create_or_update_file` / `delete_file` had the same branch-only rule, and any
+  GitHub MCP tool whose name did not match the mutation regex defaulted to `read_github_state` (`allowed`).
+
+### 16.2 Fix
+
+A new pure module, `scripts/developer-harness-v2/github-write-policy.mjs`, classifies a set of repository file
+operations to one (repository, branch). The REST contents API (`gh api`, curl, wget, httpie/xh,
+Invoke-RestMethod/Invoke-WebRequest — all via `classifyRestMutation`) and the GitHub MCP file tools both use it.
+
+1. **Destination branch.** Missing → GitHub's default branch → `push_to_protected_main` (forbidden). Duplicated,
+   malformed, encoded, non-branch (`refs/tags/…`) or non-string → forbidden. `main`/`master` (any case,
+   `refs/heads/` prefix) → forbidden. `claude/recovery-*`, `feature/ai-*` (any case) →
+   `create_alternate_publishing_or_deployment_path` (forbidden), even when the session itself is on such a branch.
+2. **Verified task branch.** A `branch` field never proves authorization. The task branch is the branch checked out
+   in the session worktree (injected git state), and only if it is neither protected nor reserved; the match is exact
+   (git branch names are case-sensitive). The repository must be the contract repository
+   (`contract.baseline.repository`, case-insensitive). Any other branch, a detached/protected/reserved checkout, a
+   different or unstated repository, or gh's `{owner}/{repo}` placeholder → `edit_outside_task_worktree`
+   (`human_approval`).
+3. **Every target file** goes through the same `pathPolicy.classifyWrite` as a local `Write`/`Edit` (migrations,
+   protected control-plane and agent-config paths, credential files, dependency manifests, settings-bypass and
+   customer-agent activation content), plus a direct match of the *remote* path against `protected_paths` (so a local
+   alias such as `.claude/worktrees/<n>/…` cannot hide a protected remote file) and the content-effect scan
+   (REST `content` is base64-decoded first). The strictest finding wins.
+4. **Migrations.** A REST write with a `sha` field, a `DELETE`, or a path that exists locally is
+   `modify_existing_migration` (forbidden); a REST create (GitHub rejects an update without `sha`) of a migration that
+   does not exist locally is `author_new_forward_only_migration` (`human_approval`, same as a local `Write`). MCP tools
+   may fetch the sha themselves and `push_files` has no sha precondition, so **every MCP write to a migration path is
+   forbidden**.
+5. **Canonical destinations only.** Percent-encoding, backslashes, empty/`.`/`..` segments, query strings or fragments
+   on a contents-API URL (`parseTarget().ambiguous`), and the same constructs or a leading `/` in an MCP `path` →
+   forbidden. An unparseable REST body (file/stdin/placeholder fields) stays forbidden as before.
+6. **MCP inputs.** Unrecognized input fields on the three file tools (e.g. `ref`) → forbidden; `push_files` evaluates
+   every entry (empty list or a path-less entry → forbidden). Name variants of the file tools (`push_files_v2`) →
+   forbidden.
+7. **Unknown GitHub MCP operations** no longer default to read. Read-only operations are allowlisted by name shape
+   (`get_*`, `list_*`, `search_*`, `*_read`) and keep their previous class; an unrecognized operation whose name
+   suggests repository-content effects (files, contents, commits, trees, blobs, refs, tags, push) → forbidden; other
+   unrecognized operations → `run_unrecognized_command` (`human_approval`).
+
+`task_authorized` remains a classification, not an approval: the hook still asks the human through Claude Code's own
+prompt (denied in `auto`/`dontAsk`/`bypassPermissions`), and durable approvals remain Phase 5.
+
+### 16.3 Tests
+
+- **`policy-fixtures-github-writes.mjs`** — 107 new fixtures (GW/GM 91 + GR 16 from the review in §16.5) testing the desired contract directly (not by comparison):
+  GW (REST via gh api, curl, httpie, PowerShell) and GM (MCP). Negative: migration 262 edit/delete (sha, no sha,
+  DELETE), sha-proven existing new-numbered migration, protected workflows (existing and new), `.claude/settings.json`
+  (and decoded settings-bypass content), `CLAUDE.md`, the policy files, `.claude/hooks/**`, credential file, worktree
+  alias; `claude/recovery-*`, `feature/ai-*`, case variants, session on a reserved branch; `main`, `refs/heads/main`,
+  `MAIN`, `master`; encoded path/slash, traversal, empty and dot segments, query-qualified URL, empty path; missing,
+  duplicated, malformed, encoded, empty and tag branch; body from file; decoded content with a protected effect; MCP
+  batch mixing an ordinary file with migration 262 / a new migration / a workflow; empty and path-less batches;
+  unrecognized input field; non-string branch; unknown content-writing ops (`create_tree`, `create_commit`); file-tool
+  variants. Escalations: arbitrary other branch, other/unstated/placeholder repository, case-variant branch, session on
+  `main` or detached. Positive: ordinary file (create, update, delete, two-file batch) on the verified task branch →
+  `task_authorized`; `get_file_contents`, `list_commits`, `search_code`, `pull_request_read` → `allowed`.
+- One existing fixture became stricter: **RR-B6d** (`repos/o/r/contents/a.txt -f branch=feat/x`) is now
+  `human_approval` because `o/r` is not the contract repository.
+- **Hook integration** (`policy-hook.test.mjs`) adds an end-to-end case through the real hook process (stdin JSON,
+  real git state): REST migration edit, MCP batch with a migration, MCP recovery branch, MCP traversal and an unknown
+  content op are denied with exit 2 and the expected reason code; an MCP workflow write asks with `human_approval`;
+  an ordinary MCP write asks with `task_authorized` on a dedicated checkout (`human_approval` on CI's detached merge
+  ref).
+- **Live Claude Code** (`runtime-failclosed-check.mjs`) adds R16 (contents-API migration edit →
+  `[github_write.existing_migration]`), R17 (recovery branch → `[github_write.reserved_branch]`) and R18 (encoded path
+  → `[github_api.contents_ambiguous]`), against a closed local port with a spoofed `Host` header. MCP cannot be
+  exercised live: the isolated sandbox deliberately loads no MCP servers (`--strict-mcp-config`), and loading a GitHub
+  MCP server would need credentials; MCP is covered by the real-hook-process tests.
+
+### 16.4 No-broadening comparison
+
+Every fixture (528 total) was evaluated against the `ccce2df6` engine, the `f75961f2` engine and the remediated
+engine: **0 lower** than either. Compared with `f75961f2`, 80 fixtures are stricter: RR-B6d plus the new GW/GM/GR
+cases that the old engine under-classified. The fixtures above assert the contract independently; the comparison is
+an additional guard, not the definition of correct.
+
+### 16.5 Independent read-only security review (of this remediation)
+
+A separate read-only reviewer probed ~70 inputs against `evaluateToolEvent` and returned **NO-GO** on the first
+cut with two confirmed fail-opens, both fixed and pinned as `GR-*` fixtures:
+
+| # | Finding | Fix | Fixtures |
+|---|---|---|---|
+| 1 | Duplicate `content` field (`gh` sends the last value; the check read the first) bypassed activation/effect checks | more than one `content` → forbidden | GR-1a/b/c |
+| 2 | `content` that is not clean padded base64 skipped the content checks (a lenient server decoder could still accept it) | present but undecodable `content` → forbidden | GR-2a/b |
+| P1 | Branch `heads/main` (legal local branch name) could be resolved server-side as `refs/heads/main` | short names starting `heads/`, `tags/`, `remotes/`, `refs/`, `pull/` or equal to `HEAD` → forbidden | GR-3a/b |
+| P2 | `push_files` entries were not key-allowlisted; object content or `encoding` skipped content checks | each entry must be exactly `{ path, content: string }`; non-string top-level `content` → forbidden | GR-4a/b/c |
+| P3 | Read-shaped names with write verbs (`search_and_replace_files`, `get_or_create_file`) | read shape no longer counts as a read when the name carries a write verb | GR-5a/b |
+| P4 | Non-ASCII repository paths accepted | repository paths must be printable ASCII | GR-6a |
+| FP | Real read-only tools `actions_list`, `projects_list` needed approval | `*_list`/`*_get` suffixes added to the read shape (same class as before the remediation) | GR-7a/b/c |
+
+No regressions were found. The reviewer found no bypass via encoded or traversing paths, query strings or fragments,
+`--request-target`, method override, `-F` placeholders, `--input`/`@file`, duplicate JSON keys, form encoding,
+owner/repo case, reserved or protected branches in any case, mixed batches, unknown top-level MCP keys or tool-name
+variants.
+
+### 16.6 Residual limits
+
+- **The task branch is the local checkout, not a recorded task grant.** Verification proves "the branch this session
+  is working on", which is the strongest local fact available before durable approvals (Phase 5). A session checked
+  out on an unrelated non-protected branch still gets `task_authorized` (an ask) for writes to that branch.
+- **Remote file existence is inferred.** A REST migration create without `sha` that does not exist locally is
+  `human_approval` (GitHub rejects updates without `sha`); MCP migration writes are always forbidden.
+- **Some legitimate reads remain over-restricted** by pre-existing name rules (e.g. `list_workflow_runs`,
+  `list_secret_scanning_alerts` are forbidden because their names contain `workflow`/`secret`). They are unchanged
+  here so that nothing is loosened; refining them is Phase 3+ friction work.
+- **New GitHub MCP write tools** are forbidden (content-like names) or need approval until classified (fail closed).
+- **GitHub-side enforcement remains authoritative**: rulesets, branch protection and the CI/Staging gates. This
+  policy is a local guard for developer agents.

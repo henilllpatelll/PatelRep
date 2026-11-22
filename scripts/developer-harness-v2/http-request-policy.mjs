@@ -260,7 +260,7 @@ function graphqlParts(req) {
  * Effect findings for an HTTP client request, or null when the request is not mutating and the caller's generic
  * network classification applies.
  */
-export function httpMutationFindings(req) {
+export function httpMutationFindings(req, ctx = null) {
   const hasBody = req.bodies.length > 0 || req.opaqueBody
   const method = req.method || (hasBody ? 'POST' : 'GET')
   const mutating = req.methodDynamic || !isReadMethod(method)
@@ -271,12 +271,15 @@ export function httpMutationFindings(req) {
   const fields = bodyFields(req)
   const opaque = req.opaqueBody
   const targets = req.urls.filter((u) => !u.dynamic).map((u) => parseTarget(u.text))
-  if (req.requestTarget !== null) for (const t of targets) t.path = parseTarget(req.requestTarget).path
+  if (req.requestTarget !== null) {
+    const rt = parseTarget(req.requestTarget)
+    for (const t of targets) { t.path = rt.path; t.query = rt.query; t.ambiguous = t.ambiguous || rt.ambiguous }
+  }
   const out = []
   for (const t of targets) {
     if (!(viaHeader || isGithubHost(t.host) || looksLikeGithubApiPath(t.path))) continue
     if (t.path === 'graphql') out.push(...classifyGraphql({ ...graphqlParts(req), opaque }))
-    else out.push(classifyRestMutation(effectiveMethod, t.path, { fields, opaque }))
+    else out.push(...classifyRestMutation(effectiveMethod, t.path, { fields, opaque, target: t, ctx }))
   }
   const unknownTarget = req.opaqueTarget || req.urls.length === 0 || req.urls.some((u) => u.dynamic)
   if (unknownTarget) {

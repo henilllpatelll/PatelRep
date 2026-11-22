@@ -6,6 +6,8 @@
 // Groups: N-1…N-12 (doc 06 negative cases), W (wrapper/smuggling), P (positive developer workflow),
 //         FP (false-positive assessment: legitimate actions and the friction they now carry).
 
+import { GITHUB_WRITE_FIXTURES } from './policy-fixtures-github-writes.mjs'
+
 export const ROOT = 'C:/work/PatelRep'
 export const EXISTING_FILES = new Set([
   'supabase/migrations/001_initial.sql',
@@ -373,7 +375,7 @@ export const FIXTURES = [
   B('RR-B6a', 'RR', "gh api -X PUT repos/o/r/contents/a.txt -f message='x branch=feature' -f content=Zm9v", 'forbidden', { note: 'branch text inside another field' }),
   B('RR-B6b', 'RR', 'gh api -X PUT repos/o/r/contents/a.txt -f branch=feature -f branch=main -f content=Zm9v -f message=m', 'forbidden', { note: 'duplicate branch field' }),
   B('RR-B6c', 'RR', String.raw`curl -X PUT https://api.github.com/repos/o/r/contents/a -d '{"message":"branch:feat","content":"eA=="}'`, 'forbidden'),
-  B('RR-B6d', 'RR', 'gh api -X PUT repos/o/r/contents/a.txt -f branch=feat/x -f content=Zm9v -f message=m', 'task_authorized', { note: 'one exact dedicated branch field (baseline class)' }),
+  B('RR-B6d', 'RR', 'gh api -X PUT repos/o/r/contents/a.txt -f branch=feat/x -f content=Zm9v -f message=m', 'human_approval', { note: 'final remediation: repository o/r is not the contract repository, so the branch is not verified (was task_authorized)' }),
   B('RR-B7a', 'RR', 'gh api repos/o/r/pulls -f title="x draft=true" -f head=x -f base=main', 'human_approval', { note: 'draft text in title is not a draft flag' }),
   B('RR-B7b', 'RR', String.raw`gh api graphql -f query='mutation{createPullRequest(input:{draft:false,title:"draft:true",repositoryId:"r",baseRefName:"main",headRefName:"x"}){clientMutationId}}'`, 'human_approval'),
   B('RR-B8a', 'RR', 'wget --meth=PUT https://api.github.com/repos/o/r/pulls/1/merge', 'forbidden', { note: 'getopt_long prefix' }),
@@ -470,4 +472,6 @@ export const FIXTURES = [
   FILE('FP-18', 'FP', 'Edit', 'apps/web/package.json', 'human_approval', { content: '"lint": "eslint ."', note: 'dependency manifest' }),
   B('FP-19', 'FP', `curl -X POST "$API_URL/v1/tasks" -d '{}'`, 'forbidden', { note: 'remediation A: mutating request to a computed URL could be GitHub; use a literal URL' }),
   B('FP-20', 'FP', `node -e "fetch('https://api.github.com/repos/o/r/pulls/1/merge')"`, 'forbidden', { note: 'remediation A: mutation-only GitHub endpoint inside opaque code, even a GET' }),
+  // GW/GM — Phase 2 final remediation: GitHub repository file writes (REST contents API + MCP)
+  ...GITHUB_WRITE_FIXTURES,
 ]
