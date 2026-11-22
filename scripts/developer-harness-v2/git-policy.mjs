@@ -4,6 +4,7 @@
 // from .git (branch + upstream). "Reviewed history" is approximated as "the branch has an upstream": rewriting
 // a pushed branch (rebase/amend/pull --rebase) is forbidden, rewriting a never-pushed branch needs approval.
 import { F, PROTECTED_BRANCHES, RESERVED_BRANCH_PREFIXES, positionals, hasFlag, splitFlag } from './policy-common.mjs'
+import { operandFindings, destinationFindings } from './file-command-policy.mjs'
 
 const lower = (w) => (w?.text ?? '').toLowerCase()
 const SAFE_CONFIG_PREFIXES = ['color.', 'core.quotepath', 'core.autocrlf', 'core.safecrlf', 'core.longpaths', 'user.name', 'user.email',
@@ -86,11 +87,7 @@ export function gitHandler(env) {
     if (hasFlag(args, '-f', '--force')) return push('discard_or_rewrite_local_work', 'git.add_force', 'force-adding ignored files can stage credentials')
     return push('commit_to_dedicated_branch', 'git.add', 'stage changes')
   }
-  if (sub === 'mv' || sub === 'rm') {
-    for (const w of positionals(args)) findings.push(ctx.pathPolicy.classifyWrite(w.text, { cwd, mode: sub === 'rm' ? 'delete' : 'move' }))
-    if (hasFlag(args, '-r')) push('discard_or_rewrite_local_work', 'git.rm_recursive', 'recursive removal')
-    return
-  }
+  if (sub === 'mv' || sub === 'rm') return gitMoveRemove(env, args, sub, cwd)
   if (sub === 'checkout') {
     if (hasFlag(args, '-b', '-B', '--orphan', '-t', '--track')) return push('read_repository', 'git.checkout_new_branch', 'create and switch branch')
     const pos = positionals(args, 0, new Set(['--conflict', '--pathspec-from-file']))
@@ -172,6 +169,50 @@ export function expandLongOption(text) {
   if (SENSITIVE_LONG_OPTIONS.includes(name)) return text
   const match = SENSITIVE_LONG_OPTIONS.find((o) => o.startsWith(name))
   return match ? (value === null ? match : `${match}=${value}`) : text
+}
+
+/**
+ * `git rm` / `git mv`: every operand is a pathspec relative to `cwd`. `args` already excludes the subcommand, so the
+ * operands start at index 0 (the earlier `positionals(args)` default of 1 skipped the first target). Pathspec magic
+ * (`:(top)`, `:/`, `:!`) is stripped and classified both from `cwd` and from the repository root; globs and directories
+ * that contain protected paths are reached through operandFindings; `--pathspec-from-file` and computed pathspecs
+ * cannot be resolved and need approval. Nothing is executed.
+ */
+function gitMoveRemove(env, args, sub, cwd) {
+  const { findings, ctx } = env
+  const push = (a, c, d) => findings.push(F(a, c, d))
+  const recursive = args.some((w) => /^-[a-zA-Z]*r[a-zA-Z]*$/.test(w.text) && !w.text.startsWith('--'))
+  if (recursive) push('discard_or_rewrite_local_work', 'git.rm_recursive', 'recursive removal')
+  // Floor: the original per-operand pass (operands after the first, raw text) still runs, so this handler is never weaker than before.
+  for (const w of positionals(args).slice(0, 512)) findings.push(ctx.pathPolicy.classifyWrite(w.text, { cwd, mode: sub === 'rm' ? 'delete' : 'move' }))
+  if (args.some((w) => { const [n] = splitFlag(w.text); return n.startsWith('--pa') && n.length >= 4 && ('--pathspec-from-file'.startsWith(n) || '--pathspec-file-nul'.startsWith(n)) })) {
+    push('run_unrecognized_command', 'git.pathspec_from_file', 'the pathspec list is read from a file and cannot be classified') // visible operands are still classified below
+  }
+  const operands = positionals(args, 0, new Set(['--pathspec-from-file']))
+  if (!operands.length) return findings.some((f) => f.code === 'git.pathspec_from_file') ? undefined : push('run_unrecognized_command', 'git.pathspec_missing', `git ${sub} without a visible pathspec`)
+  if (args.length > 512 || args.some((w) => w.text.length > 2048)) return push('run_unrecognized_command', 'git.operands_too_large', 'too many or too long pathspecs to classify')
+  const roots = ctx.projectRoot ? [cwd, ctx.projectRoot] : [cwd]
+  const specs = []
+  for (const w of operands) {
+    if (w.dynamic) { push('edit_outside_task_worktree', 'git.dynamic_pathspec', 'pathspec computed at runtime'); continue }
+    const m = /^:(\([^)]*\)|[!^/]*):?([\s\S]*)$/.exec(w.text)
+    if (!m) { specs.push({ ...w, spec: w.text, from: [cwd] }); continue }
+    specs.push({ ...w, spec: m[2] === '' ? '.' : m[2], from: roots }) // magic: also resolve from the repository root (`:/`, `:(top)`)
+    // attribute and exclude-only magic select by something other than the visible path: treat as the whole tree
+    if (/attr|exclude|[!^]/i.test(m[1])) specs.push({ ...w, spec: '.', from: roots, whole: true })
+  }
+  const mode = sub === 'rm' ? 'delete' : 'move'
+  const classify = (spec, from, extra) => findings.push(...operandFindings(env, spec, { cwd: from, mode, subtree: recursive || sub === 'mv', crossSlash: true, ...extra }))
+  if (sub === 'mv' && specs.length >= 2 && specs.length === operands.length) {
+    const dest = specs.at(-1)
+    const sources = specs.slice(0, -1)
+    for (const from of dest.from) {
+      for (const s of sources) for (const f of s.from) classify(s.spec, f, s.whole ? { subtree: true } : undefined)
+      findings.push(...destinationFindings(env, { sources: sources.map((s) => ({ ...s, text: s.spec })), dest: { ...dest, text: dest.spec }, mode: 'move', writeMode: 'move', recursive: true, cwd: from }))
+    }
+    return
+  }
+  for (const s of specs) for (const from of s.from) classify(s.spec, from, s.whole ? { subtree: true } : undefined)
 }
 
 function rewrite(env, git, code, detail) {

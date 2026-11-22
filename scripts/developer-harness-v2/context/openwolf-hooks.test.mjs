@@ -151,6 +151,11 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   const M1_FILES = new Set(['docs/developer-harness-v2/contract.json', 'scripts/developer-harness-v2/policy-engine.mjs', 'scripts/developer-harness-v2/path-policy.mjs', 'scripts/developer-harness-v2/policy-fixtures.mjs'])
   const M1_PINNED = { 'scripts/developer-harness-v2/policy-engine.mjs': '4e4a31d5152b3eb46f9f1ae8b7621682031873749c5824fba13d8d30c6eb5b87', 'scripts/developer-harness-v2/path-policy.mjs': 'f27d0cece5a68d6bd180ca8254eb52eb1762e05708d61a2e581e6532634585f3' }
   const M1_NEW = new Set(['scripts/developer-harness-v2/policy-fixtures-m1.mjs', 'scripts/developer-harness-v2/m1-hardening.test.mjs'])
+  // Phase 4 remediation (owner GO 2026-11-22: git rm/mv first-operand skip and copy/move directory destinations) is the ONLY further
+  // change to the enforcement set, and it is confined to these two files. They are pinned (LF-normalized sha256 of the approved
+  // content): any other edit must update the pin in a reviewed change. The two new files below did not exist in Phase 2.
+  const REMEDIATION_PINNED = { 'scripts/developer-harness-v2/git-policy.mjs': '58200c8760b845015fff2c65014cfcd9caaa9827edf3fe55c4badb254b35c58d', 'scripts/developer-harness-v2/file-command-policy.mjs': 'b64e86b092ae1488599dd1b67da6643ecbfae8837848ef89caf39b54cbe5dd61' }
+  const REMEDIATION_NEW = new Set(['scripts/developer-harness-v2/policy-fixtures-copymove.mjs', 'scripts/developer-harness-v2/copymove-remediation.test.mjs'])
   const LF = String.fromCharCode(10)
   const CR = String.fromCharCode(13)
   const norm = (l) => (l.endsWith(CR) ? l.slice(0, -1) : l).replace(/,\s*$/, '')
@@ -166,6 +171,12 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   }
   for (const rel of same) {
     if (M1_NEW.has(rel)) { assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in Phase 4`); continue }
+    if (REMEDIATION_NEW.has(rel)) { assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in the Phase 4 remediation`); continue }
+    if (REMEDIATION_PINNED[rel]) {
+      assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved remediation`)
+      assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), REMEDIATION_PINNED[rel], `${rel} differs from the approved remediation content`)
+      continue
+    }
     if (M1_FILES.has(rel)) {
       assert.equal(additiveOver(gitShow(PHASE2, rel), read(rel)), null, `${rel}: a Phase 2 line was removed or changed (M1 must be additive)`)
       assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved M1 addition`)
