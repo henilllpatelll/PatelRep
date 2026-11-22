@@ -6,7 +6,7 @@
 // `human_approval`, and `forbidden` when it visibly references a protected effect. Anything the bounded
 // recognizer cannot parse is denied.
 import { parseShell } from './shell-recognizer.mjs'
-import { normalizeSlashes, detectActivation, hasShortNameSegment } from './path-policy.mjs'
+import { normalizeSlashes, detectActivation, hasShortNameSegment, cwdFlowIsCertain, isPlainPathText } from './path-policy.mjs'
 import {
   F, execName, isPathLike, positionals, hasFlag, flagValue, isSensitiveVarName, wordIsSensitive,
   signatureFindings, stringLiterals, REMOTE_DATABASE, textReferencesSensitive,
@@ -83,7 +83,7 @@ export function classifyCommand(source, ctx, opts = {}) {
     }
   }
   for (const sub of parsed.substitutions) findings.push(...classifyCommand(sub, ctx, { ...opts, depth: depth + 1 }))
-  const state = { cwd: opts.cwd === undefined ? ctx.cwd : opts.cwd, dialect, depth, source: `${opts.outerSource ?? ''}\n${source}` }
+  const state = { cwd: opts.cwd === undefined ? ctx.cwd : opts.cwd, dialect, depth, source: `${opts.outerSource ?? ''}\n${source}`, flowCertain: cwdFlowIsCertain(source, dialect) }
   parsed.commands.forEach((cmd, i) => {
     state.pipedIn = i > 0 && Boolean(parsed.commands[i - 1].pipesOut)
     findings.push(...classifySimple(cmd, ctx, state))
@@ -295,10 +295,28 @@ function classifyGeneric(env) {
   const { ctx, state, words, exe, findings } = env
   const pp = ctx.pathPolicy
   const args = words.slice(1)
+  if (exe === 'popd' || exe === 'pop-location') { // the directory stack is not tracked: the cwd is unknown afterwards
+    state.cwd = null
+    state.branchMayHaveChanged = true
+    findings.push(F('read_repository', 'shell.cd', 'change directory'))
+    return
+  }
   if (exe === 'cd' || exe === 'set-location' || exe === 'sl' || exe === 'chdir' || exe === 'pushd' || exe === 'push-location') {
     const target = args.find((a) => !a.text.startsWith('-'))
-    state.cwd = !target ? ctx.homeDir ?? null
-      : target.dynamic || target.text === '-' || pp.unknownCwd(target.text, state.cwd) ? null
+    // The new cwd is trusted only when the `cd` certainly took effect in THIS shell (linear flow, one operand, the command itself or under builtin/command/time, existing PowerShell
+    // directory) and is tracked as the shell tracks it (typed path: link-crossing targets, `pushd +1`, CDPATH leave it unknown).
+    const certain = state.flowCertain && args.filter((a) => !a.text.startsWith('-')).length <= 1 && ['builtin', 'command', 'time', exe].includes(execName(env.cmd.words[0])) &&
+      (state.dialect !== 'powershell' || !target || (isPlainPathText(target.text, { relative: true }) && pp.isDirectory(pp.resolve(target.text, state.cwd))))
+    const r = target && !target.dynamic && !pp.unknownCwd(target.text, state.cwd) ? pp.resolveChecked(target.text, state.cwd) : null
+    const diverges = r && (r.failed || r.alt || (r.lex && r.abs.toLowerCase() !== r.lex.toLowerCase()))
+    // Only plain options (-L/-P/-e/-@; PowerShell -Path/-LiteralPath) are understood (`pushd -n`, -StackName, `cd -` are not); bare `pushd` swaps.
+    const ps = exe === 'set-location' || exe === 'sl' || exe === 'push-location'
+    const okOpt = (t) => (ps ? ['path', 'literalpath'].some((n) => t.length > 2 && n.startsWith(t.slice(1).toLowerCase())) : /^-[LPe@]+$/.test(t))
+    const oddOpts = args.some((a) => a.text.startsWith('-') && a.text !== '--' && !okOpt(a.text))
+    const bareStack = !target && (exe === 'pushd' || exe === 'push-location')
+    const unknown = bareStack || oddOpts || (target && (/^[+-]\d+$/.test(target.text) || /\bCDPATH\b/.test(state.source ?? '')))
+    state.cwd = unknown || !certain ? null : !target ? ctx.homeDir ?? null
+      : target.dynamic || target.text === '-' || unknown || diverges || pp.unknownCwd(target.text, state.cwd) ? null
         : pp.resolve(target.text, state.cwd)
     state.branchMayHaveChanged = true
     findings.push(F('read_repository', 'shell.cd', 'change directory'))

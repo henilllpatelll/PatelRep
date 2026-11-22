@@ -156,6 +156,22 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   // content): any other edit must update the pin in a reviewed change. The two new files below did not exist in Phase 2.
   const REMEDIATION_PINNED = { 'scripts/developer-harness-v2/git-policy.mjs': '58200c8760b845015fff2c65014cfcd9caaa9827edf3fe55c4badb254b35c58d', 'scripts/developer-harness-v2/file-command-policy.mjs': 'b64e86b092ae1488599dd1b67da6643ecbfae8837848ef89caf39b54cbe5dd61' }
   const REMEDIATION_NEW = new Set(['scripts/developer-harness-v2/policy-fixtures-copymove.mjs', 'scripts/developer-harness-v2/copymove-remediation.test.mjs'])
+  // Phase 4 path-resolution remediation (owner GO 2026-11-22: unresolvable path forms, glob deletes, New-Item -Name, nested instruction
+  // files, link handling) is the ONLY further change to the enforcement set. It supersedes the earlier pins for these files: the
+  // remediation necessarily MODIFIES existing lines of path-policy.mjs / file-command-policy.mjs (so M1's additive-only check cannot
+  // apply to them any more) and adds one pure option-parsing module (writer-options.mjs) to keep both under the 500-line rule.
+  // Content is pinned (LF-normalized sha256); any other edit must update the pin in a reviewed change. Predecessor pins, for the record:
+  // path-policy.mjs f27d0cec… (post-M1), file-command-policy.mjs b64e86b0… (post copy/move remediation).
+  const PATHRES_PINNED = {
+    'scripts/developer-harness-v2/path-policy.mjs': 'b30a8bd5748ba3a3efba43ec94a9e7523dee6d8de69608309f2bfe826c6732f4',
+    'scripts/developer-harness-v2/file-command-policy.mjs': 'a145306bb30fad145acfeb6c67ff3443d0b1eae0416afbd3f6affa942e245c60',
+    'scripts/developer-harness-v2/writer-options.mjs': '4565a45477372a83a8dff4c696f020799d7e1a8ac4a33b31b206a79fab7ae3e4',
+    // cwd tracking only (review C2): popd/Pop-Location, pushd +N, CDPATH and link-crossing cd leave the cwd unknown
+    'scripts/developer-harness-v2/command-policy.mjs': 'f525363ff3e4d95dc698578aee1ffe74585004990d24f8f99bd003a7d8b2a533',
+    // only change: 'writer-options.mjs' added to the list of modules scanned for emitted actions
+    'scripts/developer-harness-v2/policy-engine.test.mjs': 'bd27b54bd68d76dfecbd9b03a0eaa01e9ed6709ecf025e7f376431da83b2af74',
+  }
+  const PATHRES_NEW = new Set(['scripts/developer-harness-v2/writer-options.mjs', 'scripts/developer-harness-v2/path-resolution.test.mjs'])
   const LF = String.fromCharCode(10)
   const CR = String.fromCharCode(13)
   const norm = (l) => (l.endsWith(CR) ? l.slice(0, -1) : l).replace(/,\s*$/, '')
@@ -170,6 +186,16 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     return null
   }
   for (const rel of same) {
+    if (PATHRES_NEW.has(rel)) {
+      assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in the Phase 4 path-resolution remediation`)
+      if (PATHRES_PINNED[rel]) assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), PATHRES_PINNED[rel], `${rel} differs from the approved path-resolution content`)
+      continue
+    }
+    if (PATHRES_PINNED[rel]) {
+      assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved path-resolution remediation`)
+      assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), PATHRES_PINNED[rel], `${rel} differs from the approved path-resolution content`)
+      continue
+    }
     if (M1_NEW.has(rel)) { assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in Phase 4`); continue }
     if (REMEDIATION_NEW.has(rel)) { assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in the Phase 4 remediation`); continue }
     if (REMEDIATION_PINNED[rel]) {
