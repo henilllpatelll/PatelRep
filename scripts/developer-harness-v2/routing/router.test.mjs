@@ -7,7 +7,10 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { CATEGORIES, buildContextPack } from '../context/context-packs.mjs'
 import { loadContract } from '../policy-engine.mjs'
-import { SECURITY_TRIGGERS, checkSpawn, planRouting, verifyDiffAgainstPlan } from './router.mjs'
+import { SECURITY_TRIGGERS, changedFilesSince, checkSpawn, planRouting, verifyDiffAgainstPlan } from './router.mjs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO = path.resolve(HERE, '..', '..', '..')
@@ -323,4 +326,51 @@ test('L3: a caller-supplied contract that differs from the repository contract i
   const loosened = JSON.parse(JSON.stringify(CONTRACT))
   loosened.protected_paths = loosened.protected_paths.filter((p) => p !== '.github/**')
   assert.throws(() => plan('x', ['README.md'], { contract: loosened }))
+})
+
+// ── Regression fixtures from the FINAL independent Opus review (all routed low/'routed' before this fix) ──
+test('final review H1: negated/anonymous/CORS/CSRF/webhook/multi-tenant wording triggers security review', () => {
+  for (const t of ['make the reports endpoint unauthenticated', 'allow anonymous access to reports', 'skip webhook signature verification', 'relax CORS to allow any origin', 'disable CSRF protection', 'let housekeepers see all hotels data', 'add rate limiting', 'encrypt the notes column']) {
+    assert.ok(needsSec(plan(t, ['apps/api/routers/reports.py'])), t)
+  }
+})
+test('final review H2: route groups, dynamic segments and compound names trigger the path signals', () => {
+  for (const f of ['apps/mobile/app/(auth)/_layout.tsx', 'apps/web/app/(auth)/layout.tsx', 'apps/api/routers/webhooks.py', 'apps/api/services/opera/webhooks.py', 'apps/web/app/signin.tsx', 'apps/api/routers/signup.py', 'apps/web/lib/accessControl.ts', 'apps/api/routers/admin.py', 'apps/web/app/[hotelId]/page.tsx', 'apps/api/services/hotelid.py', 'apps/web/lib/supabaseAdmin.ts', 'apps/api/services/encryption.py']) {
+    assert.ok(plan('Small tweak', [f]).reviews.security, f)
+  }
+  assert.equal(plan('Small tweak', ['apps/web/components/Button.tsx']).reviews.security, false, 'ordinary files still route as ordinary')
+})
+test('final review: additional forbidden phrasings are refused', () => {
+  for (const t of ['squash and merge', 'approve and merge', 'merge pr123', 'land the branch on main', 'go live', 'roll back production', 're-run CI']) {
+    assert.equal(plan(t, ['apps/web/components/B.tsx']).status, 'blocked', t)
+  }
+})
+test('final review: M1 instruction files carry the same label as the engine (modify_agent_instructions_or_hooks)', () => {
+  for (const f of ['.wolf/OPENWOLF.md', '.wolf/cerebrum.md', '.wolf/knowledge/web.md', '.wolf/reframe-frameworks.md', '.wolf/identity.md']) {
+    assert.ok(plan('Tweak', [f]).human_approvals.some((a) => a.action === 'modify_agent_instructions_or_hooks'), f)
+  }
+  for (const f of ['.wolf/config.json', '.wolf/anatomy.md']) assert.ok(plan('Tweak', [f]).human_approvals.some((a) => a.action === 'modify_control_plane_files'), f)
+})
+test('final review H4: --diff-base is implemented (changedFilesSince, plan CLI, verify-plan CLI) and rejects hostile refs', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'diffbase-'))
+  try {
+    const git = (...a) => execFileSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...a], { encoding: 'utf8' })
+    git('init', '-q')
+    mkdirSync(path.join(dir, 'apps/web/lib'), { recursive: true })
+    writeFileSync(path.join(dir, 'apps/web/lib/x.ts'), '1')
+    git('add', '-A'); git('commit', '-qm', 'base')
+    const base = git('rev-parse', 'HEAD').trim()
+    mkdirSync(path.join(dir, '.github/workflows'), { recursive: true })
+    writeFileSync(path.join(dir, '.github/workflows/ci.yml'), 'x')
+    writeFileSync(path.join(dir, 'apps/web/lib/x.ts'), '2')
+    git('add', '-A'); git('commit', '-qm', 'work')
+    assert.deepEqual(changedFilesSince(base, dir).sort(), ['.github/workflows/ci.yml', 'apps/web/lib/x.ts'])
+    assert.throws(() => changedFilesSince('--output=/tmp/x', dir), /invalid/)
+    assert.throws(() => changedFilesSince('a b', dir), /invalid/)
+    // the plan was made for x.ts only; the real diff also touches a workflow
+    const early = plan('Fix a web button style', ['apps/web/lib/x.ts'])
+    assert.equal(verifyDiffAgainstPlan(early, changedFilesSince(base, dir)).ok, false)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+  const r = spawnSync(process.execPath, [path.join(HERE, 'router.mjs'), '--task', 'x', '--bogus', 'y'], { encoding: 'utf8' })
+  assert.notEqual(r.status, 0, 'unknown CLI options fail instead of being silently ignored')
 })

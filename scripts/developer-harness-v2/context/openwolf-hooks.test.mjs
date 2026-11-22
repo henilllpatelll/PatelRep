@@ -149,6 +149,7 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   // Phase 4 M1 (human-approved) is the ONLY permitted change to the Phase 2 enforcement set, and it must be purely additive:
   // every Phase 2 line survives in order (a trailing comma added to a JSON list item is tolerated), nothing is removed or reworded.
   const M1_FILES = new Set(['docs/developer-harness-v2/contract.json', 'scripts/developer-harness-v2/policy-engine.mjs', 'scripts/developer-harness-v2/path-policy.mjs', 'scripts/developer-harness-v2/policy-fixtures.mjs'])
+  const M1_PINNED = { 'scripts/developer-harness-v2/policy-engine.mjs': '4e4a31d5152b3eb46f9f1ae8b7621682031873749c5824fba13d8d30c6eb5b87', 'scripts/developer-harness-v2/path-policy.mjs': 'f27d0cece5a68d6bd180ca8254eb52eb1762e05708d61a2e581e6532634585f3' }
   const M1_NEW = new Set(['scripts/developer-harness-v2/policy-fixtures-m1.mjs', 'scripts/developer-harness-v2/m1-hardening.test.mjs'])
   const LF = String.fromCharCode(10)
   const CR = String.fromCharCode(13)
@@ -168,6 +169,10 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     if (M1_FILES.has(rel)) {
       assert.equal(additiveOver(gitShow(PHASE2, rel), read(rel)), null, `${rel}: a Phase 2 line was removed or changed (M1 must be additive)`)
       assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved M1 addition`)
+      // The ordered-subsequence check cannot see an INSERTED line, so the two enforcement sources are also pinned (LF-normalized
+      // sha256 of the approved post-M1 content). Any further edit to them must update this pin in a reviewed change.
+      const pin = M1_PINNED[rel]
+      if (pin) assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), pin, `${rel} differs from the approved post-M1 content`)
       continue
     }
     assert.equal(read(rel), gitShow(PHASE2, rel), `${rel} unchanged`)

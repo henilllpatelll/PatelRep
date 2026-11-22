@@ -7,9 +7,11 @@
 //
 //   node router.mjs --task "<text>" [--files a,b] [--surface web|mobile|api|database|ci-release|security|developer-harness]
 //                   [--modification add|edit|delete|rename|config|dependency|migration|docs|style|architecture]
-//                   [--authorize push,open_draft_pr] [--models <id,id,...>] [--diff-base <ref>]
+//                   [--authorize push,open_draft_pr] [--models <id,id,...>] [--diff-base <ref>]   (plan over the files changed since <ref>)
+//   node router.mjs --verify-plan <plan.json> --diff-base <ref>   (mandatory second pass; exit 1 if the plan was insufficient)
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CATEGORIES, PACKS, routeTask as routePackCategory } from '../context/context-packs.mjs'
 import { globToRegExp } from '../path-policy.mjs'
@@ -26,22 +28,22 @@ const SEQUENCE = ['planner', 'implementer', 'test_coordinator', 'independent_rev
 const T = (id, label, paths, text, category) => ({ id, label, paths, text, category })
 export const SECURITY_TRIGGERS = Object.freeze([
   T('SEC.CUSTOMER_AGENT_HARNESS', 'Customer Agent Harness implementation, grants, execution or billing',
-    /^(docs\/agent-harness\/|apps\/api\/(services\/)?agents?\/|apps\/api\/.*harness)|(^|[/_.-])(agent[_-]?harness|decide[_-]?v2|agent[_-]?grants?)([/_.-]|$)/i,
+    /^(docs\/agent-harness\/|apps\/api\/(services\/)?agents?\/|apps\/api\/.*harness)|(^|[/_.()\[\]@ -])(agent[_-]?harness|decide[_-]?v2|agent[_-]?grants?)([/_.()\[\]@ -]|$)/i,
     /\b(agent harness|customer agents?|agent (grants?|execution|billing|autonomy)|decide_v2|h[1-7] harness|worker lease)\b/i, 'security'),
   T('SEC.AUTHN_AUTHZ', 'Authentication and authorization',
-    /(^|[/_.-])(auth(?!ors?([/_.-]|$))[a-z]*|login|logout|session|jwt|oauth|sso|password|mfa|permissions?|guards?)([/_.-]|$)|apps\/api\/(middleware|core)\//i,
-    /\b(auth(?!ors?\b|ored\b)\w*|login|logout|log in|sign[- ]?(in|up|out)|jwt|oauth|sso|password|refresh tokens?|session (token|cookie)|permission check|access control|admin[- ]only|only (managers?|admins?|gms?)\b)/i, 'security'),
-  T('SEC.RBAC', 'Role-based access control', /(^|[/_.-])(rbac|roles?|require_role|custom_roles?)([/_.-]|$)|RBAC-MATRIX/i,
+    /(^|[/_.()\[\]@ -])(auth(?!ors?([/_.()\[\]@ -]|$))[a-z]*|login|logout|session|jwt|oauth|sso|password|mfa|permissions?|guards?|sign[_-]?(in|up)|access[_-]?control|anon(ymous)?|cors|csrf|webhooks?|signatures?|admin)([/_.()\[\]@ -]|$)|apps\/api\/(middleware|core)\//i,
+    /\b((un|de|non|re)?auth(?!ors?\b|ored\b)\w*|anonymous|public (endpoint|access)|cors|csrf|webhooks?|signature verification|encrypt\w*|rate[- ]?limit\w*|all hotels|own hotel|login|logout|log in|sign[- ]?(in|up|out)|jwt|oauth|sso|password|refresh tokens?|session (token|cookie)|permission check|access control|admin[- ]only|only (managers?|admins?|gms?)\b)/i, 'security'),
+  T('SEC.RBAC', 'Role-based access control', /(^|[/_.()\[\]@ -])(rbac|roles?|require_role|custom_roles?)([/_.()\[\]@ -]|$)|RBAC-MATRIX/i,
     /\b(rbac|require_role|role[- ]based|role gating|(custom|user|staff|new) roles?|roles\b|housekeeper role|gm role)/i, 'security'),
-  T('SEC.RLS_TENANT', 'Row-level security and tenant isolation', /(^|[/_.-])(rls|tenant|tenancy|hotel_id)([/_.-]|$)/i,
+  T('SEC.RLS_TENANT', 'Row-level security and tenant isolation', /(^|[/_.()\[\]@ -])(rls|tenant|tenancy|hotel[_-]?ids?)([/_.()\[\]@ -]|$)/i,
     /\b(rls|row[- ]level|tenant|tenancy|hotel_id|cross[- ]hotel|other hotels?|multi[- ]tenant|tenant isolation)\b/i, 'database'),
   T('SEC.MIGRATIONS', 'Supabase migrations or schema-security contracts', /^supabase\//i,
     /\b(migrations?|schema|supabase (schema|migration)|alter table|create table|add (a |an )?(new )?(column|table|index)|drop (column|table)|ddl)\b/i, 'database'),
-  T('SEC.DB_PRIVILEGES', 'Database privileges, triggers or sensitive RPCs', /(^|[/_.-])(privileges?|triggers?|security[_-]definer|rpc)([/_.-]|$)/i,
+  T('SEC.DB_PRIVILEGES', 'Database privileges, triggers or sensitive RPCs', /(^|[/_.()\[\]@ -])(privileges?|triggers?|security[_-]definer|rpc)([/_.()\[\]@ -]|$)/i,
     /\b(grant|revoke|privileges?|triggers?|security definer|rpc|stored (procedure|function)|postgres function)\b/i, 'database'),
-  T('SEC.SECRETS', 'Secrets and credentials', /(^|[/_.-])(secrets?|credentials?|\.env[a-z.]*|api[_-]?keys?|private[_-]?keys?|tokens?)([/_.-]|$)|\.(pem|key|p12|pfx)$/i,
+  T('SEC.SECRETS', 'Secrets and credentials', /(^|[/_.()\[\]@ -])(secrets?|credentials?|\.env[a-z.]*|api[_-]?keys?|private[_-]?keys?|tokens?|supabase[_-]?admin|service[_-]?role|encrypt\w*)([/_.()\[\]@ -]|$)|\.(pem|key|p12|pfx)$/i,
     /\b(secrets?|credentials?|api[_ -]?keys?|private keys?|service[_ -]role|env(ironment)? (var\w*|file)|\.env|access tokens?)\b/i, 'security'),
-  T('SEC.PAYMENTS', 'Payments or Stripe integration', /(^|[/_.-])(stripe|billing|payments?|subscriptions?|invoices?|credits?)([/_.-]|$)/i,
+  T('SEC.PAYMENTS', 'Payments or Stripe integration', /(^|[/_.()\[\]@ -])(stripe|billing|payments?|subscriptions?|invoices?|credits?)([/_.()\[\]@ -]|$)/i,
     /\b(stripe|billing|payments?|subscriptions?|invoices?|checkout|ai credits?|metered|true[- ]up|charge)\b/i, 'security'),
   T('SEC.CLAUDE_CONTROL', 'Claude instructions, hooks, skills, memory policy or role permissions',
     /^(\.claude\/|\.wolf\/|\.mcp\.json$|CLAUDE\.md$|AGENTS\.md$|(.*\/)?(CLAUDE|AGENTS)\.md$)/i,
@@ -56,7 +58,7 @@ export const SECURITY_TRIGGERS = Object.freeze([
     /\b(production release|rollback|release engineer|release workflow|cut a release|promote to production)\b/i, 'ci-release'),
   T('SEC.AUTOMERGE_RECOVERY', 'Recovery automation and auto-merge', /(auto[_-]?merge|recovery[_-]|claude\/recovery)/i,
     /\b(auto[- ]?merge|recovery (automation|branch|workflow)|merge queue|self[- ]heal)\b/i, 'ci-release'),
-  T('SEC.REPO_CONTROLS', 'Repository rulesets, environments and protection settings', /(^|\/)(rulesets?|environments?|codeowners|branch[_-]protection)([/._-]|$)/i,
+  T('SEC.REPO_CONTROLS', 'Repository rulesets, environments and protection settings', /(^|\/)(rulesets?|environments?|codeowners|branch[_-]protection)([/._()\[\]@ -]|$)/i,
     /\b(rulesets?|branch protection|environments?|github app permissions?|repository settings|protected branch|code ?owners)\b/i, 'ci-release'),
 ])
 
@@ -75,11 +77,11 @@ const COMPLEXITY_TEXT = /\b(architect(ure|ural)?|redesign|re-?architect|refactor
 const SUPPRESSION_TEXT = /\b(skip|bypass|disable|ignore|omit|no need for|without|don'?t (need|run|bother with))\b[^.\n]{0,40}\b(security|review|reviewer|approval|approve|hook|polic(y|ies)|contract|guard|gate|human)\b|\bpre-?approved\b|\bauto-?approve\b|\boverride (the )?(policy|contract|review)\b/i
 /** Intents whose action class is forbidden: the router refuses to plan them. */
 const FORBIDDEN_INTENT = [
-  ['merge_pull_request', /\b(merg\w*|land|squash)\b[^.\n]{0,25}(\b(pr|pull request|it|this)\b|#\d+)|\bgh pr merge\b/i],
+  ['merge_pull_request', /\b(merg\w*|land|squash)\b[^.\n]{0,25}(\b(pr|pull request|it|this)\b|\bpr ?#?\d+|#\d+)|\b(squash|approve) and merge\b|\bland\b[^.\n]{0,25}\b(main|branch)\b|\bgh pr merge\b/i],
   ['enable_auto_merge', /\bauto[- ]?merge\b[^.\n]{0,20}\b(enable|turn on|set up)|\b(enable|turn on|set up)\b[^.\n]{0,20}\bauto[- ]?merge\b/i],
-  ['deploy_production', /\b(deploy\w*|ship\w*|releas\w*|push\w*|promot\w*)\b[^.\n]{0,30}\b(to )?(prod\w*|live)\b/i],
-  ['dispatch_any_workflow', /\b(dispatch|trigger|run|kick off|re-?run|start)\b[^.\n]{0,40}\b(workflows?|pipeline|ci run|github action)\b|\bgh workflow run\b/i],
-  ['dispatch_production_release_or_rollback', /\b(dispatch|trigger|run|kick off|start|perform)\b[^.\n]{0,30}\b(release|rollback)\b/i],
+  ['deploy_production', /\b(deploy\w*|ship\w*|releas\w*|push\w*|promot\w*)\b[^.\n]{0,30}\b(to )?(prod\w*|live)\b|\bgo[- ]live\b/i],
+  ['dispatch_any_workflow', /\b(dispatch|trigger|run|kick off|re-?run|start)\b[^.\n]{0,40}\b(workflows?|pipeline|ci run|github action)\b|\bgh workflow run\b|\bre-?run\b[^.\n]{0,15}\b(ci|checks?|jobs?)\b/i],
+  ['dispatch_production_release_or_rollback', /\b(dispatch|trigger|run|kick off|start|perform)\b[^.\n]{0,30}\b(release|rollback)\b|\broll[- ]?back\b[^.\n]{0,20}\b(prod\w*|live)\b/i],
   ['force_push_or_rewrite_reviewed_history', /\bforce[- ]?push\w*|--force\b|--force-with-lease|\bpush\b[^.\n]{0,20}\s-f\b|\brewrite (git )?history\b/i],
   ['push_to_protected_main', /\bpush\b[^.\n]{0,20}\b(directly )?(to )?main\b/i],
   ['activate_customer_agent_execution', /\b(activate|enable|turn on|go live with)\b[^.\n]{0,25}\bcustomer agents?\b/i],
@@ -125,7 +127,7 @@ function protectedFindings(files, modification, contract) {
   const stops = []
   for (const f of files) {
     const hit = globs.find(({ re }) => re.test(f))
-    const instr = /^(\.claude\/|\.wolf\/hooks\/|\.mcp\.json$|(.*\/)?(CLAUDE|AGENTS)\.md$)/i.test(f)
+    const instr = /^(\.claude\/|\.wolf\/hooks\/|\.wolf\/(OPENWOLF\.md|cerebrum\.md|knowledge\/|reframe-frameworks\.md|identity\.md)|\.mcp\.json$|(.*\/)?(CLAUDE|AGENTS)\.md$)/i.test(f)
     if (/^supabase\/migrations\//i.test(f)) {
       if (modification === 'add') approvals.push({ action: 'author_new_forward_only_migration', class: contract.actions.author_new_forward_only_migration, path: f })
       else stops.push({ code: 'STOP.EXISTING_MIGRATION', action: 'modify_existing_migration', class: contract.actions.modify_existing_migration, path: f, message: 'Existing migrations are immutable; only a new forward-only migration may be authored.' })
@@ -341,12 +343,30 @@ function parseArgs(argv) {
     else if (k === 'authorize') o.authorize = v.split(',').filter(Boolean)
     else if (k === 'models') o.availableModels = v.split(',').filter(Boolean)
     else if (k === 'diff-base') o.diffBase = v
+    else if (k === 'verify-plan') o.verifyPlan = v
+    else throw new Error(`unknown option --${k}`)
   }
   return o
 }
 
+/** Files changed since `base` (both sides of a rename are listed as separate paths). Read-only git. */
+export function changedFilesSince(base, cwd = DEFAULT_REPO) {
+  if (!/^[A-Za-z0-9._\/~^-]{1,200}$/.test(base) || base.startsWith('-')) throw new Error('invalid --diff-base ref')
+  const out = execFileSync('git', ['-C', cwd, 'diff', '--name-only', '--no-renames', `${base}...HEAD`], { encoding: 'utf8' })
+  return out.split('\n').filter(Boolean)
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = parseArgs(process.argv.slice(2))
-  const contract = loadContract(path.join(args.repo ?? DEFAULT_REPO, 'docs/developer-harness-v2/contract.json'))
-  process.stdout.write(`${JSON.stringify(planRouting({ ...args, contract }), null, 2)}\n`)
+  if (args.verifyPlan) {
+    if (!args.diffBase) throw new Error('--verify-plan requires --diff-base')
+    const plan = JSON.parse(readFileSync(args.verifyPlan, 'utf8'))
+    const result = verifyDiffAgainstPlan(plan, changedFilesSince(args.diffBase))
+    process.stdout.write(`${JSON.stringify({ ok: result.ok, addedTriggers: result.addedTriggers, addedRoles: result.addedRoles, addedApprovals: result.addedApprovals, stops: result.stops }, null, 2)}\n`)
+    process.exitCode = result.ok ? 0 : 1
+  } else {
+    if (args.diffBase) args.files = [...(args.files ?? []), ...changedFilesSince(args.diffBase)]
+    delete args.diffBase
+    process.stdout.write(`${JSON.stringify(planRouting(args), null, 2)}\n`)
+  }
 }

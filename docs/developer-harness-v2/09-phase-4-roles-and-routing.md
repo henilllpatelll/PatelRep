@@ -10,9 +10,9 @@ Status: implemented on PR #247 (draft). The OpenWolf M1 protected-path hardening
 | Seven Claude Code role definitions | `.claude/agents/{coordinator,planner,implementer,test-coordinator,independent-reviewer,security-reviewer,context-manager}.md` |
 | Tool → contract-action capability map, agent-file parser, subset check | `scripts/developer-harness-v2/routing/role-capabilities.mjs` |
 | Deterministic router, spawn guard, finding evaluator | `scripts/developer-harness-v2/routing/router.mjs` |
-| Tests (44 + 10 M1) | `scripts/developer-harness-v2/routing/{roles,router}.test.mjs` |
+| Tests (49 routing + 10 M1) | `scripts/developer-harness-v2/routing/{roles,router}.test.mjs` |
 
-No Phase 1 or Phase 2 file, workflow, migration, product code or memory file was modified. Nothing here starts an agent: the router returns a **plan**.
+The only Phase 1/2 files modified are the three the owner approved for M1 (`contract.json`, `policy-engine.mjs`, `path-policy.mjs`; section 5) plus their fixtures/tests; no workflow, migration, product code, `.wolf/hooks/*.js` or memory file was modified. Nothing here starts an agent: the router returns a **plan**.
 
 ## 2. Roles: models and actual tools
 
@@ -97,7 +97,7 @@ Residual finding M1 (Phase 3): OpenWolf files that influence developer-agent ins
 
 ## 6. Verification evidence
 
-* Unit: `roles.test.mjs` (19) and `router.test.mjs` (25, including regression fixtures for every input the independent review found routed as low risk) — roles/models/tool subset, router rules, 15 trigger classes by path and by text, ambiguity, forbidden intents, determinism, injection fixtures (untrusted observations and authority metadata leave the plan byte-identical), spawn guard.
+* Unit: `roles.test.mjs` (19) and `router.test.mjs` (30, including regression fixtures for every input either independent review found routed as low risk) — roles/models/tool subset, router rules, 15 trigger classes by path and by text, ambiguity, forbidden intents, determinism, injection fixtures (untrusted observations and authority metadata leave the plan byte-identical), spawn guard.
 * Regression: Phase 1 (12), Phase 2 engine (543) and hook (16), sandbox env (6), Phase 3 context (48); ten workflow/recovery contract suites (213). All pass.
 * Runtime (sanitized scratch project containing only the role files, `--setting-sources project`, empty `--strict-mcp-config`, `--max-turns 1`, no tool use): every role loaded; `modelUsage` showed the contract model for each; the model reported exactly the expected tool list; `subagent_stats.spawned = 0`.
 * **NOT VERIFIED at runtime for the roles:** hook enforcement during a role's own write attempt, reviewer behavior under an adversarial prompt, and the `Agent`-tool absence under a delegation request. Hook enforcement itself is covered by the Phase 2 manual runtime harness and the unit tests above. A model's refusal is not counted as proof.
@@ -119,4 +119,24 @@ First pass: **NO-GO on the router, role files sound.** Findings and disposition:
 | M5 | "reliably" overstated | Reworded; plan declared advisory |
 | L1–L4 | modification case/validation; resolution object is data; caller-supplied contract; `--agents` shadowing | Fixed / documented |
 
-A re-review of the fixes was not performed; the fixes are covered by deterministic tests only.
+### Final independent review (new Opus 5.5 context, on a07b4d3e)
+
+Verdict **NO-GO** for readiness; M1 and the role files were sound. Four blockers, all fixed afterward and covered by tests:
+
+| Finding | Disposition |
+|---|---|
+| `--diff-base` was parsed but never used (the documented second pass silently planned over zero files) | Implemented: `router.mjs --diff-base <ref>` plans over `git diff --name-only --no-renames <ref>...HEAD`; `--verify-plan <plan.json> --diff-base <ref>` is the mandatory pass (exit 1 if the plan was insufficient). Hostile refs are rejected; unknown CLI options now fail |
+| H1 leftovers: "unauthenticated", anonymous, CORS, CSRF, webhook signature, all hotels | Text signals broadened |
+| H2 leftovers: `(auth)` route groups, `[hotelId]`, `webhooks`, `signin`, `admin`, `accessControl`, `supabaseAdmin`, `encryption` | `()[]@` are word boundaries; words added |
+| `coordinator.md` let the implementer run the router and called the plan "authoritative" | Only the human session runs it; the plan is advisory; the final-diff pass is required |
+
+Also fixed: further forbidden phrasings (squash/approve and merge, `merge pr123`, land on main, go live, roll back production, re-run CI), the router's label for M1 instruction files (now the engine's `modify_agent_instructions_or_hooks`), the doc's scope claim, and the byte-identity test: `policy-engine.mjs` and `path-policy.mjs` are now **pinned by hash** to the approved post-M1 content, because an ordered-subsequence check cannot see an inserted line.
+
+**Not re-reviewed after these fixes** (covered by deterministic tests only). The text signals remain heuristics; unusual wording can evade them, and Unicode full-width or 8.3 short names are not normalized (real `git diff` output never produces them).
+
+### Known pre-existing Phase 2 gaps — NOT fixed (outside the M1 approval)
+
+Reported by the final review; they predate M1 and affect other protected paths equally. Fixing them means editing `git-policy.mjs` / `file-command-policy.mjs`, which needs a separate human approval.
+
+1. `git rm <path>` and `git mv <path> <dest>` skip their first path (`git-policy.mjs`, `positionals(args)` with `from=1`): `git rm CLAUDE.md`, `git rm .wolf/cerebrum.md` classify as `allowed`. `git rm -- <path>` is classified correctly. Proposed fix: `positionals(args, 0)`.
+2. `cp`/`mv`/`Copy-Item` into a **directory** (`cp x/cerebrum.md .wolf/`, `cp -t .wolf x`, `cp -r src/. .wolf`) are not resolved to `dest/basename(src)` (`file-command-policy.mjs`), so they classify as `allowed` for any protected directory. Proposed fix: resolve the destination when it is a directory, uses `-t`, or ends in `/`, and apply `coversProtected` to recursive copies.
