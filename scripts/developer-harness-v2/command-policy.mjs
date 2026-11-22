@@ -13,8 +13,11 @@ import {
 } from './policy-common.mjs'
 import { TOOL_HANDLERS } from './command-tools.mjs'
 import { fileWriter, readOnlySideEffect, globMayMatchSecret } from './file-command-policy.mjs'
+import { parseHttpRequest, httpMutationFindings } from './http-request-policy.mjs'
+import { opaqueGithubFindings } from './github-api-policy.mjs'
 
 export const MAX_DEPTH = 6
+const OPAQUE_ACTIONS = new Set(['run_unrecognized_command', 'run_unreviewed_script', 'run_interpreter_inline_code', 'network_request_or_remote_shell'])
 
 const SAFE_READONLY = new Set(['ls', 'dir', 'pwd', 'echo', 'printf', 'cat', 'head', 'tail', 'wc', 'grep', 'egrep', 'fgrep', 'rg',
   'tree', 'stat', 'file', 'which', 'where', 'whereis', 'du', 'df', 'date', 'whoami', 'uname', 'hostname', 'sort', 'uniq', 'cut',
@@ -80,14 +83,21 @@ export function classifyCommand(source, ctx, opts = {}) {
     }
   }
   for (const sub of parsed.substitutions) findings.push(...classifyCommand(sub, ctx, { ...opts, depth: depth + 1 }))
-  const state = { cwd: opts.cwd === undefined ? ctx.cwd : opts.cwd, dialect, depth }
-  for (const cmd of parsed.commands) findings.push(...classifySimple(cmd, ctx, state))
+  const state = { cwd: opts.cwd === undefined ? ctx.cwd : opts.cwd, dialect, depth, source: `${opts.outerSource ?? ''}\n${source}` }
+  parsed.commands.forEach((cmd, i) => {
+    state.pipedIn = i > 0 && Boolean(parsed.commands[i - 1].pipesOut)
+    findings.push(...classifySimple(cmd, ctx, state))
+  })
+  // Opaque parts (inline code, unknown programs, unreviewed scripts, remote shells, .NET calls) may act on any
+  // literal in the line, so mutation-only GitHub endpoints anywhere in it are forbidden.
+  // HTTP clients (`network.http.*`) are parsed structurally and are not opaque.
+  if (findings.some((f) => OPAQUE_ACTIONS.has(f.action) && !f.code.startsWith('network.http.'))) findings.push(...opaqueGithubFindings(source))
   if (!findings.length) findings.push(F('read_repository', 'shell.noop', 'no effect'))
   return findings
 }
 
 function recurse(ctx, state, source, overrides = {}) {
-  return classifyCommand(source, ctx, { dialect: state.dialect, cwd: state.cwd, depth: state.depth + 1, ...overrides })
+  return classifyCommand(source, ctx, { dialect: state.dialect, cwd: state.cwd, depth: state.depth + 1, outerSource: state.source, ...overrides })
 }
 
 function classifySimple(cmd, ctx, state) {
@@ -373,15 +383,20 @@ function envPrinter({ words, exe, findings }) {
   findings.push(F('read_repository', 'shell.env_builtin', 'shell variable builtin'))
 }
 
-function networkCommand({ words, findings, exe }) {
+function networkCommand({ words, findings, exe, state }) {
   const joined = words.map((w) => w.text).join(' ')
   if (REMOTE_DATABASE.test(joined)) { findings.push(F('access_customer_data', 'network.remote_database', 'direct request to a remote database or Supabase project')); return }
-  const mutating = /\s(-X|--request|-Method|--method)\s+(POST|PUT|PATCH|DELETE)\b|\s(-d|--data[\w-]*|-F|--form|-T|--upload-file|-Body|--json)\b/i.test(` ${joined}`)
+  // HTTP clients: classify the request by effect (method, target, body), not by flag spelling.
+  const req = parseHttpRequest(exe, words, { pipedIn: state.pipedIn, line: state.source })
+  const effects = req ? httpMutationFindings(req) : null
+  const mutating = req ? Boolean(effects) || Boolean(req.method && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) || req.bodies.length > 0 || req.opaqueBody
+    : /\s(-X|--request|-Method|--method)\s+(POST|PUT|PATCH|DELETE)\b|\s(-d|--data[\w-]*|-F|--form|-T|--upload-file|-Body|--json)\b/i.test(` ${joined}`)
   if (/\/billing\/monthly-trueup\b/i.test(joined) || (mutating && /\/v1\/agent[\w/-]*(grant|decide|activat|autonom|billing|pause|resume)/i.test(joined))) {
     findings.push(F('activate_customer_agent_execution', 'network.agent_activation', 'request to a customer-agent activation, grant or billing endpoint'))
     return
   }
-  findings.push(F('network_request_or_remote_shell', `network.${exe}`, `network request or remote shell (${exe})`))
+  if (effects) findings.push(...effects)
+  findings.push(F('network_request_or_remote_shell', req ? `network.http.${exe}` : `network.${exe}`, `network request or remote shell (${exe})`))
 }
 
 function shellCommand(env) {

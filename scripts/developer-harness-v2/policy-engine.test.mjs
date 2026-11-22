@@ -173,13 +173,14 @@ test('reasons never echo secret values, file contents or full commands', () => {
 })
 
 test('every action the policy modules can emit is declared in the contract and the floor', () => {
-  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'policy-engine.mjs', 'policy-common.mjs']
+  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'policy-engine.mjs', 'policy-common.mjs', 'github-api-policy.mjs', 'http-request-policy.mjs']
   const all = readdirSync(HERE).filter((f) => f.endsWith('.mjs') && !/test|fixtures|runtime|shell-recognizer/.test(f))
   assert.deepEqual([...all].sort(), [...files].sort(), 'every policy module is scanned')
   const emitted = new Set()
   for (const f of files) {
     const src = readFileSync(path.join(HERE, f), 'utf8')
-    for (const m of src.matchAll(/\b(?:F|push|f)\(\s*'([a-z_]+)'/g)) emitted.add(m[1])
+    for (const m of src.matchAll(/\b(?:F|G|push|f)\(\s*'([a-z_]+)'/g)) emitted.add(m[1])
+    for (const m of src.matchAll(/\[\s*'([a-z_]{8,})',\s*'[a-z_]+'\s*\]\]/g)) emitted.add(m[1]) // [name, ['action', 'code']] map entries
     for (const m of src.matchAll(/action:\s*'([a-z_]+)'/g)) emitted.add(m[1])
     for (const m of src.matchAll(/\?\s*'([a-z_]{8,})'\s*:\s*'([a-z_]{8,})'/g)) { emitted.add(m[1]); emitted.add(m[2]) }
   }
@@ -229,8 +230,9 @@ test('credential path recognition distinguishes secrets from templates', () => {
 test('false-positive assessment: legitimate actions and their friction are recorded', () => {
   const legit = FIXTURES.filter((f) => f.group === 'P' || f.group === 'FP')
   const rows = legit.map((f) => ({ id: f.id, action: `${f.tool}: ${f.input}`.slice(0, 60), classification: evaluate(f).classification }))
-  const unnecessaryBlocks = rows.filter((r) => r.classification === 'forbidden' && !['FP-12', 'FP-13'].includes(r.id))
-  assert.deepEqual(unnecessaryBlocks, [], 'no legitimate action is forbidden except the documented FP-12/FP-13 (core.hooksPath setup)')
+  // FP-19/FP-20: remediation A — mutating requests to computed URLs and mutation-only GitHub endpoints in opaque code.
+  const unnecessaryBlocks = rows.filter((r) => r.classification === 'forbidden' && !['FP-12', 'FP-13', 'FP-19', 'FP-20'].includes(r.id))
+  assert.deepEqual(unnecessaryBlocks, [], 'no legitimate action is forbidden except the documented FP-12/FP-13 (core.hooksPath setup) and FP-19/FP-20 (unverifiable API mutation)')
   const autoAllowed = rows.filter((r) => r.classification === 'allowed').length
   assert.ok(autoAllowed >= 25, `ordinary work stays low-friction (${autoAllowed} allowed)`)
 })

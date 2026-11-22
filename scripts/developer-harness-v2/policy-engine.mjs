@@ -227,6 +227,10 @@ export function classifyMcp(tool, input = {}) {
   if (/github/.test(name)) {
     if (/merge/.test(name)) return F('merge_pull_request', 'mcp.github_merge', 'merging via MCP')
     if (/workflow|dispatch|rerun|cancel/.test(name)) return F('dispatch_any_workflow', 'mcp.github_workflow', 'workflow dispatch via MCP')
+    if (mutating.test(name) && /release|tag/.test(name)) return F('dispatch_production_release_or_rollback', 'mcp.github_release', 'releases are created only by the trusted release workflow')
+    if (mutating.test(name) && /repositor|ruleset|protection|secret|variable|environment|collaborator|webhook|hook|deploy_key|fork|transfer|archive|permission|ref\b|_ref|branch/.test(name)) {
+      return F('change_repository_rulesets_secrets_environments_or_permissions', 'mcp.github_repo_controls', 'repository controls, refs and branches via MCP are human-owned')
+    }
     if (/push_files|create_or_update_file|delete_file/.test(name)) {
       const branch = String(input?.branch ?? '').toLowerCase()
       return !branch || ['main', 'master'].includes(branch.replace(/^refs\/heads\//, '')) ? F('push_to_protected_main', 'mcp.github_push_main', 'writes to the default/protected branch via MCP')

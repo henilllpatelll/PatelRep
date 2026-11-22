@@ -3,6 +3,7 @@
 // an unrecognized subcommand of a local CLI needs human approval.
 import { F, PROTECTED_BRANCHES, RESERVED_BRANCH_PREFIXES, positionals, hasFlag, flagValue, splitFlag, REMOTE_DATABASE } from './policy-common.mjs'
 import { gitHandler } from './git-policy.mjs'
+import { parseTarget, isReadMethod, classifyRestMutation, classifyGraphql } from './github-api-policy.mjs'
 
 const allowed = (env, code, detail) => env.findings.push(F('run_lightweight_local_checks', code, detail))
 const lower = (w) => (w?.text ?? '').toLowerCase()
@@ -63,36 +64,51 @@ function gh(env) {
   }
 }
 
+const GH_API_VALUE_FLAGS = new Set(['-X', '--method', '-f', '-F', '--field', '--raw-field', '--input', '-H', '--header', '-q', '--jq', '-t',
+  '--template', '--hostname', '--cache', '-p', '--preview'])
+
+/** `gh api`: effects are verified by github-api-policy (shared with generic HTTP clients); unverifiable mutations are forbidden. */
 function ghApi(env, args) {
   const { findings } = env
   const attachedMethod = args.find((w) => /^-X[A-Za-z]+$/.test(w.text))?.text.slice(2)
-  const method = (attachedMethod ?? flagValue(args, '-X', '--method') ?? '').toUpperCase()
+  const methodWord = attachedMethod === undefined ? args[args.findIndex((w) => ['-X', '--method'].includes(w.text)) + 1] : null
+  let method = (attachedMethod ?? flagValue(args, '-X', '--method') ?? '').toUpperCase()
+  const headers = args.flatMap((w, i) => (['-H', '--header'].includes(w.text) ? [args[i + 1]?.text ?? ''] : /^--header=/.test(w.text) ? [w.text.slice(9)] : []))
+  const override = headers.find((h) => /^\s*x-http-method(-override)?\s*:/i.test(h))
+  if (override) method = override.split(':')[1].trim().toUpperCase() || 'POST'
   const bodyFlags = hasFlag(args, '-f', '-F', '--field', '--raw-field', '--input') || args.some((w) => /^-[fF]\S/.test(w.text))
-  // A body read from a file (`--input f`, `-F query=@q.graphql`) cannot be inspected.
-  const opaqueBody = hasFlag(args, '--input') || args.some((w, i) => /^(-[fF]|--field|--raw-field)$/.test(w.text) ? /=@/.test(args[i + 1]?.text ?? '') : /^(-[fF]|--(raw-)?field=)\S*=@/.test(w.text))
-  const endpoint = positionals(args, 0, new Set(['-X', '--method', '-f', '-F', '--field', '--raw-field', '--input', '-H', '--header', '-q', '--jq', '-t', '--template', '--hostname', '--cache']))[0]?.text ?? ''
-  const all = args.map((w) => w.text).join(' ').toLowerCase()
-  const isGraphql = endpoint.toLowerCase() === 'graphql'
-  const mutation = isGraphql ? /\bmutation\b/.test(all) : (method && method !== 'GET') || (!method && bodyFlags)
-  if (isGraphql && opaqueBody) return findings.push(F('modify_pull_request_state', 'gh.api_opaque_graphql', 'GraphQL document read from a file is not inspected'))
+  // A body read from a file/stdin (`--input f`, `-F query=@q.graphql`) or a computed value cannot be inspected.
+  // gh also expands {owner}/{repo}/{branch} placeholders inside -F/--field values AFTER classification, so such a
+  // value (e.g. with an attacker-chosen branch name) is not the text gh will send.
+  const typedField = (i) => (/^(-F|--field)$/.test(args[i].text) ? args[i + 1]?.text ?? '' : /^-F\S|^--field=/.test(args[i].text) ? args[i].text : null)
+  const opaqueBody = hasFlag(args, '--input') || args.some((w) => w.dynamic) ||
+    args.some((_, i) => { const v = typedField(i); return v !== null && (/=@/.test(v) || /\{(owner|repo|branch)\}/.test(v)) })
+  const endpointWord = positionals(args, 0, GH_API_VALUE_FLAGS)[0]
+  const target = parseTarget(endpointWord?.text ?? '')
+  // Field values exactly as gh sends them (`-f key=value`, `-Fkey=value`, `--field=key=value`).
+  const fields = args.flatMap((w, i) => {
+    if (/^(-f|-F|--field|--raw-field)$/.test(w.text)) return [args[i + 1]?.text ?? '']
+    if (/^--(raw-)?field=/.test(w.text)) return [w.text.slice(w.text.indexOf('=') + 1)]
+    return /^-[fF]\S/.test(w.text) ? [w.text.slice(2)] : []
+  })
+  const pairs = fields.map((f) => { const eq = f.indexOf('='); return eq > 0 ? [f.slice(0, eq), f.slice(eq + 1)] : [f, ''] })
+  if (target.path === 'graphql') {
+    // Only the `query` field is the document; other fields are variables (data). Joining them would let a `#` or `"`
+    // in an earlier field change how the document lexes.
+    const queries = pairs.filter(([k]) => k === 'query').map(([, v]) => v)
+    const variablesText = pairs.filter(([k]) => k !== 'query').map(([k, v]) => `${k}=${v}`).join(' ')
+    return findings.push(...classifyGraphql({ document: queries.length === 1 ? queries[0] : null, variablesText, opaque: opaqueBody }))
+  }
+  const methodDynamic = Boolean(methodWord?.dynamic)
+  const mutation = methodDynamic || (method ? !isReadMethod(method) : bodyFlags)
   if (!mutation) return findings.push(F('read_github_state', 'gh.api_read', 'reads GitHub state'))
-  if (/mergepullrequest|\/merges?\b|automerge|auto_merge|enablepullrequestautomerge/.test(all)) return findings.push(F('merge_pull_request', 'gh.api_merge', 'merging via the API is forbidden'))
-  if (/\/contents\//.test(all)) {
-    const branch = /\bbranch=([^\s&]+)/.exec(all)?.[1]
-    return !branch || ['main', 'master'].includes(branch.replace(/^refs\/heads\//, ''))
-      ? findings.push(F('push_to_protected_main', 'gh.api_contents_main', 'contents API writes to the default/protected branch'))
-      : findings.push(F('push_dedicated_branch_fast_forward', 'gh.api_contents_branch', 'contents API writes to a dedicated branch'))
-  }
-  if (/\/dispatches\b|\/rerun|\/cancel\b|workflow_dispatch|\/workflows\/[^/\s]+\/(enable|disable)/.test(all)) return findings.push(F('dispatch_any_workflow', 'gh.api_dispatch', 'workflow dispatch via the API is forbidden'))
-  if (/\/rulesets|\/environments|\/secrets|\/variables|\/protection|\/collaborators|\/hooks\b|\/keys\b|\/permissions|\/teams|\/rename\b/.test(all)) {
-    return findings.push(F('change_repository_rulesets_secrets_environments_or_permissions', 'gh.api_repo_controls', 'repository controls are human-owned'))
-  }
-  if (/\/git\/refs|\/git\/tags|createref|updateref|deleteref|updaterefs/.test(all)) return findings.push(F('force_push_or_rewrite_reviewed_history', 'gh.api_refs', 'direct ref updates can move protected branches'))
-  if (/\/releases\b/.test(all)) return findings.push(F('dispatch_production_release_or_rollback', 'gh.api_release', 'releases are created only by the trusted release workflow'))
-  if (/\/reviews\b|addpullrequestreview/.test(all) && /approve/.test(all)) return findings.push(F('approve_pull_request_as_gate', 'gh.api_approve', 'agents cannot approve pull requests'))
-  if (/markpullrequestreadyforreview/.test(all)) return findings.push(F('mark_pull_request_ready_for_review', 'gh.api_ready', 'marking ready needs human approval'))
-  if (/\/comments\b|\/issues\/\d+\/comments/.test(all)) return findings.push(F('interact_with_pull_request_or_issue', 'gh.api_comment', 'comment via the API'))
-  findings.push(F('modify_pull_request_state', 'gh.api_mutation', 'GitHub API mutation'))
+  if (!endpointWord || endpointWord.dynamic) return findings.push(F('run_unclassifiable_shell_input', 'gh.api_unverified_endpoint', 'GitHub API mutation to a computed or missing endpoint cannot be verified'))
+  // gh replaces {owner}/{repo}/{branch} in the endpoint from local git state AFTER classification (a branch named
+  // `1/merge` turns `pulls/{branch}` into `pulls/1/merge`). Only the standard `repos/{owner}/{repo}/` prefix is
+  // accepted; any other placeholder makes the mutation unverifiable.
+  const endpointRest = endpointWord.text.replace(/^\/?repos\/\{owner\}\/\{repo\}(?=\/|$)/i, '')
+  if (/\{(owner|repo|branch)\}/i.test(endpointRest)) return findings.push(F('run_unclassifiable_shell_input', 'gh.api_placeholder_endpoint', 'GitHub API mutation whose endpoint contains a placeholder gh fills in later ({branch}, or {owner}/{repo} outside the repos/{owner}/{repo}/ prefix) cannot be verified'))
+  findings.push(classifyRestMutation(methodDynamic ? 'POST' : method || 'POST', target.path, { fields: pairs, opaque: opaqueBody }))
 }
 
 function stripGlobal(args, withValue) {
