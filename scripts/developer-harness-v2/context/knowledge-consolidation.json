@@ -1,0 +1,54 @@
+{
+  "$comment": "Developer Harness V2 Phase 3 — hand-curated semantic consolidation of repeated Do-Not-Repeat lessons, plus the short essentials list rendered into .wolf/cerebrum.md. Members are K-ids from .wolf/knowledge/_provenance.json. Members are RETAINED verbatim in the topic files (each carries some unique detail); a cluster records which consolidated lesson they repeat. Advisory data only.",
+  "version": 1,
+  "clusters": [
+    {
+      "id": "C01",
+      "lesson": "On Windows, never edit repo files with Python text mode: use the Edit/Write tool, or open(p, encoding='utf-8', newline='') for BOTH read and write. Text mode rewrites LF as CRLF (whole-file diffs) and mangles non-ASCII via cp1252.",
+      "members": ["K-ee2fdb44e8", "K-e8756314c3", "K-c7b0c05a1f", "K-bfddcbccfd", "K-b98db12d00", "K-3268ce8d15", "K-adbf63c0ac", "K-17c2e40fd2", "K-9913f41df8", "K-2d2490efce", "K-cecc94c94d"]
+    },
+    {
+      "id": "C02",
+      "lesson": "Do not write source files or regex-heavy code through Bash heredocs: apostrophes/quotes cause 'unexpected EOF' and escapes get mangled. Use the Write/Edit tool.",
+      "members": ["K-e4e4fc99ba", "K-eb0c3ec541", "K-a140613f35", "K-dd4acf1be4", "K-285b57595d", "K-c29fb48621", "K-383a0721c9"]
+    },
+    {
+      "id": "C03",
+      "lesson": "apps/api/RBAC-MATRIX.md records route line numbers: after adding or moving code in apps/api/routers/*.py, regenerate it last, before committing.",
+      "members": ["K-296ba40603", "K-517ef6412d", "K-9f266ccffa", "K-3f53e158fc"]
+    },
+    {
+      "id": "C04",
+      "lesson": "The Expo web harness needs a dummy EXPO_PUBLIC_SUPABASE_ANON_KEY or rendering throws 'supabaseKey is required'.",
+      "members": ["K-7844377312", "K-049ba78be7"]
+    },
+    {
+      "id": "C05",
+      "lesson": "Run API tests as `pytest tests/` with the apps/api/.venv interpreter (tests/smoke/conftest.py sets env vars; a worktree may have no venv).",
+      "members": ["K-88b0804cfc", "K-94baa15e5c"]
+    },
+    {
+      "id": "C06",
+      "lesson": "Jest mocks and hooks must keep stable references (module-level objects, honor selectors); fresh objects/arrays per render loop effects.",
+      "members": ["K-299aa6e248", "K-d1263aca63"]
+    },
+    {
+      "id": "C07",
+      "lesson": "Hotel-local dates come from the tenant time zone, never the device clock or toISOString() UTC dates.",
+      "members": ["K-e679637517", "K-55d16567f4", "K-6a87146446", "K-f7509d52b3"]
+    }
+  ],
+  "essentials": [
+    { "text": "Migrations are forward-only: never edit an applied migration, never `supabase migration repair`; destructive CHECK changes need the `destructive-reviewed` + `rollback-plan` headers.", "refs": ["K-46f91d61a3", "K-6c6f2196c8"] },
+    { "text": "A migration file on disk is not proof it was applied to a live project; check the applied head.", "refs": ["K-f763662fa6"] },
+    { "text": "Check existing migration numbers (note `0201_*` sets the numeric ceiling) before adding one.", "refs": ["K-10fd345ede", "K-60e1db661f"] },
+    { "text": "Every Supabase query scopes to the tenant; RLS is a second layer, not a substitute.", "refs": [] },
+    { "text": "Windows file edits: Edit/Write tool or `newline=''` + utf-8 (cluster C01). No source files via Bash heredocs (C02).", "refs": ["K-ee2fdb44e8", "K-a140613f35"] },
+    { "text": "Regenerate `apps/api/RBAC-MATRIX.md` last after touching `apps/api/routers/*.py` (C03).", "refs": ["K-3f53e158fc"] },
+    { "text": "API tests: `pytest tests/` with the `apps/api/.venv` interpreter (C05).", "refs": ["K-94baa15e5c"] },
+    { "text": "Business rules enforced in one endpoint must be enforced on every route that reaches that state.", "refs": ["K-0ae9f2d98b"] },
+    { "text": "Hotel-local dates use the tenant time zone (C07).", "refs": ["K-f7509d52b3"] },
+    { "text": "Append to `.wolf/buglog.json` textually; never re-dump it with json.dump.", "refs": ["K-83084e775f"] },
+    { "text": "A root `npm ci` in a worktree can break `apps/web` types; install per app.", "refs": ["K-183fefe906"] }
+  ]
+}

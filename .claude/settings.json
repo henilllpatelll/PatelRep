@@ -3,115 +3,170 @@
     "railway@claude-plugins-official": false
   },
   "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push * --force-with-lease*)",
+      "Bash(git push --no-verify*)",
+      "Bash(git push * --no-verify*)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin HEAD:main*)",
+      "Bash(git push origin master*)",
+      "Bash(git push * +*)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit * --no-verify*)",
+      "Bash(git -c core.hooksPath*)",
+      "Bash(git config core.hooksPath*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh workflow run*)",
+      "Bash(gh run rerun*)",
+      "Bash(gh auth token*)",
+      "Bash(gh release create*)",
+      "Bash(supabase db push*)",
+      "Bash(npx supabase db push*)",
+      "Bash(supabase migration repair*)",
+      "Bash(npx supabase migration repair*)",
+      "Bash(supabase link*)",
+      "Bash(npx supabase link*)",
+      "Bash(railway up*)",
+      "Bash(railway deploy*)",
+      "Bash(railway redeploy*)",
+      "Bash(railway run*)",
+      "Bash(vercel deploy*)",
+      "Bash(vercel --prod*)",
+      "Bash(vercel * --prod*)",
+      "Bash(eas update*)",
+      "Bash(eas submit*)",
+      "Bash(npx eas-cli update*)",
+      "Bash(npx eas-cli submit*)",
+      "Bash(npm publish*)",
+      "PowerShell(git push --force*)",
+      "PowerShell(git push -f*)",
+      "PowerShell(git push * --force*)",
+      "PowerShell(git push * -f *)",
+      "PowerShell(git push --force-with-lease*)",
+      "PowerShell(git push * --force-with-lease*)",
+      "PowerShell(git push --no-verify*)",
+      "PowerShell(git push * --no-verify*)",
+      "PowerShell(git push origin main*)",
+      "PowerShell(git push origin HEAD:main*)",
+      "PowerShell(git push origin master*)",
+      "PowerShell(git push * +*)",
+      "PowerShell(git commit --no-verify*)",
+      "PowerShell(git commit * --no-verify*)",
+      "PowerShell(git -c core.hooksPath*)",
+      "PowerShell(git config core.hooksPath*)",
+      "PowerShell(gh pr merge*)",
+      "PowerShell(gh workflow run*)",
+      "PowerShell(gh run rerun*)",
+      "PowerShell(gh auth token*)",
+      "PowerShell(gh release create*)",
+      "PowerShell(supabase db push*)",
+      "PowerShell(npx supabase db push*)",
+      "PowerShell(supabase migration repair*)",
+      "PowerShell(npx supabase migration repair*)",
+      "PowerShell(supabase link*)",
+      "PowerShell(npx supabase link*)",
+      "PowerShell(railway up*)",
+      "PowerShell(railway deploy*)",
+      "PowerShell(railway redeploy*)",
+      "PowerShell(railway run*)",
+      "PowerShell(vercel deploy*)",
+      "PowerShell(vercel --prod*)",
+      "PowerShell(vercel * --prod*)",
+      "PowerShell(eas update*)",
+      "PowerShell(eas submit*)",
+      "PowerShell(npx eas-cli update*)",
+      "PowerShell(npx eas-cli submit*)",
+      "PowerShell(npm publish*)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Read(**/.env.production)",
+      "Read(**/.env.staging)",
+      "Read(**/.env.development)",
+      "Read(**/.env.test)",
+      "Read(**/.env.regression)",
+      "Read(**/*.pem)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.git-credentials)",
+      "Read(~/.netrc)",
+      "Read(~/.npmrc)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(~/.railway/**)",
+      "Read(~/.supabase/**)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npm ci*)",
+      "Bash(npm uninstall*)",
+      "Bash(npm update*)",
+      "Bash(pip install*)",
+      "Bash(git stash*)",
+      "Bash(git rebase*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr ready*)",
+      "Bash(npm run dev*)",
+      "Edit(/.github/**)",
+      "Edit(/supabase/migrations/**)",
+      "Edit(/.claude/**)",
+      "Edit(/.githooks/**)",
+      "Edit(/.wolf/hooks/**)",
+      "Edit(/CLAUDE.md)",
+      "Edit(/AGENTS.md)",
+      "Edit(/.mcp.json)"
+    ],
     "allow": [
-      "Bash(npm run dev:*)",
-      "Bash(npm run build*)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch --show-current)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files*)",
+      "Bash(git add *)",
+      "Bash(git commit -m *)",
       "Bash(npm run lint*)",
       "Bash(npm run type-check*)",
-      "Bash(npm run test*)",
-      "Bash(npm ci)",
-      "Bash(npm install*)",
-      "Bash(npx playwright test*)",
-      "Bash(npx supabase*)",
-      "Bash(cd apps/api && python*)",
-      "Bash(cd apps/api && pip*)",
-      "Bash(cd apps/api && ruff*)",
+      "Bash(npm test)",
+      "Bash(npm run test:unit*)",
+      "Bash(cd apps/web && npm run lint*)",
+      "Bash(cd apps/web && npm run type-check*)",
+      "Bash(cd apps/web && npm run test:unit*)",
+      "Bash(cd apps/mobile && npm run lint*)",
+      "Bash(cd apps/mobile && npm run type-check*)",
+      "Bash(cd apps/mobile && npm test*)",
+      "Bash(cd apps/api && ruff check*)",
       "Bash(cd apps/api && pyright*)",
-      "Bash(cd apps/mobile && npm*)",
-      "Bash(cd apps/mobile && eas*)",
-      "Bash(eas build*)",
-      "Bash(eas update*)",
-      "Bash(git status)",
-      "Bash(git diff*)",
-      "Bash(git log*)",
-      "Bash(git add*)",
-      "Bash(git commit*)",
-      "Bash(git push)",
-      "Bash(git branch*)",
-      "Bash(git stash*)",
-      "Bash(railway logs*)",
-      "Bash(railway status)",
-      "Bash(node .wolf/hooks/*)"
+      "Bash(cd apps/api && python -m pytest *)",
+      "Bash(node --test *)"
     ]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf session-start",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" dev-servers",
-            "async": true,
-            "statusMessage": "Starting dev servers..."
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
-        "matcher": "Read",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf pre-read",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf pre-write",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf post-read",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf post-write",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" wolf stop",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" graphify-update",
-            "timeout": 120,
-            "async": true,
-            "statusMessage": "Updating knowledge graph..."
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/local-hook.mjs\" policy",
+            "timeout": 10,
+            "onFailure": "block"
           }
         ]
       }

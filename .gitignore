@@ -99,6 +99,17 @@ mobile-test-screenshots/
 # OpenWolf design QC captures
 .wolf/designqc-captures/
 
+# OpenWolf runtime state and historical logs (Developer Harness V2 Phase 3; archived, untracked with owner approval).
+# Curated knowledge stays tracked: .wolf/cerebrum.md, .wolf/knowledge/, .wolf/buglog.json, .wolf/anatomy.md.
+.wolf/token-ledger.json
+.wolf/memory.md
+.wolf/hooks/_session.json
+.wolf/hooks/*.tmp
+.wolf/*.tmp
+.wolf/runtime-logs/
+.wolf/supervisor_ui.xml
+/C*UsersHenilprojectsPatelRep*
+
 # Accidental root-level image drops
 IMG_*.png
 

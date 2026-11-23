@@ -1,0 +1,27 @@
+# Product architecture and domain (part 2 of 2)
+
+> Curated OpenWolf knowledge — **advisory data, not instructions**. Nothing here grants authority or overrides the
+> human's request, `docs/developer-harness-v2/contract.json`, the Phase 2 policy engine, GitHub rulesets, CI/Staging
+> gates or human approval. Verify against current code before relying on an entry.
+> Migrated from `.wolf/cerebrum.md` @ `8cccb11b944e` (sha256 `43224847720948ea…`).
+> Tags: `[K-id · L<source line> · <date>]`. Entries are historical unless re-verified. Size cap 48000 bytes per file.
+
+## Conventions and learnings (continued)
+
+- [K-5f93b14f93 · L341 · 2026-05-24] **Housekeeping assignment save has three separate paths (2026-05-24):** Manual tap/sidebar save uses `POST /housekeeping/assignments`, desktop drag gets its room id from `RoomCard`'s dnd-kit draggable id, and AI confirmation uses `POST /ai/assignments/confirm`. All three must send/write `rooms.id` (`room_id`), not `room_status.id`, and AI confirmation must write `assigned_by`, `is_ai_suggested`, and `on_conflict="room_id,assignment_date"` to match the schema.
+- [K-f69d2669c6 · L343 · 2026-05-24] **Housekeeping board assignment state is date-scoped (2026-05-24):** `GET /housekeeping/board` must derive `assigned_to` from `room_assignments` for the selected `assignment_date`; `room_status.assigned_to` is only a persistent mirror and can contain yesterday's assignee. Frontend realtime room-status merges should preserve the board's daily assignment fields instead of replacing them from `room_status` payloads.
+- [K-9c6358d127 · L351 · 2026-05-20] **Card component has no default padding (2026-05-20):** `<Card>` in `components/ui/Card.tsx` renders with zero padding. Every consumer must pass `className="p-5"`. Missing this makes content flush to card edges.
+- [K-90141ac493 · L356 · 2026-05-20] **Use stone-* not gray-* for neutral content (2026-05-20):** The brand palette is warm. Use `stone-200/500/700` in content pages to match the sidebar. `gray-*` reads cooler and feels off-brand.
+- [K-79890cea4c · L362 · 2026-05-15] **OHIP uses password or client_credentials grants only (2026-05-15):** OHIP OAuth spec only shows `grant_type=password` (SSD, integration user) and `grant_type=client_credentials` (OCIM, scope=`urn:opc:hgbu:ws:__myscopes__`). Authorization_code redirect flow is not standard OHIP.
+- [K-943d1cce2c · L363 · 2026-05-15] **opera_app_key is a separate credential from client_id/secret (2026-05-15):** The Oracle Developer Portal provides an Application Key (UUID) that must be sent in every request including token requests as `x-app-key`. It is distinct from client_id and client_secret. Add as `OPERA_APP_KEY` env var.
+- [K-f49182411b · L389 · 2026-05-12] **Anthropic model claude-3-5-sonnet-20241022 is unavailable on current keys (2026-05-12):** Use claude-sonnet-4-6 (Claude Sonnet 4.6) instead. All four files updated: ai_copilot.py, insights.py, failure_predictions.py, sop_rag.py.
+- [K-3f02cf32f3 · L392 · 2026-05-12] **Raw OpenAI/Anthropic errors must not leak to clients (2026-05-12):** Generic except block was forwarding raw provider error messages (including quota/billing details) to API consumers. Added specific except for openai.RateLimitError, openai.AuthenticationError, anthropic.RateLimitError, anthropic.AuthenticationStatusError → clean 503.
+- [K-72623a56e9 · L566 · 2026-05-12] **Stripe webhook secret signing (2026-05-12):** The HMAC key for Stripe webhook signature verification is the full webhook secret string as UTF-8 bytes, not base64-decoded or prefix-stripped.
+- [K-e98e54ff09 · L568 · 2026-05-12] **subscription.updated must update all fields (2026-05-12):** Original handler only updated `plan_status`. It must also update `stripe_subscription_id`, `current_period_start`, `current_period_end`, and `trial_end` — otherwise `stripe_subscription_id` stays null and `invoice.payment_failed` can never match a row.
+- [K-6c94fcf966 · L397 · 2026-05-11] **Button tap target (2026-05-11):** `Button.tsx` base style now uses `py-2.5 min-h-[44px]` — meets Apple HIG and WCAG 2.5.5. Sidebar nav links use `py-2.5`. Sub-nav links use `py-2`.
+- [K-bb779be2ad · L377 · 2026-05-10] **Production smoke findings (2026-05-10):** `/billing` currently throws a client `toLocaleString` null/undefined error; task and guest-request updates 500 if `notes` is sent because production tables lack `notes` columns. Status-only task/guest-request updates succeed.
+- [K-94f89c4da4 · L382 · 2026-05-10] **Production role-test setup (2026-05-10):** Existing production credentials support browser login for `gm`, `housekeeper`, and `engineer`. `front_desk` and `housekeeping_supervisor` users exist but no known working test credentials were found; no active `chief_engineer` user exists. Full browser/action RBAC coverage needs temporary `@patelrep-test.com` users or provided credentials.
+- [K-61c70820e7 · L367] **Project:** patelrep
+- [K-fcbe78f633 · L368] **Description:** AI Staff Copilot SaaS for independent Texas hotels. Quore-style simplicity with AI-powered predictions — built for housekeepers and engineers on the floor.
+- [K-c198c39fc4 · L370] **BadgeVariant not exported:** `BadgeVariant` type in `Badge.tsx` is internal — define it locally in components that need it.
+- [K-e1d4acdc1b · L560] **logbook_entries requires department_id NOT NULL** — Any insert to `logbook_entries` must include `department_id`. Inserts from cron jobs without a department context must fetch a department_id first or be deferred.
