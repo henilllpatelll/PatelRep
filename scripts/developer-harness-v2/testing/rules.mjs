@@ -8,7 +8,7 @@ import { SECURITY_TRIGGERS } from '../routing/router.mjs'
 import { SUITES } from './catalog.mjs'
 
 const RE = (re) => (p) => re.test(p)
-export const HARNESS_ALL = Object.freeze(['harness.contract', 'harness.policy', 'harness.context', 'harness.routing', 'harness.coordination', 'harness.testing'])
+export const HARNESS_ALL = Object.freeze(['harness.contract', 'harness.policy', 'harness.context', 'harness.routing', 'harness.coordination', 'harness.evaluation', 'harness.testing'])
 export const REPO_NODE = Object.freeze(['repo.release_workflow_contract', 'repo.feature_flag_registry', 'repo.db_static_contract', 'repo.mobile_ci_workflow_contract', 'db.migration_history'])
 export const WEB_ALL = Object.freeze(['web.lint', 'web.typecheck', 'web.unit', 'web.feature_flag_scripts', 'web.environment_safety', 'web.frozen_files', 'web.contrast', 'web.i18n_parity', 'web.build', 'web.hermetic'])
 export const API_CORE = Object.freeze(['api.ruff', 'api.smoke'])

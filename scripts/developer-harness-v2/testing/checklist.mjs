@@ -77,7 +77,7 @@ const ITEMS = [
     why: 'workflows and release scripts are trusted infrastructure', suites: ['repo.release_workflow_contract', 'repo.mobile_ci_workflow_contract', 'repo.db_static_contract', 'ci.gate'], manual: true, env: CI, evidence: 'contract suites PASSED; independent security review; authoritative CI checks green for the exact head' },
   { id: 'HARNESS.POLICY_AND_ROLES', when: (c) => c.tag('harness'),
     behavior: 'The policy hook still fails closed, role tool scopes are subsets of the contract, protected paths are unchanged',
-    why: 'developer-harness code and instructions govern every agent action', suites: ['harness.contract', 'harness.policy', 'harness.context', 'harness.routing', 'harness.coordination', 'harness.testing'], manual: true, env: 'node only', evidence: 'all harness suites PASSED; independent security review' },
+    why: 'developer-harness code and instructions govern every agent action', suites: ['harness.contract', 'harness.policy', 'harness.context', 'harness.routing', 'harness.coordination', 'harness.evaluation', 'harness.testing'], manual: true, env: 'node only', evidence: 'all harness suites PASSED; independent security review' },
   { id: 'TEST.LOST_COVERAGE_REVIEW', when: (c) => c.esc('LOST_COVERAGE_REVIEW'),
     behavior: 'A deleted or renamed-away test either moved with its assertions or was retired on purpose',
     why: 'removing a test removes coverage that no suite can report', suites: [], manual: true, env: 'code review', evidence: 'a reviewer records, per deleted test, where its assertions now live or why they are obsolete' },

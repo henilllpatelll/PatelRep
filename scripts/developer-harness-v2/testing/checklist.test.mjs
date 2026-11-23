@@ -44,7 +44,7 @@ test('web, mobile, dependency, workflow and harness changes each produce their o
   const m = item(cl('apps/mobile/app/(app)/home.tsx'), 'MOBILE.SCREENS_AND_NAVIGATION'); assert.match(m.pass_evidence, /maxWorkers=2/); assert.match(m.pass_evidence, /no device run is implied/)
   assert.ok(ids(cl('apps/web/package-lock.json')).includes('DEPENDENCY.CLEAN_INSTALL'))
   const w = item(cl('.github/workflows/production-release.yml'), 'CI.WORKFLOW_AND_RELEASE_CONTROLS'); assert.ok(w.automated.some((a) => a.suite_id === 'repo.release_workflow_contract')); assert.match(w.pass_evidence, /independent security review/)
-  assert.ok(item(cl('scripts/developer-harness-v2/policy-engine.mjs'), 'HARNESS.POLICY_AND_ROLES').automated.length === 6)
+  assert.ok(item(cl('scripts/developer-harness-v2/policy-engine.mjs'), 'HARNESS.POLICY_AND_ROLES').automated.length === 7)
   assert.ok(ids(cl('apps/api/pytest.ini')).includes('TEST.CONFIG_DISCOVERY'))
   assert.ok(ids(cl('apps/web/lib/utils/featureFlag.ts')).includes('FLAGS.REGISTRY_PARITY'))
 })

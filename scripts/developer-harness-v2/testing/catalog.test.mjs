@@ -6,6 +6,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { API_TEST_ENV, BASE_ENV_ALLOW, CI_JOBS, ENV_PROFILES, LISTS, LIMITS, SUITES, SUITE_BY_ID, TIERS, jobToSuites, isSafeRepoPath, validateStep, validateSuite } from './catalog.mjs'
+import { HARNESS_ALL } from './rules.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..', '..')
@@ -137,4 +138,9 @@ test('jobToSuites maps every CI job and knows the older "Lint Web" alias', () =>
   for (const j of CI_JOBS) assert.ok(jobToSuites(j).length > 0, j)
   assert.deepEqual(jobToSuites('Lint Web'), jobToSuites('Lint + Type-check / Web'))
   assert.deepEqual(jobToSuites('Not A Real Job'), [])
+})
+
+test('every harness suite is reachable from the harness rules (a harness change selects ALL harness suites)', () => {
+  const harness = SUITES.filter((s) => s.id.startsWith('harness.')).map((s) => s.id).sort()
+  assert.deepEqual([...HARNESS_ALL].sort(), harness)
 })

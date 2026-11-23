@@ -201,6 +201,7 @@ export const SUITES = Object.freeze([
     steps: [nodeTest(hf('context/archive.test.mjs', 'context/context-packs.test.mjs', 'context/instructions.test.mjs', 'context/memory-curate.test.mjs', 'context/openwolf-hooks.test.mjs'))] }),
   S('harness.routing', 'Harness Phase 4 routing and role tests', 'lightweight', { areas: ['harness', 'security'], discovery: 'node_test', steps: [nodeTest(hf('routing/roles.test.mjs', 'routing/router.test.mjs'))] }),
   S('harness.coordination', 'Harness Phase 5 coordination, checkpoint and recovery tests', 'lightweight', { areas: ['harness'], timeout_ms: 15 * 60 * 1000, discovery: 'node_test', steps: [nodeTest(hf('coordination/coordination.test.mjs'))] }),
+  S('harness.evaluation', 'Harness Phase 7 evaluation and benchmark tests', 'lightweight', { areas: ['harness'], timeout_ms: 15 * 60 * 1000, discovery: 'node_test', steps: [nodeTest(hf('evaluation/usage-import.test.mjs', 'evaluation/evaluation.test.mjs'))] }),
   S('harness.testing', 'Harness Phase 6 smart-testing tests', 'lightweight', { areas: ['harness'], timeout_ms: 15 * 60 * 1000, discovery: 'node_test',
     steps: [nodeTest(hf('testing/catalog.test.mjs', 'testing/changes.test.mjs', 'testing/select.test.mjs', 'testing/runner.test.mjs', 'testing/checklist.test.mjs', 'testing/evaluate.test.mjs'))] }),
   // ── Repository workflow / database contracts (node only) ──
