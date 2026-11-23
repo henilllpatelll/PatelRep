@@ -7,7 +7,7 @@
 import { checkSpawn } from '../routing/router.mjs'
 import { checkRoleSubset, loadRoleDefinition } from '../routing/role-capabilities.mjs'
 import { ORDER, REPO_ROOT, canonical, identityProblems, rebuildPlan, regressForFailure, sha256, syncWithFacts } from './states.mjs'
-import { RECORDERS, latestPass, makeEvidence, validEvidence } from './evidence.mjs'
+import { RECORDERS, findingDigest, latestPass, makeEvidence, validEvidence } from './evidence.mjs'
 
 /** Lifecycle states in which each role may be handed work. */
 export const ROLE_STATES = Object.freeze({
@@ -97,7 +97,7 @@ export function updateHandoff(record, id, status, now, output_ref) {
  * reviewer kinds additionally require a handoff for that role at the current head. Remote kinds are refused here: they
  * enter only through a provider-verified snapshot.
  */
-export function recordEvidence(record, { kind, result, by, summary }, facts, now = new Date().toISOString()) {
+export function recordEvidence(record, { kind, result, by, summary, addresses_finding }, facts, now = new Date().toISOString()) {
   const deny = (c) => ({ ok: false, codes: [c], record })
   if (!RECORDERS[kind]) return deny('EVIDENCE.UNKNOWN_KIND')
   if (RECORDERS[kind].includes('github_provider')) return deny('EVIDENCE.REMOTE_KIND_REQUIRES_VERIFIED_PROVIDER')
@@ -109,7 +109,16 @@ export function recordEvidence(record, { kind, result, by, summary }, facts, now
   const rec = sync.record
   if (['review', 'security_review'].includes(kind) && !rec.handoffs.some((h) => h.role === by && h.head_sha === facts.head_sha && ['active', 'completed'].includes(h.status))) return { ...deny('EVIDENCE.NO_HANDOFF_FOR_ROLE_AT_HEAD'), record: rec }
   if (rec.state === 'blocked') return deny('EVIDENCE.TASK_BLOCKED')
-  const bound = { head_sha: facts.head_sha, tree_digest: facts.tree_digest, ...(['review', 'security_review'].includes(kind) ? { scope_digest: facts.scope_digest } : {}) }
+  let bound = { head_sha: facts.head_sha, tree_digest: facts.tree_digest, ...(['review', 'security_review'].includes(kind) ? { scope_digest: facts.scope_digest } : {}) }
+  if (addresses_finding !== undefined) {
+    // Finding-specific re-review (library only; the CLI never passes this). Names the finding, its digest and the head it was found at.
+    const f = rec.findings.find((x) => x.id === addresses_finding)
+    if (!['review', 'security_review'].includes(kind)) return { ...deny('EVIDENCE.FINDING_REREVIEW_NEEDS_REVIEW_KIND'), record: rec }
+    if (!f) return { ...deny('EVIDENCE.FINDING_UNKNOWN'), record: rec }
+    if (f.source_role !== by) return { ...deny('EVIDENCE.FINDING_REREVIEW_WRONG_ROLE'), record: rec }
+    if (f.found_at_head === facts.head_sha) return { ...deny('EVIDENCE.FINDING_NOT_REMEDIATED_AT_NEW_HEAD'), record: rec }
+    bound = { ...bound, finding_id: f.id, finding_digest: findingDigest(f), remediates_head: f.found_at_head }
+  }
   if (['review', 'security_review'].includes(kind) && result === 'pass' && rec.evidence.some((x) => x.kind === kind && x.by === by && x.result === 'fail' && x.bound.head_sha === facts.head_sha) /* any status: invalidating a fail by editing and reverting the tree must not launder it */) return { ...deny('EVIDENCE.REVIEWER_ALREADY_FAILED_AT_HEAD'), record: rec }
   const e = makeEvidence({ kind, result, by, bound, summary, now })
   rec.evidence.push(e)

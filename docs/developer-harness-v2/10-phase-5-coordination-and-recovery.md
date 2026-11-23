@@ -70,7 +70,7 @@ Resume therefore never trusts a checkpoint; it re-derives everything below from 
 Facts come from read-only git (`GIT_OPTIONAL_LOCKS=0`, no shell): worktree identity, branch, head, base ancestry, relation of the recorded head to
 the current head (`same|ancestor|unrelated`), dirtiness, unmerged paths / in-progress merge-rebase, tree digest (head + diff + untracked content),
 changed files. Remote facts exist **only** if the library caller passes a provider function whose output passes `verifyRemoteSnapshot`;
-the CLI has none, so remote evidence is always `unproven` there.
+the CLI has none, so remote evidence is always `unproven` there. `verifyRemoteSnapshot()` validates snapshot *structure* and in-process provenance (a WeakSet mark showing the object came out of that function) only; it does **not** authenticate the GitHub API source, and a caller can pass fabricated data through it. Authenticity is the responsibility of the provider function the caller wrote.
 
 Outcomes: `RESUME_PERMITTED_AFTER_FRESH_VERIFICATION`, `RESUME_READ_ONLY_INSPECTION`, `BLOCKED_INVALID_CHECKPOINT`,
 `BLOCKED_REPOSITORY_IDENTITY_MISMATCH`, `BLOCKED_STALE_SHA_OR_SCOPE`, `BLOCKED_MISSING_HUMAN_APPROVAL`, `BLOCKED_DIRTY_WORKTREE_UNRECONCILED`,
@@ -104,8 +104,12 @@ predicates (`liveGateProblems`) to the recorded remote state: a failing gate, cl
 
 ## Findings
 
-A stored `resolution.kind` is a claim. Caveat: a re-review closes a finding when ANY later passing review of the right kind exists on a newer head — it is not tied to the finding's subject. A blocking (critical/high) finding is closed only by (a) a *verified* re-review — valid, passing evidence of the
-right kind, recorded after the finding, on a head different from the one where it was found — or (b) a human decision present in the in-session ledger.
+A stored `resolution.kind` is a claim. A blocking (critical/high) finding is closed only by (a) a *verified, finding-specific* re-review or (b) a human decision present in the in-session ledger.
+A generic passing review of a newer head **never** closes a finding (H1): the evidence must be valid, passing, of the finding's reviewer kind and role, recorded after the finding, bound to the
+current head (different from the head the finding was found at), and must explicitly carry `bound.finding_id`, `bound.finding_digest` (digest of the finding as recorded) and `bound.remediates_head`
+(= the finding's `found_at_head`); its own digest must still match its content, and the reviewer's newest verdict for that kind must be a pass. Editing the finding or the evidence breaks the binding and re-opens the finding.
+This evidence is produced only by the library (`recordEvidence(..., { addresses_finding })`); the CLI has no such option, so a CLI-only flow leaves blocking findings open until an in-session human decision.
+These fields are still self-asserted data in a local file: reviewer labels, digests and checkpoint fields are integrity checks against accidents and generic passes, not authentication, and none is independently authenticated authority.
 `evaluateFinding` (Phase 4) is called only with a verified resolution. Open blocking findings block `pr_open` and `ready_for_human_review`.
 
 ## CLI (`cli.mjs`)

@@ -157,9 +157,18 @@ export function authorizeAction(record, { action, target }, facts, contract, pla
 }
 
 // ── Findings ────────────────────────────────────────────────────────────────────────────────────────────────────
+/** Digest of the finding as recorded (resolution excluded). Finding-specific re-review evidence is bound to it. */
+export const findingDigest = (f) => sha256(canonical({ id: f.id, severity: f.severity, summary: f.summary, source_role: f.source_role, found_at_head: f.found_at_head, recorded_at: f.recorded_at }))
+const evidenceSelfDigest = (e) => sha256(canonical({ kind: e.kind, status: 'valid', result: e.result, by: e.by, bound: e.bound, summary: e.summary, recorded_at: e.recorded_at }))
+
 /**
  * A finding's stored `resolution` is a CLAIM. It is honored only when verified here:
- * remediated_and_rereviewed → a valid, passing review of the right kind, recorded after the finding, on a head newer than the finding's.
+ * remediated_and_rereviewed → the claimed evidence must be a valid, passing review of the finding's reviewer kind that
+ *   EXPLICITLY names this finding (bound.finding_id + bound.finding_digest + bound.remediates_head === found_at_head), was
+ *   recorded after the finding, and is bound to the current head (different from the finding's) — tree/scope are re-checked by
+ *   reconcileEvidence. A generic passing review of a newer head never closes a finding.
+ *   These fields are still SELF-ASSERTED data in a local file (advisory system): nothing here is authenticated authority, which
+ *   is why the CLI can never produce such evidence and a hand-edited record only forges what the harness never trusted anyway.
  * human_decision → only if the in-session ledger holds a fresh human decision; a checkpoint field is never enough.
  */
 export function verifiedOpenState(record, finding, facts, humanDecisions = new Set()) {
@@ -168,7 +177,9 @@ export function verifiedOpenState(record, finding, facts, humanDecisions = new S
   if (res?.kind === 'remediated_and_rereviewed') {
     const kind = finding.source_role === 'security_reviewer' ? 'security_review' : 'review'
     const ev = record.evidence.find((e) => e.id === res.evidence_id)
-    if (ev && ev.kind === kind && ev.status === 'valid' && ev.result === 'pass' && ev.bound.head_sha === facts.head_sha && ev.bound.head_sha !== finding.found_at_head && ev.recorded_at > finding.recorded_at) verified = { kind: 'remediated_and_rereviewed' }
+    if (ev && ev.kind === kind && ev.by === finding.source_role && ev.status === 'valid' && ev.result === 'pass' && ev.bound.head_sha === facts.head_sha && ev.bound.head_sha !== finding.found_at_head && Date.parse(ev.recorded_at) > Date.parse(finding.recorded_at)
+      && ev.bound.finding_id === finding.id && ev.bound.finding_digest === findingDigest(finding) && ev.bound.remediates_head === finding.found_at_head
+      && ev.digest === evidenceSelfDigest(ev) && latestPass(record, kind)) verified = { kind: 'remediated_and_rereviewed' }
   } else if (res?.kind === 'human_decision' && humanDecisions.has(finding.id)) verified = { kind: 'human_decision', by: 'human' }
   return evaluateFinding(finding, verified)
 }

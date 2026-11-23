@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { loadCheckpoint, saveCheckpoint, storePaths, withIntegrity, isSafeTaskId } from './checkpoint.mjs'
 import { main as cli, MUTATING, READ_ONLY } from './cli.mjs'
 import { ApprovalLedger, classifyRecordedApproval, openBlockingFindings, verifyRemoteSnapshot } from './evidence.mjs'
+import { findingDigest } from './evidence.mjs'
 import { buildHandoff, claimFindingResolution, recordEvidence, recordFinding, updateHandoff } from './handoff.mjs'
 import { OUTCOMES, evaluateResume, gatherFacts, resumeFromDisk } from './resume.mjs'
 import { RECOVERY_ACTION, STATES, TRANSITIONS, REPO_ROOT, applyTransition, checkStateConsistency, createRecord, requestAction } from './states.mjs'
@@ -41,7 +42,7 @@ const T = (env, to, extra = {}) => { const r = applyTransition(env.rec, to, { fa
 const must = (r) => { assert.ok(r.ok, `expected ok, got ${JSON.stringify(r.codes)}`); return r }
 const snap = (env, o = {}) => { const h = o.head ?? env.facts().head_sha; return verifyRemoteSnapshot({ pr: o.pr === null ? null : { number: 9, head_sha: o.prHead ?? h, draft: true, state: 'open', head_ref: 'task/one', base_ref: 'main' }, ci_gate: o.ci ? { head_sha: h, status: o.ci === 'run' ? 'in_progress' : 'completed', conclusion: o.ci === 'ok' ? 'success' : o.ci === 'run' ? null : 'failure' } : null, staging_candidate: o.cand ? { candidate_sha: o.candSha ?? h, pr_number: 9, branch: 'task/one', run_head_sha: env.base } : null, staging_gate: o.gate ? { head_sha: h, status: 'completed', conclusion: o.gate === 'ok' ? 'success' : 'failure' } : null }) }
 function role(env, r, status = 'completed') { const b = buildHandoff(env.rec, r, { facts: env.facts() }); must(b); env.rec = b.record; const id = b.handoff.id; for (const s of ['active', status]) { const u = updateHandoff(env.rec, id, s, new Date().toISOString()); must(u); env.rec = u.record } return id }
-const evid = (env, kind, by, result = 'pass') => { const r = recordEvidence(env.rec, { kind, by, result, summary: 'ok' }, env.facts()); must(r); env.rec = r.record; return r.evidence }
+const evid = (env, kind, by, result = 'pass', addresses_finding) => { const r = recordEvidence(env.rec, { kind, by, result, summary: 'ok', addresses_finding }, env.facts()); must(r); env.rec = r.record; return r.evidence }
 const persist = (env) => { env.rec = { ...env.rec, revision: env.rev + 1 }; const s = saveCheckpoint(env.root, env.rec); assert.ok(s.ok, JSON.stringify(s)); env.rev += 1 }
 
 const ORDERED = ['requested', 'planned', 'implementing', 'testing', 'reviewing', 'pr_open', 'ci_running', 'staging_running', 'ready_for_human_review']
@@ -569,9 +570,12 @@ test('N9/N10: a blocking finding is closed only by a verified re-review on a new
   commit(env, 'apps/api/routers/auth.py'); env.rec = T(env, 'implementing', { keep: true }).record; must(T(env, 'testing')); evid(env, 'local_tests', 'test_coordinator'); must(T(env, 'reviewing'))
   role(env, 'independent_reviewer'); evid(env, 'review', 'independent_reviewer'); role(env, 'security_reviewer')
   assert.equal(openBlockingFindings(env.rec, env.facts()).length, 1)
-  const rr = evid(env, 'security_review', 'security_reviewer', 'pass')
+  const generic = evid(env, 'security_review', 'security_reviewer', 'pass')
+  env.rec = claimFindingResolution(env.rec, f.finding.id, { kind: 'remediated_and_rereviewed', evidence_id: generic.id }).record
+  assert.equal(openBlockingFindings(env.rec, env.facts()).length, 1, 'H1: a generic passing review on a newer head never closes a blocking finding')
+  const rr = evid(env, 'security_review', 'security_reviewer', 'pass', f.finding.id)
   env.rec = claimFindingResolution(env.rec, f.finding.id, { kind: 'remediated_and_rereviewed', evidence_id: rr.id }).record
-  assert.equal(openBlockingFindings(env.rec, env.facts()).length, 0, 'verified re-review on the newer head closes it')
+  assert.equal(openBlockingFindings(env.rec, env.facts()).length, 0, 'finding-specific re-review on the newer head closes it')
   commit(env, 'apps/api/routers/auth.py'); assert.equal(openBlockingFindings(env.rec, env.facts()).length, 1, 'a later head invalidates the re-review, so the finding re-opens')
   env.rec = claimFindingResolution(env.rec, f.finding.id, { kind: 'human_decision' }).record
   assert.equal(openBlockingFindings(env.rec, env.facts()).length, 1, 'stored human_decision claim is data')
@@ -646,4 +650,35 @@ test('provider verification: malformed snapshots are rejected; only verified sna
   const e2 = driveTo(mkEnv(), 'ci_running'); persist(e2)
   assert.equal(resume(e2, () => { throw new Error('network down') }).outcome, OUTCOMES.UNPROVEN)
   assert.equal(resume(e2, () => ({ pr: { head_sha: 'zz' } })).outcome, OUTCOMES.UNPROVEN)
+})
+
+test('H1: re-review closure needs finding-specific evidence; forged, mismatched, wrong-role and unrelated-commit cases stay open', () => {
+  const env = mkEnv({ files: ['apps/api/routers/auth.py'], task: 'Update the login error message copy' })
+  must(T(env, 'planned')); must(T(env, 'implementing')); role(env, 'implementer'); commit(env, 'apps/api/routers/auth.py'); must(T(env, 'testing')); evid(env, 'local_tests', 'test_coordinator'); must(T(env, 'reviewing'))
+  role(env, 'independent_reviewer'); evid(env, 'review', 'independent_reviewer'); role(env, 'security_reviewer')
+  const f = recordFinding(env.rec, { severity: 'high', summary: 'authz bypass', source_role: 'security_reviewer' }, env.facts()); env.rec = f.record
+  const id = f.finding.id
+  const open = () => openBlockingFindings(env.rec, env.facts()).length
+  const same = recordEvidence(env.rec, { kind: 'security_review', by: 'security_reviewer', result: 'pass', summary: 'x', addresses_finding: id }, env.facts())
+  assert.equal(same.ok, false); assert.ok(same.codes.includes('EVIDENCE.FINDING_NOT_REMEDIATED_AT_NEW_HEAD'))
+  commit(env, 'apps/api/routers/auth.py'); env.rec = T(env, 'implementing', { keep: true }).record; must(T(env, 'testing')); evid(env, 'local_tests', 'test_coordinator'); must(T(env, 'reviewing'))
+  role(env, 'independent_reviewer'); evid(env, 'review', 'independent_reviewer'); role(env, 'security_reviewer')
+  const generic = evid(env, 'security_review', 'security_reviewer', 'pass')
+  env.rec = claimFindingResolution(env.rec, id, { kind: 'remediated_and_rereviewed', evidence_id: generic.id }).record
+  assert.equal(open(), 1, 'generic pass after an unrelated commit does not close')
+  assert.ok(recordEvidence(env.rec, { kind: 'security_review', by: 'security_reviewer', result: 'pass', summary: 'x', addresses_finding: 'F-nope' }, env.facts()).codes.includes('EVIDENCE.FINDING_UNKNOWN'))
+  assert.ok(recordEvidence(env.rec, { kind: 'local_tests', by: 'test_coordinator', result: 'pass', summary: 'x', addresses_finding: id }, env.facts()).codes.includes('EVIDENCE.FINDING_REREVIEW_NEEDS_REVIEW_KIND'))
+  assert.ok(recordEvidence(env.rec, { kind: 'review', by: 'independent_reviewer', result: 'pass', summary: 'x', addresses_finding: id }, env.facts()).codes.includes('EVIDENCE.FINDING_REREVIEW_WRONG_ROLE'))
+  const forged = structuredClone(env.rec); const fe = forged.evidence.find((e) => e.id === generic.id)
+  fe.bound.finding_id = id; fe.bound.finding_digest = findingDigest(forged.findings[0]); fe.bound.remediates_head = forged.findings[0].found_at_head
+  forged.findings[0].resolution = { kind: 'remediated_and_rereviewed', evidence_id: generic.id }
+  // NOTE: a forger who also recomputes the unkeyed digest is out of scope (checkpoint is advisory, documented as not authentication).
+  assert.equal(openBlockingFindings(forged, env.facts()).length, 1, 'naively edited bound without a matching digest does not close')
+  const rr = evid(env, 'security_review', 'security_reviewer', 'pass', id)
+  env.rec = claimFindingResolution(env.rec, id, { kind: 'remediated_and_rereviewed', evidence_id: rr.id }).record
+  assert.equal(open(), 0)
+  const edited = structuredClone(env.rec); edited.findings[0].summary = 'something milder'
+  assert.equal(openBlockingFindings(edited, env.facts()).length, 1, 'finding edited after re-review: binding broken')
+  evid(env, 'security_review', 'security_reviewer', 'fail')
+  assert.equal(open(), 1, 'a later fail outvotes the pass')
 })

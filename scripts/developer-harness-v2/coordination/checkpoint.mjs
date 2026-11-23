@@ -76,7 +76,7 @@ export function validateRecord(r) {
     if (!keys(e, ['id', 'kind', 'status', 'result', 'by', 'bound', 'summary', 'recorded_at', 'digest'], ['invalidated'], w, p)) return
     if (!KINDS.includes(e.kind) || !RECORDERS[e.kind]?.includes(e.by)) p.push(`SCHEMA.${w}.KIND_OR_RECORDER`); if (!['valid', 'invalidated'].includes(e.status)) p.push(`SCHEMA.${w}.STATUS`); if (!['pass', 'fail', 'pending'].includes(e.result)) p.push(`SCHEMA.${w}.RESULT`)
     if (!HEX64.test(e.digest)) p.push(`SCHEMA.${w}.DIGEST`); str(e.summary, `${w}.summary`, p, 500)
-    if (keys(e.bound, [], ['head_sha', 'candidate_sha', 'tree_digest', 'scope_digest', 'pr_number', 'branch'], `${w}.bound`, p)) {
+    if (keys(e.bound, [], ['head_sha', 'candidate_sha', 'tree_digest', 'scope_digest', 'pr_number', 'branch', 'finding_id', 'finding_digest', 'remediates_head'], `${w}.bound`, p)) {
       for (const [k, v] of Object.entries(e.bound)) if (!(typeof v === 'string' ? v.length <= 200 : Number.isInteger(v) || v === null)) p.push(`SCHEMA.${w}.bound.${k}`)
       // Each kind must carry the SHA (and digests) it is bound to; otherwise it could never be reconciled.
       if (!SHA.test(String(e.kind === 'staging_candidate' ? e.bound.candidate_sha : e.bound.head_sha))) p.push(`SCHEMA.${w}.bound.SHA_REQUIRED`)
