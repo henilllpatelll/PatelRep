@@ -58,7 +58,8 @@ const VALUE_RULES = {
   '-overcommit': (v) => v === 'mem-lock=off',
   '-display': (v) => v === 'none', '-vga': (v) => v === 'none', '-monitor': (v) => v === 'none', '-serial': (v) => v === 'none', '-parallel': (v) => v === 'none',
   '-rtc': (v) => v === 'base=utc,clock=host',
-  '-drive': (v) => /^file=[^,\n]+\.qcow2,if=none,id=(task|auth),format=qcow2,cache=writeback,discard=unmap,detect-zeroes=unmap$/i.test(v) || /^file=[^,\n]+\.iso,if=none,id=seed,media=cdrom,readonly=on,format=raw$/i.test(v),
+  // Absolute drive-letter paths only: no protocol prefix (nbd:, fat:, http…) can be smuggled in front of a .qcow2/.iso name.
+  '-drive': (v) => /^file=[A-Za-z]:\\[^,\n:]+\.qcow2,if=none,id=(task|auth),format=qcow2,cache=writeback,discard=unmap,detect-zeroes=unmap$/.test(v) || /^file=[A-Za-z]:\\[^,\n:]+\.iso,if=none,id=seed,media=cdrom,readonly=on,format=raw$/.test(v),
   '-device': (v) => DEVICE_RE.test(v),
   '-netdev': (v) => /^user,id=n0,restrict=on,ipv6=off,hostname=dh3-[a-z0-9-]{1,32},hostfwd=tcp:127\.0\.0\.1:\d{4,5}-:22$/.test(v),
 }

@@ -52,9 +52,10 @@ closing large apps (browser tabs, Docker Desktop) is your choice.
 | `AUTH.LOGIN_EXPIRED` / `OWNER_AUTH_EXPIRED` | your Claude login in the VM ended | O-2 again |
 | `SUBSCRIPTION.STATE:exhausted` | five-hour/weekly allowance used up | nothing; waits for the provider's reset time (or 15 → 60 min backoff when none is reported) and resumes |
 | `AUTH.EXTRA_USAGE_ENABLED` / `unauthorized_billing` | the provider reported usage credits on/in use, or an API key was active | turn usage credits off in claude.ai Settings → Usage; then O-3 again |
+| Worker never becomes reachable after boot (SSH refused) | the home sanitizer failed and sshd refuses to start (fail closed) | delete the worker's `auth.qcow2` (or `provision` again), then log in again (O-2) |
 | Controller/laptop restarted | a supervised VM may still be running | `status` shows it from host facts; `stop` or `reset` ends it. (Lease re-issue on reattach is a D3.4 orchestrator step; the primitive exists in `worker-lifecycle.mjs`.) |
 
-Emergency stop: `node scripts/developer-harness-v3/bin/dh3.mjs stop` (graceful → QMP quit → kill of the task-owned supervisor, whose Job Object makes
+Emergency stop: `node scripts/developer-harness-v3/bin/dh3.mjs stop` (graceful guest poweroff over SSH → kill of the identity-verified task-owned supervisor, whose Job Object makes
 Windows kill QEMU). It never touches any other process.
 
 ## 4. What is and is not proven

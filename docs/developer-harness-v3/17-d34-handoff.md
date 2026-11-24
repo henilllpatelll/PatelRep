@@ -4,8 +4,8 @@
 
 | Question | Verdict | Why |
 |---|---|---|
-| Human merge of the D3.3 PR | @@MERGE_VERDICT@@ | |
-| Isolation acceptance | @@ISOLATION_VERDICT@@ | see 15 |
+| Human merge of the D3.3 PR | **GO for owner review** (merging activates nothing) | code + docs only under V3 paths; D3.2 contract/evaluator/lifecycle and all V2/CI files unchanged; 2 AI reviews + re-verification; tests green. Merge is your decision. |
+| Isolation acceptance | **NO-GO: `ISOLATION_UNPROVEN`** | the 13-scenario real-VM suite has not completed (provisioning reaped under low memory; 15) |
 | Runtime readiness for autonomous execution | **NO-GO** | owner login (O-2) and extra-usage verification (O-3) not done; WHPX not enabled (O-1); QEMU runs as the owner (O-7); provider-terms decision open (O-4); no issuer keys, so no `isolation_attestation`; V3 not in CI |
 | V3 active | **no** | `activation.active_actions = []`; no Bypass Permissions anywhere |
 
@@ -35,7 +35,29 @@
 
 Accepted nits: `waitingReason` maps concurrency/guest-metric codes onto the nearest D3.2 reasons (the lifecycle contract has no better reason; proposal in §5).
 
-@@SECURITY_REVIEW_SECTION@@
+### 2.2 Independent security and isolation review — Opus (high effort), separate context, read-only, plus one re-verification
+
+Verdict: **the isolation design is sound for later activation**, but it is not activatable until the gates in §3 are met. Status after re-verification:
+
+| # | Finding | Status |
+|---|---|---|
+| B1 | the root home sanitizer could follow a planted symlink and write attacker JSON into ctl's shell init (root in the next task); it also failed open | **FIXED**: fd-relative `O_NOFOLLOW`; read, wipe everything, then `O_EXCL` create; credentials shape-checked; wipe and exit 1 on error; sshd *requires* it; marker checked by the controller; attack added to scenario 13 |
+| B2 | QEMU runs with the owner's token; TCG is not a security boundary | **ACCEPTED RESIDUAL = activation gate** (O-1 WHPX, O-7 dedicated account) |
+| S1 | QMP on loopback TCP is reachable from Docker/WSL | **FIXED**: QMP removed (also observed: QEMU's Windows pipe chardev blocks VM start until a client connects) |
+| S2 | `git clone` of guest bytes follows `gitdir:` redirects | **FIXED**: `importBundle` (header, size cap, verify, fsck fetch into a fresh bare repo) |
+| S3 | the bypass flag could be built from a forged decision object | **FIXED**: the launcher evaluates the request itself; managed settings disable bypass until activation |
+| S4 | the same-uid worker can ptrace or forge the CLI stream | **FIXED + residual**: `ptrace_scope=2`; guest-relayed facts are labelled defence in depth |
+| S5 | the attestation was reusable | **FIXED**: one-shot, 24 h, consumed before launch |
+| S6 | the login relay passed escape sequences and allowed API-key-scope URLs | **FIXED**: fresh overlay, escape stripping, host/scope checks, line-buffered display. Re-review N1 (`URIError` crash leaving ssh reading keys) and N2 (partial URL shown) were fixed afterwards and **not re-reviewed** |
+| S7 | no SNI check, unbounded lookup, profile switch kept tunnels | **PARTIAL**: all three fixed; Host-header/ECH fronting is residual (V3-T16) |
+| S8 | the QEMU validator was a denylist | **FIXED**: exact allow-list; N3 (protocol-prefixed drive names) fixed afterwards: absolute drive-letter paths only |
+| S9 | no process/UI limits on the Job Object | **PARTIAL**: ActiveProcessLimit = 1 + UI restrictions; no low-integrity token (O-7) |
+| S10 | QEMU unpinned; Claude pin was guest-reported | **PARTIAL**: version pin enforced; Claude pin host-computed; no QEMU hash pin (pacman signatures) |
+| N4 | permanent sanitizer failure makes the worker unreachable | documented in 16 recovery |
+| N5 | a forced stop could seal an unclean golden image | **FIXED**: only `guest_poweroff` seals it |
+| N6 | the bundle import and host hashing write to `%TEMP%` | accepted; they clean up |
+
+Also found **in the real VM run** (not by the reviewers): (1) the in-process proxy was frozen by the controller's synchronous SSH calls, so the proxy now runs as its own process; (2) Debian 13 apt uses `mirror+file` lists that still pointed at plain HTTP; (3) IPv6-first resolution broke tunnels; (4) `-accel` vs `-machine accel=` and the deprecated `debug-threads` broke QEMU 11 start; (5) PowerShell under `DETACHED_PROCESS` exits silently; (6) a missing `SYSTEMDRIVE` created a stray `%SystemDrive%` tree in the checkout (deleted, never committed).
 
 ## 3. Hardening required before any activation (D3.9 gate)
 
@@ -61,7 +83,7 @@ Accepted nits: `waitingReason` maps concurrency/guest-metric codes onto the near
 
 | D3.4 needs | D3.3 interface |
 |---|---|
-| start/stop/health of the worker | `infra/provision.mjs startTaskWorker`, `runtime/vm-controller.mjs stopVm/liveness/qmp/sshExec` |
+| start/stop/health of the worker | `infra/provision.mjs startTaskWorker`, `runtime/vm-controller.mjs stopVm/liveness/killWorkerProcesses/sshExec, runtime/egress-proxy-process.mjs, runtime/artifact-transfer.mjs importBundle` |
 | resource-aware scheduling | `runtime/resource-governor.mjs admit(profile, ctx)`, `planTestExecution`, reservations helpers; host sampler `sampleWindowsHost`, guest `GUEST_SAMPLE_SCRIPT`/`parseGuestSample` |
 | subscription-aware scheduling | `normalizeAuthStatus`, `classifyObservation`, `nextGovernorState`, `admitAiWork`, `lifecycleFor` |
 | launching a session | `buildWorkerEnvironment`, `verifyEffectiveSettings`, `verifyBinary`, `buildTrustedLaunch`, `evaluateLaunch`, `buildInvocation`, `runSession` |

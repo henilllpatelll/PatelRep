@@ -156,7 +156,7 @@ async function cmdLogin() {
   await cmdReset(); if (process.exitCode) return
   await cmdStart(); if (process.exitCode) return
   const cfg = readVmConfig(W)
-  const { startEgressProxy } = await import('../runtime/egress-proxy.mjs')
+  const { startEgressProxyProcess: startEgressProxy } = await import('../runtime/egress-proxy-process.mjs')
   const { openEgressChannel } = await import('../runtime/vm-controller.mjs')
   const decisions = []
   const proxy = await startEgressProxy({ profile: 'login', onDecision: (d) => decisions.push({ allow: d.allow, host: d.host ?? null, code: d.code }) })
@@ -167,14 +167,23 @@ async function cmdLogin() {
   let aborted = null; let seen = ''
   await new Promise((r) => {
     const c = spawn(`${process.env.SYSTEMROOT}\\System32\\OpenSSH\\ssh.exe`, [...sshArgs(W, cfg, { extra: ['-tt'] }), loginCmd], { stdio: ['inherit', 'pipe', 'pipe'], env: sysEnv(), windowsHide: false })
+    // Only COMPLETE lines are shown, each after the URL check (a URL split across chunks is never partly displayed); any relay error aborts
+    // and kills ssh, so a crash can never leave ssh reading the owner's keystrokes unseen (security re-review N1/N2).
+    let pending = ''
+    const abort = (p) => { if (!aborted) { aborted = p; process.stdout.write(`\n[dh3] login aborted: ${p.join(', ')}\n`) } try { c.kill() } catch { /* gone */ } }
+    const show = (text) => { seen = (seen + text).slice(-8192); const p = loginOutputProblems(seen); if (p.length) { abort(p); return } process.stdout.write(text) }
     const relay = (d) => {
-      const clean = sanitizeTerminal(d.toString('utf8'))
-      seen = (seen + clean).slice(-8192)
-      const p = loginOutputProblems(seen)
-      if (p.length && !aborted) { aborted = p; process.stdout.write(`\n[dh3] login aborted: ${p.join(', ')}\n`); c.kill(); return }
-      process.stdout.write(clean)
+      if (aborted) return
+      try {
+        pending += sanitizeTerminal(d.toString('utf8'))
+        const i = pending.lastIndexOf('\n')
+        if (i >= 0) { const lines = pending.slice(0, i + 1); pending = pending.slice(i + 1); show(lines) }
+        // Prompts without a newline (e.g. "Paste code here:") are shown once they contain no URL fragment.
+        if (pending && !/[a-z]+:\/\/|https?:?\/?\/?$/i.test(pending) && pending.length < 512) { const t = pending; pending = ''; show(t) }
+        if (pending.length > 8192) abort(['LOGIN.LINE_TOO_LONG'])
+      } catch { abort(['LOGIN.RELAY_ERROR']) }
     }
-    c.stdout.on('data', relay); c.stderr.on('data', relay); c.on('close', r); c.on('error', r)
+    c.stdout.on('data', relay); c.stderr.on('data', relay); c.on('close', () => { if (!aborted && pending) { try { show(pending) } catch { /* ignore */ } } r() }); c.on('error', r)
   })
   ch.kill(); await proxy.close()
   atomicWriteJson(path.join(L.evidence, 'login-egress.json'), { schema: 'patelrep.developer-harness-v3.login-egress', at: new Date().toISOString(), aborted, decisions })

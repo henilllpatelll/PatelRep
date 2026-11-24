@@ -24,7 +24,8 @@ export function loginOutputProblems(text) {
     try { u = new URL(m[0]) } catch { problems.push('LOGIN.URL_UNPARSABLE'); continue }
     if (u.protocol !== 'https:') problems.push('LOGIN.URL_NOT_HTTPS')
     if (!LOGIN_HOSTS.includes(u.hostname.toLowerCase())) problems.push(`LOGIN.URL_HOST_NOT_ALLOWED:${u.hostname.slice(0, 60)}`)
-    if (/create_api_key/i.test(decodeURIComponent(u.search)) || /console/i.test(u.hostname)) problems.push('LOGIN.API_KEY_SCOPE_REQUESTED')
+    let q; try { q = decodeURIComponent(u.search) } catch { problems.push('LOGIN.URL_UNPARSABLE'); q = u.search }
+    if (/create_api_key/i.test(q) || /create_api_key/i.test(u.search) || /console/i.test(u.hostname)) problems.push('LOGIN.API_KEY_SCOPE_REQUESTED')
     if (u.username || u.password) problems.push('LOGIN.URL_USERINFO')
   }
   return [...new Set(problems)]

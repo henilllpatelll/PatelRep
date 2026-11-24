@@ -9,7 +9,7 @@ import { chmodSync, createReadStream, existsSync, mkdirSync, statSync, writeFile
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { atomicWriteJson, readJsonState } from '../lib/atomic.mjs'
-import { startEgressProxy } from '../runtime/egress-proxy.mjs'
+import { startEgressProxyProcess as startEgressProxy } from '../runtime/egress-proxy-process.mjs'
 import { buildMetaData, buildProvisionScript, buildUserData, SANITIZED_MARKER } from './cloud-init.mjs'
 import { mkdtempSync, rmSync } from 'node:fs'
 import os from 'node:os'
@@ -91,7 +91,8 @@ export async function provision(L, { id = 'w1', ramMb, cpus = 2, accel = 'tcg', 
     sshExec(W, cfg, 'sudo sync', { timeoutMs: 120000 })
     egress.kill(); egress = null; await proxy.close(); proxy = null
     const stop = await stopVm(Wp, cfg, { log })
-    if (!stop.stopped) throw new Error('PROVISION.SHUTDOWN_UNVERIFIED')
+    // Only a clean guest poweroff may seal the golden image; a forced kill could leave it inconsistent (security re-review N5).
+    if (!stop.stopped || stop.method !== 'guest_poweroff') throw new Error(`PROVISION.SHUTDOWN_NOT_CLEAN:${stop.method}`)
     chmodSync(W.golden, 0o444)
     const goldenSha = await streamSha256(W.golden) // streamed: the golden image can exceed the 2 GiB readFileSync limit
     const rec = { schema: 'patelrep.developer-harness-v3.worker-provisioned', name, provisioned_at: new Date().toISOString(), accel, ram_mb: ramMb, cpus, claude_version: version, claude_sha512: sha512,

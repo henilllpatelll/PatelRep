@@ -30,7 +30,7 @@ boundary by QEMU upstream's own policy** — TCG results prove the configuration
 | Seed ISO (IMAPI2, no admin) / Job Object supervisor | `infra/seed-iso.ps1`, `infra/job-supervisor.ps1` | yes — run on this host | real VM run |
 | Provisioning / task worker / reset | `infra/provision.mjs` | yes | real VM run (15) |
 | QEMU command line + invariant validator | `runtime/qemu-args.mjs` | yes | `d33-infra` |
-| VM controller (keys, SSH, egress channel, QMP, verified stop, liveness) | `runtime/vm-controller.mjs` | yes | real VM run (15) |
+| VM controller (keys, SSH, egress channel, SSH poweroff + verified stop, identity-checked liveness; no QMP) | `runtime/vm-controller.mjs` | yes | real VM run (15) |
 | Egress policy + CONNECT proxy | `runtime/egress-policy.mjs`, `runtime/egress-proxy.mjs` | yes | `d33-egress` + scenario 5 |
 | Host/guest sampler | `runtime/host-sampler.mjs` | yes — run on this host | `d33-resource` |
 | Resource Governor | `runtime/resource-governor.mjs` (uses D3.2 `admitTask`) | yes | `d33-resource` + real admission waits |

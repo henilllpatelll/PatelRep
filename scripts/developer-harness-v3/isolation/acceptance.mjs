@@ -6,7 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { atomicWriteJson } from '../lib/atomic.mjs'
-import { startEgressProxy } from '../runtime/egress-proxy.mjs'
+import { startEgressProxyProcess as startEgressProxy } from '../runtime/egress-proxy-process.mjs'
 import { sampleWindowsHost } from '../runtime/host-sampler.mjs'
 import { admit } from '../runtime/resource-governor.mjs'
 import { validateQemuArgs } from '../runtime/qemu-args.mjs'
@@ -52,7 +52,7 @@ export async function runAcceptance(L, { id = 'w1', log = console.error } = {}) 
       set(1, P.s1_host_fs_types.length === 0 && P.s1_paths_present.length === 0 && P.s1_user === 'worker' && P.s1_block_devices.every((d) => /^vd[ab]$/.test(d)) ? 'PASS' : 'FAIL', { host_fs: P.s1_host_fs_types, paths: P.s1_paths_present, block_devices: P.s1_block_devices, user: P.s1_user })
       set(2, P.s2_binfmt.every((x) => ['register', 'status'].includes(x)) && P.s2_windows_tools_on_path.length === 0 && /Exec format error|format/i.test(P.s2_pe_exec) ? 'PASS' : 'FAIL', { binfmt: P.s2_binfmt, tools: P.s2_windows_tools_on_path, pe_exec: P.s2_pe_exec })
       set(3, none(P.s3_host_tcp) && P.s3_slirp_dns_udp !== 'ANSWERED' ? 'PASS' : 'FAIL', { host_tcp: maskObj(P.s3_host_tcp), slirp_dns: P.s3_slirp_dns_udp })
-      set(4, none(P.s4_controller_tcp) && Object.values(P.s4_via_proxy).every((v) => /403|405|400/.test(v)) ? 'PASS' : 'FAIL', { controller_tcp: P.s4_controller_tcp, via_proxy: P.s4_via_proxy, note: 'D3.3 has no controller API/DB listener; QMP, SSH hostfwd and proxy ports were probed' })
+      set(4, none(P.s4_controller_tcp) && Object.values(P.s4_via_proxy).every((v) => /403|405|400/.test(v)) ? 'PASS' : 'FAIL', { controller_tcp: P.s4_controller_tcp, via_proxy: P.s4_via_proxy, note: 'D3.3 has no controller API/DB listener and no QMP; the SSH hostfwd and proxy ports were probed' })
       const okAllowed = /200/.test(P.s5_via_proxy['api.anthropic.com:443'] ?? '')
       const deniedRest = Object.entries(P.s5_via_proxy).filter(([k]) => k !== 'api.anthropic.com:443').every(([, v]) => /403|405|400/.test(v))
       set(5, P.s5_resolver !== 'RESOLVED' && none(P.s5_public_dns_udp) && none(P.s5_direct_tcp) && deniedRest && okAllowed ? 'PASS' : 'FAIL', { resolver: P.s5_resolver, public_dns: P.s5_public_dns_udp, direct_tcp: P.s5_direct_tcp, via_proxy: P.s5_via_proxy, positive_control_api_anthropic: okAllowed })
