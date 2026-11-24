@@ -100,6 +100,11 @@
     "file_pattern": "^[0-9]{3,4}_[a-z0-9_]+\\.sql$",
     "rule": "A path is a NEW migration only if trusted Git facts show it absent from the base tree, strictly numbered above every base migration, uniquely numbered among the candidate's additions and well formed. Anything else under the directory is historical, colliding, out-of-order or malformed, and is prohibited. A human-supplied modification label is never an input."
   },
+  "subscription": {
+    "$comment": "CANONICAL internal plan identities. The trusted launcher (D3.3) normalizes whatever the official CLI reports into one of these; this contract hardcodes NO provider response string. A plan listed in known_plans but not in authorized_plans is refused. Authorizing a plan never raises limits.max_incremental_usd, and changing this list is an owner ceremony (root of trust).",
+    "known_plans": ["claude_free", "claude_pro", "claude_max_5x", "claude_max_20x", "claude_team", "claude_enterprise"],
+    "authorized_plans": ["claude_max_5x"]
+  },
   "limits": {
     "max_incremental_usd": 0,
     "max_reasoning_sessions": 1,
@@ -119,6 +124,7 @@
   "worker_environment_allowlist": [
     "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LC_COLLATE", "LC_TIME", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "XDG_STATE_HOME"
   ],
+  "launcher_controlled_environment": ["NODE_OPTIONS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE"],
   "credential_scopes": {
     "publisher": { "identities": ["trusted_publisher"], "required_evidence": ["test_results"] },
     "merge": { "identities": ["merger"], "required_evidence": ["delivery_verification"] },
@@ -134,6 +140,11 @@
     "$comment": "No action is active in D3.2. Activation is a root-of-trust change performed by the owner ceremony in a later phase.",
     "active_actions": []
   },
+  "activation_prerequisites": [
+    "v3_test_suite_wired_into_ci_through_a_human_approved_protected_control_plane_change",
+    "isolation_suite_passed_in_d33",
+    "owner_root_of_trust_ceremony_completed"
+  ],
   "preserved_v2": {
     "bypass_permissions_in_settings": "disabled; D3.2 does not change .claude/settings.json",
     "v2_contract": "docs/developer-harness-v2/contract.json",

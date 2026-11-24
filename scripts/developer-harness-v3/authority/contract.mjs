@@ -89,6 +89,13 @@ export function validateContract(c) {
   if (!isPlainObject(c.migrations) || typeof c.migrations.directory !== 'string' || !/^[a-z0-9_/.-]+$/i.test(c.migrations.directory)) p.push('contract.migrations.directory: invalid')
   if (!isPlainObject(c.customer_agent) || validateGlobList(c.customer_agent.path_globs, 'x').length || !v.arrayOf((x) => v.str(x) && x.length <= 200, 10)(c.customer_agent.tripwire_all) || !c.customer_agent.tripwire_all.length) p.push('contract.customer_agent: invalid')
   else for (const pat of c.customer_agent.tripwire_all) { try { new RegExp(pat) } catch { p.push('contract.customer_agent.tripwire_all: not a regular expression') } }
+  p.push(...checkShape(c.subscription, { required: { known_plans: v.arrayOf(v.id, 20), authorized_plans: v.arrayOf(v.id, 20) }, optional: { $comment: v.str } }, 'contract.subscription'))
+  if (isPlainObject(c.subscription) && Array.isArray(c.subscription.known_plans) && Array.isArray(c.subscription.authorized_plans)) {
+    if (!c.subscription.authorized_plans.length) p.push('contract.subscription: at least one plan must be authorized')
+    for (const a of c.subscription.authorized_plans) if (!c.subscription.known_plans.includes(a)) p.push(`contract.subscription: authorized plan ${String(a).slice(0, 40)} is not a known plan`)
+  }
+  if (!v.arrayOf((x) => typeof x === 'string' && /^[A-Z][A-Z0-9_]{1,60}$/.test(x), 50)(c.launcher_controlled_environment) || !c.launcher_controlled_environment.length) p.push('contract.launcher_controlled_environment: invalid')
+  if (!v.arrayOf(v.id, 20)(c.activation_prerequisites) || !c.activation_prerequisites.length) p.push('contract.activation_prerequisites: invalid')
   if (!isPlainObject(c.activation) || !Array.isArray(c.activation.active_actions)) p.push('contract.activation: invalid')
   else for (const a of c.activation.active_actions) if (c.actions[a]?.class !== 'safeguarded') p.push(`contract.activation: ${a} is not a safeguarded action`)
   if (!isPlainObject(c.credential_scopes)) p.push('contract.credential_scopes: invalid')

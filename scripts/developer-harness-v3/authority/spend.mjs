@@ -2,9 +2,9 @@
 //
 // Pure. Inputs are NAMES of environment variables and settings KEYS, never values, so nothing secret is read, logged or echoed.
 // Why this exists: per Anthropic's Claude Code documentation, `claude -p` always uses ANTHROPIC_API_KEY when it is present in the
-// environment, even for an account that is logged in with a Pro subscription, and that usage is billed at pay-as-you-go API rates.
+// environment, even for an account that is logged in with a subscription, and that usage is billed at pay-as-you-go API rates.
 // The harness therefore refuses to launch whenever a paid authentication path could be selected, and fails closed when the active
-// authentication source cannot be positively verified as the owner's native Pro subscription login.
+// authentication source cannot be positively verified as the owner's native, explicitly authorized subscription login.
 import { matchesName } from '../lib/paths.mjs'
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x)
@@ -26,8 +26,15 @@ export function checkLaunchAuthentication({ envNames = [], settings = {}, auth =
   else {
     if (auth.verified_by !== 'launcher' || auth.verified !== true) codes.push('AUTH.UNVERIFIED')
     if (auth.source !== 'claude_subscription_oauth') codes.push('AUTH.PAID_OR_UNKNOWN_SOURCE')
-    if (auth.plan !== 'pro') codes.push('AUTH.PLAN_NOT_PRO')
-    if (auth.paid_usage_enabled !== false) codes.push('AUTH.PAID_USAGE_NOT_VERIFIED_DISABLED')
+    // `plan` is a CANONICAL identity produced by the trusted launcher's normalization of the CLI's own report (D3.3). Nothing here knows or
+    // guesses a provider string. A plan that is not in the vocabulary is unknown; a known plan the owner has not authorized is refused. Neither
+    // outcome changes what may be spent: the zero-spend limit is independent of the plan.
+    const sub = contract.subscription
+    if (typeof auth.plan !== 'string' || !sub.known_plans.includes(auth.plan)) codes.push('AUTH.PLAN_UNKNOWN')
+    else if (!sub.authorized_plans.includes(auth.plan)) codes.push('AUTH.PLAN_NOT_AUTHORIZED')
+    // Paid extra usage must be positively verified OFF; unknown is not off.
+    if (auth.extra_usage_enabled === true) codes.push('AUTH.EXTRA_USAGE_ENABLED')
+    else if (auth.extra_usage_enabled !== false) codes.push('AUTH.EXTRA_USAGE_UNVERIFIED')
   }
   return [...new Set(codes)]
 }
@@ -52,5 +59,24 @@ export function checkSpend({ incrementalUsd = 0, purchase = false }, contract) {
   if (!Number.isFinite(incrementalUsd) || incrementalUsd < 0) codes.push('SPEND.INVALID_AMOUNT')
   else if (incrementalUsd > contract.limits.max_incremental_usd) codes.push('SPEND.UNAUTHORIZED')
   if (purchase) codes.push('SPEND.PURCHASE_FORBIDDEN')
+  return codes
+}
+
+/**
+ * Behavior-sensitive variables (NODE_OPTIONS, proxy and certificate settings) change what a worker executes and where its traffic goes. Their VALUES
+ * must originate exclusively from the trusted launcher. The launcher reports an origin label per name (never the value); anything else, an absent
+ * label, or the same name appearing in the repository-controlled settings `env` is refused.
+ */
+export function checkLauncherControlled(names, origins, settingsEnvNames, contract) {
+  const codes = []
+  const controlled = new Set(contract.launcher_controlled_environment.map((n) => n.toUpperCase()))
+  const fromSettings = new Set((settingsEnvNames ?? []).map((n) => String(n).toUpperCase()))
+  const originOf = (n) => { if (!isObj(origins)) return undefined; const key = Object.keys(origins).find((k) => k.toUpperCase() === n); return key === undefined ? undefined : origins[key] }
+  for (const raw of names) {
+    const n = String(raw).toUpperCase()
+    if (!controlled.has(n)) continue
+    if (fromSettings.has(n) || originOf(n) !== 'trusted_launcher') codes.push(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)
+  }
+  for (const n of fromSettings) if (controlled.has(n) && !codes.includes(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)) codes.push(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)
   return codes
 }

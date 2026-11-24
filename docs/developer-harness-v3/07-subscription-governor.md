@@ -1,6 +1,6 @@
 # Developer Harness V3 — 07 Subscription Governor (architecture + launch guard)
 
-The owner has **Claude Pro only; paid usage is disabled; no API billing; no paid fallback; nothing is purchased automatically.** This governs
+The owner's subscription is **Claude Max 5x** (upgraded from Pro during D3.2; owner-reported, the harness does not measure it). **Paid extra usage stays disabled; no API billing; no paid fallback; nothing is purchased automatically.** A plan change never authorizes spending. This governs *developer automation*, not PatelRep's separately governed customer-facing AI.
 *developer automation*, not PatelRep's separately governed customer-facing AI.
 
 Implemented in D3.2: `authority/spend.mjs` (launch-authentication and credential-environment checks), the `spend`/`launch_environment` checks in the evaluator,
@@ -29,14 +29,28 @@ A session launch is allowed only if **all** hold; otherwise it fails closed:
 1. No forbidden variable *name* is present (`ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, Bedrock/Vertex/Foundry switches,
    `AWS_BEARER_TOKEN_BEDROCK`, other providers' API keys). Names are case-insensitive (Windows).
 2. No forbidden *setting* (`apiKeyHelper`, cloud credential helpers, `forceLoginMethod: console`).
-3. The **trusted launcher** supplies a positive verification: source `claude_subscription_oauth`, plan `pro`, `paid_usage_enabled: false`, `verified_by: launcher`.
-   Anything missing, unknown or self-reported by the worker is `AUTH.UNVERIFIED`.
+3. The **trusted launcher** supplies a positive verification: source `claude_subscription_oauth`, a **canonical plan identity** the owner has authorized, `extra_usage_enabled: false`, `verified_by: launcher`.
+   Anything missing, unknown or self-reported by the worker is `AUTH.UNVERIFIED`; a plan outside the canonical vocabulary is `AUTH.PLAN_UNKNOWN`; a known plan the owner has not authorized is `AUTH.PLAN_NOT_AUTHORIZED`; extra usage on or unverified is `AUTH.EXTRA_USAGE_ENABLED` / `AUTH.EXTRA_USAGE_UNVERIFIED`.
 4. `incremental_usd` is `0`; `purchase` is false.
 5. The launch environment is constructed from an allow-list (never inherited from the parent shell) and contains no credential-shaped name; `CLAUDE_CODE_OAUTH_TOKEN`
    is forbidden in workers (it would be an exported credential).
 
 The harness does not collect, proxy, scrape, export or intermediate Claude credentials, does not modify the Claude binary, and uses no third-party OAuth workaround. The owner logs in once,
 interactively, inside the worker VM.
+
+### 2a. Plan model (canonical identities; provider normalization is D3.3)
+
+`contract.subscription` holds `known_plans` (the canonical vocabulary: `claude_free`, `claude_pro`, `claude_max_5x`, `claude_max_20x`, `claude_team`, `claude_enterprise`) and `authorized_plans` (currently only `claude_max_5x`).
+These are **internal identities**. The harness does **not** know, assume or hardcode what string the official CLI or any API uses to report a plan: the **trusted launcher must normalize** the CLI's own report into one of
+these identities in D3.3, and anything it cannot normalize with confidence it must report as absent (which fails closed as `AUTH.PLAN_UNKNOWN`). The plan model is deliberately **independent of money**: authorizing a plan
+changes nothing about `limits.max_incremental_usd` (0), paid extra usage must be positively verified off for every plan, and API-key, cloud-provider and gateway authentication stay prohibited. Changing `authorized_plans`
+(for example to re-admit Pro or to admit Max 20x) is a root-of-trust change: an owner ceremony, never an automated promotion. Max-tier usage limits and reset behavior are **NOT MEASURED** and must not be assumed to equal Pro's.
+
+### 2b. Behavior-sensitive environment values
+
+`NODE_OPTIONS`, `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and `SSL_CERT_FILE` change what a worker executes and where its traffic goes. They are on the worker allow-list **only because their VALUES come exclusively from the trusted launcher**:
+the launcher reports an origin label per name (never the value), and anything other than `trusted_launcher`, a missing label, or the same name appearing in the repository-controlled settings `env` is refused (`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER`).
+The list is part of the pinned contract; shrinking it is a weakening.
 
 ## 3. Scheduling policy (design)
 
@@ -69,5 +83,5 @@ placeholder** for unit tests, not a real key. No GitHub workflow was changed.
 
 ## 7. Policy risk for the owner (not a code issue)
 
-Anthropic states that plan limits assume ordinary, individual usage. A continuously running autonomous harness on a Pro plan may stray from that. This is an owner/provider-terms question; V3 reduces
+Anthropic states that plan limits assume ordinary, individual usage. A continuously running autonomous harness, even on a Max plan, may stray from that. This is an owner/provider-terms question; V3 reduces
 exposure by serialising sessions, reusing context and obeying limits, but it cannot make the question go away. Recorded for the owner in the D3.3 handoff.

@@ -8,14 +8,14 @@
     "waiting_subscription": { "reasons": ["SUBSCRIPTION_LIMIT"] },
     "waiting_external": { "reasons": ["CI_PENDING", "STAGING_PENDING", "GITHUB_UNAVAILABLE", "NETWORK_UNAVAILABLE"] },
     "remediation": { "reasons": ["TEST_FAILED", "REVIEW_FINDINGS_OPEN", "CI_FAILED", "STAGING_FAILED"] },
-    "context_recovery": { "reasons": ["CONTEXT_LOST", "SESSION_ENDED_EARLY"] },
+    "context_recovery": { "reasons": ["CONTEXT_LOST", "SESSION_ENDED_EARLY", "CONTEXT_RENEWAL"] },
     "worker_recovery": { "reasons": ["WORKER_TERMINATED", "HOST_RESTARTED", "POWER_LOSS"] },
     "dependency_waiting": { "reasons": ["DEPENDENCY_TASK_OPEN"] },
     "paused": { "reasons": ["OWNER_PAUSED"] },
     "blocked": { "reasons": ["OWNER_AUTH_EXPIRED", "OWNER_ROOT_OF_TRUST_CEREMONY", "OWNER_DECISION_REQUIRED", "PROHIBITED_ACTION_REQUIRED", "ISOLATION_UNPROVEN", "UNRESOLVABLE_REQUIREMENT_CONFLICT"] },
     "production_incident": { "reasons": ["PRODUCTION_HEALTH_FAILED", "WATCHDOG_ALERT"] }
   },
-  "never_blocked_reasons": ["SUBSCRIPTION_LIMIT", "MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "WORKER_TERMINATED", "CONTEXT_LOST", "CI_FAILED", "TEST_FAILED"],
+  "never_blocked_reasons": ["CONTEXT_RENEWAL", "SUBSCRIPTION_LIMIT", "MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "WORKER_TERMINATED", "CONTEXT_LOST", "CI_FAILED", "TEST_FAILED"],
   "forward": {
     "submitted": ["queued"],
     "queued": ["planning"],
@@ -41,6 +41,23 @@
     "head_change": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"],
     "policy_revision_change": "all",
     "state_after_head_change": "testing"
+  },
+  "context_renewal": {
+    "status": "DESIGN_REQUIREMENT_ONLY_D34_IMPLEMENTS",
+    "default_threshold_percent": 70,
+    "threshold_configurable": true,
+    "sequence": [
+      "detect utilization at or above the threshold using official supported telemetry only",
+      "stop starting new work and finish or safely abandon the current step at a safe execution boundary",
+      "write a durable checkpoint (task requirements, plan, remaining work, base/head SHAs, worktree snapshot, evidence references) BEFORE ending the session",
+      "terminate the session gracefully",
+      "start a FRESH Claude session from an optimized context pack plus the restored original requirements and remaining-work list",
+      "verify the restored state against the checkpoint, then continue automatically with no owner prompt"
+    ],
+    "telemetry": "only officially supported, documented sources; verified empirically in D3.3 before use",
+    "fallback_when_exact_utilization_unavailable": "a conservative, supported proxy chosen in D3.4 (for example renewing at a lower proxy threshold or at step boundaries after a bounded amount of work); never a guess presented as a measurement",
+    "forbidden": ["blind /clear or any context reset that is not preceded by a verified durable checkpoint", "renewal that drops or rewrites the original requirements", "renewal that requires another owner prompt"],
+    "state": "waiting state context_recovery with reason CONTEXT_RENEWAL; resume_to is the state left; CONTEXT_RENEWAL is never a genuine blocker"
   },
   "concurrency": { "max_reasoning_sessions": 1, "deterministic_operations_may_run_concurrently": ["ci_monitoring", "staging_monitoring", "notification_outbox", "resource_governor"] },
   "recovery_requirements": [

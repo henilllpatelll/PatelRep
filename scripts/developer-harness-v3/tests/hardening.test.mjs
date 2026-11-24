@@ -69,7 +69,7 @@ test('review #4: resource ownership is read from the controller registry; a requ
 
 test('review #6: launches are checked for credential-shaped names, including the exported Claude token', () => {
   const launch = (names) => run(ACTIVE, request('launch_claude_session'), trustedFor('orchestrator', { launch: { env_names: names, settings: {},
-    auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: false } } }))
+    auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: false } } }))
   assert.equal(launch(['PATH', 'HOME']).decision, 'allow')
   for (const n of ['CLAUDE_CODE_OAUTH_TOKEN', 'SUPABASE_SERVICE_ROLE_KEY', 'GITHUB_TOKEN', 'RAILWAY_TOKEN']) {
     const d = launch(['PATH', n])

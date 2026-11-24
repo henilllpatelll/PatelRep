@@ -246,17 +246,17 @@ test('customer-agent activation is prohibited as an action, as a declared effect
 
 test('unauthorized spending and paid authentication are refused; subscription-only launch is the only way in', () => {
   const launch = (over = {}, params = {}) => run(ACTIVE, request('launch_claude_session', { params }), trustedFor('orchestrator', { launch: {
-    env_names: ['PATH', 'HOME'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: false }, ...over } }))
+    env_names: ['PATH', 'HOME'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: false }, ...over } }))
   assert.equal(launch().decision, 'allow')
   assert.ok(codes(launch({ env_names: ['PATH', 'anthropic_api_key'] })).includes('AUTH.FORBIDDEN_ENVIRONMENT:ANTHROPIC_API_KEY'))
   for (const n of loadContractFile().forbidden_auth_environment) assert.ok(codes(launch({ env_names: [n] })).some((c) => c.startsWith('AUTH.FORBIDDEN_ENVIRONMENT')), n)
   assert.ok(codes(launch({ settings: { apiKeyHelper: '/bin/x' } })).includes('AUTH.FORBIDDEN_SETTING:apiKeyHelper'))
   assert.ok(codes(launch({ settings: { forceLoginMethod: 'console' } })).includes('AUTH.FORBIDDEN_SETTING:forceLoginMethod:console'))
   assert.ok(codes(launch({ auth: null })).includes('AUTH.UNVERIFIED'), 'unverifiable authentication fails closed')
-  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'api_key', plan: 'pro', paid_usage_enabled: false } })).includes('AUTH.PAID_OR_UNKNOWN_SOURCE'))
-  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'max', paid_usage_enabled: false } })).includes('AUTH.PLAN_NOT_PRO'))
-  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: true } })).includes('AUTH.PAID_USAGE_NOT_VERIFIED_DISABLED'))
-  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro' } })).includes('AUTH.PAID_USAGE_NOT_VERIFIED_DISABLED'))
+  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'api_key', plan: 'claude_max_5x', extra_usage_enabled: false } })).includes('AUTH.PAID_OR_UNKNOWN_SOURCE'))
+  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_20x', extra_usage_enabled: false } })).includes('AUTH.PLAN_NOT_AUTHORIZED'))
+  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: true } })).includes('AUTH.EXTRA_USAGE_ENABLED'))
+  assert.ok(codes(launch({ auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x' } })).includes('AUTH.EXTRA_USAGE_UNVERIFIED'))
   assert.ok(codes(launch({}, { incremental_usd: 0.01 })).includes('SPEND.UNAUTHORIZED'))
   assert.ok(codes(launch({}, { purchase: true })).includes('SPEND.PURCHASE_FORBIDDEN'))
   assert.equal(codes(launch({}, { incremental_usd: Number.NaN })).includes('INPUT.MALFORMED:params'), true)
@@ -285,7 +285,7 @@ test('production access: only the right identity with the right scope, and never
 })
 
 test('bypass permissions: only inside a verified isolated environment, never on the host', () => {
-  const launch = { env_names: ['PATH'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: false } }
+  const launch = { env_names: ['PATH'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: false } }
   const start = (env, p = ACTIVE, evd = [ev('isolation_attestation')]) => run(p, request('start_bypass_permissions_session', { params: { permission_mode: 'bypass' } }), trustedFor('orchestrator', { environment: env, launch }), evd)
   const iso1 = trustedFor('orchestrator').environment
   assert.equal(start(iso1).decision, 'allow', JSON.stringify(start(iso1)))

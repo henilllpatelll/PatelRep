@@ -78,6 +78,7 @@ the durable replay ledger. In D3.2 `trusted_keys` is empty, so *nothing* authent
   `delivery_verifier` (the trusted verifier that probes the environment and checks promotion conditions), not by `policy_promoter` or `orchestrator`.
 - **Promotion is bound end to end.** For `promote_policy` the independent review, security review and test results must each be bound to the **successor revision** (`subject_policy_revision`), and the
   controller must show the proposal was derived from the candidate tree the evidence is bound to (`trusted.proposed_policy_source_tree`).
+- **Subscription plans are canonical identities**, authorized by the owner in `contract.subscription` (currently `claude_max_5x`); an authorized plan never changes the $0 spend limit; changing the list is an owner ceremony (07 §2a).
 - **Worker environments are allow-listed.** `worker_environment_allowlist` names are the only variables a worker may have; a credential-shaped name gets `CREDENTIAL.IN_WORKER_ENV`, any other unlisted name
   `ENV.NAME_NOT_ALLOWLISTED`. For launches the effective environment includes `settings.env` keys.
 - **Globs are not regular expressions.** Contract globs use a restricted alphabet and a linear segment matcher (`lib/paths.mjs`); `**` and `*` cannot cause backtracking, so no auto-promotable list entry can stall the evaluator.

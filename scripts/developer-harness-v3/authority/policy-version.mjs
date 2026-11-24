@@ -12,7 +12,7 @@ import { validateContract, validateTrustedKeys, policyRevision } from './contrac
 
 const RANK = { allowed: 0, safeguarded: 1, prohibited: 2 }
 const IGNORED_TOP_LEVEL = new Set(['$comment', 'baseline', 'phase', 'status', 'classes', 'preserved_v2'])
-const HANDLED_TOP_LEVEL = new Set(['worker_environment_allowlist', 'actions', 'evidence_types', 'identities', 'protected_paths', 'root_of_trust_paths', 'limits', 'forbidden_auth_environment', 'forbidden_auth_settings',
+const HANDLED_TOP_LEVEL = new Set(['subscription', 'launcher_controlled_environment', 'activation_prerequisites', 'worker_environment_allowlist', 'actions', 'evidence_types', 'identities', 'protected_paths', 'root_of_trust_paths', 'limits', 'forbidden_auth_environment', 'forbidden_auth_settings',
   'credential_environment_patterns', 'credential_scopes', 'migrations', 'customer_agent', 'activation', 'contract_id', 'schema', 'version'])
 
 const asSet = (x) => new Set(x ?? [])
@@ -69,6 +69,12 @@ export function diffPolicy(active, proposed) {
     if (B.limits[k] > A.limits[k]) add('weakening', 'LIMIT_RAISED', `limits.${k}`)
     else if (B.limits[k] < A.limits[k]) add('strengthening', 'LIMIT_LOWERED', `limits.${k}`)
   }
+  // Subscription authorization is financial/authentication authority: it can only change through the owner ceremony.
+  if (digestOf(A.subscription) !== digestOf(B.subscription)) add('root_of_trust', 'SUBSCRIPTION_AUTHORIZATION_CHANGED', 'subscription')
+  if (removed(A.launcher_controlled_environment, B.launcher_controlled_environment).length) add('weakening', 'LAUNCHER_CONTROLLED_ENV_REMOVED', 'launcher_controlled_environment')
+  if (added(A.launcher_controlled_environment, B.launcher_controlled_environment).length) add('strengthening', 'LAUNCHER_CONTROLLED_ENV_ADDED', 'launcher_controlled_environment')
+  if (removed(A.activation_prerequisites, B.activation_prerequisites).length) add('weakening', 'ACTIVATION_PREREQUISITE_REMOVED', 'activation_prerequisites')
+  if (added(A.activation_prerequisites, B.activation_prerequisites).length) add('strengthening', 'ACTIVATION_PREREQUISITE_ADDED', 'activation_prerequisites')
   if (digestOf(A.credential_scopes) !== digestOf(B.credential_scopes)) add('root_of_trust', 'CREDENTIAL_SCOPES_CHANGED', 'credential_scopes')
   if (digestOf(A.activation) !== digestOf(B.activation)) add('root_of_trust', 'ACTIVATION_CHANGED', 'activation')
   if (digestOf(A.migrations) !== digestOf(B.migrations)) add('weakening', 'MIGRATION_RULES_CHANGED', 'migrations')

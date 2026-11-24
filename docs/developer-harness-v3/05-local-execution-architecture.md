@@ -5,7 +5,7 @@ the read-only host facts in 01 §4.
 
 ## 1. Constraints that shape the design
 
-Windows 11 Home x64 · i7-13700H · 16 GB (≈3.9 GB free at measurement) · ≈416 GB disk · laptop kept powered · owner keeps using it · Claude Pro only,
+Windows 11 Home x64 · i7-13700H · 16 GB (≈3.9 GB free at measurement) · ≈416 GB disk · laptop kept powered · owner keeps using it · Claude Max 5x (owner-reported; upgraded from Pro),
 paid usage off · zero new hosting cost · hypervisor already running (VBS on); WSL2 with the owner's `Ubuntu` + `docker-desktop` distros and Docker
 Desktop installed; `.wslconfig` already caps WSL at 6 GB/4 GB swap; VirtualBox, QEMU and Podman **not** installed.
 

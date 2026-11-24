@@ -15,7 +15,7 @@ import { IDENTITIES, isLoadedPolicy } from './contract.mjs'
 import { EvidenceLedger, isSatisfying, validateEvidence } from './evidence.mjs'
 import { classifyMigrationChanges } from './migration-facts.mjs'
 import { promotionCheck } from './policy-version.mjs'
-import { checkCredentialEnvironment, checkLaunchAuthentication, checkSpend } from './spend.mjs'
+import { checkCredentialEnvironment, checkLauncherControlled, checkLaunchAuthentication, checkSpend } from './spend.mjs'
 
 export const DECISION_SCHEMA = 'patelrep.developer-harness-v3.decision'
 const ISOLATION_PROPERTIES = Object.freeze({ egress_restricted: true, host_mounts: false, docker_socket_exposed: false, windows_interop: false, controller_reachable: false,
@@ -32,7 +32,7 @@ const PARAMS_SPEC = {
     resource_id: v.id },
 }
 const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
-  optional: { ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
+  optional: { env_value_origins: isPlainObject, ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
 const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
   changes: v.arrayOf((x) => isPlainObject(x) && /^[AMDTUXRC]$/.test(x.status) && typeof x.path === 'string' && Object.keys(x).length === 2, 5000),
   base_migrations: v.arrayOf((x) => typeof x === 'string', 20000), added_lines: isPlainObject, special_modes: v.arrayOf((x) => typeof x === 'string', 5000), origin_matches: (x) => x === null || typeof x === 'boolean', problems: v.arrayOf((x) => typeof x === 'string', 50) } }
@@ -184,9 +184,11 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       }
       case 'credentials_env': {
         const isLaunch = ['launch_claude_session', 'start_bypass_permissions_session'].includes(request.action)
-        const names = isLaunch ? (trusted.launch ? [...(trusted.launch.env_names ?? []), ...Object.keys(trusted.launch.settings?.env ?? {})] : undefined) : trusted.environment?.worker_env_names
+        const settingsEnv = isLaunch ? Object.keys(trusted.launch?.settings?.env ?? {}) : []
+        const names = isLaunch ? (trusted.launch ? [...(trusted.launch.env_names ?? []), ...settingsEnv] : undefined) : trusted.environment?.worker_env_names
+        const origins = isLaunch ? trusted.launch?.env_value_origins : trusted.environment?.env_value_origins
         if (!names) codes.push('ENV.UNKNOWN')
-        else codes.push(...checkCredentialEnvironment(names, c))
+        else { codes.push(...checkCredentialEnvironment(names, c)); codes.push(...checkLauncherControlled(names, origins, settingsEnv, c)) }
         break
       }
       case 'credential_scope': {

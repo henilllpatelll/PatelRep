@@ -31,6 +31,21 @@ Recoverable states, each with an enumerated set of reasons: `waiting_resources`,
    requires an `owner_action_id`; a wait that began as remediation can only return to `implementing`; `production_incident` is entered only from a post-merge effective state.
 9. **Concurrency.** One reasoning session; CI/staging monitoring, the notification outbox and the resource governor are deterministic and may run beside it.
 
+## 2a. Context renewal (D3.4 design requirement; NOT implemented in D3.2)
+
+The owner selected **70 % context utilization** as the default threshold for automatic session renewal (configurable). When a session reaches it, the orchestrator must:
+
+1. detect utilization from **officially supported telemetry only** (verified empirically in D3.3 before it is relied on);
+2. stop starting new work and reach a **safe execution boundary** (finish or safely abandon the current step);
+3. write a **durable checkpoint before the session ends**: original task requirements, the plan, remaining work, base/head SHAs, worktree snapshot, evidence references;
+4. terminate the session gracefully;
+5. start a **fresh Claude session** from an optimized context pack plus the restored original requirements and remaining-work list;
+6. verify the restored state against the checkpoint and **continue automatically with no owner prompt**.
+
+If exact utilization is not available from a supported source, use a **conservative, supported fallback** chosen in D3.4 (for example a lower proxy threshold, or renewal at step boundaries after a bounded amount of work); a guess is never presented as a measurement.
+**Forbidden:** a blind `/clear` or any reset not preceded by a verified durable checkpoint; renewal that drops or rewrites the original requirements; renewal that needs another owner prompt.
+In the lifecycle this is a `context_recovery` wait with reason `CONTEXT_RENEWAL`; it resumes to the recorded state and is never a genuine blocker (the reducer already enforces both; the Context Manager itself is not built).
+
 ## 3. Recovery contract (design)
 
 A task must be reconstructable from persisted events, the context-pack reference, base/head SHAs and the worktree, **not** from Claude's session history. Committed work is recovered from the branch;

@@ -58,7 +58,7 @@ test('sec #1 and #5: no safeguarded action can be approved by evidence its own r
   }
   for (const [n, m] of Object.entries(bad)) { const c = structuredClone(C); m(c); assert.ok(validateContract(c).some((p) => p.includes('can be issued by the identity that requests')), n) }
   // evaluator level: an orchestrator-signed isolation attestation is not accepted
-  const launch = { env_names: ['PATH'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: false } }
+  const launch = { env_names: ['PATH'], settings: {}, auth: { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: false } }
   const forged = ev('isolation_attestation', { over: { issuer_identity: 'orchestrator' }, keyId: 'k-orchestrator' })
   const d = run(request('start_bypass_permissions_session', { params: { permission_mode: 'bypass' } }), trustedFor('orchestrator', { launch }), [forged])
   assert.equal(d.decision, 'deny'); assert.ok(codes(d).includes('EVIDENCE.MISSING:isolation_attestation'))
@@ -132,7 +132,7 @@ test('sec #4: origin URL spoofing is rejected', () => {
 })
 
 test('sec #6: authentication settings nested under env, and case variants, are caught', () => {
-  const auth = { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'pro', paid_usage_enabled: false }
+  const auth = { verified: true, verified_by: 'launcher', source: 'claude_subscription_oauth', plan: 'claude_max_5x', extra_usage_enabled: false }
   const chk = (settings) => checkLaunchAuthentication({ envNames: ['PATH'], settings, auth }, C)
   assert.deepEqual(chk({}), [])
   assert.ok(chk({ env: { ANTHROPIC_API_KEY: 'x' } }).includes('AUTH.FORBIDDEN_ENVIRONMENT:ANTHROPIC_API_KEY'))
