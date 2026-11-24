@@ -45,11 +45,14 @@ export function isSatisfying(payload) {
  *   policy_revision, environment_id, subject_policy_revision)
  * @returns {{ok:boolean, problems:string[], payload?:object, digest?:string}}
  */
-export function validateEvidence(envelope, { policy, now, binding, task, authorContextId = null }) {
+export function validateEvidence(envelopeIn, { policy, now, binding, task, authorContextId = null, extraBinds = {} }) {
   const problems = []
   try {
+    const envelope = structuredClone(envelopeIn) // read once
     const shape = checkShape(envelope, ENVELOPE_SPEC, 'envelope')
     if (shape.length) return { ok: false, problems: ['EVIDENCE.MALFORMED'] }
+    // one canonical encoding per signature, so a ledger keyed on the string cannot be dodged by re-padding
+    if (Buffer.from(envelope.signature.value, 'base64').toString('base64') !== envelope.signature.value) return { ok: false, problems: ['EVIDENCE.MALFORMED'] }
     const payloadShape = checkShape(envelope.payload, PAYLOAD_SPEC, 'payload')
     if (payloadShape.length) return { ok: false, problems: ['EVIDENCE.MALFORMED'] }
     const p = envelope.payload
@@ -81,7 +84,7 @@ export function validateEvidence(envelope, { policy, now, binding, task, authorC
 
     // binding to the exact candidate, policy and environment
     if (p.policy_revision !== policy.revision) problems.push('EVIDENCE.WRONG_POLICY_REVISION')
-    for (const field of type.binds) {
+    for (const field of [...type.binds, ...(Object.hasOwn(extraBinds, p.evidence_type) ? extraBinds[p.evidence_type] : [])]) {
       if (field === 'policy_revision') continue
       if (p[field] === undefined || binding[field] === undefined || p[field] !== binding[field]) problems.push(`EVIDENCE.${BIND_CODE[field]}`)
     }

@@ -34,7 +34,9 @@ test('diff classification: every weakening is recognized as weakening', () => {
     'drop a binding': (c) => { c.evidence_types.ci_gate.binds = ['repository', 'policy_revision'] },
     'shrink protected paths': (c) => { c.protected_paths = c.protected_paths.filter((p) => p !== '.github/**') },
     'allow an auth variable': (c) => { c.forbidden_auth_environment = c.forbidden_auth_environment.filter((n) => n !== 'ANTHROPIC_API_KEY') },
-    'allow a credential pattern': (c) => { c.credential_environment_patterns = c.credential_environment_patterns.filter((n) => n !== 'SERVICE_ROLE') },
+    'allow a credential pattern': (c) => { c.credential_environment_patterns = c.credential_environment_patterns.filter((n) => n !== '*SERVICE_ROLE*') },
+    'widen the worker env allowlist': (c) => { c.worker_environment_allowlist.push('MY_SECRET_NAME') },
+    'approval flag dropped': (c) => { c.evidence_types.independent_review.approval = false },
     'raise concurrency': (c) => { c.limits.max_reasoning_sessions = 4 },
     'looser migration rules': (c) => { c.migrations.file_pattern = '.*' },
     'weaker customer-agent tripwire': (c) => { c.customer_agent.tripwire = 'nothing' },
@@ -53,7 +55,7 @@ test('diff classification: trust-root changes are root_of_trust, never merely we
     'change credential scopes': (c) => { c.credential_scopes.production.identities.push('merger') },
     'rename the contract': (c) => { c.contract_id = 'other' },
   }
-  const extraKey = { ...KEYS, trusted_keys: { ...KEYS.trusted_keys, 'k-extra': { ...KEYS.trusted_keys['k-orchestrator'] } } }
+  const extraKey = { ...KEYS, trusted_keys: { ...KEYS.trusted_keys, ...makeKeys(['orchestrator']).trusted_keys } }
   for (const [name, mutate] of Object.entries(roots)) {
     const opts = name === 'add a trusted key' ? { keys: extraKey } : undefined
     assert.ok(kinds(mutate, opts).some((k) => k.startsWith('root_of_trust:')), name)
@@ -73,10 +75,10 @@ test('diff classification: pure strengthening is neutral for promotion, and an i
   assert.deepEqual(promotionCheck(ACTIVE.policy, propose(() => {}).bundle).codes, ['PROMOTION.NO_CHANGE'])
 })
 
-const promoTrusted = (proposed) => trustedFor('policy_promoter', { proposed_policy: proposed.bundle })
+const promoTrusted = (proposed) => trustedFor('policy_promoter', { proposed_policy: proposed.bundle, proposed_policy_source_tree: trustedFor('x').candidate.tree_digest })
 const promoEvidence = (proposed, over = {}) => [
-  evidence('independent_review', { policy: ACTIVE.policy, keys: KEYS }), evidence('security_review', { policy: ACTIVE.policy, keys: KEYS }),
-  evidence('test_results', { policy: ACTIVE.policy, keys: KEYS }),
+  evidence('independent_review', { policy: ACTIVE.policy, keys: KEYS, over: { subject_policy_revision: proposed.revision } }), evidence('security_review', { policy: ACTIVE.policy, keys: KEYS, over: { subject_policy_revision: proposed.revision } }),
+  evidence('test_results', { policy: ACTIVE.policy, keys: KEYS, over: { subject_policy_revision: proposed.revision } }),
   evidence('policy_promotion_approval', { policy: ACTIVE.policy, keys: KEYS, over: { subject_policy_revision: proposed.revision, ...over } })]
 const promote = (proposed, evd = promoEvidence(proposed), trusted = promoTrusted(proposed)) => evaluate({ policy: ACTIVE.policy, request: request('promote_policy'), trusted, evidence: evd, now: NOW, ledger: new EvidenceLedger() })
 
@@ -95,7 +97,7 @@ test('weakening and root-of-trust successors can never be promoted automatically
   assert.deepEqual(dw.reason_codes, ['PROMOTION.WEAKENING_REQUIRES_OWNER_CEREMONY'])
   const root = propose((c) => { c.limits.max_incremental_usd = 20 })
   assert.deepEqual(promote(root).reason_codes, ['PROMOTION.ROOT_OF_TRUST_REQUIRES_OWNER_CEREMONY'])
-  const keyed = propose(() => {}, { keys: { ...KEYS, trusted_keys: { ...KEYS.trusted_keys, 'k-attacker': { ...KEYS.trusted_keys['k-orchestrator'] } } } })
+  const keyed = propose(() => {}, { keys: { ...KEYS, trusted_keys: { ...KEYS.trusted_keys, 'k-attacker': makeKeys(['orchestrator']).trusted_keys['k-orchestrator'] } } })
   assert.ok(promote(keyed).reason_codes.includes('PROMOTION.ROOT_OF_TRUST_REQUIRES_OWNER_CEREMONY'), 'a successor cannot add the keys that would approve it')
   const activated = propose((c) => { c.activation.active_actions.push('production_release') })
   assert.ok(promote(activated).reason_codes.includes('PROMOTION.ROOT_OF_TRUST_REQUIRES_OWNER_CEREMONY'), 'activation is an owner ceremony')

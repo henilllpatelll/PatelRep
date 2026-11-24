@@ -73,16 +73,16 @@
   "evidence_types": {
     "task_authority": { "issuers": ["task_ingress"], "binds": ["repository", "base_sha", "policy_revision", "authority_digest"], "max_ttl_seconds": 604800, "single_use": false },
     "test_results": { "issuers": ["orchestrator"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision", "environment_id"], "max_ttl_seconds": 86400, "single_use": false },
-    "independent_review": { "issuers": ["independent_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "independent_of_author": true },
-    "security_review": { "issuers": ["security_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "independent_of_author": true },
+    "independent_review": { "issuers": ["independent_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "approval": true, "independent_of_author": true },
+    "security_review": { "issuers": ["security_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "approval": true, "independent_of_author": true },
     "publication_receipt": { "issuers": ["trusted_publisher"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false },
     "ci_gate": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 43200, "single_use": false },
     "staging_gate": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 43200, "single_use": false },
-    "delivery_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true },
-    "merge_receipt": { "issuers": ["merger"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true },
+    "delivery_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
+    "merge_receipt": { "issuers": ["merger"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
     "production_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "candidate_sha", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true },
-    "isolation_attestation": { "issuers": ["orchestrator"], "binds": ["repository", "policy_revision", "environment_id"], "max_ttl_seconds": 3600, "single_use": false },
-    "policy_promotion_approval": { "issuers": ["policy_promoter"], "binds": ["repository", "policy_revision", "subject_policy_revision"], "max_ttl_seconds": 3600, "single_use": true }
+    "isolation_attestation": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "environment_id"], "max_ttl_seconds": 3600, "single_use": false, "approval": true },
+    "policy_promotion_approval": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "subject_policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true }
   },
   "protected_paths": [
     ".github/**", "supabase/migrations/**", "scripts/**", ".githooks/**", ".claude/**", ".mcp.json", ".wolf/hooks/**",
@@ -93,8 +93,7 @@
   ],
   "root_of_trust_paths": [
     "docs/developer-harness-v3/authority-contract.json", "docs/developer-harness-v3/task-lifecycle.json", "docs/developer-harness-v3/trusted-keys.json",
-    "scripts/developer-harness-v3/authority/**", "scripts/developer-harness-v3/lib/**",
-    ".claude/settings.json", ".claude/hooks/**"
+    "scripts/developer-harness-v3/**", ".claude/settings*.json", ".claude/hooks/**", ".claude/agents/**"
   ],
   "migrations": {
     "directory": "supabase/migrations",
@@ -114,7 +113,11 @@
   ],
   "forbidden_auth_settings": ["apiKeyHelper", "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "forceLoginMethod:console"],
   "credential_environment_patterns": [
-    "SERVICE_ROLE", "_DB_URL$", "DATABASE_URL", "RAILWAY.*TOKEN", "VERCEL.*TOKEN", "EXPO_TOKEN", "EAS_.*TOKEN", "PRIVATE_KEY", "APP_PRIVATE", "OAUTH_TOKEN", "GITHUB_TOKEN$", "^GH_TOKEN$", "STRIPE_SECRET", "TWILIO_AUTH", "JWT_SECRET", "CRON_SECRET"
+    "*SERVICE_ROLE*", "*_DB_URL", "DATABASE_URL", "*DB_PASSWORD*", "PGPASSWORD", "RAILWAY*TOKEN*", "VERCEL*TOKEN*", "EXPO_TOKEN", "EAS_*TOKEN*", "*PRIVATE_KEY*", "*OAUTH_TOKEN*",
+    "*ACCESS_TOKEN*", "*SECRET*", "*API_KEY*", "*_PAT", "*PASSWORD*", "GITHUB_TOKEN", "GH_TOKEN", "NPM_TOKEN", "TELEGRAM*TOKEN*", "AWS_*", "TWILIO_*", "STRIPE_*", "JWT_*", "CRON_SECRET"
+  ],
+  "worker_environment_allowlist": [
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_*", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_*"
   ],
   "credential_scopes": {
     "publisher": { "identities": ["trusted_publisher"], "required_evidence": ["test_results"] },
@@ -124,7 +127,7 @@
   },
   "customer_agent": {
     "$comment": "Developer identities have no authority over the customer Agent Harness (H1-H7). The tripwire below is a heuristic that can only ADD a denial; it is never a grant and never the primary boundary.",
-    "path_globs": ["apps/api/agent*/**", "apps/api/**/agent_*", "supabase/migrations/**", "supabase/seed*/**", "supabase/seed*", "supabase/staging-reviewed-migrations.json"],
+    "path_globs": ["apps/api/**/agent_*/**", "apps/api/**/agent_*", "apps/api/**/agent*/**", "supabase/migrations/**", "supabase/seed*/**", "supabase/seed*", "supabase/staging-reviewed-migrations.json"],
     "tripwire_all": ["agent", "execution|runtime|worker|billing|autonomy|grant|decide"]
   },
   "activation": {

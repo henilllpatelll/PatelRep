@@ -62,7 +62,7 @@ export function trustedFor(identity, over = {}) {
 
 const ISSUER = { task_authority: 'task_ingress', test_results: 'orchestrator', independent_review: 'independent_reviewer', security_review: 'security_reviewer',
   publication_receipt: 'trusted_publisher', ci_gate: 'delivery_verifier', staging_gate: 'delivery_verifier', delivery_verification: 'delivery_verifier', merge_receipt: 'merger',
-  production_verification: 'delivery_verifier', isolation_attestation: 'orchestrator', policy_promotion_approval: 'policy_promoter' }
+  production_verification: 'delivery_verifier', isolation_attestation: 'delivery_verifier', policy_promotion_approval: 'delivery_verifier' }
 let counter = 0
 
 /** A VALID signed envelope for `type` under `policy`, bound to the default fixtures; `over` patches the payload (it is signed AFTER patching). */

@@ -42,12 +42,16 @@ const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revis
 const deny = (codes, extra = {}) => decision('deny', codes, extra)
 function decision(kind, codes, extra = {}) {
   return { schema: DECISION_SCHEMA, decision: kind, action_class: null, verified: false, reason_codes: [...new Set(codes)].sort(), missing_evidence: [], rejected_evidence: [], accepted_evidence: [],
-    consumes: [], dry_run: { requirements_met: false }, policy_revision: null, request_digest: null, ...extra }
+    consumes: [], validated: [], dry_run: { requirements_met: false }, policy_revision: null, request_digest: null, ...extra }
 }
 
 /** Never throws. */
 export function evaluate(input) {
-  try { return evaluateInner(input) } catch { return deny(['EVALUATOR.INTERNAL_ERROR']) }
+  try {
+    // Snapshot every untrusted/trusted structure ONCE: later checks cannot observe different values (no getter or proxy tricks).
+    const { policy, ledger, now } = input
+    return evaluateInner({ policy, ledger, now, request: structuredClone(input.request), trusted: structuredClone(input.trusted), evidence: structuredClone(input.evidence ?? []) })
+  } catch { return deny(['EVALUATOR.INTERNAL_ERROR']) }
 }
 
 function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = null }) {
@@ -95,9 +99,12 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
 
   let pathsLoaded = false
   const ensurePaths = () => { if (!pathsLoaded) { pathsLoaded = true; loadPaths() } }
+  const isEdit = request.action === 'edit_files_in_task_worktree' || request.action === 'commit_to_task_branch'
   const loadPaths = () => {
-    const raw = request.action === 'edit_files_in_task_worktree' || request.action === 'commit_to_task_branch' ? params.paths : candidate?.changes?.map((x) => x.path)
-    if (!raw) { codes.push(request.action === 'edit_files_in_task_worktree' || request.action === 'commit_to_task_branch' ? 'INPUT.PATHS_REQUIRED' : 'FACTS.MISSING'); return }
+    // The requester's declared paths are advisory; whenever trusted candidate facts exist they are checked too.
+    const raw = [...(isEdit ? params.paths ?? [] : []), ...(candidate?.changes?.map((x) => x.path) ?? [])]
+    if (isEdit && !params.paths) { codes.push('INPUT.PATHS_REQUIRED'); return }
+    if (!isEdit && !candidate) { codes.push('FACTS.MISSING'); return }
     const seen = new Map()
     for (const r of raw) {
       const n = normalizeRepoPath(r)
@@ -106,6 +113,14 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       seen.set(n.key, n.path); paths.push(n)
     }
   }
+  /** Normalized candidate paths for the pattern checks; an invalid path is a denial here too, never silently dropped. */
+  let changedNorm = null
+  const changed = () => {
+    if (changedNorm) return changedNorm
+    changedNorm = []
+    for (const x of candidate.changes) { const n = normalizeRepoPath(x.path); if (n.ok) changedNorm.push(n); else codes.push(n.code) }
+    return changedNorm
+  }
 
   for (const check of action.checks ?? []) {
     switch (check) {
@@ -113,7 +128,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       case 'scope': {
         ensurePaths() // order-independent: a reordered check list can never make `scope` pass vacuously
         const allowed = authority.allowed_paths; const denied = authority.denied_paths ?? []
-        if (!v.arrayOf(v.str)(allowed) || !allowed.length) { codes.push('SCOPE.NO_TASK_AUTHORITY'); break }
+        if (!v.arrayOf(v.str)(allowed) || !allowed.length || !v.arrayOf(v.str)(denied)) { codes.push('SCOPE.NO_TASK_AUTHORITY'); break }
         const out = paths.filter((p) => !matchesAny(allowed, p.path) || matchesAny(denied, p.path))
         if (out.length) codes.push('SCOPE.OUT_OF_SCOPE', ...out.slice(0, 5).map((p) => `SCOPE.OUT_OF_SCOPE:${p.path}`))
         break
@@ -126,7 +141,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         if (!candidate) { codes.push('FACTS.MISSING'); break }
         // Migration paths are judged by the `migrations` check (historical edits are violations there), not by this generic rule.
         const migDir = `${c.migrations.directory.toLowerCase()}/`
-        const norm = candidate.changes.map((x) => normalizeRepoPath(x.path)).filter((n) => n.ok && !n.key.startsWith(migDir))
+        const norm = changed().filter((n) => !n.key.startsWith(migDir))
         if (norm.some((n) => matchesAny(c.root_of_trust_paths, n.path))) codes.push('ROOT_OF_TRUST.OWNER_CEREMONY_REQUIRED')
         else if (norm.some((n) => matchesAny(c.protected_paths, n.path))) {
           if (authority.protected_paths_authorized !== true) codes.push('PROTECTED_PATH.NOT_AUTHORIZED_BY_TASK')
@@ -136,7 +151,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       }
       case 'control_plane_self_change': {
         if (!candidate) { codes.push('FACTS.MISSING'); break }
-        const norm = candidate.changes.map((x) => normalizeRepoPath(x.path)).filter((n) => n.ok)
+        const norm = changed()
         if (norm.some((n) => matchesAny([...CONTROL_PLANE_GLOBS, ...c.root_of_trust_paths], n.path))) {
           // Evidence requirements always come from the ACTIVE policy, never from the candidate's own tree.
           if (authority.control_plane_authorized !== true) codes.push('CONTROL_PLANE.NOT_AUTHORIZED_BY_TASK')
@@ -158,7 +173,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       case 'customer_agent': {
         if (!candidate) { codes.push('FACTS.MISSING'); break }
         if (params.customer_agent_effect === true) codes.push('CUSTOMER_AGENT.ACTIVATION_DECLARED')
-        const norm = candidate.changes.map((x) => normalizeRepoPath(x.path)).filter((n) => n.ok)
+        const norm = changed()
         if (norm.some((n) => matchesAny(c.customer_agent.path_globs, n.path))) extraEvidence.add('security_review')
         const must = c.customer_agent.tripwire_all.map((p) => new RegExp(p, 'i'))
         for (const lines of Object.values(candidate.added_lines ?? {})) {
@@ -168,7 +183,8 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         break
       }
       case 'credentials_env': {
-        const names = ['launch_claude_session', 'start_bypass_permissions_session'].includes(request.action) ? trusted.launch?.env_names : trusted.environment?.worker_env_names
+        const isLaunch = ['launch_claude_session', 'start_bypass_permissions_session'].includes(request.action)
+        const names = isLaunch ? (trusted.launch ? [...(trusted.launch.env_names ?? []), ...Object.keys(trusted.launch.settings?.env ?? {})] : undefined) : trusted.environment?.worker_env_names
         if (!names) codes.push('ENV.UNKNOWN')
         else codes.push(...checkCredentialEnvironment(names, c))
         break
@@ -208,6 +224,8 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         const pc = promotionCheck(policy, trusted.proposed_policy)
         codes.push(...pc.codes)
         subject = pc.proposedRevision
+        // The proposal must be the contract inside the exact candidate the reviews and tests are bound to (derived by the controller, never by the requester).
+        if (!candidate || trusted.proposed_policy_source_tree !== candidate.tree_digest) codes.push('PROMOTION.PROPOSAL_NOT_FROM_CANDIDATE')
         break
       }
       case 'evidence_validity': break
@@ -218,9 +236,11 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
   // ── evidence ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const required = [...new Set([...(action.required_evidence ?? []), ...extraEvidence])]
   const needsEvidence = required.length > 0 || request.action === 'accept_evidence'
-  const accepted = []; const rejected = []; const consumes = []; const missing = []
+  const accepted = []; const rejected = []; const consumes = []; const missing = []; const validated = []
   if (needsEvidence) {
-    const ev = { policy, now, task: trusted.task, authorContextId: trusted.task.author_context_id ?? null, binding: {
+    const ev = { policy, now, task: trusted.task, authorContextId: trusted.task.author_context_id ?? null,
+      // For a promotion every review and test is ALSO bound to the successor revision, so reviews of some other commit cannot be paired with this proposal.
+      extraBinds: request.action === 'promote_policy' ? { independent_review: ['subject_policy_revision'], security_review: ['subject_policy_revision'], test_results: ['subject_policy_revision'] } : {}, binding: {
       repository: candidate?.repository ?? authority.repository, base_sha: candidate?.base_sha ?? authority.base_sha, candidate_sha: candidate?.candidate_sha,
       tree_digest: candidate?.tree_digest, patch_digest: candidate?.patch_digest, policy_revision: policy.revision, environment_id: trusted.environment?.id,
       subject_policy_revision: subject ?? undefined, authority_digest: digestOf(authority) } }
@@ -239,7 +259,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       if (st === 'conflict') { rejected.push({ evidence_id: id, codes: ['EVIDENCE.NONCE_REUSE'] }); continue }
       const single = c.evidence_types[r.payload.evidence_type].single_use
       if (single && ledger?.isConsumed(id)) { rejected.push({ evidence_id: id, codes: ['EVIDENCE.REPLAYED'] }); continue }
-      staged.push({ payload: r.payload, id, single })
+      staged.push({ payload: r.payload, id, single, digest: r.digest })
     }
     const poisoned = new Set(staged.filter((s) => s.poison).map((s) => s.nonce))
     const good = staged.filter((s) => !s.poison && !poisoned.has(s.payload.nonce))
@@ -259,9 +279,10 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       if (!good.length) codes.push('EVIDENCE.NONE_ACCEPTED')
       for (const g of good) { accepted.push(g.id) }
     }
+    for (const g of good) validated.push({ evidence_id: g.id, nonce: g.payload.nonce, digest: g.digest })
   }
 
-  const detail = { missing_evidence: [...new Set(missing)], rejected_evidence: rejected, accepted_evidence: [...new Set(accepted)], consumes: [...new Set(consumes)] }
+  const detail = { missing_evidence: [...new Set(missing)], rejected_evidence: rejected, accepted_evidence: [...new Set(accepted)], consumes: [...new Set(consumes)], validated }
   if (codes.length) return bad(codes, detail)
   if (action.class === 'allowed') return decision('allow', ['ALLOWED'], { ...base, ...detail, dry_run: { requirements_met: true } })
   // safeguarded: every requirement is met; it executes only if the policy activates it.

@@ -33,13 +33,13 @@ subscription allowance · owner's attention (false alarms count).
 | V3-T5 | Forged, stale, replayed, mis-bound or wrong-issuer evidence | Ed25519 verification, issuer/key/identity cross-check, TTL, binding to SHA/tree/base/repo/env/policy/task/fencing, nonce conflict, single-use ledger | durable ledger; issuer services |
 | V3-T6 | Migration relabeling (reproduced R-06) | classification from Git facts only; case/alias/rename-as-delete handling | facts gathered in Z4 clone |
 | V3-T7 | Paid-API authentication selected accidentally | forbidden env/settings, positive subscription-source verification, `$0` limit, purchases prohibited | launcher performs the verification in Z2 |
-| V3-T8 | Credential exposure to the candidate | credential-shaped variable names forbidden in worker env; scoped credentials with per-scope evidence | worker image has no secrets except the Claude login (T9) |
+| V3-T8 | Credential exposure to the candidate | worker environment is an ALLOW-LIST (unknown names refused; credential-shaped names flagged); `settings.env` counted; scoped credentials with per-scope evidence | worker image has no secrets except the Claude login (T9) |
 | V3-T9 | Claude login exfiltrated from Z3 (Anthropic documents this limit of containers) | **not solvable in code** | egress allow-list outside Z3, short-lived exposure, owner can revoke the login |
 | V3-T10 | Worker escapes isolation to the host | D3.2 only **requires** proven isolation properties before bypass mode | VM boundary, no shared folders/interop/sockets, adversarial tests (05) |
 | V3-T11 | Customer-agent activation/billing via a developer task | prohibited actions; declared-effect denial; heuristic tripwire; security review for agent paths | schema contracts + reviewed preview remain authoritative |
 | V3-T12 | Memory/disk exhaustion kills work | admission control; pressure is a recoverable state | sampler, enforcement, calibration |
 | V3-T13 | Runaway subscription use | one reasoning session; sequential reviews; waiting state on limit | usage detection; shared allowance with GitHub workflows (N-2) |
-| V3-T14 | Hostile local Git config (external diff, textconv, hooks, `GIT_DIR`) during fact gathering | `GIT_*` stripped; `diff.external`, hooks path, fsmonitor neutralized; tested with a marker-writing driver | verifier clone owned by Z2 |
+| V3-T14 | Hostile local Git config (external diff, textconv, hooks, `GIT_DIR`, color, `ignoreSubmodules`, `binary` attributes, spoofed origin) during fact gathering | `GIT_*` stripped; global config blanked; diff driver, hooks, fsmonitor, color, submodule-ignore, textconv neutralized; `--text` for tripwire input; literal pathspecs; anchored origin match; each tested | verifier clone owned by Z2 (a bare clone the verifier fetched itself is better still) |
 | V3-T15 | Evidence/task state deleted or rewritten | `delete_task_evidence` prohibited; fencing and revision checks in the reducer | append-only DB |
 
 ## 4. The policy trust boundary (summary; full protocol in 04)

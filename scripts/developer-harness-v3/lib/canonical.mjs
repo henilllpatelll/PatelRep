@@ -48,7 +48,8 @@ export const v = Object.freeze({
   sha40: (x) => typeof x === 'string' && /^[0-9a-f]{40}$/.test(x),
   sha64: (x) => typeof x === 'string' && /^[0-9a-f]{64}$/.test(x),
   repo: (x) => typeof x === 'string' && /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/.test(x),
-  iso: (x) => typeof x === 'string' && ISO.test(x) && Number.isFinite(Date.parse(x)),
+  // round-trip: rejects 2026-02-31 (rolls to March) and T24:00:00
+  iso: (x) => typeof x === 'string' && ISO.test(x) && Number.isFinite(Date.parse(x)) && new Date(Date.parse(x)).toISOString().slice(0, 19) === x.slice(0, 19),
   int: (x) => Number.isSafeInteger(x) && x >= 0,
   bool: (x) => typeof x === 'boolean',
   oneOf: (...xs) => (x) => xs.includes(x),

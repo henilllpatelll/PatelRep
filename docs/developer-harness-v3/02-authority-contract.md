@@ -71,6 +71,19 @@ revision. Reviews must come from contexts distinct from the author's and from ea
 **Implemented now:** the verifier, the ledger semantics, the contract. **Not implemented (D3.3+):** any issuer service, any production signing key,
 the durable replay ledger. In D3.2 `trusted_keys` is empty, so *nothing* authenticates, which is the safe default.
 
+### Hardening added after the independent security review
+
+- **No self-attested approvals.** Evidence types flagged `approval` (`independent_review`, `security_review`, `policy_promotion_approval`, `isolation_attestation`, `delivery_verification`, `merge_receipt`)
+  may never be issuable by an identity that requests the action they approve; `validateContract` rejects such a contract. Consequently `policy_promotion_approval` and `isolation_attestation` are issued by
+  `delivery_verifier` (the trusted verifier that probes the environment and checks promotion conditions), not by `policy_promoter` or `orchestrator`.
+- **Promotion is bound end to end.** For `promote_policy` the independent review, security review and test results must each be bound to the **successor revision** (`subject_policy_revision`), and the
+  controller must show the proposal was derived from the candidate tree the evidence is bound to (`trusted.proposed_policy_source_tree`).
+- **Worker environments are allow-listed.** `worker_environment_allowlist` names are the only variables a worker may have; a credential-shaped name gets `CREDENTIAL.IN_WORKER_ENV`, any other unlisted name
+  `ENV.NAME_NOT_ALLOWLISTED`. For launches the effective environment includes `settings.env` keys.
+- **Globs are not regular expressions.** Contract globs use a restricted alphabet and a linear segment matcher (`lib/paths.mjs`); `**` and `*` cannot cause backtracking, so no auto-promotable list entry can stall the evaluator.
+- **Git fact gathering is hardened** against repository config: colors, `diff.ignoreSubmodules`, `binary` attributes, textconv/external diff, literal pathspecs, a blank global config; the origin URL match is anchored. Symlinks and gitlinks are reported and refused.
+- **Snapshot once.** `evaluate`, `loadPolicy`, `promotionCheck` and `validateEvidence` clone untrusted input at entry, so a getter or proxy cannot show different values to different checks.
+
 ### Evidence consumption and sequencing (post-review clarifications)
 
 - **Single-use evidence is consumed per action.** `delivery_verification`, `merge_receipt`, `production_verification` and `policy_promotion_approval` are single-use. Each safeguarded delivery

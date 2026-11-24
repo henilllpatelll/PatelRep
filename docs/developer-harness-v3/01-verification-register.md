@@ -18,7 +18,7 @@ D3.2 changes no ruleset, environment, secret, variable, workflow, hook, `.claude
 | Claude Release Engineer (+ auto-merge, + production request) | yes | contract tests | yes | auto-merge limited to `claude/recovery-*` PRs (LIVE ruleset `claude-recovery-branches`, App bypass; policy logic not re-audited here) | NOT MEASURED | NOT MEASURED |
 | Dependency Orchestrator | yes | yes | yes | **paused**: `DEPENDENCY_ORCHESTRATOR_PAUSED=true`, `DEPENDENCY_ORCHESTRATOR_TICKS=off` (LIVE) | no | n/a |
 | Production release / rollback / watchdog / readiness / incident reentry | yes | yes | yes | **`PRODUCTION_AUTO_RELEASE_ENABLED=true`, `PRODUCTION_AUTO_ROLLBACK_ENABLED=true` (LIVE)** | NOT MEASURED in D3.2 | NOT MEASURED in D3.2 |
-| **V3 D3.2 authority contract, evaluator, evidence verifier, lifecycle reducer** | yes | yes (68 tests) | **no (this PR)** | **no: contract-only, no active action** | disposable fixtures only | **no** |
+| **V3 D3.2 authority contract, evaluator, evidence verifier, lifecycle reducer** | yes | yes (see 11 for the final count) | **no (this PR)** | **no: contract-only, no active action** | disposable fixtures only | **no** |
 
 ## 2. Revalidation of the previous audit findings
 

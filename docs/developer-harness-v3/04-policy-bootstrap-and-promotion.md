@@ -38,9 +38,9 @@ The ACTIVE policy governs validation of its successor. For `promote_policy`:
    - **root_of_trust** (trusted keys, identity registry, evidence issuers, root-of-trust paths, financial authority, credential scopes, activation,
      contract identity) → `PROMOTION.ROOT_OF_TRUST_REQUIRES_OWNER_CEREMONY`;
    - **strengthening/neutral** only → eligible.
-5. Required evidence (from the **active** contract): `independent_review`, `security_review` (distinct contexts, neither the author's),
-   `test_results` (policy regression suite on the exact candidate), `policy_promotion_approval` from `policy_promoter` whose
-   `subject_policy_revision` equals the recomputed successor revision. The approval is **single-use** and consumed through the ledger.
+5. Required evidence (from the **active** contract): `independent_review`, `security_review` (distinct contexts, neither the author's) and `test_results` (policy regression suite),
+   **each bound to the recomputed successor revision** as well as the exact candidate, plus `policy_promotion_approval` issued by `delivery_verifier` (never by the promoter requesting the promotion), also bound to the successor. The controller must
+   show the proposal came from the candidate tree (`PROMOTION.PROPOSAL_NOT_FROM_CANDIDATE` otherwise). The approval is **single-use** and consumed through the ledger.
 6. On success the promoter (Z2) writes the new pin. D3.2 never writes a pin.
 
 Because every check reads `active`, a successor can neither lower its own bar nor vouch for itself: evidence minted under the successor's revision

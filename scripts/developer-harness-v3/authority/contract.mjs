@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkShape, digestOf, isPlainObject, v } from '../lib/canonical.mjs'
+import { validateGlobList } from '../lib/paths.mjs'
 
 export const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const CONTRACT_PATH = path.resolve(HERE, '../../../docs/developer-harness-v3/authority-contract.json')
@@ -59,11 +60,19 @@ export function validateContract(c) {
     for (const e of a.required_evidence ?? []) if (!Object.hasOwn(c.evidence_types, e)) p.push(`action ${name}: unknown evidence type ${e}`)
     if (a.checks?.includes('scope') && !a.checks.includes('path_validity')) p.push(`action ${name}: scope requires path_validity`)
   }
+  // No action may be approved by evidence that one of its own requesters can issue (self-attestation of an APPROVAL-type fact).
+  const selfAttested = (identities, evidenceList, label) => {
+    for (const e of evidenceList ?? []) {
+      const t = Object.hasOwn(c.evidence_types, e) ? c.evidence_types[e] : null
+      if (t?.approval === true && (t.issuers ?? []).some((i) => (identities ?? []).includes(i))) p.push(`${label}: approval evidence ${e} can be issued by the identity that requests the action`)
+    }
+  }
+  for (const [name, a] of Object.entries(c.actions)) if (isPlainObject(a) && a.class === 'safeguarded') selfAttested(a.identities, a.required_evidence, `action ${name}`)
   for (const n of REQUIRED_PROHIBITED) if (c.actions[n]?.class !== 'prohibited') p.push(`action ${n}: must be prohibited`)
 
   for (const [name, e] of Object.entries(c.evidence_types)) {
     p.push(...checkShape(e, { required: { issuers: v.arrayOf(v.str, 5), binds: v.arrayOf(v.oneOf(...BINDINGS), 10), max_ttl_seconds: (x) => Number.isSafeInteger(x) && x > 0 && x <= 604800, single_use: v.bool },
-      optional: { independent_of_author: v.bool } }, `evidence ${name}`))
+      optional: { independent_of_author: v.bool, approval: v.bool } }, `evidence ${name}`))
     for (const i of e?.issuers ?? []) {
       if (!IDENTITIES.includes(i)) p.push(`evidence ${name}: unknown issuer ${i}`)
       if (i === 'implementer') p.push(`evidence ${name}: the implementer may never issue evidence`)
@@ -71,15 +80,14 @@ export function validateContract(c) {
     if (!e?.issuers?.length) p.push(`evidence ${name}: needs an issuer`)
     if (!e?.binds?.includes('repository') || !e?.binds?.includes('policy_revision')) p.push(`evidence ${name}: must bind repository and policy_revision`)
   }
-  for (const k of ['protected_paths', 'root_of_trust_paths', 'forbidden_auth_environment', 'forbidden_auth_settings', 'credential_environment_patterns']) {
-    if (!v.arrayOf(v.str, 500)(c[k]) || !c[k].length) p.push(`contract.${k}: must be a non-empty string list`)
-  }
+  for (const k of ['forbidden_auth_environment', 'forbidden_auth_settings']) if (!v.arrayOf(v.str, 500)(c[k]) || !c[k].length) p.push(`contract.${k}: must be a non-empty string list`)
+  p.push(...validateGlobList(c.protected_paths, 'contract.protected_paths'), ...validateGlobList(c.root_of_trust_paths, 'contract.root_of_trust_paths'))
+  p.push(...validateGlobList(c.credential_environment_patterns, 'contract.credential_environment_patterns', { allowSlash: false }), ...validateGlobList(c.worker_environment_allowlist, 'contract.worker_environment_allowlist', { allowSlash: false }))
   p.push(...checkShape(c.limits, { required: { max_incremental_usd: v.int, max_reasoning_sessions: v.int, evidence_clock_skew_seconds: v.int, max_changed_paths: v.int } }, 'contract.limits'))
   if (!isPlainObject(c.migrations) || typeof c.migrations.file_pattern !== 'string') p.push('contract.migrations: invalid')
   else { try { new RegExp(c.migrations.file_pattern) } catch { p.push('contract.migrations.file_pattern: not a regular expression') } }
-  for (const pat of Array.isArray(c.credential_environment_patterns) ? c.credential_environment_patterns : []) { try { new RegExp(pat) } catch { p.push('contract.credential_environment_patterns: not a regular expression') } }
   if (!isPlainObject(c.migrations) || typeof c.migrations.directory !== 'string' || !/^[a-z0-9_/.-]+$/i.test(c.migrations.directory)) p.push('contract.migrations.directory: invalid')
-  if (!isPlainObject(c.customer_agent) || !v.arrayOf(v.str, 100)(c.customer_agent.path_globs) || !v.arrayOf((x) => v.str(x) && x.length <= 200, 10)(c.customer_agent.tripwire_all) || !c.customer_agent.tripwire_all.length) p.push('contract.customer_agent: invalid')
+  if (!isPlainObject(c.customer_agent) || validateGlobList(c.customer_agent.path_globs, 'x').length || !v.arrayOf((x) => v.str(x) && x.length <= 200, 10)(c.customer_agent.tripwire_all) || !c.customer_agent.tripwire_all.length) p.push('contract.customer_agent: invalid')
   else for (const pat of c.customer_agent.tripwire_all) { try { new RegExp(pat) } catch { p.push('contract.customer_agent.tripwire_all: not a regular expression') } }
   if (!isPlainObject(c.activation) || !Array.isArray(c.activation.active_actions)) p.push('contract.activation: invalid')
   else for (const a of c.activation.active_actions) if (c.actions[a]?.class !== 'safeguarded') p.push(`contract.activation: ${a} is not a safeguarded action`)
@@ -88,6 +96,7 @@ export function validateContract(c) {
     for (const [scope, d] of Object.entries(c.credential_scopes)) {
       p.push(...checkShape(d, { required: { identities: v.arrayOf(v.oneOf(...IDENTITIES), 12), required_evidence: v.arrayOf(v.str, 10) } }, `credential_scope ${scope}`))
       if (isPlainObject(d) && !d.identities?.length) p.push(`credential_scope ${scope}: needs identities`)
+      if (isPlainObject(d)) selfAttested(d.identities, d.required_evidence, `credential_scope ${scope}`)
       if (isPlainObject(d) && d.identities?.includes('implementer')) p.push(`credential_scope ${scope}: the implementer may never hold a credential scope`)
       for (const e of d?.required_evidence ?? []) if (!Object.hasOwn(c.evidence_types, e)) p.push(`credential_scope ${scope}: unknown evidence ${e}`)
     }
@@ -99,6 +108,7 @@ export function validateContract(c) {
 export function validateTrustedKeys(keys, contract) {
   const p = []
   if (!isPlainObject(keys)) return ['trusted_keys: not a plain object']
+  const seenKeys = new Map()
   for (const [id, k] of Object.entries(keys)) {
     if (!v.id(id)) { p.push(`key ${id}: invalid id`); continue }
     p.push(...checkShape(k, { required: { identity: v.oneOf(...IDENTITIES), alg: v.oneOf('ed25519'), public_key: v.str, not_before: v.iso, not_after: v.iso } }, `key ${id}`))
@@ -109,6 +119,9 @@ export function validateTrustedKeys(keys, contract) {
     try {
       const pub = createPublicKey({ key: Buffer.from(k.public_key, 'base64'), format: 'der', type: 'spki' })
       if (pub.asymmetricKeyType !== 'ed25519') p.push(`key ${id}: not an Ed25519 key`)
+      const der = pub.export({ type: 'spki', format: 'der' }).toString('base64')
+      if (seenKeys.has(der)) p.push(`key ${id}: the same public key is already registered as ${seenKeys.get(der)}`)
+      else seenKeys.set(der, id)
     } catch { p.push(`key ${id}: public key unparseable`) }
   }
   return p
@@ -130,8 +143,9 @@ function deepFreeze(o) {
  * Accept a bundle only if it is structurally valid AND its recomputed revision equals the revision the caller pinned out-of-band.
  * @returns {{ok:true, policy:object}|{ok:false, problems:string[]}}
  */
-export function loadPolicy(bundle, pinnedRevision) {
+export function loadPolicy(bundleIn, pinnedRevision) {
   try {
+    const bundle = structuredClone(bundleIn) // read the untrusted input exactly once: no getter can show different values to different checks
     if (!v.sha64(pinnedRevision)) return { ok: false, problems: ['POLICY.PIN_MISSING_OR_INVALID'] }
     const shape = checkShape(bundle, { required: { contract: isPlainObject, trusted_keys: isPlainObject, parent_revision: (x) => x === null || v.sha64(x) } }, 'bundle')
     if (shape.length) return { ok: false, problems: ['POLICY.MALFORMED', ...shape] }
