@@ -78,7 +78,7 @@ The final two fixes above were verified by tests but **not** given a further ind
 
 ## 4. Verification evidence
 
-V3 suite (sequential, 1 GB heap): **105 tests pass** at the final candidate. V2 regression through the V2 CI runner (run before the V3 remediation commits; V2 files are unchanged by this PR): 5 of 7 suites pass; the
+V3 suite (sequential, 1 GB heap): **124 tests pass** at the final candidate. V2 regression through the V2 CI runner (run before the V3 remediation commits; V2 files are unchanged by this PR): 5 of 7 suites pass; the
 2 failing items are the two known local-only Windows conditions (directory-symlink privilege skip; the archive "manifest entries" assertion in a full clone) recorded against main before this work. The pinned CI guard and
 delivery-contract tests (39) pass. CI and Staging evidence for the exact head is in the PR report.
 
@@ -96,3 +96,14 @@ reviewers) examined them; it did **not** repeat the earlier audit.
 
 Reviewer finding 6 (`env_value_origins` accepted in request params) did not apply: it is only a trusted-environment field and a request carrying it is `INPUT.MALFORMED:params`; a test now pins that.
 Reviewer verdict: A and B sound, C acceptable while inactive with items 1–3 fixed before activation; those are fixed. The fixes for items 1–7 were then re-verified by the same reviewer (below).
+
+### 5a. Targeted re-verification outcome
+
+The same Opus reviewer then re-verified the fixes in two short rounds. Round 1: all seven findings closed; no new medium-or-higher issue; three low/info leftovers. Round 2 (final): the two actionable leftovers —
+`validateGlobList` still accepting globs that can never match (trailing dot, device names, `~digit`) and `NODE_ENV`/`CI` being settable from repository-controlled `settings.env` — were fixed and confirmed:
+all 131 contract list entries still validate, the dead-glob examples are rejected, `NODE_ENV`/`CI` are refused, `TZ`/`LANG`/`TERM` allowed. Reviewer verdict: **subscription correction, glob matcher and environment
+allow-list are sound to merge as an INACTIVE foundation; nothing in scope remains open.** Two info items were accepted: a non-string `env_names` entry fails closed with `EVALUATOR.INTERNAL_ERROR` rather than a specific code, and
+plan ids such as `constructor` validate structurally (lookups use strict membership and changing the list is an owner ceremony).
+
+The reviewer's verdict covers the three scoped areas only; the rest of D3.2 keeps the verdicts recorded in sections 1–3. Reviewers remain AI agents in separate contexts, not human or external auditors.
+Final V3 suite: **124 tests**.
