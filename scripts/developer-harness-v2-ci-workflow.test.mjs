@@ -9,6 +9,9 @@
 //   * the whole approved Phase 8 `release-workflow-contract` job block, byte-for-byte (sha256, LF-normalized), uniquely identified —
 //     so alternate YAML spellings (`"if":`, `if :`, `? if`, flow mappings) or shell backgrounding cannot slip past the key readers;
 //   * canonical YAML key spelling file-wide and an interpretable job structure (fail closed otherwise);
+//   * the ENTIRE approved ci.yml by sha256 (future ci.yml changes need a separately reviewed pin update), and — independently —
+//     exactly the approved job ids/names, each unique, every job a plain 4-space block mapping, and no extra `permissions` or
+//     `CI Gate` identity in any spelling;
 //   * the existing release-contract list as an ordered, digest-pinned prefix (nothing removed or reordered) plus this guard;
 //   * the whole CI Gate job, byte-for-byte (sha256), and — by executing the real gate script, also with GITHUB_ACTIONS/CI set — that a
 //     failed, cancelled, skipped or empty Release Workflow Contract or any other failed baseline check blocks the gate;
@@ -43,6 +46,16 @@ const BASELINE_GATE_BLOCK_SHA256 = '49333cd7de5dbf7d6bce9a43437d4acbf46c1e9c9158
  * harness step. A regression tripwire, NOT a security boundary — a PR that edits this guard and ci.yml together can re-pin it.
  */
 const BASELINE_RELEASE_BLOCK_SHA256 = '18ce2d137e477547611f1b96ea32004a620c2e2a89e53026afbc741644a2d282'
+/**
+ * sha256 of the ENTIRE approved Phase 8 ci.yml (LF line endings) — the content reviewed at 3f9e9667, literal on purpose (never derived
+ * from the checkout). Any legitimate future change to ci.yml must come with a separately reviewed update of this pin. Like the block
+ * pins it is a regression tripwire, NOT a security boundary against a change authorized to edit both ci.yml and this guard; the
+ * structural checks below stay in force independently of it.
+ */
+const BASELINE_WORKFLOW_SHA256 = 'ab4011f9e3ec0b14ad08452b8902f07beaaae1b3cc3a652589fd5e2550377018'
+/** Baseline counts of words that grant or identify authority (any case, any YAML spelling): `permissions`, and `CI Gate` / `ci-gate`. */
+const BASELINE_PERMISSIONS_WORDS = 3
+const BASELINE_CI_GATE_WORDS = 6
 /** Keys whose effect on execution matters; they must never appear in a flow mapping (`{"if": false}`) anywhere in the file. */
 const EXEC_KEYS = 'if|permissions|environment|continue-on-error|shell|defaults|env|secrets|needs|uses|run|runs-on|timeout-minutes|with|strategy|container|services|steps'
 const BASELINE_JOBS = {
@@ -187,8 +200,28 @@ function checkWorkflow(raw) {
   const perms = permissionsByJob(text)
   if (JSON.stringify(Object.entries(perms).sort()) !== JSON.stringify(Object.entries(BASELINE_PERMISSIONS).sort())) p.push('PERMISSIONS_CHANGED')
   if ((text.match(/continue-on-error:/g) ?? []).length !== 1 || !/continue-on-error: true/.test(jobs(text)['actions-runtime-contract-consume'] ?? '')) p.push('CONTINUE_ON_ERROR_CHANGED')
+  if (sha256(text) !== BASELINE_WORKFLOW_SHA256) p.push('WORKFLOW_CHANGED')
   const all = jobs(text)
   for (const [id, name] of Object.entries(BASELINE_JOBS)) if (jobName(all[id] ?? '') !== name) p.push(`JOB_MISSING_OR_RENAMED:${id}`)
+  // Strict job integrity, independent of the whole-file pin (review mediums A and B), fail closed:
+  // exactly the approved job ids, in order, each declared once; …
+  const heads = [...text.slice(jobsAt + 7).matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1])
+  if (heads.join() !== Object.keys(BASELINE_JOBS).join()) p.push('JOB_SET_CHANGED')
+  if (new Set(heads).size !== heads.length) p.push('DUPLICATE_JOB_ID')
+  // … every job body a plain block mapping at exactly 4 spaces that starts with `name:` (no flow mapping, no other indentation),
+  // with no line indented 5 spaces outside a block scalar — so the 4-space key readers see every job-level key;
+  for (const [id, block] of Object.entries(all)) {
+    const body = block.split('\n').slice(1).filter((l) => l.trim() !== '' && !/^\s*#/.test(l))
+    if (!/^ {4}name: \S/.test(body[0] ?? '') || body.some((l) => !/^ {4}/.test(l) || /^ {5}[^ ]/.test(l))) p.push(`JOB_BODY_NONCANONICAL:${id}`)
+  }
+  // … displayed names unique and exactly the approved ones;
+  const names = Object.values(all).map((b) => [...b.matchAll(/^ {4}name: (.+)$/gm)].map((m) => m[1].trim())).flat()
+  if (new Set(names).size !== names.length) p.push('DUPLICATE_JOB_NAME')
+  if (JSON.stringify([...names].sort()) !== JSON.stringify(Object.values(BASELINE_JOBS).sort())) p.push('JOB_NAMES_CHANGED')
+  // … and, whatever the spelling or position (quoted, flow, folded across lines, another indent), no extra `permissions` grant and no
+  // second `CI Gate` identity anywhere in the file. (Escaped double-quoted spellings are rejected by YAML_DOUBLE_QUOTED_ESCAPE.)
+  if ((text.match(/permissions/gi) ?? []).length !== BASELINE_PERMISSIONS_WORDS) p.push('PERMISSIONS_CHANGED')
+  if ((text.match(/c\s*i[\s_-]*gate/gi) ?? []).length !== BASELINE_CI_GATE_WORDS || (text.match(/\bname\b["']?\s*:\s*["']?\s*CI\s*Gate/gi) ?? []).length !== 1) p.push('DUPLICATE_JOB_NAME')
   for (const rule of ROOM_BOARD_RULES) if (!text.includes(rule)) p.push('DEPENDABOT_RULE_CHANGED')
 
   // Release Workflow Contract: exactly checkout, Node 22, the existing contract step, then the harness step.
@@ -327,7 +360,7 @@ test('every weakening of the harness step, the existing contract step or CI Gate
 
 // Final review MEDIUM + both LOWs: alternate YAML spellings, backgrounding, JSON-style flow pairs. [label, mutated text, codes, oldBypass]
 // `oldBypass` marks the reproduced original bypasses: with only the pre-hardening rules they produced no problem at all.
-const NEW_CODES = new Set(['RELEASE_BLOCK_CHANGED', 'RELEASE_BLOCK_NOT_UNIQUE', 'YAML_NONCANONICAL_KEY', 'STRUCTURE_UNINTERPRETABLE'])
+const NEW_CODES = new Set(['RELEASE_BLOCK_CHANGED', 'RELEASE_BLOCK_NOT_UNIQUE', 'YAML_NONCANONICAL_KEY', 'STRUCTURE_UNINTERPRETABLE', 'WORKFLOW_CHANGED'])
 const OTHER = '        run: cd apps/web && npm audit --audit-level=high\n'
 const withEnv = (envLines) => mutate(OTHER, `${OTHER}        env:\n${envLines}`)
 const JOB_HEAD = '    name: Release Workflow Contract\n'
@@ -367,6 +400,46 @@ test('alternate YAML key spellings, backgrounding and JSON-style flow pairs are 
     const problems = checkWorkflow(text)
     for (const code of codes) assert.ok(problems.includes(code), `${label}: expected ${code}, got [${problems.join(', ')}]`)
     if (oldBypass) assert.deepEqual(problems.filter((c) => !NEW_CODES.has(c)), [], `${label}: reproduces the original bypass of the pre-hardening rules`)
+  }
+})
+
+// Final review mediums A (job permissions missed at other indents / in flow mappings) and B (a second job displayed as `CI Gate`).
+const GATE_HEAD = '  ci-gate:\n'
+const addJob = (job) => mutate(GATE_HEAD, `${job}\n${GATE_HEAD}`)
+const JOB_INTEGRITY = [
+  ['new job with permissions: statuses: write', addJob('  extra:\n    name: Extra\n    runs-on: ubuntu-latest\n    permissions:\n      statuses: write\n    steps:\n      - run: echo hi\n'), ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'PERMISSIONS_CHANGED']],
+  ['new job with permissions: checks: write', addJob('  extra:\n    name: Extra\n    runs-on: ubuntu-latest\n    permissions:\n      checks: write\n    steps:\n      - run: echo hi\n'), ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'PERMISSIONS_CHANGED']],
+  ['new job body at 6-space indent with write-all (reproduced bypass)', addJob('  extra:\n      name: Extra\n      runs-on: ubuntu-latest\n      permissions: write-all\n      steps:\n        - run: echo hi\n'), ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'JOB_BODY_NONCANONICAL:extra', 'PERMISSIONS_CHANGED']],
+  ['new job as a commented flow mapping with write-all (reproduced bypass)', addJob('  extra:\n    { # a\n      name: Extra, # b\n      permissions: write-all, # c\n      runs-on: ubuntu-latest, # d\n      steps: [ { # e\n        run: echo hi } ] }\n'), ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'JOB_BODY_NONCANONICAL:extra', 'PERMISSIONS_CHANGED']],
+  ['new job at 6-space indent posting statuses', addJob('  extra:\n      name: Extra\n      runs-on: ubuntu-latest\n      permissions:\n        statuses: write\n      steps:\n        - run: gh api repos/x/statuses/y -f context="CI Gate" -f state=success\n'), ['JOB_SET_CHANGED', 'JOB_BODY_NONCANONICAL:extra', 'PERMISSIONS_CHANGED', 'DUPLICATE_JOB_NAME']],
+  ['existing job gains a flow-mapped permission', mutate('    name: Lint / API\n', '    name: Lint / API\n    permissions: {statuses: write}\n'), ['WORKFLOW_CHANGED', 'PERMISSIONS_CHANGED']],
+  ['existing job gains a permission at 5-space indent', mutate('    name: Lint / API\n', '    name: Lint / API\n     permissions: write-all\n'), ['WORKFLOW_CHANGED', 'JOB_BODY_NONCANONICAL:lint-api', 'PERMISSIONS_CHANGED']],
+  ['additional job displayed as CI Gate (reproduced bypass)', addJob('  ci-gate-shadow:\n    name: CI Gate\n    runs-on: ubuntu-latest\n    needs: [ci-gate]\n    if: ${{ always() }}\n    steps:\n      - run: echo ok\n'), ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'DUPLICATE_JOB_NAME']],
+  ['additional job displayed as quoted "CI Gate"', addJob('  extra:\n    name: "CI Gate"\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n'), ['JOB_SET_CHANGED', 'DUPLICATE_JOB_NAME', 'JOB_NAMES_CHANGED']],
+  ['additional job displayed as CI Gate via a folded scalar', addJob('  extra:\n    name: >-\n      CI\n      Gate\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n'), ['JOB_SET_CHANGED', 'DUPLICATE_JOB_NAME']],
+  ['existing job renamed to CI Gate', mutate('    name: PR Status\n', "    name: 'CI Gate'\n"), ['WORKFLOW_CHANGED', 'DUPLICATE_JOB_NAME', 'JOB_NAMES_CHANGED']],
+  ['duplicate ci-gate job id', `${CI_TEXT}  ci-gate:\n    name: Gate copy\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n`, ['WORKFLOW_CHANGED', 'JOB_SET_CHANGED', 'DUPLICATE_JOB_ID']],
+  ['double-quoted job id', addJob('  "extra":\n    name: Extra\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n'), ['WORKFLOW_CHANGED', 'STRUCTURE_UNINTERPRETABLE']],
+  ["single-quoted copy of the ci-gate id", addJob("  'ci-gate':\n    name: Extra\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n"), ['WORKFLOW_CHANGED', 'STRUCTURE_UNINTERPRETABLE', 'DUPLICATE_JOB_NAME']],
+  ['job id outside the canonical alphabet', addJob('  Extra_Job.1:\n    name: Extra\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n'), ['WORKFLOW_CHANGED', 'STRUCTURE_UNINTERPRETABLE']],
+  ['job id as an explicit ? key', addJob('  ? extra\n  :\n    name: Extra\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ok\n'), ['WORKFLOW_CHANGED', 'STRUCTURE_UNINTERPRETABLE', 'YAML_NONCANONICAL_KEY']],
+  // Whole-file pin: harmless-looking edits anywhere that no structural rule objects to are still rejected.
+  ['comment edited in an unrelated job', mutate('    # the credential-free Room-Board Hermetic job below', '    # the credential-free Room-Board Hermetic job, below'), ['WORKFLOW_CHANGED']],
+  ['blank line added between jobs', mutate(GATE_HEAD, `\n${GATE_HEAD}`), ['WORKFLOW_CHANGED']],
+  ['unrelated step command changed', mutate('run: cd apps/web && npm audit --audit-level=high', 'run: cd apps/web && npm audit --audit-level=critical'), ['WORKFLOW_CHANGED']],
+]
+
+test('job identity and permissions are strict and the whole approved ci.yml is pinned (final mediums A and B)', () => {
+  // The legitimate CI Gate and Release Workflow Contract are unchanged and the shipped file passes.
+  const shipped = jobs(CI_TEXT)
+  assert.equal(sha256(CI_TEXT), BASELINE_WORKFLOW_SHA256)
+  assert.equal(sha256(shipped['ci-gate']), BASELINE_GATE_BLOCK_SHA256)
+  assert.equal(sha256(shipped['release-workflow-contract']), BASELINE_RELEASE_BLOCK_SHA256)
+  assert.deepEqual(checkWorkflow(CI_TEXT), [])
+  for (const [label, text, codes] of JOB_INTEGRITY) {
+    assert.notEqual(text, CI_TEXT, label)
+    const problems = checkWorkflow(text)
+    for (const code of codes) assert.ok(problems.includes(code), `${label}: expected ${code}, got [${problems.join(', ')}]`)
   }
 })
 
