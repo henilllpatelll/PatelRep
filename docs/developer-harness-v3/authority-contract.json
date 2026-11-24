@@ -124,7 +124,7 @@
   "worker_environment_allowlist": [
     "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LC_COLLATE", "LC_TIME", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "XDG_STATE_HOME"
   ],
-  "settings_env_inert_allowlist": ["TZ", "LANG", "TERM", "CI", "NODE_ENV"],
+  "settings_env_inert_allowlist": ["TZ", "LANG", "TERM"],
   "launcher_controlled_environment": ["NODE_OPTIONS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE"],
   "credential_scopes": {
     "publisher": { "identities": ["trusted_publisher"], "required_evidence": ["test_results"] },

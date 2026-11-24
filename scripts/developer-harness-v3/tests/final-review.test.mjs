@@ -34,7 +34,7 @@ test('final review #1/#2: origins are looked up by EXACT name; case-variant spel
 })
 
 test('final review #3: repository-controlled settings.env may set only a tiny inert list; PATH, HOME, XDG_*, SHELL, TMPDIR and friends are refused', () => {
-  assert.deepEqual(C.settings_env_inert_allowlist.slice().sort(), ['CI', 'LANG', 'NODE_ENV', 'TERM', 'TZ'])
+  assert.deepEqual(C.settings_env_inert_allowlist.slice().sort(), ['LANG', 'TERM', 'TZ'])
   const withEnv = (env) => launch({ env_names: ['PATH', 'HOME'], settings: { env }, auth: GOOD })
   assert.equal(withEnv({ TZ: 'UTC', LANG: 'en_US.UTF-8' }).decision, 'allow')
   for (const n of ['PATH', 'HOME', 'SHELL', 'TMPDIR', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'USER', 'LD_PRELOAD', 'PYTHONPATH', 'BASH_ENV', 'GIT_CONFIG_GLOBAL', 'path']) {
@@ -70,4 +70,13 @@ test('final review #6: env_value_origins is trusted-only; a request cannot carry
 test('final review #7: the trusted launch block is shape-checked before any name is spread or compared', () => {
   for (const bad of [{ env_names: 'NODE_OPTIONS', settings: {}, auth: GOOD }, { env_names: [1], settings: {}, auth: GOOD }, { env_names: [], settings: [], auth: GOOD }, { env_names: [], settings: {}, auth: 'x' },
     { env_names: [], settings: { env: [] }, auth: GOOD }, { env_names: [], settings: {}, auth: GOOD, extra: 1 }, 'launch', 7]) assert.deepEqual(launch(bad).reason_codes, ['INPUT.MALFORMED:launch'], JSON.stringify(bad))
+})
+
+test('final review (re-verification) #1/#2: globs that cannot match a normalized path are rejected; NODE_ENV and CI are launcher-set only', () => {
+  for (const g of ['foo.', '*.', '**/x.', 'x/con', 'x/NUL.txt', 'x/a~1/y', 'x/aux', 'x/com1.log']) assert.ok(validateGlobList([g], 'x').length > 0, g)
+  for (const g of ['**/x.md', 'x/console.ts', 'a/b.*', '**/.env*', 'scripts/**', '.claude/settings*.json']) assert.deepEqual(validateGlobList([g], 'x'), [], g)
+  const withEnv = (env) => launch({ env_names: ['PATH'], settings: { env }, auth: GOOD })
+  assert.ok(withEnv({ NODE_ENV: 'production' }).reason_codes.includes('ENV.SETTINGS_ENV_NOT_ALLOWED:NODE_ENV'))
+  assert.ok(withEnv({ CI: '1' }).reason_codes.includes('ENV.SETTINGS_ENV_NOT_ALLOWED:CI'))
+  assert.equal(withEnv({ TZ: 'UTC' }).decision, 'allow')
 })

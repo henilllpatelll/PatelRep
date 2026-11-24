@@ -70,7 +70,9 @@ export function validateGlobList(list, label, { allowSlash = true } = {}) {
   for (const g of list) {
     if (typeof g !== 'string' || g.length === 0 || g.length > MAX_GLOB_LENGTH || !GLOB_ALPHABET.test(g)) p.push(`${label}: invalid glob ${String(g).slice(0, 40)}`)
     else if ((g.match(/[*?]/g) ?? []).length > 12) p.push(`${label}: too many wildcards in ${g.slice(0, 40)}`)
-    else if (g.startsWith('/') || g.endsWith('/') || g.split('/').some((seg) => seg === '' || seg === '.' || seg === '..' || /\*{3,}/.test(seg))) p.push(`${label}: ${g.slice(0, 40)} can never match a normalized path`)
+    else if (g.startsWith('/') || g.endsWith('/') || g.split('/').some((seg) => seg === '' || seg === '.' || seg === '..' || /\*{3,}/.test(seg)
+      // a normalized path never has a segment that ends in '.' or ' ', contains ~digit, or is a Windows device name, so such a glob can never match
+      || /[. ]$/.test(seg) || /~\d/.test(seg) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(seg))) p.push(`${label}: ${g.slice(0, 40)} can never match a normalized path`)
     else if (!allowSlash && g.includes('/')) p.push(`${label}: ${g.slice(0, 40)} may not contain /`)
   }
   return p
