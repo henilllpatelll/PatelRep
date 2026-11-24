@@ -6,6 +6,9 @@
 // It pins, against baselines taken from main eb597d55 (independent of the catalog this phase edits):
 //   * the workflow preamble and top-level keys (no workflow-wide `defaults:` / `env:` / `permissions:`), triggers and concurrency;
 //   * the exact harness step (command, timeout, no if/continue-on-error/env/shell) and its position after the existing step;
+//   * the whole approved Phase 8 `release-workflow-contract` job block, byte-for-byte (sha256, LF-normalized), uniquely identified —
+//     so alternate YAML spellings (`"if":`, `if :`, `? if`, flow mappings) or shell backgrounding cannot slip past the key readers;
+//   * canonical YAML key spelling file-wide and an interpretable job structure (fail closed otherwise);
 //   * the existing release-contract list as an ordered, digest-pinned prefix (nothing removed or reordered) plus this guard;
 //   * the whole CI Gate job, byte-for-byte (sha256), and — by executing the real gate script, also with GITHUB_ACTIONS/CI set — that a
 //     failed, cancelled, skipped or empty Release Workflow Contract or any other failed baseline check blocks the gate;
@@ -21,7 +24,8 @@ import { ALLOWED_SKIPS, BASELINE_SUITE_IDS } from './developer-harness-v2/ci/run
 import { SUITES } from './developer-harness-v2/testing/catalog.mjs'
 import { HARNESS_ALL } from './developer-harness-v2/testing/rules.mjs'
 
-const CI_TEXT = readFileSync('.github/workflows/ci.yml', 'utf8').replace(/\r\n/g, '\n')
+const normalize = (t) => t.replace(/\r\n?/g, '\n') // CRLF and lone CR are both YAML line breaks
+const CI_TEXT = normalize(readFileSync('.github/workflows/ci.yml', 'utf8'))
 const GUARD = 'scripts/developer-harness-v2-ci-workflow.test.mjs'
 const RUNNER = 'scripts/developer-harness-v2/ci/run-ci-suites.mjs'
 const HARNESS_STEP = { name: 'Run Developer Harness V2 contract and security regression suites', 'timeout-minutes': '30', run: `node ${RUNNER}` }
@@ -33,6 +37,14 @@ const BASELINE_RELEASE_COUNT = 67
 const BASELINE_RELEASE_SHA256 = '7c9f6443809b44048ede7f9392cb06580128a7a30d975db25f8ac94e6bfab42f'
 /** sha256 of the whole `ci-gate` job block at eb597d55 (CI Gate is unchanged by Phase 8; any edit to it must be re-reviewed). */
 const BASELINE_GATE_BLOCK_SHA256 = '49333cd7de5dbf7d6bce9a43437d4acbf46c1e9c9158ef81a52a06002961ba5a'
+/**
+ * sha256 of the whole approved Phase 8 `release-workflow-contract` job block (LF line endings; from its `  release-workflow-contract:`
+ * head up to, not including, the next job head): eb597d55's checkout / Node 22 / contract step plus this phase's guard entry and
+ * harness step. A regression tripwire, NOT a security boundary — a PR that edits this guard and ci.yml together can re-pin it.
+ */
+const BASELINE_RELEASE_BLOCK_SHA256 = '18ce2d137e477547611f1b96ea32004a620c2e2a89e53026afbc741644a2d282'
+/** Keys whose effect on execution matters; they must never appear in a flow mapping (`{"if": false}`) anywhere in the file. */
+const EXEC_KEYS = 'if|permissions|environment|continue-on-error|shell|defaults|env|secrets|needs|uses|run|runs-on|timeout-minutes|with|strategy|container|services|steps'
 const BASELINE_JOBS = {
   'lint-api': 'Lint / API', 'lint-web': 'Lint + Type-check / Web', 'build-web': 'Build / Web', 'test-web-public-smoke': 'Test / Web public smoke',
   'test-api': 'Test / API', 'database-migration-gate': 'Database Migration Gate', 'test-unit-web': 'Test / Web unit', 'feature-flag-registry-gate': 'Feature Flag Registry Gate',
@@ -128,8 +140,21 @@ function runGate(script, env) {
 const sha256 = (s) => createHash('sha256').update(s).digest('hex')
 
 /** Every violated rule (stable codes). An empty list means the workflow keeps the baseline and runs the harness step as approved. */
-function checkWorkflow(text) {
+function checkWorkflow(raw) {
   const p = []
+  const text = normalize(raw)
+  // Fail closed when the line-oriented readers below cannot be trusted to see what a YAML parser sees (review MEDIUM).
+  if (/[\x85\u2028\u2029\uFEFF]/.test(text)) p.push('STRUCTURE_UNINTERPRETABLE') // YAML 1.1 line breaks / BOM
+  const jobsAt = text.indexOf('\njobs:\n')
+  if (jobsAt < 0 || text.indexOf('\njobs:\n', jobsAt + 1) >= 0) p.push('STRUCTURE_UNINTERPRETABLE')
+  // Lines indented 1–3 spaces under `jobs:` can only be job keys (block-scalar content is always deeper): each must be a canonical head.
+  if (text.slice(jobsAt + 7).split('\n').some((l) => /^ {1,3}[^\s#]/.test(l) && !/^ {2}[a-z0-9-]+:$/.test(l))) p.push('STRUCTURE_UNINTERPRETABLE')
+  // Canonical key spelling only, file-wide: no explicit `? key` / `: value` entries, quoted block keys or whitespace before the colon,
+  // and no execution key inside a flow mapping. The baseline has none of these (also not inside run/script blocks).
+  if (/^\s*(?:-\s+)?[?:](?:\s|$)/m.test(text)) p.push('YAML_NONCANONICAL_KEY')
+  if (/^\s*(?:-\s+)?(?:"[^"\n]*"|'[^'\n]*')\s*:(?:\s|$)/m.test(text)) p.push('YAML_NONCANONICAL_KEY')
+  if (/^\s*(?:-\s+)?[A-Za-z_][\w-]*\s+:(?:\s|$)/m.test(text)) p.push('YAML_NONCANONICAL_KEY')
+  if (new RegExp(String.raw`[{,]\s*(?:\?\s*)?["']?(?:${EXEC_KEYS})["']?\s*:`).test(text)) p.push('YAML_NONCANONICAL_KEY')
   if (/^permissions:/m.test(text)) p.push('TOP_LEVEL_PERMISSIONS')
   // Workflow-wide keys (`defaults:`, `env:`, `permissions:` …) anywhere at column 0, or anything before `on:`, would reach every job.
   const topLevel = text.split('\n').filter((l) => /^[^\s#]/.test(l)).map((l) => /^([A-Za-z_][\w-]*):/.exec(l)?.[1] ?? `<${l.slice(0, 20)}>`)
@@ -153,8 +178,10 @@ function checkWorkflow(text) {
   // evaluates the expression, so the raw scan above would not see the word. The baseline has none, so reject any backslash in a
   // double-quoted scalar (block or flow position) and any double-quoted scalar left open at the end of its line (multi-line).
   // An optional YAML anchor/tag may sit before the quote (`X: &a "\x73…"`, `X: !!str "…"`): allowed for in both rules (review L1g).
+  // Both rules accept the quote directly after `:` or `,` with no space (JSON-style flow pairs `{"X":"…`, `["a","…`) — whether
+  // GitHub's parser accepts every such form is deliberately not assumed (final review LOW).
   const props = String.raw`(?:[&!][^\s"]*\s+)*`
-  if (new RegExp(String.raw`(?:^\s*-|:|[[{,])\s*${props}"[^"\n]*\\`, 'm').test(text) || new RegExp(String.raw`(?:^\s*-|:)\s+${props}"[^"\n]*$`, 'm').test(text)) p.push('YAML_DOUBLE_QUOTED_ESCAPE')
+  if (new RegExp(String.raw`(?:^\s*-|:|[[{,])\s*${props}"[^"\n]*\\`, 'm').test(text) || new RegExp(String.raw`(?:^\s*-|:|[[{,])\s*${props}"[^"\n]*$`, 'm').test(text)) p.push('YAML_DOUBLE_QUOTED_ESCAPE')
   // Stricter still: the baseline uses no YAML anchors, aliases or tags at all, so any node property is rejected (review L1g).
   if (/(?:^\s*-|:)[ \t]+[&*!][^\s=]/m.test(text)) p.push('YAML_NODE_PROPERTY')
   const perms = permissionsByJob(text)
@@ -166,8 +193,12 @@ function checkWorkflow(text) {
 
   // Release Workflow Contract: exactly checkout, Node 22, the existing contract step, then the harness step.
   const rel = all['release-workflow-contract'] ?? ''
+  // The whole approved block, byte-for-byte, found exactly once (the id also appears only in CI Gate's pinned `needs` and env).
+  if ((text.match(/^ {2}release-workflow-contract:$/gm) ?? []).length !== 1 || (text.match(/release-workflow-contract/g) ?? []).length !== 3) p.push('RELEASE_BLOCK_NOT_UNIQUE')
+  if (sha256(rel) !== BASELINE_RELEASE_BLOCK_SHA256) p.push('RELEASE_BLOCK_CHANGED')
   if (jobKeys(rel).sort().join() !== 'name,runs-on,steps' || !/^ {4}runs-on: ubuntu-latest$/m.test(rel)) p.push('RELEASE_JOB_KEYS')
-  if (/\|\||set \+e|;\s*true\b|\bexit 0\b|2>\s*\/dev\/null/.test(uncomment(rel))) p.push('RELEASE_JOB_MASKING')
+  // Exit-status masking, plus backgrounding (`& wait`, a lone `&`), `wait` and line continuations that could hide the runner's status.
+  if (/\|\||set \+e|;\s*true\b|\bexit 0\b|2>\s*\/dev\/null|(?<!&)&(?!&)|\bwait\b|\\$/m.test(uncomment(rel))) p.push('RELEASE_JOB_MASKING')
   const st = steps(rel)
   if (st.length !== 4) p.push('RELEASE_STEP_COUNT')
   if (st[0]?.keys.uses !== 'actions/checkout@v7' || Object.keys(st[0]?.keys ?? {}).join() !== 'uses') p.push('RELEASE_CHECKOUT')
@@ -292,6 +323,51 @@ test('every weakening of the harness step, the existing contract step or CI Gate
   // Independent review M2: a workflow-wide key appended after the last job.
   assert.ok(checkWorkflow(`${CI_TEXT}\ndefaults:\n  run:\n    shell: bash -c "exit 0" {0}\n`).includes('TOP_LEVEL_KEYS_CHANGED'))
   assert.ok(checkWorkflow(`${CI_TEXT}\nenv:\n  NODE_OPTIONS: --import=./x.mjs\n`).includes('TOP_LEVEL_KEYS_CHANGED'))
+})
+
+// Final review MEDIUM + both LOWs: alternate YAML spellings, backgrounding, JSON-style flow pairs. [label, mutated text, codes, oldBypass]
+// `oldBypass` marks the reproduced original bypasses: with only the pre-hardening rules they produced no problem at all.
+const NEW_CODES = new Set(['RELEASE_BLOCK_CHANGED', 'RELEASE_BLOCK_NOT_UNIQUE', 'YAML_NONCANONICAL_KEY', 'STRUCTURE_UNINTERPRETABLE'])
+const OTHER = '        run: cd apps/web && npm audit --audit-level=high\n'
+const withEnv = (envLines) => mutate(OTHER, `${OTHER}        env:\n${envLines}`)
+const JOB_HEAD = '    name: Release Workflow Contract\n'
+const HARDENING = [
+  ['"if": false on the harness step', mutate(STEP, STEP.replace('        timeout-minutes', '        "if": false\n        timeout-minutes')), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY'], true],
+  ['if : false on the harness step', mutate(STEP, STEP.replace('        timeout-minutes', '        if : false\n        timeout-minutes')), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY'], true],
+  ['explicit ? if / : false on the harness step', mutate(STEP, STEP.replace('        timeout-minutes', '        ? if\n        : false\n        timeout-minutes')), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY'], true],
+  ["quoted 'continue-on-error' on the harness step", mutate(STEP, STEP.replace('        timeout-minutes', "        'continue-on-error': true\n        timeout-minutes")), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY']],
+  ['quoted "if" at job level', mutate(JOB_HEAD, `${JOB_HEAD}    "if": false\n`), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY']],
+  ['quoted "permissions" at job level', mutate(JOB_HEAD, `${JOB_HEAD}    "permissions":\n      contents: write\n`), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY']],
+  ["quoted 'environment' at job level", mutate(JOB_HEAD, `${JOB_HEAD}    'environment': staging\n`), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY']],
+  ['quoted "environment" in another job', mutate('    name: Security Scan\n', '    name: Security Scan\n    "environment": production\n'), ['YAML_NONCANONICAL_KEY']],
+  ['harness step as a JSON-style flow mapping with "if"', mutate(STEP, `      - {"name": "${HARNESS_STEP.name}", "if": false, "timeout-minutes": 30, "run": "node ${RUNNER}"}\n`), ['RELEASE_BLOCK_CHANGED', 'YAML_NONCANONICAL_KEY']],
+  ['quoted duplicate job key appended', `${CI_TEXT}  "release-workflow-contract":\n    name: Release Workflow Contract\n    runs-on: ubuntu-latest\n`, ['RELEASE_BLOCK_NOT_UNIQUE', 'STRUCTURE_UNINTERPRETABLE']],
+  // LOW 1: backgrounding / continuation that could conceal the runner's exit status.
+  ['runner backgrounded with & wait', mutate(`run: node ${RUNNER}`, `run: node ${RUNNER} & wait`), ['RELEASE_BLOCK_CHANGED', 'RELEASE_JOB_MASKING']],
+  ['runner backgrounded in a block scalar', mutate(`run: node ${RUNNER}\n`, `run: |\n          node ${RUNNER} &\n          wait\n`), ['RELEASE_BLOCK_CHANGED', 'RELEASE_JOB_MASKING']],
+  ['runner line continued', mutate(`run: node ${RUNNER}\n`, `run: |\n          node ${RUNNER} \\\n            --help\n`), ['RELEASE_BLOCK_CHANGED', 'RELEASE_JOB_MASKING']],
+  ['existing contract step backgrounded', mutate(` ${GUARD}\n`, ` ${GUARD} & wait\n`), ['RELEASE_BLOCK_CHANGED', 'RELEASE_JOB_MASKING']],
+  // Exactness of the pin: a trailing space, a comment edit, a lone CR that YAML reads as a line break.
+  ['trailing space in the block', mutate(`run: node ${RUNNER}\n`, `run: node ${RUNNER} \n`), ['RELEASE_BLOCK_CHANGED']],
+  ['comment in the block edited', mutate('      # Developer Harness V2 (Phase 8)', '      # Developer Harness V2 (Phase 8, edited)'), ['RELEASE_BLOCK_CHANGED']],
+  ['lone CR splits a line', mutate(`run: node ${RUNNER}\n`, `run: node ${RUNNER}\r        if: false\n`), ['RELEASE_BLOCK_CHANGED']],
+  ['U+2028 line separator', mutate(`run: node ${RUNNER}\n`, `run: node ${RUNNER}\u2028\n`), ['STRUCTURE_UNINTERPRETABLE']],
+  // LOW 2: JSON-style flow pairs, the quote directly after `:` or `,` (escape, or a quote left open to the next line).
+  ['escape directly after : in a flow pair', withEnv('          X: {"A":"\\x73ecrets"}\n'), ['YAML_DOUBLE_QUOTED_ESCAPE']],
+  ['escape directly after , in a flow sequence', withEnv('          X: ["a","\\x73ecrets"]\n'), ['YAML_DOUBLE_QUOTED_ESCAPE']],
+  ['escape in a second flow pair', withEnv('          X: {"A":"x","B":"\\u0073ecrets"}\n'), ['YAML_DOUBLE_QUOTED_ESCAPE']],
+  ['open quote directly after : continues on the next line', withEnv('          X: {"A":"open\n            rest"}\n'), ['YAML_DOUBLE_QUOTED_ESCAPE']],
+  ['open quote directly after , continues on the next line', withEnv('          X: ["a","open\n            rest"]\n'), ['YAML_DOUBLE_QUOTED_ESCAPE']],
+]
+
+test('alternate YAML key spellings, backgrounding and JSON-style flow pairs are rejected; the release job block is pinned exactly', () => {
+  assert.deepEqual(checkWorkflow(CI_TEXT.replace(/\n/g, '\r\n')), [], 'CRLF line endings are normalized, not rejected')
+  for (const [label, text, codes, oldBypass] of HARDENING) {
+    assert.notEqual(text, CI_TEXT, label)
+    const problems = checkWorkflow(text)
+    for (const code of codes) assert.ok(problems.includes(code), `${label}: expected ${code}, got [${problems.join(', ')}]`)
+    if (oldBypass) assert.deepEqual(problems.filter((c) => !NEW_CODES.has(c)), [], `${label}: reproduces the original bypass of the pre-hardening rules`)
+  }
 })
 
 test('the approved expected-skip allowlist is pinned exactly', () => {
