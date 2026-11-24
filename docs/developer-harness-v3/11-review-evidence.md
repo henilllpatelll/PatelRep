@@ -58,11 +58,26 @@ Reviewed commits: code review at `f683ab93`; security review at `2dccabe7` (code
 Categories the security reviewer reported as holding up: canonicalization, policy pinning and loaded-policy provenance, signature/domain separation and S+L malleability, key/identity cross-check and windows, TTL and
 binding, nonce conflicts, single-use replay, prohibited-action immutability, path normalization on NTFS, migration classification, lifecycle fencing, and absence of command/argument injection in fact gathering.
 
-## 3. Not re-reviewed
+## 3. Re-verification of the security remediation (commit 43e25875) — verdict: sound to merge as an inactive foundation
 
-The remediation commits were verified by the regression tests above and by a full run of the V3 suite, but were **not** given a second independent review pass. This is a residual risk and is listed in the PR report.
+The same security reviewer re-ran its own probes and attacked the new code (glob matcher, allow-list, promotion binding, snapshotting, hardened git invocation, reducer). All 13 original findings were confirmed
+fixed except two leftovers, plus one regression it found in my rewrite. Dispositions:
 
-## 4. Verification evidence (exact numbers recorded in the PR report)
+| Finding | Sev | Disposition |
+|---|---|---|
+| Literal `*` in a path segment defeated the new glob matcher (`supabase/seed*` missed `supabase/seed*.sql`) | Low (new) | **Fixed** matcher tests the wildcard first; `* ? " < > \|` are rejected in repository paths (illegal on NTFS); tests `sec re-verification` |
+| `LC_*` / `XDG_*` allow-list wildcards admitted secret-shaped names | Low (open #7) | **Fixed** exact names only; credential patterns gained `*TOKEN*`, `*_KEY`, `*AUTH*`; test |
+| `NODE_OPTIONS`, `HTTP(S)_PROXY` are on the allow-list and change worker behavior | Low | **Accepted**: their VALUES are set only by the trusted launcher, never by the candidate; recorded for D3.3 |
+| Patch digest depended on repo-local diff settings | Info | **Fixed** (pinned `diff.context`, `algorithm`, `noprefix`, `mnemonicPrefix`, `interHunkContext`); `.git/info/attributes` cannot be pinned by flag, so a divergent digest simply fails to bind (fail closed) |
+| `lifecycle.mjs` | — | unchanged since the first remediation, nothing new found |
 
-V3 suite (sequential, 1 GB heap): 103 tests pass at the final candidate. V2 regression through the V2 CI runner: 5 of 7 suites pass; the 2 failing items are the two known local-only Windows conditions
-(directory-symlink privilege skip; the archive "manifest entries" assertion in a full clone) recorded against main before this work. Pinned CI guard and delivery-contract tests (39) pass.
+Held up under re-verification: hardened git invocation (color, `ignoreSubmodules`, `binary` attributes, `bigFileThreshold`), glob validation, the approval self-attestation rule, the `proposed_policy_source_tree` check
+(a controller-asserted value that the evaluator cannot verify further), and snapshotting. No glob that matched under the old regex stopped matching across every repository file and 27 crafted edge paths, except the literal-`*` case now fixed.
+
+The final two fixes above were verified by tests but **not** given a further independent review pass.
+
+## 4. Verification evidence
+
+V3 suite (sequential, 1 GB heap): **105 tests pass** at the final candidate. V2 regression through the V2 CI runner (run before the V3 remediation commits; V2 files are unchanged by this PR): 5 of 7 suites pass; the
+2 failing items are the two known local-only Windows conditions (directory-symlink privilege skip; the archive "manifest entries" assertion in a full clone) recorded against main before this work. The pinned CI guard and
+delivery-contract tests (39) pass. CI and Staging evidence for the exact head is in the PR report.

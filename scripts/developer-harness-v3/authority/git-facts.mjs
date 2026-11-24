@@ -25,7 +25,7 @@ function cleanEnv() {
 }
 const git = (repoDir, args, { maxBuffer = 64 * 1024 * 1024 } = {}) =>
   execFileSync('git', ['--literal-pathspecs', '-C', repoDir, '-c', 'core.hooksPath=', '-c', 'diff.external=', '-c', 'core.fsmonitor=false', '-c', 'color.ui=false', '-c', 'diff.ignoreSubmodules=none',
-    '-c', 'diff.renames=false', '-c', 'core.attributesFile=', ...args], { env: cleanEnv(), maxBuffer, stdio: ['ignore', 'pipe', 'ignore'] })
+    '-c', 'diff.renames=false', '-c', 'core.attributesFile=', '-c', 'diff.context=3', '-c', 'diff.interHunkContext=0', '-c', 'diff.algorithm=default', '-c', 'diff.noprefix=false', '-c', 'diff.mnemonicPrefix=false', ...args], { env: cleanEnv(), maxBuffer, stdio: ['ignore', 'pipe', 'ignore'] })
 
 /** `git diff --raw -z --no-abbrev`: ":oldmode newmode oldsha newsha STATUS\0path\0". Modes 120000 (symlink) and 160000 (gitlink) are reported separately. */
 function parseRaw(buf) {

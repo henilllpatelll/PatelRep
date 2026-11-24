@@ -10,6 +10,7 @@ export function normalizeRepoPath(raw) {
   if (/[\u0000-\u001f\u007f]/.test(raw)) return { ok: false, code: 'PATH.CONTROL_CHARACTER' }
   if (raw.includes('�')) return { ok: false, code: 'PATH.INVALID_ENCODING' }
   if (raw.includes('\\')) return { ok: false, code: 'PATH.BACKSLASH' }
+  if (/[*?"<>|]/.test(raw)) return { ok: false, code: 'PATH.ILLEGAL_CHARACTER' } // illegal on NTFS, and a wildcard inside a path would confuse every glob
   if (raw.startsWith('/') || /^[A-Za-z]:/.test(raw)) return { ok: false, code: 'PATH.ABSOLUTE' }
   const nfc = raw.normalize('NFC')
   for (const s of nfc.split('/')) {
@@ -32,7 +33,7 @@ function matchName(pat, name) {
   const p = pat.toLowerCase(); const s = name.toLowerCase()
   let pi = 0; let si = 0; let star = -1; let mark = 0
   while (si < s.length) {
-    if (pi < p.length && (p[pi] === '?' || p[pi] === s[si])) { pi++; si++ } else if (pi < p.length && p[pi] === '*') { star = pi++; mark = si } else if (star >= 0) { pi = star + 1; si = ++mark } else return false
+    if (pi < p.length && p[pi] === '*') { star = pi++; mark = si } else if (pi < p.length && (p[pi] === '?' || p[pi] === s[si])) { pi++; si++ } else if (star >= 0) { pi = star + 1; si = ++mark } else return false
   }
   while (pi < p.length && p[pi] === '*') pi++
   return pi === p.length

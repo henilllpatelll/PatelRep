@@ -113,11 +113,11 @@
   ],
   "forbidden_auth_settings": ["apiKeyHelper", "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "forceLoginMethod:console"],
   "credential_environment_patterns": [
-    "*SERVICE_ROLE*", "*_DB_URL", "DATABASE_URL", "*DB_PASSWORD*", "PGPASSWORD", "RAILWAY*TOKEN*", "VERCEL*TOKEN*", "EXPO_TOKEN", "EAS_*TOKEN*", "*PRIVATE_KEY*", "*OAUTH_TOKEN*",
+    "*SERVICE_ROLE*", "*TOKEN*", "*_KEY", "*AUTH*", "*_DB_URL", "DATABASE_URL", "*DB_PASSWORD*", "PGPASSWORD", "RAILWAY*TOKEN*", "VERCEL*TOKEN*", "EXPO_TOKEN", "EAS_*TOKEN*", "*PRIVATE_KEY*", "*OAUTH_TOKEN*",
     "*ACCESS_TOKEN*", "*SECRET*", "*API_KEY*", "*_PAT", "*PASSWORD*", "GITHUB_TOKEN", "GH_TOKEN", "NPM_TOKEN", "TELEGRAM*TOKEN*", "AWS_*", "TWILIO_*", "STRIPE_*", "JWT_*", "CRON_SECRET"
   ],
   "worker_environment_allowlist": [
-    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_*", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_*"
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LC_COLLATE", "LC_TIME", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "XDG_STATE_HOME"
   ],
   "credential_scopes": {
     "publisher": { "identities": ["trusted_publisher"], "required_evidence": ["test_results"] },

@@ -226,3 +226,20 @@ test('sec: a candidate path that fails normalization is a denial inside the patt
   const bad = trustedFor('implementer'); bad.task.authority.denied_paths = [42]
   assert.ok(codes(run(request('edit_files_in_task_worktree', { params: { paths: ['apps/mobile/a.ts'] } }), bad)).includes('SCOPE.NO_TASK_AUTHORITY'))
 })
+
+test('sec re-verification: a literal wildcard character can no longer defeat a glob, and NTFS-illegal characters are not valid path characters', () => {
+  for (const p of ['supabase/seed*.sql', 'apps/api/.env*x', '.claude/settings*.local.json', 'apps/api/services/agent*_exec/runtime.py', 'a?b', 'a"b', 'a<b', 'a>b', 'a|b']) assert.equal(normalizeRepoPath(p).ok, false, p)
+  assert.equal(matchesGlob('supabase/seed*', 'supabase/seed*.sql'), true)
+  assert.equal(matchesGlob('**/.env*', 'apps/api/.env*x'), true)
+  assert.equal(matchesGlob('a*b', 'a*b'), true)
+  assert.equal(matchesGlob('a*b', 'ab'), true)
+  assert.equal(matchesGlob('a*b', 'a*c'), false)
+  const t = trustedFor('trusted_publisher', { candidate: candidate({ changes: [{ status: 'A', path: 'apps/api/services/agent*_exec/runtime.py' }] }) }); t.task.authority.allowed_paths = ['apps/**']
+  assert.ok(codes(run(request('publish_candidate_branch'), t, [])).includes('PATH.ILLEGAL_CHARACTER'))
+})
+
+test('sec re-verification: secret-shaped names cannot hide behind LC_*/XDG_* wildcards any more', () => {
+  for (const n of ['XDG_SESSION_TOKEN', 'LC_AUTH', 'XDG_DATA_KEY', 'LC_SECRET', 'SOME_API_KEY', 'MY_TOKEN', 'GOOGLE_AUTH_FILE']) assert.ok(checkCredentialEnvironment([n], C).length > 0, n)
+  assert.deepEqual(checkCredentialEnvironment(['LC_ALL', 'XDG_CACHE_HOME', 'HTTPS_PROXY'], C), [])
+  assert.deepEqual(checkCredentialEnvironment(['LC_FOO'], C), ['ENV.NAME_NOT_ALLOWLISTED:LC_FOO'])
+})
