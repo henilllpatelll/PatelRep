@@ -1,0 +1,154 @@
+{
+  "$comment": "Developer Harness V3 (D3.2) authority contract. CONTRACT ONLY: this file declares intended authority and is consumed by the pure evaluator in scripts/developer-harness-v3/authority/. It is NOT active. Developer Harness V2 (docs/developer-harness-v2/contract.json, .claude/settings.json, the V2 policy hook, the existing CI/Staging gates and rulesets) remains authoritative until a later phase replaces it through the trusted bootstrap in 04-policy-bootstrap-and-promotion.md. Nothing in this file is an approval, and nothing in a candidate may select, edit or weaken it for its own benefit.",
+  "schema": "patelrep.developer-harness-v3.authority-contract",
+  "version": 1,
+  "contract_id": "v3-authority-d32",
+  "phase": "D3.2",
+  "status": "contract_only_not_active",
+  "baseline": { "repository": "henilllpatelll/PatelRep", "main_sha": "fbbc50b22f0ca27367032822f5d6dafc361ea323" },
+  "classes": {
+    "allowed": "Executes automatically. Local, reversible, task-scoped, and incapable of changing authority, spending or shared state.",
+    "safeguarded": "Executes automatically ONLY after independent verification: the established identity is permitted, every required evidence type is present, authentic, unexpired, unreplayed and bound to the exact candidate and policy revision, and every applicable check passes. Higher risk adds evidence; it never adds a routine human permission prompt.",
+    "prohibited": "Always blocked. No identity, evidence or policy-version claim can authorize it. Changing a prohibited action requires the owner root-of-trust ceremony, never an automated promotion."
+  },
+  "identities": {
+    "task_ingress": "Authenticates and records owner-originated task authority (ChatGPT prompt, Telegram, dashboard). Cannot implement, review or publish.",
+    "orchestrator": "Owns task state, leases, scheduling, isolated test runs and session launch. Cannot review its own tasks as an independent reviewer.",
+    "implementer": "The ONLY identity that writes candidate code, inside an isolated worktree. Holds no evidence-issuing key and no publisher or production credential.",
+    "independent_reviewer": "Reviews the exact candidate in a context that shares nothing with the implementer.",
+    "security_reviewer": "Security review of the exact candidate, a separate context and key from the independent reviewer.",
+    "trusted_publisher": "Pushes the verified candidate branch and opens the PR from trusted code. Never runs candidate code.",
+    "delivery_verifier": "Trusted verifier outside the candidate's control. Issues CI, staging and delivery-eligibility evidence.",
+    "merger": "Merges a PR only on delivery-eligible evidence (inactive in D3.2).",
+    "production_releaser": "Dispatches an eligible production release through the existing trusted release workflow (inactive in D3.2).",
+    "recovery": "Executes bounded rollback and recovery through existing production recovery workflows (inactive in D3.2).",
+    "notifier": "Sends owner notifications from the durable outbox. No other authority.",
+    "policy_promoter": "Promotes a validated successor policy. Cannot change the root of trust."
+  },
+  "actions": {
+    "read_repository": { "class": "allowed", "identities": ["*"], "checks": [] },
+    "edit_files_in_task_worktree": { "class": "allowed", "identities": ["implementer"], "checks": ["path_validity", "scope"] },
+    "commit_to_task_branch": { "class": "allowed", "identities": ["implementer"], "checks": ["path_validity", "scope"] },
+    "run_local_checks": { "class": "allowed", "identities": ["implementer", "orchestrator"], "checks": [] },
+    "checkpoint_task": { "class": "allowed", "identities": ["orchestrator"], "checks": [] },
+    "queue_task": { "class": "allowed", "identities": ["task_ingress"], "checks": [] },
+    "send_notification": { "class": "allowed", "identities": ["notifier"], "checks": [] },
+    "cleanup_task_owned_resources": { "class": "allowed", "identities": ["orchestrator"], "checks": ["resource_ownership"] },
+    "accept_evidence": { "class": "allowed", "identities": ["orchestrator", "delivery_verifier", "trusted_publisher", "merger", "production_releaser", "recovery", "policy_promoter"], "checks": ["evidence_validity"] },
+    "launch_claude_session": { "class": "allowed", "identities": ["orchestrator"], "checks": ["spend", "launch_environment", "credentials_env"] },
+
+    "start_bypass_permissions_session": { "class": "safeguarded", "identities": ["orchestrator"], "required_evidence": ["isolation_attestation"], "checks": ["spend", "launch_environment", "credentials_env", "environment_isolation"], "requires_activation": true },
+    "publish_candidate_branch": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change", "credentials_env"], "requires_activation": true },
+    "mark_pull_request_ready": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
+    "verify_delivery_eligibility": { "class": "safeguarded", "identities": ["delivery_verifier"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate", "staging_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
+    "merge_pull_request": { "class": "safeguarded", "identities": ["merger"], "required_evidence": ["delivery_verification", "independent_review", "ci_gate", "staging_gate"], "checks": ["candidate_binding", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
+    "production_release": { "class": "safeguarded", "identities": ["production_releaser"], "required_evidence": ["merge_receipt", "delivery_verification"], "checks": ["candidate_binding", "credential_scope"], "requires_activation": true },
+    "production_recovery": { "class": "safeguarded", "identities": ["recovery"], "required_evidence": ["delivery_verification"], "checks": ["candidate_binding", "credential_scope"], "requires_activation": true },
+    "access_credential": { "class": "safeguarded", "identities": ["trusted_publisher", "merger", "production_releaser", "recovery", "delivery_verifier"], "required_evidence": ["task_authority"], "checks": ["credential_scope"], "requires_activation": true },
+    "promote_policy": { "class": "safeguarded", "identities": ["policy_promoter"], "required_evidence": ["independent_review", "security_review", "test_results", "policy_promotion_approval"], "checks": ["promotion"], "requires_activation": true },
+
+    "push_to_main_directly": { "class": "prohibited", "identities": [] },
+    "force_push_protected_branch": { "class": "prohibited", "identities": [] },
+    "modify_historical_migration": { "class": "prohibited", "identities": [] },
+    "supabase_migration_repair": { "class": "prohibited", "identities": [] },
+    "apply_unreviewed_migration_remotely": { "class": "prohibited", "identities": [] },
+    "expose_credentials_to_candidate_environment": { "class": "prohibited", "identities": [] },
+    "activate_customer_agent_execution": { "class": "prohibited", "identities": [] },
+    "grant_customer_agent_autonomy": { "class": "prohibited", "identities": [] },
+    "enable_customer_agent_billing": { "class": "prohibited", "identities": [] },
+    "use_paid_model_authentication": { "class": "prohibited", "identities": [] },
+    "purchase_usage_or_upgrade_subscription": { "class": "prohibited", "identities": [] },
+    "increase_own_spend_authority": { "class": "prohibited", "identities": [] },
+    "self_approve_candidate": { "class": "prohibited", "identities": [] },
+    "select_own_policy_revision": { "class": "prohibited", "identities": [] },
+    "modify_active_enforcement_from_candidate": { "class": "prohibited", "identities": [] },
+    "weaken_required_gates": { "class": "prohibited", "identities": [] },
+    "bypass_hooks_or_gates": { "class": "prohibited", "identities": [] },
+    "use_unofficial_claude_authentication": { "class": "prohibited", "identities": [] },
+    "modify_claude_binary": { "class": "prohibited", "identities": [] },
+    "enable_host_bypass_permissions": { "class": "prohibited", "identities": [] },
+    "delete_task_evidence": { "class": "prohibited", "identities": [] },
+    "terminate_unowned_processes": { "class": "prohibited", "identities": [] }
+  },
+  "evidence_types": {
+    "task_authority": { "issuers": ["task_ingress"], "binds": ["repository", "base_sha", "policy_revision", "authority_digest"], "max_ttl_seconds": 604800, "single_use": false },
+    "test_results": { "issuers": ["orchestrator"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision", "environment_id"], "max_ttl_seconds": 86400, "single_use": false },
+    "independent_review": { "issuers": ["independent_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "approval": true, "independent_of_author": true },
+    "security_review": { "issuers": ["security_reviewer"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false, "approval": true, "independent_of_author": true },
+    "publication_receipt": { "issuers": ["trusted_publisher"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 86400, "single_use": false },
+    "ci_gate": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 43200, "single_use": false },
+    "staging_gate": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 43200, "single_use": false },
+    "delivery_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
+    "merge_receipt": { "issuers": ["merger"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
+    "production_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "candidate_sha", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true },
+    "isolation_attestation": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "environment_id"], "max_ttl_seconds": 3600, "single_use": false, "approval": true },
+    "policy_promotion_approval": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "subject_policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true }
+  },
+  "protected_paths": [
+    ".github/**", "supabase/migrations/**", "scripts/**", ".githooks/**", ".claude/**", ".mcp.json", ".wolf/hooks/**",
+    "CLAUDE.md", "AGENTS.md", "**/CLAUDE.md", "**/AGENTS.md", ".gitmodules", "**/.gitattributes", "**/package.json", "**/package-lock.json", "**/.npmrc", "**/Dockerfile", "railway.toml", "vercel.json", "**/.env*", "docs/developer-harness-v2/**", "docs/developer-harness-v3/**",
+    ".husky/**", ".vscode/**", ".gitattributes", "supabase/staging-reviewed-migrations.json", "docs/staging-previews/**",
+    ".wolf/OPENWOLF.md", ".wolf/config.json", ".wolf/cron-manifest.json", ".wolf/cerebrum.md", ".wolf/knowledge/**",
+    ".wolf/anatomy.md", ".wolf/buglog.json", ".wolf/reframe-frameworks.md", ".wolf/identity.md"
+  ],
+  "root_of_trust_paths": [
+    "docs/developer-harness-v3/authority-contract.json", "docs/developer-harness-v3/task-lifecycle.json", "docs/developer-harness-v3/trusted-keys.json",
+    "scripts/developer-harness-v3/**", ".claude/settings*.json", ".claude/hooks/**", ".claude/agents/**"
+  ],
+  "migrations": {
+    "directory": "supabase/migrations",
+    "file_pattern": "^[0-9]{3,4}_[a-z0-9_]+\\.sql$",
+    "rule": "A path is a NEW migration only if trusted Git facts show it absent from the base tree, strictly numbered above every base migration, uniquely numbered among the candidate's additions and well formed. Anything else under the directory is historical, colliding, out-of-order or malformed, and is prohibited. A human-supplied modification label is never an input."
+  },
+  "subscription": {
+    "$comment": "CANONICAL internal plan identities. The trusted launcher (D3.3) normalizes whatever the official CLI reports into one of these; this contract hardcodes NO provider response string. A plan listed in known_plans but not in authorized_plans is refused. Authorizing a plan never raises limits.max_incremental_usd, and changing this list is an owner ceremony (root of trust).",
+    "known_plans": ["claude_free", "claude_pro", "claude_max_5x", "claude_max_20x", "claude_team", "claude_enterprise"],
+    "authorized_plans": ["claude_max_5x"]
+  },
+  "limits": {
+    "max_incremental_usd": 0,
+    "max_reasoning_sessions": 1,
+    "evidence_clock_skew_seconds": 60,
+    "max_changed_paths": 2000
+  },
+  "forbidden_auth_environment": [
+    "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_CUSTOM_HEADERS", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_VERTEX_PROJECT_ID",
+    "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_USE_ANTHROPIC_AWS", "AWS_BEARER_TOKEN_BEDROCK",
+    "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "COHERE_API_KEY"
+  ],
+  "forbidden_auth_settings": ["apiKeyHelper", "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "forceLoginMethod:console"],
+  "credential_environment_patterns": [
+    "*SERVICE_ROLE*", "*TOKEN*", "*_KEY", "*AUTH*", "*_DB_URL", "DATABASE_URL", "*DB_PASSWORD*", "PGPASSWORD", "RAILWAY*TOKEN*", "VERCEL*TOKEN*", "EXPO_TOKEN", "EAS_*TOKEN*", "*PRIVATE_KEY*", "*OAUTH_TOKEN*",
+    "*ACCESS_TOKEN*", "*SECRET*", "*API_KEY*", "*_PAT", "*PASSWORD*", "GITHUB_TOKEN", "GH_TOKEN", "NPM_TOKEN", "TELEGRAM*TOKEN*", "AWS_*", "TWILIO_*", "STRIPE_*", "JWT_*", "CRON_SECRET"
+  ],
+  "worker_environment_allowlist": [
+    "PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE", "LC_MESSAGES", "LC_COLLATE", "LC_TIME", "TERM", "TZ", "TMPDIR", "PWD", "CI", "NODE_ENV", "NODE_OPTIONS", "SSL_CERT_FILE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "XDG_STATE_HOME"
+  ],
+  "settings_env_inert_allowlist": ["TZ", "LANG", "TERM"],
+  "launcher_controlled_environment": ["NODE_OPTIONS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE"],
+  "credential_scopes": {
+    "publisher": { "identities": ["trusted_publisher"], "required_evidence": ["test_results"] },
+    "merge": { "identities": ["merger"], "required_evidence": ["delivery_verification"] },
+    "production": { "identities": ["production_releaser", "recovery"], "required_evidence": ["delivery_verification"] },
+    "staging": { "identities": ["delivery_verifier"], "required_evidence": ["publication_receipt"] }
+  },
+  "customer_agent": {
+    "$comment": "Developer identities have no authority over the customer Agent Harness (H1-H7). The tripwire below is a heuristic that can only ADD a denial; it is never a grant and never the primary boundary.",
+    "path_globs": ["apps/api/**/agent_*/**", "apps/api/**/agent_*", "apps/api/**/agent*/**", "supabase/migrations/**", "supabase/seed*/**", "supabase/seed*", "supabase/staging-reviewed-migrations.json"],
+    "tripwire_all": ["agent", "execution|runtime|worker|billing|autonomy|grant|decide"]
+  },
+  "activation": {
+    "$comment": "No action is active in D3.2. Activation is a root-of-trust change performed by the owner ceremony in a later phase.",
+    "active_actions": []
+  },
+  "activation_prerequisites": [
+    "v3_test_suite_wired_into_ci_through_a_human_approved_protected_control_plane_change",
+    "isolation_suite_passed_in_d33",
+    "owner_root_of_trust_ceremony_completed"
+  ],
+  "preserved_v2": {
+    "bypass_permissions_in_settings": "disabled; D3.2 does not change .claude/settings.json",
+    "v2_contract": "docs/developer-harness-v2/contract.json",
+    "existing_exceptions_unchanged": ["claude-release-engineer-auto-merge", "claude-release-engineer-production-request"]
+  }
+}
