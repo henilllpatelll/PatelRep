@@ -37,7 +37,7 @@ test('a full production task walks the whole lifecycle and completes only after 
 })
 
 test('a task that never needs production completes from merged, and cannot enter production_release', () => {
-  let t = walk(createTask({ task_id: 'task-1', production_required: false }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged'])
+  let t = walk(createTask({ task_id: 'task-1', production_required: false, security_review_required: false }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged'])
   assert.deepEqual(applyEvent(LC, t, ev(t, { to: 'production_release' })).problems, ['TRANSITION.PRODUCTION_NOT_REQUIRED'])
   assert.equal(step(t, 'completed').state, 'completed')
 })
@@ -93,7 +93,8 @@ test('resource pressure, subscription exhaustion, worker death and CI failure ar
   for (const reason of LC.never_blocked_reasons) assert.equal(applyEvent(LC, t, ev(t, { to: 'blocked', reason_code: reason })).ok, false, reason)
   const b = step(t, 'blocked', { reason_code: 'OWNER_AUTH_EXPIRED' })
   assert.equal(b.blocker_reason, 'OWNER_AUTH_EXPIRED')
-  assert.equal(step(b, 'implementing').blocker_reason, null)
+  assert.deepEqual(applyEvent(LC, b, ev(b, { to: 'implementing' })).problems, ['TRANSITION.OWNER_ACTION_REQUIRED'], 'only the owner can clear a genuine blocker')
+  assert.equal(step(b, 'implementing', { owner_action_id: 'owner-login-1' }).blocker_reason, null)
 })
 
 test('remediation returns to implementing and is entered only from verification states', () => {
@@ -108,7 +109,7 @@ test('remediation returns to implementing and is entered only from verification 
 test('production incidents arise only after merge', () => {
   const early = walk(createTask({ task_id: 'task-1' }), ['queued', 'planning'])
   assert.deepEqual(applyEvent(LC, early, ev(early, { to: 'production_incident', reason_code: 'WATCHDOG_ALERT' })).problems, ['TRANSITION.ILLEGAL'])
-  const merged = walk(createTask({ task_id: 'task-1' }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged', 'production_release'])
+  const merged = walk(createTask({ task_id: 'task-1', security_review_required: false }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged', 'production_release'])
   const inc = step(merged, 'production_incident', { reason_code: 'PRODUCTION_HEALTH_FAILED' })
   assert.equal(inc.resume_to, 'production_release')
 })
@@ -125,7 +126,7 @@ test('a head change invalidates every review, test and gate result and sends the
   const early = walk(createTask({ task_id: 'task-2' }), ['queued', 'planning', 'implementing'])
   assert.equal(applyEvent(LC, early, ev(early, { kind: 'head_changed', head_sha: HEAD })).task.state, 'implementing', 'no verification has happened yet; stay put')
   assert.deepEqual(applyEvent(LC, t, ev(t, { kind: 'head_changed' })).problems, ['EVENT.HEAD_REQUIRED'])
-  const merged = walk(createTask({ task_id: 'task-3' }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged'])
+  const merged = walk(createTask({ task_id: 'task-3', security_review_required: false }), ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible', 'merged'])
   assert.deepEqual(applyEvent(LC, merged, ev(merged, { kind: 'head_changed', head_sha: HEAD })).problems, ['EVENT.HEAD_CHANGE_AFTER_MERGE'])
 })
 

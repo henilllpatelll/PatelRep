@@ -35,9 +35,9 @@
     "send_notification": { "class": "allowed", "identities": ["notifier"], "checks": [] },
     "cleanup_task_owned_resources": { "class": "allowed", "identities": ["orchestrator"], "checks": ["resource_ownership"] },
     "accept_evidence": { "class": "allowed", "identities": ["orchestrator", "delivery_verifier", "trusted_publisher", "merger", "production_releaser", "recovery", "policy_promoter"], "checks": ["evidence_validity"] },
-    "launch_claude_session": { "class": "allowed", "identities": ["orchestrator"], "checks": ["spend", "launch_environment"] },
+    "launch_claude_session": { "class": "allowed", "identities": ["orchestrator"], "checks": ["spend", "launch_environment", "credentials_env"] },
 
-    "start_bypass_permissions_session": { "class": "safeguarded", "identities": ["orchestrator"], "required_evidence": ["isolation_attestation"], "checks": ["spend", "launch_environment", "environment_isolation"], "requires_activation": true },
+    "start_bypass_permissions_session": { "class": "safeguarded", "identities": ["orchestrator"], "required_evidence": ["isolation_attestation"], "checks": ["spend", "launch_environment", "credentials_env", "environment_isolation"], "requires_activation": true },
     "publish_candidate_branch": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change", "credentials_env"], "requires_activation": true },
     "mark_pull_request_ready": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
     "verify_delivery_eligibility": { "class": "safeguarded", "identities": ["delivery_verifier"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate", "staging_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
@@ -86,7 +86,7 @@
   },
   "protected_paths": [
     ".github/**", "supabase/migrations/**", "scripts/**", ".githooks/**", ".claude/**", ".mcp.json", ".wolf/hooks/**",
-    "CLAUDE.md", "AGENTS.md", "**/CLAUDE.md", "**/AGENTS.md", "docs/developer-harness-v2/**", "docs/developer-harness-v3/**",
+    "CLAUDE.md", "AGENTS.md", "**/CLAUDE.md", "**/AGENTS.md", ".gitmodules", "**/.gitattributes", "**/package.json", "**/package-lock.json", "**/.npmrc", "**/Dockerfile", "railway.toml", "vercel.json", "**/.env*", "docs/developer-harness-v2/**", "docs/developer-harness-v3/**",
     ".husky/**", ".vscode/**", ".gitattributes", "supabase/staging-reviewed-migrations.json", "docs/staging-previews/**",
     ".wolf/OPENWOLF.md", ".wolf/config.json", ".wolf/cron-manifest.json", ".wolf/cerebrum.md", ".wolf/knowledge/**",
     ".wolf/anatomy.md", ".wolf/buglog.json", ".wolf/reframe-frameworks.md", ".wolf/identity.md"
@@ -108,7 +108,7 @@
     "max_changed_paths": 2000
   },
   "forbidden_auth_environment": [
-    "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_CUSTOM_HEADERS", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_VERTEX_PROJECT_ID",
+    "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_CUSTOM_HEADERS", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_VERTEX_PROJECT_ID",
     "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_USE_ANTHROPIC_AWS", "AWS_BEARER_TOKEN_BEDROCK",
     "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "COHERE_API_KEY"
   ],
@@ -124,8 +124,8 @@
   },
   "customer_agent": {
     "$comment": "Developer identities have no authority over the customer Agent Harness (H1-H7). The tripwire below is a heuristic that can only ADD a denial; it is never a grant and never the primary boundary.",
-    "path_globs": ["apps/api/agent*/**", "apps/api/**/agent_*", "supabase/migrations/*agent*", "supabase/seed*/**", "supabase/staging-reviewed-migrations.json"],
-    "tripwire": "agent[a-z_]*(execution|runtime|worker|billing|autonomy|grant|decide)[a-z_]*"
+    "path_globs": ["apps/api/agent*/**", "apps/api/**/agent_*", "supabase/migrations/**", "supabase/seed*/**", "supabase/seed*", "supabase/staging-reviewed-migrations.json"],
+    "tripwire_all": ["agent", "execution|runtime|worker|billing|autonomy|grant|decide"]
   },
   "activation": {
     "$comment": "No action is active in D3.2. Activation is a root-of-trust change performed by the owner ceremony in a later phase.",

@@ -20,13 +20,18 @@ function cleanEnv() {
 const git = (repoDir, args, { maxBuffer = 64 * 1024 * 1024 } = {}) =>
   execFileSync('git', ['-C', repoDir, '-c', 'core.hooksPath=', '-c', 'diff.external=', '-c', 'core.fsmonitor=false', ...args], { env: cleanEnv(), maxBuffer, stdio: ['ignore', 'pipe', 'ignore'] })
 
-function parseNameStatus(buf) {
+/** `git diff --raw -z --no-abbrev`: ":oldmode newmode oldsha newsha STATUS\0path\0". Modes 120000 (symlink) and 160000 (gitlink) are reported separately. */
+function parseRaw(buf) {
   const parts = buf.toString('utf8').split('\0')
   if (parts.at(-1) === '') parts.pop()
-  if (parts.length % 2 !== 0) throw new Error('unparseable name-status output')
-  const out = []
-  for (let i = 0; i < parts.length; i += 2) out.push({ status: parts[i], path: parts[i + 1] })
-  return out
+  const changes = []; const special = []
+  for (let i = 0; i < parts.length; i += 2) {
+    const m = /^:(\d{6}) (\d{6}) [0-9a-f]{40} [0-9a-f]{40} ([A-Z])$/.exec(parts[i] ?? '')
+    if (!m || parts[i + 1] === undefined) throw new Error('unparseable raw diff output')
+    changes.push({ status: m[3], path: parts[i + 1] })
+    if (['120000', '160000'].includes(m[1]) || ['120000', '160000'].includes(m[2])) special.push(parts[i + 1])
+  }
+  return { changes, special }
 }
 
 /**
@@ -47,7 +52,7 @@ export function gatherCandidateFacts({ repoDir, expectedRepository, baseSha, can
     const treeDigest = git(repoDir, ['rev-parse', '--verify', `${candidateSha}^{tree}`]).toString('utf8').trim()
     if (!v.sha40(treeDigest)) return { ok: false, problems: ['FACTS.TREE_UNRESOLVED'] }
 
-    const changes = parseNameStatus(git(repoDir, ['diff', '--name-status', '--no-renames', '--no-ext-diff', '--no-textconv', '-z', baseSha, candidateSha]))
+    const { changes, special } = parseRaw(git(repoDir, ['diff', '--raw', '--no-abbrev', '--no-renames', '--no-ext-diff', '--no-textconv', '-z', baseSha, candidateSha]))
     if (changes.length > contract.limits.max_changed_paths) return { ok: false, problems: ['FACTS.TOO_MANY_CHANGES'] }
 
     const patch = git(repoDir, ['diff', '--binary', '--full-index', '--no-renames', '--no-ext-diff', '--no-textconv', baseSha, candidateSha], { maxBuffer: MAX_PATCH_BYTES })
@@ -63,7 +68,9 @@ export function gatherCandidateFacts({ repoDir, expectedRepository, baseSha, can
     for (const { n } of watched.slice(0, MAX_TRIPWIRE_PATHS)) {
       if (budget <= 0) { problems.push('FACTS.TRIPWIRE_LINES_TRUNCATED'); break }
       const diff = git(repoDir, ['diff', '-U0', '--no-renames', '--no-ext-diff', '--no-textconv', baseSha, candidateSha, '--', n.path]).toString('utf8')
-      const lines = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1)).slice(0, budget)
+      // Only lines AFTER the first hunk header are content; an added line that itself starts with '++' is still an added line.
+      const all = diff.split('\n'); const firstHunk = all.findIndex((l) => l.startsWith('@@'))
+      const lines = (firstHunk < 0 ? [] : all.slice(firstHunk)).filter((l) => l.startsWith('+')).map((l) => l.slice(1, 4001)).slice(0, budget)
       budget -= lines.length
       addedLines[n.path] = lines
     }
@@ -77,7 +84,7 @@ export function gatherCandidateFacts({ repoDir, expectedRepository, baseSha, can
     if (originMatches === false) return { ok: false, problems: ['FACTS.ORIGIN_MISMATCH'] }
 
     return { ok: true, problems, facts: { source: 'git', repository: expectedRepository, base_sha: baseSha, candidate_sha: candidateSha, tree_digest: treeDigest,
-      patch_digest: patchDigest, changes, base_migrations: baseFiles, added_lines: addedLines, origin_matches: originMatches } }
+      patch_digest: patchDigest, changes, special_modes: special, base_migrations: baseFiles, added_lines: addedLines, origin_matches: originMatches } }
   } catch (e) {
     // Only a status or code is reported: git's message would echo local paths.
     return { ok: false, problems: [`FACTS.GIT_ERROR:${String(e?.status ?? e?.code ?? 'unknown').slice(0, 30)}`] }

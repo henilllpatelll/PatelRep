@@ -53,12 +53,12 @@ export function validateEvidence(envelope, { policy, now, binding, task, authorC
     const payloadShape = checkShape(envelope.payload, PAYLOAD_SPEC, 'payload')
     if (payloadShape.length) return { ok: false, problems: ['EVIDENCE.MALFORMED'] }
     const p = envelope.payload
-    const type = policy.contract.evidence_types[p.evidence_type]
+    const type = Object.hasOwn(policy.contract.evidence_types, p.evidence_type) ? policy.contract.evidence_types[p.evidence_type] : null
     if (!type) return { ok: false, problems: ['EVIDENCE.UNKNOWN_TYPE'] }
     if (!type.issuers.includes(p.issuer_identity)) problems.push('EVIDENCE.UNAUTHORIZED_ISSUER')
 
     // authentication
-    const key = policy.trusted_keys[envelope.signature.key_id]
+    const key = Object.hasOwn(policy.trusted_keys, envelope.signature.key_id) ? policy.trusted_keys[envelope.signature.key_id] : undefined
     if (!key) problems.push('EVIDENCE.UNKNOWN_KEY')
     else {
       if (key.identity !== p.issuer_identity) problems.push('EVIDENCE.KEY_IDENTITY_MISMATCH')
@@ -94,7 +94,8 @@ export function validateEvidence(envelope, { policy, now, binding, task, authorC
     // independence of review contexts (attribution is signed, not self-asserted)
     if (type.independent_of_author) {
       if (!p.context_id) problems.push('EVIDENCE.CONTEXT_MISSING')
-      else if (authorContextId && p.context_id === authorContextId) problems.push('EVIDENCE.NOT_INDEPENDENT')
+      else if (!authorContextId) problems.push('EVIDENCE.AUTHOR_CONTEXT_UNKNOWN') // independence cannot be shown without the author's context
+      else if (p.context_id === authorContextId) problems.push('EVIDENCE.NOT_INDEPENDENT')
     }
     return { ok: problems.length === 0, problems: [...new Set(problems)], payload: p, digest: digestOf(envelope.payload) }
   } catch { return { ok: false, problems: ['EVIDENCE.VALIDATION_ERROR'] } }
@@ -111,6 +112,12 @@ export class EvidenceLedger {
   }
   recordNonce(nonce, digest) { if (!this.#nonces.has(nonce)) this.#nonces.set(nonce, digest) }
   isConsumed(evidenceId) { return this.#consumed.has(evidenceId) }
+  /** Atomically consume every id or none. The caller must do this in the SAME transaction as the action it authorizes. */
+  consumeAll(ids) {
+    if (ids.some((i) => this.#consumed.has(i))) return false
+    for (const i of ids) this.#consumed.add(i)
+    return true
+  }
   consume(evidenceId) {
     if (this.#consumed.has(evidenceId)) return false
     this.#consumed.add(evidenceId)

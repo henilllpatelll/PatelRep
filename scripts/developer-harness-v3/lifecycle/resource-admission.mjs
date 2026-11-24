@@ -11,7 +11,7 @@ export const DEFAULT_THRESHOLDS = Object.freeze({
   max_paging_pages_per_sec: 1000,
   max_cpu_pct: 90,
   min_disk_free_gb: 20,
-  max_reasoning_sessions: 1,
+  max_reasoning_sessions: 1, // the caller MUST pass the active contract's limits.max_reasoning_sessions here; the contract is the single source of truth
   max_heavy_test_workloads: 1,
 })
 
@@ -20,9 +20,12 @@ const num = (x) => typeof x === 'number' && Number.isFinite(x)
 /** @returns {{decision:'admit'|'wait'|'critical', state:'running'|'waiting_resources', reason_codes:string[], thresholds_calibrated:boolean}} */
 export function admitTask(m, { heavy = false, reasoning = true } = {}, t = DEFAULT_THRESHOLDS) {
   const codes = []
+  // Thresholds and metrics are validated, not trusted: an incomplete threshold object must not turn every comparison into `false` and admit.
+  for (const k of Object.keys(DEFAULT_THRESHOLDS)) if (k !== 'calibrated' && !(Number.isFinite(t?.[k]) && t[k] >= 0)) return { decision: 'wait', state: 'waiting_resources', reason_codes: [`RESOURCE.THRESHOLD_INVALID:${k}`], thresholds_calibrated: false }
   const need = (k) => { if (!num(m?.[k])) codes.push(`RESOURCE.METRIC_UNAVAILABLE:${k}`) }
   for (const k of ['available_mb', 'commit_ratio', 'paging_pages_per_sec', 'cpu_pct', 'disk_free_gb', 'reasoning_sessions_active', 'heavy_test_workloads_active']) need(k)
   if (m?.host_responsive !== true) codes.push('RESOURCE.HOST_UNRESPONSIVE')
+  if (codes.length === 0 && !(m.cpu_pct <= 100 && m.cpu_pct >= 0 && m.commit_ratio >= 0 && m.available_mb >= 0 && m.disk_free_gb >= 0 && Number.isInteger(m.reasoning_sessions_active) && Number.isInteger(m.heavy_test_workloads_active))) codes.push('RESOURCE.METRIC_OUT_OF_RANGE')
   if (codes.length === 0) {
     if (m.available_mb < t.critical_available_mb) codes.push('RESOURCE.MEMORY_CRITICAL')
     else if (m.available_mb < t.min_available_mb_to_admit) codes.push('RESOURCE.MEMORY_LOW')

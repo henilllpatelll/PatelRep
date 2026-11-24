@@ -18,6 +18,7 @@ export function normalizeRepoPath(raw) {
     if (/[. ]$/.test(s)) return { ok: false, code: 'PATH.WINDOWS_TRAILING_DOT_OR_SPACE' }
     if (s.includes(':')) return { ok: false, code: 'PATH.ALTERNATE_DATA_STREAM' }
     if (/~\d/.test(s)) return { ok: false, code: 'PATH.WINDOWS_SHORT_NAME' }
+    if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(s)) return { ok: false, code: 'PATH.WINDOWS_DEVICE_NAME' }
   }
   return { ok: true, path: nfc, key: nfc.toLowerCase() }
 }

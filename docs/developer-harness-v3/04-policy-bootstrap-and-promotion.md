@@ -56,6 +56,11 @@ keys and the first activation cannot be authorized by a policy that does not yet
 3. Owner signs off a bundle that adds the public keys, records its revision, and stores the pin in the controller store (out-of-band).
 4. Each later activation of an action class (merge, production) is an owner ceremony until D3.9 proves the system end to end.
 
+### Ledger discipline (required of the runtime)
+
+The evaluator returns `consumes` and never writes. The deployed controller must consume them atomically with the authorized action. A durable ledger must keep the semantics of `EvidenceLedger`:
+nonce → payload digest (a nonce re-presented with different content is rejected), single-use consumption that is all-or-nothing.
+
 ## 5. Owner ceremony (root-of-trust changes)
 
 Performed by the owner outside the harness, producing a new bundle whose `parent_revision` is the current pin, recorded with the owner's own

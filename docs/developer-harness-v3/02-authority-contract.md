@@ -71,6 +71,19 @@ revision. Reviews must come from contexts distinct from the author's and from ea
 **Implemented now:** the verifier, the ledger semantics, the contract. **Not implemented (D3.3+):** any issuer service, any production signing key,
 the durable replay ledger. In D3.2 `trusted_keys` is empty, so *nothing* authenticates, which is the safe default.
 
+### Evidence consumption and sequencing (post-review clarifications)
+
+- **Single-use evidence is consumed per action.** `delivery_verification`, `merge_receipt`, `production_verification` and `policy_promotion_approval` are single-use. Each safeguarded delivery
+  action (merge, production release, production credential access) therefore needs its **own freshly issued** single-use item with its own nonce; one verification cannot be spent twice.
+  `production_verification` is consumed by the lifecycle transition to `completed` in D3.7 and is intentionally not an input to any D3.2 action.
+- **The caller must consume atomically.** The evaluator never mutates the ledger; it returns `consumes`. The runtime must call `EvidenceLedger.consumeAll(consumes)` (or the durable equivalent) **in the
+  same transaction as the action it authorizes** and abort if it returns false. Two concurrent `allow` decisions on the same single-use evidence cannot both succeed.
+- **Requester-supplied fields can only ADD denials.** `params.incremental_usd`, `purchase`, `customer_agent_effect` and `paths` are requester claims. Real spend, resource ownership/lifecycle and
+  candidate facts come from trusted inputs (`trusted.launch`, `trusted.resources`, `trusted.candidate`); a trusted spend ledger is D3.3 work.
+- **Facts must be complete.** Candidate facts with gatherer warnings (`problems`), an unverified origin, or any symlink/gitlink change are refused (`FACTS.INCOMPLETE`, `FACTS.ORIGIN_UNVERIFIED`, `PATH.SPECIAL_FILE_MODE`).
+  A new migration is accepted only if `trusted.target_tip_sha` equals the candidate's base (`MIGRATION.BASE_NOT_CURRENT` otherwise).
+- **Review independence needs a known author context.** Without `trusted.task.author_context_id` review evidence is rejected (`EVIDENCE.AUTHOR_CONTEXT_UNKNOWN`).
+
 ## 6. What the contract deliberately does not do
 
 It does not weaken, replace or bypass CI Gate, Mobile CI, Staging Gate, the Database Migration Gate, schema contracts, rulesets, the trusted

@@ -24,7 +24,12 @@ Recoverable states, each with an enumerated set of reasons: `waiting_resources`,
    no-op that returns the same task. State revision increases by one per accepted event.
 6. **Evidence invalidation.** A head change returns the task to `testing` and invalidates test, review, publication, CI, staging and delivery evidence; a policy revision change invalidates all evidence.
    After `merged` a head change is an error.
-7. **Concurrency.** One reasoning session; CI/staging monitoring, the notification outbox and the resource governor are deterministic and may run beside it.
+7. **More events.** `policy_changed` invalidates all evidence (`*`) exactly as a head change does; `worker_recovered` is the only way a fencing token advances, and only by exactly one.
+   A head or policy change is judged by the task's **effective** state (where it will resume, if waiting), so a task waiting after merge cannot be reset, and a blocked or paused task that had been
+   verified now resumes at `testing`. Replays of an idempotency id must match the original event byte for byte (`EVENT.IDEMPOTENCY_CONFLICT` otherwise) and are checked after the fencing token.
+8. **Risk-conditional steps are enforced.** `security_review` is mandatory unless the task was created with `security_review_required: false`, and then it may not be entered. Leaving `blocked`
+   requires an `owner_action_id`; a wait that began as remediation can only return to `implementing`; `production_incident` is entered only from a post-merge effective state.
+9. **Concurrency.** One reasoning session; CI/staging monitoring, the notification outbox and the resource governor are deterministic and may run beside it.
 
 ## 3. Recovery contract (design)
 

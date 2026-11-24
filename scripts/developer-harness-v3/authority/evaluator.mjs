@@ -29,13 +29,14 @@ const REQUEST_SPEC = {
 const PARAMS_SPEC = {
   optional: { paths: v.arrayOf(v.str, 2000), permission_mode: v.oneOf('default', 'bypass'), incremental_usd: (x) => Number.isFinite(x), purchase: v.bool,
     credential_scope: v.str, customer_agent_effect: v.bool,
-    resource: (r) => isPlainObject(r) && v.id(r.owner_task_id) && v.oneOf('process', 'container', 'cache', 'migration')(r.kind) && v.oneOf('idle', 'stale', 'exited', 'running')(r.lifecycle) },
+    resource_id: v.id },
 }
 const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
   optional: { ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
 const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
   changes: v.arrayOf((x) => isPlainObject(x) && /^[AMDTUXRC]$/.test(x.status) && typeof x.path === 'string' && Object.keys(x).length === 2, 5000),
-  base_migrations: v.arrayOf((x) => typeof x === 'string', 20000), added_lines: isPlainObject }, optional: { origin_matches: (x) => x === null || typeof x === 'boolean', problems: Array.isArray } }
+  base_migrations: v.arrayOf((x) => typeof x === 'string', 20000), added_lines: isPlainObject, special_modes: v.arrayOf((x) => typeof x === 'string', 5000), origin_matches: (x) => x === null || typeof x === 'boolean', problems: v.arrayOf((x) => typeof x === 'string', 50) } }
+const RESOURCE_SPEC = (r) => isPlainObject(r) && v.id(r.owner_task_id) && v.oneOf('process', 'container', 'cache', 'migration')(r.kind) && v.oneOf('idle', 'stale', 'exited', 'running')(r.lifecycle)
 const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id } }
 
 const deny = (codes, extra = {}) => decision('deny', codes, extra)
@@ -59,17 +60,24 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
   if (!isPlainObject(trusted) || !IDENTITIES.includes(trusted.identity) || checkShape(trusted.task, TASK_SPEC, 'task').length) return bad(['INPUT.MALFORMED:trusted'])
   if (trusted.environment !== undefined && checkShape(trusted.environment, TRUSTED_ENV_SPEC, 'environment').length) return bad(['INPUT.MALFORMED:environment'])
   if (trusted.candidate != null && checkShape(trusted.candidate, CANDIDATE_SPEC, 'candidate').length) return bad(['INPUT.MALFORMED:candidate'])
+  if (trusted.resources !== undefined && !(isPlainObject(trusted.resources) && Object.values(trusted.resources).every(RESOURCE_SPEC))) return bad(['INPUT.MALFORMED:resources'])
   if (!Array.isArray(evidence) || evidence.length > 64) return bad(['INPUT.MALFORMED:evidence'])
+  const codes = []
   const requestDigest = digestOf(request)
   base.request_digest = requestDigest
 
-  const codes = []
   const params = request.params ?? {}
   const c = policy.contract
   const action = c.actions[request.action]
   if (!Object.hasOwn(c.actions, request.action) || !action) return bad(['ACTION.UNKNOWN'])
   base.action_class = action.class
   if (action.class === 'prohibited') return bad([`ACTION.PROHIBITED:${request.action}`])
+  // Facts the gatherer could not fully establish are not facts: refuse rather than decide on partial data.
+  if (trusted.candidate != null) {
+    if (trusted.candidate.problems.length) codes.push('FACTS.INCOMPLETE')
+    if (trusted.candidate.origin_matches !== true) codes.push('FACTS.ORIGIN_UNVERIFIED')
+    if (trusted.candidate.special_modes.length) codes.push('PATH.SPECIAL_FILE_MODE')
+  }
 
   // Claims made by the requester can only be checked against trusted facts; they never select or override anything.
   if (request.task_id !== trusted.task.task_id) codes.push('TASK.MISMATCH')
@@ -85,6 +93,8 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
   const paths = []
   let subject = null
 
+  let pathsLoaded = false
+  const ensurePaths = () => { if (!pathsLoaded) { pathsLoaded = true; loadPaths() } }
   const loadPaths = () => {
     const raw = request.action === 'edit_files_in_task_worktree' || request.action === 'commit_to_task_branch' ? params.paths : candidate?.changes?.map((x) => x.path)
     if (!raw) { codes.push(request.action === 'edit_files_in_task_worktree' || request.action === 'commit_to_task_branch' ? 'INPUT.PATHS_REQUIRED' : 'FACTS.MISSING'); return }
@@ -99,8 +109,9 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
 
   for (const check of action.checks ?? []) {
     switch (check) {
-      case 'path_validity': loadPaths(); break
+      case 'path_validity': ensurePaths(); break
       case 'scope': {
+        ensurePaths() // order-independent: a reordered check list can never make `scope` pass vacuously
         const allowed = authority.allowed_paths; const denied = authority.denied_paths ?? []
         if (!v.arrayOf(v.str)(allowed) || !allowed.length) { codes.push('SCOPE.NO_TASK_AUTHORITY'); break }
         const out = paths.filter((p) => !matchesAny(allowed, p.path) || matchesAny(denied, p.path))
@@ -138,6 +149,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         const m = classifyMigrationChanges({ directory: c.migrations.directory, filePattern: c.migrations.file_pattern, baseFiles: candidate.base_migrations, changes: candidate.changes })
         codes.push(...m.violations.map((x) => x.code))
         if (m.newMigrations.length) {
+          if (trusted.target_tip_sha !== candidate.base_sha) codes.push('MIGRATION.BASE_NOT_CURRENT')
           if (authority.migrations_authorized !== true) codes.push('MIGRATION.NOT_AUTHORIZED_BY_TASK')
           extraEvidence.add('independent_review'); extraEvidence.add('security_review')
         }
@@ -148,16 +160,19 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         if (params.customer_agent_effect === true) codes.push('CUSTOMER_AGENT.ACTIVATION_DECLARED')
         const norm = candidate.changes.map((x) => normalizeRepoPath(x.path)).filter((n) => n.ok)
         if (norm.some((n) => matchesAny(c.customer_agent.path_globs, n.path))) extraEvidence.add('security_review')
-        const trip = new RegExp(c.customer_agent.tripwire, 'i')
+        const must = c.customer_agent.tripwire_all.map((p) => new RegExp(p, 'i'))
         for (const lines of Object.values(candidate.added_lines ?? {})) {
-          if (lines.some((l) => trip.test(l) && /\b(true|enabled|on|1)\b/i.test(l) && /\b(update|insert|upsert|set|default)\b/i.test(l))) { codes.push('CUSTOMER_AGENT.ACTIVATION_TRIPWIRE'); break }
+          // Linear-time heuristic on bounded lines; it can only ADD a denial.
+          if (lines.some((l0) => { const l = l0.slice(0, 4000); return must.every((re) => re.test(l)) && /\b(true|enabled|on|1)\b/i.test(l) && /\b(update|insert|upsert|set|default)\b/i.test(l) })) { codes.push('CUSTOMER_AGENT.ACTIVATION_TRIPWIRE'); break }
         }
         break
       }
-      case 'credentials_env':
-        if (!trusted.environment) codes.push('ENV.UNKNOWN')
-        else codes.push(...checkCredentialEnvironment(trusted.environment.worker_env_names, c))
+      case 'credentials_env': {
+        const names = ['launch_claude_session', 'start_bypass_permissions_session'].includes(request.action) ? trusted.launch?.env_names : trusted.environment?.worker_env_names
+        if (!names) codes.push('ENV.UNKNOWN')
+        else codes.push(...checkCredentialEnvironment(names, c))
         break
+      }
       case 'credential_scope': {
         const scope = params.credential_scope
         if (!scope || !Object.hasOwn(c.credential_scopes, scope)) codes.push('CREDENTIAL.UNKNOWN_SCOPE')
@@ -179,8 +194,10 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         break
       }
       case 'resource_ownership': {
-        const r = params.resource
-        if (!r) { codes.push('INPUT.RESOURCE_REQUIRED'); break }
+        // Ownership, kind and lifecycle come from the controller's registry, never from the request (which can only name a resource).
+        if (!params.resource_id) { codes.push('INPUT.RESOURCE_REQUIRED'); break }
+        const r = trusted.resources && Object.hasOwn(trusted.resources, params.resource_id) ? trusted.resources[params.resource_id] : null
+        if (!r) { codes.push('RESOURCE.UNKNOWN'); break }
         if (r.owner_task_id !== trusted.task.task_id) codes.push('RESOURCE.NOT_OWNED')
         if (r.kind === 'migration') codes.push('RESOURCE.ACTIVE_MIGRATION')
         if (r.lifecycle === 'running') codes.push('RESOURCE.UNSAFE_LIFECYCLE')
@@ -207,7 +224,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
       repository: candidate?.repository ?? authority.repository, base_sha: candidate?.base_sha ?? authority.base_sha, candidate_sha: candidate?.candidate_sha,
       tree_digest: candidate?.tree_digest, patch_digest: candidate?.patch_digest, policy_revision: policy.revision, environment_id: trusted.environment?.id,
       subject_policy_revision: subject ?? undefined, authority_digest: digestOf(authority) } }
-    if (!(ledger instanceof EvidenceLedger) && required.some((t) => c.evidence_types[t]?.single_use)) codes.push('LEDGER.REQUIRED')
+    if (!(ledger instanceof EvidenceLedger) && (request.action === 'accept_evidence' || required.some((t) => c.evidence_types[t]?.single_use))) codes.push('LEDGER.REQUIRED')
     const digests = new Map()
     const staged = []
     for (const env of evidence) {

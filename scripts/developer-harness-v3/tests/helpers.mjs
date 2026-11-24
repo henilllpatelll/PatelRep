@@ -41,7 +41,7 @@ export const CANDIDATE = Object.freeze({
   source: 'git', repository: REPO, base_sha: BASE, candidate_sha: HEAD, tree_digest: TREE, patch_digest: PATCH,
   changes: [{ status: 'M', path: 'apps/mobile/app/home.tsx' }],
   base_migrations: ['supabase/migrations/001_init.sql', 'supabase/migrations/261_agent_worker_tenant_binding.sql', 'supabase/migrations/262_agent_verified_human_identity.sql'],
-  added_lines: {},
+  added_lines: {}, special_modes: [], origin_matches: true, problems: [],
 })
 export const candidate = (over = {}) => ({ ...structuredClone(CANDIDATE), ...over })
 
@@ -54,7 +54,10 @@ export const authorityDigest = (a = AUTHORITY) => digestOf(a)
 export function trustedFor(identity, over = {}) {
   return { identity, task: { task_id: 'task-1', fencing_token: 7, state_revision: 3, author_context_id: 'ctx-author',
     authority: structuredClone(AUTHORITY) },
-  environment: structuredClone(ISOLATED_ENV), candidate: candidate(), ...over }
+  environment: structuredClone(ISOLATED_ENV), candidate: candidate(), target_tip_sha: BASE,
+  resources: { 'res-own-stale': { owner_task_id: 'task-1', kind: 'container', lifecycle: 'stale' }, 'res-other': { owner_task_id: 'task-2', kind: 'container', lifecycle: 'stale' },
+    'res-own-running': { owner_task_id: 'task-1', kind: 'process', lifecycle: 'running' }, 'res-own-migration': { owner_task_id: 'task-1', kind: 'migration', lifecycle: 'idle' } },
+  ...over }
 }
 
 const ISSUER = { task_authority: 'task_ingress', test_results: 'orchestrator', independent_review: 'independent_reviewer', security_review: 'security_reviewer',

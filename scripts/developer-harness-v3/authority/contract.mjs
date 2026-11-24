@@ -56,7 +56,8 @@ export function validateContract(c) {
       if (a.requires_activation !== true) p.push(`action ${name}: safeguarded actions must declare requires_activation`)
     }
     if (a.class === 'allowed' && a.required_evidence?.length) p.push(`action ${name}: allowed actions take no evidence`)
-    for (const e of a.required_evidence ?? []) if (!(e in c.evidence_types)) p.push(`action ${name}: unknown evidence type ${e}`)
+    for (const e of a.required_evidence ?? []) if (!Object.hasOwn(c.evidence_types, e)) p.push(`action ${name}: unknown evidence type ${e}`)
+    if (a.checks?.includes('scope') && !a.checks.includes('path_validity')) p.push(`action ${name}: scope requires path_validity`)
   }
   for (const n of REQUIRED_PROHIBITED) if (c.actions[n]?.class !== 'prohibited') p.push(`action ${n}: must be prohibited`)
 
@@ -76,6 +77,10 @@ export function validateContract(c) {
   p.push(...checkShape(c.limits, { required: { max_incremental_usd: v.int, max_reasoning_sessions: v.int, evidence_clock_skew_seconds: v.int, max_changed_paths: v.int } }, 'contract.limits'))
   if (!isPlainObject(c.migrations) || typeof c.migrations.file_pattern !== 'string') p.push('contract.migrations: invalid')
   else { try { new RegExp(c.migrations.file_pattern) } catch { p.push('contract.migrations.file_pattern: not a regular expression') } }
+  for (const pat of Array.isArray(c.credential_environment_patterns) ? c.credential_environment_patterns : []) { try { new RegExp(pat) } catch { p.push('contract.credential_environment_patterns: not a regular expression') } }
+  if (!isPlainObject(c.migrations) || typeof c.migrations.directory !== 'string' || !/^[a-z0-9_/.-]+$/i.test(c.migrations.directory)) p.push('contract.migrations.directory: invalid')
+  if (!isPlainObject(c.customer_agent) || !v.arrayOf(v.str, 100)(c.customer_agent.path_globs) || !v.arrayOf((x) => v.str(x) && x.length <= 200, 10)(c.customer_agent.tripwire_all) || !c.customer_agent.tripwire_all.length) p.push('contract.customer_agent: invalid')
+  else for (const pat of c.customer_agent.tripwire_all) { try { new RegExp(pat) } catch { p.push('contract.customer_agent.tripwire_all: not a regular expression') } }
   if (!isPlainObject(c.activation) || !Array.isArray(c.activation.active_actions)) p.push('contract.activation: invalid')
   else for (const a of c.activation.active_actions) if (c.actions[a]?.class !== 'safeguarded') p.push(`contract.activation: ${a} is not a safeguarded action`)
   if (!isPlainObject(c.credential_scopes)) p.push('contract.credential_scopes: invalid')
@@ -84,7 +89,7 @@ export function validateContract(c) {
       p.push(...checkShape(d, { required: { identities: v.arrayOf(v.oneOf(...IDENTITIES), 12), required_evidence: v.arrayOf(v.str, 10) } }, `credential_scope ${scope}`))
       if (isPlainObject(d) && !d.identities?.length) p.push(`credential_scope ${scope}: needs identities`)
       if (isPlainObject(d) && d.identities?.includes('implementer')) p.push(`credential_scope ${scope}: the implementer may never hold a credential scope`)
-      for (const e of d?.required_evidence ?? []) if (!(e in c.evidence_types)) p.push(`credential_scope ${scope}: unknown evidence ${e}`)
+      for (const e of d?.required_evidence ?? []) if (!Object.hasOwn(c.evidence_types, e)) p.push(`credential_scope ${scope}: unknown evidence ${e}`)
     }
   }
   return p

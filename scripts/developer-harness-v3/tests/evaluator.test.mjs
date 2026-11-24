@@ -5,7 +5,7 @@ import { loadContractFile } from '../authority/contract.mjs'
 import { EvidenceLedger } from '../authority/evidence.mjs'
 import { evaluate } from '../authority/evaluator.mjs'
 import { digestOf } from '../lib/canonical.mjs'
-import { BASE, ENV_ID, HEAD, NOW, REPO, TREE, buildPolicy, candidate, evidence, iso, makeKeys, request, trustedFor } from './helpers.mjs'
+import { BASE, HEAD, NOW, buildPolicy, candidate, evidence, iso, makeKeys, request, trustedFor } from './helpers.mjs'
 
 const KEYS = makeKeys()
 const SHIPPED = buildPolicy({ keys: KEYS })
@@ -315,13 +315,16 @@ test('scope: the implementer can only touch what trusted task authority allows; 
   assert.ok(codes(run(ACTIVE, request('edit_files_in_task_worktree'), trustedFor('implementer'))).includes('INPUT.PATHS_REQUIRED'))
 })
 
-test('resource cleanup only touches task-owned, idle resources and never a migration', () => {
-  const clean = (resource, id = 'orchestrator') => run(ACTIVE, request('cleanup_task_owned_resources', { params: { resource } }), trustedFor(id))
-  assert.equal(clean({ owner_task_id: 'task-1', kind: 'container', lifecycle: 'stale' }).decision, 'allow')
-  assert.ok(codes(clean({ owner_task_id: 'task-2', kind: 'container', lifecycle: 'stale' })).includes('RESOURCE.NOT_OWNED'))
-  assert.ok(codes(clean({ owner_task_id: 'task-1', kind: 'process', lifecycle: 'running' })).includes('RESOURCE.UNSAFE_LIFECYCLE'))
-  assert.ok(codes(clean({ owner_task_id: 'task-1', kind: 'migration', lifecycle: 'idle' })).includes('RESOURCE.ACTIVE_MIGRATION'))
+test('resource cleanup only touches task-owned, idle resources and never a migration; ownership comes from the controller registry, not the request', () => {
+  const clean = (resource_id, id = 'orchestrator') => run(ACTIVE, request('cleanup_task_owned_resources', { params: { resource_id } }), trustedFor(id))
+  assert.equal(clean('res-own-stale').decision, 'allow')
+  assert.ok(codes(clean('res-other')).includes('RESOURCE.NOT_OWNED'))
+  assert.ok(codes(clean('res-own-running')).includes('RESOURCE.UNSAFE_LIFECYCLE'))
+  assert.ok(codes(clean('res-own-migration')).includes('RESOURCE.ACTIVE_MIGRATION'))
+  assert.ok(codes(clean('res-not-registered')).includes('RESOURCE.UNKNOWN'), 'a requester cannot invent ownership by naming a resource')
+  assert.ok(codes(clean('constructor')).includes('RESOURCE.UNKNOWN'))
   assert.ok(codes(run(ACTIVE, request('cleanup_task_owned_resources'), trustedFor('orchestrator'))).includes('INPUT.RESOURCE_REQUIRED'))
+  assert.deepEqual(codes(run(ACTIVE, request('cleanup_task_owned_resources', { params: { resource: { owner_task_id: 'task-1', kind: 'process', lifecycle: 'stale' } } }), trustedFor('orchestrator'))), ['INPUT.MALFORMED:params'])
   assert.deepEqual(codes(run(ACTIVE, request('terminate_unowned_processes'), trustedFor('orchestrator'))), ['ACTION.PROHIBITED:terminate_unowned_processes'])
 })
 
@@ -378,7 +381,6 @@ test('evaluation never mutates its inputs (pure)', () => {
   run(ACTIVE, r, t, e)
   assert.equal(JSON.stringify([t, e, r]), before)
   assert.ok(Object.isFrozen(ACTIVE.policy))
-  assert.equal(REPO, 'henilllpatelll/PatelRep'); assert.equal(BASE.length, 40); assert.equal(TREE.length, 40); assert.equal(ENV_ID, 'vm-isolated-1')
 })
 
 test('trusted policy provenance: only an object produced by loadPolicy with the pin is accepted', () => {
