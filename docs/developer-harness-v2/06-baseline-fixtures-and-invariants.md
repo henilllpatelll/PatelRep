@@ -35,7 +35,7 @@ Baseline: `main` @ `218a882b15ed8f928f9a8b7d82b6ea8bb1ed0d37`, 2026-11-21.
 | Local Claude settings/hooks | **None** | Phase 2 |
 | Developer role tool scopes | **None** (no roles exist) | Phase 4 |
 | Checkpoint/resume | **None** | Phase 5 |
-| V2 contract consistency | Phase 1 tests (`scripts/developer-harness-v2/`) — local only, not in CI until Phase 8 | Phase 8 |
+| V2 contract consistency | Every registered `harness.*` suite (`scripts/developer-harness-v2/`), run in CI since Phase 8 by the `Release Workflow Contract` job, which CI Gate requires (doc 13) | — |
 
 ## 4. Required negative test cases (specifications for later phases)
 
@@ -62,8 +62,8 @@ production.
 
 | Invariant / case | Local (no credentials) | Needs CI | Needs live GitHub evidence | Needs separate human review |
 |---|---|---|---|---|
-| V2 contract consistency (Phase 1 tests) | ✔ | Phase 8 | — | — |
-| N-1…N-12 policy decisions | ✔ | Phase 8 | — | — |
+| V2 contract consistency (Phase 1 tests) | ✔ | ✔ (Phase 8: `Release Workflow Contract` → CI Gate) | — | — |
+| N-1…N-12 policy decisions | ✔ | ✔ (Phase 8: `Release Workflow Contract` → CI Gate) | — | — |
 | P-1, P-2 ruleset state | — | — | ✔ (`gh api` read-only) | Ruleset changes |
 | P-3, P-6, P-7 workflow structure | ✔ (existing contract tests) | ✔ (already in CI Gate) | — | Control-plane PRs |
 | P-4 migration immutability | ✔ (partial) | ✔ (Database Migration Gate) | — | New migrations |

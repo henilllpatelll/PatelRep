@@ -147,7 +147,7 @@ scripts/staging-trusted-control-plane.test.mjs scripts/staging-trusted-execution
 scripts/staging-reviewed-migration-preview-workflow.test.mjs scripts/dependency-orchestrator-policy.test.mjs
 scripts/dependency-orchestrator-engine.test.mjs scripts/dependency-orchestrator-run.test.mjs scripts/dependency-orchestrator-workflow.test.mjs
 scripts/ci-gate-room-board.test.mjs scripts/github-actions-upgrade-contract.test.mjs scripts/actions-runtime-contract.test.mjs
-scripts/security-scan-contract.test.mjs`)
+scripts/security-scan-contract.test.mjs scripts/developer-harness-v2-ci-workflow.test.mjs`)
 const DB_STATIC = L(`scripts/check-migrations.test.mjs scripts/build-migration-replay-workspace.test.mjs scripts/check-db-drift.test.mjs
 scripts/staging-target-guard.test.mjs scripts/production-target-guard.test.mjs scripts/check-feature-flag-registry.test.mjs
 scripts/public-smoke.test.mjs scripts/release-content-summary.test.mjs scripts/remote-migration-apply.test.mjs scripts/destructive-db-guard.test.mjs
@@ -194,7 +194,7 @@ const API = { cwd: 'apps/api', areas: ['api'], env: 'api_test' }
 
 export const SUITES = Object.freeze([
   // ── Developer harness (Phases 1–6): node --test only, no dependencies ──
-  S('harness.contract', 'Harness Phase 1 contract tests', 'lightweight', { areas: ['harness'], steps: [nodeTest(hf('contract.test.mjs'))], discovery: 'node_test' }),
+  S('harness.contract', 'Harness Phase 1 contract tests', 'lightweight', { areas: ['harness'], steps: [nodeTest(hf('contract.test.mjs', 'ci/ci-integration.test.mjs'))], discovery: 'node_test' }),
   S('harness.policy', 'Harness Phase 2 policy and security regressions', 'lightweight', { areas: ['harness', 'security'], timeout_ms: 15 * 60 * 1000, discovery: 'node_test',
     steps: [nodeTest(hf('policy-engine.test.mjs', 'policy-hook.test.mjs', 'm1-hardening.test.mjs', 'copymove-remediation.test.mjs', 'path-resolution.test.mjs', 'runtime-sandbox-env.test.mjs'))] }),
   S('harness.context', 'Harness Phase 3 context and memory tests', 'lightweight', { areas: ['harness'], discovery: 'node_test',
