@@ -89,9 +89,15 @@ export function validateContract(c) {
   if (!isPlainObject(c.migrations) || typeof c.migrations.directory !== 'string' || !/^[a-z0-9_/.-]+$/i.test(c.migrations.directory)) p.push('contract.migrations.directory: invalid')
   if (!isPlainObject(c.customer_agent) || validateGlobList(c.customer_agent.path_globs, 'x').length || !v.arrayOf((x) => v.str(x) && x.length <= 200, 10)(c.customer_agent.tripwire_all) || !c.customer_agent.tripwire_all.length) p.push('contract.customer_agent: invalid')
   else for (const pat of c.customer_agent.tripwire_all) { try { new RegExp(pat) } catch { p.push('contract.customer_agent.tripwire_all: not a regular expression') } }
+  if (!v.arrayOf((x) => typeof x === 'string' && /^[A-Z][A-Z0-9_]{1,60}$/.test(x), 50)(c.settings_env_inert_allowlist) || !c.settings_env_inert_allowlist.length) p.push('contract.settings_env_inert_allowlist: invalid')
   p.push(...checkShape(c.subscription, { required: { known_plans: v.arrayOf(v.id, 20), authorized_plans: v.arrayOf(v.id, 20) }, optional: { $comment: v.str } }, 'contract.subscription'))
   if (isPlainObject(c.subscription) && Array.isArray(c.subscription.known_plans) && Array.isArray(c.subscription.authorized_plans)) {
     if (!c.subscription.authorized_plans.length) p.push('contract.subscription: at least one plan must be authorized')
+    for (const k of ['known_plans', 'authorized_plans']) {
+      const list = c.subscription[k]
+      if (new Set(list).size !== list.length) p.push(`contract.subscription.${k}: duplicate entries`)
+      if (list.some((x) => typeof x !== 'string' || !/^[a-z][a-z0-9_]{1,40}$/.test(x))) p.push(`contract.subscription.${k}: plan identities must be lowercase canonical ids`)
+    }
     for (const a of c.subscription.authorized_plans) if (!c.subscription.known_plans.includes(a)) p.push(`contract.subscription: authorized plan ${String(a).slice(0, 40)} is not a known plan`)
   }
   if (!v.arrayOf((x) => typeof x === 'string' && /^[A-Z][A-Z0-9_]{1,60}$/.test(x), 50)(c.launcher_controlled_environment) || !c.launcher_controlled_environment.length) p.push('contract.launcher_controlled_environment: invalid')

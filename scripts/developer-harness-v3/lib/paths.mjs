@@ -70,6 +70,7 @@ export function validateGlobList(list, label, { allowSlash = true } = {}) {
   for (const g of list) {
     if (typeof g !== 'string' || g.length === 0 || g.length > MAX_GLOB_LENGTH || !GLOB_ALPHABET.test(g)) p.push(`${label}: invalid glob ${String(g).slice(0, 40)}`)
     else if ((g.match(/[*?]/g) ?? []).length > 12) p.push(`${label}: too many wildcards in ${g.slice(0, 40)}`)
+    else if (g.startsWith('/') || g.endsWith('/') || g.split('/').some((seg) => seg === '' || seg === '.' || seg === '..' || /\*{3,}/.test(seg))) p.push(`${label}: ${g.slice(0, 40)} can never match a normalized path`)
     else if (!allowSlash && g.includes('/')) p.push(`${label}: ${g.slice(0, 40)} may not contain /`)
   }
   return p

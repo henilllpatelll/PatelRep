@@ -12,7 +12,7 @@ import { validateContract, validateTrustedKeys, policyRevision } from './contrac
 
 const RANK = { allowed: 0, safeguarded: 1, prohibited: 2 }
 const IGNORED_TOP_LEVEL = new Set(['$comment', 'baseline', 'phase', 'status', 'classes', 'preserved_v2'])
-const HANDLED_TOP_LEVEL = new Set(['subscription', 'launcher_controlled_environment', 'activation_prerequisites', 'worker_environment_allowlist', 'actions', 'evidence_types', 'identities', 'protected_paths', 'root_of_trust_paths', 'limits', 'forbidden_auth_environment', 'forbidden_auth_settings',
+const HANDLED_TOP_LEVEL = new Set(['settings_env_inert_allowlist', 'subscription', 'launcher_controlled_environment', 'activation_prerequisites', 'worker_environment_allowlist', 'actions', 'evidence_types', 'identities', 'protected_paths', 'root_of_trust_paths', 'limits', 'forbidden_auth_environment', 'forbidden_auth_settings',
   'credential_environment_patterns', 'credential_scopes', 'migrations', 'customer_agent', 'activation', 'contract_id', 'schema', 'version'])
 
 const asSet = (x) => new Set(x ?? [])
@@ -71,6 +71,8 @@ export function diffPolicy(active, proposed) {
   }
   // Subscription authorization is financial/authentication authority: it can only change through the owner ceremony.
   if (digestOf(A.subscription) !== digestOf(B.subscription)) add('root_of_trust', 'SUBSCRIPTION_AUTHORIZATION_CHANGED', 'subscription')
+  if (added(A.settings_env_inert_allowlist, B.settings_env_inert_allowlist).length) add('weakening', 'SETTINGS_ENV_ALLOWLIST_WIDENED', 'settings_env_inert_allowlist')
+  if (removed(A.settings_env_inert_allowlist, B.settings_env_inert_allowlist).length) add('strengthening', 'SETTINGS_ENV_ALLOWLIST_NARROWED', 'settings_env_inert_allowlist')
   if (removed(A.launcher_controlled_environment, B.launcher_controlled_environment).length) add('weakening', 'LAUNCHER_CONTROLLED_ENV_REMOVED', 'launcher_controlled_environment')
   if (added(A.launcher_controlled_environment, B.launcher_controlled_environment).length) add('strengthening', 'LAUNCHER_CONTROLLED_ENV_ADDED', 'launcher_controlled_environment')
   if (removed(A.activation_prerequisites, B.activation_prerequisites).length) add('weakening', 'ACTIVATION_PREREQUISITE_REMOVED', 'activation_prerequisites')

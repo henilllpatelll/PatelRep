@@ -15,7 +15,7 @@ import { IDENTITIES, isLoadedPolicy } from './contract.mjs'
 import { EvidenceLedger, isSatisfying, validateEvidence } from './evidence.mjs'
 import { classifyMigrationChanges } from './migration-facts.mjs'
 import { promotionCheck } from './policy-version.mjs'
-import { checkCredentialEnvironment, checkLauncherControlled, checkLaunchAuthentication, checkSpend } from './spend.mjs'
+import { checkCredentialEnvironment, checkLauncherControlled, checkLaunchAuthentication, checkSettingsEnv, checkSpend } from './spend.mjs'
 
 export const DECISION_SCHEMA = 'patelrep.developer-harness-v3.decision'
 const ISOLATION_PROPERTIES = Object.freeze({ egress_restricted: true, host_mounts: false, docker_socket_exposed: false, windows_interop: false, controller_reachable: false,
@@ -36,6 +36,8 @@ const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'w
 const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
   changes: v.arrayOf((x) => isPlainObject(x) && /^[AMDTUXRC]$/.test(x.status) && typeof x.path === 'string' && Object.keys(x).length === 2, 5000),
   base_migrations: v.arrayOf((x) => typeof x === 'string', 20000), added_lines: isPlainObject, special_modes: v.arrayOf((x) => typeof x === 'string', 5000), origin_matches: (x) => x === null || typeof x === 'boolean', problems: v.arrayOf((x) => typeof x === 'string', 50) } }
+const TRUSTED_LAUNCH_SPEC = { required: { env_names: v.arrayOf((x) => typeof x === 'string', 2000), settings: isPlainObject },
+  optional: { auth: (x) => x === null || isPlainObject(x), env_value_origins: (x) => isPlainObject(x) && Object.values(x).every((o) => typeof o === 'string') } }
 const RESOURCE_SPEC = (r) => isPlainObject(r) && v.id(r.owner_task_id) && v.oneOf('process', 'container', 'cache', 'migration')(r.kind) && v.oneOf('idle', 'stale', 'exited', 'running')(r.lifecycle)
 const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id } }
 
@@ -64,6 +66,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
   if (!isPlainObject(trusted) || !IDENTITIES.includes(trusted.identity) || checkShape(trusted.task, TASK_SPEC, 'task').length) return bad(['INPUT.MALFORMED:trusted'])
   if (trusted.environment !== undefined && checkShape(trusted.environment, TRUSTED_ENV_SPEC, 'environment').length) return bad(['INPUT.MALFORMED:environment'])
   if (trusted.candidate != null && checkShape(trusted.candidate, CANDIDATE_SPEC, 'candidate').length) return bad(['INPUT.MALFORMED:candidate'])
+  if (trusted.launch !== undefined && (checkShape(trusted.launch, TRUSTED_LAUNCH_SPEC, 'launch').length || (trusted.launch.settings.env !== undefined && !isPlainObject(trusted.launch.settings.env)))) return bad(['INPUT.MALFORMED:launch'])
   if (trusted.resources !== undefined && !(isPlainObject(trusted.resources) && Object.values(trusted.resources).every(RESOURCE_SPEC))) return bad(['INPUT.MALFORMED:resources'])
   if (!Array.isArray(evidence) || evidence.length > 64) return bad(['INPUT.MALFORMED:evidence'])
   const codes = []
@@ -188,7 +191,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         const names = isLaunch ? (trusted.launch ? [...(trusted.launch.env_names ?? []), ...settingsEnv] : undefined) : trusted.environment?.worker_env_names
         const origins = isLaunch ? trusted.launch?.env_value_origins : trusted.environment?.env_value_origins
         if (!names) codes.push('ENV.UNKNOWN')
-        else { codes.push(...checkCredentialEnvironment(names, c)); codes.push(...checkLauncherControlled(names, origins, settingsEnv, c)) }
+        else { codes.push(...checkCredentialEnvironment(names, c)); codes.push(...checkLauncherControlled(names, origins, settingsEnv, c)); codes.push(...checkSettingsEnv(settingsEnv, c)) }
         break
       }
       case 'credential_scope': {

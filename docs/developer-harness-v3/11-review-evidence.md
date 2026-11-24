@@ -81,3 +81,18 @@ The final two fixes above were verified by tests but **not** given a further ind
 V3 suite (sequential, 1 GB heap): **105 tests pass** at the final candidate. V2 regression through the V2 CI runner (run before the V3 remediation commits; V2 files are unchanged by this PR): 5 of 7 suites pass; the
 2 failing items are the two known local-only Windows conditions (directory-symlink privilege skip; the archive "manifest entries" assertion in a full clone) recorded against main before this work. The pinned CI guard and
 delivery-contract tests (39) pass. CI and Staging evidence for the exact head is in the PR report.
+
+## 5. Final remediation and targeted Opus review (candidate after 488fafdf)
+
+Scope: only the Claude Max 5x compatibility correction, the final glob-matcher change, the final environment allow-list change and their regression tests. A fresh Opus security-reviewer context (not the earlier
+reviewers) examined them; it did **not** repeat the earlier audit.
+
+| Area | Result |
+|---|---|
+| A. Subscription compatibility | Held up under probing: unknown, non-canonical, prototype-named, lookalike or non-string plans fail closed; known-but-unauthorized plans are refused; extra usage passes only for the literal `false`; API-key and other sources refused; changing the authorized list is root-of-trust; no plan alters the zero-spend limit. Only info items (duplicate/lowercase plan ids) — fixed |
+| B. Glob matcher and normalization | Held up: every required protected/root-of-trust/customer-agent path matches (any case, any depth), `**` edge cases, literal wildcard characters, adversarial timing (~1.4 ms for 66 `**` segments), unicode lookalikes verified not to alias on NTFS. One low item: `validateGlobList` accepted globs that can never match — **fixed** |
+| C. Environment allow-list | Unknown and credential-shaped names rejected (about 30 realistic names probed). **Three real gaps, all fixed:** (1) origins were looked up case-folded, so a lowercase `https_proxy` rode on `HTTPS_PROXY`'s label — now exact-name; (2) case-variant duplicate keys in the origin report were resolved by key order — now ambiguous = refused; (3) repository-controlled `settings.env` could still set `PATH`, `HOME`, `XDG_*` — now limited to an inert list. Also fixed: the trusted launch block is shape-checked |
+| D. Tests | Non-vacuous for the reviewed properties; the test that had enshrined the case-folded lookup was corrected and new tests added (`final-review.test.mjs`, `subscription.test.mjs`) |
+
+Reviewer finding 6 (`env_value_origins` accepted in request params) did not apply: it is only a trusted-environment field and a request carrying it is `INPUT.MALFORMED:params`; a test now pins that.
+Reviewer verdict: A and B sound, C acceptable while inactive with items 1–3 fixed before activation; those are fixed. The fixes for items 1–7 were then re-verified by the same reviewer (below).

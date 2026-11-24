@@ -64,19 +64,44 @@ export function checkSpend({ incrementalUsd = 0, purchase = false }, contract) {
 
 /**
  * Behavior-sensitive variables (NODE_OPTIONS, proxy and certificate settings) change what a worker executes and where its traffic goes. Their VALUES
- * must originate exclusively from the trusted launcher. The launcher reports an origin label per name (never the value); anything else, an absent
- * label, or the same name appearing in the repository-controlled settings `env` is refused.
+ * must originate exclusively from the trusted launcher. The launcher reports an origin label per EXACT name (never the value). On the Linux worker
+ * `https_proxy` and `HTTPS_PROXY` are different variables and tools read both, so:
+ *   - the origin is looked up by the exact name present, never case-folded;
+ *   - two case-variants of a controlled name in the environment are refused (ambiguous);
+ *   - several keys in the origin report that differ only by case are refused (ambiguous report);
+ *   - an origin other than the string `trusted_launcher`, or none at all, is refused;
+ *   - the same name in the repository-controlled settings `env` is refused.
  */
 export function checkLauncherControlled(names, origins, settingsEnvNames, contract) {
   const codes = []
   const controlled = new Set(contract.launcher_controlled_environment.map((n) => n.toUpperCase()))
-  const fromSettings = new Set((settingsEnvNames ?? []).map((n) => String(n).toUpperCase()))
-  const originOf = (n) => { if (!isObj(origins)) return undefined; const key = Object.keys(origins).find((k) => k.toUpperCase() === n); return key === undefined ? undefined : origins[key] }
+  const fail = (n) => { const c = `ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`; if (!codes.includes(c)) codes.push(c) }
+  const originKeys = isObj(origins) ? Object.keys(origins) : []
+  const seenFolded = new Map()
   for (const raw of names) {
-    const n = String(raw).toUpperCase()
+    const exact = String(raw)
+    const n = exact.toUpperCase()
     if (!controlled.has(n)) continue
-    if (fromSettings.has(n) || originOf(n) !== 'trusted_launcher') codes.push(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)
+    const variants = seenFolded.get(n) ?? new Set(); variants.add(exact); seenFolded.set(n, variants)
+    if (variants.size > 1) fail(n) // two spellings of the same controlled variable
+    if (originKeys.filter((k) => k.toUpperCase() === n).length > 1) fail(n) // ambiguous origin report
+    if (!isObj(origins) || !Object.hasOwn(origins, exact) || origins[exact] !== 'trusted_launcher') fail(n)
   }
-  for (const n of fromSettings) if (controlled.has(n) && !codes.includes(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)) codes.push(`ENV.VALUE_NOT_FROM_TRUSTED_LAUNCHER:${n}`)
+  for (const raw of settingsEnvNames ?? []) if (controlled.has(String(raw).toUpperCase())) fail(String(raw).toUpperCase())
+  return codes
+}
+
+/**
+ * The repository-controlled settings `env` block may only set names on a tiny inert list. Anything else (PATH, HOME, XDG_*, SHELL, TMPDIR, proxies,
+ * NODE_OPTIONS, credentials) could redirect what the worker executes or where it reads configuration and authentication from.
+ */
+export function checkSettingsEnv(settingsEnvNames, contract) {
+  const codes = []
+  const inert = new Set(contract.settings_env_inert_allowlist.map((n) => n.toUpperCase()))
+  const controlled = new Set(contract.launcher_controlled_environment.map((n) => n.toUpperCase()))
+  for (const raw of settingsEnvNames ?? []) {
+    const n = String(raw).toUpperCase()
+    if (!inert.has(n) && !controlled.has(n)) codes.push(`ENV.SETTINGS_ENV_NOT_ALLOWED:${n.slice(0, 60)}`)
+  }
   return codes
 }
