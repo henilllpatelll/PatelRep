@@ -56,15 +56,24 @@ test('the real registry is complete: every harness test file is run by exactly o
   for (const id of BASELINE_SUITE_IDS) assert.ok(HARNESS_ALL.includes(id))
 })
 
-test('the real allowlist is exactly five plain entries inside registered files, and each named test exists verbatim', () => {
-  assert.equal(ALLOWED_SKIPS.length, 5); assert.equal(MAX_ALLOWED_SKIPS, 5)
+test('the real allowlist is exactly six plain entries inside registered files, and each named test exists verbatim', () => {
+  assert.equal(ALLOWED_SKIPS.length, 6); assert.equal(MAX_ALLOWED_SKIPS, 6)
   assert.deepEqual(validateAllowlist(ALLOWED_SKIPS, registeredFiles), [])
   assert.ok(Object.isFrozen(ALLOWED_SKIPS) && ALLOWED_SKIPS.every(Object.isFrozen))
   for (const a of ALLOWED_SKIPS) {
     const src = readFileSync(path.join(ROOT, a.file), 'utf8')
     assert.ok(src.includes(`test('${a.name}'`), `${a.file} declares "${a.name}"`)
-    assert.match(a.why, /squash-merged/)
   }
+  // Five historical-provenance skips (squash merge), and ONE local-only-evidence skip with its own, distinct explanation.
+  for (const a of ALLOWED_SKIPS.slice(0, 5)) assert.match(a.why, /squash-merged/)
+  const archive = ALLOWED_SKIPS[5]
+  assert.equal(archive.file, `${HARNESS_DIR}/context/archive.test.mjs`)
+  assert.equal(archive.name, 'external archive verifies byte-for-byte against the manifest (when the archive is present locally)')
+  assert.equal(archive.reason, 'external Phase 3 archive not available in this environment (optional local-only evidence)')
+  assert.match(archive.why, /local-only evidence/); assert.match(archive.why, /never available in CI/); assert.match(archive.why, /unrelated to the squash merge/)
+  const archiveSrc = readFileSync(path.join(ROOT, archive.file), 'utf8')
+  assert.equal(archiveSrc.split(`t.skip('${archive.reason}')`).length, 2, 'the archive test skips with exactly this literal reason, once')
+  assert.ok(!/t\.skip\(`[^`]*\$\{/.test(archiveSrc), 'no interpolated (path- or platform-dependent) skip reason remains in the archive test')
   for (const d of KNOWN_PARTIAL_DIAGNOSTICS) assert.ok(readFileSync(path.join(ROOT, d.file), 'utf8').includes(`t.diagnostic('${d.message}')`))
 })
 
@@ -185,6 +194,36 @@ test('skips: unexpected ones fail; exact allowlisted ones pass but are reported 
   assert.equal(extra.summary.ok, false, 'an additional skip with the same reason is still unexpected')
   const nested = await runFixture({ 'h.test.mjs': "import test from 'node:test'\ntest('real', () => {})\ntest('p', async (t) => { await t.test('history check', (c) => c.skip('source commit not in local history')) })\n" }, { allowlist })
   assert.equal(nested.summary.ok, false, 'same name and reason at a different nesting level is not allowed')
+})
+
+test('PR #250 Linux CI: the local-only archive skip is allowed only by its exact name and stable reason, and only once', async () => {
+  const a = ALLOWED_SKIPS[5]
+  const name = a.name; const reason = a.reason
+  const allowlist = [allowEntry('arch.test.mjs', name, reason)]
+  const src = (skipReason) => `import test from 'node:test'\ntest('real', () => {})\ntest(${JSON.stringify(name)}, (t) => { t.skip(${JSON.stringify(skipReason)}) })\n`
+  // Absent archive (CI): exact reason → allowed, NOT EXECUTED, never counted as passed.
+  const ci = await runFixture({ 'arch.test.mjs': src(reason) }, { allowlist })
+  assert.equal(ci.summary.ok, true, formatReport(ci)); assert.equal(ci.results[0].counts.passed, 1); assert.deepEqual(ci.results[0].allowed_skips.map((x) => x.reason), [reason])
+  assert.match(formatReport(ci), /NOT EXECUTED, not counted as passed\): 1\n {2}- .*external archive verifies/)
+  // The original path-dependent reason that failed on Linux, or any other reason, is still unexpected.
+  for (const other of ['archive not present at C:/Users/x/PatelRep-archive', 'archive not present at /home/runner/work/x', `${reason} `, 'skipped']) {
+    const rep = await runFixture({ 'arch.test.mjs': src(other) }, { allowlist })
+    assert.equal(rep.summary.ok, false, other); assert.ok(hasProblem(rep, 'SKIP.UNEXPECTED'), other)
+  }
+  // Present archive (local): the test runs and passes → reported as an allowed skip that now passes, run OK.
+  const local = await runFixture({ 'arch.test.mjs': `import test from 'node:test'\ntest(${JSON.stringify(name)}, () => {})\n` }, { allowlist })
+  assert.equal(local.summary.ok, true, formatReport(local)); assert.deepEqual(local.summary.known_skip_now_passes.map((x) => x.name), [name])
+  // A failing archive verification, a deleted test, or a duplicated skip event all fail.
+  const fails = await runFixture({ 'arch.test.mjs': `import test from 'node:test'\nimport assert from 'node:assert'\ntest('real', () => {})\ntest(${JSON.stringify(name)}, () => assert.fail('tampered'))\n` }, { allowlist })
+  assert.equal(fails.summary.ok, false)
+  const gone = await runFixture({ 'arch.test.mjs': PASS }, { allowlist }); assert.ok(hasProblem(gone, 'ALLOWLIST.ENTRY_NOT_OBSERVED'))
+  const twice = await runFixture({ 'arch.test.mjs': `${src(reason)}test(${JSON.stringify(name)}, (t) => { t.skip(${JSON.stringify(reason)}) })\n` }, { allowlist })
+  assert.equal(twice.summary.ok, false); assert.ok(hasProblem(twice, 'ALLOWLIST.ENTRY_AMBIGUOUS'), problemsOf(twice).join(', '))
+  // The reason does not widen to other archive tests: another test in the same file skipping with the same reason is unexpected.
+  const sibling = await runFixture({ 'arch.test.mjs': `${src(reason)}test('archive sibling', (t) => { t.skip(${JSON.stringify(reason)}) })\n` }, { allowlist })
+  assert.equal(sibling.summary.ok, false); assert.ok(hasProblem(sibling, 'SKIP.UNEXPECTED'))
+  // Seven entries can never validate.
+  assert.ok(validateAllowlist([...ALLOWED_SKIPS, { ...a, name: `${a.name} (copy)` }], registeredFiles).includes('ALLOWLIST.TOO_MANY'))
 })
 
 test('an allowlisted test that now passes is reported; one that disappears or fails fails the run', async () => {

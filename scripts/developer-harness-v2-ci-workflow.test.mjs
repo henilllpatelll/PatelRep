@@ -23,7 +23,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
-import { ALLOWED_SKIPS, BASELINE_SUITE_IDS } from './developer-harness-v2/ci/run-ci-suites.mjs'
+import { ALLOWED_SKIPS, BASELINE_SUITE_IDS, MAX_ALLOWED_SKIPS } from './developer-harness-v2/ci/run-ci-suites.mjs'
 import { SUITES } from './developer-harness-v2/testing/catalog.mjs'
 import { HARNESS_ALL } from './developer-harness-v2/testing/rules.mjs'
 
@@ -109,7 +109,10 @@ const PINNED_ALLOWED_SKIPS = [
   ['scripts/developer-harness-v2/context/memory-curate.test.mjs', 'old-to-new mapping re-derived from the source blob (when available in local history)', 0, 'source blob 8cccb11b944e not in local history (shallow clone)'],
   ['scripts/developer-harness-v2/context/openwolf-hooks.test.mjs', 'simulated session: Phase 2 baseline hooks wrote tracked .wolf files; the Phase 3 hooks write nothing', 0, 'Phase 2 settings not in local history'],
   ['scripts/developer-harness-v2/context/openwolf-hooks.test.mjs', 'enforcement and hook source files are byte-identical to Phase 2; graphify auto_update untouched', 0, 'Phase 2 commit not in local history'],
+  // PR #250 Linux CI: optional local-only evidence (the external Phase 3 archive is never present in CI) — not a squash-merge skip.
+  ['scripts/developer-harness-v2/context/archive.test.mjs', 'external archive verifies byte-for-byte against the manifest (when the archive is present locally)', 0, 'external Phase 3 archive not available in this environment (optional local-only evidence)'],
 ]
+const PINNED_MAX_ALLOWED_SKIPS = 6
 
 // ── Minimal, strict structure readers for this workflow's layout ──────────────────────────────────────────────────────────────
 const uncomment = (t) => t.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')
@@ -445,6 +448,9 @@ test('job identity and permissions are strict and the whole approved ci.yml is p
 
 test('the approved expected-skip allowlist is pinned exactly', () => {
   assert.deepEqual(ALLOWED_SKIPS.map((a) => [a.file, a.name, a.nesting, a.reason]), PINNED_ALLOWED_SKIPS)
+  assert.equal(MAX_ALLOWED_SKIPS, PINNED_MAX_ALLOWED_SKIPS)
+  assert.equal(ALLOWED_SKIPS.filter((a) => /squash-merged/.test(a.why)).length, 5, 'five historical-provenance skips')
+  assert.ok(/local-only evidence/.test(ALLOWED_SKIPS[5].why) && !/squash-merged into/.test(ALLOWED_SKIPS[5].why), 'the sixth has its own explanation')
 })
 
 test('the harness registry still covers every baseline suite and test file, and this phase\'s runner test', () => {

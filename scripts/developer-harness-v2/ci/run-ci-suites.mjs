@@ -27,11 +27,13 @@ const SELF = fileURLToPath(import.meta.url)
 export const HARNESS_DIR = 'scripts/developer-harness-v2'
 /** The seven suites that existed when Phase 8 started (main eb597d55). Removing one can never pass silently. */
 export const BASELINE_SUITE_IDS = Object.freeze(['harness.contract', 'harness.policy', 'harness.context', 'harness.routing', 'harness.coordination', 'harness.evaluation', 'harness.testing'])
-export const MAX_ALLOWED_SKIPS = 5
+export const MAX_ALLOWED_SKIPS = 6
 
 const HISTORY_WHY = 'PR #247 was squash-merged into main as eb597d55; the Phase 2 / Phase 3 source commit these provenance checks compare against ' +
   '(8cccb11b944ef77b1f29897d0d7575f519f54e90) is not an ancestor of main and is absent from the CI checkout, so the historical comparison cannot execute.'
-const f = (file, name, reason) => Object.freeze({ file: `${HARNESS_DIR}/${file}`, name, nesting: 0, reason, why: HISTORY_WHY })
+const ARCHIVE_WHY = 'The external Phase 3 archive is optional local-only evidence kept outside the repository on a developer machine; it is never ' +
+  'available in CI. This is unrelated to the squash merge: when the archive is present locally the test runs and verifies it byte-for-byte.'
+const f = (file, name, reason, why = HISTORY_WHY) => Object.freeze({ file: `${HARNESS_DIR}/${file}`, name, nesting: 0, reason, why })
 /**
  * EXACT skips that are allowed: matched on repository-relative file, full test name, nesting level and full skip reason with `===`.
  * No patterns. Changing this list needs human approval; scripts/developer-harness-v2-ci-workflow.test.mjs pins it.
@@ -42,6 +44,8 @@ export const ALLOWED_SKIPS = Object.freeze([
   f('context/memory-curate.test.mjs', 'old-to-new mapping re-derived from the source blob (when available in local history)', 'source blob 8cccb11b944e not in local history (shallow clone)'),
   f('context/openwolf-hooks.test.mjs', 'simulated session: Phase 2 baseline hooks wrote tracked .wolf files; the Phase 3 hooks write nothing', 'Phase 2 settings not in local history'),
   f('context/openwolf-hooks.test.mjs', 'enforcement and hook source files are byte-identical to Phase 2; graphify auto_update untouched', 'Phase 2 commit not in local history'),
+  f('context/archive.test.mjs', 'external archive verifies byte-for-byte against the manifest (when the archive is present locally)',
+    'external Phase 3 archive not available in this environment (optional local-only evidence)', ARCHIVE_WHY),
 ])
 /** Exact diagnostics that mark a historical assertion skipped INSIDE a passing test. Reported only; they never count as a pass. */
 export const KNOWN_PARTIAL_DIAGNOSTICS = Object.freeze([
@@ -291,7 +295,7 @@ export function formatReport({ results, summary }) {
     for (const x of r.problems) out.push(`         problem: ${x}`)
   }
   const allowed = results.flatMap((r) => r.allowed_skips)
-  out.push('', `Allowed historical-provenance skips (NOT EXECUTED, not counted as passed): ${allowed.length}`)
+  out.push('', `Allowed exact skips — historical provenance or local-only evidence (NOT EXECUTED, not counted as passed): ${allowed.length}`)
   for (const x of allowed) out.push(`  - ${x.file} :: ${x.name} — ${x.reason}`)
   const partial = results.flatMap((r) => r.partial)
   out.push(`Historical assertions skipped inside a passing test (reported, not counted): ${partial.length}`)

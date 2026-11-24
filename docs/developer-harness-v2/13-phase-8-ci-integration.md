@@ -56,8 +56,19 @@ when it is missing. `fetch-depth: 0` was rejected because it would make CI depen
 | `context/openwolf-hooks.test.mjs` | simulated session: Phase 2 baseline hooks wrote tracked .wolf files; the Phase 3 hooks write nothing | `Phase 2 settings not in local history` |
 | `context/openwolf-hooks.test.mjs` | enforcement and hook source files are byte-identical to Phase 2; graphify auto_update untouched | `Phase 2 commit not in local history` |
 
-Matching is exact on file, full name, nesting level 0 and full reason (`===`, with no patterns). The list has at most five entries
-and is pinned by `scripts/developer-harness-v2-ci-workflow.test.mjs`. Each entry must be observed exactly once per run (as a
+One sixth entry has a **different cause** (added after the first Linux CI run of PR #250). It is not a squash-merge skip: the
+external Phase 3 archive is optional, local-only evidence kept outside the repository on a developer machine, so it is never
+available in CI. When the archive is present locally, the test runs and verifies it byte for byte exactly as before, and the
+runner reports it as an allowed skip that now passes. The skip reason is a fixed string; before the fix it contained the
+Windows archive path, so the CI skip could never match an exact allowlist entry.
+
+| File | Test name | Skip reason |
+|---|---|---|
+| `context/archive.test.mjs` | external archive verifies byte-for-byte against the manifest (when the archive is present locally) | `external Phase 3 archive not available in this environment (optional local-only evidence)` |
+
+Matching is exact on file, full name, nesting level 0 and full reason (`===`, with no patterns). The list has at most six entries
+(`MAX_ALLOWED_SKIPS = 6`) and is pinned by `scripts/developer-harness-v2-ci-workflow.test.mjs`. Every allowed skip is listed as
+**NOT EXECUTED** and never counted as passed. Each entry must be observed exactly once per run (as a
 skip or a pass), so a renamed or deleted test fails the run. An entry that now passes is reported as such. Any change to the list
 needs human approval. The historical tests themselves are unchanged.
 
@@ -89,7 +100,8 @@ It compares `ci.yml` against baselines from `eb597d55`:
 
 It also executes the real CI Gate script, with `CI`/`GITHUB_ACTIONS` set as on a runner. The script must accept all-green and
 reject a failed, cancelled, skipped or empty `Release Workflow Contract`, and every other failed baseline check. In addition,
-60 disposable in-memory mutations of `ci.yml` must each be rejected, among them:
+99 disposable in-memory mutations of `ci.yml` must each be rejected (the guard also pins the entire approved `ci.yml`, the
+Release Workflow Contract job block, exact job ids and names, and canonical YAML key spellings), among them:
 
 * removing, duplicating or moving the step, or adding `if`, `continue-on-error`, `shell` or `|| true` / `; exit 0`;
 * a narrowing argument, or removing the timeout;
@@ -113,6 +125,8 @@ a stub executor. Each of these fails the run:
 * a failing test, a crash, a top-level throw, an empty file, a skip-only file, a todo or a hang (killed at the timeout);
 * an unexpected skip, a different reason, name, file or nesting level, or an extra skip with an allowed reason;
 * a stale or failing allowlist entry;
+* for the local-only archive entry: the old path-based reason, any other reason, a sibling test that skips with the same reason,
+  a duplicated skip event, a deleted test or a failing verification (an archive that is present and passes is reported, not failed);
 * missing, truncated or unparseable results, a masked exit status, a signal or an interruption, a count mismatch, or an
   unexpected file;
 * a tampered allowlist (wildcard, regex, extra key, nesting, unregistered file, duplicate, too many);
@@ -156,6 +170,19 @@ evidence of production reliability.
 * Results come from node:test reporter events (verified on Node 22.23 and 24.19). A future Node change to the event schema
   fails the run closed instead of passing.
 * Opening the PR deploys its head to the shared staging environment through the existing Staging Candidate workflow.
+* **First Linux CI run of PR #250 (head `2afbde22`).** Phase 1–7 suites had never run on Linux before, and three failures, plus
+  the archive skip above, were found and fixed:
+  * Phase 5 `saveCheckpoint` and Phase 6 `writeRunRecord` asked `git check-ignore` before inspecting the store path. Linux git
+    refuses a path beyond a symbolic link, so a symlinked store was reported as `NOT_GIT_IGNORED` instead of as a link (Windows
+    git does not treat a junction as a link, so this passed locally). Both now inspect the existing components first, with
+    `lstat`, following no link and creating nothing, and then run the unchanged git-ignore check and the unchanged creating
+    walk. A platform-independent regression test uses a non-ignored repository, where the old order returns `NOT_GIT_IGNORED`.
+  * The FINAL-E head/tail test wrote `TAIL` to stderr after a large stdout write. The two pipes have no guaranteed relative
+    order, so `TAIL` could arrive early and fall out of the retained tail window. The head/tail retention test now uses one
+    ordered stream. Stderr redaction has its own test. `sanitizeOutput` and `assembleOutput` are unchanged.
+  * The Phase 5 store-ordering fix has no permanent ordering test in `coordination.test.mjs`, because that file was outside the
+    approved scope. It is covered on Linux by the existing N-9 assertions, and it was reproduced locally against disposable
+    copies of the code before and after the fix.
 
 ## 8. Rollback
 

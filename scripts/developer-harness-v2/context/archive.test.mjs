@@ -71,7 +71,8 @@ test('only approved paths were untracked relative to the source commit', (t) => 
 test('external archive verifies byte-for-byte against the manifest (when the archive is present locally)', (t) => {
   const dir = process.env.DH_V2_ARCHIVE ?? 'C:/Users/Henil/projects/PatelRep-archive/developer-harness-v2-phase3/2026-11-21'
   const m = path.join(dir, 'MANIFEST.json')
-  if (!existsSync(m)) { t.skip(`archive not present at ${dir}`); return }
+  // Stable, platform-independent reason (no path): the CI runner allows exactly this skip, by exact text, as NOT EXECUTED.
+  if (!existsSync(m)) { t.skip('external Phase 3 archive not available in this environment (optional local-only evidence)'); return }
   const { manifest: local, problems } = verify({ repo: hasCommit(manifest.source_commit) ? REPO : null, manifestPath: m })
   assert.deepEqual(problems, [])
   assert.deepEqual(local, manifest, 'committed manifest copy equals the archive manifest')
