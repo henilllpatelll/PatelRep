@@ -1,0 +1,34 @@
+{
+  "$comment": "Developer Harness V3 (D3.3) pinned infrastructure artifacts. Every artifact is fetched from its official source over HTTPS and verified against the digest or signature recorded here BEFORE use. A mismatch aborts setup. Changing a pin is a reviewed repository change (root of trust: scripts/developer-harness-v3/**).",
+  "schema": "patelrep.developer-harness-v3.d33-artifacts",
+  "version": 1,
+  "retrieved": "2026-11-24",
+  "artifacts": {
+    "msys2_base": {
+      "purpose": "User-scope MSYS2 base (no administrator rights, no driver, no service) used only to obtain the official signed QEMU for Windows package via pacman.",
+      "url": "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20261120.sfx.exe",
+      "sig_url": "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20261120.sfx.exe.sig",
+      "gpg_fingerprint": "0EBF782C5D53F7E5FB02A66746BD761F7A49B0EC",
+      "fingerprint_source": "https://www.msys2.org/docs/installer/ (signing key of the MSYS2 installer, retrieved 2026-11-24)",
+      "max_bytes": 104857600
+    },
+    "debian_image": {
+      "purpose": "Debian 13 (trixie) genericcloud amd64 base disk for the worker VM; used read-only as a qcow2 backing file.",
+      "url": "https://cloud.debian.org/images/cloud/trixie/20261123-2671/debian-13-genericcloud-amd64-20261123-2671.qcow2",
+      "sha512": "76488ba3bea2349cc595fedad7748b8ba98d6b36da398eaf2bbbae3db896ba1017d4ff41cd277926784cef2c1c11145a0d600f9b4afde9b8f174d698db0cda03",
+      "digest_source": "https://cloud.debian.org/images/cloud/trixie/20261123-2671/SHA512SUMS (HTTPS; Debian publishes no detached signature for cloud images)",
+      "max_bytes": 629145600
+    },
+    "claude_linux_x64": {
+      "purpose": "Official Claude Code native Linux binary, installed root-owned and read-only inside the worker. Fetched by the host, never by the worker.",
+      "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.331.tgz",
+      "version": "2.1.331",
+      "integrity": "sha512-IpvZ9c/NopO/sr8ThWLVAUDXVAFT3auLWrhbR6wq1dgkuJfZYdTtoXf6GajE5KL9R58iTt/86OPXrJAsM4+l8g==",
+      "digest_source": "npm registry dist.integrity for @anthropic-ai/claude-code-linux-x64@2.1.331 (matches the version of the host's official CLI)",
+      "max_bytes": 209715200
+    }
+  },
+  "msys2_packages": ["mingw-w64-ucrt-x86_64-qemu"],
+  "qemu_version": "11.1.3",
+  "qemu_version_note": "MSYS2 serves only the latest package, so the version cannot be selected at install time; setup REFUSES any other installed version (SETUP.QEMU_VERSION_DRIFT). Updating QEMU = a reviewed change of this pin plus a re-run of the isolation suite."
+}
