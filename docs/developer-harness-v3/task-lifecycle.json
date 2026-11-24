@@ -1,0 +1,51 @@
+{
+  "$comment": "Developer Harness V3 (D3.2) persistent task lifecycle CONTRACT. Design plus a pure reducer (scripts/developer-harness-v3/lifecycle/lifecycle.mjs). There is no runtime, database or scheduler in D3.2. A completed Claude session is NOT a completed task.",
+  "schema": "patelrep.developer-harness-v3.task-lifecycle",
+  "version": 1,
+  "main_flow": ["submitted", "queued", "planning", "implementing", "testing", "independent_review", "security_review", "publishing", "ci_running", "staging_verification", "merge_eligible", "merged", "production_release", "production_verification", "completed"],
+  "recoverable_states": {
+    "waiting_resources": { "reasons": ["MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "HOST_UNRESPONSIVE"] },
+    "waiting_subscription": { "reasons": ["SUBSCRIPTION_LIMIT"] },
+    "waiting_external": { "reasons": ["CI_PENDING", "STAGING_PENDING", "GITHUB_UNAVAILABLE", "NETWORK_UNAVAILABLE"] },
+    "remediation": { "reasons": ["TEST_FAILED", "REVIEW_FINDINGS_OPEN", "CI_FAILED", "STAGING_FAILED"] },
+    "context_recovery": { "reasons": ["CONTEXT_LOST", "SESSION_ENDED_EARLY"] },
+    "worker_recovery": { "reasons": ["WORKER_TERMINATED", "HOST_RESTARTED", "POWER_LOSS"] },
+    "dependency_waiting": { "reasons": ["DEPENDENCY_TASK_OPEN"] },
+    "paused": { "reasons": ["OWNER_PAUSED"] },
+    "blocked": { "reasons": ["OWNER_AUTH_EXPIRED", "OWNER_ROOT_OF_TRUST_CEREMONY", "OWNER_DECISION_REQUIRED", "PROHIBITED_ACTION_REQUIRED", "ISOLATION_UNPROVEN", "UNRESOLVABLE_REQUIREMENT_CONFLICT"] },
+    "production_incident": { "reasons": ["PRODUCTION_HEALTH_FAILED", "WATCHDOG_ALERT"] }
+  },
+  "never_blocked_reasons": ["SUBSCRIPTION_LIMIT", "MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "WORKER_TERMINATED", "CONTEXT_LOST", "CI_FAILED", "TEST_FAILED"],
+  "forward": {
+    "submitted": ["queued"],
+    "queued": ["planning"],
+    "planning": ["implementing"],
+    "implementing": ["testing"],
+    "testing": ["independent_review"],
+    "independent_review": ["security_review", "publishing"],
+    "security_review": ["publishing"],
+    "publishing": ["ci_running"],
+    "ci_running": ["staging_verification"],
+    "staging_verification": ["merge_eligible"],
+    "merge_eligible": ["merged"],
+    "merged": ["production_release", "completed"],
+    "production_release": ["production_verification"],
+    "production_verification": ["completed"],
+    "completed": []
+  },
+  "remediation_from": ["testing", "independent_review", "security_review", "ci_running", "staging_verification"],
+  "incident_from": ["merged", "production_release", "production_verification"],
+  "recoverable_entry_from": "any non-terminal state; the state left is recorded as resume_to and is the only legal exit target (blocked additionally requires an owner action recorded as evidence in a later phase)",
+  "completion_rule": "completed is reachable only from production_verification, or from merged when acceptance.production_required is false. A session_completed event never changes state.",
+  "evidence_invalidation": {
+    "head_change": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"],
+    "policy_revision_change": "all",
+    "state_after_head_change": "testing"
+  },
+  "concurrency": { "max_reasoning_sessions": 1, "deterministic_operations_may_run_concurrently": ["ci_monitoring", "staging_monitoring", "notification_outbox", "resource_governor"] },
+  "recovery_requirements": [
+    "A task is reconstructable from persisted events, the context pack reference, the base and head SHAs, and the worktree, without Claude session history.",
+    "Committed work is recovered from the branch; uncommitted work is recovered from a task-owned worktree snapshot taken at every checkpoint.",
+    "Every mutation carries expected_revision, a fencing token and an idempotency id; stale or duplicate mutations are rejected or no-ops."
+  ]
+}
