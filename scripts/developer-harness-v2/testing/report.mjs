@@ -5,7 +5,7 @@
 // whose tree moved is INVALID. Test EVIDENCE is produced only from commands that actually ran, and only as a CANDIDATE
 // the caller must hand to Phase 5's `recordEvidence` itself: this module never writes a checkpoint and never marks anything
 // "passed" because a selection exists.
-import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, renameSync, writeSync } from 'node:fs'
+import { closeSync, fsyncSync, lstatSync, mkdirSync, openSync, renameSync, writeSync } from 'node:fs'
 import path from 'node:path'
 import { sha256, canonical } from '../coordination/evidence.mjs'
 import { isGitIgnored } from '../coordination/checkpoint.mjs'
@@ -101,17 +101,33 @@ function renderChecklistText(c) {
   return out.join('\n')
 }
 
+/**
+ * Walk the run-store components with lstat (a symlink or junction is never followed). Every existing component must be a real
+ * directory ('bad' otherwise, including any lstat error other than ENOENT). A missing one stops the walk ('missing') unless `create`
+ * is set, when it is created as a plain directory and re-checked.
+ */
+function runStoreComponent(root, create) {
+  let cur = root
+  for (const part of RUN_STORE_REL) {
+    cur = path.join(cur, part)
+    let st = null
+    try { st = lstatSync(cur) } catch (e) { if (e?.code !== 'ENOENT') return 'bad' }
+    if (!st) { if (!create) return 'missing'; mkdirSync(cur); st = lstatSync(cur) }
+    if (st.isSymbolicLink() || !st.isDirectory()) return 'bad'
+  }
+  return 'ok'
+}
+
 /** Persist a (partial or final) run record under the git-ignored store. Atomic, no symlinks, refused unless the exact path is ignored. */
 export function writeRunRecord(root, report, runId = `${report.generated_at.replace(/[^0-9]/g, '').slice(0, 14)}-${report.report_digest.slice(0, 8)}`) {
   if (!/^[0-9]{14}-[0-9a-f]{8}$/.test(runId)) return { ok: false, code: 'RUN_STORE.BAD_ID' }
   const dir = path.join(root, ...RUN_STORE_REL)
   const rel = [...RUN_STORE_REL, `${runId}.json`].join('/')
+  // Existing components are inspected first, without following links or creating anything: git refuses a path beyond a symbolic
+  // link (Linux), which would otherwise mask a symlinked/junctioned store as RUN_STORE.NOT_GIT_IGNORED.
+  if (runStoreComponent(root, false) === 'bad') return { ok: false, code: 'RUN_STORE.NOT_A_REAL_DIRECTORY' }
   if (!isGitIgnored(root, rel)) return { ok: false, code: 'RUN_STORE.NOT_GIT_IGNORED' }
-  let cur = root
-  for (const part of RUN_STORE_REL) {
-    cur = path.join(cur, part)
-    if (existsSync(cur)) { if (!lstatSync(cur).isDirectory()) return { ok: false, code: 'RUN_STORE.NOT_A_REAL_DIRECTORY' } } else mkdirSync(cur)
-  }
+  if (runStoreComponent(root, true) === 'bad') return { ok: false, code: 'RUN_STORE.NOT_A_REAL_DIRECTORY' }
   const text = `${JSON.stringify(report, null, 1)}\n`
   if (Buffer.byteLength(text) > 2 * 1024 * 1024) return { ok: false, code: 'RUN_STORE.TOO_LARGE' }
   const file = path.join(dir, `${runId}.json`)

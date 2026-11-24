@@ -185,6 +185,10 @@ export function saveCheckpoint(root, record) {
   if (Buffer.byteLength(text) > MAX_BYTES) return { ok: false, code: 'CHECKPOINT.TOO_LARGE', problems: ['CHECKPOINT.TOO_LARGE'] }
   if (SECRETISH.some((re) => re.test(text))) return { ok: false, code: 'CHECKPOINT.SECRET_LIKE_CONTENT', problems: ['CHECKPOINT.SECRET_LIKE_CONTENT'] }
   const paths = storePaths(root, record.task_id)
+  // Inspect the EXISTING store components first, creating nothing and following no link: git refuses a path beyond a symbolic link
+  // (Linux), which would otherwise mask a symlinked/junctioned store as STORE.NOT_GIT_IGNORED. A missing component is fine here.
+  const pre = walkStore(root, false)
+  if (!pre.ok && pre.code !== 'STORE.MISSING') return { ok: false, code: pre.code, problems: [pre.code] }
   if (!isGitIgnored(root, paths.rel)) return { ok: false, code: 'STORE.NOT_GIT_IGNORED', problems: ['STORE.NOT_GIT_IGNORED'] }
   const w = walkStore(root, true)
   if (!w.ok) return { ok: false, code: w.code, problems: [w.code] }

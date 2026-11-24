@@ -3,7 +3,7 @@
 // Run: node --test scripts/developer-harness-v2/testing/runner.test.mjs
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -362,7 +362,10 @@ test('FINAL-B: CI-only and permanently blocked suites are REQUIRED coverage — 
 
 test('FINAL-E: a failing command\'s output is sanitized in BOTH head and tail; cut points and chunk boundaries cannot leak a secret', async () => {
   const SH = `ghp_${'H'.repeat(36)}`; const ST = `ghp_${'T'.repeat(36)}`; const LIT = 'real-token-value-0123456789'
-  const script = `process.stdout.write('HEAD ${SH} ${LIT}\\n');process.stdout.write('x'.repeat(${LIMITS.maxOutputBytes * 2}));process.stderr.write('\\nTAIL ${ST} ${LIT}\\n');process.exitCode=1`
+  // HEAD, the oversized middle and TAIL go through ONE ordered stream (stdout). stdout and stderr are independent pipes whose relative
+  // arrival order is not guaranteed (on Linux a small stderr write can arrive before a large stdout write drains — PR #250 CI), so the
+  // head/tail retention assertions below must not depend on cross-stream ordering. stderr redaction is covered separately below.
+  const script = `process.stdout.write('HEAD ${SH} ${LIT}\\n');process.stdout.write('x'.repeat(${LIMITS.maxOutputBytes * 2}));process.stdout.write('\\nTAIL ${ST} ${LIT}\\n');process.exitCode=1`
   const r = await spawnStep({ argv: [process.execPath, '-e', script], cwd: os.tmpdir(), env: buildEnv('node').env, timeout_ms: 30000 }, { parentEnv: { GITHUB_TOKEN: LIT } })
   assert.equal(r.status, RESULT.FAILED); assert.equal(r.exit_code, 1)
   assert.match(r.output, /HEAD /); assert.match(r.output, /TAIL /); assert.match(r.output, /middle of output omitted: \d+ bytes/); assert.ok(r.output_bytes > LIMITS.maxOutputBytes)
@@ -373,6 +376,36 @@ test('FINAL-E: a failing command\'s output is sanitized in BOTH head and tail; c
   for (const secret of [SH, ST, LIT]) assert.ok(!JSON.stringify(report).includes(secret), `report leaked ${secret.slice(0, 12)}`)
   const quiet = rep({ results: [{ suite_id: 'web.lint', status: RESULT.FAILED, steps: [{ label: 'x', status: RESULT.FAILED, output: 'short failure' }] }], request_problems: [], tree_digest_start: 'T', tree_digest_end: 'T' }, select('apps/web/lib/a.ts')).outcomes[0].steps[0]
   assert.ok(!('output_head' in quiet) && quiet.output_tail === 'short failure', 'a short output is kept once, not duplicated')
+})
+
+test('FINAL-E: secrets written to stderr (alone, or interleaved with stdout) are redacted; nothing from either stream is lost when it fits', async () => {
+  const SE = `ghp_${'E'.repeat(36)}`; const SO = `ghp_${'O'.repeat(36)}`; const LIT = 'real-token-value-0123456789'
+  const script = `process.stdout.write('OUT ${SO} ${LIT}\\n');process.stderr.write('ERR ${SE} ${LIT}\\n');process.exitCode=1`
+  const r = await spawnStep({ argv: [process.execPath, '-e', script], cwd: os.tmpdir(), env: buildEnv('node').env, timeout_ms: 30000 }, { parentEnv: { GITHUB_TOKEN: LIT } })
+  assert.equal(r.status, RESULT.FAILED); assert.match(r.output, /OUT /); assert.match(r.output, /ERR /)
+  for (const secret of [SE, SO, LIT, 'EEEEEEEEEE', 'OOOOOOOOOO']) assert.ok(!r.output.includes(secret), `leaked ${secret.slice(0, 12)}`)
+  const onlyErr = await spawnStep({ argv: [process.execPath, '-e', `process.stderr.write('ERR ${SE} ${LIT}\\n');process.exitCode=2`], cwd: os.tmpdir(), env: buildEnv('node').env, timeout_ms: 30000 }, { parentEnv: { GITHUB_TOKEN: LIT } })
+  assert.equal(onlyErr.exit_code, 2); assert.match(onlyErr.output, /ERR /)
+  for (const secret of [SE, LIT, 'EEEEEEEEEE']) assert.ok(!onlyErr.output.includes(secret), `stderr leaked ${secret.slice(0, 12)}`)
+})
+
+test('PR #250 Linux CI: a linked run-store component is rejected as such BEFORE the git-ignore check, and nothing is created', () => {
+  // Platform-independent reproduction of the Linux masking: the store is NOT git-ignored here, so if the git-ignore check still ran
+  // first the result would be RUN_STORE.NOT_GIT_IGNORED. The link must be reported as a link, and nothing written through it.
+  const report = rep(null, select('apps/web/lib/a.ts'))
+  const { root } = mkRepo({ ignore: false }); mkdirSync(path.join(root, '.wolf'), { recursive: true })
+  const outside = mkdtempSync(path.join(os.tmpdir(), 'dhv2-p6r-out-')); tmpDirs.push(outside)
+  symlinkSync(outside, path.join(root, '.wolf', 'runtime-logs'), 'junction') // junctions need no privilege on Windows
+  assert.equal(writeRunRecord(root, report).code, 'RUN_STORE.NOT_A_REAL_DIRECTORY')
+  assert.deepEqual(readdirSync(outside), [], 'nothing created through the link')
+  // A plain file where a directory belongs, and a dangling link, are rejected too (no follow, no create).
+  const { root: r2 } = mkRepo({ ignore: false }); mkdirSync(path.join(r2, '.wolf'), { recursive: true }); writeFileSync(path.join(r2, '.wolf', 'runtime-logs'), 'x')
+  assert.equal(writeRunRecord(r2, report).code, 'RUN_STORE.NOT_A_REAL_DIRECTORY')
+  const { root: r3 } = mkRepo(); mkdirSync(path.join(r3, '.wolf'), { recursive: true }); const gone = mkdtempSync(path.join(os.tmpdir(), 'dhv2-p6r-gone-')); rmSync(gone, { recursive: true })
+  symlinkSync(gone, path.join(r3, '.wolf', 'runtime-logs'), 'junction')
+  assert.equal(writeRunRecord(r3, report).code, 'RUN_STORE.NOT_A_REAL_DIRECTORY'); assert.equal(existsSync(gone), false, 'a dangling link target is never created')
+  // An ordinary, non-ignored store is still refused, and nothing is created for it.
+  const { root: r4 } = mkRepo({ ignore: false }); assert.equal(writeRunRecord(r4, report).code, 'RUN_STORE.NOT_GIT_IGNORED'); assert.equal(existsSync(path.join(r4, '.wolf')), false)
 })
 
 test('FINAL-E: assembleOutput — contiguous chunks are sanitized as ONE text; a dropped middle is stated and the partial word at each cut is removed', () => {
