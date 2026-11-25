@@ -115,6 +115,7 @@ test('the scopes validator rejects anything outside the ceiling or touching the 
 
 // Exactly these existing fixtures (out of every Phase 2/4 fixture) change from a prompt to "proceed" in an owner-launched bypass session on a
 // dedicated branch. Reviewed one by one: all are routine (fast-forward push of the own branch, draft PR, installs, builds, inline code).
+const BYPASS_TIGHTENED = ['P-11']
 const REVIEWED_ROUTINE_FLIPS = ['W-10', 'W-46', 'R-H12', 'RR-O6', 'P-12', 'P-13', 'P-20', 'FP-01', 'FP-02', 'FP-04', 'FP-10', 'FP-18']
 const ALL_FIXTURES = [...new Map([...FIXTURES, ...CM_FIXTURES, ...GITHUB_WRITE_FIXTURES, ...M1_FIXTURES].map((f) => [f.id, f])).values()]
 function inputOf(fx) {
@@ -138,7 +139,9 @@ test('NO UNINTENDED EXPANSION: across every existing fixture, bypass authorizes 
     const d = evaluateToolEvent(ev(fx.tool, inputOf(fx), 'default'), c)
     const b = evaluateToolEvent(ev(fx.tool, inputOf(fx), 'bypassPermissions'), c)
     if (d.classification === 'forbidden') { forbidden++; assert.equal(b.decision, 'deny', `${fx.id} forbidden stays denied in bypass`) }
-    if (d.classification === 'allowed') assert.equal(b.decision, 'no_objection', `${fx.id} allowed stays allowed`)
+    // Reviewed bypass-only tightening: P-11 stages and commits in ONE command, which would run after the commit's staged-content
+    // scan (review round 5); in bypass a commit must run alone. Default mode is unchanged.
+    if (d.classification === 'allowed') assert.equal(b.decision, BYPASS_TIGHTENED.includes(fx.id) ? 'deny' : 'no_objection', `${fx.id} allowed stays allowed`)
     if (d.classification !== 'allowed' && b.decision === 'no_objection') flips.push(fx.id)
     assert.notEqual(b.decision, 'ask', `${fx.id}: bypass never asks`)
   }
@@ -440,11 +443,23 @@ test('independent review round 4 (2026-11-24): computed commit messages and --co
   ok(bash("git commit -m \"$(cat <<'EOF'\nfeat: x with `code` and $(not a substitution)\nEOF\n)\""), 'quoted heredoc body is literal')
   denied(bash(heredoc.replace('feat: x', 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc')), 'secret in heredoc body', 'bypass.commit_secret')
   for (const c of ['git commit --allow-empty -m "$(cat notes.txt)"', 'git commit -m "`cat msg.txt`"', 'git commit -m "$(<notes.txt)"', 'git commit -m "x $(cat notes.txt)"',
-    "git commit -m \"$(cat <<EOF\nfeat: $(cat notes.txt)\nEOF\n)\""]) denied(bash(c), c, 'bypass.commit_unverified')
+    "git commit -m \"$(cat <<EOF\nfeat: $(cat notes.txt)\nEOF\n)\""]) denied(bash(c), c)
   denied(evaluateToolEvent(ev('PowerShell', { command: 'git commit -m "$(Get-Content msg.txt)"' }), ctx()), 'PowerShell subexpression message')
   for (const c of ['git merge --continue', 'git cherry-pick --continue', 'git revert --continue', 'git cherry-pick --skip']) denied(bash(c), c, 'bypass.tree_change_untrusted_ref')
   for (const c of ['git merge --abort', 'git cherry-pick --abort', 'git revert --quit']) ok(bash(c), c)
   // placeholder exclusion is whole-token only
   ok(bash('gh pr edit --body "Set CRON_SECRET=your-cron-secret-here"'), 'placeholder token')
   denied(bash('gh pr edit --body "SUPABASE_SERVICE_ROLE_KEY=ExampleKq8f2Lm9Zx7Rt3Vw"'), 'value merely starting with Example', 'bypass.pr_body_secret')
+})
+
+test('independent review round 5 (2026-11-24): a bypass commit runs alone; heredoc ends at its first delimiter', () => {
+  for (const c of ['git add notes.txt && git commit -m x', 'git add notes.txt; git commit -m x', 'cp msg.txt m2.txt && git add m2.txt && git commit -m x', 'cd apps && git commit -m x',
+    'git commit -m x && git push', 'read -r MSG < notes.txt; git commit --allow-empty -m "$MSG"', "IFS= read -rd '' MSG < notes.txt; git commit -m \"$MSG\"", 'git commit -m $1',
+    'git commit -m x > out.txt', 'git commit -m "a\$b"']) denied(bash(c), c)
+  for (const c of ['$m = Get-Content msg.txt -Raw; git commit --allow-empty -m $m', 'git add notes.txt; git commit -m x', 'git commit -m "$m"']) denied(evaluateToolEvent(ev('PowerShell', { command: c }), ctx()), `PowerShell ${c}`)
+  denied(bash("git commit --allow-empty -m \"$(cat <<'EOF'\nmsg\nEOF\ncat notes.txt\nEOF\n)\""), 'command smuggled after the heredoc delimiter', 'bypass.commit_unverified')
+  denied(bash("git commit -m \"$(cat <<'EOF'\nmsg\n)\""), 'unterminated heredoc')
+  for (const c of ['git commit -m "feat(api): x"', 'git commit -m "fix: a; b & c | d"', "git commit -m 'chore: literal $HOME'", 'git commit --allow-empty -m "docs: tweak"',
+    "git commit -m \"$(cat <<'EOF'\nfeat(dev-harness-v2): x\n\nbody with `code`, $(literal) and EOF inside a line\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nEOF\n)\""]) ok(bash(c), c)
+  ok(bash('git add notes2.txt apps/web/x.ts'), 'staging alone')
 })

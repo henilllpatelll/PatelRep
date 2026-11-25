@@ -447,18 +447,17 @@ const COMMIT_VALUE_FLAGS = new Set(['-m', '--message', '-F', '--file', '-C', '--
 function checkCommit(f, s, ctx) {
   const m = f.meta
   if (!m) return no('bypass.commit_unverified', 'commit arguments could not be read')
-  // Claude Code's standard form computes the message: `git commit -m "$(cat <<'EOF' … EOF)"`. Only a computed MESSAGE is accepted; its
-  // text is part of the command line, which is checked as a whole.
-  if (m.dynamic) {
-    if (!(m.dynamicAt ?? []).every((i) => ['-m', '--message'].includes(m.args[i - 1]))) return no('bypass.commit_unverified', 'only the commit message may be computed')
-    // Only the literal quoted-heredoc form is accepted: its body is in the command text. Any other substitution ($(cat file), `…`,
-    // $(<file), $(Get-Content …)) would put content the policy cannot see into the message.
-    const cmd = String(s.event?.tool_input?.command ?? '')
-    const outside = cmd.replace(/\$\(\s*cat\s+<<-?\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\1[ \t]*\r?\n[\s\S]*?\r?\n[ \t]*\2[ \t]*\r?\n?\s*\)/g, 'HEREDOC_MESSAGE')
-    if (/\$\(|`|\$\{|<\(/.test(outside)) return no('bypass.commit_unverified', 'a computed commit message must be the literal quoted heredoc form: -m "$(cat <<\'EOF\' … EOF)"')
-    if (SECRET_VALUE.test(cmd)) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+  // The commit must be the ONLY command on the line: staging in the same command (`git add x && git commit`) would run after this
+  // check. Its only permitted expansion is Claude Code's literal quoted heredoc, `-m "$(cat <<'EOF' … EOF)"`, which must end at its
+  // first delimiter line and close immediately; any other `$`, backtick, separator, redirect or substitution is refused.
+  const cmd = String(s.event?.tool_input?.command ?? '')
+  const rest = stripQuotedHeredocs(cmd)
+  if (rest === null) return no('bypass.commit_unverified', 'malformed heredoc commit message (it must close right after its first delimiter line)')
+  if (!commitAlone(rest)) {
+    return no('bypass.commit_alone', 'in bypass run `git commit -m <message>` on its own (stage with `git add` in a separate command first); the message may only be a literal or a quoted heredoc')
   }
-  if (!inProject(ctx, m.cwd)) return no('bypass.commit_outside_worktree', 'commits must run in the session worktree')
+  if (SECRET_VALUE.test(cmd)) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+  if (m.dynamic && !(m.dynamicAt ?? []).every((i) => ['-m', '--message'].includes(m.args[i - 1]))) return no('bypass.commit_unverified', 'only the commit message may be computed')
   const messages = []
   for (let i = 0; i < m.args.length; i++) {
     const a = m.args[i]
@@ -492,6 +491,55 @@ function checkCommit(f, s, ctx) {
   if (!scan || !scan.ok) return no('bypass.commit_unverifiable', `staged content could not be inspected (${scan?.reason ?? 'scanner unavailable'})`)
   if (scan.hits.length) return no('bypass.commit_secret', `staged file(s) contain credential-like values: ${scan.hits.slice(0, 5).join(', ')}; unstage them (git restore --staged <path>)`)
   return YES
+}
+
+/** One `git commit …` command: outside quotes no separators/redirects/subshells/expansions; inside "…" no `$`, backtick or backslash. */
+function commitAlone(text) {
+  const t = text.trim()
+  if (!/^git[ \t]+commit(\s|$)/.test(t)) return false
+  let q = null
+  for (const ch of t) {
+    if (q === "'") { if (ch === "'") q = null; continue }
+    if (q === '"') { if (ch === '"') q = null; else if ('$`\\'.includes(ch)) return false; continue }
+    if (ch === "'" || ch === '"') { q = ch; continue }
+    if (';&|<>()$`\\\r\n'.includes(ch)) return false
+  }
+  return q === null
+}
+
+/**
+ * Replace each `$(cat <<'DELIM' … DELIM)` (quoted delimiter: a literal body) with a placeholder, ending each heredoc at its FIRST
+ * delimiter line exactly as the shell does, and requiring `)` right after it. Returns null when a heredoc is malformed or smuggles a
+ * command after its delimiter.
+ */
+export function stripQuotedHeredocs(cmd) {
+  const START = /\$\(\s*cat\s+<<(-?)\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\2[ \t]*\r?\n/g
+  let out = ''
+  let pos = 0
+  for (let m = START.exec(cmd); m; m = START.exec(cmd)) {
+    out += cmd.slice(pos, m.index)
+    let i = START.lastIndex
+    let closed = false
+    while (i <= cmd.length) {
+      const nl = cmd.indexOf('\n', i)
+      const lineEnd = nl < 0 ? cmd.length : nl
+      let line = cmd.slice(i, lineEnd).replace(/\r$/, '')
+      if (m[1] === '-') line = line.replace(/^\t+/, '')
+      if (line === m[3]) {
+        const after = /^\s*\)/.exec(cmd.slice(nl < 0 ? cmd.length : nl + 1))
+        if (!after) return null
+        pos = (nl < 0 ? cmd.length : nl + 1) + after[0].length
+        closed = true
+        break
+      }
+      if (nl < 0) break
+      i = nl + 1
+    }
+    if (!closed) return null
+    out += 'HEREDOC_MESSAGE'
+    START.lastIndex = pos
+  }
+  return out + cmd.slice(pos)
 }
 
 function splitArgs(args, withValue) {

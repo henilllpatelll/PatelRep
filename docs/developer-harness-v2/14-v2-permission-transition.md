@@ -188,6 +188,12 @@ Round 4 (`2f710984`) closed the single-line form, `process.env`, the narrowed fa
 | UTF-16 text treated as binary | UTF-16LE/BE and NUL-stripped views scanned |
 | placeholder prefix (`Example…`) accepted | placeholder must be the whole token |
 
+Round 5 (`2a57865c`) closed 5a, 5c, 5d, 5e and found that staging in the same command as the commit (`git add x && git commit`) runs
+after the scan, and that a heredoc could smuggle a command after its delimiter or a `$VAR` could carry file content into the message.
+Fix: in bypass a `git commit` must be the **only** command on its line; outside quotes no separator, redirect, subshell or expansion,
+inside double quotes no `$`, backtick or backslash; the only computed message is a quoted heredoc that ends at its first delimiter line
+and closes immediately. Fixture P-11 (`git add … && git commit …`, allowed in other modes) is therefore denied in bypass by design.
+
 Known friction that remains in bypass (deliberate): `apps/web/scripts/apply-feature-flag.mjs` and `verify-feature-rollout.mjs`
 (rollout tooling that mentions workflows), `apps/mobile/scripts/staging-env.js` (targets the remote staging Supabase), test files run
 directly with `node <file>.test.mjs` instead of `node --test`, dev servers, WebFetch/curl, Docker, `git stash`, switching branches.
