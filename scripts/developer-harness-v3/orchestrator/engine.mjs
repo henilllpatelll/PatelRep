@@ -144,7 +144,7 @@ export class Engine {
       case 'testing': return stages.testing(this, taskId)
       case 'independent_review': return stages.review(this, taskId, 'independent_review')
       case 'security_review': return stages.review(this, taskId, 'security_review')
-      case 'publishing': return stages.handoff(this, taskId)
+      case 'publishing': return await stages.handoff(this, taskId)
       default: return none // paused, blocked (owner-only exit), stages beyond D3.4's scope
     }
   }

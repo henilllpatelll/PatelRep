@@ -244,7 +244,7 @@ export class Ledger {
   }
   getExecution(executionId) { return plain(this.db.prepare('SELECT * FROM executions WHERE execution_id=?').get(executionId)) }
   /** Close a lease. The slot is released ONLY when termination was independently verified; otherwise the lease holds the slot (no second session). */
-  closeLease(presented, { terminationVerified, endReason }) {
+  closeLease(presented, { terminationVerified, endReason, alsoOnVerified = null }) {
     return this.tx(() => {
       const l = this.db.prepare('SELECT * FROM leases WHERE lease_id=?').get(presented?.lease_id ?? '')
       if (!l || l.execution_id !== presented.execution_id) return { ok: false, code: 'LEASE.STALE_IDENTITY' }
@@ -253,6 +253,7 @@ export class Ledger {
       if (terminationVerified === true) {
         this.db.prepare("UPDATE leases SET state='released', closed_at=? WHERE lease_id=?").run(now, l.lease_id)
         this.db.prepare("UPDATE executions SET status='terminated_verified', end_reason=?, ended_at=? WHERE execution_id=?").run(endReason, now, l.execution_id)
+        if (alsoOnVerified) alsoOnVerified() // same transaction: the release and whatever must be durable WITH it either both happen or neither does
       } else {
         this.db.prepare("UPDATE leases SET state='termination_unverified' WHERE lease_id=?").run(l.lease_id)
         this.db.prepare("UPDATE executions SET status='termination_unverified', end_reason=?, ended_at=? WHERE execution_id=?").run(endReason, now, l.execution_id)

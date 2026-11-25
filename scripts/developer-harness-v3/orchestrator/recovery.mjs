@@ -2,7 +2,10 @@
 // and ADDS what D3.3 left declarative: the mandatory guest cleanup (kill the worker's processes, then verify) BEFORE a lease is superseded or any new
 // session is admitted. Nothing the old session reported is believed; only host facts and the verified cleanup count. Unrelated processes are never touched
 // (the adapters only know task-owned supervisor/guest worker processes — `terminate_unowned_processes` is a prohibited action in the contract).
+import { randomUUID } from 'node:crypto'
 import { acquireLock, releaseLock } from '../lib/atomic.mjs'
+import { buildCheckpoint, snapshotDirResolver, verifyCheckpoint } from './context-renewal.mjs'
+import { createSnapshot } from './snapshot.mjs'
 import { isPidAlive } from '../runtime/launcher.mjs'
 import { recoveryDecision } from '../runtime/worker-lifecycle.mjs'
 import { markDispatchedAsUncertain, requeueClaimedOutbox } from './ledger/intents.mjs'
@@ -33,7 +36,28 @@ export async function reconcileSlot(e, { reason = 'HOST_RESTARTED' } = {}) {
   const r = L.supersedeLease({ guestCleanupVerified: verified, reason: reason === 'HOST_RESTARTED' ? 'HOST_RESTARTED' : 'WORKER_TERMINATED' })
   if (!r.ok) return { cleared: false, code: r.code, decision: d.action }
   L.recordRecovery(holder.task_id, 'worker_recovered', { decision: d.action, codes: d.codes, new_fencing_token: r.new_fencing_token })
+  await preserveUncommittedWork(e, holder.task_id)
   return { cleared: true, decision: d.action, new_fencing_token: r.new_fencing_token }
+}
+
+/**
+ * The old session is verified dead, so the worker's tree is quiescent. Capture whatever UNCOMMITTED scoped work it left as a verified checkpoint, so a crash
+ * (or an unclean stop) does not silently discard it. Best effort and fail-safe: an unsafe/oversized/credential-bearing tree is NOT preserved (recorded, never trusted).
+ */
+async function preserveUncommittedWork(e, taskId) {
+  const L = e.ledger
+  try {
+    const task = L.getTask(taskId); const files = await e.adapters.git.captureSnapshot(task, null)
+    if (!files?.length) return { preserved: false }
+    const ref = `snap-${randomUUID()}`; const resolve = snapshotDirResolver(e.snapshotRoot)
+    const made = createSnapshot({ dir: resolve(ref), base_sha: task.base_sha, head_sha: task.head_sha, files, scope: task.scope })
+    if (!made.ok) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { problems: made.problems }); return { preserved: false } }
+    const cp = buildCheckpoint(L, taskId, { reason: 'CRASH_RECOVERY', snapshot: { ref, digest: made.digest }, workerHead: (await e.adapters.git.workerHead?.(task, null))?.head_sha ?? null })
+    const v = verifyCheckpoint(L, cp.id, { snapshotDir: resolve })
+    if (!v.ok) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { problems: v.problems }); return { preserved: false } }
+    L.markCheckpointVerified(cp.id); L.recordRecovery(taskId, 'uncommitted_work_preserved', { checkpoint: cp.id, files: files.length })
+    return { preserved: true }
+  } catch (err) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { error: String(err?.message).slice(0, 80) }); return { preserved: false } }
 }
 
 /** Controller start-up: single controller (OS-level lock), uncertain effects, unacknowledged outbox, orphaned reasoning slot. */

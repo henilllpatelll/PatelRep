@@ -95,16 +95,19 @@ export class IssuerCore {
     const pf = this.#preflight(task_id); if (!pf.ok) return pf
     const { t, c } = pf
     if (!idOf(run_id)) return refuse('ISSUER.BAD_REQUEST')
-    if (!['testing'].includes(t.lifecycle.state)) return refuse('ISSUER.TASK_NOT_IN_TESTING')
+    // `testing` for the first issuance; later states only to RE-ATTEST the same run for the same candidate under a newer recovery epoch (see below)
+    if (!['testing', 'independent_review', 'security_review', 'publishing'].includes(t.lifecycle.state)) return refuse('ISSUER.TASK_NOT_IN_TESTING')
     const run = this.ledger.db.prepare('SELECT * FROM test_runs WHERE run_id=? AND task_id=?').get(run_id, task_id)
     if (!run) return refuse('ISSUER.UNKNOWN_RUN')
     if (run.candidate_sha !== c.candidate_sha || run.tree_digest !== c.tree_digest) return refuse('ISSUER.RUN_FOR_ANOTHER_CANDIDATE')
-    if (run.fencing_token !== t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
+    // A run from the CURRENT or an EARLIER recovery epoch may be (re-)attested for the unchanged candidate; one from a FUTURE epoch cannot exist.
+    if (run.fencing_token > t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
+    if (run.passed !== 1 && t.lifecycle.state !== 'testing') return refuse('ISSUER.NOT_A_PASSING_RUN')
     const ic = this.#independentCandidate(t, c); if (!ic.ok) return ic
     const results = JSON.parse(run.results_json)
     const clean = Object.fromEntries(Object.entries(results).filter(([, n]) => Number.isSafeInteger(n) && n >= 0).slice(0, 20))
     const pass = run.passed === 1 && (clean.failed ?? 0) === 0 && (clean.passed ?? 0) > 0
-    return this.#emit('test_results', `test_results:${task_id}:${run_id}:${c.candidate_sha}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest,
+    return this.#emit('test_results', `test_results:${task_id}:${run_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest,
       environment_id: t.environment_id, results: clean, verdict: pass ? 'pass' : 'fail' }, t)
   }
 
@@ -116,10 +119,12 @@ export class IssuerCore {
     const r = this.ledger.getReview(review_id)
     if (!r || r.task_id !== task_id) return refuse('ISSUER.UNKNOWN_REVIEW')
     if (r.kind !== kind) return refuse('ISSUER.REVIEW_KIND_MISMATCH')
-    if (r.status !== 'submitted') return refuse('ISSUER.REVIEW_NOT_SUBMITTED')
+    if (r.status !== 'submitted' && r.status !== 'verified_pass') return refuse('ISSUER.REVIEW_NOT_SUBMITTED') // verified_pass only for re-attestation
     if (r.candidate_sha !== c.candidate_sha || r.tree_digest !== c.tree_digest) return refuse('ISSUER.REVIEW_FOR_ANOTHER_CANDIDATE')
     if (r.policy_revision !== this.policy.revision || r.environment_id !== t.environment_id) return refuse('ISSUER.REVIEW_BINDING_MISMATCH')
-    if (r.fencing_token !== t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
+    // Epoch rule (same as test results): a review made in an earlier recovery epoch for the SAME candidate may be re-attested under the current one.
+    // Every other check below still applies in full, and a review row from a future epoch cannot exist.
+    if (r.fencing_token > t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
     if (r.readonly_verified !== 1 || r.post_tree_digest !== r.tree_digest) return refuse('ISSUER.READONLY_NOT_VERIFIED')
     const ex = this.ledger.getExecution(r.execution_id)
     if (!ex || ex.status !== 'terminated_verified' || ex.context_id !== r.context_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
@@ -136,7 +141,7 @@ export class IssuerCore {
     // critical/high are ALWAYS blocking regardless of the reviewer's `mandatory` flag; a reviewer can add blockers but never remove them
     const blocking = rows.filter((f) => (f.mandatory === 1 || f.severity === 'critical' || f.severity === 'high') && f.status === 'open')
     const findings = rows.map((f) => ({ id: f.finding_id, severity: f.severity, resolved: f.status !== 'open' }))
-    return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
+    return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
       findings, verdict: blocking.length ? 'findings_open' : 'pass' }, t)
   }
 

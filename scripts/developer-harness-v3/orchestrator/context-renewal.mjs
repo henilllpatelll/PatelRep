@@ -58,13 +58,15 @@ export const maxSafeTokensPerTurn = (windowTokens, cfg = RENEWAL_DEFAULTS) => Ma
 export const sanitizeNotes = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').slice(0, MAX_NOTES_CHARS)
 
 /** Build and persist an UNVERIFIED checkpoint from ledger facts. `snapshot` = {ref, digest} (already created and verified by the caller) or null for a clean tree. */
-export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes = '' }) {
+export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes = '', workerHead = null }) {
   const t = ledger.getTask(taskId)
   const plan = ledger.currentPlan(taskId)
   const evidenceRows = ledger.db.prepare('SELECT evidence_id, evidence_type, payload_digest FROM evidence WHERE task_id=? AND invalidated_at IS NULL ORDER BY accepted_at').all(taskId)
   const payload = {
     schema: CHECKPOINT_SCHEMA, version: 1, task_id: taskId, reason, state: t.state, state_revision: t.state_revision, fencing_token: t.fencing_token,
     requirements_digest: t.requirements_digest, base_sha: t.base_sha, head_sha: t.head_sha,
+    // The WORKER's branch head at capture time. It may legitimately be ahead of the ledger head (committed, candidate not yet accepted); restore must reproduce THIS one.
+    worker_head_sha: /^[0-9a-f]{40}$/.test(workerHead ?? '') ? workerHead : null,
     plan: plan ? { version: plan.version, digest: plan.digest } : null,
     remaining_steps: plan ? plan.steps.filter((s) => s.status !== 'done' && s.status !== 'abandoned').map((s) => s.id) : [],
     evidence_refs: evidenceRows.map((r) => ({ evidence_id: r.evidence_id, type: r.evidence_type, digest: r.payload_digest })),
@@ -144,7 +146,8 @@ export function verifyRestoredState({ ledger, taskId, checkpointId, observed }) 
   const cp = ledger.getCheckpoint(checkpointId); const t = ledger.getTask(taskId); const problems = []
   if (!cp || !cp.verified) problems.push('RESTORE.CHECKPOINT_NOT_VERIFIED')
   else {
-    if (observed.head_sha !== cp.payload.head_sha || observed.head_sha !== t.head_sha) problems.push('RESTORE.HEAD_MISMATCH')
+    const expectedHead = cp.payload.worker_head_sha ?? cp.payload.head_sha ?? null
+    if ((observed.head_sha ?? null) !== expectedHead) problems.push('RESTORE.HEAD_MISMATCH')
     if (observed.base_sha !== t.base_sha) problems.push('RESTORE.BASE_MISMATCH')
     if (cp.payload.snapshot && observed.snapshot_digest !== cp.payload.snapshot.digest) problems.push('RESTORE.SNAPSHOT_NOT_RESTORED')
     if (cp.payload.candidate && observed.tree_digest !== cp.payload.candidate.tree_digest && !cp.payload.snapshot) problems.push('RESTORE.TREE_MISMATCH')

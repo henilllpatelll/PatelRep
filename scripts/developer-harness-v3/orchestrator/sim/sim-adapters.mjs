@@ -128,6 +128,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         if (snapshotDir && !readonly) { const r = restoreSnapshot(snapshotDir, root, { scope: task.scope }); if (!r.ok) return { ok: false, code: r.problems[0] }; snapshot_digest = r.digest }
         return { ok: true, head_sha: v ? candidateShaFor(task.task_id, v) : null, base_sha: task.base_sha, tree_digest: v ? treeOf(committed) : null, snapshot_digest }
       },
+      async workerHead(task) { const v = loadWorld(dir).versions[task.task_id] ?? 0; return { head_sha: v ? candidateShaFor(task.task_id, v) : null } },
       async captureSnapshot(task) {
         const w = loadWorld(dir); const v = w.versions[task.task_id] ?? 0
         const committed = new Map((v ? readTree(commitDir(dir, task.task_id, v)) : []).map((f) => [f.path, sha256(f.content)]))

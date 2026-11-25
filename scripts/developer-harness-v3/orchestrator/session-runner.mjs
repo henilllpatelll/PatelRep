@@ -86,7 +86,10 @@ export async function runSessionStage(e, taskId, spec) {
   // Termination is verified INDEPENDENTLY of the adapter's session result, and the slot is released only on a verified stop.
   const term = await safeTerminate(A, lease)
   e.hook('after_session_terminated', { taskId })
-  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status })
+  // A finished planning/implementing deliverable is persisted IN THE SAME TRANSACTION as the verified lease release, so a crash right after the session never costs
+  // a second session (the stage handler consumes and clears it).
+  const persist = outcome.status === 'done' && ['planning', 'implementing'].includes(spec.stage) ? () => L.setMeta(`stage_done:${taskId}:${spec.stage}`, JSON.stringify(outcome.deliverable)) : null
+  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status, alsoOnVerified: persist })
   e.hook('after_lease_closed', { taskId })
   if (!closed.ok) return { status: 'failed', code: closed.code, fingerprint: fingerprint('close', closed.code), executions }
   if (!term.verified) return { status: 'termination_unverified', executions, lease }
@@ -137,7 +140,7 @@ async function renew(e, taskId, spec, lease, dec) {
   const t1 = L.transition(taskId, 'context_recovery', { reason_code: 'CONTEXT_RENEWAL' })
   if (!t1.ok) return { status: 'failed', code: t1.problems[0], fingerprint: fingerprint('renew-transition', t1.problems[0]) }
   // 4-5. persist then VERIFY the checkpoint for completeness and integrity
-  const cp = buildCheckpoint(L, taskId, { reason: `CONTEXT_RENEWAL:${dec.basis}`, snapshot, notes: await A.session.notes?.(lease) ?? '' })
+  const cp = buildCheckpoint(L, taskId, { reason: `CONTEXT_RENEWAL:${dec.basis}`, snapshot, notes: await A.session.notes?.(lease) ?? '', workerHead: (await A.git.workerHead?.(task, lease))?.head_sha ?? null })
   e.hook('after_checkpoint_recorded', { taskId })
   const v = verifyCheckpoint(L, cp.id, { snapshotDir: snapshotDirResolver(e.snapshotRoot) })
   if (!v.ok) { L.transition(taskId, resumeTo); return { status: 'failed', code: v.problems[0], fingerprint: fingerprint('checkpoint', v.problems[0]) } }
