@@ -75,6 +75,10 @@ export function classifyCommand(source, ctx, opts = {}) {
   const dialect = opts.dialect ?? 'posix'
   if (depth > MAX_DEPTH) return [F('run_unclassifiable_shell_input', 'shell.too_deep', 'command nesting exceeds the inspection depth')]
   if (typeof source !== 'string' || !source.trim()) return [F('run_unclassifiable_shell_input', 'shell.empty', 'empty command')]
+  // Windows PowerShell treats typographic quotes (U+2018–U+201B single, U+201C–U+201E double) as real quote characters; the bounded
+  // recognizer does not, so text it reads as inside a string could be a live statement. Such commands are unclassifiable (V2 transition
+  // review round 6). Bash and cmd treat them as ordinary characters.
+  if (dialect === 'powershell' && /[‘-„]/.test(source)) return [F('run_unclassifiable_shell_input', 'shell.powershell_typographic_quote', 'PowerShell typographic quote characters change how the command parses')]
   const parsed = parseShell(source, { dialect, backslashEscapes: opts.backslashEscapes })
   if (!parsed.ok) return [F('run_unclassifiable_shell_input', 'shell.unparseable', `the command could not be parsed safely (${parsed.reason})`)]
   const findings = []

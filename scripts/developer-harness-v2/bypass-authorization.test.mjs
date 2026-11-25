@@ -463,3 +463,22 @@ test('independent review round 5 (2026-11-24): a bypass commit runs alone; hered
     "git commit -m \"$(cat <<'EOF'\nfeat(dev-harness-v2): x\n\nbody with `code`, $(literal) and EOF inside a line\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nEOF\n)\""]) ok(bash(c), c)
   ok(bash('git add notes2.txt apps/web/x.ts'), 'staging alone')
 })
+
+test('independent review round 6 (2026-11-24): PowerShell typographic quotes are unclassifiable in every mode', () => {
+  const quotes = ['‘', '’', '‚', '‛', '“', '”', '„']
+  for (const q of quotes) {
+    for (const inner of ['git push --force origin main', 'gh pr merge 1', 'Get-Content apps/api/.env', "Set-Content .claude/settings.local.json '{}'", 'git add notes.txt; git commit -m y']) {
+      const c = `Write-Output 'x${q}; ${inner}; Write-Output ${q}y'`
+      for (const mode of ['default', 'bypassPermissions', 'acceptEdits']) {
+        const r = evaluateToolEvent(ev('PowerShell', { command: c }, mode), ctx())
+        assert.equal(r.decision, 'deny', `${mode}: ${JSON.stringify(c)}`)
+        assert.equal(r.reasonCode, 'shell.powershell_typographic_quote')
+      }
+    }
+  }
+  denied(evaluateToolEvent(ev('PowerShell', { command: "git commit --allow-empty -m 'x‘ -m (Get-Content msg.txt -Raw) -m ‘y'" }), ctx()), 'smart-quoted commit message')
+  denied(bash('git commit -m "x’y"'), 'typographic quote in a bypass commit', 'bypass.commit_unverified')
+  denied(bash("git commit -m \"$(cat <<'EOF'\r\nmsg\r\nEOF\r\n)\""), 'CR inside a heredoc commit', 'bypass.commit_unverified')
+  ok(bash('echo “hello”'), 'Bash treats typographic quotes as ordinary characters')
+  ok(evaluateToolEvent(ev('PowerShell', { command: "Write-Output 'plain'" }), ctx()), 'ordinary PowerShell')
+})

@@ -24,6 +24,7 @@ left for the V3 owner to refresh (they are V3 root-of-trust files and outside th
 | Running `scripts/developer-harness-v3/**` code directly | `run_unreviewed_script` (human_approval) | `run_privileged_infrastructure` (human_approval) — same class in every non-bypass mode |
 | Reading DH3 worker SSH keys, the owner's login disk (`auth.qcow2`), the DH3 GnuPG home, `*_ed25519`/`*_ecdsa`/`ssh_host_*_key` | allowed read | credential (forbidden) in every mode — tightening |
 | `gh pr create/edit/comment --body-file <credential>` | not checked | the file is classified as a read (credential → forbidden) — tightening |
+| PowerShell command containing typographic quotes (U+2018–U+201E) | parsed as ordinary characters (PowerShell treats them as quotes, so hidden statements were missed) | unclassifiable → forbidden in every mode — tightening (review round 6) |
 
 ## 2. Where authority comes from
 
@@ -193,6 +194,11 @@ after the scan, and that a heredoc could smuggle a command after its delimiter o
 Fix: in bypass a `git commit` must be the **only** command on its line; outside quotes no separator, redirect, subshell or expansion,
 inside double quotes no `$`, backtick or backslash; the only computed message is a quoted heredoc that ends at its first delimiter line
 and closes immediately. Fixture P-11 (`git add … && git commit …`, allowed in other modes) is therefore denied in bypass by design.
+
+Round 6 (`01dfd156`) closed both round-5 items in Bash and ordinary PowerShell and found that Windows PowerShell's typographic quotes
+(U+2018–U+201B, U+201C–U+201E) let any statement hide from the recognizer, in every mode (pre-existing; exploitable once bypass removes
+the prompt). Fix: such PowerShell commands are unclassifiable (forbidden) in every mode; bypass commits also refuse CR and typographic
+quotes (CR inside a heredoc ends it at different places in different shells).
 
 Known friction that remains in bypass (deliberate): `apps/web/scripts/apply-feature-flag.mjs` and `verify-feature-rollout.mjs`
 (rollout tooling that mentions workflows), `apps/mobile/scripts/staging-env.js` (targets the remote staging Supabase), test files run

@@ -451,6 +451,8 @@ function checkCommit(f, s, ctx) {
   // check. Its only permitted expansion is Claude Code's literal quoted heredoc, `-m "$(cat <<'EOF' … EOF)"`, which must end at its
   // first delimiter line and close immediately; any other `$`, backtick, separator, redirect or substitution is refused.
   const cmd = String(s.event?.tool_input?.command ?? '')
+  // CR inside a heredoc ends it at different places in different shells; typographic quotes are live quotes in PowerShell.
+  if (/[\r‘-„]/.test(cmd)) return no('bypass.commit_unverified', 'commit command contains carriage returns or typographic quote characters')
   const rest = stripQuotedHeredocs(cmd)
   if (rest === null) return no('bypass.commit_unverified', 'malformed heredoc commit message (it must close right after its first delimiter line)')
   if (!commitAlone(rest)) {
