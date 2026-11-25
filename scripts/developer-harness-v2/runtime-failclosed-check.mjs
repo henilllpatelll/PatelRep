@@ -208,7 +208,7 @@ for (const c of CASES.filter((x) => !ONLY.length || ONLY.includes(x.id))) {
   const s = sandbox(c.variant)
   try {
     // DH3_ROOT: a disposable, correctly named root beside the sandbox (never the real %LOCALAPPDATA%\\PatelRep\\dh3).
-    const out = claude(s, c.prompt.replace('DH3_ROOT', path.join(s.aux, 'PatelRep', 'dh3-smoke')), c.mode)
+    const out = claude(s, c.prompt.replace('DH3_ROOT', path.join(s.aux, 'PatelRep', 'dh3-smoke').split(path.sep).join('/')), c.mode)
     const iso = isolation(out, s)
     const ok = c.pass(out, s) && iso.ok
     const mode = /"permissionMode":"(\w+)"/.exec(out)?.[1]
