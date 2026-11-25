@@ -185,7 +185,7 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   const TRANSITION_PINNED = {
     '.claude/hooks/policy-hook.mjs': 'f45a1f9419a5ef26f216b8742775204f8db53f0e4e9f0081e3d2c371f3ac695f',
     'docs/developer-harness-v2/contract.json': 'a1893abb511f3bd0fdcaeb5249684d2923c6037eb39762d210b8a1eecb061d3b',
-    'scripts/developer-harness-v2/command-policy.mjs': '60957353ba429f8ede7ffec15b48c045f9154879a69f2256e0b0c09b4d9a6c50',
+    'scripts/developer-harness-v2/command-policy.mjs': 'ac0305f531c8f89c769854eb80ef84afa856dac9b582e5423410558ad2dbd841',
     'scripts/developer-harness-v2/command-tools.mjs': '19eaa90245c95606d9b896d8c7fe52eb2206f01ea2317683cb60775315503b4f',
     'scripts/developer-harness-v2/git-policy.mjs': 'c2e327e18b46dd4c399b0693c42103f3cb66fe7f99976e71eab6f205ede1aa2a',
     'scripts/developer-harness-v2/path-policy.mjs': '03955387f7be1123ccbd56b08045dc3ec7832a8baa5af2eaef891e547fd72e44',
@@ -196,11 +196,11 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     'scripts/developer-harness-v2/m1-hardening.test.mjs': 'a395e8144c3a7248359b54f6e72c0080f9a1c3105b09e1ebd7dad765137d7220',
     'scripts/developer-harness-v2/path-resolution.test.mjs': 'be4b9c7905d54794af1279fbcb79f38cbb67f168ff8913395ee4807736ff4530',
     'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '5aaca7a977c30f7106bc49b1302e890c4272bffdabfef36aa33bea74c178f3b2',
-    'scripts/developer-harness-v2/bypass-authorization.mjs': 'a7240b675f791557f8965e83cacab56232f4abffbc4256f60ab0edd88f638f83',
+    'scripts/developer-harness-v2/bypass-authorization.mjs': 'd4fae1200cd948a16c6f9291c651fe0d88f5a6597e7abb9e9494df5d03e64fed',
     'scripts/developer-harness-v2/bypass-digest.mjs': '79fc4296a5368df224e92e9e059f23acbde92f605f861c179829a0d224fb091a',
     'scripts/developer-harness-v2/bypass-pins.mjs': 'd73e1bd2442aaeba7ef724243e176c1ba2af280818f8697e72f902367e838fb1',
     'scripts/developer-harness-v2/bypass-git-index.mjs': 'dd900befa6258c3cd23c050f98ae1d0f8f423776ba302edd257d831f18d22b99',
-    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '13cbf3c3fee06440252051c7a1a31286679b49f8b3c23d865ead6e258350d012',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '100e518c5aaeb935a4852cf0dc13a94ec50a158c065dd5f9602b7f634773f008',
     'scripts/developer-harness-v2/bypass-hook.test.mjs': '883e3dd7eea0c215d0156f58509ab3d586e0562c8629d9bb87709d0f38df0088',
   }
   const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',

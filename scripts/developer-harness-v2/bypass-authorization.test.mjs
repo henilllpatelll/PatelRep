@@ -1,4 +1,4 @@
-// Developer Harness V2 \u2014 permission transition: engine-level tests of owner-launched bypassPermissions authorization.
+// Developer Harness V2 — permission transition: engine-level tests of owner-launched bypassPermissions authorization.
 // Pure: injected facts only (no filesystem beyond the repository's own policy files, no network, nothing executed).
 // Run: node --test scripts/developer-harness-v2/bypass-authorization.test.mjs
 import assert from 'node:assert/strict'
@@ -504,4 +504,14 @@ test('independent review round 7 (2026-11-24): PowerShell Unicode dashes and whi
   ok(ps('Get-ChildItem apps'), 'ordinary PowerShell')
   ok(ps("Write-Output 'it''s fine'"), 'ordinary PowerShell quoting')
   ok(bash('echo "a\u2014b"'), 'an em dash in a Bash string is just text')
+})
+
+test('independent review round 8 (2026-11-24): PowerShell call operator with a computed target is unclassifiable', () => {
+  const ps = (c, mode = 'bypassPermissions') => evaluateToolEvent(ev('PowerShell', { command: c }, mode), ctx())
+  for (const c of ["& ('g'+'h') pr merge 1", "& ('g'+'h') release create v9.9.9", "& ('gi'+'t') push --force origin main", "& ('ra'+'ilway') up", "& ('gi'+'t') checkout feature/other",
+    "& ('g'+'it') push origin feat/other", "& ('gh') pr ready", "& ([string]'gh') pr ready", '& (Get-Command gh) pr ready', '$x = "gh"; & $x pr ready', ". ('g'+'h') pr ready", '& "$x" pr ready']) {
+    for (const mode of ['bypassPermissions', 'default']) assert.equal(ps(c, mode).decision, 'deny', `${mode}: ${c}`)
+  }
+  ok(ps('& "C:/Program Files/nodejs/node.exe" tools/build.mjs'), 'call operator with a literal quoted path')
+  ok(ps('npm install left-pad'), 'ordinary PowerShell')
 })

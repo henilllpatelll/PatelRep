@@ -1,4 +1,4 @@
-// Developer Harness V2 \u2014 owner-launched Bypass Permissions transition: deterministic, scoped authorization.
+// Developer Harness V2 — owner-launched Bypass Permissions transition: deterministic, scoped authorization.
 //
 // The repository owner explicitly launches `claude --dangerously-skip-permissions`. A hook "ask" cannot reach a human in that mode, so
 // every proposed tool call that is not `allowed` is either AUTHORIZED here (it proceeds without a prompt) or DENIED (exit 2). Nothing
@@ -67,7 +67,7 @@ export const CEILING = Object.freeze({
 })
 export const ROUTINE_ACTIONS = Object.freeze(Object.keys(CEILING).filter((a) => !CEILING[a].scoped))
 
-// `allowed` findings that can replace checked-out files \u2014 and so the policy files and the session's branch/scope \u2014 are re-checked in
+// `allowed` findings that can replace checked-out files — and so the policy files and the session's branch/scope — are re-checked in
 // bypass: only trusted sources (origin/main) or a new branch are accepted. `.gitignore` guards credential files from being staged.
 const TREE_CODES = new Set(['git.checkout_branch', 'git.checkout_new_branch', 'git.switch', 'git.merge', 'git.pull', 'git.cherry-pick', 'git.revert', 'git.bisect', 'git.mergetool'])
 
@@ -350,6 +350,7 @@ function checkUnknownProgram(f) {
   if (f.code.startsWith('expo.')) return YES // local bundle export / native prebuild (mobile is the active surface)
   const m = f.meta
   if (!m || m.dynamic) return no('bypass.program_unverified', 'program or arguments are computed at runtime')
+  if (!/^[A-Za-z0-9_][A-Za-z0-9_.+-]*$/.test(m.exe ?? '')) return no('bypass.program_unverified', 'the program name is not a plain command name')
   if (CREDENTIAL_TOOLS.has(m.exe)) return no('bypass.credential_tool', `${m.exe.slice(0, 40)} reads stored credentials`)
   if (NETWORK_PROBES.has(m.exe)) return no('bypass.network_probe', `${m.exe.slice(0, 40)} sends traffic off the host`)
   if (OPAQUE_INTERPRETERS.has(m.exe)) return no('bypass.opaque_interpreter', `${m.exe.slice(0, 40)} runs code the policy cannot inspect`)
