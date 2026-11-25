@@ -5,8 +5,8 @@
 | Question | Verdict | Why |
 |---|---|---|
 | Human merge of the D3.3 PR | **GO for owner review** (merging activates nothing) | code + docs only under V3 paths; D3.2 contract/evaluator/lifecycle and all V2/CI files unchanged; 2 AI reviews + re-verification; tests green. Merge is your decision. |
-| Isolation acceptance | **NO-GO: `ISOLATION_UNPROVEN`** | the 13-scenario real-VM suite has not completed (provisioning reaped under low memory; 15) |
-| Runtime readiness for autonomous execution | **NO-GO** | owner login (O-2) and extra-usage verification (O-3) not done; WHPX not enabled (O-1); QEMU runs as the owner (O-7); provider-terms decision open (O-4); no issuer keys, so no `isolation_attestation`; V3 not in CI |
+| Isolation acceptance | **PASS (D3.3 scope)** | run 2, 2026-11-25, WHPX: 13/13 scenarios on the real VM for candidate `b7bbae10` (closure digest `c1605655…`, owner-pinned), golden image rebuilt with guest hardening. Evidence and limits in 15. Not an external audit; the full 3 GB worker and an active WSL/Docker neighbour network were not exercised |
+| Runtime readiness for autonomous execution | **NO-GO** | owner login (O-2) and extra-usage verification (O-3) not done, and O-3 is currently blocked by defect D-1 (15); QEMU runs as the owner (O-7); provider-terms decision open (O-4); no issuer keys, so no `isolation_attestation`; V3 not in CI |
 | V3 active | **no** | `activation.active_actions = []`; no Bypass Permissions anywhere |
 
 ## 2. Independent review (AI reviewers, not human or external auditors)
@@ -29,7 +29,7 @@
 | S10 | stray `%SystemDrive%\ProgramData\…` tree in the checkout | `SYSTEMDRIVE` added to every minimal environment; tree deleted (never committed) | FIXED |
 | S11 | test plan below its floor | returns null (caller waits) | FIXED |
 | S12 | unobserved `pro`/`pro` mapping, unbounded reset, no automatic resume, cancellations escalating | observed pair only; resets > 8 days ignored; one retry once eligible; neutral kills leave state unchanged | FIXED |
-| S13 | acceptance scenarios 8/9/12 could pass vacuously | ENOSPC required; OOM-kill/`MemoryError` required (not `timeout`); CPU sampled during burn; real forged-tree check | PARTIAL → remediated after run 1 (15): host-side fail-closed evaluators, binding-cap CPU enforcement test, scenario-13 plant control, retained evidence; real-VM re-run pending the pin refresh. Scenario 12 still proves the host-recompute rule, not the evaluator binding |
+| S13 | acceptance scenarios 8/9/12 could pass vacuously | ENOSPC required; OOM-kill/`MemoryError` required (not `timeout`); CPU sampled during burn; real forged-tree check | FIXED, verified on the real VM by run 2 (15): host-side fail-closed evaluators, binding-cap CPU enforcement test, scenario-13 plant control, retained evidence. Scenario 12 still proves the host-recompute rule, not the evaluator binding |
 | N1 | (fix-induced) lock never released if VM already dead | `verifyStopped` returns true when the VM is verifiably not running | fixed after re-verification |
 | N2 | (fix-induced) probe crash on neutral kill without prior state | null-safe | fixed after re-verification |
 
@@ -69,7 +69,7 @@ Also found **in the real VM run** (not by the reviewers): (1) the in-process pro
 
 ## 3. Hardening required before any activation (D3.9 gate)
 
-1. **O-1 WHPX** and re-run of the acceptance suite under WHPX (the TCG run does not exercise the hypervisor boundary).
+1. **O-1 WHPX**: done. WHPX is enabled and acceptance run 2 passed under WHPX (15). Re-run the suite after any re-provision or trusted-code change, including the D-1/D-2 fixes (15 "Known defects").
 2. **Dedicated Windows account for QEMU** (O-7): create a standard local user `dh3-worker` (admin), grant it read/write only to `%LOCALAPPDATA%\PatelRep\dh3\workers`, launch the supervisor through a scheduled task running as that user. A QEMU escape then lands in an account without the owner's files or credentials. Not implemented in D3.3.
 3. **QEMU outbound firewall rule** (O-6) as a second network layer.
 4. Owner login + `auth-check` + `probe-subscription`; verify that `--setting-sources ""` and the residue sanitizer keep the login usable (14 §5).
