@@ -96,7 +96,11 @@ const PS_MUTATING_VERB = /^(set|new|remove|enable|disable|install|uninstall|regi
 /** Read-only V2 policy tools a bypass session may run (they live under protected paths and are trusted as the policy itself). */
 const POLICY_TOOLS = {
   'scripts/developer-harness-v2/ci/run-ci-suites.mjs': (args) => args.length === 0,
-  [PIN_TOOL]: (args) => args.every((a, i) => /^--(print|check|json)$/.test(a) || /^--scope(=[a-z0-9-]+)?$/.test(a) || (args[i - 1] === '--scope' && /^[a-z0-9-]+$/.test(a))),
+  // Read-only modes only. A scope id never starts with '-' (so a flag cannot pose as the value of --scope), and --scope may appear at most once
+  // (so a second --scope cannot carry an unlisted mode such as --verify-provenance or --from-ref past the matcher).
+  [PIN_TOOL]: (args) => args.filter((a) => /^--scope(=|$)/.test(a)).length <= 1
+    && args.every((a, i) => /^--(print|check|json)$/.test(a) || /^--scope(=[a-z0-9][a-z0-9-]*)?$/.test(a) || (args[i - 1] === '--scope' && /^[a-z0-9][a-z0-9-]*$/.test(a)))
+    && !args.some((a, i) => a === '--scope' && !/^[a-z0-9][a-z0-9-]*$/.test(args[i + 1] ?? '')),
 }
 
 // ── Scopes file ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
