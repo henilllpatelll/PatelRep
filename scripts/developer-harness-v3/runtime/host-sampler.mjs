@@ -15,23 +15,53 @@ export const WINDOWS_COUNTERS = Object.freeze({
 })
 
 const finite = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
+/** Counters whose value is a rate over an interval (they need two collections); the rest are gauges. */
+const RATE_COUNTERS = Object.freeze(['cpu_pct', 'paging_pages_per_sec'])
 
-/** Parse `typeperf -sc N` CSV. Uses the LAST row (rate counters need two samples). Columns are matched by counter path, not position. */
-export function parseTypeperf(csv) {
-  const out = Object.fromEntries(Object.keys(WINDOWS_COUNTERS).map((k) => [k, null]))
+/** A raw counter cell, reduced to a short, harmless diagnostic (never a path, never free text). */
+const sanitizeCell = (s) => String(s).slice(0, 16).replace(/[^A-Za-z0-9.#+-]/g, '?')
+
+/**
+ * Parse `typeperf -sc N` CSV and say WHY a counter has no value. Uses the LAST row (rate counters need two samples). Columns are matched by
+ * counter path, not position. `values[key]` is a finite, non-negative number or `null`; it is never a default, an average or a clamped value.
+ * `problems[key]` is `{ code, raw? }` for every counter that is `null`: COUNTER.NO_ROWS (fewer than a header and one data row),
+ * COUNTER.TOO_FEW_ROWS (only the RATE counters, cpu_pct and paging_pages_per_sec, when there is one data row; gauges are kept),
+ * COUNTER.COLUMN_MISSING, COUNTER.ROW_SHORT, COUNTER.VALUE_BLANK, COUNTER.VALUE_NON_NUMERIC (includes typeperf's `-1.#IND00` style cells and
+ * non-finite numbers) and COUNTER.VALUE_NEGATIVE. `raw` is a sanitized, length-capped copy of the cell.
+ */
+export function parseTypeperfDetailed(csv) {
+  const values = Object.fromEntries(Object.keys(WINDOWS_COUNTERS).map((k) => [k, null]))
+  const problems = {}
   const rows = String(csv).split(/\r?\n/).filter((l) => l.startsWith('"'))
-  if (rows.length < 2) return out
+  if (rows.length < 2) {
+    for (const key of Object.keys(WINDOWS_COUNTERS)) problems[key] = { code: 'COUNTER.NO_ROWS' }
+    return { values, problems }
+  }
+  // CPU % and Pages/sec are RATE counters: a value is an interval measurement only after two collections, so a header plus one data row (a run
+  // that exited early) has no usable rate. The GAUGE counters (available memory, commit) are real readings on the first row and are kept: an
+  // early exit must never throw away an adverse memory reading.
+  const oneRow = rows.length < 3
   const cells = (l) => [...l.matchAll(/"((?:[^"]|"")*)"/g)].map((m) => m[1])
   const header = cells(rows[0])
   const last = cells(rows[rows.length - 1])
   for (const [key, path] of Object.entries(WINDOWS_COUNTERS)) {
+    if (oneRow && RATE_COUNTERS.includes(key)) { problems[key] = { code: 'COUNTER.TOO_FEW_ROWS' }; continue }
     const idx = header.findIndex((h) => h.toLowerCase().endsWith(path.toLowerCase()))
-    if (idx < 1 || idx >= last.length) continue
+    if (idx < 1) { problems[key] = { code: 'COUNTER.COLUMN_MISSING' }; continue }
+    if (idx >= last.length) { problems[key] = { code: 'COUNTER.ROW_SHORT' }; continue }
     const raw = last[idx].trim()
-    if (raw === '' || /[^0-9.eE+-]/.test(raw)) continue
-    out[key] = finite(Number(raw))
+    if (raw === '') { problems[key] = { code: 'COUNTER.VALUE_BLANK' }; continue }
+    const n = /[^0-9.eE+-]/.test(raw) ? null : finite(Number(raw))
+    if (n == null) { problems[key] = { code: 'COUNTER.VALUE_NON_NUMERIC', raw: sanitizeCell(raw) }; continue }
+    if (n < 0) { problems[key] = { code: 'COUNTER.VALUE_NEGATIVE', raw: sanitizeCell(raw) }; continue }
+    values[key] = n
   }
-  return out
+  return { values, problems }
+}
+
+/** Parse `typeperf -sc N` CSV into counter values (`null` for any counter that could not be read). See `parseTypeperfDetailed`. */
+export function parseTypeperf(csv) {
+  return parseTypeperfDetailed(csv).values
 }
 
 /** Derive the admission measurement shape from raw counters. Missing inputs stay null. */
@@ -100,30 +130,121 @@ const SAMPLER_TOOLS = Object.freeze({ typeperf: `${SYS32}\\typeperf.exe`, taskli
 function runBounded(name, args, { timeoutMs, maxBytes = 1048576 }) {
   return new Promise((resolve) => {
     const started = Date.now()
-    let out = ''; let done = false
+    let out = ''; let done = false; let truncated = false
     const cmd = SAMPLER_TOOLS[name]
-    if (!cmd) { resolve({ ok: false, out, ms: 0, code: 'SAMPLER.TOOL_NOT_PINNED' }); return }
+    if (!cmd) { resolve({ ok: false, out, ms: 0, code: 'SAMPLER.TOOL_NOT_PINNED', exit_code: null }); return }
     const child = spawn(cmd, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'], env: { SYSTEMROOT: process.env.SYSTEMROOT, SYSTEMDRIVE: process.env.SYSTEMDRIVE, PATH: process.env.SYSTEMROOT ? `${process.env.SYSTEMROOT}\\System32` : '' } })
-    const t = setTimeout(() => { if (!done) { done = true; child.kill(); resolve({ ok: false, out, ms: Date.now() - started, code: 'SAMPLER.TIMEOUT' }) } }, timeoutMs)
-    child.stdout.on('data', (d) => { out += d; if (out.length > maxBytes) child.kill() })
-    child.on('error', () => { if (!done) { done = true; clearTimeout(t); resolve({ ok: false, out, ms: Date.now() - started, code: 'SAMPLER.SPAWN_FAILED' }) } })
-    child.on('close', (code) => { if (!done) { done = true; clearTimeout(t); resolve({ ok: code === 0, out, ms: Date.now() - started, code: code === 0 ? null : 'SAMPLER.EXIT_NONZERO' }) } })
+    const t = setTimeout(() => { if (!done) { done = true; child.kill(); resolve({ ok: false, out, ms: Date.now() - started, code: 'SAMPLER.TIMEOUT', exit_code: null }) } }, timeoutMs)
+    child.stdout.on('data', (d) => { out += d; if (out.length > maxBytes) { truncated = true; child.kill() } })
+    child.on('error', () => { if (!done) { done = true; clearTimeout(t); resolve({ ok: false, out, ms: Date.now() - started, code: 'SAMPLER.SPAWN_FAILED', exit_code: null }) } })
+    child.on('close', (code) => {
+      if (done) return
+      done = true; clearTimeout(t)
+      const exit = Number.isInteger(code) ? code : null
+      resolve({ ok: code === 0 && !truncated, out, ms: Date.now() - started, code: truncated ? 'SAMPLER.OUTPUT_TOO_LARGE' : code === 0 ? null : 'SAMPLER.EXIT_NONZERO', exit_code: exit })
+    })
   })
 }
 
 /**
  * One host sample (≈2 s, one short-lived typeperf + optional tasklist). `host_responsive` is false when the sampler itself took far longer
  * than its nominal duration (the controller could not get CPU/IO in time) — a conservative heartbeat, not a UI-latency measurement.
+ *
+ * Failure classes stay distinguishable: `sampler_error` is SAMPLER.TIMEOUT / SAMPLER.SPAWN_FAILED / SAMPLER.EXIT_NONZERO (with
+ * `sampler_exit_code`) / SAMPLER.OUTPUT_TOO_LARGE / SAMPLER.TOOL_NOT_PINNED; when typeperf itself succeeded, `counter_problems` names every
+ * counter that has no usable value (see `parseTypeperfDetailed`). `typeperfTimeoutMs` bounds the subprocess (default 30 s); a caller that
+ * works against a deadline passes a smaller value. `runner` exists for deterministic tests only; it defaults to the pinned-path runner.
  */
-export async function sampleWindowsHost({ diskPath, ownedPids = [], responsiveBudgetMs = 15000 } = {}) {
-  const t = await runBounded('typeperf', [...Object.values(WINDOWS_COUNTERS), '-sc', '2', '-si', '1'], { timeoutMs: 30000 })
-  const raw = t.ok ? parseTypeperf(t.out) : parseTypeperf('')
+export async function sampleWindowsHost({ diskPath, ownedPids = [], responsiveBudgetMs = 15000, typeperfTimeoutMs = 30000, runner = runBounded } = {}) {
+  const t = await runner('typeperf', [...Object.values(WINDOWS_COUNTERS), '-sc', '2', '-si', '1'], { timeoutMs: typeperfTimeoutMs })
+  const parsed = t.ok ? parseTypeperfDetailed(t.out) : parseTypeperfDetailed('')
+  // A FAILED run is never a measurement, but whatever CPU % and available memory it printed are kept as UNVERIFIED diagnostics: an adverse one
+  // must not be hidden by a retry (the scenario 9 rule judges them).
+  const unverified = t.ok ? null : parseTypeperfDetailed(t.out ?? '').values
+  const unverifiedCpu = unverified?.cpu_pct ?? null; const unverifiedAvailable = unverified?.available_mb ?? null
   let disk = null
   try { const s = statfsSync(diskPath); disk = Number(s.bavail) * Number(s.bsize) } catch { disk = null }
-  const metrics = deriveHostMetrics(raw, { diskFreeBytes: disk })
+  const metrics = deriveHostMetrics(parsed.values, { diskFreeBytes: disk })
   let owned = {}
-  if (ownedPids.length) { const tl = await runBounded('tasklist', ['/FO', 'CSV', '/NH'], { timeoutMs: 15000 }); owned = tl.ok ? parseTasklist(tl.out, ownedPids) : {} }
-  return { at: new Date().toISOString(), source: 'windows_typeperf', sampler_ms: t.ms, sampler_error: t.code, host_responsive: t.ok && t.ms <= responsiveBudgetMs, ...metrics, owned_processes: owned }
+  if (ownedPids.length) { const tl = await runner('tasklist', ['/FO', 'CSV', '/NH'], { timeoutMs: 15000 }); owned = tl.ok ? parseTasklist(tl.out, ownedPids) : {} }
+  return { at: new Date().toISOString(), source: 'windows_typeperf', sampler_ms: t.ms, sampler_error: t.code, sampler_exit_code: t.exit_code ?? null, counter_problems: t.ok ? parsed.problems : {}, unverified_cpu_pct: unverifiedCpu, unverified_available_mb: unverifiedAvailable,
+    host_responsive: t.ok && t.ms <= responsiveBudgetMs, ...metrics, owned_processes: owned }
+}
+
+export const HOST_CPU_SAMPLING_VERSION = 1
+/** `typeperf -sc 2 -si 1` collects two samples one second apart; a run that returns in well under that did not measure an interval. */
+export const MIN_BURN_SAMPLER_MS = 900
+export const MAX_PROCESS_FAILURES = 2
+/** The subprocess timeout of a burn attempt that is not cut short by the window deadline; `attemptTimeoutMs` defaults to it. */
+export const FULL_ATTEMPT_TIMEOUT_MS = 8000
+const finiteOrNull = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
+/**
+ * A burn sample is usable only with a measured CPU % AND a measured available-memory figure (both feed scenario 9), from a run that exited
+ * cleanly and long enough to have spanned its interval. Nothing else is accepted.
+ */
+const usableBurnSample = (s) => !!s && s.sampler_error == null && Number.isFinite(s.cpu_pct) && s.cpu_pct >= 0 && Number.isFinite(s.available_mb)
+  && Number.isFinite(s.sampler_ms) && s.sampler_ms >= MIN_BURN_SAMPLER_MS
+const attemptError = (s) => s?.sampler_error ?? (Number.isFinite(s?.cpu_pct)
+  ? (Number.isFinite(s?.available_mb) ? (Number.isFinite(s?.sampler_ms) && s.sampler_ms >= MIN_BURN_SAMPLER_MS ? null : 'SAMPLER.TOO_FAST') : 'COUNTER.AVAILABLE_UNMEASURED')
+  : (s?.counter_problems?.cpu_pct?.code ?? 'COUNTER.CPU_UNMEASURED'))
+
+/**
+ * Collect `slots` host samples INSIDE a bounded window of the guest burn, retrying only samples that could not be MEASURED.
+ *
+ *  - A retry happens only when an attempt produced no usable measurement (timeout, spawn failure, non-zero exit, truncated or too-fast run,
+ *    missing or malformed counter). A measured value is accepted whatever it is: a high CPU %, a low available-memory figure or a slow,
+ *    unresponsive sample is adverse evidence, never a reason to try again.
+ *  - Nothing measured is ever dropped: every attempt records each value that WAS measured (even when its sibling counter failed), and a failed
+ *    run's printed CPU % and available memory are kept as `unverified_cpu_pct` / `unverified_available_mb`. The scenario 9 rule judges ALL of
+ *    them, not only the accepted ones.
+ *  - Nothing is ever substituted: a slot that never obtains a measurement stays `null`. No zero, average, neighbour or earlier value is used.
+ *  - `deadlineAt` (epoch ms) is a hard end. An attempt starts only if `minAttemptMs` remain, its subprocess timeout is capped at the time left,
+ *    and an attempt that ends after the deadline (or after the guest burn ended, via `burnEnded()`) is recorded but NOT accepted, so every
+ *    accepted measurement lies inside [`notBeforeAt`, `deadlineAt`] and inside the burn.
+ *  - Process-level failures (any SAMPLER.* error) are bounded for the whole burn (`maxProcessFailures`); one more ends sampling (fail closed).
+ *  - Every attempt is recorded, including failures, with offsets relative to `origin` (epoch ms of the burn start).
+ *
+ * Returns `{ samples, attempts, responsive, stop_reason, ...window facts }`; `samples[i]` is the accepted sample or `null`.
+ */
+export async function sampleHostCpuWindow({
+  diskPath, origin, notBeforeAt, deadlineAt, burnMs, slots = 3, gapMs = 1500, retryDelayMs = 500, attemptTimeoutMs = FULL_ATTEMPT_TIMEOUT_MS, minAttemptMs = 3500, maxAttemptsPerSlot = 3,
+  maxProcessFailures = MAX_PROCESS_FAILURES,
+  burnEnded = () => false, sample = sampleWindowsHost, now = Date.now, sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+} = {}) {
+  const attempts = []; const samples = []; const responsive = []
+  let stop = null; let processFailures = 0
+  for (let slot = 0; slot < slots; slot += 1) {
+    let accepted = null
+    for (let k = 1; k <= maxAttemptsPerSlot && !stop; k += 1) {
+      if (k > 1) { const wait = Math.min(retryDelayMs, deadlineAt - now()); if (wait > 0) await sleep(wait) }
+      const startedAt = now()
+      if (burnEnded()) { stop = 'BURN_ENDED'; break }
+      if (deadlineAt - startedAt < minAttemptMs) { stop = 'DEADLINE_EXHAUSTED'; break }
+      const timeoutMs = Math.min(attemptTimeoutMs, deadlineAt - startedAt) // shortened by the deadline near the end of the window
+      const s = await sample({ diskPath, typeperfTimeoutMs: timeoutMs })
+      const endedAt = now()
+      const inside = endedAt <= deadlineAt && startedAt >= notBeforeAt && !burnEnded()
+      const usable = usableBurnSample(s)
+      const error = attemptError(s)
+      const rec = { slot, attempt: k, start_offset_ms: startedAt - origin, end_offset_ms: endedAt - origin, sampler_ms: finiteOrNull(s?.sampler_ms),
+        timeout_ms: timeoutMs, error, exit_code: s?.sampler_exit_code ?? null, counter_problems: s?.counter_problems ?? {},
+        // Whatever was MEASURED is kept, whether or not the attempt was accepted; only a value that does not exist is null.
+        cpu_pct: finiteOrNull(s?.cpu_pct), available_mb: finiteOrNull(s?.available_mb), unverified_cpu_pct: finiteOrNull(s?.unverified_cpu_pct), unverified_available_mb: finiteOrNull(s?.unverified_available_mb),
+        host_responsive: s?.host_responsive === true, outcome: !usable ? 'rejected_unmeasured' : inside ? 'accepted' : 'rejected_outside_window' }
+      attempts.push(rec)
+      // A sampler that could not run, or could not finish in its FULL budget, says something adverse about the host: that counts against
+      // responsiveness. A timeout cut short by the window deadline says nothing about the host (the slot simply stays unmeasured).
+      if (error === 'SAMPLER.SPAWN_FAILED' || error === 'SAMPLER.OUTPUT_TOO_LARGE' || (error === 'SAMPLER.TIMEOUT' && timeoutMs >= FULL_ATTEMPT_TIMEOUT_MS)) responsive.push(false)
+      if (typeof error === 'string' && error.startsWith('SAMPLER.')) { processFailures += 1; if (processFailures > maxProcessFailures) { stop = 'PROCESS_FAILURES_EXCEEDED'; break } }
+      if (rec.outcome === 'accepted') { accepted = s; responsive.push(s.host_responsive === true); break }
+      if (rec.outcome === 'rejected_outside_window') { stop = burnEnded() ? 'BURN_ENDED' : 'DEADLINE_EXHAUSTED'; break }
+    }
+    samples.push(accepted)
+    if (slot < slots - 1 && !stop) { const wait = Math.min(gapMs, deadlineAt - now()); if (wait > 0) await sleep(wait) }
+  }
+  const missing = samples.filter((s) => s == null).length
+  return { version: HOST_CPU_SAMPLING_VERSION, slots, max_attempts_per_slot: maxAttemptsPerSlot, window_ms: [notBeforeAt - origin, deadlineAt - origin], burn_ms: burnMs ?? null,
+    stop_reason: stop ?? (missing ? 'ATTEMPTS_EXHAUSTED' : null), samples, attempts, responsive }
 }
 
 /** Shell snippet run INSIDE the guest (via the controller's SSH channel) whose output `parseGuestSample` reads. Read-only. */

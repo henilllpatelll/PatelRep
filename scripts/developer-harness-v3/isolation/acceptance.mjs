@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { atomicWriteJson, readJsonState } from '../lib/atomic.mjs'
 import { startEgressProxyProcess as startEgressProxy } from '../runtime/egress-proxy-process.mjs'
-import { sampleWindowsHost } from '../runtime/host-sampler.mjs'
+import { sampleHostCpuWindow, sampleWindowsHost } from '../runtime/host-sampler.mjs'
 import { admit } from '../runtime/resource-governor.mjs'
 import { validateQemuArgs } from '../runtime/qemu-args.mjs'
 import { liveness, openEgressChannel, POWERSHELL, readVmRecord, run, SSH, sshArgs, sshExec, stopVm, sysEnv } from '../runtime/vm-controller.mjs'
@@ -91,7 +91,8 @@ print(json.dumps({"iterations": sum(int(x[0]) for x in rows), "cpu_seconds": rou
                   "busy_pct": round((dt - di) * 100.0 / dt, 1) if dt > 0 else None, "seconds": T, "workers": N, "cpus": len(os.sched_getaffinity(0))}))
 `
 /** Burn length; the host measures QEMU's CPU share and samples host CPU only INSIDE [BURN_WINDOW_S] so start-up and teardown are excluded. */
-// 40 s with the window ending at 30 s leaves ≥ 8 s of budget for the c1 read on a slow host (one PowerShell call + three ~5 s samples before it).
+// 40 s with the window ending at 30 s leaves ≥ 8 s of budget for the c1 read on a slow host: host sampling is hard-bounded to end by the window
+// end (nominally three ~2 s samples plus gaps, ≈ 9 s from second 8, with the rest of the window for bounded retries), then one PowerShell call.
 export const BURN_SECONDS = 40
 export const BURN_WINDOW_S = Object.freeze([8, 30])
 
@@ -203,12 +204,15 @@ export async function runAcceptance(L, { id = 'w1', log = console.error } = {}) 
     set(13, R.evalS13({ plantedOut: planted, afterOut: after.out.replace(/\r/g, ''), bashrcBefore, bashrcAfter, goldenReadOnly: (statSync(W.golden).mode & 0o222) === 0 }))
     const capped = await cpuBurn(W, cfg, recCapped, { vcpus, logicalCpus, diskPath: L.root.slice(0, 3) })
     const job = (r) => ({ flags: r?.job_cpu_control_flags ?? null, rate: r?.job_cpu_rate ?? null })
-    const burnSamples = [...normal.hostSamples, ...capped.hostSamples]
-    const availSamples = [mid.available_mb, ...burnSamples.map((s) => s.available_mb)]
+    // A slot that never obtained a measurement is `null` in the CPU list, which scenario 9 rejects (S9.HOST_CPU_CONTENDED) together with the
+    // sampling-evidence rules. The memory minimum covers EVERY measured available-memory value of EVERY attempt (retried ones included), so
+    // a retry can never remove a low reading; the rule recomputes the same from the evidence.
+    const attemptAvail = [...normal.hostSampling.attempts, ...capped.hostSampling.attempts].flatMap((a) => [a.available_mb, a.unverified_available_mb]).filter(Number.isFinite)
+    const availSamples = [mid.available_mb, ...attemptAvail]
     set(9, R.evalS9({ alloc: { exitCode: allocExit, outcome: allocOutcome }, qemuAliveAfterAlloc, qemuWorkingSetMb: mid.owned_processes?.[recNormal.qemu_pid]?.working_set_mb ?? null, memoryLimitMb: recNormal.memory_limit_mb,
-      hostAvailableMbMin: availSamples.every(Number.isFinite) ? Math.min(...availSamples) : null, hostResponsive: [mid.host_responsive, ...burnSamples.map((s) => s.host_responsive)],
-      cpu: { logicalCpus, vcpus, normal: { capPct: recNormal.cpu_rate_percent, job: job(recNormal), burn: normal.burn, hostCpuPct: normal.hostSamples.map((s) => s.cpu_pct ?? null), qemuHostCpuPct: normal.qemuHostCpuPct, window: normal.window },
-        capped: { capPct: recCapped?.cpu_rate_percent ?? null, job: job(recCapped), burn: capped.burn, hostCpuPct: capped.hostSamples.map((s) => s.cpu_pct ?? null), qemuHostCpuPct: capped.qemuHostCpuPct, window: capped.window } } }))
+      hostAvailableMbMin: availSamples.every(Number.isFinite) ? Math.min(...availSamples) : null, hostResponsive: [mid.host_responsive, ...normal.hostResponsive, ...capped.hostResponsive],
+      cpu: { logicalCpus, vcpus, normal: { capPct: recNormal.cpu_rate_percent, job: job(recNormal), burn: normal.burn, hostCpuPct: normal.hostSamples.map((s) => s?.cpu_pct ?? null), hostSampling: normal.hostSampling, qemuHostCpuPct: normal.qemuHostCpuPct, window: normal.window },
+        capped: { capPct: recCapped?.cpu_rate_percent ?? null, job: job(recCapped), burn: capped.burn, hostCpuPct: capped.hostSamples.map((s) => s?.cpu_pct ?? null), hostSampling: capped.hostSampling, qemuHostCpuPct: capped.qemuHostCpuPct, window: capped.window } } }))
   } catch (e) {
     log(`acceptance aborted: ${e.message}`)
     probeError = probeError ?? `ABORTED:${String(e.message).slice(0, 200)}`
@@ -381,10 +385,14 @@ async function cpuBurn(W, cfg, rec, { vcpus, logicalCpus, diskPath }) {
   const started = Date.now()
   const at = async (s) => { const wait = started + s * 1000 - Date.now(); if (wait > 0) await sleep(wait) }
   const p = sshAsync(W, cfg, `${AS_WORKER} python3 -I - ${vcpus} ${BURN_SECONDS}`, BURN_PY, (BURN_SECONDS + 120) * 1000)
+  let burnEndedAt = null // set the moment the guest burn's ssh session ends: no host sample taken after that counts as "during the burn"
+  p.then(() => { burnEndedAt = Date.now() })
   await at(BURN_WINDOW_S[0])
   const c0 = qemuCpuMs(rec?.qemu_pid); const t0 = Date.now()
-  const hostSamples = []
-  for (let i = 0; i < 3; i += 1) { hostSamples.push(await sampleWindowsHost({ diskPath, ownedPids: rec?.qemu_pid ? [rec.qemu_pid] : [] })); await sleep(1500) }
+  // Host CPU samples: three MEASURED samples inside [BURN_WINDOW_S[0], BURN_WINDOW_S[1]] of the burn. Only a sample that could not be measured is
+  // retried (bounded, and never past the window end or the end of the guest burn); every attempt, failed ones included, is kept as evidence.
+  const sampling = await sampleHostCpuWindow({ diskPath, origin: started, notBeforeAt: started + BURN_WINDOW_S[0] * 1000, deadlineAt: started + BURN_WINDOW_S[1] * 1000, burnMs: BURN_SECONDS * 1000, burnEnded: () => burnEndedAt !== null })
+  const hostSamples = sampling.samples
   await at(BURN_WINDOW_S[1])
   const c1 = qemuCpuMs(rec?.qemu_pid); const t1 = Date.now()
   const r = await p
@@ -394,7 +402,9 @@ async function cpuBurn(W, cfg, rec, { vcpus, logicalCpus, diskPath }) {
   const qemuHostCpuPct = inside && c0 != null && c1 != null && t1 > t0 ? Math.round(((c1 - c0) / ((t1 - t0) * logicalCpus)) * 1000) / 10 : null
   // Raw window facts, so a null or borderline share can be diagnosed from the evidence alone.
   const window = { qemu_cpu_ms_start: c0, qemu_cpu_ms_end: c1, start_offset_ms: t0 - started, end_offset_ms: t1 - started, end_inside_burn: inside, logical_cpus: logicalCpus }
-  return { burn, hostSamples, qemuHostCpuPct, window }
+  const { samples: _s, responsive, ...hostSampling } = sampling
+  hostSampling.burn_ended_offset_ms = burnEndedAt === null ? null : burnEndedAt - started
+  return { burn, hostSamples, hostResponsive: responsive, hostSampling, qemuHostCpuPct, window }
 }
 
 function sshAsync(W, cfg, command, input, timeoutMs) {

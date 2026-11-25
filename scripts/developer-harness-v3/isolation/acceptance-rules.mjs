@@ -248,6 +248,91 @@ export const S9_MAX_HOST_CPU_PCT = 70
 /** Host-measured QEMU CPU share: capped must stay at the cap (+15 % and +0.5 pt measurement slack); normal must clearly exceed the binding cap. */
 export const S9_QEMU_CAP_SLACK = 1.15
 export const S9_QEMU_NORMAL_OVER_CAP = 1.5
+/** Host CPU samples that must be MEASURED inside each burn window, and the shape version of their evidence (must equal HOST_CPU_SAMPLING_VERSION). */
+export const S9_HOST_CPU_SLOTS = 3
+export const S9_HOST_SAMPLING_VERSION = 1
+/** The burn and the window the host samples inside, pinned HERE so a record cannot widen them (acceptance.mjs's constants must equal these; tested). */
+export const S9_BURN_MS = 40000
+export const S9_BURN_WINDOW_MS = Object.freeze([8000, 30000])
+export const S9_MAX_ATTEMPTS_PER_SLOT = 3
+/** Process-level sampler failures (any SAMPLER.* error) tolerated per burn, and the shortest run that can have spanned `typeperf`'s interval. */
+export const S9_MAX_PROCESS_FAILURES = 2
+export const S9_MIN_SAMPLER_MS = 900
+/** A sampler timeout counts against host responsiveness only when it ran for this full budget (the sampler's default; tested equal). */
+export const S9_FULL_ATTEMPT_TIMEOUT_MS = 8000
+const SAMPLING_OUTCOMES = Object.freeze(['accepted', 'rejected_unmeasured', 'rejected_outside_window'])
+const numOrNull = (v) => v === null || (typeof v === 'number' && Number.isFinite(v))
+
+/**
+ * Verify the evidence behind one burn's host-CPU samples (`cpuPct` = the three per-slot values scenario 9 judges, `null` for an unmeasured slot)
+ * and judge EVERY measurement in it. The sampler's retries are only trustworthy if the record proves what they did, so this does not trust the
+ * sampler's own summary (its accepted list, its responsiveness list or its stop reason):
+ *  - the burn, the window and the retry bound are the pinned constants; the guest burn must have ended after the window closed;
+ *  - attempts are chronological and non-overlapping, slot by slot, numbered 1..n within a slot (so none can be duplicated, reordered or
+ *    hidden); a failed attempt carries a reason and cannot be a clean measurement; at most one attempt per slot is accepted, and only as that
+ *    slot's last; an `rejected_outside_window` attempt is genuinely outside the window or the burn, and ends the sampling;
+ *  - an accepted attempt is a real measurement (finite CPU % and memory, clean exit, a run long enough to span the interval, responsive), equal
+ *    to the value being judged (nothing substituted), inside the window and before the guest burn ended;
+ *  - EVERY measured value of EVERY attempt is judged: CPU % (also a failed run's `unverified_cpu_pct`) above the ceiling is S9.HOST_CPU_CONTENDED
+ *    and available memory at or below the floor is S9.HOST_MEMORY_LOW, whether or not that attempt was retried away. A retry can therefore add
+ *    evidence but never remove an adverse reading;
+ *  - a spawn failure, oversized output, or a timeout that ran for the FULL time budget makes the host not responsive (a timeout cut short by the
+ *    window deadline does not; `timeout_ms` must equal min(full budget, time left to the window end)); more than S9_MAX_PROCESS_FAILURES process
+ *    failures fail. A failed run's printed CPU % and available memory (`unverified_*`) are judged like any other measured value.
+ */
+function hostSamplingProblems(hs, cpuPct) {
+  const bad = []
+  const flag = (c) => { if (!bad.includes(c)) bad.push(c) }
+  if (!isObj(hs) || hs.version !== S9_HOST_SAMPLING_VERSION || hs.slots !== S9_HOST_CPU_SLOTS || !Array.isArray(hs.attempts) || !Array.isArray(hs.window_ms) || hs.window_ms.length !== 2
+    || !hs.window_ms.every(Number.isFinite) || !Number.isFinite(hs.burn_ms) || hs.max_attempts_per_slot !== S9_MAX_ATTEMPTS_PER_SLOT
+    || !Number.isFinite(hs.burn_ended_offset_ms) || !Array.isArray(cpuPct) || cpuPct.length !== S9_HOST_CPU_SLOTS) return ['S9.HOST_CPU_SAMPLING_EVIDENCE_INVALID']
+  const [lo, hi] = hs.window_ms
+  const be = hs.burn_ended_offset_ms
+  if (lo !== S9_BURN_WINDOW_MS[0] || hi !== S9_BURN_WINDOW_MS[1] || hs.burn_ms !== S9_BURN_MS) flag('S9.HOST_CPU_SAMPLING_WINDOW_INVALID')
+  if (be < hi) flag('S9.HOST_CPU_SAMPLE_OUTSIDE_BURN_WINDOW') // the guest burn ended before the window closed
+  const bySlot = Array.from({ length: S9_HOST_CPU_SLOTS }, () => [])
+  const outside = (a) => a.start_offset_ms < lo || a.end_offset_ms > hi || a.end_offset_ms >= be
+  let prev = null; let processFailures = 0
+  const last = hs.attempts[hs.attempts.length - 1]
+  for (const a of hs.attempts) {
+    if (!isObj(a) || !Number.isInteger(a.slot) || a.slot < 0 || a.slot >= S9_HOST_CPU_SLOTS || !Number.isInteger(a.attempt) || !SAMPLING_OUTCOMES.includes(a.outcome)
+      || !Number.isFinite(a.start_offset_ms) || a.start_offset_ms < 0 || !Number.isFinite(a.end_offset_ms) || a.end_offset_ms < a.start_offset_ms
+      || !numOrNull(a.cpu_pct) || !numOrNull(a.available_mb) || !numOrNull(a.unverified_cpu_pct) || !numOrNull(a.unverified_available_mb) || !numOrNull(a.sampler_ms)
+      || !(Number.isFinite(a.timeout_ms) && a.timeout_ms > 0) || (a.error !== null && typeof a.error !== 'string')) { flag('S9.HOST_CPU_SAMPLING_EVIDENCE_INVALID'); continue }
+    // chronological, non-overlapping, slot by slot, numbered from 1 within a slot
+    const first = prev === null
+    if (first ? (a.slot !== 0 || a.attempt !== 1) : (a.start_offset_ms < prev.end_offset_ms || ![0, 1].includes(a.slot - prev.slot) || a.attempt !== (a.slot === prev.slot ? prev.attempt + 1 : 1))) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT')
+    prev = a
+    bySlot[a.slot].push(a)
+    // every measured value is judged, whatever became of the attempt
+    for (const v of [a.cpu_pct, a.unverified_cpu_pct]) if (v !== null && (v < 0 || v > S9_MAX_HOST_CPU_PCT)) flag('S9.HOST_CPU_CONTENDED')
+    for (const v of [a.available_mb, a.unverified_available_mb]) if (v !== null && v <= 1024) flag('S9.HOST_MEMORY_LOW')
+    const processError = typeof a.error === 'string' && a.error.startsWith('SAMPLER.')
+    if (processError) processFailures += 1
+    // not responsive: the sampler could not start, flooded its output, or used its FULL time budget without finishing (a timeout that the
+    // window deadline cut short says nothing about the host; that slot just stays unmeasured and fails as CONTENDED)
+    if (a.error === 'SAMPLER.SPAWN_FAILED' || a.error === 'SAMPLER.OUTPUT_TOO_LARGE' || (a.error === 'SAMPLER.TIMEOUT' && a.timeout_ms >= S9_FULL_ATTEMPT_TIMEOUT_MS)) flag('S9.HOST_NOT_RESPONSIVE')
+    // the timeout an attempt ran under is the full budget, or exactly the time left to the window end: nothing in between can be claimed
+    if (a.timeout_ms !== Math.min(S9_FULL_ATTEMPT_TIMEOUT_MS, hi - a.start_offset_ms)) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT')
+    // `measured`: both counters were read by a run long enough to span the interval. `clean`: that, with no error recorded.
+    const measured = a.cpu_pct !== null && a.cpu_pct >= 0 && a.available_mb !== null && a.sampler_ms !== null && a.sampler_ms >= S9_MIN_SAMPLER_MS
+    const clean = a.error === null && measured
+    if (a.outcome === 'accepted') {
+      if (!clean || a.host_responsive !== true) flag(clean ? 'S9.HOST_NOT_RESPONSIVE' : 'S9.HOST_CPU_SAMPLING_INCONSISTENT')
+      if (outside(a)) flag('S9.HOST_CPU_SAMPLE_OUTSIDE_BURN_WINDOW')
+    } else if (a.outcome === 'rejected_unmeasured') {
+      if (typeof a.error !== 'string' || a.error.length === 0 || measured) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT') // a failure must say why and cannot hold a complete measurement
+    } else if (!clean || !outside(a) || a !== last) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT') // 'outside the window' must be true, and nothing can follow it
+  }
+  if (processFailures > S9_MAX_PROCESS_FAILURES) flag('S9.HOST_CPU_SAMPLING_PROCESS_FAILURES')
+  bySlot.forEach((list, i) => {
+    const acc = list.filter((a) => a.outcome === 'accepted')
+    if (list.length > hs.max_attempts_per_slot || acc.length > 1 || (acc.length === 1 && list[list.length - 1] !== acc[0])) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT')
+    if (acc.length === 0) { if (cpuPct[i] !== null) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT'); return } // an unmeasured slot stays null (judged as CONTENDED)
+    if (acc[0].cpu_pct !== cpuPct[i]) flag('S9.HOST_CPU_SAMPLING_INCONSISTENT')
+  })
+  return bad
+}
 
 /**
  * Memory: the guest's over-allocation ends in its OOM killer (or MemoryError) INSIDE the guest: QEMU is still alive afterwards, under its Job
@@ -279,7 +364,8 @@ export function evalS9(o) {
     if (!Number.isFinite(c.capped.capPct) || c.capped.capPct > 0.6 * demand) p.push('S9.CPU_CAP_NOT_BINDING')
     if (!jobAttested(c.normal.job, c.normal.capPct) || !jobAttested(c.capped.job, c.capped.capPct)) p.push('S9.JOB_CPU_CAP_NOT_ATTESTED')
     const samples = [c.normal.hostCpuPct, c.capped.hostCpuPct]
-    if (!samples.every((a) => Array.isArray(a) && a.length >= 3 && a.every((x) => Number.isFinite(x) && x <= S9_MAX_HOST_CPU_PCT))) p.push('S9.HOST_CPU_CONTENDED')
+    if (!samples.every((a) => Array.isArray(a) && a.length >= 3 && a.every((x) => Number.isFinite(x) && x >= 0 && x <= S9_MAX_HOST_CPU_PCT))) p.push('S9.HOST_CPU_CONTENDED')
+    for (const b of [c.normal, c.capped]) for (const code of hostSamplingProblems(b.hostSampling, b.hostCpuPct)) if (!p.includes(code)) p.push(code)
     const qn = c.normal.qemuHostCpuPct; const qc = c.capped.qemuHostCpuPct
     if (!Number.isFinite(qn) || !Number.isFinite(qc) || !Number.isFinite(c.capped.capPct)) p.push('S9.QEMU_HOST_CPU_UNMEASURED')
     else {
@@ -299,8 +385,8 @@ export function evalS9(o) {
       if (!(ratio <= Math.min(0.8, expected + 0.25))) p.push('S9.CPU_CAP_NOT_ENFORCED')
     }
     ev.max_host_cpu_pct_accepted = S9_MAX_HOST_CPU_PCT
-    ev.normal = { burn: c.normal.burn ?? null, job: c.normal.job ?? null, host_cpu_pct_samples: c.normal.hostCpuPct ?? null, qemu_host_cpu_pct: qn ?? null, qemu_window: c.normal.window ?? null }
-    ev.capped = { burn: c.capped.burn ?? null, job: c.capped.job ?? null, host_cpu_pct_samples: c.capped.hostCpuPct ?? null, qemu_host_cpu_pct: qc ?? null, qemu_window: c.capped.window ?? null, qemu_max_accepted_pct: Number.isFinite(c.capped.capPct) ? Math.round((c.capped.capPct * S9_QEMU_CAP_SLACK + 0.5) * 100) / 100 : null }
+    ev.normal = { burn: c.normal.burn ?? null, job: c.normal.job ?? null, host_cpu_pct_samples: c.normal.hostCpuPct ?? null, host_cpu_sampling: c.normal.hostSampling ?? null, qemu_host_cpu_pct: qn ?? null, qemu_window: c.normal.window ?? null }
+    ev.capped = { burn: c.capped.burn ?? null, job: c.capped.job ?? null, host_cpu_pct_samples: c.capped.hostCpuPct ?? null, host_cpu_sampling: c.capped.hostSampling ?? null, qemu_host_cpu_pct: qc ?? null, qemu_window: c.capped.window ?? null, qemu_max_accepted_pct: Number.isFinite(c.capped.capPct) ? Math.round((c.capped.capPct * S9_QEMU_CAP_SLACK + 0.5) * 100) / 100 : null }
   }
   return result(p, { guest_alloc_exit: o?.alloc?.exitCode ?? null, guest_alloc_outcome: o?.alloc?.outcome ?? null, qemu_alive_after_alloc: o?.qemuAliveAfterAlloc ?? null,
     qemu_working_set_mb_after_alloc: o?.qemuWorkingSetMb ?? null, job_memory_limit_mb: o?.memoryLimitMb ?? null,

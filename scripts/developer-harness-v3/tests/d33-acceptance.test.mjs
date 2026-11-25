@@ -247,9 +247,17 @@ test('root facts parser and hardening detection', () => {
 
 // Under the cap the guest still charges descheduled time to the burn workers: same guest CPU seconds (≈60 = 2 × 30), about half the work.
 const burn = (iterations, cpuSeconds = 59.8, busy = 99) => ({ iterations, cpu_seconds: cpuSeconds, reports: 2, busy_pct: busy, seconds: 30, workers: 2, cpus: 2 })
+// Host-CPU sampling evidence for one burn (v1): one attempt per slot inside the 8–30 s window of a 40 s burn. A `null` slot is three failed attempts.
+const samplingFor = (vals, { window = [8000, 30000], burnMs = 40000, burnEnded = 41000, startAt = 8500 } = {}) => ({ version: 1, slots: 3, max_attempts_per_slot: 3, window_ms: window, burn_ms: burnMs,
+  burn_ended_offset_ms: burnEnded, stop_reason: vals.includes(null) ? 'ATTEMPTS_EXHAUSTED' : null,
+  attempts: vals.flatMap((v, slot) => (v === null
+    ? [1, 2, 3].map((attempt) => ({ slot, attempt, start_offset_ms: startAt + slot * 3500 + (attempt - 1) * 300, end_offset_ms: startAt + slot * 3500 + (attempt - 1) * 300 + 200, sampler_ms: 200, timeout_ms: 8000, error: 'COUNTER.VALUE_BLANK', exit_code: null, counter_problems: { cpu_pct: { code: 'COUNTER.VALUE_BLANK' } }, cpu_pct: null, available_mb: null, unverified_cpu_pct: null, unverified_available_mb: null, host_responsive: true, outcome: 'rejected_unmeasured' }))
+    : [{ slot, attempt: 1, start_offset_ms: startAt + slot * 3500, end_offset_ms: startAt + slot * 3500 + 2100, sampler_ms: 2100, timeout_ms: 8000, error: null, exit_code: null, counter_problems: {}, cpu_pct: v, available_mb: 3000, unverified_cpu_pct: null, unverified_available_mb: null, host_responsive: true, outcome: 'accepted' }])) })
+/** Set a burn's three host-CPU values and the matching, consistent sampling evidence (so a test exercises exactly the rule it names). */
+const setCpu = (b, vals) => { b.hostCpuPct = vals; b.hostSampling = samplingFor(vals) }
 const S9OK = { alloc: { exitCode: 137, outcome: 'oom_killed' }, qemuAliveAfterAlloc: true, qemuWorkingSetMb: 1853, memoryLimitMb: 2304, hostAvailableMbMin: 2600, hostResponsive: [true, true, true],
-  cpu: { logicalCpus: 20, vcpus: 2, normal: { capPct: 40, job: { flags: 5, rate: 4000 }, burn: burn(100000), hostCpuPct: [16.2, 18, 15], qemuHostCpuPct: 10.4 },
-    capped: { capPct: 5, job: { flags: 5, rate: 500 }, burn: burn(51000), hostCpuPct: [12, 11, 13], qemuHostCpuPct: 5.0 } } }
+  cpu: { logicalCpus: 20, vcpus: 2, normal: { capPct: 40, job: { flags: 5, rate: 4000 }, burn: burn(100000), hostCpuPct: [16.2, 18, 15], hostSampling: samplingFor([16.2, 18, 15]), qemuHostCpuPct: 10.4 },
+    capped: { capPct: 5, job: { flags: 5, rate: 500 }, burn: burn(51000), hostCpuPct: [12, 11, 13], hostSampling: samplingFor([12, 11, 13]), qemuHostCpuPct: 5.0 } } }
 const s9 = (patch) => { const o = clone(S9OK); patch(o); return R.evalS9(o) }
 
 test('scenario 9: the CPU hard cap must be shown ENFORCED with a binding cap, not merely recorded', () => {
@@ -289,12 +297,13 @@ test('scenario 9 confounds (review S3): guest-internal load cannot fake a drop; 
 
 test('scenario 9 validity: host contention, a wrong guest CPU count, a dead QEMU or unsampled host memory void the result', () => {
   // A slower capped burn on a saturated host could be contention, not the cap: never counted as enforcement. Every sample counts.
-  assert.ok(s9((o) => { o.cpu.capped.hostCpuPct = [12, 95, 12] }).problems.includes('S9.HOST_CPU_CONTENDED'))
-  assert.ok(s9((o) => { o.cpu.normal.hostCpuPct = [R.S9_MAX_HOST_CPU_PCT + 0.1, 10, 10] }).problems.includes('S9.HOST_CPU_CONTENDED'))
-  assert.ok(s9((o) => { o.cpu.capped.hostCpuPct = [12, null, 12] }).problems.includes('S9.HOST_CPU_CONTENDED'), 'an unmeasured host is not an idle host')
+  assert.ok(s9((o) => { setCpu(o.cpu.capped, [12, 95, 12]) }).problems.includes('S9.HOST_CPU_CONTENDED'))
+  assert.ok(s9((o) => { setCpu(o.cpu.normal, [R.S9_MAX_HOST_CPU_PCT + 0.1, 10, 10]) }).problems.includes('S9.HOST_CPU_CONTENDED'))
+  assert.ok(s9((o) => { setCpu(o.cpu.capped, [12, null, 12]) }).problems.includes('S9.HOST_CPU_CONTENDED'), 'an unmeasured host is not an idle host')
+  assert.ok(s9((o) => { o.cpu.capped.hostCpuPct = [12, null, 12] }).problems.includes('S9.HOST_CPU_CONTENDED'), 'a null value is rejected whatever the evidence says')
   assert.ok(s9((o) => { o.cpu.capped.hostCpuPct = [12] }).problems.includes('S9.HOST_CPU_CONTENDED'), 'one sample is not enough')
   assert.ok(s9((o) => { o.cpu.capped.hostCpuPct = 12 }).problems.includes('S9.HOST_CPU_CONTENDED'))
-  assert.equal(s9((o) => { o.cpu.capped.hostCpuPct = [R.S9_MAX_HOST_CPU_PCT, 1, 1] }).verdict, 'PASS', 'boundary is inclusive')
+  assert.equal(s9((o) => { setCpu(o.cpu.capped, [R.S9_MAX_HOST_CPU_PCT, 1, 1]) }).verdict, 'PASS', 'boundary is inclusive')
   // The guest must really have the VM's vCPUs (its own affinity count, not the argv echo).
   assert.ok(s9((o) => { o.cpu.capped.burn.cpus = 1 }).problems.includes('S9.BURN_INVALID'))
   assert.ok(s9((o) => { delete o.cpu.normal.burn.cpus }).problems.includes('S9.BURN_INVALID'))
