@@ -90,7 +90,7 @@ const OPAQUE_INTERPRETERS = new Set(['perl', 'ruby', 'php', 'lua', 'luajit', 'rs
 // `python -m <module>` modules a bypass session may run (pytest/ruff/mypy/pip/venv are classified by their own handlers).
 const PYTHON_MODULES = new Set(['tokenize', 'ast', 'dis', 'platform', 'sysconfig', 'pyflakes', 'pycodestyle', 'pydocstyle'])
 // Values that look like secrets (tokens, keys, private keys, connection strings, KEY=value lines with credential names).
-export const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*(?![<*$]|\{\{|([Yy]our|YOUR|[Ee]xample|EXAMPLE|[Rr]edacted|REDACTED|[Pp]laceholder|[Cc]hange[Mm]e|[Dd]ummy)|[xX]{3})[^\s<>]{8,}/
+export const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*(?!(?:<[^>\s]*>|\*{3,}|\$\{?\w+\}?|\{\{[^}]*\}\}|(?:[Yy]our|YOUR|[Ee]xample|EXAMPLE|[Rr]edacted|REDACTED|[Pp]laceholder|PLACEHOLDER|[Cc]hange[Mm]e|CHANGEME|[Dd]ummy|DUMMY)(?:[-_][\w-]*)?|[xX]{3,})(?:[\s"'`,;)]|$))[^\s<>]{8,}/
 const PS_MUTATING_VERB = /^(set|new|remove|enable|disable|install|uninstall|register|unregister|add|clear|stop|restart|start|suspend|resume|update|grant|revoke|block|unblock|mount|dismount|rename|reset|invoke|import|publish|unpublish|save|send|connect|disconnect|initialize|optimize|repair|restore|backup|checkpoint|lock|unlock|protect|unprotect|approve|deny|move|copy|write|edit|push|pop|use|enter|exit|debug|deploy|expand|compress|sync|submit|request|limit|close|open|redo|undo|complete|confirm|receive|merge)-[a-z]/
 
 /** Read-only V2 policy tools a bypass session may run (they live under protected paths and are trusted as the policy itself). */
@@ -417,7 +417,8 @@ function checkAllowed(f, s, ctx) {
   const sub = f.code.slice(4)
   const { pos, flags } = splitArgs(m.args, new Set(['-m', '--message', '-c', '--create', '-b']))
   const only = (allowed) => flags.every((x) => allowed.includes(x))
-  const abortOnly = pos.length === 0 && flags.length === 1 && ['--abort', '--quit', '--continue', '--skip'].includes(flags[0])
+  // `--continue` concludes a merge/cherry-pick/revert with a commit that would skip checkCommit: finish it with `git commit` instead.
+  const abortOnly = pos.length === 0 && flags.length === 1 && ['--abort', '--quit'].includes(flags[0])
   if (sub === 'merge') {
     if (abortOnly) return YES
     if (pos.length === 1 && pos[0] === 'origin/main' && only(['--ff-only', '--no-ff', '--ff', '--no-edit', '--no-stat', '-q', '--quiet', '-m', '--message'])) return YES
@@ -450,7 +451,12 @@ function checkCommit(f, s, ctx) {
   // text is part of the command line, which is checked as a whole.
   if (m.dynamic) {
     if (!(m.dynamicAt ?? []).every((i) => ['-m', '--message'].includes(m.args[i - 1]))) return no('bypass.commit_unverified', 'only the commit message may be computed')
-    if (SECRET_VALUE.test(String(s.event?.tool_input?.command ?? ''))) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+    // Only the literal quoted-heredoc form is accepted: its body is in the command text. Any other substitution ($(cat file), `…`,
+    // $(<file), $(Get-Content …)) would put content the policy cannot see into the message.
+    const cmd = String(s.event?.tool_input?.command ?? '')
+    const outside = cmd.replace(/\$\(\s*cat\s+<<-?\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\1[ \t]*\r?\n[\s\S]*?\r?\n[ \t]*\2[ \t]*\r?\n?\s*\)/g, 'HEREDOC_MESSAGE')
+    if (/\$\(|`|\$\{|<\(/.test(outside)) return no('bypass.commit_unverified', 'a computed commit message must be the literal quoted heredoc form: -m "$(cat <<\'EOF\' … EOF)"')
+    if (SECRET_VALUE.test(cmd)) return no('bypass.commit_secret', 'commit message contains a credential-like value')
   }
   if (!inProject(ctx, m.cwd)) return no('bypass.commit_outside_worktree', 'commits must run in the session worktree')
   const messages = []

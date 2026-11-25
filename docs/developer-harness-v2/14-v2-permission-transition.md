@@ -110,10 +110,13 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
   **accident tripwire**, not a boundary: absolute/`file://`/package-alias imports, `fork`/`spawn`/`Worker` of another file, `eval` of
   read data, Python imports, obfuscation and `node --test <file>` (allowed in every mode since Phase 2, never inspected) are not covered.
 - **R-1b Commit content.** GitHub secret-scanning push protection is **disabled** on the repository (checked live 2026-11-24:
-  `security_and_analysis.secret_scanning_push_protection = disabled`). So before a bypass `git commit` is authorized the hook parses the
-  index and scans every newly staged (loose) blob and the commit message for credential-like values (`bypass-git-index.mjs`); staging
-  at commit time (`-a`, `--only`, pathspecs) is refused, and unreadable/oversized staged content denies. Binary files, re-encoded
-  secrets and commits made outside bypass are not covered. **Owner action recommended:** enable secret scanning and push protection
+  `security_and_analysis.secret_scanning_push_protection = disabled`). So before a bypass `git commit` is authorized the hook scans
+  exactly what the commit adds: the paths `git diff --cached` reports against HEAD, read by their staged sha with `git cat-file
+  --batch` (UTF-8, UTF-16 and a NUL-stripped view), plus the message. These two fixed, read-only git calls (shell:false, sanitized env,
+  fsmonitor/hooks disabled, 6 s timeout) are the only subprocess the hook ever runs, and only for a bypass commit. Staging at commit
+  time (`-a`, `--only`, pathspecs) is refused; a computed message is accepted only in the literal quoted-heredoc form; `merge`/
+  `cherry-pick`/`revert --continue` are refused (finish with `git commit`); unreadable or oversized staged content denies. Compressed or
+  encrypted files, re-encoded secrets and commits made outside bypass are not covered. **Owner action recommended:** enable secret scanning and push protection
   (Settings → Code security) as the authoritative server-side control; agents cannot change repository security settings. The authoritative boundaries
   remain server-side: the `main` ruleset (CI Gate + Staging Gate, no bypass actors), the CI pin of `ci.yml`, environments, credential
   isolation and owner review of every PR touching `.claude/**`, `scripts/developer-harness-v2/**` or `docs/developer-harness-v2/**`.
@@ -173,6 +176,17 @@ Round 3 (`af89cd56`) closed F2-stdin, F3, F4 and F5 and found:
 | PR override check matched `GITHUB_TOKEN` mentioned inside a body; lowercase `token = …` code flagged as a secret | override = assignment/`export`/`read`/`source`/`env` target only; `KEY=value` secret branch is uppercase-only |
 | `corepack enable`, `volta install` change the global toolchain | denied |
 | push content uninspected while push protection is off | staged-content and commit-message scan before a bypass commit (R-1b) |
+
+Round 4 (`2f710984`) closed the single-line form, `process.env`, the narrowed false positives and the toolchain managers, and found:
+
+| Finding | Fix |
+|---|---|
+| (blocking) every commit denied: "loose object" ≠ newly staged (45k loose objects here); committed fixtures blocked later commits | scan `git diff --cached` paths only (vs HEAD), whether loose or packed |
+| (blocking) `-m "$(cat notes.txt)"`, backticks, `$(<file)`, PowerShell `$(Get-Content …)` messages unchecked | computed message only as the literal quoted heredoc; anything else denied |
+| `merge/cherry-pick/revert --continue` commit without the check | denied in bypass (abort/quit only) |
+| packed blobs skipped after auto-gc | resolved by the diff-based scan |
+| UTF-16 text treated as binary | UTF-16LE/BE and NUL-stripped views scanned |
+| placeholder prefix (`Example…`) accepted | placeholder must be the whole token |
 
 Known friction that remains in bypass (deliberate): `apps/web/scripts/apply-feature-flag.mjs` and `verify-feature-rollout.mjs`
 (rollout tooling that mentions workflows), `apps/mobile/scripts/staging-env.js` (targets the remote staging Supabase), test files run

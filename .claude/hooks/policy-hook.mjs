@@ -14,7 +14,8 @@
 //   forbidden        → exit 2, reason on stderr (blocks even when an allow rule matches)
 //   any failure      → exit 2 (the settings entry also sets onFailure: "block" for crashes/timeouts)
 //
-// It never runs the proposed command, never contacts a network service and never reads credential files. For bypass sessions it also
+// It never runs the proposed command, never contacts a network service and never reads credential files. Its only subprocess is the
+// fixed read-only staged-content check before an owner-launched bypass commit (scripts/developer-harness-v2/bypass-git-index.mjs). For bypass sessions it also
 // reads the protected scopes file, the project root's branch, digests of owner-pinned privileged code and (bounded) script contents.
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import os from 'node:os'
@@ -58,7 +59,7 @@ export async function runPolicyHook(rawInput, { repoRoot = REPO_ROOT, env = proc
     projectRootReal: canonicalize(repoRoot), // scope activation compares this with the scope's declared worktree
     digestTree: digest ? (closure) => digest.digestTree(repoRoot, closure) : null,
     readTextBounded,
-    scanStagedBlobs: gitIndex && engine.SECRET_VALUE ? () => gitIndex.scanStagedBlobs(repoRoot, engine.SECRET_VALUE) : null,
+    scanStagedBlobs: gitIndex && engine.SECRET_VALUE ? () => gitIndex.scanStagedChanges(repoRoot, engine.SECRET_VALUE, { env }) : null,
     projectRoot: repoRoot,
     homeDir: os.homedir(),
     tempRoots: [os.tmpdir(), env.TEMP, env.TMP, env.TMPDIR].filter(Boolean),

@@ -1,13 +1,13 @@
 // Developer Harness V2 — staged-content secret check for owner-launched bypass commits (V2 permission transition).
 //
-// The hook cannot run git, and GitHub secret-scanning push protection is not enabled on the repository, so before a bypass session's
-// `git commit` is authorized the hook inspects what is staged: it parses the worktree's index (versions 2–4) and reads every staged blob
-// that is a LOOSE object (newly written by `git add`; content already packed is older history) by inflating it with zlib. Binary blobs
-// are skipped. Anything it cannot read or that exceeds the bounds makes the scan unverifiable, which the authorizer treats as a denial.
-// Pure reads; nothing is written.
+// GitHub secret-scanning push protection is not enabled on the repository, so before a bypass session's `git commit` is authorized the
+// hook inspects exactly what the commit would add. This is the ONLY place the policy hook runs a subprocess: two fixed, read-only git
+// invocations (`git diff --cached --name-only -z`, then `git cat-file --batch` over the staged blob shas read from the index), shell:false,
+// a sanitized environment, fsmonitor and hooks disabled, a 6 s timeout. They run only for a bypass `git commit` the policy would
+// otherwise authorize. Anything that fails, times out or exceeds the bounds makes the scan unverifiable, which the authorizer denies.
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
-import { inflateSync } from 'node:zlib'
 
 export const SCAN_LIMITS = Object.freeze({ entries: 20000, blobs: 2000, blobBytes: 5 * 1024 * 1024, totalBytes: 64 * 1024 * 1024, indexBytes: 64 * 1024 * 1024 })
 
@@ -66,35 +66,66 @@ export function readIndex(buf) {
   return out
 }
 
+/** Minimal environment for the read-only git calls: no GIT_* overrides from the session, no credentials. */
+function gitEnv(env = process.env) {
+  const keep = ['PATH', 'Path', 'SystemRoot', 'SYSTEMROOT', 'HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH', 'TEMP', 'TMP', 'LANG', 'ComSpec']
+  return { ...Object.fromEntries(keep.filter((k) => env[k] !== undefined).map((k) => [k, env[k]])), GIT_CONFIG_NOSYSTEM: '1', GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0' }
+}
+// Read-only, fixed argv, shell:false. fsmonitor and hooks are disabled; no diff drivers/textconv/filters run for these subcommands.
+const GIT_BASE = ['-c', 'core.fsmonitor=false', '-c', `core.hooksPath=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`, '-c', 'diff.external=', '--no-pager']
+
+/** Text views of a blob for the secret pattern: UTF-8, plus UTF-16LE (PowerShell 5.1 `>` output, with or without a BOM). */
+function textViews(body) {
+  const views = [body.toString('utf8')]
+  const hasNulPairs = body.length > 1 && body.subarray(0, 4096).filter((b, i) => i % 2 === 1 && b === 0).length > 8
+  if ((body[0] === 0xff && body[1] === 0xfe) || hasNulPairs) views.push(body.toString('utf16le'))
+  if (body[0] === 0xfe && body[1] === 0xff) views.push(Buffer.from(body).swap16().toString('utf16le'))
+  views.push(body.toString('latin1').replace(/\0/g, ''))
+  return views
+}
+
 /**
- * Scan newly staged (loose) blobs with `secretRe`. Returns { ok: true, hits: [paths], scanned } or { ok: false, reason }.
+ * Scan exactly the content that `git commit` would add: every path whose staged blob differs from HEAD (`git diff --cached`), read
+ * from the index's staged sha via `git cat-file --batch`. Returns { ok: true, hits, scanned } or { ok: false, reason }.
  */
-export function scanStagedBlobs(root, secretRe, limits = SCAN_LIMITS) {
+export function scanStagedChanges(root, secretRe, { env = process.env, limits = SCAN_LIMITS, run = spawnSync } = {}) {
   try {
+    const opts = { cwd: root, env: gitEnv(env), shell: false, windowsHide: true, timeout: 6000, maxBuffer: limits.totalBytes + 1024 * 1024 }
+    const diff = run('git', [...GIT_BASE, 'diff', '--cached', '--name-only', '-z', '--no-renames', '--no-ext-diff', '--no-textconv', '--diff-filter=ACMRT'], opts)
+    if (diff.status !== 0 || diff.error) return { ok: false, reason: 'git diff --cached failed' }
+    const paths = Buffer.from(diff.stdout).toString('utf8').split('\0').filter(Boolean)
+    if (!paths.length) return { ok: true, hits: [], scanned: 0 }
+    if (paths.length > limits.blobs) return { ok: false, reason: 'too many staged files to inspect' }
     const dirs = gitDirs(root)
     if (!dirs) return { ok: false, reason: 'no git directory' }
     const indexFile = path.join(dirs.gitDir, 'index')
-    if (!existsSync(indexFile)) return { ok: true, hits: [], scanned: 0 }
     if (statSync(indexFile).size > limits.indexBytes) return { ok: false, reason: 'index too large' }
-    const entries = readIndex(readFileSync(indexFile))
+    const bySha = new Map()
+    const wanted = new Set(paths)
+    for (const e of readIndex(readFileSync(indexFile))) if (e.stage === 0 && wanted.has(e.path)) bySha.set(e.path, e.sha)
+    const shas = paths.map((p) => bySha.get(p))
+    if (shas.some((s) => !s)) return { ok: false, reason: 'staged entry not found in the index' }
+    const cat = run('git', [...GIT_BASE, 'cat-file', '--batch'], { ...opts, input: `${shas.join('\n')}\n` })
+    if (cat.status !== 0 || cat.error) return { ok: false, reason: 'git cat-file failed' }
+    const out = Buffer.from(cat.stdout)
     const hits = []
-    let scanned = 0
+    let off = 0
     let total = 0
-    for (const e of entries) {
-      const file = path.join(dirs.commonDir, 'objects', e.sha.slice(0, 2), e.sha.slice(2))
-      if (!existsSync(file)) continue // packed: already part of earlier history
-      if (++scanned > limits.blobs) return { ok: false, reason: 'too many newly staged files to inspect' }
-      const raw = inflateSync(readFileSync(file), { maxOutputLength: limits.blobBytes + 64 })
-      const nul = raw.indexOf(0)
-      const header = raw.toString('latin1', 0, nul)
-      if (!/^blob \d+$/.test(header)) continue // gitlinks/trees are not file content
-      const body = raw.subarray(nul + 1)
-      total += body.length
-      if (total > limits.totalBytes) return { ok: false, reason: 'newly staged content too large to inspect' }
-      if (body.subarray(0, 8192).includes(0)) continue // binary
-      if (secretRe.test(body.toString('utf8'))) hits.push(e.path)
+    for (let i = 0; i < shas.length; i++) {
+      const nl = out.indexOf(0x0a, off)
+      if (nl < 0) return { ok: false, reason: 'truncated cat-file output' }
+      const header = out.toString('latin1', off, nl).split(' ')
+      if (header[0] !== shas[i] || header.length !== 3) return { ok: false, reason: 'unexpected cat-file output' }
+      const size = Number(header[2])
+      if (!Number.isSafeInteger(size) || size > limits.blobBytes) return { ok: false, reason: 'staged file too large to inspect' }
+      total += size
+      if (total > limits.totalBytes) return { ok: false, reason: 'staged content too large to inspect' }
+      const body = out.subarray(nl + 1, nl + 1 + size)
+      off = nl + 1 + size + 1
+      if (header[1] !== 'blob') continue
+      if (textViews(body).some((t) => secretRe.test(t))) hits.push(paths[i])
     }
-    return { ok: true, hits, scanned }
+    return { ok: true, hits, scanned: shas.length }
   } catch (error) {
     return { ok: false, reason: String(error?.message ?? 'scan failed').slice(0, 80) }
   }

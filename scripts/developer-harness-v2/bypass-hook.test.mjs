@@ -169,19 +169,36 @@ test('the shipped settings and scopes keep the owner launch explicit and the D3.
   assert.deepEqual(cli.subcommands, ['doctor', 'setup', 'provision', 'start', 'stop', 'status', 'reset', 'monitor', 'verify-isolation', 'auth-check'])
 })
 
-test('commit secret scan reads the real index and newly staged loose blobs', async () => {
+test('commit secret scan: exactly the content the commit adds (diff vs HEAD), packed or loose, UTF-8 or UTF-16', async () => {
   const { sb, put } = sandbox('feat/commit-scan')
-  const git = (...a) => { const r = spawnSync('git', a, { cwd: sb, encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr); return r }
+  const git = (...a) => { const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', ...a], { cwd: sb, encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr); return r }
+  const SECRET = 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc\n'
   put('apps/a.txt', 'hello\n')
   for (let i = 0; i < 40; i++) put(`apps/many/file-${i}-${'x'.repeat(i)}.txt`, `n${i}\n`) // varied path lengths exercise index padding
   git('add', 'apps')
-  proceed(await bash(sb, 'git commit -m "feat: clean"'), 'clean staged content')
-  put('apps/notes.txt', 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc\n')
-  git('add', 'apps/notes.txt')
-  blocked(await bash(sb, 'git commit -m "feat: notes"'), 'staged credential', /apps\/notes\.txt.*\[bypass\.commit_secret\]/)
+  proceed(await bash(sb, 'git commit -m "feat: clean"'), 'clean staged content (initial commit, no HEAD yet)')
+  git('commit', '-q', '-m', 'init')
+  // a fake secret already in history (test fixtures) never blocks later unrelated commits
+  put('apps/fixture.test.mjs', "const k = 'sk_test_51HabcdefghijklmnopQRST'\n")
+  git('add', 'apps/fixture.test.mjs'); git('commit', '-q', '-m', 'fixture')
+  put('apps/b.txt', 'unrelated\n'); git('add', 'apps/b.txt')
+  proceed(await bash(sb, 'git commit -m "feat: unrelated"'), 'committed fixture does not block')
+  // newly staged secret: loose, then packed by gc
+  put('apps/notes.txt', SECRET); git('add', 'apps/notes.txt')
+  blocked(await bash(sb, 'git commit -m "feat: notes"'), 'staged credential (loose)', /apps\/notes\.txt.*\[bypass\.commit_secret\]/)
+  git('gc', '-q')
+  blocked(await bash(sb, 'git commit -m "feat: notes"'), 'staged credential (packed after gc)', /apps\/notes\.txt.*\[bypass\.commit_secret\]/)
   git('rm', '--cached', '-q', 'apps/notes.txt')
   proceed(await bash(sb, 'git commit -m "feat: clean again"'), 'after unstaging')
-  git('-c', 'index.version=4', 'update-index', '--index-version', '4')
+  // UTF-16LE as written by Windows PowerShell 5.1 `>` (BOM) and without a BOM
+  writeFileSync(path.join(sb, 'apps/ps.txt'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(SECRET, 'utf16le')])); git('add', 'apps/ps.txt')
+  blocked(await bash(sb, 'git commit -m "feat: ps"'), 'UTF-16LE with BOM', /\[bypass\.commit_secret\]/)
+  git('rm', '--cached', '-q', 'apps/ps.txt')
+  writeFileSync(path.join(sb, 'apps/ps2.txt'), Buffer.from(SECRET.repeat(3), 'utf16le')); git('add', 'apps/ps2.txt')
+  blocked(await bash(sb, 'git commit -m "feat: ps2"'), 'UTF-16LE without BOM', /\[bypass\.commit_secret\]/)
+  git('rm', '--cached', '-q', 'apps/ps2.txt')
+  // index version 4
+  git('update-index', '--index-version', '4')
   git('add', 'apps/notes.txt')
   blocked(await bash(sb, 'git commit -m "feat: notes"'), 'index v4', /\[bypass\.commit_secret\]/)
 })

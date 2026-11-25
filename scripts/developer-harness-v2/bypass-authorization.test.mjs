@@ -432,3 +432,19 @@ test('independent review round 3 (2026-11-24): single-line pinned form, false po
   denied(bash('git commit -m x', { ...ctx(), scanStagedBlobs: undefined }), 'no scanner', 'bypass.commit_unverifiable')
   assert.equal(bash('git commit -am x', ctx(), 'default').decision, 'no_objection', 'default mode commits are unchanged')
 })
+
+test('independent review round 4 (2026-11-24): computed commit messages and --continue commits', () => {
+  const heredoc = "git commit -m \"$(cat <<'EOF'\nfeat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\""
+  ok(bash(heredoc), 'Claude Code quoted-heredoc commit form')
+  ok(bash(heredoc.replace("<<'EOF'", '<<"EOF"')), 'double-quoted delimiter')
+  ok(bash("git commit -m \"$(cat <<'EOF'\nfeat: x with `code` and $(not a substitution)\nEOF\n)\""), 'quoted heredoc body is literal')
+  denied(bash(heredoc.replace('feat: x', 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc')), 'secret in heredoc body', 'bypass.commit_secret')
+  for (const c of ['git commit --allow-empty -m "$(cat notes.txt)"', 'git commit -m "`cat msg.txt`"', 'git commit -m "$(<notes.txt)"', 'git commit -m "x $(cat notes.txt)"',
+    "git commit -m \"$(cat <<EOF\nfeat: $(cat notes.txt)\nEOF\n)\""]) denied(bash(c), c, 'bypass.commit_unverified')
+  denied(evaluateToolEvent(ev('PowerShell', { command: 'git commit -m "$(Get-Content msg.txt)"' }), ctx()), 'PowerShell subexpression message')
+  for (const c of ['git merge --continue', 'git cherry-pick --continue', 'git revert --continue', 'git cherry-pick --skip']) denied(bash(c), c, 'bypass.tree_change_untrusted_ref')
+  for (const c of ['git merge --abort', 'git cherry-pick --abort', 'git revert --quit']) ok(bash(c), c)
+  // placeholder exclusion is whole-token only
+  ok(bash('gh pr edit --body "Set CRON_SECRET=your-cron-secret-here"'), 'placeholder token')
+  denied(bash('gh pr edit --body "SUPABASE_SERVICE_ROLE_KEY=ExampleKq8f2Lm9Zx7Rt3Vw"'), 'value merely starting with Example', 'bypass.pr_body_secret')
+})
