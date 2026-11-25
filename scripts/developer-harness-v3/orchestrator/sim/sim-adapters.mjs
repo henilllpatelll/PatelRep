@@ -108,8 +108,11 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
           const key = `fail:${task.task_id}:${stage}:${idx}`
           if ((spec.failTimes ?? 1) > (w.counters[key] ?? 0)) { w.counters[key] = (w.counters[key] ?? 0) + 1; saveWorld(dir, w); return { status: 'failed', code: spec.fail, fingerprint: spec.fail, lines: lines(), exit: { code: 1 } } }
         }
-        writeWork(task, mem.unit, spec, stage)
-        if (mem.unit < (spec.units ?? 1)) return { status: 'unit_limit', lines: lines({ subtype: 'error_max_turns' }), exit: { code: 0 }, turns: sc.turnsPerUnit }
+        // `units` is TASK-WIDE for this stage run (it survives renewals and crashes, like the work itself); context growth is per SESSION.
+        const ukey = `units:${task.task_id}:${stage}:${idx}`; const w2 = loadWorld(dir); w2.counters[ukey] = (w2.counters[ukey] ?? 0) + 1; saveWorld(dir, w2)
+        const total = w2.counters[ukey]
+        writeWork(task, total, spec, stage)
+        if (total < (spec.units ?? 1)) return { status: 'unit_limit', lines: lines({ subtype: 'error_max_turns' }), exit: { code: 0 }, turns: sc.turnsPerUnit }
         return { status: 'work_complete', lines: lines(), exit: { code: 0 }, turns: sc.turnsPerUnit, work: deliverable(task, stage, spec, readonly) }
       },
       async notes() { return 'simulated session notes' },
@@ -134,7 +137,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         const w = loadWorld(dir); const v = w.versions[task.task_id] ?? 0
         if (!v) return { ok: false, code: 'CANDIDATE.NOT_DERIVABLE' }
         const files = readTree(commitDir(dir, task.task_id, v))
-        return { ok: true, base_sha: task.base_sha, candidate_sha: candidateShaFor(task.task_id, v), tree_digest: treeOf(files), patch_digest: patchOf(files), changed_paths: files.map((f) => f.path) }
+        return { ok: true, base_sha: task.base_sha, candidate_sha: candidateShaFor(task.task_id, v), tree_digest: treeOf(files), patch_digest: patchOf(files), changed_paths: files.map((f) => f.path), changes: files.map((f) => ({ status: (sc.modified ?? []).includes(f.path) ? 'M' : 'A', path: f.path })) }
       },
       async treeDigestAfterReview(task) {
         const w = loadWorld(dir); const files = readTree(commitDir(dir, task.task_id, w.versions[task.task_id] ?? 0))

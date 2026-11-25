@@ -11,7 +11,11 @@ export function createFacts({ verifier_repo_dir, git_candidates, git_sha256 = nu
     candidate({ base_sha, candidate_sha }) {
       if (!g.ok || !v.sha40(base_sha) || !v.sha40(candidate_sha)) return { ok: false, code: g.code ?? 'FACTS.BAD_INPUT' }
       try {
-        for (const sha of [base_sha, candidate_sha]) if (trustedGit(g.exe, verifier_repo_dir, ['rev-parse', '--verify', '--quiet', `${sha}^{commit}`]).toString('utf8').trim() !== sha) return { ok: false, code: 'FACTS.COMMIT_UNRESOLVED' }
+        for (const sha of [base_sha, candidate_sha]) {
+          let resolved = null
+          try { resolved = trustedGit(g.exe, verifier_repo_dir, ['rev-parse', '--verify', '--quiet', `${sha}^{commit}`]).toString('utf8').trim() } catch { resolved = null }
+          if (resolved !== sha) return { ok: false, code: 'FACTS.COMMIT_UNRESOLVED' }
+        }
         try { trustedGit(g.exe, verifier_repo_dir, ['merge-base', '--is-ancestor', base_sha, candidate_sha]) } catch { return { ok: false, code: 'FACTS.BASE_NOT_ANCESTOR' } }
         const tree = trustedGit(g.exe, verifier_repo_dir, ['rev-parse', '--verify', `${candidate_sha}^{tree}`]).toString('utf8').trim()
         const patch = trustedGit(g.exe, verifier_repo_dir, ['diff', '--binary', '--full-index', '--no-renames', '--no-color', '--ignore-submodules=none', '--no-ext-diff', '--no-textconv', base_sha, candidate_sha], { maxBuffer: 128 * 1024 * 1024 })

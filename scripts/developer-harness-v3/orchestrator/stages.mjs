@@ -120,6 +120,14 @@ function checkCandidate(e, task, f) {
   if (!Array.isArray(f.changed_paths) || !f.changed_paths.length) return 'CANDIDATE.EMPTY'
   if (f.changed_paths.length > e.policy.contract.limits.max_changed_paths) return 'CANDIDATE.TOO_MANY_CHANGES'
   for (const p of f.changed_paths) { const c = checkEntry({ path: p, mode: '100644' }, task.scope); if (c.length) return c[0].replace('SNAPSHOT.', 'CANDIDATE.') }
+  const contract = e.policy.contract
+  // The customer Agent Harness (H1–H7) is outside every developer identity's authority: refused whatever the task scope says. (The contract's glob list also holds
+  // migrations/seeds; those are handled by the rules below, because forward-only NEW migrations are legitimate and are flagged for the trusted publisher instead.)
+  const agentGlobs = contract.customer_agent.path_globs.filter((g) => !g.startsWith('supabase/'))
+  if (f.changed_paths.some((p) => matchesAny(agentGlobs, normalizeRepoPath(p).path ?? p))) return 'CANDIDATE.CUSTOMER_AGENT_PATH'
+  const dir = `${contract.migrations.directory}/`
+  const migrationChanges = (f.changes ?? f.changed_paths.map((p) => ({ status: 'M', path: p }))).filter((c) => c.path.startsWith(dir))
+  if (migrationChanges.some((c) => c.status !== 'A')) return 'CANDIDATE.HISTORICAL_MIGRATION_MODIFIED' // migration history is never edited, deleted, renamed or repaired
   return null
 }
 

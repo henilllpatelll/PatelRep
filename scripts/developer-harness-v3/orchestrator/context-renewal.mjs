@@ -41,8 +41,9 @@ export function renewalDecision({ telemetry: t, family, cliVersion, knownWindows
 
   if (compacted) return { renew: true, basis: 'compaction_observed', measured: false, utilization: null, rejected, used_tokens: used, window_tokens: window }
   if (rejected.length === 0) {
-    const utilization = Math.round((used / window) * 10000) / 10000
-    return { renew: utilization >= cfg.threshold, basis: 'measured_context_utilization', measured: true, utilization, rejected, used_tokens: used, window_tokens: window, threshold: cfg.threshold }
+    const exact = used / window // the DECISION uses the exact ratio; only the reported figure is rounded (139,999/200,000 must not round up to 70%)
+    const utilization = Math.round(exact * 10000) / 10000
+    return { renew: exact >= cfg.threshold, basis: 'measured_context_utilization', measured: true, utilization, rejected, used_tokens: used, window_tokens: window, threshold: cfg.threshold }
   }
   // Fallback: bounded work units. Labelled as such; no percentage is reported.
   const elapsedMin = (now - startedAt) / 60_000

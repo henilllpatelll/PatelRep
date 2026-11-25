@@ -7,6 +7,7 @@
 //   * the init event is verified (no API-key source, pinned CLI version, expected permission mode) or the session is ended;
 //   * renewal follows the 10-step order of the brief: boundary → persist → verify checkpoint → graceful stop → verified stop → fresh lease → restore → verify → continue;
 //   * crash hooks sit at every boundary so the subprocess crash tests can kill the controller there.
+import { randomUUID } from 'node:crypto'
 import { createTelemetry, feedLine, verifyInit } from '../runtime/session-telemetry.mjs'
 import { classifyObservation, lifecycleFor, nextGovernorState } from '../runtime/subscription-governor.mjs'
 import { renewalDecision, buildCheckpoint, verifyCheckpoint, composeRestorePrompt, verifyRestoredState, snapshotDirResolver } from './context-renewal.mjs'
@@ -126,7 +127,7 @@ async function renew(e, taskId, spec, lease, dec) {
   const files = await A.git.captureSnapshot(task, lease)
   let snapshot = null
   if (files && files.length) {
-    const ref = `snap-${taskId}-${L.now()}-${Math.floor(e.rng() * 1e9)}`
+    const ref = `snap-${randomUUID()}`
     const made = createSnapshot({ dir: snapshotDirResolver(e.snapshotRoot)(ref), base_sha: task.base_sha, head_sha: task.head_sha, files, scope: task.scope })
     if (!made.ok) return { status: 'failed', code: made.problems[0], fingerprint: fingerprint('snapshot', made.problems[0]) }
     snapshot = { ref, digest: made.digest }
