@@ -3,7 +3,6 @@
     "railway@claude-plugins-official": false
   },
   "permissions": {
-    "disableBypassPermissionsMode": "disable",
     "deny": [
       "Bash(git push --force*)",
       "Bash(git push -f*)",
@@ -105,18 +104,10 @@
       "Read(~/.supabase/**)"
     ],
     "ask": [
-      "Bash(git push*)",
-      "Bash(npm install*)",
-      "Bash(npm i *)",
-      "Bash(npm ci*)",
-      "Bash(npm uninstall*)",
-      "Bash(npm update*)",
-      "Bash(pip install*)",
       "Bash(git stash*)",
       "Bash(git rebase*)",
       "Bash(git reset --hard*)",
       "Bash(git clean*)",
-      "Bash(gh pr create*)",
       "Bash(gh pr ready*)",
       "Bash(npm run dev*)",
       "Edit(/.github/**)",

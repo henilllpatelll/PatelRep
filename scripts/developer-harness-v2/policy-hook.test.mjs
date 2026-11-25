@@ -49,10 +49,18 @@ test('approval-gated action: exit 0 with a documented "ask" decision', () => {
   assert.match(out.hookSpecificOutput.permissionDecisionReason, /human_approval/)
 })
 
-test('approval-gated action under bypassPermissions is blocked with exit 2', () => {
-  const r = runHook(bash('npm install left-pad', { permission_mode: 'bypassPermissions' }))
-  assert.equal(r.code, 2)
-  assert.match(r.stderr, /cannot be mediated in bypassPermissions mode/)
+test('approval-gated action under bypassPermissions without an authorization scope is blocked with exit 2', () => {
+  // V2 permission transition: bypass now resolves approval classes deterministically (bypass-authorization.test.mjs covers the
+  // authorized paths). Without the protected scopes file it must still fail closed with exit 2 — previously "cannot be mediated".
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'dh2-hook-noscope-'))
+  try {
+    for (const rel of ['.claude/hooks', 'scripts/developer-harness-v2', 'docs/developer-harness-v2']) cpSync(path.join(REPO, rel), path.join(tmp, rel), { recursive: true })
+    rmSync(path.join(tmp, 'docs/developer-harness-v2/bypass-scopes.json'))
+    const r = runHook({ ...bash('npm install left-pad', { permission_mode: 'bypassPermissions' }), cwd: tmp }, { root: tmp })
+    assert.equal(r.code, 2)
+    assert.equal(r.stdout, '')
+    assert.match(r.stderr, /bypass_denied: .*\[bypass\.authorization_unavailable\]/)
+  } finally { rmSync(tmp, { recursive: true, force: true }) }
 })
 
 test('forbidden actions: exit 2, reason on stderr, nothing on stdout, no secret echo', () => {
@@ -201,9 +209,21 @@ test('settings: the blocking policy hook covers shell, read and edit tools and f
   assert.ok(!pre.some((e) => e.hooks.some((h) => /wolf (pre-read|pre-write)/.test(h.command))), 'advisory OpenWolf pre-hooks are opt-in, not registered')
 })
 
-test('settings: bypass mode is disabled and broad automatic allowances are gone', () => {
+test('settings: bypass mode is available to an owner launch, routine asks are gone, broad automatic allowances stay gone', () => {
   const { permissions } = settings
-  assert.equal(permissions.disableBypassPermissionsMode, 'disable')
+  // V2 permission transition (owner decision 2026-11-24): `disableBypassPermissionsMode` was removed so the owner can launch
+  // `claude --dangerously-skip-permissions`; the hook decides bypass calls (bypass-authorization.mjs). Previously asserted 'disable'.
+  assert.equal(permissions.disableBypassPermissionsMode, undefined)
+  assert.ok(!('defaultMode' in permissions), 'no settings file makes bypass the default: it must be an explicit owner launch')
+  // Ask rules still prompt in bypassPermissions (Claude Code docs), so routine ones would defeat the transition. The hook still asks
+  // for these in default mode; only gates the hook also denies in bypass remain as settings backstops.
+  for (const rule of ['Bash(git push*)', 'Bash(npm install*)', 'Bash(npm i *)', 'Bash(npm ci*)', 'Bash(npm uninstall*)', 'Bash(npm update*)', 'Bash(pip install*)', 'Bash(gh pr create*)']) {
+    assert.ok(!permissions.ask.includes(rule), `${rule} removed from ask`)
+  }
+  for (const rule of ['Bash(git stash*)', 'Bash(git rebase*)', 'Bash(git reset --hard*)', 'Bash(git clean*)', 'Bash(gh pr ready*)', 'Bash(npm run dev*)', 'Edit(/.github/**)',
+    'Edit(/supabase/migrations/**)', 'Edit(/.claude/**)', 'Edit(/.githooks/**)', 'Edit(/.wolf/hooks/**)', 'Edit(/CLAUDE.md)', 'Edit(/AGENTS.md)', 'Edit(/.mcp.json)']) {
+    assert.ok(permissions.ask.includes(rule), `${rule} kept`)
+  }
   const banned = ['Bash(npx supabase*)', 'Bash(eas update*)', 'Bash(eas build*)', 'Bash(cd apps/mobile && eas*)', 'Bash(npm install*)', 'Bash(npm ci)',
     'Bash(cd apps/api && python*)', 'Bash(cd apps/api && pip*)', 'Bash(git push)', 'Bash(git stash*)', 'Bash(node .wolf/hooks/*)', 'Bash(npm run dev:*)',
     'Bash(railway logs*)', 'Bash(railway status)', 'Bash(cd apps/mobile && npm*)', 'Bash(git branch*)', 'Bash(npx playwright test*)', 'Bash(npm run build*)']

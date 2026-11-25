@@ -79,6 +79,7 @@
     "edit_credential_file": "human_approval",
     "terminate_processes": "human_approval",
     "launch_nested_agent_session": "human_approval",
+    "run_privileged_infrastructure": "human_approval",
     "run_unclassifiable_shell_input": "forbidden",
     "run_supabase_cli_against_remote_project": "forbidden",
     "dispatch_any_workflow": "forbidden",
@@ -229,6 +230,13 @@
     "added_protected_paths": [".wolf/OPENWOLF.md", ".wolf/config.json", ".wolf/cron-manifest.json", ".wolf/cerebrum.md", ".wolf/knowledge/**", ".wolf/anatomy.md", ".wolf/buglog.json", ".wolf/reframe-frameworks.md", ".wolf/identity.md"],
     "not_protected_transient": [".wolf/memory.md", ".wolf/token-ledger.json", ".wolf/cron-state.json", ".wolf/suggestions.json"],
     "rule": "Additive only: no action class, existing protected path or forbidden operation changed. Agent writes to these paths now classify as human_approval (modify_agent_instructions_or_hooks for instruction/memory files, modify_control_plane_files for config/manifest/index files). Memory remains data and never grants authority."
+  },
+  "bypass_authorization": {
+    "$comment": "V2 permission transition (owner decision 2026-11-24). An owner-launched bypassPermissions session never asks: each non-allowed finding is authorized by the hard-coded ceiling in scripts/developer-harness-v2/bypass-authorization.mjs plus the protected scopes file below, or denied. Forbidden actions, credential reads, policy self-modification, merges, production and customer-agent operations stay denied in every mode. Other modes are unchanged. See 14-v2-permission-transition.md.",
+    "mode": "bypassPermissions",
+    "scopes_file": "docs/developer-harness-v2/bypass-scopes.json",
+    "added_actions": ["run_privileged_infrastructure"],
+    "rule": "Additive classification (run_privileged_infrastructure is human_approval, the class of the run_unreviewed_script finding it refines). No action class in this contract changed; the transition changes only how bypassPermissions resolves non-forbidden findings."
   },
   "frozen_artifacts": {
     "migration_262": "supabase/migrations/262_agent_verified_human_identity.sql",

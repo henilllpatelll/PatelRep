@@ -8,11 +8,14 @@
 //
 //   allowed          → exit 0, no output (Claude Code's normal permission flow continues)
 //   task_authorized  → exit 0 + {"hookSpecificOutput":{"permissionDecision":"ask",…}}
-//   human_approval   → same as task_authorized ("deny" in bypassPermissions/dontAsk modes)
+//   human_approval   → same as task_authorized ("deny" in dontAsk/auto modes)
+//   bypassPermissions (owner-launched) → never "ask": a call bypass-authorization.mjs authorizes exits 0 with no output; any other
+//                      non-allowed call exits 2 (deterministic scope in docs/developer-harness-v2/bypass-scopes.json)
 //   forbidden        → exit 2, reason on stderr (blocks even when an allow rule matches)
 //   any failure      → exit 2 (the settings entry also sets onFailure: "block" for crashes/timeouts)
 //
-// It never runs the proposed command, never contacts a network service and never reads credential files.
+// It never runs the proposed command, never contacts a network service and never reads credential files. For bypass sessions it also
+// reads the protected scopes file, the project root's branch, digests of owner-pinned privileged code and (bounded) script contents.
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -37,8 +40,21 @@ export async function runPolicyHook(rawInput, { repoRoot = REPO_ROOT, env = proc
   try { contract = engine.loadContract(path.join(repoRoot, 'docs', 'developer-harness-v2', 'contract.json')) } catch (error) {
     return deny(`Developer Harness V2 policy: contract unavailable or invalid; denying (${error?.code ?? 'contract.error'}).`)
   }
+  // V2 permission transition: a missing or invalid scopes file never breaks other modes; in bypass it denies (fail closed).
+  let bypassScopes
+  try { bypassScopes = engine.loadBypassScopes(path.join(repoRoot, ...engine.SCOPES_FILE.split('/')), contract) } catch (error) {
+    bypassScopes = { valid: false, error: typeof error?.code === 'string' ? error.code : 'bypass.scopes_error' }
+  }
+  let digest = null
+  try { digest = await import(pathToFileURL(path.join(repoRoot, 'scripts', 'developer-harness-v2', 'bypass-digest.mjs')).href) } catch { digest = null }
+  let projectGitState
+  try { projectGitState = readGitState(repoRoot) } catch { projectGitState = { branch: null, upstreamBranch: null, hasUpstream: null } }
   const ctx = {
     contract,
+    bypassScopes,
+    projectGitState,
+    digestTree: digest ? (closure) => digest.digestTree(repoRoot, closure) : null,
+    readTextBounded,
     projectRoot: repoRoot,
     homeDir: os.homedir(),
     tempRoots: [os.tmpdir(), env.TEMP, env.TMP, env.TMPDIR].filter(Boolean),
@@ -82,6 +98,15 @@ function canonicalize(p) {
     }
   }
   return p
+}
+
+/** UTF-8 text of a regular file of at most 1 MB, else null (bypass script-content tripwire). */
+function readTextBounded(p) {
+  try {
+    const file = toNative(p)
+    const st = statSync(file)
+    return st.isFile() && st.size <= 1024 * 1024 ? readFileSync(file, 'utf8') : null
+  } catch { return null }
 }
 
 function readPackageScripts(dir) {

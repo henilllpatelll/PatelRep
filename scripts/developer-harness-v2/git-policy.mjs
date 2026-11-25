@@ -63,7 +63,7 @@ export function gitHandler(env) {
   if (sub === 'checkout' || sub === 'switch' || sub === 'worktree') state.branchMayHaveChanged = true
 
   if (!sub) return push('read_repository', 'git.meta', 'git without a subcommand')
-  if (sub === 'push') return gitPush(env, args, git)
+  if (sub === 'push') return gitPush(env, args, git, cwd)
   if (sub === 'commit') {
     if (hasFlag(args, '--amend')) return rewrite(env, git, 'git.commit_amend', 'amending rewrites a commit')
     const branch = git().branch
@@ -89,14 +89,14 @@ export function gitHandler(env) {
   }
   if (sub === 'mv' || sub === 'rm') return gitMoveRemove(env, args, sub, cwd)
   if (sub === 'checkout') {
-    if (hasFlag(args, '-b', '-B', '--orphan', '-t', '--track')) return push('read_repository', 'git.checkout_new_branch', 'create and switch branch')
+    if (hasFlag(args, '-b', '-B', '--orphan', '-t', '--track')) return findings.push(F('read_repository', 'git.checkout_new_branch', 'create and switch branch', treeMeta(cwd, args)))
     const pos = positionals(args, 0, new Set(['--conflict', '--pathspec-from-file']))
     if (hasFlag(args, '-f', '--force', '--', '-p', '--patch', '--ours', '--theirs', '--pathspec-from-file') || args.some((w) => w.text === '--') || pos.length > 1 || pos.some((w) => w.text === '.')) {
       return push('discard_or_rewrite_local_work', 'git.checkout_paths', 'checking out paths discards local changes')
     }
-    return push('read_repository', 'git.checkout_branch', 'switch branch')
+    return findings.push(F('read_repository', 'git.checkout_branch', 'switch branch', treeMeta(cwd, args)))
   }
-  if (sub === 'switch') return hasFlag(args, '-f', '--force', '--discard-changes') ? push('discard_or_rewrite_local_work', 'git.switch_force', 'discards local changes') : push('read_repository', 'git.switch', 'switch branch')
+  if (sub === 'switch') return hasFlag(args, '-f', '--force', '--discard-changes') ? push('discard_or_rewrite_local_work', 'git.switch_force', 'discards local changes') : findings.push(F('read_repository', 'git.switch', 'switch branch', treeMeta(cwd, args)))
   if (sub === 'restore') return hasFlag(args, '--staged', '-S') && !hasFlag(args, '--worktree', '-W') ? push('read_repository', 'git.unstage', 'unstage') : push('discard_or_rewrite_local_work', 'git.restore', 'restoring files discards local changes')
   if (sub === 'reset') {
     const pos = positionals(args)
@@ -151,7 +151,7 @@ export function gitHandler(env) {
     findings.push(...env.recurse(args.slice(1).map((w) => JSON.stringify(w.text)).join(' ')))
     return
   }
-  if (LOCAL_ALLOWED.has(sub)) return push('edit_files_in_task_worktree', `git.${sub}`, `local git ${sub}`)
+  if (LOCAL_ALLOWED.has(sub)) return findings.push(F('edit_files_in_task_worktree', `git.${sub}`, `local git ${sub}`, treeMeta(cwd, args)))
   if (sub === 'clone' || sub === 'init' || sub === 'submodule' || sub === 'lfs' || sub === 'sparse-checkout') return push('run_unrecognized_command', `git.${sub}`, `git ${sub} needs human approval`)
   if (sub === 'hook') return push('run_unreviewed_script', 'git.hook', 'runs git hooks directly')
   push('run_unrecognized_command', 'git.unknown_subcommand', `unrecognized git subcommand '${sub.slice(0, 30)}' (may be an alias)`)
@@ -226,7 +226,7 @@ const normBranch = (ref) => ref.replace(/^\+/, '').replace(/^(refs\/)?heads\//i,
 const isProtected = (b) => PROTECTED_BRANCHES.has(normBranch(b))
 const isReserved = (b) => RESERVED_BRANCH_PREFIXES.some((p) => normBranch(b).startsWith(p))
 
-function gitPush(env, args, git) {
+function gitPush(env, args, git, cwd) {
   const { findings } = env
   const push = (a, c, d) => findings.push(F(a, c, d))
   const valueFlags = new Set(['--repo', '-o', '--push-option', '--receive-pack', '--exec', '--recurse-submodules', '--signed', '--force-with-lease'])
@@ -278,8 +278,12 @@ function gitPush(env, args, git) {
     if (/^refs\//i.test(d.name) && !/^refs\/heads\//i.test(d.name)) return push('run_unrecognized_command', 'git.push_nonbranch_ref', 'pushes a non-branch ref')
   }
   if (destinations.some((d) => d.delete)) return push('manage_local_refs', 'git.push_delete', 'deletes a remote branch')
-  push('push_dedicated_branch_fast_forward', 'git.push', 'normal fast-forward push of a dedicated branch')
+  findings.push(F('push_dedicated_branch_fast_forward', 'git.push', 'normal fast-forward push of a dedicated branch',
+    { cwd, remote: remote?.text ?? null, destinations: destinations.map((d) => d.name.replace(/^(refs\/)?heads\//i, '')) }))
 }
+
+/** Facts the bypass authorizer needs for commands that can replace checked-out files (and so the policy files themselves). */
+const treeMeta = (cwd, args) => ({ cwd, args: args.map((w) => w.text), dynamic: args.some((w) => w.dynamic) })
 
 function readGitState(ctx, cwd) {
   try { return ctx.gitState?.(cwd) ?? { branch: null, upstreamBranch: null, hasUpstream: null } } catch { return { branch: null, upstreamBranch: null, hasUpstream: null } }

@@ -1,0 +1,108 @@
+{
+  "$comment": "Developer Harness V2 permission transition — the ONLY authority an owner-launched bypassPermissions session has. Protected policy file (docs/developer-harness-v2/**): a bypass session can never write it; changes need owner review. The engine ceiling (scripts/developer-harness-v2/bypass-authorization.mjs) bounds every entry: nothing here can authorize a forbidden action, a credential read, a policy or agent-configuration edit, a merge, production or customer-agent operations. See 14-v2-permission-transition.md.",
+  "version": 1,
+  "owner_decision": {
+    "date": "2026-11-24",
+    "by": "repository owner",
+    "summary": "While Developer Harness V3 is being built, the owner launches development sessions with `claude --dangerously-skip-permissions` and does not administer routine tool permissions. Routine development and the D3.3 scope below proceed without prompts; everything outside them is denied."
+  },
+  "routine": {
+    "$comment": "Enabled ceiling entries for any dedicated (non-main, non-reserved) branch. Each entry still passes its predicate in bypass-authorization.mjs.",
+    "enabled_actions": [
+      "push_dedicated_branch_fast_forward",
+      "open_draft_pull_request",
+      "interact_with_pull_request_or_issue",
+      "install_or_upgrade_dependencies",
+      "run_unreviewed_script",
+      "run_interpreter_inline_code",
+      "run_unrecognized_command"
+    ]
+  },
+  "scopes": [
+    {
+      "id": "dh3-d33",
+      "description": "Developer Harness V3 D3.3 (PR #252): implementation, isolation probes, acceptance evaluators, regression tests and docs; trusted VM provisioning and task-owned VM lifecycle through the pinned dh3 CLI. V3 authority code and contracts stay owner-only. Owner-only dh3 commands (login, attest-extra-usage-off, probe-subscription, remove) are not authorized.",
+      "branch": "feat/developer-harness-v3-d33-local-infra",
+      "writable_protected_paths": [
+        "scripts/developer-harness-v3/**"
+      ],
+      "excluded_paths": [
+        "scripts/developer-harness-v3/authority/**"
+      ],
+      "trusted_executions": [
+        {
+          "id": "dh3-cli",
+          "entrypoint": "scripts/developer-harness-v3/bin/dh3.mjs",
+          "interpreter": "node",
+          "subcommands": [
+            "doctor",
+            "setup",
+            "provision",
+            "start",
+            "stop",
+            "status",
+            "reset",
+            "monitor",
+            "verify-isolation",
+            "auth-check"
+          ],
+          "closure": {
+            "include": [
+              "scripts/developer-harness-v3/",
+              "docs/developer-harness-v3/authority-contract.json",
+              "docs/developer-harness-v3/task-lifecycle.json"
+            ],
+            "exclude": [
+              "scripts/developer-harness-v3/tests/"
+            ]
+          },
+          "reviewed_source": {
+            "pr": 252,
+            "ref": "d857818bbf44ecceb76d5835320944b37b242b6b",
+            "pinned_at": "2026-11-25"
+          },
+          "digests": {
+            "docs/developer-harness-v3/authority-contract.json": "526e9ababae227e806967d8679898de517b8d87119d3738457922249abae7937",
+            "docs/developer-harness-v3/task-lifecycle.json": "55102d01292ebfd9153cb9b022c5ec64646ab4bcc46dd463b1ac938603aa9da5",
+            "scripts/developer-harness-v3/authority/contract.mjs": "1127616b3b0ec4fe29f87b32f3b7c0b91d70ef51c88d43e6f711bed612486b62",
+            "scripts/developer-harness-v3/authority/evaluator.mjs": "05b017942feebc9dd00ec9f86fe92dd1a8235f989946ed5750743b91b2dce08a",
+            "scripts/developer-harness-v3/authority/evidence.mjs": "05a67dbc34d2cc83e2e6b6c89c713059afd229012749c8d914d157c7c7eb4c32",
+            "scripts/developer-harness-v3/authority/git-facts.mjs": "0ca54b7b42a448e6b77b552088c693e69480142c1e41a3e233ba86360347b602",
+            "scripts/developer-harness-v3/authority/migration-facts.mjs": "f7e5cadf4e3ab738884d872e96fe912e3ad47a80865e110b2f3eb6a5040e1139",
+            "scripts/developer-harness-v3/authority/policy-version.mjs": "61b7a9f2bd4c9eca3d130892e79b8862f3afda97cbd8cf5c045cf7bb602a4805",
+            "scripts/developer-harness-v3/authority/spend.mjs": "b5f08d1cda91458409839ba31d193c5bf99b410d85b9bdb6b62ed204c059a647",
+            "scripts/developer-harness-v3/bin/dh3.mjs": "e8cc1c52476a5b6a3e89c575b179ee930c16b3446420b344670afbe62206c1f6",
+            "scripts/developer-harness-v3/infra/artifacts.json": "6dc4efad8f4b7ce04150b151f89d6c6f5e01df4706310c5a63db1a3e515fb70c",
+            "scripts/developer-harness-v3/infra/cloud-init.mjs": "67c291359a105730785ec8cf749b335ac45d09196360b6e59e5792cd90c09770",
+            "scripts/developer-harness-v3/infra/job-supervisor.ps1": "d2a6aba8dd102af5cd0bcbe96fea9965ef864da8eb22392420c3f6c0310f53db",
+            "scripts/developer-harness-v3/infra/layout.mjs": "0c50c979293edb1ce2a62d53e855d578cab19fa80de5e9819f82976cd376de25",
+            "scripts/developer-harness-v3/infra/provision.mjs": "4e9fcf5f84668c23a683ba914ba17f4de274a96247933a744b8785a0967bc395",
+            "scripts/developer-harness-v3/infra/seed-iso.ps1": "42c883e1a6996dac5eca39dcbb3cea43186f914a4930c4778b184f31aad3990d",
+            "scripts/developer-harness-v3/infra/setup.mjs": "7b1d3a6cd99e6a4c17d63ca45eacfa4986386a124e727dfd97e35bf8ee7a47ed",
+            "scripts/developer-harness-v3/isolation/acceptance.mjs": "f1efd6168093b540eefe41cea7d50b07415bccdbb898d5273a44ab3811fffa6a",
+            "scripts/developer-harness-v3/isolation/guest-probe.py": "65c2e825ace00cbc38fd4f594348a9c498ed4c51861ed34148f8a999d1725c92",
+            "scripts/developer-harness-v3/isolation/subscription-probe.mjs": "9e07e58268c2b33009ffa443c8a5e8880443235bce1a47344f33a7adc255f657",
+            "scripts/developer-harness-v3/lib/atomic.mjs": "82f7c998b53d80ab14fe95b1d4618d9493b1a57c40679da16bed9dd7a1bfa34e",
+            "scripts/developer-harness-v3/lib/canonical.mjs": "a6902a4422cf1446e483360711dad4a045a7e53429c52a8f0ab7b2e096103746",
+            "scripts/developer-harness-v3/lib/paths.mjs": "bb56cfdfeb2ee4bb1c16f0dfbd4dc5612ddf4b170861335443c2e7d51219b85a",
+            "scripts/developer-harness-v3/lifecycle/lifecycle.mjs": "7181c1df2d0a7e394a5f6496bd67aa0c529ffbdf00cec120a835afce6db41825",
+            "scripts/developer-harness-v3/lifecycle/resource-admission.mjs": "a9e73e5114f12fbf8d6ad421f6585f5c5abb0d10c8e2cfa58b5a967259377416",
+            "scripts/developer-harness-v3/runtime/artifact-transfer.mjs": "5014aa5041840f1131dd000c0a53dbdd4c7271d8b1d161ad3764b40262e3b4aa",
+            "scripts/developer-harness-v3/runtime/egress-policy.mjs": "c85afd6529831f3de779a51d88ceef1c3d1f0fc3485dd18068eda5926e8fd053",
+            "scripts/developer-harness-v3/runtime/egress-proxy-process.mjs": "ec4bd56d3903c0a9a55818908faa07077d5cecbf668deb5ed75047b1de1be570",
+            "scripts/developer-harness-v3/runtime/egress-proxy.mjs": "789da72b8c60b53e826ce44c0fb77c9759add9bbbede552f18a5c4141a063222",
+            "scripts/developer-harness-v3/runtime/host-sampler.mjs": "510f25d27b8f628ebe1a5cca7b898f7be91f809ce3d15c06447f6965c2e9929d",
+            "scripts/developer-harness-v3/runtime/launcher.mjs": "5974c4d746a3b1c4ad1dd2456ab9a983cd4c895b7c36ef51e064becad9571c2c",
+            "scripts/developer-harness-v3/runtime/login-relay.mjs": "a53afc1bc8ff69cbd9791ca23134a4a8cfe4eefc7e13c7b77f31376ab1d96c9b",
+            "scripts/developer-harness-v3/runtime/qemu-args.mjs": "8e38d4e42bc005833d5aa13dbbd0926c646c7b735053b396b0d46a81438614a6",
+            "scripts/developer-harness-v3/runtime/resource-governor.mjs": "b5915175b05aaf12a99c64d04af24653c826bc2975ac17f66083e08d62d01949",
+            "scripts/developer-harness-v3/runtime/session-telemetry.mjs": "c40d1f970891f335f580f676c0c5096daa3332a1eaa8ee003e3ea9de21c10c1d",
+            "scripts/developer-harness-v3/runtime/subscription-governor.mjs": "a8cba41bb8692065fdaf6473571f2ed366b0f976c013ee9a90396e931af7e5c4",
+            "scripts/developer-harness-v3/runtime/vm-controller.mjs": "be8adf91e5e3e445f6563474517da4e4bff65061ec22e48215e3b60844f96a6e",
+            "scripts/developer-harness-v3/runtime/worker-lifecycle.mjs": "b53a2ad421b03d5f8cbe918b7af0c2bb9d13246d31ffdf2e97618d1bd2b225b7"
+          }
+        }
+      ]
+    }
+  ]
+}
