@@ -42,8 +42,10 @@ const SCRIPTS = { [`${ROOT}/tools/build.mjs`.toLowerCase()]: 'console.log("build
   [`${ROOT}/tools/lib/util.mjs`.toLowerCase()]: 'export const x = 1\n',
   [`${ROOT}/tools/dyn.mjs`.toLowerCase()]: 'const m = process.argv[2]\nawait import(m)\n',
   [`${ROOT}/tools/ghost.mjs`.toLowerCase()]: "import './nowhere.mjs'\n",
+  [`${ROOT}/tools/envread.mjs`.toLowerCase()]: 'export function validate(env = process.env) {\n  const e = process.env\n  return Boolean(e.NEXT_PUBLIC_API_URL)\n}\n',
+  [`${ROOT}/commit-msg.txt`.toLowerCase()]: 'feat: x\n\nSUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc\n',
   [`${ROOT}/pr-body.md`.toLowerCase()]: '## Summary\nAdds the transition. Mentions .env handling in prose only.\n' }
-function ctx({ branch = BRANCH, scopes = REAL_SCOPES, git, digests = PINS, contract = CONTRACT } = {}) {
+function ctx({ branch = BRANCH, scopes = REAL_SCOPES, git, digests = PINS, contract = CONTRACT, staged = { ok: true, hits: [], scanned: 0 } } = {}) {
   const g = git ?? { branch, upstreamBranch: branch, hasUpstream: true }
   return {
     contract, projectRoot: ROOT, projectRootReal: ROOT, homeDir: 'C:/Users/dev', tempRoots: ['C:/Users/dev/AppData/Local/Temp'], platform: 'win32',
@@ -52,6 +54,7 @@ function ctx({ branch = BRANCH, scopes = REAL_SCOPES, git, digests = PINS, contr
     resolveWorkspace: () => null, gitState: () => g, projectGitState: g, bypassScopes: scopes,
     readTextBounded: (p) => (/(missing|nowhere)\.mjs/i.test(String(p)) ? null : SCRIPTS[String(p).toLowerCase()] ?? 'console.log(1)\n'),
     digestTree: () => (digests ? { ...digests } : null),
+    scanStagedBlobs: () => staged,
   }
 }
 const ev = (tool, input, mode = 'bypassPermissions', extra = {}) => ({ hook_event_name: 'PreToolUse', session_id: 's', cwd: ROOT, permission_mode: mode, tool_name: tool, tool_input: input, tool_use_id: 't', ...extra })
@@ -181,7 +184,7 @@ test('D3.3: scoped edits and pinned dh3 operations proceed only on the scope bra
   ok(write('docs/developer-harness-v3/18-notes.md', on()), 'V3 docs edit')
   for (const c of ['node scripts/developer-harness-v3/bin/dh3.mjs status', 'node scripts/developer-harness-v3/bin/dh3.mjs start --wait-minutes 45',
     'node scripts/developer-harness-v3/bin/dh3.mjs stop --id w1']) ok(bash(c, on()), c)
-  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status --root C:/Users/dev/AppData/Local/Temp/x/PatelRep/dh3', on()), '--root to an agent-writable runtime', 'bypass.entrypoint_option')
+  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status --root C:/Users/dev/AppData/Local/Temp/x/PatelRep/dh3', on()), '--root to an agent-writable runtime')
   // not the pinned code
   denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status', on({ digests: { ...PINS, 'scripts/developer-harness-v3/runtime/vm.mjs': 'c'.repeat(64) } })), 'modified privileged file', 'bypass.pin_mismatch')
   denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status', on({ digests: { ...PINS, 'scripts/developer-harness-v3/runtime/new.mjs': 'd'.repeat(64) } })), 'added privileged file', 'bypass.pin_mismatch')
@@ -197,7 +200,7 @@ test('D3.3: scoped edits and pinned dh3 operations proceed only on the scope bra
   denied(bash('node scripts/developer-harness-v3/runtime/vm.mjs', on()), 'direct privileged module', 'bypass.not_authorized')
   denied(bash('powershell -File scripts/developer-harness-v3/infra/seed-iso.ps1', on()), 'direct privileged PowerShell')
   denied(bash('python scripts/developer-harness-v3/isolation/guest-probe.py', on()), 'direct privileged python')
-  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status --config .claude/settings.json', on()), 'argument referencing policy', 'bypass.entrypoint_arguments')
+  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status --config .claude/settings.json', on()), 'argument referencing policy')
   // not the scope
   for (const rel of ['scripts/developer-harness-v3/authority/contract.mjs', 'docs/developer-harness-v3/authority-contract.json', 'docs/developer-harness-v3/task-lifecycle.json',
     'scripts/developer-harness-v2/policy-engine.mjs', 'scripts/publish-feature-builder-change.mjs', 'scripts/check-db-drift.mjs', '.github/workflows/ci.yml']) denied(write(rel, on()), `scope edit ${rel}`)
@@ -398,4 +401,34 @@ test('independent review round 2 (2026-11-24): variants of the first fixes stay 
   denied(evaluateToolEvent(ev('Bash', { command: `${dh3} start` }, 'bypassPermissions', { cwd: `${ROOT}/scripts` }), on()), 'from a subdirectory')
   // F7 compile-and-run toolchains
   for (const c of ['msbuild tools/x.proj', 'go run tools/x.go', 'dotnet run --project tools/x', 'cargo run']) denied(bash(c), c, 'bypass.opaque_interpreter')
+})
+
+test('independent review round 3 (2026-11-24): single-line pinned form, false positives, commit secret scan', () => {
+  const S = testScopes()
+  const on = (extra = {}) => ctx({ branch: 'feat/scope-test', scopes: S, ...extra })
+  const dh3 = 'node scripts/developer-harness-v3/bin/dh3.mjs'
+  for (const c of [`${dh3} status\ncmd /c start /b ${dh3} start`, `${dh3} status\r\ncmd /c start /b ${dh3} start`, `${dh3} status\nLOCALAPPDATA=C:/x ${dh3} start`,
+    `${dh3} status\nexport LOCALAPPDATA=C:/x\n${dh3} start`, `${dh3} status\ncd /c/Windows/Temp\nnode ${ROOT}/scripts/developer-harness-v3/bin/dh3.mjs start`, `${dh3} start --id=C:/x`]) {
+    denied(bash(c, on()), JSON.stringify(c))
+    denied(evaluateToolEvent(ev('PowerShell', { command: c }), on()), `PowerShell ${JSON.stringify(c)}`)
+  }
+  ok(bash(`${dh3} start --wait-minutes 45`, on()), 'canonical form')
+  // process.env is the environment, not a .env file
+  ok(bash('node tools/envread.mjs'), 'script reading process.env')
+  ok(bash('gh pr edit --body "uses GITHUB_TOKEN from the workflow"'), 'GH_/GITHUB_ mentioned in a body')
+  ok(bash('gh pr edit --title "fix gh_pr helper"'), 'gh_ in a title')
+  ok(bash('gh pr edit --body "Fix: const token = getToken(); now refreshed"'), 'code in a body')
+  ok(bash('gh pr edit --body "password = hashPassword(input) before insert"'), 'lowercase assignment in a body')
+  for (const c of ['corepack enable', 'volta install evil', 'nvm install 22']) denied(bash(c), c, 'bypass.host_or_opaque_program')
+  // commits: stage first, no credential-like values in the message or in newly staged content
+  ok(bash('git commit -m "feat: x"'), 'ordinary commit')
+  ok(bash('git commit -s -m "feat: x" --no-edit'), 'commit with sign-off')
+  for (const c of ['git commit -am x', 'git commit -a -m x', 'git commit -m x apps/web/x.ts', 'git commit --only -m x', 'git commit -m x -- notes.txt', 'git commit -p']) denied(bash(c), c, 'bypass.commit_stage_first')
+  denied(bash('git commit -m "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc"'), 'secret in the message', 'bypass.commit_secret')
+  denied(bash('git commit -F commit-msg.txt'), 'secret in a message file', 'bypass.commit_secret')
+  denied(bash('git commit -F -'), 'message from stdin', 'bypass.commit_unverified')
+  denied(bash('git commit -m x', ctx({ staged: { ok: true, hits: ['notes.txt'], scanned: 1 } })), 'secret in a staged file', 'bypass.commit_secret')
+  denied(bash('git commit -m x', ctx({ staged: { ok: false, reason: 'index too large' } })), 'unverifiable index', 'bypass.commit_unverifiable')
+  denied(bash('git commit -m x', { ...ctx(), scanStagedBlobs: undefined }), 'no scanner', 'bypass.commit_unverifiable')
+  assert.equal(bash('git commit -am x', ctx(), 'default').decision, 'no_objection', 'default mode commits are unchanged')
 })

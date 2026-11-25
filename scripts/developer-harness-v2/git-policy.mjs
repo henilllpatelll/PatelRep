@@ -68,7 +68,7 @@ export function gitHandler(env) {
     if (hasFlag(args, '--amend')) return rewrite(env, git, 'git.commit_amend', 'amending rewrites a commit')
     const branch = git().branch
     if (branch && PROTECTED_BRANCHES.has(branch.toLowerCase())) return push('discard_or_rewrite_local_work', 'git.commit_protected_branch', `committing on local ${branch}; use a dedicated branch`)
-    return push('commit_to_dedicated_branch', 'git.commit', 'commit on a dedicated branch')
+    return findings.push(F('commit_to_dedicated_branch', 'git.commit', 'commit on a dedicated branch', treeMeta(cwd, args)))
   }
   if (sub === 'rebase') {
     if (hasFlag(args, '--abort', '--quit', '--show-current-patch')) return push('read_repository', 'git.rebase_abort', 'abort/inspect an in-progress rebase')
@@ -284,7 +284,7 @@ function gitPush(env, args, git, cwd) {
 }
 
 /** Facts the bypass authorizer needs for commands that can replace checked-out files (and so the policy files themselves). */
-const treeMeta = (cwd, args) => ({ cwd, args: args.map((w) => w.text), dynamic: args.some((w) => w.dynamic) })
+const treeMeta = (cwd, args) => ({ cwd, args: args.map((w) => w.text), dynamic: args.some((w) => w.dynamic), dynamicAt: args.flatMap((w, i) => (w.dynamic ? [i] : [])) })
 
 function readGitState(ctx, cwd) {
   try { return ctx.gitState?.(cwd) ?? { branch: null, upstreamBranch: null, hasUpstream: null } } catch { return { branch: null, upstreamBranch: null, hasUpstream: null } }

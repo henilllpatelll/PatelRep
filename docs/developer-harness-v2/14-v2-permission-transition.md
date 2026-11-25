@@ -106,11 +106,15 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
 
 - **R-1 Code execution is not a sandbox.** Authorized scripts, tests, package lifecycle scripts and `npx` packages run as the owner's
   Windows user and can do anything that user can, including editing policy files or copying a credential into a tracked file through
-  code the hook cannot read. Two concrete routes the hook cannot close: (a) `node --test <file>` is `allowed` in every mode (since
-  Phase 2), so test-file contents are never inspected; (b) the hook cannot read git objects, so the **content** of an authorized commit
-  and own-branch push is not inspected. Script entry files and their relative imports are checked for policy references and credential
-  signatures; obfuscation, bare package imports and the two routes above are not covered. Enable GitHub secret scanning push protection
-  as the server-side backstop for (b). The authoritative boundaries
+  code the hook cannot read. The script scan (entry file plus relative imports: policy references and credential signatures) is an
+  **accident tripwire**, not a boundary: absolute/`file://`/package-alias imports, `fork`/`spawn`/`Worker` of another file, `eval` of
+  read data, Python imports, obfuscation and `node --test <file>` (allowed in every mode since Phase 2, never inspected) are not covered.
+- **R-1b Commit content.** GitHub secret-scanning push protection is **disabled** on the repository (checked live 2026-11-24:
+  `security_and_analysis.secret_scanning_push_protection = disabled`). So before a bypass `git commit` is authorized the hook parses the
+  index and scans every newly staged (loose) blob and the commit message for credential-like values (`bypass-git-index.mjs`); staging
+  at commit time (`-a`, `--only`, pathspecs) is refused, and unreadable/oversized staged content denies. Binary files, re-encoded
+  secrets and commits made outside bypass are not covered. **Owner action recommended:** enable secret scanning and push protection
+  (Settings → Code security) as the authoritative server-side control; agents cannot change repository security settings. The authoritative boundaries
   remain server-side: the `main` ruleset (CI Gate + Staging Gate, no bypass actors), the CI pin of `ci.yml`, environments, credential
   isolation and owner review of every PR touching `.claude/**`, `scripts/developer-harness-v2/**` or `docs/developer-harness-v2/**`.
 - **R-2 The checked-out policy is trusted.** The hook loads the engine, contract and scopes from the session's worktree. Bypass sessions
@@ -159,6 +163,20 @@ Re-verification of `f5919897` (same reviewer) closed F1 and F11 and found varian
 | F6/F8 | `&`, `nohup`, `(…&)`, `setsid`, `cmd /c start`, `Start-Process`, `LOCALAPPDATA=`, `cd … &&` | canonical whole-line form from the worktree root; launchers (`setsid`, `start`, `nice`, …) denied as unknown programs |
 | F7 | `msbuild`, `go run`, `dotnet run` | compile-and-run toolchains denied |
 | new | placeholder `CRON_SECRET=<redacted-value>` in prose flagged | placeholders excluded from the secret-value check |
+
+Round 3 (`af89cd56`) closed F2-stdin, F3, F4 and F5 and found:
+
+| Finding | Fix |
+|---|---|
+| (blocking) the pinned single-command check accepted a second line (`\s` matched newlines) | the command must be one physical line, `[ \t]` separators, arguments without `=`, `:` or `/` |
+| (blocking) `npm run build` denied: `process.env)` matched the credential-file signature | `process.env`, `import.meta.env`, `os.environ` are not file references |
+| PR override check matched `GITHUB_TOKEN` mentioned inside a body; lowercase `token = …` code flagged as a secret | override = assignment/`export`/`read`/`source`/`env` target only; `KEY=value` secret branch is uppercase-only |
+| `corepack enable`, `volta install` change the global toolchain | denied |
+| push content uninspected while push protection is off | staged-content and commit-message scan before a bypass commit (R-1b) |
+
+Known friction that remains in bypass (deliberate): `apps/web/scripts/apply-feature-flag.mjs` and `verify-feature-rollout.mjs`
+(rollout tooling that mentions workflows), `apps/mobile/scripts/staging-env.js` (targets the remote staging Supabase), test files run
+directly with `node <file>.test.mjs` instead of `node --test`, dev servers, WebFetch/curl, Docker, `git stash`, switching branches.
 
 ## 7. Changed assertions (behavior intentionally changed; nothing deleted)
 

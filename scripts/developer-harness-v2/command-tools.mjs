@@ -81,7 +81,9 @@ function prTarget(env, words, args) {
     if (takes && value === null) i++
   }
   // gh reads GH_REPO / GH_HOST / tokens from the environment: any assignment on the line (or an env wrapper) may retarget it.
-  const envOverride = (env.cmd?.assignments?.length ?? 0) > 0 || /\b(GH|GITHUB)_[A-Z0-9_]*|(^|[\s;&|(])env\s/i.test(env.state?.source ?? '')
+  const src = env.state?.source ?? ''
+  const envOverride = (env.cmd?.assignments?.length ?? 0) > 0 ||
+    /(^|[\s;&|(])(\$env:)?(GH|GITHUB)_[A-Z0-9_]*\s*=|(^|[\s;&|(])(export|declare|typeset|local|readonly|read|unset)\b[^;&|\n]*\b(GH|GITHUB)_[A-Z0-9_]*|printf\s+-v\s*(GH|GITHUB)_|(^|[\s;&|(])(env|source|\.)\s|\bset\s+-a\b|(set-item|new-item)\s+env:|setenvironmentvariable/i.test(src)
   return { cwd: env.state.cwd, implicitTarget: !repoOverride && positionals(rest, 0, GH_PR_VALUE_FLAGS).length === 0, dynamic: rest.some((w) => w.dynamic), flags, envOverride }
 }
 

@@ -47,6 +47,8 @@ export async function runPolicyHook(rawInput, { repoRoot = REPO_ROOT, env = proc
   }
   let digest = null
   try { digest = await import(pathToFileURL(path.join(repoRoot, 'scripts', 'developer-harness-v2', 'bypass-digest.mjs')).href) } catch { digest = null }
+  let gitIndex = null
+  try { gitIndex = await import(pathToFileURL(path.join(repoRoot, 'scripts', 'developer-harness-v2', 'bypass-git-index.mjs')).href) } catch { gitIndex = null }
   let projectGitState
   try { projectGitState = readGitState(repoRoot) } catch { projectGitState = { branch: null, upstreamBranch: null, hasUpstream: null } }
   const ctx = {
@@ -56,6 +58,7 @@ export async function runPolicyHook(rawInput, { repoRoot = REPO_ROOT, env = proc
     projectRootReal: canonicalize(repoRoot), // scope activation compares this with the scope's declared worktree
     digestTree: digest ? (closure) => digest.digestTree(repoRoot, closure) : null,
     readTextBounded,
+    scanStagedBlobs: gitIndex && engine.SECRET_VALUE ? () => gitIndex.scanStagedBlobs(repoRoot, engine.SECRET_VALUE) : null,
     projectRoot: repoRoot,
     homeDir: os.homedir(),
     tempRoots: [os.tmpdir(), env.TEMP, env.TMP, env.TMPDIR].filter(Boolean),

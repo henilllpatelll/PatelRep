@@ -183,26 +183,27 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   // the pin in a reviewed change. Predecessor pins for the record: command-policy.mjs f525363f…, policy-engine.test.mjs bd27b54b…,
   // path-policy.mjs b30a8bd5…, git-policy.mjs 58200c87…, policy-engine.mjs 4e4a31d5….
   const TRANSITION_PINNED = {
-    '.claude/hooks/policy-hook.mjs': '5917597414e665168baec6d97c7ef5b9154800e98f694c3f9d2a48beaf7d36ff',
+    '.claude/hooks/policy-hook.mjs': '38d6ad8ec67197bdac359b4c3df9a6d3c4a41c0db036a3940dfe89dee0b947ce',
     'docs/developer-harness-v2/contract.json': 'a1893abb511f3bd0fdcaeb5249684d2923c6037eb39762d210b8a1eecb061d3b',
     'scripts/developer-harness-v2/command-policy.mjs': '723e8c7ec0db6bc4484bceb9cc7e459b7b21895a7d5cc6a1b98b44db69fc17a7',
-    'scripts/developer-harness-v2/command-tools.mjs': '591335ff4a5fd44af36233e2d3c3859343334ec738294a7b3e60e09ef8870d0e',
-    'scripts/developer-harness-v2/git-policy.mjs': '6740c55122c1fe744053275f1117c32eee045c0a72da615318e75f0bdea6fa5f',
+    'scripts/developer-harness-v2/command-tools.mjs': '19eaa90245c95606d9b896d8c7fe52eb2206f01ea2317683cb60775315503b4f',
+    'scripts/developer-harness-v2/git-policy.mjs': 'c2e327e18b46dd4c399b0693c42103f3cb66fe7f99976e71eab6f205ede1aa2a',
     'scripts/developer-harness-v2/path-policy.mjs': '03955387f7be1123ccbd56b08045dc3ec7832a8baa5af2eaef891e547fd72e44',
     'scripts/developer-harness-v2/policy-common.mjs': '1e4de44eab93bd838ff9b11e1eccf34a9140c892bc6bab968d7e5f1f9b765dec',
-    'scripts/developer-harness-v2/policy-engine.mjs': '9071c92682f323090d973b5d97dfcd474777a3f95b3840908f41057ea4e986c8',
-    'scripts/developer-harness-v2/policy-engine.test.mjs': 'd8ac9fd144514a62c2697ec2feeb3be45b2da263c6fdc56b49e519404edca9cb',
+    'scripts/developer-harness-v2/policy-engine.mjs': 'd4ce102a6f7aebcc9bdad92d705a61f32b3d2a56c3715c68e006cd0c77a8bb10',
+    'scripts/developer-harness-v2/policy-engine.test.mjs': '2934747bd6ead9f6b2326ec7f9b478cc9c161b8e6c81ba34dd6c8cab91384308',
     'scripts/developer-harness-v2/copymove-remediation.test.mjs': 'ddf3815f46899d3a2abe10182e3eb2e1530aee16373ef6c22e516dfed3dd0add',
     'scripts/developer-harness-v2/m1-hardening.test.mjs': 'a395e8144c3a7248359b54f6e72c0080f9a1c3105b09e1ebd7dad765137d7220',
     'scripts/developer-harness-v2/path-resolution.test.mjs': 'be4b9c7905d54794af1279fbcb79f38cbb67f168ff8913395ee4807736ff4530',
     'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '5aaca7a977c30f7106bc49b1302e890c4272bffdabfef36aa33bea74c178f3b2',
-    'scripts/developer-harness-v2/bypass-authorization.mjs': 'bede3479bc581258744d1540dea5d7d1f5ba476f5ab2f42f658854de0ed7b4b7',
+    'scripts/developer-harness-v2/bypass-authorization.mjs': 'c0397b5d3c6cdad53845a24f4d1a44d45b6ae1a4225f5a3846cf0b04b7874941',
     'scripts/developer-harness-v2/bypass-digest.mjs': '79fc4296a5368df224e92e9e059f23acbde92f605f861c179829a0d224fb091a',
     'scripts/developer-harness-v2/bypass-pins.mjs': 'd73e1bd2442aaeba7ef724243e176c1ba2af280818f8697e72f902367e838fb1',
-    'scripts/developer-harness-v2/bypass-authorization.test.mjs': 'f29aea206940e5b68ac89e53d9fe5639443a619c7da8a58ac21d3dfa2ec3319a',
-    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'abd50273887587828fa89d5bf2eda509f3e0925cf32bb9600d381aa178cdf45d',
+    'scripts/developer-harness-v2/bypass-git-index.mjs': '57e0a75ff1f5d9c19a6ffd681706b1b6e3b82cae2cf6399efea6a358dba50361',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '96f1e4d2f0c7a2bc7e2c86cdc138526339ab6a5655c3557f2c3084960c776762',
+    'scripts/developer-harness-v2/bypass-hook.test.mjs': '7e590ebe5ee9cfa981c0f1ccb095aa5da7d9fe3f822798fdcec0c41818121677',
   }
-  const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs',
+  const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',
     'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])
   const LF = String.fromCharCode(10)
   const CR = String.fromCharCode(13)

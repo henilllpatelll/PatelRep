@@ -16,9 +16,9 @@ import { createPathPolicy, isSensitivePath, globToRegExp } from './path-policy.m
 import { classifyCommand } from './command-policy.mjs'
 import { F, contentEffectFindings } from './policy-common.mjs'
 import { classifyRepoFileWrites } from './github-write-policy.mjs'
-import { authorizeBypass, BYPASS_MODE, SCOPES_FILE, loadBypassScopes, validateBypassScopes, ScopeError } from './bypass-authorization.mjs'
+import { authorizeBypass, BYPASS_MODE, SCOPES_FILE, SECRET_VALUE, loadBypassScopes, validateBypassScopes, ScopeError } from './bypass-authorization.mjs'
 
-export { loadBypassScopes, validateBypassScopes, ScopeError, SCOPES_FILE }
+export { loadBypassScopes, validateBypassScopes, ScopeError, SCOPES_FILE, SECRET_VALUE }
 
 export const CLASSES = ['allowed', 'task_authorized', 'human_approval', 'forbidden']
 const RANK = Object.fromEntries(CLASSES.map((c, i) => [c, i]))

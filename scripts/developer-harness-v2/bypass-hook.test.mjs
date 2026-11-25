@@ -168,3 +168,20 @@ test('the shipped settings and scopes keep the owner launch explicit and the D3.
   const cli = scopes.scopes[0].trusted_executions[0]
   assert.deepEqual(cli.subcommands, ['doctor', 'setup', 'provision', 'start', 'stop', 'status', 'reset', 'monitor', 'verify-isolation', 'auth-check'])
 })
+
+test('commit secret scan reads the real index and newly staged loose blobs', async () => {
+  const { sb, put } = sandbox('feat/commit-scan')
+  const git = (...a) => { const r = spawnSync('git', a, { cwd: sb, encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr); return r }
+  put('apps/a.txt', 'hello\n')
+  for (let i = 0; i < 40; i++) put(`apps/many/file-${i}-${'x'.repeat(i)}.txt`, `n${i}\n`) // varied path lengths exercise index padding
+  git('add', 'apps')
+  proceed(await bash(sb, 'git commit -m "feat: clean"'), 'clean staged content')
+  put('apps/notes.txt', 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc\n')
+  git('add', 'apps/notes.txt')
+  blocked(await bash(sb, 'git commit -m "feat: notes"'), 'staged credential', /apps\/notes\.txt.*\[bypass\.commit_secret\]/)
+  git('rm', '--cached', '-q', 'apps/notes.txt')
+  proceed(await bash(sb, 'git commit -m "feat: clean again"'), 'after unstaging')
+  git('-c', 'index.version=4', 'update-index', '--index-version', '4')
+  git('add', 'apps/notes.txt')
+  blocked(await bash(sb, 'git commit -m "feat: notes"'), 'index v4', /\[bypass\.commit_secret\]/)
+})

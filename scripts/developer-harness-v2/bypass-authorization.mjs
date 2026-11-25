@@ -79,6 +79,7 @@ const HOST_OR_OPAQUE = new Set(['reg', 'regedit', 'regini', 'setx', 'schtasks', 
   'qemu-system-x86_64', 'qemu-img', 'gpg', 'gpg2', 'ssh-keygen', 'ssh-add', 'ssh-agent', 'openssl', 'az', 'aws', 'gcloud', 'doctl', 'flyctl', 'heroku', 'netlify',
   'firebase', 'wrangler', 'kubectl', 'helm', 'terraform',
   // launchers that run their arguments as another program the classifier would not see
+  'corepack', 'volta', 'nvm', 'fnm', 'asdf', 'mise', 'proto',
   'setsid', 'nice', 'ionice', 'stdbuf', 'taskset', 'chrt', 'unbuffer', 'script', 'daemonize', 'disown', 'screen', 'tmux', 'start', 'schtasks', 'psexec', 'runonce', 'tar', 'bsdtar', 'unzip', '7z', '7za', '7zr', 'unrar', 'cpio', 'patch', 'expand'])
 // Unknown programs whose purpose is reading stored credentials (secret stores, keychains, password managers, credential dumpers).
 const CREDENTIAL_TOOLS = new Set(['get-secret', 'get-secretinfo', 'get-storedcredential', 'get-credential', 'unlock-secretstore', 'cmdkey', 'vaultcmd', 'security',
@@ -89,7 +90,7 @@ const OPAQUE_INTERPRETERS = new Set(['perl', 'ruby', 'php', 'lua', 'luajit', 'rs
 // `python -m <module>` modules a bypass session may run (pytest/ruff/mypy/pip/venv are classified by their own handlers).
 const PYTHON_MODULES = new Set(['tokenize', 'ast', 'dis', 'platform', 'sysconfig', 'pyflakes', 'pycodestyle', 'pydocstyle'])
 // Values that look like secrets (tokens, keys, private keys, connection strings, KEY=value lines with credential names).
-const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*(?![<*$]|\{\{|(your|example|redacted|placeholder|changeme|dummy)\b|x{3})[^\s<>]{8,}/i
+export const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*(?![<*$]|\{\{|([Yy]our|YOUR|[Ee]xample|EXAMPLE|[Rr]edacted|REDACTED|[Pp]laceholder|[Cc]hange[Mm]e|[Dd]ummy)|[xX]{3})[^\s<>]{8,}/
 const PS_MUTATING_VERB = /^(set|new|remove|enable|disable|install|uninstall|register|unregister|add|clear|stop|restart|start|suspend|resume|update|grant|revoke|block|unblock|mount|dismount|rename|reset|invoke|import|publish|unpublish|save|send|connect|disconnect|initialize|optimize|repair|restore|backup|checkpoint|lock|unlock|protect|unprotect|approve|deny|move|copy|write|edit|push|pop|use|enter|exit|debug|deploy|expand|compress|sync|submit|request|limit|close|open|redo|undo|complete|confirm|receive|merge)-[a-z]/
 
 /** Read-only V2 policy tools a bypass session may run (they live under protected paths and are trusted as the policy itself). */
@@ -276,7 +277,9 @@ function checkPr(f, s, ctx) {
   return YES
 }
 
-const forbiddenSignature = (text, ctx) => signatureFindings(text).some((x) => ctx.contract.actions[x.action] === 'forbidden')
+// `process.env` / `import.meta.env` / `os.environ` read the process environment; they are not references to a `.env` file.
+const ENV_OBJECTS = /\b(process|import\.meta)\.env\b|\bos\.environ\b|\bDeno\.env\b|\bBun\.env\b/g
+const forbiddenSignature = (text, ctx) => signatureFindings(String(text).replace(ENV_OBJECTS, 'ENV_OBJECT')).some((x) => ctx.contract.actions[x.action] === 'forbidden')
 
 function checkInstall(f) {
   if (f.meta?.global === true) return no('bypass.install_global', 'global installs change the owner\'s environment outside the worktree')
@@ -377,9 +380,11 @@ function checkPinned(f, s, ctx) {
   if (!inProject(ctx, ev.cwd)) return no('bypass.privileged_cwd', 'privileged infrastructure runs only from the session worktree')
   // The command line must be exactly `node <entrypoint> <subcommand> [--option value]…` and nothing else: no `&`, `nohup`, `start`,
   // `Start-Process`, subshell, `cd …&&`, environment assignment (e.g. LOCALAPPDATA re-roots dh3) or second statement.
-  const line = String(ev.tool_input?.command ?? '').trim()
+  const raw = String(ev.tool_input?.command ?? '')
+  if (/[\r\n]/.test(raw.trim())) return no('bypass.privileged_form', 'the privileged command must be a single line on its own')
+  const line = raw.trim()
   const entryRe = e.entrypoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  if (!new RegExp(`^${e.interpreter}\\s+(\\./)?${entryRe}(\\s+[A-Za-z0-9_.:=/@+-]{1,200})*$`, 'i').test(line)) return no('bypass.privileged_form', `run it alone, as: ${e.interpreter} ${e.entrypoint} <subcommand> [--option value]`)
+  if (!new RegExp(`^${e.interpreter}[ \\t]+(\\./)?${entryRe}([ \\t]+[A-Za-z0-9_.@+-]{1,200})*$`, 'i').test(line)) return no('bypass.privileged_form', `run it alone, as: ${e.interpreter} ${e.entrypoint} <subcommand> [--option value]`)
   if (normAbs(ev.cwd) !== normAbs(ctx.projectRootReal ?? ctx.projectRoot ?? '') && normAbs(ev.cwd) !== normAbs(ctx.projectRoot ?? '')) return no('bypass.privileged_cwd', 'privileged infrastructure runs only from the worktree root')
   if (!e.subcommands.includes(m.args[0])) return no('bypass.subcommand_not_authorized', `subcommand '${String(m.args[0] ?? '').slice(0, 40)}' is owner-only or unknown; authorized: ${e.subcommands.join(', ')}`)
   if (m.args.slice(1).some((a) => !ARG_OK.test(a) || POLICY_REFERENCE.test(a))) return no('bypass.entrypoint_arguments', 'entrypoint arguments must be plain --options and values')
@@ -405,6 +410,7 @@ function checkAllowed(f, s, ctx) {
   }
   // Root-of-trust files that V2 does not otherwise protect (V3's machine-readable contracts) stay owner-only in bypass.
   if (f.code === 'path.worktree' && rel && TRUST_ROOT_RES.some((re) => re.test(rel))) return no('bypass.path_never_authorizable', `${rel.slice(0, 80)} is root-of-trust and owner-only in bypass`)
+  if (f.code === 'git.commit') return checkCommit(f, s, ctx)
   if (!TREE_CODES.has(f.code)) return YES
   const m = f.meta
   if (!m || m.dynamic) return no('bypass.tree_change_unverified', 'git command replacing checked-out files could not be verified')
@@ -430,6 +436,56 @@ function checkAllowed(f, s, ctx) {
     return no('bypass.tree_change_untrusted_ref', 'in bypass, only a new branch from the current HEAD or origin/main may be created; switching to an existing branch would load its policy files')
   }
   return no('bypass.tree_change_untrusted_ref', `git ${sub} can replace checked-out policy files with another revision's; it needs the owner`)
+}
+
+// GitHub secret-scanning push protection is not enabled on the repository, so a bypass commit is checked locally: staging must be done
+// with `git add` first (`-a`, `--include`, `--only` and pathspecs stage at commit time, after this check), the message must not carry a
+// credential-like value, and every newly staged blob (bypass-git-index.mjs) must be free of credential-like values.
+const COMMIT_VALUE_FLAGS = new Set(['-m', '--message', '-F', '--file', '-C', '--reuse-message', '-c', '--reedit-message', '--author', '--date', '--fixup',
+  '--squash', '-t', '--template', '--trailer', '--cleanup', '--pathspec-from-file'])
+function checkCommit(f, s, ctx) {
+  const m = f.meta
+  if (!m) return no('bypass.commit_unverified', 'commit arguments could not be read')
+  // Claude Code's standard form computes the message: `git commit -m "$(cat <<'EOF' … EOF)"`. Only a computed MESSAGE is accepted; its
+  // text is part of the command line, which is checked as a whole.
+  if (m.dynamic) {
+    if (!(m.dynamicAt ?? []).every((i) => ['-m', '--message'].includes(m.args[i - 1]))) return no('bypass.commit_unverified', 'only the commit message may be computed')
+    if (SECRET_VALUE.test(String(s.event?.tool_input?.command ?? ''))) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+  }
+  if (!inProject(ctx, m.cwd)) return no('bypass.commit_outside_worktree', 'commits must run in the session worktree')
+  const messages = []
+  for (let i = 0; i < m.args.length; i++) {
+    const a = m.args[i]
+    if (a === '--') return no('bypass.commit_stage_first', 'stage with `git add <paths>` first, then `git commit -m <message>`')
+    const [flag, value] = a.includes('=') && a.startsWith('--') ? [a.slice(0, a.indexOf('=')), a.slice(a.indexOf('=') + 1)] : [a, null]
+    if (/^-[A-Za-z]{2,}$/.test(flag)) {
+      if (/[aio]/.test(flag.slice(1))) return no('bypass.commit_stage_first', 'stage with `git add <paths>` first, then `git commit -m <message>` (no -a)')
+      if (/[mFCc]$/.test(flag)) { messages.push({ flag: `-${flag.at(-1)}`, value: m.args[++i] }) }
+      continue
+    }
+    if (['-a', '--all', '-i', '--include', '-o', '--only', '--pathspec-from-file', '--interactive', '-p', '--patch'].includes(flag)) {
+      return no('bypass.commit_stage_first', 'stage with `git add <paths>` first, then `git commit -m <message>`')
+    }
+    if (COMMIT_VALUE_FLAGS.has(flag)) { messages.push({ flag, value: value ?? m.args[++i] }); continue }
+    if (flag.startsWith('-')) continue
+    return no('bypass.commit_stage_first', 'commit pathspecs stage files at commit time; stage with `git add <paths>` first')
+  }
+  for (const { flag, value } of messages) {
+    if (typeof value !== 'string') return no('bypass.commit_unverified', `${flag} needs a value`)
+    if (['-F', '--file'].includes(flag)) {
+      if (value === '-') return no('bypass.commit_unverified', 'a commit message from stdin cannot be inspected')
+      let abs = null
+      try { abs = ctx.pathPolicy.resolve(value, m.cwd) } catch { abs = null }
+      const text = abs ? ctx.readTextBounded?.(abs) : null
+      if (typeof text !== 'string') return no('bypass.commit_unverified', 'commit message file could not be inspected')
+      if (SECRET_VALUE.test(text)) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+    } else if (SECRET_VALUE.test(value)) return no('bypass.commit_secret', 'commit message contains a credential-like value')
+  }
+  let scan
+  try { scan = ctx.scanStagedBlobs?.() ?? null } catch { scan = null }
+  if (!scan || !scan.ok) return no('bypass.commit_unverifiable', `staged content could not be inspected (${scan?.reason ?? 'scanner unavailable'})`)
+  if (scan.hits.length) return no('bypass.commit_secret', `staged file(s) contain credential-like values: ${scan.hits.slice(0, 5).join(', ')}; unstage them (git restore --staged <path>)`)
+  return YES
 }
 
 function splitArgs(args, withValue) {
