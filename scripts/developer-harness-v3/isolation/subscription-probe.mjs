@@ -15,7 +15,7 @@ import { atomicWriteJson, readJsonState } from '../lib/atomic.mjs'
 import { BINARY_FACTS_SCRIPT, buildWorkerEnvironment, CLAUDE_INSTALL_PATH, guestSessionCommand, parseBinaryFacts, runSession, verifyBinary, verifyEffectiveSettings } from '../runtime/launcher.mjs'
 import { startEgressProxyProcess as startEgressProxy } from '../runtime/egress-proxy-process.mjs'
 import { nextGovernorState, normalizeAuthStatus } from '../runtime/subscription-governor.mjs'
-import { killWorkerProcesses, liveness, openEgressChannel, readVmConfig, readVmRecord, sshArgs, sshExec, sysEnv } from '../runtime/vm-controller.mjs'
+import { killWorkerProcesses, liveness, openEgressChannel, readVmConfig, readVmRecord, SSH, sshArgs, sshExec, sysEnv } from '../runtime/vm-controller.mjs'
 import { readProvisioned } from '../infra/provision.mjs'
 import { loadContractFile } from '../authority/contract.mjs'
 
@@ -46,7 +46,7 @@ export async function probeSubscription(L, { id = 'w1', log = console.error } = 
   try {
     const result = await runSession({
       spawnSession: ({ stdin }) => {
-        const c = spawn('ssh', [...sshArgs(W, cfg, { extra: ['-T'] }), guestSessionCommand({ argv, env, timeoutS: 540 })], { env: sysEnv(), windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] })
+        const c = spawn(SSH, [...sshArgs(W, cfg, { extra: ['-T'] }), guestSessionCommand({ argv, env, timeoutS: 540 })], { env: sysEnv(), windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] })
         c.stdin.end(stdin); return c
       },
       terminateRemote: async () => { killWorkerProcesses(W, cfg) },

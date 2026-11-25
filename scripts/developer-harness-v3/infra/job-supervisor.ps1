@@ -24,6 +24,13 @@ public static class Dh3Job {
   [DllImport("kernel32.dll", SetLastError=true)] public static extern IntPtr CreateJobObject(IntPtr a, string n);
   [DllImport("kernel32.dll", SetLastError=true)] public static extern bool SetInformationJobObject(IntPtr j, int c, IntPtr i, uint l);
   [DllImport("kernel32.dll", SetLastError=true)] public static extern bool AssignProcessToJobObject(IntPtr j, IntPtr p);
+  [DllImport("kernel32.dll", SetLastError=true)] public static extern bool QueryInformationJobObject(IntPtr j, int c, IntPtr i, uint l, IntPtr r);
+  // Read the CPU rate control back from Windows (acceptance scenario 9 checks the OS-reported cap, not only the requested one).
+  public static uint[] QueryCpu(IntPtr job) {
+    int m = Marshal.SizeOf(typeof(CPU)); IntPtr q = Marshal.AllocHGlobal(m);
+    if (!QueryInformationJobObject(job, 15, q, (uint)m, IntPtr.Zero)) throw new Exception("QueryInformationJobObject(cpu) " + Marshal.GetLastWin32Error());
+    CPU c = (CPU)Marshal.PtrToStructure(q, typeof(CPU)); return new uint[] { c.ControlFlags, c.CpuRate };
+  }
   public static IntPtr Create(ulong memBytes, uint cpuRate) {
     IntPtr job = CreateJobObject(IntPtr.Zero, null); if (job == IntPtr.Zero) throw new Exception("CreateJobObject " + Marshal.GetLastWin32Error());
     EXT e = new EXT(); e.Basic.LimitFlags = 0x2000 | 0x100 | 0x400 | 0x8; e.Basic.ActiveProcessLimit = 1; e.ProcessMemoryLimit = new UIntPtr(memBytes);  // KILL_ON_JOB_CLOSE | PROCESS_MEMORY | DIE_ON_UNHANDLED_EXCEPTION | ACTIVE_PROCESS (=1: QEMU can never spawn a child)
@@ -45,6 +52,7 @@ if ($CpuRatePercent -lt 5 -or $CpuRatePercent -gt 80) { throw 'SUPERVISOR.BAD_CP
 if ($MemoryLimitMB -lt 768 -or $MemoryLimitMB -gt 9216) { throw 'SUPERVISOR.BAD_MEMORY_LIMIT' }
 $cmdline = [IO.File]::ReadAllText($CommandLineFile)
 $job = [Dh3Job]::Create([uint64]$MemoryLimitMB * 1MB, [uint32]$CpuRatePercent)
+$cpuq = [Dh3Job]::QueryCpu($job)
 $psi = New-Object Diagnostics.ProcessStartInfo
 $psi.FileName = $Qemu; $psi.Arguments = $cmdline; $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true
 $psi.RedirectStandardOutput = $false; $psi.RedirectStandardError = $false
@@ -54,7 +62,7 @@ $psi.EnvironmentVariables['PATH'] = (Split-Path -Parent $Qemu) + ';' + $env:SYST
 $proc = [Diagnostics.Process]::Start($psi)
 if (-not [Dh3Job]::AssignProcessToJobObject($job, $proc.Handle)) { $proc.Kill(); throw 'SUPERVISOR.ASSIGN_FAILED' }
 $proc.PriorityClass = [Diagnostics.ProcessPriorityClass]::BelowNormal
-$rec = @{ schema = 'patelrep.developer-harness-v3.vm-supervisor'; marker = $Marker; supervisor_pid = $PID; qemu_pid = $proc.Id; qemu_start = $proc.StartTime.ToUniversalTime().ToString('o'); memory_limit_mb = $MemoryLimitMB; cpu_rate_percent = $CpuRatePercent; state = 'running' }
+$rec = @{ schema = 'patelrep.developer-harness-v3.vm-supervisor'; marker = $Marker; supervisor_pid = $PID; qemu_pid = $proc.Id; qemu_start = $proc.StartTime.ToUniversalTime().ToString('o'); memory_limit_mb = $MemoryLimitMB; cpu_rate_percent = $CpuRatePercent; job_cpu_control_flags = [int]$cpuq[0]; job_cpu_rate = [int]$cpuq[1]; state = 'running' }
 $tmp = "$RecordFile.$PID.tmp"; [IO.File]::WriteAllText($tmp, ($rec | ConvertTo-Json -Compress)); Move-Item -LiteralPath $tmp -Destination $RecordFile -Force
 $proc.WaitForExit()
 $rec.state = 'exited'; $rec.exit_code = $proc.ExitCode; $rec.exited_at = (Get-Date).ToUniversalTime().ToString('o')

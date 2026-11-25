@@ -93,10 +93,16 @@ export function cpuPctFromProcStat(a, b) {
   return dt > 0 ? Math.round(((dt - di) / dt) * 1000) / 10 : null
 }
 
-function runBounded(cmd, args, { timeoutMs, maxBytes = 1048576 }) {
+// Absolute System32 paths: a bare name would be resolved from the (agent-writable) current directory before PATH on Windows.
+const SYS32 = `${process.env.SYSTEMROOT ?? 'C:\\Windows'}\\System32`
+const SAMPLER_TOOLS = Object.freeze({ typeperf: `${SYS32}\\typeperf.exe`, tasklist: `${SYS32}\\tasklist.exe` })
+
+function runBounded(name, args, { timeoutMs, maxBytes = 1048576 }) {
   return new Promise((resolve) => {
     const started = Date.now()
     let out = ''; let done = false
+    const cmd = SAMPLER_TOOLS[name]
+    if (!cmd) { resolve({ ok: false, out, ms: 0, code: 'SAMPLER.TOOL_NOT_PINNED' }); return }
     const child = spawn(cmd, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'], env: { SYSTEMROOT: process.env.SYSTEMROOT, SYSTEMDRIVE: process.env.SYSTEMDRIVE, PATH: process.env.SYSTEMROOT ? `${process.env.SYSTEMROOT}\\System32` : '' } })
     const t = setTimeout(() => { if (!done) { done = true; child.kill(); resolve({ ok: false, out, ms: Date.now() - started, code: 'SAMPLER.TIMEOUT' }) } }, timeoutMs)
     child.stdout.on('data', (d) => { out += d; if (out.length > maxBytes) child.kill() })

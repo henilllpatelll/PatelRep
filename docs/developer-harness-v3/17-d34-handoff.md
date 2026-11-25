@@ -29,7 +29,7 @@
 | S10 | stray `%SystemDrive%\ProgramData\…` tree in the checkout | `SYSTEMDRIVE` added to every minimal environment; tree deleted (never committed) | FIXED |
 | S11 | test plan below its floor | returns null (caller waits) | FIXED |
 | S12 | unobserved `pro`/`pro` mapping, unbounded reset, no automatic resume, cancellations escalating | observed pair only; resets > 8 days ignored; one retry once eligible; neutral kills leave state unchanged | FIXED |
-| S13 | acceptance scenarios 8/9/12 could pass vacuously | ENOSPC required; OOM-kill/`MemoryError` required (not `timeout`); CPU sampled during burn; real forged-tree check | PARTIAL: CPU cap recorded not asserted; scenario 12 proves the host-recompute rule, not the evaluator binding |
+| S13 | acceptance scenarios 8/9/12 could pass vacuously | ENOSPC required; OOM-kill/`MemoryError` required (not `timeout`); CPU sampled during burn; real forged-tree check | PARTIAL → remediated after run 1 (15): host-side fail-closed evaluators, binding-cap CPU enforcement test, scenario-13 plant control, retained evidence; real-VM re-run pending the pin refresh. Scenario 12 still proves the host-recompute rule, not the evaluator binding |
 | N1 | (fix-induced) lock never released if VM already dead | `verifyStopped` returns true when the VM is verifiably not running | fixed after re-verification |
 | N2 | (fix-induced) probe crash on neutral kill without prior state | null-safe | fixed after re-verification |
 
@@ -58,6 +58,14 @@ Verdict: **the isolation design is sound for later activation**, but it is not a
 | N6 | the bundle import and host hashing write to `%TEMP%` | accepted; they clean up |
 
 Also found **in the real VM run** (not by the reviewers): (1) the in-process proxy was frozen by the controller's synchronous SSH calls, so the proxy now runs as its own process; (2) Debian 13 apt uses `mirror+file` lists that still pointed at plain HTTP; (3) IPv6-first resolution broke tunnels; (4) `-accel` vs `-machine accel=` and the deprecated `debug-threads` broke QEMU 11 start; (5) PowerShell under `DETACHED_PROCESS` exits silently; (6) a missing `SYSTEMDRIVE` created a stray `%SystemDrive%` tree in the checkout (deleted, never committed).
+
+### 2.3 Acceptance-remediation review after run 1 — Opus (high effort), separate context, read-only, three rounds
+
+| Round | Verdict | Findings → status |
+|---|---|---|
+| 1 | NO-GO | **B1** the provision script's hardening check piped `modprobe -c` into `grep -q` under `pipefail`, so every provision would abort. Fixed: the config is captured once, and a real-bash regression test reproduces the old failure. Also, a stale `provisioned.json` survived a failed provision. Fixed: the record is invalidated first, and `start` refuses an unsealed image. **S1** the worker gets `EACCES` on the root-only `/dev/vsock`. Fixed: root-side open plus node facts. **S2** static `/dev` nodes caused false fails. Fixed: only nodes the kernel registered count. **S3** CPU-cap confounds. Fixed: work per guest CPU-second plus host-measured QEMU share, with 3 host samples. **S4** bare tool names resolved from the cwd. Fixed: absolute host tools and clean-env git. **S5** LAN IPs in `problems`. Fixed: masked document-wide. **S6** guest proxy claims were not corroborated. Fixed: host decision log, and doc 15 says which facts are guest-reported. **S7** doctor accepted stale PASSes. Fixed: `acceptanceStatus`. Nits fixed: hardened image required, ISO-validated evidence names, fw_cfg limitation, credential guard. |
+| 2 | GO | N1 predictable global git config path (fixed: no `git status`, object-id comparison, fresh temp config). N2 burn window budget (fixed: 40 s burn, window 8–30 s, raw window recorded). N3 masked keys could collide (fixed: indexed placeholders). N4 threshold notes (informational). N5 bare `git` in `authority/git-facts.mjs`: unreachable from dh3, **deferred to D3.4**. |
+| 3 (delta N1–N3) | GO | no new defect. Notes: a CRLF-committed file would be listed as differing (informational only); repo-local git config is still read by `rev-parse`/`ls-tree` (no escalation). |
 
 ## 3. Hardening required before any activation (D3.9 gate)
 

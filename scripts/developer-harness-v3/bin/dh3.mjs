@@ -78,7 +78,10 @@ async function doctor() {
   const contract = loadContractFile()
   add((contract.activation.active_actions ?? []).length === 0, 'V3.INACTIVE', { active_actions: contract.activation.active_actions })
   const iso = readJsonState(path.join(L.evidence, 'isolation-acceptance.json'), (v) => v && v.schema)
-  add(iso.ok && iso.value.verdict === 'PASS', 'ISOLATION.ACCEPTANCE', iso.ok ? iso.value.verdict : 'not run', 'run: dh3 verify-isolation')
+  // A PASS counts only if it was produced by the current probe, golden image and trusted code (an older PASS is STALE).
+  const { acceptanceStatus } = await import('../isolation/acceptance-rules.mjs'); const { closureIdentity } = await import('../isolation/acceptance.mjs')
+  const st = acceptanceStatus(iso.ok ? iso.value : null, prov, closureIdentity().digest)
+  add(st.current, 'ISOLATION.ACCEPTANCE', { status: st.status, reasons: st.reasons }, 'run: dh3 verify-isolation (again after any re-provision or trusted-code change)')
   const sub = readJsonState(L.subscription, (v) => v && v.schema)
   const fresh = sub.ok && sub.value.extra_usage?.enabled === false && Number.isFinite(sub.value.extra_usage.verified_at) && Date.now() - sub.value.extra_usage.verified_at < GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms
   add(fresh, 'SUBSCRIPTION.EXTRA_USAGE_VERIFIED_OFF', sub.ok ? { ...sub.value.extra_usage, fresh } : 'no record', 'run: dh3 login, then dh3 auth-check and dh3 probe-subscription (fact expires after 6 h)')

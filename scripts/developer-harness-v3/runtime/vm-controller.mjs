@@ -24,8 +24,24 @@ export const HOST_TOOL_ENV_NAMES = Object.freeze(['SYSTEMROOT', 'SYSTEMDRIVE', '
 export const sysEnv = () => ({ ...Object.fromEntries(HOST_TOOL_ENV_NAMES.filter((k) => process.env[k] !== undefined).map((k) => [k, process.env[k]])), SYSTEMROOT: SYS, PATH: `${SYS}\\System32;${SYS}\\System32\\OpenSSH` })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+/**
+ * Host tools by ABSOLUTE path. On Windows, a bare program name is resolved from the current directory BEFORE PATH, and dh3 runs from the
+ * agent-writable worktree, so a planted `ssh.exe`/`taskkill.exe` there would otherwise run instead of the system tool. `run()` resolves bare
+ * names only through this table and refuses any other bare name (fail closed).
+ */
+export const HOST_TOOLS = Object.freeze({
+  ssh: `${SYS}\\System32\\OpenSSH\\ssh.exe`, 'ssh-keygen': `${SYS}\\System32\\OpenSSH\\ssh-keygen.exe`,
+  taskkill: `${SYS}\\System32\\taskkill.exe`, tasklist: `${SYS}\\System32\\tasklist.exe`, typeperf: `${SYS}\\System32\\typeperf.exe`, powercfg: `${SYS}\\System32\\powercfg.exe`,
+})
+export const SSH = HOST_TOOLS.ssh
+export function hostTool(cmd) {
+  if (/[\\/]/.test(cmd)) return cmd
+  if (!Object.hasOwn(HOST_TOOLS, cmd)) throw new Error(`HOST.TOOL_NOT_PINNED:${String(cmd).slice(0, 40)}`)
+  return HOST_TOOLS[cmd]
+}
+
 export function run(cmd, args, { input = null, timeoutMs = 120000, env = sysEnv(), maxBuffer = 32 * 1024 * 1024 } = {}) {
-  const r = spawnSync(cmd, args, { input, encoding: input && Buffer.isBuffer(input) ? undefined : 'utf8', timeout: timeoutMs, env, windowsHide: true, maxBuffer })
+  const r = spawnSync(hostTool(cmd), args, { input, encoding: input && Buffer.isBuffer(input) ? undefined : 'utf8', timeout: timeoutMs, env, windowsHide: true, maxBuffer })
   return { code: r.status, out: String(r.stdout ?? ''), err: String(r.stderr ?? ''), error: r.error?.code ?? null }
 }
 
@@ -90,7 +106,7 @@ export async function waitForSsh(W, cfg, { timeoutMs = 900000, log = () => {} } 
 
 /** The ONLY guest egress path: a controller-held SSH remote forward from guest 127.0.0.1:3128 to the host proxy. Closing it cuts egress. */
 export function openEgressChannel(W, cfg, proxyPort) {
-  const child = spawn('ssh', [...sshArgs(W, cfg, { extra: ['-N', '-T', '-o', 'ExitOnForwardFailure=yes', '-R', `127.0.0.1:3128:127.0.0.1:${proxyPort}`] })], { env: sysEnv(), windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
+  const child = spawn(SSH, [...sshArgs(W, cfg, { extra: ['-N', '-T', '-o', 'ExitOnForwardFailure=yes', '-R', `127.0.0.1:3128:127.0.0.1:${proxyPort}`] })], { env: sysEnv(), windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
   return child
 }
 

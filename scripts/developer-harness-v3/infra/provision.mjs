@@ -10,10 +10,10 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { atomicWriteJson, readJsonState } from '../lib/atomic.mjs'
 import { startEgressProxyProcess as startEgressProxy } from '../runtime/egress-proxy-process.mjs'
-import { buildMetaData, buildProvisionScript, buildUserData, SANITIZED_MARKER } from './cloud-init.mjs'
+import { buildMetaData, buildProvisionScript, buildUserData, GUEST_HARDENING, SANITIZED_MARKER } from './cloud-init.mjs'
 import { mkdtempSync, rmSync } from 'node:fs'
 import os from 'node:os'
-import { run } from '../runtime/vm-controller.mjs'
+import { run, SSH } from '../runtime/vm-controller.mjs'
 
 /**
  * Security review S10: the binary pin is computed on the HOST from the npm-integrity-verified package (Windows' built-in tar), never taken from
@@ -42,7 +42,7 @@ export function readProvisioned(W) {
 /** Stream a host file into the guest over the controller's SSH channel (host → guest only). */
 function pushFile(W, cfg, src, dest, { timeoutMs }) {
   return new Promise((resolve) => {
-    const child = spawn('ssh', [...sshArgs(W, cfg, { extra: ['-T'] }), `cat > ${dest}`], { windowsHide: true, stdio: ['pipe', 'ignore', 'pipe'], env: sysEnv() })
+    const child = spawn(SSH, [...sshArgs(W, cfg, { extra: ['-T'] }), `cat > ${dest}`], { windowsHide: true, stdio: ['pipe', 'ignore', 'pipe'], env: sysEnv() })
     const t = setTimeout(() => child.kill(), timeoutMs)
     createReadStream(src).pipe(child.stdin)
     child.on('close', (code) => { clearTimeout(t); resolve(code === 0) })
@@ -58,6 +58,9 @@ export async function provision(L, { id = 'w1', ramMb, cpus = 2, accel = 'tcg', 
   mkdirSync(W.dir, { recursive: true })
   const keys = ensureKeys(W, name)
   buildSeedIso(W, { userData: buildUserData({ name, ...keys }), metaData: buildMetaData({ name, instanceId: `${name}-${Date.now()}` }) })
+  // The golden image is about to be rebuilt: invalidate the old record FIRST, so a failed or interrupted provision can never leave a stale
+  // record that lets `start` boot a half-built, writable image (it is rewritten only after a clean seal below).
+  rmSync(path.join(W.dir, PROVISIONED), { force: true })
   if (existsSync(W.golden)) chmodSync(W.golden, 0o644)
   createOverlay(L, W.golden, L.baseImage, 24)
   if (!existsSync(W.auth)) qemuImg(L, ['create', '-q', '-f', 'qcow2', W.auth, '512M'])
@@ -96,7 +99,9 @@ export async function provision(L, { id = 'w1', ramMb, cpus = 2, accel = 'tcg', 
     chmodSync(W.golden, 0o444)
     const goldenSha = await streamSha256(W.golden) // streamed: the golden image can exceed the 2 GiB readFileSync limit
     const rec = { schema: 'patelrep.developer-harness-v3.worker-provisioned', name, provisioned_at: new Date().toISOString(), accel, ram_mb: ramMb, cpus, claude_version: version, claude_sha512: sha512,
-      claude_owner_mode: ownerMode, claude_sha512_basis: 'host-computed from the npm-integrity-verified package; guest report matched', golden_sha256: goldenSha, base_image_sha512: A.debian_image.sha512, provisioning_egress: summarize(decisions), duration_s: Math.round((Date.now() - t0) / 1000) }
+      claude_owner_mode: ownerMode, claude_sha512_basis: 'host-computed from the npm-integrity-verified package; guest report matched', golden_sha256: goldenSha,
+      // Recorded only after the provision script verified it in the guest (it exits non-zero otherwise); acceptance then REQUIRES it in effect.
+      guest_hardening: GUEST_HARDENING, base_image_sha512: A.debian_image.sha512, provisioning_egress: summarize(decisions), duration_s: Math.round((Date.now() - t0) / 1000) }
     atomicWriteJson(path.join(W.dir, PROVISIONED), rec)
     return { ok: true, ...rec }
   } catch (e) {
@@ -119,12 +124,13 @@ export function summarize(decisions) {
 }
 
 /** Fresh task overlay on the read-only golden image, then boot (no seed). */
-export async function startTaskWorker(L, { id = 'w1', ramMb, cpus = 2, accel = 'tcg', log = console.log }) {
+export async function startTaskWorker(L, { id = 'w1', ramMb, cpus = 2, accel = 'tcg', log = console.log, cpuRatePercent = 40 }) {
   const W = L.worker(id)
   const p = readProvisioned(W)
   if (!p) throw new Error('WORKER.NOT_PROVISIONED')
+  if (!existsSync(W.golden) || (statSync(W.golden).mode & 0o222) !== 0) throw new Error('WORKER.GOLDEN_NOT_SEALED') // only a cleanly sealed (read-only) image boots
   createOverlay(L, W.task, W.golden, 24)
-  const cfg = await startVm(L, W, { name: p.name, ramMb, cpus, accel, withSeed: false })
+  const cfg = await startVm(L, W, { name: p.name, ramMb, cpus, accel, withSeed: false, cpuRatePercent })
   if (!await waitForSsh(W, cfg, { log })) { await stopVm(W, cfg, { log, graceMs: 20000 }); throw new Error('WORKER.SSH_TIMEOUT') }
   // sshd already REQUIRES the sanitizer; the explicit marker check makes a silently skipped sanitizer fail closed too.
   if (!/^MARK_OK$/m.test(sshExec(W, cfg, `test -f ${SANITIZED_MARKER} && echo MARK_OK`, { timeoutMs: 120000 }).out)) { await stopVm(W, cfg, { log, graceMs: 20000 }); throw new Error('WORKER.HOME_NOT_SANITIZED') }

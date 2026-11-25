@@ -105,6 +105,19 @@ export const SSH_REQUIRES_SANITIZER = ['[Unit]', 'Requires=patelrep-sanitize-hom
 export const SANITIZED_MARKER = '/run/dh3-sanitized'
 
 /**
+ * Isolation acceptance 2 and 10 remediation: the worker guest needs no host-integration socket transport and no binary-format handlers. QEMU has
+ * no vsock/VMCI/VMBus device, so these modules could never carry traffic, but they are removed anyway (defence in depth, and so that the probe
+ * observes `absent` rather than having to prove `inert`). `install <m> /bin/false` refuses every modprobe load from the root filesystem,
+ * including the kernel's on-demand request_module() when the worker creates an AF_VSOCK socket or opens Debian's static /dev/vsock node. The
+ * initramfs is not regenerated: it would only matter for a device present at early boot, and QEMU attaches none. binfmt_misc is refused as a
+ * module and its mount units are masked, so no handler (Debian's python3.13 bytecode entry included) can be registered.
+ */
+export const HARDENING_MODULES = Object.freeze(['vsock', 'vsock_loopback', 'vsock_diag', 'vmw_vsock_virtio_transport', 'vmw_vsock_virtio_transport_common', 'vmw_vsock_vmci_transport', 'hv_sock', 'vhost_vsock', 'vmw_vmci', 'binfmt_misc'])
+export const MODPROBE_HARDENING = ['# Developer Harness V3: no host-integration socket transports and no binfmt_misc in the worker guest.', ...HARDENING_MODULES.map((m) => `install ${m} /bin/false`), ''].join('\n')
+export const MASKED_UNITS = Object.freeze(['proc-sys-fs-binfmt_misc.automount', 'proc-sys-fs-binfmt_misc.mount', 'systemd-binfmt.service', 'binfmt-support.service'])
+export const GUEST_HARDENING = Object.freeze({ version: 1, vsock_disabled: true, binfmt_disabled: true, modprobe_file: '/etc/modprobe.d/90-dh3-no-host-channels.conf' })
+
+/**
  * @param {{name:string, controllerPublicKey:string, hostKeyPrivate:string, hostKeyPublic:string}} o
  */
 export function buildUserData(o) {
@@ -151,12 +164,14 @@ write_files:
 ${file('/etc/ssh/sshd_config.d/10-dh3.conf', SSHD_CONFIG)}
 ${file('/etc/claude-code/managed-settings.json', managed)}
 ${file('/etc/sysctl.d/90-dh3.conf', SYSCTL)}
+${file(GUEST_HARDENING.modprobe_file, MODPROBE_HARDENING)}
 ${file('/usr/local/sbin/patelrep-sanitize-home', SANITIZER_PY, '0755')}
 ${file('/etc/systemd/system/patelrep-sanitize-home.service', SANITIZER_UNIT)}
 ${file('/etc/systemd/system/ssh.service.d/10-dh3-requires-sanitizer.conf', SSH_REQUIRES_SANITIZER)}
 ${file('/etc/systemd/system/ssh.socket.d/10-dh3-requires-sanitizer.conf', SSH_REQUIRES_SANITIZER)}
 runcmd:
   - [ systemctl, mask, --now, serial-getty@ttyS0.service ]
+  - [ systemctl, mask, ${MASKED_UNITS.join(', ')} ]
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, patelrep-sanitize-home.service ]
   - [ /usr/local/sbin/patelrep-sanitize-home ]
@@ -192,6 +207,11 @@ ln -sfn /opt/patelrep-claude/bin/claude /usr/local/bin/claude
 rm -f /etc/apt/apt.conf.d/90dh3-proxy
 apt-get clean
 install -d -o root -g root -m 0755 /work
+# Host-channel hardening (cloud-init wrote it): verify it is in force, independent of what is loaded right now (fail closed).
+# The config is captured ONCE: piping modprobe -c into grep -q would SIGPIPE modprobe (it dumps MBs of alias indexes) and pipefail would abort.
+modcfg="$(modprobe -c)"
+for m in ${HARDENING_MODULES.join(' ')}; do grep -qx "install $m /bin/false" <<<"$modcfg"; done
+for u in ${MASKED_UNITS.join(' ')}; do test "$(systemctl is-enabled "$u" 2>/dev/null || true)" = masked; done
 touch /etc/cloud/cloud-init.disabled
 sha512sum /opt/patelrep-claude/bin/claude | cut -d' ' -f1 > /var/lib/dh3-claude.sha512
 /opt/patelrep-claude/bin/claude --version | head -1 > /var/lib/dh3-claude.version || true
