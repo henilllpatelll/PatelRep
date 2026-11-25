@@ -15,8 +15,10 @@ import { TOOL_HANDLERS } from './command-tools.mjs'
 import { fileWriter, readOnlySideEffect, globMayMatchSecret } from './file-command-policy.mjs'
 import { parseHttpRequest, httpMutationFindings } from './http-request-policy.mjs'
 import { opaqueGithubFindings } from './github-api-policy.mjs'
+import { privilegedMatch, PIN_TOOL } from './bypass-authorization.mjs'
 
 export const MAX_DEPTH = 6
+const PS_SPECIAL_CHARS = /[\u2013-\u2015\u00A0\u0085\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/
 const OPAQUE_ACTIONS = new Set(['run_unrecognized_command', 'run_unreviewed_script', 'run_interpreter_inline_code', 'network_request_or_remote_shell'])
 
 const SAFE_READONLY = new Set(['ls', 'dir', 'pwd', 'echo', 'printf', 'cat', 'head', 'tail', 'wc', 'grep', 'egrep', 'fgrep', 'rg',
@@ -74,6 +76,21 @@ export function classifyCommand(source, ctx, opts = {}) {
   const dialect = opts.dialect ?? 'posix'
   if (depth > MAX_DEPTH) return [F('run_unclassifiable_shell_input', 'shell.too_deep', 'command nesting exceeds the inspection depth')]
   if (typeof source !== 'string' || !source.trim()) return [F('run_unclassifiable_shell_input', 'shell.empty', 'empty command')]
+  // Windows PowerShell treats typographic quotes (U+2018–U+201B single, U+201C–U+201E double) as real quote characters; the bounded
+  // recognizer does not, so text it reads as inside a string could be a live statement. Such commands are unclassifiable (V2 transition
+  // review round 6). Bash and cmd treat them as ordinary characters.
+  if (dialect === 'powershell' && /[\u2018-\u201E]/.test(source)) return [F('run_unclassifiable_shell_input', 'shell.powershell_typographic_quote', 'PowerShell typographic quote characters change how the command parses')]
+  // Likewise PowerShell accepts en/em dash and horizontal bar (U+2013–U+2015) as `-` for parameters, operators and its own command-line
+  // switches (`–EncodedCommand`), and splits words on Unicode whitespace the recognizer would join (review round 7). Applies to PowerShell
+  // commands and to any command line that starts PowerShell.
+  if ((dialect === 'powershell' || /\b(powershell|pwsh)(\.exe)?\b/i.test(source)) && PS_SPECIAL_CHARS.test(source)) {
+    return [F('run_unclassifiable_shell_input', 'shell.powershell_unicode_syntax', 'PowerShell Unicode dash or whitespace equivalents change how the command parses')]
+  }
+  // PowerShell's call/dot-source operator with a computed target (`& ('g'+'h') …`, `& $x`, `& [string]'gh'`, `. (Get-Command gh)`)
+  // runs a program the recognizer cannot name (review round 8).
+  if (dialect === 'powershell' && /(^|[\s;|{(&])[&.][ \t]*([([$]|"[^"]*[$`(])/.test(source)) {
+    return [F('run_unclassifiable_shell_input', 'shell.powershell_computed_call', 'PowerShell call operator with a computed target')]
+  }
   const parsed = parseShell(source, { dialect, backslashEscapes: opts.backslashEscapes })
   if (!parsed.ok) return [F('run_unclassifiable_shell_input', 'shell.unparseable', `the command could not be parsed safely (${parsed.reason})`)]
   const findings = []
@@ -155,7 +172,7 @@ function classifySimple(cmd, ctx, state) {
 
   const env = { ctx, state, cmd, words, exe, findings, recurse: (src, o) => recurse(ctx, state, src, o), pipesOut }
   env.inline = (code) => inlineCode(env, code)
-  env.script = (word) => scriptExecution(env, word)
+  env.script = (word, extra) => scriptExecution(env, word, extra)
   const handler = TOOL_HANDLERS[exe]
   if (handler) { handler(env); return findings }
   classifyGeneric(env)
@@ -379,9 +396,10 @@ function classifyGeneric(env) {
     findings.push(F('read_repository', 'shell.read_only', 'read-only command'))
     return
   }
-  if (exe === 'source' || exe === '.') return scriptExecution(env, words[1])
-  if (isPathLike(words[0].text)) return scriptExecution(env, words[0])
-  findings.push(F('run_unrecognized_command', 'shell.unrecognized', `unrecognized command '${exe.slice(0, 40)}'`))
+  if (exe === 'source' || exe === '.') return scriptExecution(env, words[1], { interpreter: 'source', args: words.slice(2) })
+  if (isPathLike(words[0].text)) return scriptExecution(env, words[0], { args: words.slice(1) })
+  findings.push(F('run_unrecognized_command', 'shell.unrecognized', `unrecognized command '${exe.slice(0, 40)}'`,
+    { exe, words: words.map((w) => w.text), dynamic: words.some((w) => w.dynamic) }))
   findings.push(...signatureFindings(words.map((w) => w.text).join(' ')))
 }
 
@@ -471,7 +489,7 @@ function cmdCommand(env) {
 /** Interpreter inline code is opaque: always ≥ human_approval; forbidden when a protected effect is visible. */
 export function inlineCode(env, code) {
   const { findings, state } = env
-  findings.push(F('run_interpreter_inline_code', 'interpreter.inline_code', 'inline interpreter code is not inspected; nested effects are unknown'))
+  findings.push(F('run_interpreter_inline_code', 'interpreter.inline_code', 'inline interpreter code is not inspected; nested effects are unknown', { code: String(code ?? ''), exe: env.exe }))
   findings.push(...signatureFindings(code))
   if (state.depth < MAX_DEPTH) {
     for (const literal of stringLiterals(code)) {
@@ -482,8 +500,11 @@ export function inlineCode(env, code) {
   }
 }
 
-/** Running a script file: contents are not inspected, so never `allowed`; trusted release scripts are forbidden. */
-export function scriptExecution(env, word) {
+/**
+ * Running a script file: contents are not inspected, so never `allowed`; trusted release scripts are forbidden. `extra` carries the
+ * interpreter, the interpreter flags before the script and the script arguments when the caller knows them (node, python, a path).
+ */
+export function scriptExecution(env, word, extra = {}) {
   const { ctx, state, findings } = env
   if (!word) { findings.push(F('run_unrecognized_command', 'script.interactive', 'interactive interpreter session')); return }
   if (word.dynamic) { findings.push(F('run_unrecognized_command', 'script.dynamic', 'script path is computed at runtime')); return }
@@ -496,5 +517,21 @@ export function scriptExecution(env, word) {
     return
   }
   if (ctx.pathPolicy.isMigrationPath(abs, word.text)) { findings.push(F('run_local_docker_or_database_stack', 'script.sql', 'executes SQL')); return }
-  findings.push(F('run_unreviewed_script', 'script.unreviewed', `script contents are not inspected (${(rel ?? word.text).slice(-60)})`))
+  const pre = extra.preFlags ?? []
+  const args = extra.args ?? []
+  const meta = { abs, rel, interpreter: extra.interpreter ?? null, preFlags: pre.map((w) => w.text), args: args.map((w) => w.text), dynamicArgs: [...pre, ...args].some((w) => w.dynamic) }
+  // The pin tool's --write form rewrites the owner-reviewed trust pins (a protected policy file): owner-only, never bypass-authorized.
+  if (relLower === PIN_TOOL && meta.args.some((a) => /^--write(=|$)/.test(a))) {
+    findings.push(F('modify_control_plane_files', 'policy.pin_write', 'rewrites the owner-reviewed bypass trust pins (owner-only)', meta))
+    return
+  }
+  // Privileged host-side infrastructure (declared per scope in bypass-scopes.json) is classified on its own so that an owner-launched
+  // bypass session can run it ONLY from owner-pinned digests. Same class as an unreviewed script, so other modes are unchanged.
+  const priv = rel === null ? null : privilegedMatch(ctx.bypassScopes, rel)
+  if (priv) {
+    findings.push(F('run_privileged_infrastructure', priv.entrypoint ? 'infra.trusted_entrypoint' : 'infra.closure_file',
+      `privileged ${priv.scope} infrastructure code (${rel.slice(-60)}); runs without a prompt only from owner-pinned digests`, { ...meta, scope: priv.scope, execution: priv.execution }))
+    return
+  }
+  findings.push(F('run_unreviewed_script', 'script.unreviewed', `script contents are not inspected (${(rel ?? word.text).slice(-60)})`, meta))
 }

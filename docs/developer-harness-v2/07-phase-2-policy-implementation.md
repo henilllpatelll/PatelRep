@@ -53,6 +53,10 @@ no external side effect and treats any tool it does not know as `human_approval`
 
 ## 3. Classes and decisions
 
+> **Superseded for `bypassPermissions` (2026-11-24):** the V2 permission transition (`14-v2-permission-transition.md`) replaces the
+> "denied in bypassPermissions" row below with deterministic scoped authorization, and removes `disableBypassPermissionsMode` (§6).
+> `dontAsk` and `auto` are unchanged. The rest of this document is the Phase 2 record.
+
 | Class (contract) | Hook response | Effect |
 |---|---|---|
 | `allowed` | exit 0, no output | No objection. Claude Code's normal permission flow (allow/ask rules, mode) still applies. **Not** an approval. |

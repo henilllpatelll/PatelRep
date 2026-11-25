@@ -124,7 +124,12 @@ test('all nine M1 paths stay protected and every M1 fixture still holds', () => 
 })
 
 test('action classes, infrastructure, roles and topology are untouched; no new action is declared or emitted', () => {
-  assert.equal(digest(CONTRACT.actions), '80cbf36c889d2a6db5c382c20910d221aa10e0834291ac82e7fc5eb05e062890')
+  // V2 permission transition (14-v2-permission-transition.md) later added exactly one action (run_privileged_infrastructure, human_approval).
+  // The matrix pinned here is the matrix minus that recorded addition: this remediation still changed no action.
+  assert.deepEqual(CONTRACT.bypass_authorization.added_actions, ['run_privileged_infrastructure'])
+  assert.equal(CONTRACT.actions.run_privileged_infrastructure, 'human_approval')
+  const priorActions = Object.fromEntries(Object.entries(CONTRACT.actions).filter(([a]) => !CONTRACT.bypass_authorization.added_actions.includes(a)))
+  assert.equal(digest(priorActions), '80cbf36c889d2a6db5c382c20910d221aa10e0834291ac82e7fc5eb05e062890')
   assert.equal(digest(CONTRACT.protected_infrastructure), 'c4d3fa844279db8fa66f7204d3e062794660ed114818a1bae00434adbd0258b9')
   assert.equal(digest(CONTRACT.roles), 'fa787dbee2e6ab5ea1b816d7d81ad9c6caf1df250f511467f283aac92a478f3e')
   assert.equal(digest(CONTRACT.topology), '8fe7bad50a16e9517d8b4a4c313b21f7d64ab2f9934722f3f75bc555c4776ce0')

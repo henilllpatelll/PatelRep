@@ -159,6 +159,11 @@ export function isSensitivePath(p) {
   if (!base) return false
   if (/^\.env(\..+)?$/.test(base) || /^[^/]+\.env$/.test(base) || base === '.envrc') return !TEMPLATE_SUFFIX.test(base)
   if (/^(id_rsa|id_dsa|id_ecdsa|id_ed25519)(_[a-z0-9]+)?$/.test(base)) return true
+  // Private SSH keys under any name (`controller_ed25519`), never the `.pub` half.
+  if (/(^|[_.-])(ecdsa|ed25519)$/.test(base) || /^ssh_host_[a-z0-9]+_key$/.test(base)) return true
+  // Developer Harness V3 infrastructure root (%LOCALAPPDATA%/PatelRep/dh3[-suffix]): worker SSH keys, the owner's Claude login disk and
+  // the GnuPG home used for artifact verification are credentials in every mode (V2 transition; see 14-v2-permission-transition.md).
+  if (/(^|\/)patelrep\/dh3(-[a-z0-9-]+)?\/(workers\/[^/]+\/(ssh(\/|$)|auth\.qcow2$)|gnupg(\/|$))/.test(s)) return true
   if (/\.(pem|key|p12|pfx|jks|keystore|ppk|p8|mobileprovision)$/.test(base)) return true
   if (['.netrc', '_netrc', '.npmrc', '.pypirc', '.git-credentials', '.pgpass', 'credentials', 'credentials.json',
     '.credentials.json', '.claude.json', 'secrets.json', 'secrets.yml', 'secrets.yaml', '.secrets', 'auth.json',
@@ -416,8 +421,13 @@ export function createPathPolicy(contract, ctx) {
    */
   function classifyWrite(p, opts = {}) {
     const res = resolveChecked(p, opts.cwd ?? undefined)
-    const first = writeAt(p, opts, res.abs, res.failed)
-    return res.alt ? stricter(first, writeAt(p, opts, res.alt, undefined)) : first
+    const first = withTarget(writeAt(p, opts, res.abs, res.failed), res.abs, res.failed)
+    return res.alt ? stricter(first, withTarget(writeAt(p, opts, res.alt, undefined), res.alt, undefined)) : first
+  }
+
+  /** Attaches the resolved target (for the bypass authorizer's path scopes); never changes the finding's action or code. */
+  function withTarget(f, abs, failed) {
+    return { ...f, meta: { ...(f.meta ?? {}), abs: failed ? null : abs, rel: failed ? null : repoRelative(abs) } }
   }
 
   function writeAt(p, { cwd, mode = 'write', content } = {}, abs, failed) {

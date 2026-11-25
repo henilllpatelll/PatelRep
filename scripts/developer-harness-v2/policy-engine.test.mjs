@@ -76,7 +76,9 @@ test('approval-gated actions are denied (not silently allowed) when prompts cann
     for (const fx of FIXTURES.filter((f) => f.expect === 'human_approval' || f.expect === 'task_authorized')) {
       const r = evaluate(fx, mode)
       assert.equal(r.decision, 'deny', `${fx.id} in ${mode}`)
-      assert.match(r.reason, /cannot be mediated/)
+      // V2 permission transition: bypassPermissions no longer reports "cannot be mediated"; without an established authorization
+      // scope (this ctx loads no scopes file) it denies with the fail-closed reason instead. Same decision, new reason text.
+      assert.match(r.reason, mode === 'bypassPermissions' ? /bypass_denied: .*\[bypass\.authorization_unavailable\]/ : /cannot be mediated/)
     }
   }
   for (const mode of ['default', 'acceptEdits', 'plan']) assert.equal(evaluate(FIXTURES.find((f) => f.id === 'P-12'), mode).decision, 'ask')
@@ -173,7 +175,8 @@ test('reasons never echo secret values, file contents or full commands', () => {
 })
 
 test('every action the policy modules can emit is declared in the contract and the floor', () => {
-  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'writer-options.mjs', 'policy-engine.mjs', 'policy-common.mjs', 'github-api-policy.mjs', 'http-request-policy.mjs', 'github-write-policy.mjs']
+  const files = ['command-policy.mjs', 'file-command-policy.mjs', 'command-tools.mjs', 'git-policy.mjs', 'path-policy.mjs', 'writer-options.mjs', 'policy-engine.mjs', 'policy-common.mjs', 'github-api-policy.mjs', 'http-request-policy.mjs', 'github-write-policy.mjs',
+    'bypass-authorization.mjs', 'bypass-digest.mjs', 'bypass-pins.mjs', 'bypass-git-index.mjs'] // V2 permission transition modules
   const all = readdirSync(HERE).filter((f) => f.endsWith('.mjs') && !/test|fixtures|runtime|shell-recognizer/.test(f))
   assert.deepEqual([...all].sort(), [...files].sort(), 'every policy module is scanned')
   const emitted = new Set()

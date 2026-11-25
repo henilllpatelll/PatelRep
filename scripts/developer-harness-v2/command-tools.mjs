@@ -21,9 +21,9 @@ function gh(env) {
       if (verb === 'review') return hasFlag(args, '--approve', '-a') ? push('approve_pull_request_as_gate', 'gh.pr_approve', 'agents cannot approve pull requests')
         : push('modify_pull_request_state', 'gh.pr_review', 'pull request review')
       if (verb === 'ready') return push('mark_pull_request_ready_for_review', 'gh.pr_ready', 'marking a PR ready for review needs human approval')
-      if (verb === 'create' || verb === 'new') return hasFlag(args, '--draft', '-d') ? push('open_draft_pull_request', 'gh.pr_create_draft', 'opens a draft pull request')
+      if (verb === 'create' || verb === 'new') return hasFlag(args, '--draft', '-d') ? findings.push(...prBodyFiles(env, args), F('open_draft_pull_request', 'gh.pr_create_draft', 'opens a draft pull request', prTarget(env, words, args)))
         : push('mark_pull_request_ready_for_review', 'gh.pr_create_non_draft', 'a non-draft PR is ready for review; open it as --draft')
-      if (['edit', 'comment'].includes(verb)) return push('interact_with_pull_request_or_issue', `gh.pr_${verb}`, `pull request ${verb}`)
+      if (['edit', 'comment'].includes(verb)) return findings.push(...prBodyFiles(env, args), F('interact_with_pull_request_or_issue', `gh.pr_${verb}`, `pull request ${verb}`, prTarget(env, words, args)))
       if (verb === 'update-branch') return push('push_dedicated_branch_fast_forward', 'gh.pr_update_branch', 'updates the PR head on GitHub')
       if (['view', 'list', 'diff', 'checks', 'status', ''].includes(verb)) return read()
       return push('modify_pull_request_state', `gh.pr_${verb}`, `changes pull request state (${verb})`)
@@ -62,6 +62,41 @@ function gh(env) {
     default:
       return push('run_unrecognized_command', `gh.unknown`, `unrecognized gh command '${group.slice(0, 30)}' (may be an alias)`)
   }
+}
+
+const GH_PR_VALUE_FLAGS = new Set(['-a', '--assignee', '-B', '--base', '-b', '--body', '-F', '--body-file', '-H', '--head', '-l', '--label', '-m', '--milestone',
+  '-p', '--project', '-r', '--reviewer', '-t', '--title', '-T', '--template', '--recover', '--add-assignee', '--add-label', '--add-project', '--add-reviewer',
+  '--remove-assignee', '--remove-label', '--remove-project', '--remove-reviewer'])
+
+/** Which PR `gh pr create|edit|comment` acts on: `implicitTarget` = the current branch's PR in this repository (no selector, no -R). */
+function prTarget(env, words, args) {
+  const rest = args.slice(2)
+  const repoOverride = words.slice(1).some((w) => /^(-R|--repo|--hostname)(=|$)/.test(w.text) || /^-R./.test(w.text))
+  const flags = []
+  for (let i = 0; i < rest.length; i++) {
+    const [flag, value] = splitFlag(rest[i].text)
+    if (!flag.startsWith('-') || flag === '-' || flag === '--') continue
+    const takes = GH_PR_VALUE_FLAGS.has(flag)
+    flags.push({ flag, value: takes ? value ?? rest[i + 1]?.text ?? null : value })
+    if (takes && value === null) i++
+  }
+  // gh reads GH_REPO / GH_HOST / tokens from the environment: any assignment on the line (or an env wrapper) may retarget it.
+  const src = env.state?.source ?? ''
+  const envOverride = (env.cmd?.assignments?.length ?? 0) > 0 ||
+    /(^|[\s;&|(])(\$env:)?(GH|GITHUB)_[A-Z0-9_]*\s*=|(^|[\s;&|(])(export|declare|typeset|local|readonly|read|unset)\b[^;&|\n]*\b(GH|GITHUB)_[A-Z0-9_]*|printf\s+-v\s*(GH|GITHUB)_|(^|[\s;&|(])(env|source|\.)\s|\bset\s+-a\b|(set-item|new-item)\s+env:|setenvironmentvariable/i.test(src)
+  return { cwd: env.state.cwd, implicitTarget: !repoOverride && positionals(rest, 0, GH_PR_VALUE_FLAGS).length === 0, dynamic: rest.some((w) => w.dynamic), flags, envOverride }
+}
+
+/** A PR body read from a file is published to GitHub: the file is classified as a read (credential files are forbidden). */
+function prBodyFiles(env, args) {
+  const out = []
+  for (let i = 2; i < args.length; i++) {
+    const [flag, value] = splitFlag(args[i].text)
+    if (flag !== '-F' && flag !== '--body-file') continue
+    const file = value ?? args[i + 1]?.text
+    if (file && file !== '-') out.push(env.ctx.pathPolicy.classifyRead(file, env.state.cwd))
+  }
+  return out
 }
 
 const GH_API_VALUE_FLAGS = new Set(['-X', '--method', '-f', '-F', '--field', '--raw-field', '--input', '-H', '--header', '-q', '--jq', '-t',
@@ -122,6 +157,10 @@ function stripGlobal(args, withValue) {
 }
 
 // ── npm / npx / other package managers ───────────────────────────────────────────────────────────────────
+/** Install flags that write outside the worktree (global, user site, prefix/target/root directories, another cwd). */
+const outsideWorktree = (ws, env) => hasFlag(ws, '-g', '--global', '--prefix', '-C', '--dir', '--cwd', '--global-dir', '--user', '--target', '-t', '--root', '--src', '--break-system-packages') ||
+  /\b(PIP_[A-Z0-9_]+|PYTHONUSERBASE|PYTHONPATH|VIRTUAL_ENV|npm_config_[a-z0-9_]+|NPM_CONFIG_[A-Z0-9_]+|PNPM_HOME|YARN_[A-Z0-9_]+)\b/.test(env?.state?.source ?? '') ||
+  ws.some((w) => /^--location=/i.test(w.text) || /^(--prefix|--dir|--cwd|--target|--root|--src)=/i.test(w.text))
 const NPM_INSTALL = new Set(['install', 'i', 'in', 'ins', 'inst', 'insta', 'instal', 'isnt', 'isntall', 'add', 'ci', 'clean-install', 'ic',
   'install-clean', 'isntall-clean', 'install-ci-test', 'cit', 'install-test', 'it', 'update', 'up', 'upgrade', 'udpate', 'uninstall',
   'un', 'unlink', 'remove', 'rm', 'r', 'link', 'ln', 'dedupe', 'ddp', 'prune', 'rebuild', 'rb', 'init', 'create', 'innit'])
@@ -152,7 +191,8 @@ function npm(env) {
   if (sub === 'audit') return hasFlag(after, 'fix') || after.some((w) => w.text === 'fix') ? findings.push(F('install_or_upgrade_dependencies', 'npm.audit_fix', 'npm audit fix changes dependencies')) : allowed(env, 'npm.audit', 'npm audit')
   if (NPM_INSTALL.has(sub) || sub === 'exec' || sub === 'x') {
     if (sub === 'exec' || sub === 'x') return npx(env, after)
-    return findings.push(F('install_or_upgrade_dependencies', `npm.${sub}`, 'dependency installation runs package lifecycle scripts; needs human approval'))
+    return findings.push(F('install_or_upgrade_dependencies', `npm.${sub}`, 'dependency installation runs package lifecycle scripts; needs human approval',
+      { global: outsideWorktree(words, env) }))
   }
   if (sub === 'config' || sub === 'c' || sub === 'pkg' || sub === 'set') {
     const action = lower(after[0])
@@ -237,7 +277,7 @@ function otherPackageManager(env) {
   const sub = lower(words[1])
   if (sub === 'publish' || sub === 'npm' && lower(words[2]) === 'publish') return findings.push(F('create_alternate_publishing_or_deployment_path', `${exe}.publish`, 'package publishing is forbidden'))
   if (['install', 'add', 'remove', 'update', 'upgrade', 'up', 'dlx', 'x', 'create', 'init', 'link', 'import', ''].includes(sub) || (exe === 'yarn' && !sub)) {
-    return findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'install'}`, 'dependency installation needs human approval'))
+    return findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'install'}`, 'dependency installation needs human approval', { global: outsideWorktree(words, env) }))
   }
   if (exe === 'bun' && sub === 'test') return allowed(env, 'bun.test', 'bun test')
   findings.push(F('run_unreviewed_script', `${exe}.script`, `${exe} script indirection is not resolved`))
@@ -247,7 +287,7 @@ function pip(env) {
   const { words, findings, exe } = env
   const sub = lower(positionals(words)[0])
   if (['list', 'show', 'freeze', 'check', 'help', '--version', 'debug', 'inspect'].includes(sub) || hasFlag(words, '--version', '-V')) return allowed(env, 'pip.read', 'reads installed packages')
-  findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'unknown'}`, 'Python dependency changes need human approval'))
+  findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'unknown'}`, 'Python dependency changes need human approval', { global: outsideWorktree(words, env) }))
 }
 
 // ── Interpreters ───────────────────────────────────────────────────────────────────────────────────────────
@@ -273,7 +313,7 @@ function node(env) {
     }
     if (['--env-file', '--env-file-if-exists'].includes(flag)) { findings.push(F('read_production_or_publisher_credentials', 'node.env_file', 'loads an env file into the process')); if (value === null) i++; continue }
     if (flag.startsWith('-')) { if (['--input-type', '--stack-size', '--max-old-space-size', '--conditions', '-C', '--title'].includes(flag) && value === null) i++; continue }
-    return env.script(words[i])
+    return env.script(words[i], { interpreter: 'node', preFlags: words.slice(1, i), args: words.slice(i + 1) })
   }
   findings.push(F('run_unrecognized_command', 'node.repl', 'interactive node REPL'))
 }
@@ -299,11 +339,11 @@ function python(env) {
       if (PY_MODULES_ALLOWED.has(mod)) return allowed(env, `python.${mod}`, `python -m ${mod}`)
       if (PY_MODULES_SERVER.has(mod)) return findings.push(F('start_local_dev_server', 'python.server', 'dev servers may load local credential files; start them manually'))
       if (mod === 'pip' || mod === 'ensurepip' || mod === 'venv' || mod === 'virtualenv') return pip({ ...env, words: [words[0], ...words.slice(i + 2)], exe: 'pip' })
-      return findings.push(F('run_unreviewed_script', 'python.module', `python -m ${mod.slice(0, 40)} is not inspected`))
+      return findings.push(F('run_unreviewed_script', 'python.module', `python -m ${mod.slice(0, 40)} is not inspected`, { module: mod, args: words.slice(i + 2).map((w) => w.text) }))
     }
     if (['-V', '--version', '-h', '--help'].includes(t)) return allowed(env, 'python.meta', 'python metadata')
     if (t.startsWith('-')) { if (['-W', '-X', '-Q'].includes(t)) i++; continue }
-    return env.script(words[i])
+    return env.script(words[i], { interpreter: 'python', preFlags: words.slice(1, i), args: words.slice(i + 1) })
   }
   findings.push(F('run_unrecognized_command', 'python.repl', 'interactive Python REPL'))
 }

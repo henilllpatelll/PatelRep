@@ -65,4 +65,5 @@ When the human asks to check or improve UI design:
    whole file.
 2. Ask the decision questions, recommend 1–2 options, and wait for the human's choice.
 3. Adapt the chosen framework's prompt to real project paths (find them with ordinary search). Dependency installs
-   require human approval under the Phase 2 policy.
+   require human approval under the Phase 2 policy (an owner-launched bypass session authorizes non-global installs; see
+   `docs/developer-harness-v2/14-v2-permission-transition.md`).
