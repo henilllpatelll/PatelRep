@@ -128,7 +128,9 @@ export function nextGovernorState(prev, obs, { now, rng = Math.random }, cfg = G
   if (next !== null) next = Math.max(next, now + (obs.state === 'available' || obs.state === 'approaching' ? 0 : cfg.min_retry_interval_ms))
   const extra = obs.extra_usage?.enabled === false ? { enabled: false, basis: obs.extra_usage.basis, verified_at: now }
     : obs.extra_usage?.enabled === true ? { enabled: true, basis: obs.extra_usage.basis, verified_at: now }
-      : (prev?.extra_usage?.enabled === false && now - prev.extra_usage.verified_at < cfg.extra_usage_fact_ttl_ms ? prev.extra_usage : { enabled: null, basis: 'UNVERIFIED_OR_EXPIRED', verified_at: null })
+      // a carried-forward "verified off" fact must be in the past and within its TTL (a future timestamp would stretch the TTL)
+      : (prev?.extra_usage?.enabled === false && Number.isFinite(prev.extra_usage.verified_at) && prev.extra_usage.verified_at <= now && now - prev.extra_usage.verified_at < cfg.extra_usage_fact_ttl_ms
+        ? prev.extra_usage : { enabled: null, basis: 'UNVERIFIED_OR_EXPIRED', verified_at: null })
   return { schema: 'patelrep.developer-harness-v3.subscription-governor', state: obs.state, reason_codes: obs.reason_codes, attempts, next_eligible_at: next, resets_at_ms: obs.resets_at_ms ?? null,
     reset_basis: obs.reset_basis ?? null, utilization: obs.utilization ?? null, windows: obs.windows ?? null, extra_usage: extra, updated_at: now,
     owner_attention: ['auth_expired', 'auth_unverified', 'unauthorized_billing'].includes(obs.state) || (obs.state === 'unknown' && attempts >= cfg.unknown_escalation_count), lifecycle: lifecycleFor(obs.state) }
@@ -170,4 +172,59 @@ export function classifyModel(requested, telemetry) {
   const res = telemetry.result
   if (res?.is_error && (res.api_error_status === 404 || res.errors?.some((e) => /model/i.test(e) && /not (found|available)|unavailable|invalid/i.test(e)))) return { available: false, code: 'MODEL.UNAVAILABLE', ran }
   return { available: true, code: requested && !ran.includes(requested) ? 'MODEL.RESOLVED_DIFFERENTLY' : null, ran }
+}
+
+// ---- Persisted governor state and the owner's one-shot extra-usage attestation (host-only file, read through readJsonState) ----
+
+export const SUBSCRIPTION_STATE_SCHEMA = 'patelrep.developer-harness-v3.subscription-governor'
+/** An attestation lives at most this long; it permits ONE bounded probe and never verifies extra usage by itself. */
+export const ATTESTATION_TTL_MS = 24 * 3600000
+const isPlainObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x)
+const finiteOrNull = (x) => x === null || Number.isFinite(x)
+const ISO_MS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+/**
+ * Exact shape of the persisted subscription record, for `readJsonState` (which accepts only a boolean `true`). The schema must match exactly;
+ * every field a reader trusts is type-checked. The attestation's own validity is decided at use by `attestationStatus`, not here, so a used or
+ * expired attestation never makes the governor state unreadable.
+ */
+export function isSubscriptionStateRecord(v) {
+  if (!isPlainObj(v) || v.schema !== SUBSCRIPTION_STATE_SCHEMA) return false
+  if ('state' in v && !STATES.includes(v.state)) return false
+  if ('next_eligible_at' in v && !finiteOrNull(v.next_eligible_at)) return false
+  if ('updated_at' in v && !Number.isFinite(v.updated_at)) return false
+  if ('extra_usage' in v) {
+    const e = v.extra_usage
+    if (!isPlainObj(e) || ![true, false, null].includes(e.enabled) || !('verified_at' in e) || !finiteOrNull(e.verified_at)) return false
+    if (e.enabled !== null && !Number.isFinite(e.verified_at)) return false // a verified fact always carries its time
+  }
+  if ('owner_attestation' in v && !isPlainObj(v.owner_attestation)) return false
+  return true
+}
+
+/** A fresh owner attestation (`dh3 attest-extra-usage-off`). `nonce` must be a v4 UUID (crypto.randomUUID). */
+export function buildOwnerAttestation({ now, nonce }) {
+  if (!Number.isFinite(now) || typeof nonce !== 'string' || !UUID_V4.test(nonce)) throw new Error('ATTESTATION.BAD_INPUT')
+  return { extra_usage_off: true, nonce, attested_at: new Date(now).toISOString(), expires_at: new Date(now + ATTESTATION_TTL_MS).toISOString(), used: false,
+    scope: 'permits ONE bounded subscription probe; does not by itself verify extra usage' }
+}
+
+/**
+ * May this attestation authorize a probe at `now`? → {ok:true} | {ok:false, code}. Fail closed on anything not produced by
+ * `buildOwnerAttestation`: MISSING, MALFORMED (types, nonce, timestamps, a window longer than 24 h, or attested in the future), USED, EXPIRED.
+ */
+export function attestationStatus(att, now) {
+  if (att === undefined || att === null) return { ok: false, code: 'ATTESTATION.MISSING' }
+  if (!isPlainObj(att) || att.extra_usage_off !== true || typeof att.nonce !== 'string' || !UUID_V4.test(att.nonce) || typeof att.used !== 'boolean'
+    || typeof att.attested_at !== 'string' || !ISO_MS.test(att.attested_at) || typeof att.expires_at !== 'string' || !ISO_MS.test(att.expires_at) || !Number.isFinite(now)) {
+    return { ok: false, code: 'ATTESTATION.MALFORMED' }
+  }
+  const t0 = Date.parse(att.attested_at); const t1 = Date.parse(att.expires_at)
+  // exact round trip: an impossible calendar date (e.g. 02-30, which Date.parse rolls over) is malformed, not reinterpreted
+  if (!Number.isFinite(t0) || !Number.isFinite(t1) || new Date(t0).toISOString() !== att.attested_at || new Date(t1).toISOString() !== att.expires_at) return { ok: false, code: 'ATTESTATION.MALFORMED' }
+  if (t1 <= t0 || t1 - t0 > ATTESTATION_TTL_MS || t0 > now) return { ok: false, code: 'ATTESTATION.MALFORMED' }
+  if (att.used !== false) return { ok: false, code: 'ATTESTATION.USED' }
+  if (now >= t1) return { ok: false, code: 'ATTESTATION.EXPIRED' }
+  return { ok: true }
 }

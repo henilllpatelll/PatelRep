@@ -5,7 +5,6 @@
 //   doctor | setup [--dry-run] | provision [--ram MB] | start | stop | status | reset | monitor [--samples N] | login | auth-check
 //   attest-extra-usage-off | probe-subscription | verify-isolation | remove [--dry-run]
 import { existsSync, readFileSync, rmSync } from 'node:fs'
-import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { atomicWriteJson, readJsonState } from '../lib/atomic.mjs'
@@ -77,14 +76,15 @@ async function doctor() {
   add(true, 'WORKER.VM_STATE', rec ? { state: rec.state, ...liveness(rec) } : 'not running')
   const contract = loadContractFile()
   add((contract.activation.active_actions ?? []).length === 0, 'V3.INACTIVE', { active_actions: contract.activation.active_actions })
-  const iso = readJsonState(path.join(L.evidence, 'isolation-acceptance.json'), (v) => v && v.schema)
-  // A PASS counts only if it was produced by the current probe, golden image and trusted code (an older PASS is STALE).
-  const { acceptanceStatus } = await import('../isolation/acceptance-rules.mjs'); const { closureIdentity } = await import('../isolation/acceptance.mjs')
-  const st = acceptanceStatus(iso.ok ? iso.value : null, prov, closureIdentity().digest)
+  // A PASS counts only if it was produced by the current probe, golden image and trusted code (an older PASS is STALE; a bad record is INVALID).
+  const { closureIdentity, readAcceptanceStatus } = await import('../isolation/acceptance.mjs')
+  const st = readAcceptanceStatus(L.evidence, prov, closureIdentity().digest)
   add(st.current, 'ISOLATION.ACCEPTANCE', { status: st.status, reasons: st.reasons }, 'run: dh3 verify-isolation (again after any re-provision or trusted-code change)')
-  const sub = readJsonState(L.subscription, (v) => v && v.schema)
-  const fresh = sub.ok && sub.value.extra_usage?.enabled === false && Number.isFinite(sub.value.extra_usage.verified_at) && Date.now() - sub.value.extra_usage.verified_at < GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms
-  add(fresh, 'SUBSCRIPTION.EXTRA_USAGE_VERIFIED_OFF', sub.ok ? { ...sub.value.extra_usage, fresh } : 'no record', 'run: dh3 login, then dh3 auth-check and dh3 probe-subscription (fact expires after 6 h)')
+  const { readSubscriptionState } = await import('../isolation/subscription-probe.mjs')
+  const sub = readSubscriptionState(L.subscription); const now = Date.now()
+  const vAt = sub.ok ? sub.value.extra_usage?.verified_at : null
+  const fresh = sub.ok && sub.value.extra_usage?.enabled === false && Number.isFinite(vAt) && vAt <= now && now - vAt < GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms
+  add(fresh, 'SUBSCRIPTION.EXTRA_USAGE_VERIFIED_OFF', sub.ok ? { ...(sub.value.extra_usage ?? { enabled: null }), fresh } : (sub.code === 'STATE.ABSENT' ? 'no record' : `unreadable (${sub.code})`), 'run: dh3 login, then dh3 auth-check and dh3 probe-subscription (fact expires after 6 h)')
   out({ root: L.root, checks, summary: `${checks.filter((c) => c.ok).length}/${checks.length} ok` })
 }
 
@@ -201,12 +201,13 @@ function cmdAuthCheck() {
   out({ exit: r.code, facts })
 }
 
-function cmdAttest() {
-  const prev = readJsonState(L.subscription, (v) => v && v.schema)
-  // One-shot, expiring: consumed by exactly one probe, never reusable (security review S5).
-  const now = Date.now()
-  const rec = { ...(prev.ok ? prev.value : { schema: 'patelrep.developer-harness-v3.subscription-governor' }), owner_attestation: { extra_usage_off: true, nonce: randomUUID(), attested_at: new Date(now).toISOString(), expires_at: new Date(now + 24 * 3600000).toISOString(), used: false, scope: 'permits ONE bounded subscription probe; does not by itself verify extra usage' } }
-  atomicWriteJson(L.subscription, rec); out(rec.owner_attestation)
+async function cmdAttest() {
+  // One-shot, expiring: consumed by exactly one probe, never reusable (security review S5). Existing governor state is kept; an unreadable state
+  // file is never overwritten (that could reset a blocked governor).
+  const { recordOwnerAttestation } = await import('../isolation/subscription-probe.mjs')
+  const r = recordOwnerAttestation(L.subscription)
+  if (!r.ok) process.exitCode = 1
+  out(r.ok ? r.attestation : r)
 }
 
 async function cmdVerifyIsolation() { const { runAcceptance } = await import('../isolation/acceptance.mjs'); out(await runAcceptance(L, { id: ID, log: (m) => console.error(m) })) }

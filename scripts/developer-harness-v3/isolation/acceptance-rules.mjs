@@ -9,6 +9,7 @@
 import { HARDENING_MODULES } from '../infra/cloud-init.mjs'
 
 export const PROBE_VERSION = 3
+export const ACCEPTANCE_SCHEMA = 'patelrep.developer-harness-v3.isolation-acceptance'
 export const NO_CONNECT = Object.freeze(['timeout', 'ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH', 'ETIMEDOUT'])
 const GIB = 1073741824
 
@@ -446,12 +447,32 @@ export function evalS13(o) {
  */
 export function acceptanceStatus(doc, prov, closureDigestNow) {
   if (!isObj(doc)) return { current: false, status: 'NOT_RUN', reasons: [] }
-  if (doc.verdict !== 'PASS') return { current: false, status: String(doc.verdict ?? 'UNKNOWN'), reasons: [] }
+  if (!isAcceptanceRecord(doc)) return { current: false, status: 'INVALID', reasons: ['RECORD_SHAPE'] }
+  if (doc.verdict !== 'PASS') return { current: false, status: doc.verdict, reasons: [] }
+  // A PASS label must agree with its own scenarios: all 13 present and PASS.
+  if (overallVerdict(doc.scenarios) !== 'PASS') return { current: false, status: 'INVALID', reasons: ['SCENARIO_VERDICTS_INCONSISTENT'] }
   const reasons = []
   if (doc.probe_version !== PROBE_VERSION) reasons.push('PROBE_VERSION')
-  if (!isObj(prov) || typeof prov.golden_sha256 !== 'string' || doc.identity?.vm_image?.golden_sha256_now !== prov.golden_sha256) reasons.push('GOLDEN_IMAGE_CHANGED')
-  if (typeof closureDigestNow !== 'string' || doc.identity?.candidate?.closure?.digest !== closureDigestNow) reasons.push('TRUSTED_CODE_CHANGED')
+  const HEX64 = /^[0-9a-f]{64}$/
+  if (!isObj(prov) || typeof prov.golden_sha256 !== 'string' || !HEX64.test(prov.golden_sha256) || doc.identity?.vm_image?.golden_sha256_now !== prov.golden_sha256) reasons.push('GOLDEN_IMAGE_CHANGED')
+  if (typeof closureDigestNow !== 'string' || !HEX64.test(closureDigestNow) || doc.identity?.candidate?.closure?.digest !== closureDigestNow) reasons.push('TRUSTED_CODE_CHANGED')
   return reasons.length ? { current: false, status: 'STALE', reasons } : { current: true, status: 'PASS', reasons }
+}
+
+const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/
+/**
+ * Exact shape of a persisted acceptance record, for `readJsonState` (which accepts only a boolean `true`). Validates the fields every reader
+ * relies on; `acceptanceStatus` then decides currency. Returns a boolean, never a truthy non-boolean.
+ */
+export function isAcceptanceRecord(v) {
+  return isObj(v) && v.schema === ACCEPTANCE_SCHEMA && typeof v.started_at === 'string' && ISO_TS.test(v.started_at)
+    && Number.isInteger(v.probe_version) && typeof v.verdict === 'string' && /^[A-Z_]{1,32}$/.test(v.verdict) && isObj(v.scenarios)
+}
+
+/** `NOT_RUN` reason for a refused admission. Resource Governor codes already carry the `RESOURCE.` prefix; it is never doubled. */
+export function admissionRefusalReason(codes) {
+  const list = (Array.isArray(codes) ? codes : []).filter((c) => typeof c === 'string' && c.length > 0)
+  return list.length ? list.map((c) => (c.startsWith('RESOURCE.') ? c : `RESOURCE.${c}`)).join(',') : 'RESOURCE.ADMISSION_REFUSED'
 }
 
 /** Overall verdict: PASS only when all 13 scenarios PASS; any FAIL → FAIL; otherwise INCOMPLETE. */

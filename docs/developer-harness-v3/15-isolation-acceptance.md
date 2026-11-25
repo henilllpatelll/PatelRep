@@ -100,9 +100,16 @@ The guest facts come from a fresh overlay of a sealed image before any task code
 * Run 2 used the probe-size VM (1024 MB) the governor admitted. The full 3 GB worker was not admitted on this host (about 3.3 GB available), so it was not exercised.
 * AI-run automated test, not an external audit. QEMU still runs as the owner (O-7).
 
-## Known defects found during run 2 (fail closed; not fixed, because fixing them changes pinned code)
+## Known defects found during run 2 (fail closed)
 
-Any edit to these files changes the trusted closure. That makes this PASS `STALE` and needs an owner re-pin before dh3 can run again. They were therefore left for owner review instead of being patched after the accepted run.
+**Status: fixed in the reviewed source commit that follows `5bffedd8` on this branch. Not yet pinned.** The fix changes 5 trusted closure files. Once you re-pin to that commit (`--from-ref`), run 2 becomes `STALE` (`TRUSTED_CODE_CHANGED`), and run 3 must pass on the new closure. Fix details:
+
+* `readJsonState` is unchanged. It still accepts only a boolean `true`.
+* The new exact validators are `isAcceptanceRecord` and `isSubscriptionStateRecord`, and doctor reads through `readAcceptanceStatus`. A PASS now also needs all 13 scenarios PASS and 64-hex digests.
+* The attestation is checked by `attestationStatus` (shape, v4 nonce, exact ISO round trip, at most 24 h, not in the future) and consumed exactly once. The claim is an exclusive per-nonce marker (`<state>.consumed-<nonce>`), which is never removed, so one tiny file accumulates per attestation.
+* `attest-extra-usage-off` keeps the existing governor state and never overwrites an unreadable state file.
+* A future `verified_at` is no longer carried forward.
+* Regressions: `tests/d33-state-readers.test.mjs`.
 
 | # | Defect | Effect | Proposed fix |
 |---|---|---|---|

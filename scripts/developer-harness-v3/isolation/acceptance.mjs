@@ -22,7 +22,7 @@ import { buildPeFixture, validatePeFixture } from './pe-fixture.mjs'
 import * as R from './acceptance-rules.mjs'
 
 export { verifyTreeClaim } from './acceptance-rules.mjs'
-export const SCHEMA = 'patelrep.developer-harness-v3.isolation-acceptance'
+export const SCHEMA = R.ACCEPTANCE_SCHEMA
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO = path.resolve(HERE, '..', '..', '..')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -118,7 +118,7 @@ export async function runAcceptance(L, { id = 'w1', log = console.error } = {}) 
   if (identity.vm_image.golden_sha256_now !== prov.golden_sha256) return finish('NOT_RUN', 'WORKER.GOLDEN_CHANGED_SINCE_PROVISIONING')
   const before = await sampleWindowsHost({ diskPath: L.root.slice(0, 3) })
   const a = admit('vm_start', { host: before, history: [], active: { reasoning_sessions: 0, heavy_test_workloads: 0 }, reservations: [], now: Date.now(), vmFloor: 'probe', accel: prov.accel })
-  if (a.decision !== 'admit') return finish('NOT_RUN', `RESOURCE.${a.reason_codes.join(',')}`)
+  if (a.decision !== 'admit') return finish('NOT_RUN', R.admissionRefusalReason(a.reason_codes))
   const hardened = { vsock: prov.guest_hardening?.vsock_disabled === true, binfmt: prov.guest_hardening?.binfmt_disabled === true }
   const logicalCpus = os.cpus().length
   // Host-side facts gathered before the VM starts: the PE fixture's Windows positive control, and whether WSL / Docker Desktop are running.
@@ -233,6 +233,16 @@ export async function runAcceptance(L, { id = 'w1', log = console.error } = {}) 
     persistAcceptance(L.evidence, masked)
     return masked
   }
+}
+
+/**
+ * Currency of the latest persisted acceptance record (what `dh3 doctor` reports). Reads through `readJsonState` with the exact boolean record
+ * validator, then `acceptanceStatus`. Absent → NOT_RUN; present but unreadable, wrong schema or malformed → INVALID (fail closed, never PASS).
+ */
+export function readAcceptanceStatus(evidenceDir, prov, closureDigestNow) {
+  const r = readJsonState(path.join(evidenceDir, 'isolation-acceptance.json'), R.isAcceptanceRecord)
+  if (!r.ok) return r.code === 'STATE.ABSENT' ? { current: false, status: 'NOT_RUN', reasons: [] } : { current: false, status: 'INVALID', reasons: [r.code] }
+  return R.acceptanceStatus(r.value, prov, closureDigestNow)
 }
 
 /**

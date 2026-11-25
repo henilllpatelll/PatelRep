@@ -82,11 +82,15 @@ test('provisioning record lifecycle: a re-provision invalidates the old record f
 })
 
 test('review S7: doctor counts a PASS only for the current probe version, golden image and trusted code', () => {
-  const doc = { verdict: 'PASS', probe_version: R.PROBE_VERSION, identity: { vm_image: { golden_sha256_now: 'g'.repeat(64) }, candidate: { closure: { digest: 'c'.repeat(64) } } } }
-  const prov = { golden_sha256: 'g'.repeat(64) }
+  const scenarios = Object.fromEntries(Array.from({ length: 13 }, (_, i) => [i + 1, { verdict: 'PASS', problems: [], evidence: {} }]))
+  const doc = { schema: R.ACCEPTANCE_SCHEMA, started_at: '2026-11-25T07:35:35.961Z', verdict: 'PASS', probe_version: R.PROBE_VERSION, scenarios,
+    identity: { vm_image: { golden_sha256_now: 'e'.repeat(64) }, candidate: { closure: { digest: 'c'.repeat(64) } } } }
+  const prov = { golden_sha256: 'e'.repeat(64) }
   assert.deepEqual(R.acceptanceStatus(doc, prov, 'c'.repeat(64)), { current: true, status: 'PASS', reasons: [] })
   assert.deepEqual(R.acceptanceStatus({ ...doc, probe_version: 2 }, prov, 'c'.repeat(64)).reasons, ['PROBE_VERSION'])
-  assert.deepEqual(R.acceptanceStatus(doc, { golden_sha256: 'h'.repeat(64) }, 'c'.repeat(64)).reasons, ['GOLDEN_IMAGE_CHANGED'], 're-provisioned since the run')
+  assert.deepEqual(R.acceptanceStatus(doc, { golden_sha256: 'b'.repeat(64) }, 'c'.repeat(64)).reasons, ['GOLDEN_IMAGE_CHANGED'], 're-provisioned since the run')
+  // review A4: digests must be well-formed sha256 hex; two empty (or non-hex) strings never "match"
+  assert.deepEqual(R.acceptanceStatus({ ...doc, identity: { vm_image: { golden_sha256_now: '' }, candidate: { closure: { digest: '' } } } }, { golden_sha256: '' }, '').reasons, ['GOLDEN_IMAGE_CHANGED', 'TRUSTED_CODE_CHANGED'])
   assert.deepEqual(R.acceptanceStatus(doc, null, 'c'.repeat(64)).reasons, ['GOLDEN_IMAGE_CHANGED'])
   assert.deepEqual(R.acceptanceStatus(doc, prov, 'd'.repeat(64)).reasons, ['TRUSTED_CODE_CHANGED'])
   assert.equal(R.acceptanceStatus(doc, prov, null).current, false)
