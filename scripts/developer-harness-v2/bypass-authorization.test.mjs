@@ -1,4 +1,4 @@
-// Developer Harness V2 — permission transition: engine-level tests of owner-launched bypassPermissions authorization.
+// Developer Harness V2 \u2014 permission transition: engine-level tests of owner-launched bypassPermissions authorization.
 // Pure: injected facts only (no filesystem beyond the repository's own policy files, no network, nothing executed).
 // Run: node --test scripts/developer-harness-v2/bypass-authorization.test.mjs
 import assert from 'node:assert/strict'
@@ -63,7 +63,7 @@ const write = (rel, c = ctx(), content = 'x', mode) => evaluateToolEvent(ev('Wri
 const ok = (r, label) => assert.equal(r.decision, 'no_objection', `${label}: ${r.reason}`)
 const denied = (r, label, code) => {
   assert.equal(r.decision, 'deny', `${label} must be denied`)
-  if (code) assert.ok(r.reasonCode === code || r.reason.includes(`[${code}]`), `${label}: expected ${code}, got ${r.reasonCode} — ${r.reason}`)
+  if (code) assert.ok(r.reasonCode === code || r.reason.includes(`[${code}]`), `${label}: expected ${code}, got ${r.reasonCode} \u2014 ${r.reason}`)
 }
 
 test('the shipped scopes file is valid, within the ceiling, and its D3.3 scope keeps owner-only operations out', () => {
@@ -465,7 +465,7 @@ test('independent review round 5 (2026-11-24): a bypass commit runs alone; hered
 })
 
 test('independent review round 6 (2026-11-24): PowerShell typographic quotes are unclassifiable in every mode', () => {
-  const quotes = ['‘', '’', '‚', '‛', '“', '”', '„']
+  const quotes = ['\u2018', '\u2019', '\u201A', '\u201B', '\u201C', '\u201D', '\u201E']
   for (const q of quotes) {
     for (const inner of ['git push --force origin main', 'gh pr merge 1', 'Get-Content apps/api/.env', "Set-Content .claude/settings.local.json '{}'", 'git add notes.txt; git commit -m y']) {
       const c = `Write-Output 'x${q}; ${inner}; Write-Output ${q}y'`
@@ -476,9 +476,32 @@ test('independent review round 6 (2026-11-24): PowerShell typographic quotes are
       }
     }
   }
-  denied(evaluateToolEvent(ev('PowerShell', { command: "git commit --allow-empty -m 'x‘ -m (Get-Content msg.txt -Raw) -m ‘y'" }), ctx()), 'smart-quoted commit message')
-  denied(bash('git commit -m "x’y"'), 'typographic quote in a bypass commit', 'bypass.commit_unverified')
+  denied(evaluateToolEvent(ev('PowerShell', { command: "git commit --allow-empty -m 'x\u2018 -m (Get-Content msg.txt -Raw) -m \u2018y'" }), ctx()), 'smart-quoted commit message')
+  denied(bash('git commit -m "x\u2019y"'), 'typographic quote in a bypass commit', 'bypass.commit_unverified')
   denied(bash("git commit -m \"$(cat <<'EOF'\r\nmsg\r\nEOF\r\n)\""), 'CR inside a heredoc commit', 'bypass.commit_unverified')
-  ok(bash('echo “hello”'), 'Bash treats typographic quotes as ordinary characters')
+  ok(bash('echo \u201Chello\u201D'), 'Bash treats typographic quotes as ordinary characters')
   ok(evaluateToolEvent(ev('PowerShell', { command: "Write-Output 'plain'" }), ctx()), 'ordinary PowerShell')
+})
+
+test('independent review round 7 (2026-11-24): PowerShell Unicode dashes and whitespace are unclassifiable in every mode', () => {
+  const b64 = Buffer.from('gh pr merge 1', 'utf16le').toString('base64')
+  const ps = (c, mode = 'bypassPermissions') => evaluateToolEvent(ev('PowerShell', { command: c }, mode), ctx())
+  for (const d of ['\u2013', '\u2014', '\u2015']) {
+    for (const c of [`powershell ${d}EncodedCommand ${b64}`, `pwsh ${d}enc ${b64}`, `powershell.exe -NoProfile ${d}ec ${b64}`, `Start-Process gh ${d}ArgumentList 'pr','merge','1'`, `powershell ${d}File tools/x.ps1`, `1 ${d}eq 1`]) {
+      for (const mode of ['bypassPermissions', 'default']) {
+        assert.equal(ps(c, mode).decision, 'deny', `${mode} PowerShell ${JSON.stringify(c)}`)
+        assert.equal(evaluateToolEvent(ev('Bash', { command: c }, mode), ctx()).decision === 'deny' || !/powershell|pwsh/.test(c), true, `${mode} Bash ${JSON.stringify(c)}`)
+      }
+    }
+  }
+  for (const w of ['\u00A0', '\u2000', '\u202F', '\u3000', '\u0085', '\u2028', '\u1680', '\u205F']) {
+    for (const c of ['gh pr ready 252', 'gh release create v9.9.9', 'git push origin feat/other', 'git checkout feature/other', 'gh pr close 1']) {
+      const r = ps(c.split(' ').join(w))
+      assert.equal(r.decision, 'deny', `PowerShell ${JSON.stringify(c)} joined by U+${w.charCodeAt(0).toString(16)}`)
+      assert.equal(r.reasonCode, 'shell.powershell_unicode_syntax')
+    }
+  }
+  ok(ps('Get-ChildItem apps'), 'ordinary PowerShell')
+  ok(ps("Write-Output 'it''s fine'"), 'ordinary PowerShell quoting')
+  ok(bash('echo "a\u2014b"'), 'an em dash in a Bash string is just text')
 })

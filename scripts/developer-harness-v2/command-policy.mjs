@@ -1,4 +1,4 @@
-// Developer Harness V2 — shell command classification (Phase 2). Pure: never executes the command.
+// Developer Harness V2 \u2014 shell command classification (Phase 2). Pure: never executes the command.
 //
 // Classifies by EFFECT, not by prefix: every simple command in a compound line, every command substitution,
 // every `sh -c` / `pwsh -Command` / `cmd /c` body, and every npm script body (resolved from package.json) is
@@ -18,6 +18,7 @@ import { opaqueGithubFindings } from './github-api-policy.mjs'
 import { privilegedMatch, PIN_TOOL } from './bypass-authorization.mjs'
 
 export const MAX_DEPTH = 6
+const PS_SPECIAL_CHARS = /[\u2013-\u2015\u00A0\u0085\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/
 const OPAQUE_ACTIONS = new Set(['run_unrecognized_command', 'run_unreviewed_script', 'run_interpreter_inline_code', 'network_request_or_remote_shell'])
 
 const SAFE_READONLY = new Set(['ls', 'dir', 'pwd', 'echo', 'printf', 'cat', 'head', 'tail', 'wc', 'grep', 'egrep', 'fgrep', 'rg',
@@ -75,10 +76,16 @@ export function classifyCommand(source, ctx, opts = {}) {
   const dialect = opts.dialect ?? 'posix'
   if (depth > MAX_DEPTH) return [F('run_unclassifiable_shell_input', 'shell.too_deep', 'command nesting exceeds the inspection depth')]
   if (typeof source !== 'string' || !source.trim()) return [F('run_unclassifiable_shell_input', 'shell.empty', 'empty command')]
-  // Windows PowerShell treats typographic quotes (U+2018–U+201B single, U+201C–U+201E double) as real quote characters; the bounded
+  // Windows PowerShell treats typographic quotes (U+2018\u2013U+201B single, U+201C\u2013U+201E double) as real quote characters; the bounded
   // recognizer does not, so text it reads as inside a string could be a live statement. Such commands are unclassifiable (V2 transition
   // review round 6). Bash and cmd treat them as ordinary characters.
-  if (dialect === 'powershell' && /[‘-„]/.test(source)) return [F('run_unclassifiable_shell_input', 'shell.powershell_typographic_quote', 'PowerShell typographic quote characters change how the command parses')]
+  if (dialect === 'powershell' && /[\u2018-\u201E]/.test(source)) return [F('run_unclassifiable_shell_input', 'shell.powershell_typographic_quote', 'PowerShell typographic quote characters change how the command parses')]
+  // Likewise PowerShell accepts en/em dash and horizontal bar (U+2013\u2013U+2015) as `-` for parameters, operators and its own command-line
+  // switches (`\u2013EncodedCommand`), and splits words on Unicode whitespace the recognizer would join (review round 7). Applies to PowerShell
+  // commands and to any command line that starts PowerShell.
+  if ((dialect === 'powershell' || /\b(powershell|pwsh)(\.exe)?\b/i.test(source)) && PS_SPECIAL_CHARS.test(source)) {
+    return [F('run_unclassifiable_shell_input', 'shell.powershell_unicode_syntax', 'PowerShell Unicode dash or whitespace equivalents change how the command parses')]
+  }
   const parsed = parseShell(source, { dialect, backslashEscapes: opts.backslashEscapes })
   if (!parsed.ok) return [F('run_unclassifiable_shell_input', 'shell.unparseable', `the command could not be parsed safely (${parsed.reason})`)]
   const findings = []

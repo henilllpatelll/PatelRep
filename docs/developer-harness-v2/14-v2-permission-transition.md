@@ -25,6 +25,7 @@ left for the V3 owner to refresh (they are V3 root-of-trust files and outside th
 | Reading DH3 worker SSH keys, the owner's login disk (`auth.qcow2`), the DH3 GnuPG home, `*_ed25519`/`*_ecdsa`/`ssh_host_*_key` | allowed read | credential (forbidden) in every mode — tightening |
 | `gh pr create/edit/comment --body-file <credential>` | not checked | the file is classified as a read (credential → forbidden) — tightening |
 | PowerShell command containing typographic quotes (U+2018–U+201E) | parsed as ordinary characters (PowerShell treats them as quotes, so hidden statements were missed) | unclassifiable → forbidden in every mode — tightening (review round 6) |
+| PowerShell command (or a line starting PowerShell) with Unicode dashes U+2013–U+2015 or non-ASCII whitespace (NBSP, U+2000–U+200A, U+2028/9, U+3000, …) | dashes bound as `-` (`–EncodedCommand`) and words split by PowerShell were missed | unclassifiable → forbidden in every mode — tightening (review round 7); fixtures CM-H07–09 now expect `forbidden` (was `human_approval`) |
 
 ## 2. Where authority comes from
 
@@ -199,6 +200,8 @@ Round 6 (`01dfd156`) closed both round-5 items in Bash and ordinary PowerShell a
 (U+2018–U+201B, U+201C–U+201E) let any statement hide from the recognizer, in every mode (pre-existing; exploitable once bypass removes
 the prompt). Fix: such PowerShell commands are unclassifiable (forbidden) in every mode; bypass commits also refuse CR and typographic
 quotes (CR inside a heredoc ends it at different places in different shells).
+
+Round 7 (`55f7bd33`) closed the typographic quotes and found the same class for Unicode dashes and whitespace; fixed as above.
 
 Known friction that remains in bypass (deliberate): `apps/web/scripts/apply-feature-flag.mjs` and `verify-feature-rollout.mjs`
 (rollout tooling that mentions workflows), `apps/mobile/scripts/staging-env.js` (targets the remote staging Supabase), test files run

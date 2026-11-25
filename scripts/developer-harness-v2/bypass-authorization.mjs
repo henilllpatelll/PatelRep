@@ -1,4 +1,4 @@
-// Developer Harness V2 — owner-launched Bypass Permissions transition: deterministic, scoped authorization.
+// Developer Harness V2 \u2014 owner-launched Bypass Permissions transition: deterministic, scoped authorization.
 //
 // The repository owner explicitly launches `claude --dangerously-skip-permissions`. A hook "ask" cannot reach a human in that mode, so
 // every proposed tool call that is not `allowed` is either AUTHORIZED here (it proceeds without a prompt) or DENIED (exit 2). Nothing
@@ -67,7 +67,7 @@ export const CEILING = Object.freeze({
 })
 export const ROUTINE_ACTIONS = Object.freeze(Object.keys(CEILING).filter((a) => !CEILING[a].scoped))
 
-// `allowed` findings that can replace checked-out files — and so the policy files and the session's branch/scope — are re-checked in
+// `allowed` findings that can replace checked-out files \u2014 and so the policy files and the session's branch/scope \u2014 are re-checked in
 // bypass: only trusted sources (origin/main) or a new branch are accepted. `.gitignore` guards credential files from being staged.
 const TREE_CODES = new Set(['git.checkout_branch', 'git.checkout_new_branch', 'git.switch', 'git.merge', 'git.pull', 'git.cherry-pick', 'git.revert', 'git.bisect', 'git.mergetool'])
 
@@ -452,7 +452,7 @@ function checkCommit(f, s, ctx) {
   // first delimiter line and close immediately; any other `$`, backtick, separator, redirect or substitution is refused.
   const cmd = String(s.event?.tool_input?.command ?? '')
   // CR inside a heredoc ends it at different places in different shells; typographic quotes are live quotes in PowerShell.
-  if (/[\r‘-„]/.test(cmd)) return no('bypass.commit_unverified', 'commit command contains carriage returns or typographic quote characters')
+  if (/[\r\u2018-\u201E]/.test(cmd)) return no('bypass.commit_unverified', 'commit command contains carriage returns or typographic quote characters')
   const rest = stripQuotedHeredocs(cmd)
   if (rest === null) return no('bypass.commit_unverified', 'malformed heredoc commit message (it must close right after its first delimiter line)')
   if (!commitAlone(rest)) {
