@@ -77,17 +77,19 @@ const HOST_OR_OPAQUE = new Set(['reg', 'regedit', 'regini', 'setx', 'schtasks', 
   'winget', 'choco', 'scoop', 'sfc', 'pnputil', 'devcon', 'powercfg', 'w32tm', 'certreq', 'mmc', 'systemctl', 'service', 'launchctl', 'crontab', 'sysctl', 'mount', 'umount',
   'ufw', 'iptables', 'nft', 'firewall-cmd', 'usermod', 'useradd', 'userdel', 'passwd', 'chsh', 'visudo', 'apt', 'apt-get', 'dnf', 'yum', 'brew', 'defaults', 'vboxmanage',
   'qemu-system-x86_64', 'qemu-img', 'gpg', 'gpg2', 'ssh-keygen', 'ssh-add', 'ssh-agent', 'openssl', 'az', 'aws', 'gcloud', 'doctl', 'flyctl', 'heroku', 'netlify',
-  'firebase', 'wrangler', 'kubectl', 'helm', 'terraform', 'tar', 'bsdtar', 'unzip', '7z', '7za', '7zr', 'unrar', 'cpio', 'patch', 'expand'])
+  'firebase', 'wrangler', 'kubectl', 'helm', 'terraform',
+  // launchers that run their arguments as another program the classifier would not see
+  'setsid', 'nice', 'ionice', 'stdbuf', 'taskset', 'chrt', 'unbuffer', 'script', 'daemonize', 'disown', 'screen', 'tmux', 'start', 'schtasks', 'psexec', 'runonce', 'tar', 'bsdtar', 'unzip', '7z', '7za', '7zr', 'unrar', 'cpio', 'patch', 'expand'])
 // Unknown programs whose purpose is reading stored credentials (secret stores, keychains, password managers, credential dumpers).
 const CREDENTIAL_TOOLS = new Set(['get-secret', 'get-secretinfo', 'get-storedcredential', 'get-credential', 'unlock-secretstore', 'cmdkey', 'vaultcmd', 'security',
   'secret-tool', 'pass', 'gopass', 'op', 'bw', 'keyring', 'keyctl', 'credwiz', 'rundll32', 'mimikatz', 'lazagne', 'procdump'])
 // Network probes (DNS/ICMP/TFTP egress channels) and interpreters whose inline code the classifier does not parse.
 const NETWORK_PROBES = new Set(['nslookup', 'dig', 'host', 'ping', 'tracert', 'traceroute', 'pathping', 'tftp', 'ftp', 'telnet', 'nc', 'ncat', 'socat', 'whois', 'resolve-dnsname', 'test-netconnection', 'test-connection'])
-const OPAQUE_INTERPRETERS = new Set(['perl', 'ruby', 'php', 'lua', 'luajit', 'rscript', 'osascript', 'wscript', 'cscript', 'mshta', 'forfiles', 'jshell', 'tclsh', 'wish', 'awk', 'gawk', 'java', 'groovy', 'scala', 'kotlin', 'R'])
+const OPAQUE_INTERPRETERS = new Set(['perl', 'ruby', 'php', 'lua', 'luajit', 'rscript', 'osascript', 'wscript', 'cscript', 'mshta', 'forfiles', 'jshell', 'tclsh', 'wish', 'awk', 'gawk', 'java', 'groovy', 'scala', 'kotlin', 'msbuild', 'go', 'dotnet', 'cargo', 'rustc', 'csc', 'vbc', 'jsc', 'installutil', 'regsvr32', 'regasm'])
 // `python -m <module>` modules a bypass session may run (pytest/ruff/mypy/pip/venv are classified by their own handlers).
-const PYTHON_MODULES = new Set(['coverage', 'doctest', 'timeit', 'tokenize', 'ast', 'dis', 'platform', 'sysconfig', 'pyflakes', 'pycodestyle', 'pydocstyle', 'pylint'])
+const PYTHON_MODULES = new Set(['tokenize', 'ast', 'dis', 'platform', 'sysconfig', 'pyflakes', 'pycodestyle', 'pydocstyle'])
 // Values that look like secrets (tokens, keys, private keys, connection strings, KEY=value lines with credential names).
-const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*\S{8,}/
+const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*(?![<*$]|\{\{|(your|example|redacted|placeholder|changeme|dummy)\b|x{3})[^\s<>]{8,}/i
 const PS_MUTATING_VERB = /^(set|new|remove|enable|disable|install|uninstall|register|unregister|add|clear|stop|restart|start|suspend|resume|update|grant|revoke|block|unblock|mount|dismount|rename|reset|invoke|import|publish|unpublish|save|send|connect|disconnect|initialize|optimize|repair|restore|backup|checkpoint|lock|unlock|protect|unprotect|approve|deny|move|copy|write|edit|push|pop|use|enter|exit|debug|deploy|expand|compress|sync|submit|request|limit|close|open|redo|undo|complete|confirm|receive|merge)-[a-z]/
 
 /** Read-only V2 policy tools a bypass session may run (they live under protected paths and are trusted as the policy itself). */
@@ -262,6 +264,7 @@ function checkPr(f, s, ctx) {
     // Text published to GitHub: inline bodies and body files must not carry credentials or reference credential files.
     let body = null
     if (['-b', '--body', '-t', '--title'].includes(flag)) body = value ?? ''
+    if ((flag === '-F' || flag === '--body-file') && (value === '-' || value === null)) return no('bypass.pr_body_stdin', 'a PR body read from stdin cannot be inspected; write it to a file and pass --body-file <file>')
     if ((flag === '-F' || flag === '--body-file') && value !== '-') {
       let abs = null
       try { abs = ctx.pathPolicy.resolve(value, m.cwd) } catch { abs = null }
@@ -295,11 +298,41 @@ function checkScript(f, s, ctx) {
   }
   if (rel === null && !s.temp.some((t) => isUnder(m.abs, t))) return no('bypass.script_outside_worktree', 'only scripts inside the session worktree or a temp directory run in bypass')
   if (m.args.some((a) => POLICY_REFERENCE.test(a))) return no('bypass.argument_references_policy', 'script arguments reference the policy or agent configuration')
-  const text = ctx.readTextBounded?.(m.abs)
-  if (typeof text !== 'string') return no('bypass.script_unreadable', 'script content could not be inspected (missing, not a regular file, or over 1 MB)')
-  if (POLICY_REFERENCE.test(text)) return no('bypass.script_references_policy', 'script content references the policy, agent configuration or git hooks')
-  // The same protected-effect / credential signatures inline code gets (a script must not be a way around them).
-  if (forbiddenSignature(text, ctx) || m.args.some((a) => forbiddenSignature(a, ctx))) return no('bypass.script_forbidden_signature', 'script content or arguments reference credentials or a protected effect')
+  if (m.args.some((a) => forbiddenSignature(a, ctx))) return no('bypass.script_forbidden_signature', 'script arguments reference credentials or a protected effect')
+  return scanScriptGraph(m.abs, ctx)
+}
+
+// Relative static imports/requires are followed (bounded) so a script cannot move a forbidden effect into a helper module. A computed
+// import/require cannot be followed and is refused. Bare package imports (node_modules) are not followed (residual R-1/R-6).
+const REL_IMPORT = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)(['"`])(\.{1,2}\/[^'"`]+)\1/g
+const COMPUTED_IMPORT = /\b(import|require)\s*\(\s*(?![\s'"`]*[\w@.\/-]+['"`]\s*\))/
+const IMPORT_EXT = ['', '.mjs', '.js', '.cjs', '.ts', '.mts', '.cts', '.json', '/index.mjs', '/index.js']
+function scanScriptGraph(entry, ctx) {
+  const seen = new Set()
+  const queue = [entry]
+  while (queue.length) {
+    const file = queue.shift()
+    if (seen.has(lc(file))) continue
+    seen.add(lc(file))
+    if (seen.size > 40) return no('bypass.script_graph_too_large', 'script imports too many local modules to inspect')
+    const text = ctx.readTextBounded?.(file)
+    if (typeof text !== 'string') return no(file === entry ? 'bypass.script_unreadable' : 'bypass.script_import_unreadable', 'script (or a module it imports) could not be inspected (missing, not a regular file, or over 1 MB)')
+    if (POLICY_REFERENCE.test(text)) return no('bypass.script_references_policy', 'script content references the policy, agent configuration or git hooks')
+    // The same protected-effect / credential signatures inline code gets (a script must not be a way around them).
+    if (forbiddenSignature(text, ctx)) return no('bypass.script_forbidden_signature', 'script content references credentials or a protected effect')
+    if (COMPUTED_IMPORT.test(text)) return no('bypass.script_computed_import', 'script loads a module from a computed path that cannot be inspected')
+    if (/\.(m|c)?[jt]s$/i.test(file)) {
+      const dir = normalizeSlashes(file).replace(/\/[^/]*$/, '')
+      for (const m of text.matchAll(REL_IMPORT)) {
+        let base
+        try { base = ctx.pathPolicy.resolve(m[2], dir) } catch { return no('bypass.script_import_unreadable', 'an imported module path could not be resolved') }
+        if (ctx.pathPolicy.repoRelative(base) === null) return no('bypass.script_import_outside', 'script imports a module outside the worktree')
+        const hit = IMPORT_EXT.map((x) => base + x).find((c) => typeof ctx.readTextBounded?.(c) === 'string')
+        if (!hit) return no('bypass.script_import_unreadable', 'an imported local module could not be inspected')
+        queue.push(hit)
+      }
+    }
+  }
   return YES
 }
 
@@ -342,6 +375,12 @@ function checkPinned(f, s, ctx) {
   const ev = s.event ?? {}
   if (!['Bash', 'PowerShell'].includes(ev.tool_name) || ev.tool_input?.run_in_background === true) return no('bypass.privileged_background', 'privileged infrastructure runs only as a foreground Bash/PowerShell command')
   if (!inProject(ctx, ev.cwd)) return no('bypass.privileged_cwd', 'privileged infrastructure runs only from the session worktree')
+  // The command line must be exactly `node <entrypoint> <subcommand> [--option value]…` and nothing else: no `&`, `nohup`, `start`,
+  // `Start-Process`, subshell, `cd …&&`, environment assignment (e.g. LOCALAPPDATA re-roots dh3) or second statement.
+  const line = String(ev.tool_input?.command ?? '').trim()
+  const entryRe = e.entrypoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (!new RegExp(`^${e.interpreter}\\s+(\\./)?${entryRe}(\\s+[A-Za-z0-9_.:=/@+-]{1,200})*$`, 'i').test(line)) return no('bypass.privileged_form', `run it alone, as: ${e.interpreter} ${e.entrypoint} <subcommand> [--option value]`)
+  if (normAbs(ev.cwd) !== normAbs(ctx.projectRootReal ?? ctx.projectRoot ?? '') && normAbs(ev.cwd) !== normAbs(ctx.projectRoot ?? '')) return no('bypass.privileged_cwd', 'privileged infrastructure runs only from the worktree root')
   if (!e.subcommands.includes(m.args[0])) return no('bypass.subcommand_not_authorized', `subcommand '${String(m.args[0] ?? '').slice(0, 40)}' is owner-only or unknown; authorized: ${e.subcommands.join(', ')}`)
   if (m.args.slice(1).some((a) => !ARG_OK.test(a) || POLICY_REFERENCE.test(a))) return no('bypass.entrypoint_arguments', 'entrypoint arguments must be plain --options and values')
   const opts = m.args.slice(1).filter((a) => a.startsWith('--')).map((a) => a.split('=')[0])

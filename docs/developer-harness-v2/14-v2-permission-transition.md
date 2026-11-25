@@ -104,9 +104,13 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
 
 ## 5. Residual risks
 
-- **R-1 Code execution is not a sandbox.** Authorized scripts, tests (`node --test`, already prompt-free before this change), package
-  lifecycle scripts and `npx` packages run as the owner's Windows user and can do anything that user can, including editing policy files
-  through code the hook cannot read. The content/argument tripwires catch direct references, not obfuscation. The authoritative boundaries
+- **R-1 Code execution is not a sandbox.** Authorized scripts, tests, package lifecycle scripts and `npx` packages run as the owner's
+  Windows user and can do anything that user can, including editing policy files or copying a credential into a tracked file through
+  code the hook cannot read. Two concrete routes the hook cannot close: (a) `node --test <file>` is `allowed` in every mode (since
+  Phase 2), so test-file contents are never inspected; (b) the hook cannot read git objects, so the **content** of an authorized commit
+  and own-branch push is not inspected. Script entry files and their relative imports are checked for policy references and credential
+  signatures; obfuscation, bare package imports and the two routes above are not covered. Enable GitHub secret scanning push protection
+  as the server-side backstop for (b). The authoritative boundaries
   remain server-side: the `main` ruleset (CI Gate + Staging Gate, no bypass actors), the CI pin of `ci.yml`, environments, credential
   isolation and owner review of every PR touching `.claude/**`, `scripts/developer-harness-v2/**` or `docs/developer-harness-v2/**`.
 - **R-2 The checked-out policy is trusted.** The hook loads the engine, contract and scopes from the session's worktree. Bypass sessions
@@ -118,8 +122,10 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
 - **R-7 PR bodies and comments** on the session's own PR are published to GitHub without a prompt. Credential files and text with
   credential-like values are refused; a secret that has been re-encoded is not detected.
 - **R-8 Pinned code runs what it loads at run time.** dh3 imports some modules lazily and launches PowerShell scripts from the closure.
-  A foreground run cannot overlap a later tool call by the same agent, and background/Monitor runs are refused, but a concurrently
-  running subagent could still edit a closure file mid-run. Do not run D3.3 privileged commands while subagents edit `infra/`/`runtime/`.
+  The pinned call must be the whole command line in canonical form (no `&`, `nohup`, `setsid`, `start`, `Start-Process`, subshell,
+  `cd`, environment assignment or second statement), in the foreground, from the worktree root; background and Monitor runs are refused.
+  A concurrently running subagent (or a parallel tool call) could still edit a closure file mid-run; the robust fix (running dh3 from
+  a verified snapshot) is V3 design work and out of scope. Do not run D3.3 privileged commands while subagents edit `infra/`/`runtime/`.
 - **R-9 Outside the pins:** the DH3 root contents (QEMU, images, VM config), System32/OpenSSH binaries and `node.exe` are not pinned.
   Tool calls cannot write the DH3 root, but code execution (R-1) can.
 
@@ -140,6 +146,19 @@ The first review of `7446ec9e` returned NO-GO. Every finding was reproduced, fix
 | 8 | `--root` points pinned dh3 at an agent-writable runtime | per-execution option allow-list without `--root` |
 | 10 | doc listed `.wolf/**` as never-authorizable | corrected (§2) |
 | 11 | `expo export`/`prebuild` denied | authorized as routine |
+
+Re-verification of `f5919897` (same reviewer) closed F1 and F11 and found variants of F2–F8; all fixed at the next head and pinned
+(`bypass-authorization.test.mjs` "independent review round 2"):
+
+| Finding | Variant | Fix |
+|---|---|---|
+| F2 | forbidden effect moved into an imported helper; `--body-file -` from stdin/pipe | relative imports followed (bounded), computed imports refused; stdin bodies refused. `node --test` and push content recorded as R-1 (a)/(b) |
+| F3 | `read GH_REPO <<< …; export GH_REPO; gh pr …` | any `GH_*`/`GITHUB_*` name or `env` wrapper on a `gh pr` line is an override |
+| F4 | `python -m coverage run x.py`, `doctest` | module list reduced to modules that do not execute files |
+| F5 | `PIP_USER=1`, `PIP_TARGET=`, `--break-system-packages` | pip/npm/pnpm/yarn environment variables and system-site installs treated as outside the worktree |
+| F6/F8 | `&`, `nohup`, `(…&)`, `setsid`, `cmd /c start`, `Start-Process`, `LOCALAPPDATA=`, `cd … &&` | canonical whole-line form from the worktree root; launchers (`setsid`, `start`, `nice`, …) denied as unknown programs |
+| F7 | `msbuild`, `go run`, `dotnet run` | compile-and-run toolchains denied |
+| new | placeholder `CRON_SECRET=<redacted-value>` in prose flagged | placeholders excluded from the secret-value check |
 
 ## 7. Changed assertions (behavior intentionally changed; nothing deleted)
 
