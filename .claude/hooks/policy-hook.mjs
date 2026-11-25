@@ -53,6 +53,7 @@ export async function runPolicyHook(rawInput, { repoRoot = REPO_ROOT, env = proc
     contract,
     bypassScopes,
     projectGitState,
+    projectRootReal: canonicalize(repoRoot), // scope activation compares this with the scope's declared worktree
     digestTree: digest ? (closure) => digest.digestTree(repoRoot, closure) : null,
     readTextBounded,
     projectRoot: repoRoot,

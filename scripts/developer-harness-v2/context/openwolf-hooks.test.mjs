@@ -183,11 +183,11 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
   // the pin in a reviewed change. Predecessor pins for the record: command-policy.mjs f525363f…, policy-engine.test.mjs bd27b54b…,
   // path-policy.mjs b30a8bd5…, git-policy.mjs 58200c87…, policy-engine.mjs 4e4a31d5….
   const TRANSITION_PINNED = {
-    '.claude/hooks/policy-hook.mjs': '3bc0bc9036308c7d6f6599b56709c0364e3baee3cd19f8fa97f6cfecb4c289a3',
+    '.claude/hooks/policy-hook.mjs': '5917597414e665168baec6d97c7ef5b9154800e98f694c3f9d2a48beaf7d36ff',
     'docs/developer-harness-v2/contract.json': 'a1893abb511f3bd0fdcaeb5249684d2923c6037eb39762d210b8a1eecb061d3b',
-    'scripts/developer-harness-v2/command-policy.mjs': '7c0531d5ed6df2a7fe61636278ebb3fd0fad95dc543d5deb10e9836d9747ffef',
-    'scripts/developer-harness-v2/command-tools.mjs': '03f1e5f888d05063dbb02daa7d15b3e6f462a1b0a7a1b793b2fc6e8a1e5f41de',
-    'scripts/developer-harness-v2/git-policy.mjs': '62e92b0d651859d4f0dcac85cdcb0be7b54c6c882495939070831782d0c6ce02',
+    'scripts/developer-harness-v2/command-policy.mjs': '723e8c7ec0db6bc4484bceb9cc7e459b7b21895a7d5cc6a1b98b44db69fc17a7',
+    'scripts/developer-harness-v2/command-tools.mjs': '2149c411dd533dbc127443faa8addaab181bdce94e98fd36523a2bf9e92aa10d',
+    'scripts/developer-harness-v2/git-policy.mjs': '6740c55122c1fe744053275f1117c32eee045c0a72da615318e75f0bdea6fa5f',
     'scripts/developer-harness-v2/path-policy.mjs': '03955387f7be1123ccbd56b08045dc3ec7832a8baa5af2eaef891e547fd72e44',
     'scripts/developer-harness-v2/policy-common.mjs': '1e4de44eab93bd838ff9b11e1eccf34a9140c892bc6bab968d7e5f1f9b765dec',
     'scripts/developer-harness-v2/policy-engine.mjs': '9071c92682f323090d973b5d97dfcd474777a3f95b3840908f41057ea4e986c8',
@@ -195,12 +195,12 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     'scripts/developer-harness-v2/copymove-remediation.test.mjs': 'ddf3815f46899d3a2abe10182e3eb2e1530aee16373ef6c22e516dfed3dd0add',
     'scripts/developer-harness-v2/m1-hardening.test.mjs': 'a395e8144c3a7248359b54f6e72c0080f9a1c3105b09e1ebd7dad765137d7220',
     'scripts/developer-harness-v2/path-resolution.test.mjs': 'be4b9c7905d54794af1279fbcb79f38cbb67f168ff8913395ee4807736ff4530',
-    'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '402a15c2161674f9a862cbdddb06b572e82d708ea79cb3260602b66837fd8c05',
-    'scripts/developer-harness-v2/bypass-authorization.mjs': 'bd239790d7f70b054e78d8f225d46392d4cba78edc2e7d8ace6e4197093f40a2',
+    'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '5aaca7a977c30f7106bc49b1302e890c4272bffdabfef36aa33bea74c178f3b2',
+    'scripts/developer-harness-v2/bypass-authorization.mjs': 'a5f2f0cc8905c7491703c28d355833e9c91ec3aca3cd5b80b6d91c4909925afd',
     'scripts/developer-harness-v2/bypass-digest.mjs': '79fc4296a5368df224e92e9e059f23acbde92f605f861c179829a0d224fb091a',
     'scripts/developer-harness-v2/bypass-pins.mjs': 'd73e1bd2442aaeba7ef724243e176c1ba2af280818f8697e72f902367e838fb1',
-    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '00780a7d7eb068b8c4a4fcfc676ac4cadc0e6a3b3b8f0e9b230995036ca72001',
-    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'c4153955d932028fba827dc787979a2272e399538063891f2b9055850c09c33c',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '91ac7d181193b723198244cd67c5e7b81b0894bcf43d31aa33871a687348236d',
+    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'abd50273887587828fa89d5bf2eda509f3e0925cf32bb9600d381aa178cdf45d',
   }
   const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs',
     'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])

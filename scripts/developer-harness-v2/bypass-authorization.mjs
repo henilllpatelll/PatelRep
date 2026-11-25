@@ -13,7 +13,7 @@
 // satisfy a pin. A missing or malformed scopes file, an unknown branch, or any internal error denies (see policy-engine.mjs).
 import { readFileSync } from 'node:fs'
 import { globToRegExp, normalizeSlashes } from './path-policy.mjs'
-import { PROTECTED_BRANCHES, RESERVED_BRANCH_PREFIXES } from './policy-common.mjs'
+import { PROTECTED_BRANCHES, RESERVED_BRANCH_PREFIXES, signatureFindings } from './policy-common.mjs'
 
 export const BYPASS_MODE = 'bypassPermissions'
 export const SCOPES_FILE = 'docs/developer-harness-v2/bypass-scopes.json'
@@ -61,7 +61,7 @@ export const CEILING = Object.freeze({
   install_or_upgrade_dependencies: { codes: [...INSTALL_CODES], check: checkInstall },
   run_unreviewed_script: { codes: ['script.unreviewed', 'python.module'], check: checkScript },
   run_interpreter_inline_code: { codes: ['interpreter.inline_code'], check: checkInline },
-  run_unrecognized_command: { codes: ['shell.unrecognized'], check: checkUnknownProgram },
+  run_unrecognized_command: { codes: ['shell.unrecognized', 'expo.export', 'expo.export:embed', 'expo.prebuild'], check: checkUnknownProgram },
   modify_control_plane_files: { codes: ['path.protected_control_plane'], scoped: true, check: checkScopedPath },
   run_privileged_infrastructure: { codes: ['infra.trusted_entrypoint'], scoped: true, check: checkPinned },
 })
@@ -81,7 +81,14 @@ const HOST_OR_OPAQUE = new Set(['reg', 'regedit', 'regini', 'setx', 'schtasks', 
 // Unknown programs whose purpose is reading stored credentials (secret stores, keychains, password managers, credential dumpers).
 const CREDENTIAL_TOOLS = new Set(['get-secret', 'get-secretinfo', 'get-storedcredential', 'get-credential', 'unlock-secretstore', 'cmdkey', 'vaultcmd', 'security',
   'secret-tool', 'pass', 'gopass', 'op', 'bw', 'keyring', 'keyctl', 'credwiz', 'rundll32', 'mimikatz', 'lazagne', 'procdump'])
-const PS_MUTATING_VERB =/^(set|new|remove|enable|disable|install|uninstall|register|unregister|add|clear|stop|restart|start|suspend|resume|update|grant|revoke|block|unblock|mount|dismount|rename|reset|invoke|import|publish|unpublish|save|send|connect|disconnect|initialize|optimize|repair|restore|backup|checkpoint|lock|unlock|protect|unprotect|approve|deny|move|copy|write|edit|push|pop|use|enter|exit|debug|deploy|expand|compress|sync|submit|request|limit|close|open|redo|undo|complete|confirm|receive|merge)-[a-z]/
+// Network probes (DNS/ICMP/TFTP egress channels) and interpreters whose inline code the classifier does not parse.
+const NETWORK_PROBES = new Set(['nslookup', 'dig', 'host', 'ping', 'tracert', 'traceroute', 'pathping', 'tftp', 'ftp', 'telnet', 'nc', 'ncat', 'socat', 'whois', 'resolve-dnsname', 'test-netconnection', 'test-connection'])
+const OPAQUE_INTERPRETERS = new Set(['perl', 'ruby', 'php', 'lua', 'luajit', 'rscript', 'osascript', 'wscript', 'cscript', 'mshta', 'forfiles', 'jshell', 'tclsh', 'wish', 'awk', 'gawk', 'java', 'groovy', 'scala', 'kotlin', 'R'])
+// `python -m <module>` modules a bypass session may run (pytest/ruff/mypy/pip/venv are classified by their own handlers).
+const PYTHON_MODULES = new Set(['coverage', 'doctest', 'timeit', 'tokenize', 'ast', 'dis', 'platform', 'sysconfig', 'pyflakes', 'pycodestyle', 'pydocstyle', 'pylint'])
+// Values that look like secrets (tokens, keys, private keys, connection strings, KEY=value lines with credential names).
+const SECRET_VALUE = /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\b(sk|rk|pk)_(live|test)_[A-Za-z0-9]{8,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|postgres(ql)?:\/\/[^\s:@]+:[^\s@]+@|\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|SERVICE_ROLE|API_KEY|PRIVATE_KEY|JWT)[A-Z0-9_]*\s*=\s*\S{8,}/
+const PS_MUTATING_VERB = /^(set|new|remove|enable|disable|install|uninstall|register|unregister|add|clear|stop|restart|start|suspend|resume|update|grant|revoke|block|unblock|mount|dismount|rename|reset|invoke|import|publish|unpublish|save|send|connect|disconnect|initialize|optimize|repair|restore|backup|checkpoint|lock|unlock|protect|unprotect|approve|deny|move|copy|write|edit|push|pop|use|enter|exit|debug|deploy|expand|compress|sync|submit|request|limit|close|open|redo|undo|complete|confirm|receive|merge)-[a-z]/
 
 /** Read-only V2 policy tools a bypass session may run (they live under protected paths and are trusted as the policy itself). */
 const POLICY_TOOLS = {
@@ -112,13 +119,14 @@ function validWritableGlob(g, contract) {
 
 function validExecution(e, ids) {
   if (!isObj(e)) fail('bypass.execution', 'trusted execution is not an object')
-  const keys = ['id', 'entrypoint', 'interpreter', 'subcommands', 'closure', 'digests', 'reviewed_source', '$comment']
+  const keys = ['id', 'entrypoint', 'interpreter', 'subcommands', 'options', 'closure', 'digests', 'reviewed_source', '$comment']
   if (Object.keys(e).some((k) => !keys.includes(k))) fail('bypass.execution_keys', 'trusted execution has unknown fields')
   if (typeof e.id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,40}$/.test(e.id) || ids.has(e.id)) fail('bypass.execution_id', 'trusted execution id invalid or duplicate')
   ids.add(e.id)
   if (!relOk(e.entrypoint) || e.entrypoint.endsWith('/')) fail('bypass.execution_entrypoint', 'entrypoint must be a repository file path')
   if (e.interpreter !== 'node') fail('bypass.execution_interpreter', 'only node entrypoints are supported')
   if (!Array.isArray(e.subcommands) || !e.subcommands.length || e.subcommands.length > 32 || !e.subcommands.every((s) => typeof s === 'string' && /^[a-z][a-z0-9-]{0,40}$/.test(s))) fail('bypass.execution_subcommands', 'subcommands malformed')
+  if (!Array.isArray(e.options) || e.options.length > 32 || !e.options.every((o) => typeof o === 'string' && /^--[a-z][a-z0-9-]{0,40}$/.test(o))) fail('bypass.execution_options', 'options must be a list of --flag names')
   const c = e.closure
   if (!isObj(c) || !Array.isArray(c.include) || !c.include.length || c.include.length > 32 || !Array.isArray(c.exclude ?? []) || (c.exclude ?? []).length > 32) fail('bypass.execution_closure', 'closure malformed')
   for (const p of [...c.include, ...(c.exclude ?? [])]) if (!relOk(p)) fail('bypass.execution_closure_path', `closure path invalid: ${String(p).slice(0, 60)}`)
@@ -127,7 +135,7 @@ function validExecution(e, ids) {
   if (!inClosure(closure, e.entrypoint)) fail('bypass.execution_entrypoint_closure', 'entrypoint must be inside its closure')
   if (!isObj(e.digests) || Object.keys(e.digests).length > 2000) fail('bypass.execution_digests', 'digests malformed')
   for (const [p, d] of Object.entries(e.digests)) if (!relOk(p) || p.endsWith('/') || !inClosure(closure, p) || typeof d !== 'string' || !/^[0-9a-f]{64}$/.test(d)) fail('bypass.execution_digest', `digest entry invalid: ${p.slice(0, 60)}`)
-  return Object.freeze({ id: e.id, entrypoint: e.entrypoint, interpreter: e.interpreter, subcommands: Object.freeze([...e.subcommands]), closure, digests: Object.freeze({ ...e.digests }), reviewed_source: e.reviewed_source ?? null })
+  return Object.freeze({ id: e.id, entrypoint: e.entrypoint, interpreter: e.interpreter, subcommands: Object.freeze([...e.subcommands]), options: Object.freeze([...e.options]), closure, digests: Object.freeze({ ...e.digests }), reviewed_source: e.reviewed_source ?? null })
 }
 
 /** Throws ScopeError unless `doc` is a well-formed scopes file within the ceiling. Returns a frozen, compiled copy. */
@@ -141,7 +149,9 @@ export function validateBypassScopes(doc, contract) {
   const ids = new Set(); const branches = new Set()
   const scopes = doc.scopes.map((s) => {
     if (!isObj(s)) fail('bypass.scope', 'scope is not an object')
-    if (Object.keys(s).some((k) => !['id', 'description', 'branch', 'writable_protected_paths', 'excluded_paths', 'trusted_executions', '$comment'].includes(k))) fail('bypass.scope_keys', 'scope has unknown fields')
+    if (Object.keys(s).some((k) => !['id', 'description', 'branch', 'worktree', 'writable_protected_paths', 'excluded_paths', 'trusted_executions', '$comment'].includes(k))) fail('bypass.scope_keys', 'scope has unknown fields')
+    // Bound to ONE checkout as well as its branch, so retargeting HEAD in another worktree (or by code) cannot activate the scope there.
+    if (typeof s.worktree !== 'string' || !/^([A-Za-z]:)?\/[^*?"<>|]{1,250}$/.test(s.worktree) || s.worktree.split('/').includes('..')) fail('bypass.scope_worktree', `scope ${s.id} needs an absolute forward-slash worktree path`)
     if (typeof s.id !== 'string' || !/^[a-z0-9][a-z0-9-]{1,40}$/.test(s.id) || ids.has(s.id)) fail('bypass.scope_id', 'scope id invalid or duplicate')
     ids.add(s.id)
     if (!branchOk(s.branch) || branches.has(s.branch)) fail('bypass.scope_branch', `scope ${s.id} branch invalid, protected, reserved or duplicate`)
@@ -153,7 +163,7 @@ export function validateBypassScopes(doc, contract) {
     const execIds = new Set()
     const executions = s.trusted_executions ?? []
     if (!Array.isArray(executions) || executions.length > 4) fail('bypass.scope_executions', 'trusted_executions malformed')
-    return Object.freeze({ id: s.id, branch: s.branch, writable: writable.map((g) => validWritableGlob(g, contract)), excluded: excluded.map(globToRegExp),
+    return Object.freeze({ id: s.id, branch: s.branch, worktree: s.worktree, writable: writable.map((g) => validWritableGlob(g, contract)), excluded: excluded.map(globToRegExp),
       trusted_executions: Object.freeze(executions.map((e) => validExecution(e, execIds))) })
   })
   // Every privileged file belongs to exactly one execution, so which scope owns it never depends on declaration order.
@@ -196,7 +206,9 @@ export function authorizeBypass(findings, ctx, event) {
   if (!scopes?.valid) return no('bypass.authorization_unavailable', `bypass authorization is unavailable (${scopes?.error ?? 'scopes file not loaded'}); failing closed`)
   const branch = ctx.projectGitState?.branch
   if (!branchOk(branch)) return no('bypass.not_dedicated_branch', `the session's project root is not on a dedicated feature branch (${String(branch ?? 'unknown').slice(0, 60)})`)
-  const s = { branch, active: scopes.scopes.find((x) => x.branch === branch) ?? null, scopes, temp: [...(ctx.tempRoots ?? []), event?.scratchpad_dir].filter(Boolean) }
+  const root = normAbs(ctx.projectRootReal ?? ctx.projectRoot ?? '')
+  const active = scopes.scopes.find((x) => x.branch === branch && normAbs(x.worktree) === root) ?? null
+  const s = { branch, active, scopes, event, temp: [...(ctx.tempRoots ?? []), event?.scratchpad_dir].filter(Boolean) }
   const authorized = []
   for (const f of findings) {
     const cls = ctx.contract.actions[f.action]
@@ -241,14 +253,27 @@ const PR_FLAGS = {
 function checkPr(f, s, ctx) {
   const m = f.meta
   if (!m || m.dynamic || !m.implicitTarget) return no('bypass.pr_target', 'only the current branch\'s own PR in this repository (no PR selector, no --repo) may be created or updated')
+  if (m.envOverride) return no('bypass.pr_env_override', 'gh environment overrides (GH_REPO, GH_HOST, tokens) could retarget the PR')
   if (!inProject(ctx, m.cwd) || !sameBranch(ctx, m.cwd, s.branch)) return no('bypass.pr_outside_worktree', 'PR commands must run in the session worktree on its own branch')
   const allowedFlags = PR_FLAGS[f.code]
   for (const { flag, value } of m.flags) {
     if (!allowedFlags.includes(flag)) return no('bypass.pr_flag', `gh flag ${flag.slice(0, 30)} is not authorized in bypass`)
     if ((flag === '-B' || flag === '--base') && value !== 'main') return no('bypass.pr_base', 'a draft PR may only target main')
+    // Text published to GitHub: inline bodies and body files must not carry credentials or reference credential files.
+    let body = null
+    if (['-b', '--body', '-t', '--title'].includes(flag)) body = value ?? ''
+    if ((flag === '-F' || flag === '--body-file') && value !== '-') {
+      let abs = null
+      try { abs = ctx.pathPolicy.resolve(value, m.cwd) } catch { abs = null }
+      body = abs ? ctx.readTextBounded?.(abs) : null
+      if (typeof body !== 'string') return no('bypass.pr_body_unreadable', 'PR body file could not be inspected')
+    }
+    if (body !== null && SECRET_VALUE.test(body)) return no('bypass.pr_body_secret', 'PR text contains a credential-like value')
   }
   return YES
 }
+
+const forbiddenSignature = (text, ctx) => signatureFindings(text).some((x) => ctx.contract.actions[x.action] === 'forbidden')
 
 function checkInstall(f) {
   if (f.meta?.global === true) return no('bypass.install_global', 'global installs change the owner\'s environment outside the worktree')
@@ -257,7 +282,10 @@ function checkInstall(f) {
 }
 
 function checkScript(f, s, ctx) {
-  if (f.code === 'python.module') return YES
+  if (f.code === 'python.module') {
+    if (!PYTHON_MODULES.has(f.meta?.module)) return no('bypass.python_module', `python -m ${String(f.meta?.module ?? '').slice(0, 40)} is not on the bypass module list`)
+    return (f.meta?.args ?? []).some((a) => POLICY_REFERENCE.test(a)) ? no('bypass.argument_references_policy', 'module arguments reference the policy or agent configuration') : YES
+  }
   const m = f.meta
   if (!m?.abs) return no('bypass.script_unresolved', 'script path could not be resolved')
   const rel = m.rel === null ? null : lc(normalizeSlashes(m.rel))
@@ -270,17 +298,25 @@ function checkScript(f, s, ctx) {
   const text = ctx.readTextBounded?.(m.abs)
   if (typeof text !== 'string') return no('bypass.script_unreadable', 'script content could not be inspected (missing, not a regular file, or over 1 MB)')
   if (POLICY_REFERENCE.test(text)) return no('bypass.script_references_policy', 'script content references the policy, agent configuration or git hooks')
+  // The same protected-effect / credential signatures inline code gets (a script must not be a way around them).
+  if (forbiddenSignature(text, ctx) || m.args.some((a) => forbiddenSignature(a, ctx))) return no('bypass.script_forbidden_signature', 'script content or arguments reference credentials or a protected effect')
   return YES
 }
 
+// Inline code is authorized only for the interpreters the classifier handles specifically (their -e/-c forms are recognized).
+const INLINE_OK = new Set(['node', 'python', 'python3', 'py'])
 function checkInline(f) {
+  if (!INLINE_OK.has(f.meta?.exe)) return no('bypass.opaque_interpreter', `${String(f.meta?.exe ?? 'unknown').slice(0, 40)} inline code is not authorized in bypass`)
   return POLICY_REFERENCE.test(f.meta?.code ?? '') ? no('bypass.inline_references_policy', 'inline code references the policy, agent configuration or git hooks') : YES
 }
 
 function checkUnknownProgram(f) {
+  if (f.code.startsWith('expo.')) return YES // local bundle export / native prebuild (mobile is the active surface)
   const m = f.meta
   if (!m || m.dynamic) return no('bypass.program_unverified', 'program or arguments are computed at runtime')
   if (CREDENTIAL_TOOLS.has(m.exe)) return no('bypass.credential_tool', `${m.exe.slice(0, 40)} reads stored credentials`)
+  if (NETWORK_PROBES.has(m.exe)) return no('bypass.network_probe', `${m.exe.slice(0, 40)} sends traffic off the host`)
+  if (OPAQUE_INTERPRETERS.has(m.exe)) return no('bypass.opaque_interpreter', `${m.exe.slice(0, 40)} runs code the policy cannot inspect`)
   if (HOST_OR_OPAQUE.has(m.exe) || PS_MUTATING_VERB.test(m.exe)) return no('bypass.host_or_opaque_program', `${m.exe.slice(0, 40)} administers the host or writes paths the policy cannot see`)
   if (m.words.slice(1).some((w) => POLICY_REFERENCE.test(w))) return no('bypass.argument_references_policy', 'program arguments reference the policy or agent configuration')
   return YES
@@ -302,8 +338,15 @@ function checkPinned(f, s, ctx) {
   const e = s.active.trusted_executions.find((x) => x.id === m.execution)
   if (!e || lc(m.rel ?? '') !== lc(e.entrypoint)) return no('bypass.not_entrypoint', 'privileged infrastructure runs only through its pinned entrypoint')
   if (m.interpreter !== e.interpreter || m.preFlags.length || m.dynamicArgs) return no('bypass.entrypoint_form', `run it exactly as: ${e.interpreter} ${e.entrypoint} <subcommand> [--options]`)
+  // Foreground only: a background run could load privileged files (lazy imports, PowerShell scripts) after later edits.
+  const ev = s.event ?? {}
+  if (!['Bash', 'PowerShell'].includes(ev.tool_name) || ev.tool_input?.run_in_background === true) return no('bypass.privileged_background', 'privileged infrastructure runs only as a foreground Bash/PowerShell command')
+  if (!inProject(ctx, ev.cwd)) return no('bypass.privileged_cwd', 'privileged infrastructure runs only from the session worktree')
   if (!e.subcommands.includes(m.args[0])) return no('bypass.subcommand_not_authorized', `subcommand '${String(m.args[0] ?? '').slice(0, 40)}' is owner-only or unknown; authorized: ${e.subcommands.join(', ')}`)
   if (m.args.slice(1).some((a) => !ARG_OK.test(a) || POLICY_REFERENCE.test(a))) return no('bypass.entrypoint_arguments', 'entrypoint arguments must be plain --options and values')
+  const opts = m.args.slice(1).filter((a) => a.startsWith('--')).map((a) => a.split('=')[0])
+  const bad = opts.find((o) => !e.options.includes(o))
+  if (bad) return no('bypass.entrypoint_option', `option ${bad.slice(0, 40)} is not authorized (e.g. --root would point the pinned code at an agent-writable runtime); authorized: ${e.options.join(', ')}`)
   let actual = null
   try { actual = ctx.digestTree?.(e.closure) ?? null } catch { actual = null }
   if (!actual) return no('bypass.pin_unverifiable', 'the privileged closure could not be digested (symlink, special file, size limit or read error)')
@@ -343,6 +386,7 @@ function checkAllowed(f, s, ctx) {
   if (sub === 'checkout_new_branch' || sub === 'switch') {
     const createFlag = sub === 'switch' ? ['-c', '--create'] : ['-b']
     const v = newBranchArgs(m.args, createFlag)
+    if (v && s.scopes.scopes.some((x) => lc(x.branch) === lc(v.name))) return no('bypass.scope_branch_name', 'a new branch may not take a scope branch name')
     if (v && (v.start === null || v.start === 'origin/main') && branchOk(v.name)) return YES
     return no('bypass.tree_change_untrusted_ref', 'in bypass, only a new branch from the current HEAD or origin/main may be created; switching to an existing branch would load its policy files')
   }

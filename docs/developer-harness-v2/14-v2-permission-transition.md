@@ -32,8 +32,9 @@ left for the V3 owner to refresh (they are V3 root-of-trust files and outside th
 1. `permission_mode` from the PreToolUse event (set by Claude Code; a session cannot enter bypass unless it was launched with it).
 2. The branch checked out in the **session's project root**, read by the hook from `.git` files (no subprocess).
 3. The engine's hard-coded **ceiling**: the only `(action, finding code)` pairs that can ever be authorized, each with a predicate, plus
-   the never-authorizable paths (V2 policy, `.claude/**`, `.github/**`, `.githooks/**`, `.wolf/**`, `supabase/**`, CLAUDE.md/AGENTS.md
-   anywhere, V3 `authority/**` and `docs/developer-harness-v3/*.json`, protected infrastructure).
+   the never-authorizable paths (V2 policy, `.claude/**`, `.github/**`, `.githooks/**`, protected `.wolf` files, `supabase/**`,
+   CLAUDE.md/AGENTS.md anywhere, V3 `authority/**` and `docs/developer-harness-v3/*.json`, protected infrastructure). Unprotected
+   bookkeeping such as `.wolf/memory.md` stays an ordinary file.
 4. The protected `docs/developer-harness-v2/bypass-scopes.json`, validated against the ceiling. `contract.json`
    (`bypass_authorization.scopes_file`) binds this exact path; a contract that points elsewhere is invalid and denies every call.
 5. Bounded facts read by the hook: script contents (≤ 1 MB) and digests of owner-pinned privileged code.
@@ -49,13 +50,13 @@ exception in any check; a hook crash or timeout (`onFailure: "block"`); a missin
 | Action | Authorized when |
 |---|---|
 | edit files | not a protected path (protected edits are `human_approval` → denied unless a scope covers them); not `.gitignore` |
-| `install_or_upgrade_dependencies` | npm/pnpm/yarn/pip install-family commands, `npx` packages, `playwright install`, `expo install`, manifest edits — never `-g`/`--global`, never `gh extension` |
-| `run_unreviewed_script` | the script is inside the worktree or a temp dir, not under a protected path (except the read-only `run-ci-suites.mjs` and `bypass-pins.mjs --print/--check`), its arguments and **content** do not reference the policy/agent configuration/git hooks; or `python -m <module>` |
-| `run_interpreter_inline_code` | the inline code does not reference the policy/agent configuration/git hooks |
-| `run_unrecognized_command` | only `shell.unrecognized` (an unknown program, not a verification failure), not a host-administration/credential/archive/patch tool, no PowerShell mutating verb, arguments do not reference the policy |
+| `install_or_upgrade_dependencies` | npm/pnpm/yarn/pip install-family commands, `npx` packages, `playwright install`, `expo install`, manifest edits — never global or outside the worktree (`-g`, `--location`, `--prefix`/`-C`, `--dir`/`--cwd`, `pip --user/--target/--prefix/--root`), never `gh extension` |
+| `run_unreviewed_script` | the script is inside the worktree or a temp dir, not under a protected path (except the read-only `run-ci-suites.mjs` and `bypass-pins.mjs --print/--check`), its arguments and **content** do not reference the policy/agent configuration/git hooks and carry none of the credential or protected-effect signatures inline code is checked for; or `python -m` with an allow-listed module |
+| `run_interpreter_inline_code` | `node`/`python` only (`-e`/`-c`), and the code does not reference the policy/agent configuration/git hooks (its credential/protected-effect signatures are forbidden in every mode) |
+| `run_unrecognized_command` | `shell.unrecognized` (an unknown program, not a verification failure) that is not a host-administration, credential, network-probe (`nslookup`, `ping`, …), archive/patch tool or unparsed interpreter (`perl`, `cscript`, …), has no PowerShell mutating verb and no argument referencing the policy; or `expo export`/`expo prebuild` |
 | `push_dedicated_branch_fast_forward` | `git push` in the session worktree, remote `origin` (or default), every destination equals the session branch |
-| `open_draft_pull_request`, `interact_with_pull_request_or_issue` | `gh pr create --draft` / `gh pr edit` / `gh pr comment` with no PR selector and no `--repo` (the session branch's own PR), an allow-listed flag set, base `main` only |
-| tree-changing git (allowed class, re-checked) | only `git merge [--ff-only…] origin/main`, `git pull origin main`, `merge/cherry-pick/revert --abort`, and a **new** branch from `HEAD` or `origin/main` (`checkout -b`, `switch -c`). Switching to or merging any other ref is denied: it would load that revision's policy files and settings (Claude Code hot-reloads settings) |
+| `open_draft_pull_request`, `interact_with_pull_request_or_issue` | `gh pr create --draft` / `gh pr edit` / `gh pr comment` with no PR selector, no `--repo` and no `GH_*` environment override (the session branch's own PR), an allow-listed flag set, base `main` only; title, body and body-file text must not contain credential-like values (tokens, keys, private keys, connection strings, `SECRET=`-style lines) |
+| tree-changing git (allowed class, re-checked) | only `git merge [--ff-only…] origin/main`, `git pull origin main`, `merge/cherry-pick/revert --abort`, and a **new** branch from `HEAD` or `origin/main` (`checkout -b`, `switch -c`) whose name is not a scope branch. `git symbolic-ref HEAD <ref>` is a ref write (`manage_local_refs`) in every mode. Switching to or merging any other ref is denied: it would load that revision's policy files and settings (Claude Code hot-reloads settings) |
 
 Not in the ceiling (always denied in bypass): `modify_agent_instructions_or_hooks`, `edit_outside_task_worktree`, `edit_credential_file`,
 `discard_or_rewrite_local_work`, `manage_local_refs`, `modify_git_configuration_or_remotes`, `network_request_or_remote_shell` (curl,
@@ -67,12 +68,16 @@ credential reads, customer data, customer-agent activation/grants/billing, hook 
 
 ## 4. D3.3 scope (`dh3-d33`)
 
-Active only when the session's project root is on `feat/developer-harness-v3-d33-local-infra`.
+Active only when the session's project root **is** `C:/Users/Henil/projects/PatelRep-d33` (canonical path) **and** is on
+`feat/developer-harness-v3-d33-local-infra`. Binding the scope to one checkout as well as one branch means retargeting HEAD in another
+worktree cannot activate it, and no bypass session may create a branch with a scope branch's name.
 
 - **Edits:** `scripts/developer-harness-v3/**` except `authority/**`. (`docs/developer-harness-v3/*.md` are ordinary files; the V3
   `*.json` contracts are owner-only in bypass.)
-- **Trusted execution:** `node scripts/developer-harness-v3/bin/dh3.mjs <subcommand> [--options]` with no interpreter flags, no computed
-  arguments and a subcommand in `doctor, setup, provision, start, stop, status, reset, monitor, verify-isolation, auth-check`.
+- **Trusted execution:** `node scripts/developer-harness-v3/bin/dh3.mjs <subcommand> [--options]` as a **foreground** Bash/PowerShell
+  command run from the worktree, with no interpreter flags, no computed arguments, a subcommand in `doctor, setup, provision, start,
+  stop, status, reset, monitor, verify-isolation, auth-check` and only the options `--dry-run --ram --wait-minutes --samples --interval
+  --id`. `--root` is refused: it would point the pinned code at an agent-writable runtime (QEMU, MSYS2, VM config).
   Owner-only and never authorized: `login`, `attest-extra-usage-off`, `probe-subscription`, `remove`.
 - **Pins (the trusted execution and review boundary):** the call proceeds only if every file of the closure (`scripts/developer-harness-v3/`
   minus `tests/`, plus `docs/developer-harness-v3/authority-contract.json` and `task-lifecycle.json`) has exactly the pinned sha256
@@ -110,10 +115,33 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
 - **R-4 Unknown-program and credential-tool lists are tripwires**, not complete inventories.
 - **R-5 Pins prove identity, not safety.** A pin says "the owner reviewed this exact code"; the review itself is the control.
 - **R-6 Dependency installs** run third-party lifecycle code without a prompt (typosquatting/compromised packages).
-- **R-7 PR bodies and comments** on the session's own PR are published to GitHub without a prompt; credential files are refused as
-  `--body-file`, but text the agent writes is not inspected.
+- **R-7 PR bodies and comments** on the session's own PR are published to GitHub without a prompt. Credential files and text with
+  credential-like values are refused; a secret that has been re-encoded is not detected.
+- **R-8 Pinned code runs what it loads at run time.** dh3 imports some modules lazily and launches PowerShell scripts from the closure.
+  A foreground run cannot overlap a later tool call by the same agent, and background/Monitor runs are refused, but a concurrently
+  running subagent could still edit a closure file mid-run. Do not run D3.3 privileged commands while subagents edit `infra/`/`runtime/`.
+- **R-9 Outside the pins:** the DH3 root contents (QEMU, images, VM config), System32/OpenSSH binaries and `node.exe` are not pinned.
+  Tool calls cannot write the DH3 root, but code execution (R-1) can.
 
-## 6. Changed assertions (behavior intentionally changed; nothing deleted)
+## 6. Independent review (Opus, high effort) and remediation
+
+The first review of `7446ec9e` returned NO-GO. Every finding was reproduced, fixed and pinned by a test
+(`bypass-authorization.test.mjs` "independent review reproductions"):
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 (blocking) | `git symbolic-ref HEAD refs/heads/<scope branch>` classified as a read (pre-existing off-by-one), so any worktree could take the D3.3 scope and push to PR #252's branch | `positionals(args, 0)` → ref write in every mode; scopes bound to a worktree path; no new branch may take a scope branch name |
+| 2 (blocking) | script copies `apps/api/.env` to a file, then `gh pr comment --body-file` publishes it | scripts get the inline-code credential/protected-effect signatures; PR text and body files are checked for credential-like values |
+| 3 | `GH_REPO=` / `GH_HOST=` retarget `gh pr` | any environment override on a `gh pr` line is denied in bypass |
+| 4 | `python -m <anything>` (e.g. `zipfile -e`) | module allow-list + argument tripwire |
+| 5 | `npm --prefix`, `pip --user` write outside the worktree | outside-the-worktree install flags treated as global |
+| 6 | a background pinned run could load files edited later | privileged entrypoints only in the foreground (not background, not Monitor), from the worktree; residual R-8 |
+| 7 | `nslookup`/`ping`, `perl -e` | network probes and unparsed interpreters denied; inline code only for node/python |
+| 8 | `--root` points pinned dh3 at an agent-writable runtime | per-execution option allow-list without `--root` |
+| 10 | doc listed `.wolf/**` as never-authorizable | corrected (§2) |
+| 11 | `expo export`/`prebuild` denied | authorized as routine |
+
+## 7. Changed assertions (behavior intentionally changed; nothing deleted)
 
 | Test | Before | After |
 |---|---|---|
@@ -124,7 +152,7 @@ terminal (or approve it explicitly in a default-mode session) after reviewing th
 | `m1-hardening`, `copymove-remediation`, `path-resolution` "contract surfaces untouched" | digest of all actions | digest of actions minus the one recorded addition (`bypass_authorization.added_actions`); the addition is asserted explicitly |
 | `runtime-failclosed-check.mjs` R8 | bypass refused | bypass takes effect |
 
-## 7. Launching after merge
+## 8. Launching after merge
 
 ```
 cd C:\Users\Henil\projects\<worktree on a dedicated branch>

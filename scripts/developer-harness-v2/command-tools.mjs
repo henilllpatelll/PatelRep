@@ -80,7 +80,9 @@ function prTarget(env, words, args) {
     flags.push({ flag, value: takes ? value ?? rest[i + 1]?.text ?? null : value })
     if (takes && value === null) i++
   }
-  return { cwd: env.state.cwd, implicitTarget: !repoOverride && positionals(rest, 0, GH_PR_VALUE_FLAGS).length === 0, dynamic: rest.some((w) => w.dynamic), flags }
+  // gh reads GH_REPO / GH_HOST / tokens from the environment: any assignment on the line (or an env wrapper) may retarget it.
+  const envOverride = (env.cmd?.assignments?.length ?? 0) > 0 || /(^|[\s;&|(])(\$env:)?(GH|GITHUB)_[A-Z_]*\s*=|(^|[\s;&|(])env\s/i.test(env.state?.source ?? '')
+  return { cwd: env.state.cwd, implicitTarget: !repoOverride && positionals(rest, 0, GH_PR_VALUE_FLAGS).length === 0, dynamic: rest.some((w) => w.dynamic), flags, envOverride }
 }
 
 /** A PR body read from a file is published to GitHub: the file is classified as a read (credential files are forbidden). */
@@ -153,6 +155,9 @@ function stripGlobal(args, withValue) {
 }
 
 // ── npm / npx / other package managers ───────────────────────────────────────────────────────────────────
+/** Install flags that write outside the worktree (global, user site, prefix/target/root directories, another cwd). */
+const outsideWorktree = (ws) => hasFlag(ws, '-g', '--global', '--prefix', '-C', '--dir', '--cwd', '--global-dir', '--user', '--target', '-t', '--root', '--src') ||
+  ws.some((w) => /^--location=/i.test(w.text) || /^(--prefix|--dir|--cwd|--target|--root|--src)=/i.test(w.text))
 const NPM_INSTALL = new Set(['install', 'i', 'in', 'ins', 'inst', 'insta', 'instal', 'isnt', 'isntall', 'add', 'ci', 'clean-install', 'ic',
   'install-clean', 'isntall-clean', 'install-ci-test', 'cit', 'install-test', 'it', 'update', 'up', 'upgrade', 'udpate', 'uninstall',
   'un', 'unlink', 'remove', 'rm', 'r', 'link', 'ln', 'dedupe', 'ddp', 'prune', 'rebuild', 'rb', 'init', 'create', 'innit'])
@@ -184,7 +189,7 @@ function npm(env) {
   if (NPM_INSTALL.has(sub) || sub === 'exec' || sub === 'x') {
     if (sub === 'exec' || sub === 'x') return npx(env, after)
     return findings.push(F('install_or_upgrade_dependencies', `npm.${sub}`, 'dependency installation runs package lifecycle scripts; needs human approval',
-      { global: hasFlag(rest, '-g', '--global') || rest.some((w) => /^--location=global$/i.test(w.text)) }))
+      { global: outsideWorktree(words) }))
   }
   if (sub === 'config' || sub === 'c' || sub === 'pkg' || sub === 'set') {
     const action = lower(after[0])
@@ -269,7 +274,7 @@ function otherPackageManager(env) {
   const sub = lower(words[1])
   if (sub === 'publish' || sub === 'npm' && lower(words[2]) === 'publish') return findings.push(F('create_alternate_publishing_or_deployment_path', `${exe}.publish`, 'package publishing is forbidden'))
   if (['install', 'add', 'remove', 'update', 'upgrade', 'up', 'dlx', 'x', 'create', 'init', 'link', 'import', ''].includes(sub) || (exe === 'yarn' && !sub)) {
-    return findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'install'}`, 'dependency installation needs human approval', { global: hasFlag(words, '-g', '--global') }))
+    return findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'install'}`, 'dependency installation needs human approval', { global: outsideWorktree(words) }))
   }
   if (exe === 'bun' && sub === 'test') return allowed(env, 'bun.test', 'bun test')
   findings.push(F('run_unreviewed_script', `${exe}.script`, `${exe} script indirection is not resolved`))
@@ -279,7 +284,7 @@ function pip(env) {
   const { words, findings, exe } = env
   const sub = lower(positionals(words)[0])
   if (['list', 'show', 'freeze', 'check', 'help', '--version', 'debug', 'inspect'].includes(sub) || hasFlag(words, '--version', '-V')) return allowed(env, 'pip.read', 'reads installed packages')
-  findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'unknown'}`, 'Python dependency changes need human approval'))
+  findings.push(F('install_or_upgrade_dependencies', `${exe}.${sub || 'unknown'}`, 'Python dependency changes need human approval', { global: outsideWorktree(words) }))
 }
 
 // ── Interpreters ───────────────────────────────────────────────────────────────────────────────────────────
@@ -331,7 +336,7 @@ function python(env) {
       if (PY_MODULES_ALLOWED.has(mod)) return allowed(env, `python.${mod}`, `python -m ${mod}`)
       if (PY_MODULES_SERVER.has(mod)) return findings.push(F('start_local_dev_server', 'python.server', 'dev servers may load local credential files; start them manually'))
       if (mod === 'pip' || mod === 'ensurepip' || mod === 'venv' || mod === 'virtualenv') return pip({ ...env, words: [words[0], ...words.slice(i + 2)], exe: 'pip' })
-      return findings.push(F('run_unreviewed_script', 'python.module', `python -m ${mod.slice(0, 40)} is not inspected`, { module: mod }))
+      return findings.push(F('run_unreviewed_script', 'python.module', `python -m ${mod.slice(0, 40)} is not inspected`, { module: mod, args: words.slice(i + 2).map((w) => w.text) }))
     }
     if (['-V', '--version', '-h', '--help'].includes(t)) return allowed(env, 'python.meta', 'python metadata')
     if (t.startsWith('-')) { if (['-W', '-X', '-Q'].includes(t)) i++; continue }

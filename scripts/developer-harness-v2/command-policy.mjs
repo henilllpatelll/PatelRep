@@ -473,7 +473,7 @@ function cmdCommand(env) {
 /** Interpreter inline code is opaque: always ≥ human_approval; forbidden when a protected effect is visible. */
 export function inlineCode(env, code) {
   const { findings, state } = env
-  findings.push(F('run_interpreter_inline_code', 'interpreter.inline_code', 'inline interpreter code is not inspected; nested effects are unknown', { code: String(code ?? '') }))
+  findings.push(F('run_interpreter_inline_code', 'interpreter.inline_code', 'inline interpreter code is not inspected; nested effects are unknown', { code: String(code ?? ''), exe: env.exe }))
   findings.push(...signatureFindings(code))
   if (state.depth < MAX_DEPTH) {
     for (const literal of stringLiterals(code)) {

@@ -3,7 +3,7 @@
 // touches the real DH3 infrastructure root, never reads a credential. Run: node --test scripts/developer-harness-v2/bypass-hook.test.mjs
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -30,8 +30,8 @@ function sandbox(branch, { pin = true } = {}) {
   put('package.json', JSON.stringify({ name: 'sandbox', private: true, scripts: { build: 'node tools/ok.mjs' } }))
   const scopesFile = path.join(sb, 'docs/developer-harness-v2/bypass-scopes.json')
   const doc = JSON.parse(readFileSync(scopesFile, 'utf8'))
-  doc.scopes = [{ id: 'sandbox', branch: SCOPE_BRANCH, writable_protected_paths: ['scripts/developer-harness-v3/**'], excluded_paths: ['scripts/developer-harness-v3/authority/**'],
-    trusted_executions: [{ id: 'cli', entrypoint: 'scripts/developer-harness-v3/bin/dh3.mjs', interpreter: 'node', subcommands: ['status'], closure: CLOSURE,
+  doc.scopes = [{ id: 'sandbox', branch: SCOPE_BRANCH, worktree: realpathSync.native(sb).split(path.sep).join('/'), writable_protected_paths: ['scripts/developer-harness-v3/**'], excluded_paths: ['scripts/developer-harness-v3/authority/**'],
+    trusted_executions: [{ id: 'cli', entrypoint: 'scripts/developer-harness-v3/bin/dh3.mjs', interpreter: 'node', subcommands: ['status'], options: ['--id'], closure: CLOSURE,
       digests: pin ? digestTree(sb, CLOSURE) : {} }] }]
   writeFileSync(scopesFile, `${JSON.stringify(doc, null, 2)}\n`)
   const g = spawnSync('git', ['init', '-q', '-b', branch, sb], { encoding: 'utf8' })

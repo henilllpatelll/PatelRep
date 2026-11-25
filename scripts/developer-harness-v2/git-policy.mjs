@@ -142,7 +142,8 @@ export function gitHandler(env) {
   }
   if (['update-ref', 'symbolic-ref', 'reflog', 'gc', 'prune', 'pack-refs', 'repack', 'notes'].includes(sub)) {
     if (sub === 'reflog' && (!args.length || ['show', 'list', 'exists'].includes(lower(args[0])))) return push('read_repository', 'git.reflog', 'reads reflog')
-    if (sub === 'symbolic-ref' && positionals(args).length < 2) return push('read_repository', 'git.symbolic_ref_read', 'reads a symbolic ref')
+    // `args` already starts after the subcommand: count positionals from index 0 (`symbolic-ref HEAD <ref>` writes HEAD).
+    if (sub === 'symbolic-ref' && positionals(args, 0).length < 2 && !hasFlag(args, '-d', '--delete')) return push('read_repository', 'git.symbolic_ref_read', 'reads a symbolic ref')
     if (sub === 'notes' && (!args.length || ['list', 'show'].includes(lower(args[0])))) return push('read_repository', 'git.notes_read', 'reads notes')
     return push('manage_local_refs', `git.${sub}`, 'rewrites local refs or object storage')
   }

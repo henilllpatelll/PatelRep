@@ -23,6 +23,7 @@
       "id": "dh3-d33",
       "description": "Developer Harness V3 D3.3 (PR #252): implementation, isolation probes, acceptance evaluators, regression tests and docs; trusted VM provisioning and task-owned VM lifecycle through the pinned dh3 CLI. V3 authority code and contracts stay owner-only. Owner-only dh3 commands (login, attest-extra-usage-off, probe-subscription, remove) are not authorized.",
       "branch": "feat/developer-harness-v3-d33-local-infra",
+      "worktree": "C:/Users/Henil/projects/PatelRep-d33",
       "writable_protected_paths": [
         "scripts/developer-harness-v3/**"
       ],
@@ -45,6 +46,14 @@
             "monitor",
             "verify-isolation",
             "auth-check"
+          ],
+          "options": [
+            "--dry-run",
+            "--ram",
+            "--wait-minutes",
+            "--samples",
+            "--interval",
+            "--id"
           ],
           "closure": {
             "include": [
