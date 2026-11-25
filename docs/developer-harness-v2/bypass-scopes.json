@@ -67,7 +67,7 @@
           },
           "reviewed_source": {
             "pr": 252,
-            "ref": "fe7518df22b3cbb105f1a94c682f22ed4885a3f7",
+            "ref": "62f6a40f779b8de3cb150c065119dbb9be8edb70",
             "pinned_at": "2026-11-25"
           },
           "digests": {
@@ -88,8 +88,8 @@
             "scripts/developer-harness-v3/infra/provision.mjs": "5748629629ac4bf7260fdf9acfa72fc4e8d4edf0aa69521c6375e649a75928e3",
             "scripts/developer-harness-v3/infra/seed-iso.ps1": "42c883e1a6996dac5eca39dcbb3cea43186f914a4930c4778b184f31aad3990d",
             "scripts/developer-harness-v3/infra/setup.mjs": "7b1d3a6cd99e6a4c17d63ca45eacfa4986386a124e727dfd97e35bf8ee7a47ed",
-            "scripts/developer-harness-v3/isolation/acceptance-rules.mjs": "00bbc500f72e949a20226f498379923cc70c14fe701fbed92d9a95c78f4e4e60",
-            "scripts/developer-harness-v3/isolation/acceptance.mjs": "2f9edecbcc56aff3e1144a04915616ba64664b5b8657ffb2a1247eac4c42b980",
+            "scripts/developer-harness-v3/isolation/acceptance-rules.mjs": "bca1eaf57b29757f1d9c746b1f1acd70589d6f70d69058ba2b14793e3a2148d7",
+            "scripts/developer-harness-v3/isolation/acceptance.mjs": "c8f4c344bbbb42f6e3a5bee2b0b96555e0a83b22e70a403c7f5bb9f8bfe9adf4",
             "scripts/developer-harness-v3/isolation/guest-probe.py": "53bcda6603b339c715cab3df39c95bc0bca7986af3fa1a9375b3604d28cf3bcd",
             "scripts/developer-harness-v3/isolation/pe-fixture.mjs": "404564d34b1dc594b9a80ea6ace44310985470f4eae943334bda0bc13bfad850",
             "scripts/developer-harness-v3/isolation/subscription-probe.mjs": "dd3a18e1c4133fd5f39bebf063a1c8ff2a4d36923d02290fcf085d7744f13761",
@@ -102,7 +102,7 @@
             "scripts/developer-harness-v3/runtime/egress-policy.mjs": "c85afd6529831f3de779a51d88ceef1c3d1f0fc3485dd18068eda5926e8fd053",
             "scripts/developer-harness-v3/runtime/egress-proxy-process.mjs": "ec4bd56d3903c0a9a55818908faa07077d5cecbf668deb5ed75047b1de1be570",
             "scripts/developer-harness-v3/runtime/egress-proxy.mjs": "789da72b8c60b53e826ce44c0fb77c9759add9bbbede552f18a5c4141a063222",
-            "scripts/developer-harness-v3/runtime/host-sampler.mjs": "e7c0ce3803388fc6a9e76b769528be7b6404526d833c89fe86defb2dd220f727",
+            "scripts/developer-harness-v3/runtime/host-sampler.mjs": "f73f6441056da796596218858ed4a6dd4d276fd603f1e43f87c7b45fa5e89c3f",
             "scripts/developer-harness-v3/runtime/launcher.mjs": "5974c4d746a3b1c4ad1dd2456ab9a983cd4c895b7c36ef51e064becad9571c2c",
             "scripts/developer-harness-v3/runtime/login-relay.mjs": "a53afc1bc8ff69cbd9791ca23134a4a8cfe4eefc7e13c7b77f31376ab1d96c9b",
             "scripts/developer-harness-v3/runtime/qemu-args.mjs": "8e38d4e42bc005833d5aa13dbbd0926c646c7b735053b396b0d46a81438614a6",
