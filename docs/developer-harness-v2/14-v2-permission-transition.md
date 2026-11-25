@@ -87,7 +87,8 @@ worktree cannot activate it, and no bypass session may create a branch with a sc
   (CRLF normalized to LF). A changed, added or removed file, a symlink/junction or an oversized tree denies with `bypass.pin_mismatch` /
   `bypass.pin_unverifiable`. Running any closure file another way (`node runtime/x.mjs`, `powershell -File infra/*.ps1`, Python) is
   denied in bypass. Editing privileged code is allowed; **running newly modified privileged code is not**, until the owner reviews it.
-- **Shipped pins:** PR #252 head `d857818bbf44ecceb76d5835320944b37b242b6b` (38 files). Merging this transition PR is the owner's
+- **Shipped pins:** originally PR #252 head `d857818bbf44ecceb76d5835320944b37b242b6b` (38 files). The current pins and their source
+  commit are whatever `bypass-scopes.json` records in `reviewed_source.ref`, re-pinned with `--from-ref` as described below. Merging this transition PR is the owner's
   approval to run exactly that code without prompts. The D3.3 worktree currently has uncommitted changes to five closure files and two new
   closure files, so the first D3.3 bypass session will report `bypass.pin_mismatch` for them until the owner reviews and re-pins.
 - **DH3 root:** direct writes/deletes, running QEMU binaries and killing processes are denied; lifecycle goes through the pinned CLI.
@@ -95,15 +96,53 @@ worktree cannot activate it, and no bypass session may create a branch with a sc
 
 ### Owner pin refresh
 
+Pins are always taken **from a commit**, never from the working tree. `reviewed_source.ref` records that commit's full sha, the
+immutable provenance of exactly what you reviewed.
+
 ```
-node scripts/developer-harness-v2/bypass-pins.mjs --scope dh3-d33 --print   # read-only: which closure files differ
-git diff <last pinned ref> -- scripts/developer-harness-v3 docs/developer-harness-v3/*.json   # review the privileged change
-node scripts/developer-harness-v2/bypass-pins.mjs --scope dh3-d33 --write   # OWNER ONLY: rewrites the pins
-git add docs/developer-harness-v2/bypass-scopes.json && git commit -m "chore(dh2): re-pin dh3 closure after review"
+git fetch origin && git log --oneline -3                                   # the reviewed source commit, pushed to the PR branch
+git diff <current reviewed_source.ref> <sha> -- scripts/developer-harness-v3 docs/developer-harness-v3/*.json   # review the privileged change
+node scripts/developer-harness-v2/bypass-pins.mjs --scope dh3-d33 --print --from-ref <sha>   # read-only: what would be pinned
+node scripts/developer-harness-v2/bypass-pins.mjs --scope dh3-d33 --write --from-ref <sha>   # OWNER ONLY: pins = that commit's closure
+node scripts/developer-harness-v2/bypass-pins.mjs --scope dh3-d33 --verify-provenance        # read-only: resolvable + exact digests
+git add docs/developer-harness-v2/bypass-scopes.json && git commit -m "chore(dh2): re-pin dh3 closure to <sha> after review"
 ```
 
-`--write` is classified as an owner-only control-plane change: denied in bypass, prompted in default mode. Run it from your own
-terminal (or approve it explicitly in a default-mode session) after reviewing the diff.
+* `--write` refuses to run without `--from-ref`, and `--from-ref` accepts **only the full 40-hex sha** of the reviewed commit. Git resolves a
+  short hex string to a ref name (for example an agent-created branch called `<12 hex>`) before an object id, so an abbreviation could
+  point at code you never reviewed. Compare the full sha with the one you reviewed on GitHub. The tool checks the object type without
+  any name lookup, records that sha, and warns when the working tree differs from it: bypass runs stay denied (`bypass.pin_mismatch`)
+  until the checkout matches the pinned commit. The tool runs `git` only from an absolute `PATH` entry outside the repository (a
+  `git.exe` planted in the checkout is never used), ignores replace refs (`--no-replace-objects`), hooks, fsmonitor and inherited `GIT_*`
+  variables, and uses literal pathspecs, so a planted `refs/replace/<sha>` cannot make the reviewed sha read as other content.
+* `--write` is classified as an owner-only control-plane change: denied in bypass, prompted in default mode. Run it from your own
+  terminal (or approve it explicitly in a default-mode session) after reviewing the diff. Bypass sessions may run only `--print`,
+  `--check`, `--json` and a single `--scope <id>` whose id cannot start with `-`. `--from-ref`, `--write` and `--verify-provenance` are
+  denied there, including when smuggled as a second `--scope` value.
+* **CI verifies provenance** (`bypass-hook.test.mjs` "shipped pins", in the required Release Workflow Contract job): every pinned
+  execution must name a full commit sha that resolves in the checkout and whose closure, read from git objects (regular files only,
+  CRLF-normalized, same limits), has exactly the pinned file set and digests. `actions/checkout` is shallow, so in a shallow clone only,
+  the test fetches exactly that sha from `origin` (GitHub keeps PR commits reachable after a squash merge). A full clone never fetches.
+  The fetched content is still verified by digest. A label such as `working tree`, an unknown commit, a tree or blob id, a failed fetch
+  or any digest mismatch fails the job. No sha is hard-coded in a test, so a legitimate re-pin needs no test edit. The CI workflow
+  configuration is unchanged.
+* The pin is still the owner's statement. Nothing approves or refreshes pins automatically: CI only checks that the committed pins are
+  internally consistent with the commit they name.
+* Residuals, recorded rather than fixed:
+  * The "shipped pins" test lives in the `lightweight` harness.policy suite, whose tier declares no network. In a shallow clone it makes
+    one by-sha `git fetch` from `origin`. Worktrees are full clones, so nothing is fetched locally, including by the bypass-allowed
+    `run-ci-suites.mjs`. Moving the fetch into its own CI step would change the pinned four-step Release Workflow Contract job, a
+    control-plane change outside this remediation. Every CI run now also depends on GitHub serving that one PR commit by sha; if it
+    cannot, the job fails closed.
+  * CI checks the pins against the commit they name, not against the checkout's own closure. A later unpinned privileged change can
+    merge green; at run time the hook denies it (`bypass.pin_mismatch`).
+  * Code running as the same OS user (which bypass allows via inline scripts) can still plant a `git.exe` in a user-writable `PATH`
+    directory outside the repository, edit `~/.gitconfig`, or rewrite objects directly in `.git/objects` (normal reads do not re-hash a
+    stored object). CI's fresh checkout would catch a rewritten object; closing these locally needs an OS-level boundary. The pin tool
+    closes only the checkout vectors. V3's own
+    `authority/git-facts.mjs` still spawns a bare `git` (pinned V3 authority code, D3.4 follow-up).
+  * `validateBypassScopes` does not itself check the `reviewed_source.ref` format. The test and `--write` enforce it. Adding the check
+    to the authorizer would make a legacy scopes file invalid, and with it the very pin refresh that repairs it.
 
 ## 5. Residual risks
 

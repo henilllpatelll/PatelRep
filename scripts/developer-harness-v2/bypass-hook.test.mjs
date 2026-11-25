@@ -1,6 +1,8 @@
 // Developer Harness V2 — permission transition: hook-level tests in disposable sandbox repositories.
 // Real hook process / real filesystem digests / real .git branch state; synthetic files only. Never runs a protected command, never
-// touches the real DH3 infrastructure root, never reads a credential. Run: node --test scripts/developer-harness-v2/bypass-hook.test.mjs
+// touches the real DH3 infrastructure root, never reads a credential. The one exception to "synthetic only" is the shipped-pins provenance
+// test: it reads the repository's own git objects and, in a SHALLOW clone (a CI checkout) only, fetches exactly the pinned commit from
+// `origin`. Run: node --test scripts/developer-harness-v2/bypass-hook.test.mjs
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
@@ -9,6 +11,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { contentDigest, digestTree } from './bypass-digest.mjs'
+import { digestRef, gitExecutable, resolveCommit, verifyPinProvenance } from './bypass-pins.mjs'
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SCOPE_BRANCH = 'feat/scope-sandbox'
@@ -140,8 +143,12 @@ test('hook crashes, missing contracts, missing engines and malformed events fail
   assert.equal(settings.hooks.PreToolUse[0].hooks[0].onFailure, 'block')
 })
 
-test('pin tool: --print and --check are read-only; --write (owner-only) refreshes pins; digests normalize CRLF only', () => {
+/** git in a sandbox with a fixed identity and no CRLF conversion. */
+const gitIn = (dir) => (...a) => { const r = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'core.autocrlf=false', ...a], { cwd: dir, encoding: 'utf8' }); assert.equal(r.status, 0, `git ${a.join(' ')}: ${r.stderr}`); return r.stdout.trim() }
+
+test('pin tool: --print and --check are read-only; --write (owner-only) needs --from-ref and pins exactly that commit; digests normalize CRLF only', () => {
   const { sb, put } = sandbox(SCOPE_BRANCH)
+  const git = gitIn(sb)
   const file = path.join(sb, 'docs/developer-harness-v2/bypass-scopes.json')
   const tool = (...args) => spawnSync(process.execPath, [path.join(sb, 'scripts/developer-harness-v2/bypass-pins.mjs'), ...args], { cwd: sb, encoding: 'utf8', timeout: 30_000 })
   const before = readFileSync(file, 'utf8')
@@ -152,11 +159,131 @@ test('pin tool: --print and --check are read-only; --write (owner-only) refreshe
   assert.match(check.stdout, /runtime\/vm\.mjs/)
   assert.equal(tool('--print').status, 0)
   assert.equal(readFileSync(file, 'utf8'), before, '--print/--check never write')
-  assert.equal(tool('--write').status, 0)
-  assert.notEqual(readFileSync(file, 'utf8'), before)
-  assert.equal(tool('--check').status, 0, 'after an owner refresh the pins match')
+  // a working tree is never recorded as reviewed provenance
+  const noRef = tool('--write')
+  assert.equal(noRef.status, 2); assert.match(noRef.stderr, /--write requires --from-ref/); assert.equal(readFileSync(file, 'utf8'), before, 'nothing written')
+  git('add', '-A'); git('commit', '-q', '-m', 'reviewed privileged change')
+  const sha = git('rev-parse', 'HEAD')
+  for (const bad of ['HEAD', 'working tree', 'f'.repeat(40), '--all', sha.slice(0, 12), sha.slice(0, 39), `${sha}0`]) {
+    const r = tool('--write', '--from-ref', bad); assert.equal(r.status, 2, bad); assert.equal(readFileSync(file, 'utf8'), before, `nothing written for ${bad}`)
+  }
+  // pins come from the commit, not the working tree: a later uncommitted edit is not pinned (and the tool says so)
+  put('scripts/developer-harness-v3/runtime/vm.mjs', 'export const vm = 4\n')
+  const w = tool('--write', '--from-ref', sha.toUpperCase())
+  assert.equal(w.status, 0, w.stderr); assert.match(w.stderr, /differs from [0-9a-f]{40} in 1 file/)
+  const e = JSON.parse(readFileSync(file, 'utf8')).scopes[0].trusted_executions[0]
+  assert.equal(e.reviewed_source.ref, sha, 'the full sha is recorded'); assert.match(e.reviewed_source.pinned_at, /^\d{4}-\d{2}-\d{2}$/)
+  assert.deepEqual(e.digests, digestRef(sb, sha, CLOSURE))
+  assert.equal(tool('--check').status, 1, 'the uncommitted edit still differs from the pins')
+  assert.equal(tool('--verify-provenance').status, 0)
+  put('scripts/developer-harness-v3/runtime/vm.mjs', 'export const vm = 3\n')
+  assert.equal(tool('--check').status, 0, 'after an owner refresh the committed code matches the pins')
   assert.equal(contentDigest(Buffer.from('a\r\nb\n')), contentDigest(Buffer.from('a\nb\n')))
   assert.notEqual(contentDigest(Buffer.from('a\rb\n')), contentDigest(Buffer.from('a\nb\n')), 'only CRLF pairs are normalized')
+})
+
+test('pin provenance: only a full, resolvable commit whose closure has exactly the pinned digests verifies; everything else fails closed', () => {
+  const { sb, put } = sandbox(SCOPE_BRANCH)
+  const git = gitIn(sb)
+  git('add', '-A'); git('commit', '-q', '-m', 'reviewed')
+  const sha = git('rev-parse', 'HEAD')
+  const exec = (o = {}) => ({ closure: CLOSURE, digests: digestTree(sb, CLOSURE), reviewed_source: { ref: sha }, ...o })
+  assert.deepEqual(verifyPinProvenance(sb, exec()), { ok: true, problems: [], commit: sha, files: 3 })
+  assert.equal(resolveCommit(sb, sha.toUpperCase()), sha)
+  for (const bad of ['HEAD', 'working tree', '', '--all', `${sha}^`, null, sha.slice(0, 10), git('rev-parse', 'HEAD^{tree}')]) assert.throws(() => resolveCommit(sb, bad), /--from-ref/, String(bad))
+  // labels, abbreviations, refs and malformed values are not provenance
+  for (const ref of ['working tree', '', null, undefined, 42, sha.slice(0, 12), sha.toUpperCase(), `${sha}\n`, ` ${sha}`, 'HEAD', SCOPE_BRANCH, 'g'.repeat(40)]) {
+    assert.deepEqual(verifyPinProvenance(sb, exec({ reviewed_source: { ref } })).problems, ['PIN_REF_NOT_A_COMMIT'], String(ref))
+  }
+  assert.deepEqual(verifyPinProvenance(sb, exec({ reviewed_source: undefined })).problems, ['PIN_REF_NOT_A_COMMIT'])
+  assert.deepEqual(verifyPinProvenance(sb, exec({ digests: {} })).problems, ['PIN_DIGESTS_EMPTY'])
+  // well-formed but not a commit here: unknown object, a tree, a blob (a full clone never fetches)
+  const tree = git('rev-parse', 'HEAD^{tree}'); const blob = git('rev-parse', 'HEAD:scripts/developer-harness-v3/bin/dh3.mjs')
+  for (const ref of ['0123456789abcdef0123456789abcdef01234567', tree, blob]) {
+    assert.deepEqual(verifyPinProvenance(sb, exec({ reviewed_source: { ref } }), { fetchIfShallow: true }).problems, ['PIN_REF_UNRESOLVABLE'], ref)
+  }
+  // mismatched digests: changed, an extra pinned path, a missing pinned path
+  const pinned = digestTree(sb, CLOSURE)
+  assert.deepEqual(verifyPinProvenance(sb, exec({ digests: { ...pinned, 'scripts/developer-harness-v3/bin/dh3.mjs': 'a'.repeat(64) } })).problems, ['PIN_DIGEST_MISMATCH:scripts/developer-harness-v3/bin/dh3.mjs:changed'])
+  assert.deepEqual(verifyPinProvenance(sb, exec({ digests: { ...pinned, 'scripts/developer-harness-v3/runtime/gone.mjs': 'b'.repeat(64) } })).problems, ['PIN_DIGEST_MISMATCH:scripts/developer-harness-v3/runtime/gone.mjs:removed'])
+  const { 'scripts/developer-harness-v3/runtime/vm.mjs': _vm, ...fewer } = pinned
+  assert.deepEqual(verifyPinProvenance(sb, exec({ digests: fewer })).problems, ['PIN_DIGEST_MISMATCH:scripts/developer-harness-v3/runtime/vm.mjs:added'])
+  // pins that describe a later working tree, not the named commit
+  put('scripts/developer-harness-v3/runtime/vm.mjs', 'export const vm = 9\n')
+  assert.deepEqual(verifyPinProvenance(sb, exec()).problems, ['PIN_DIGEST_MISMATCH:scripts/developer-harness-v3/runtime/vm.mjs:changed'])
+  // a commit whose closure holds a symlink (or submodule) entry is unverifiable, as in the working-tree digest
+  const target = spawnSync('git', ['hash-object', '-w', '--stdin'], { cwd: sb, input: '../bin/dh3.mjs', encoding: 'utf8' }).stdout.trim()
+  git('update-index', '--add', '--cacheinfo', `120000,${target},scripts/developer-harness-v3/runtime/link.mjs`); git('commit', '-q', '-m', 'symlink')
+  const linked = git('rev-parse', 'HEAD')
+  assert.match(verifyPinProvenance(sb, exec({ reviewed_source: { ref: linked } })).problems[0], /^PIN_REF_UNVERIFIABLE:closure entry scripts\/developer-harness-v3\/runtime\/link\.mjs is not a regular file/)
+})
+
+test('review B1: a hex-named branch can never redirect a pin to code the owner did not review', () => {
+  const { sb, put } = sandbox(SCOPE_BRANCH)
+  const git = gitIn(sb)
+  const file = path.join(sb, 'docs/developer-harness-v2/bypass-scopes.json')
+  const tool = (...args) => spawnSync(process.execPath, [path.join(sb, 'scripts/developer-harness-v2/bypass-pins.mjs'), ...args], { cwd: sb, encoding: 'utf8', timeout: 30_000 })
+  git('add', '-A'); git('commit', '-q', '-m', 'reviewed X')
+  const x = git('rev-parse', 'HEAD'); const xDigests = digestRef(sb, x, CLOSURE)
+  put('scripts/developer-harness-v3/runtime/vm.mjs', 'export const vm = "unreviewed"\n'); git('add', '-A'); git('commit', '-q', '-m', 'unreviewed Y')
+  const y = git('rev-parse', 'HEAD')
+  git('branch', x.slice(0, 12), y) // an agent-created branch named after the reviewed commit's abbreviation, pointing at Y
+  assert.equal(git('rev-parse', x.slice(0, 12)), y, 'the hazard is real: git resolves the abbreviation to the branch')
+  const before = readFileSync(file, 'utf8')
+  const short = tool('--write', '--from-ref', x.slice(0, 12))
+  assert.equal(short.status, 2); assert.match(short.stderr, /full 40-hex sha/); assert.equal(readFileSync(file, 'utf8'), before)
+  git('branch', x, y) // even a branch named with the FULL sha cannot shadow the object id
+  // review N1: a planted replace ref makes plain git read X as Y; the pin tool reads the real objects
+  git('replace', x, y)
+  assert.equal(git('rev-parse', `${x}^{tree}`), git('rev-parse', `${y}^{tree}`), 'the hazard is real: plain git now reads X as Y')
+  assert.deepEqual(digestRef(sb, x, CLOSURE), xDigests, 'replace objects are ignored')
+  const full = tool('--write', '--from-ref', x)
+  assert.equal(full.status, 0, full.stderr)
+  const e = JSON.parse(readFileSync(file, 'utf8')).scopes[0].trusted_executions[0]
+  assert.equal(e.reviewed_source.ref, x); assert.deepEqual(e.digests, xDigests, 'X is pinned, never Y')
+  assert.notDeepEqual(e.digests, digestRef(sb, y, CLOSURE))
+})
+
+test('git is run from an absolute PATH entry outside the repository (a planted git.exe in the checkout never runs as the owner)', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'dh2-gitroot-')); const outside = mkdtempSync(path.join(os.tmpdir(), 'dh2-gitbin-')); sandboxes.push(root, outside)
+  mkdirSync(path.join(root, 'bin')); writeFileSync(path.join(root, 'git.exe'), ''); writeFileSync(path.join(root, 'bin', 'git.exe'), ''); writeFileSync(path.join(outside, 'git.exe'), '')
+  assert.equal(gitExecutable(root, { PATH: `.;bin;${path.join(root, 'bin')};"${outside}"` }, 'win32'), path.join(outside, 'git.exe'))
+  assert.throws(() => gitExecutable(root, { PATH: `.;${root};${path.join(root, 'bin')}` }, 'win32'), /git\.exe not found/)
+  assert.equal(gitExecutable(root, { PATH: '' }, 'linux'), 'git')
+})
+
+test('pin provenance in a shallow CI-style clone: exactly the pinned commit is fetched on request; a failed fetch fails closed', () => {
+  const { sb, put } = sandbox(SCOPE_BRANCH)
+  const git = gitIn(sb)
+  git('add', '-A'); git('commit', '-q', '-m', 'reviewed')
+  const reviewed = git('rev-parse', 'HEAD'); const pins = digestTree(sb, CLOSURE)
+  put('apps/later.txt', 'later\n'); git('add', '-A'); git('commit', '-q', '-m', 'later, outside the closure')
+  git('config', 'uploadpack.allowReachableSHA1InWant', 'true') // as GitHub serves any reachable commit by sha
+  const shallow = mkdtempSync(path.join(os.tmpdir(), 'dh2-shallow-')); sandboxes.push(shallow)
+  gitIn(os.tmpdir())('clone', '-q', '--depth=1', '--no-single-branch', pathToFileURL(sb).href, shallow)
+  assert.equal(gitIn(shallow)('rev-parse', '--is-shallow-repository'), 'true')
+  const exec = { closure: CLOSURE, digests: pins, reviewed_source: { ref: reviewed } }
+  assert.deepEqual(verifyPinProvenance(shallow, exec).problems, ['PIN_REF_UNRESOLVABLE'], 'nothing is fetched unless asked')
+  assert.deepEqual(verifyPinProvenance(shallow, exec, { remote: 'no-such-remote', fetchIfShallow: true }).problems, ['PIN_REF_UNRESOLVABLE'], 'a failed fetch fails closed')
+  assert.deepEqual(verifyPinProvenance(shallow, exec, { remote: '--upload-pack=x', fetchIfShallow: true }).problems, ['PIN_REF_UNRESOLVABLE'], 'a remote name cannot be an option')
+  assert.deepEqual(verifyPinProvenance(shallow, exec, { fetchIfShallow: true }), { ok: true, problems: [], commit: reviewed, files: 3 })
+  // the fetched commit is still verified by content: wrong pins fail even after a successful fetch
+  assert.deepEqual(verifyPinProvenance(shallow, { ...exec, digests: { ...pins, 'scripts/developer-harness-v3/bin/dh3.mjs': 'c'.repeat(64) } }, { fetchIfShallow: true }).problems,
+    ['PIN_DIGEST_MISMATCH:scripts/developer-harness-v3/bin/dh3.mjs:changed'])
+})
+
+test('shipped pins: every trusted execution names a commit that resolves in this checkout and whose closure has exactly the pinned digests', () => {
+  // In CI (actions/checkout, depth 1) the pinned PR commit is not part of the checkout; it is fetched by sha from origin, which keeps PR
+  // commits reachable after a squash merge. A local full clone needs no fetch. This replaces any hard-coded sha in the tests: a legitimate
+  // owner re-pin (`--write --from-ref <sha>`) passes without a test edit, and a label, an unknown commit or a digest mismatch fails.
+  const doc = JSON.parse(readFileSync(path.join(REPO, 'docs/developer-harness-v2/bypass-scopes.json'), 'utf8'))
+  const execs = doc.scopes.flatMap((s) => s.trusted_executions.map((e) => [s.id, e]))
+  assert.ok(execs.length > 0)
+  for (const [scope, e] of execs) {
+    const r = verifyPinProvenance(REPO, e, { fetchIfShallow: true })
+    assert.deepEqual(r.problems, [], `${scope}/${e.id} pinned at ${e.reviewed_source?.ref}`)
+    assert.equal(r.commit, e.reviewed_source.ref); assert.equal(r.files, Object.keys(e.digests).length)
+  }
 })
 
 test('the shipped settings and scopes keep the owner launch explicit and the D3.3 privileged commands owner-bounded', () => {

@@ -1,0 +1,34 @@
+{
+  "schema": "patelrep.developer-harness-v3.isolation-acceptance",
+  "probe_version": 2,
+  "started_at": "2026-11-25T00:36:28.413Z",
+  "finished_at": "2026-11-25T00:36:34.598Z",
+  "verdict": "NOT_RUN",
+  "reason": "RESOURCE.RESOURCE.MEMORY_HEADROOM_INSUFFICIENT",
+  "probe_error": null,
+  "accel": "whpx",
+  "claude_version": "2.1.331",
+  "identity": {
+    "candidate": {
+      "git_head": "d857818bbf44ecceb76d5835320944b37b242b6b",
+      "tracked_changes": true
+    },
+    "vm_image": {
+      "golden_sha256_recorded": "cd7aadca538cc33fbf1ef496717c90888842d7ad29b47f2b1a589dabdaff790d",
+      "golden_sha256_now": "cd7aadca538cc33fbf1ef496717c90888842d7ad29b47f2b1a589dabdaff790d",
+      "base_image_sha512": "76488ba3bea2349cc595fedad7748b8ba98d6b36da398eaf2bbbae3db896ba1017d4ff41cd277926784cef2c1c11145a0d600f9b4afde9b8f174d698db0cda03",
+      "provisioned_at": "2026-11-24T23:37:42.768Z",
+      "claude_version": "2.1.331",
+      "claude_sha512": "2a8d02dfc5d79ff69ba4ac8ff1846cf985d98caf71b7721c989e43413e449ca6f3c9a41d5d28d2215592926b85e038797f27ff3ffcf273a4784c45633f031557",
+      "guest_hardening": null
+    }
+  },
+  "scenarios": {},
+  "proxy_decisions": [],
+  "caveats": [
+    "AI-run automated test, not an external security audit",
+    "run under WHPX",
+    "guest-reported facts come from a fresh overlay of the golden image before any task code ran; the host-validated QEMU argv is the authority for attached devices",
+    "a PASS here does not resolve the residual credential, provider-terms or host-account risks recorded in 17"
+  ]
+}

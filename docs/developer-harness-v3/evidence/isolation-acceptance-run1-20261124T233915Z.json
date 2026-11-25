@@ -1,0 +1,218 @@
+{
+  "schema": "patelrep.developer-harness-v3.isolation-acceptance",
+  "started_at": "2026-11-24T23:39:15.094Z",
+  "finished_at": "2026-11-24T23:40:49.442Z",
+  "verdict": "FAIL",
+  "reason": null,
+  "accel": "whpx",
+  "claude_version": "2.1.331",
+  "scenarios": {
+    "1": {
+      "verdict": "PASS",
+      "evidence": {
+        "host_fs": [],
+        "paths": [],
+        "block_devices": [
+          "vda",
+          "vdb"
+        ],
+        "user": "worker"
+      }
+    },
+    "2": {
+      "verdict": "FAIL",
+      "evidence": {
+        "binfmt": [
+          "python3.13",
+          "register",
+          "status"
+        ],
+        "tools": [],
+        "pe_exec": "OSError"
+      }
+    },
+    "3": {
+      "verdict": "PASS",
+      "evidence": {
+        "host_tcp": {
+          "10.0.2.2:22": "ConnectionRefusedError",
+          "10.0.2.2:135": "ConnectionRefusedError",
+          "10.0.2.2:445": "ConnectionRefusedError",
+          "10.0.2.2:3000": "ConnectionRefusedError",
+          "10.0.2.2:5432": "ConnectionRefusedError",
+          "10.0.2.2:5433": "ConnectionRefusedError",
+          "10.0.2.2:8000": "ConnectionRefusedError",
+          "10.0.2.2:8080": "ConnectionRefusedError",
+          "192.x.x.x:22": "OSError",
+          "192.x.x.x:135": "OSError",
+          "192.x.x.x:445": "OSError",
+          "192.x.x.x:3000": "OSError",
+          "192.x.x.x:5432": "OSError",
+          "192.x.x.x:5433": "OSError",
+          "192.x.x.x:8000": "OSError",
+          "192.x.x.x:8080": "OSError",
+          "172.x.x.x:22": "OSError",
+          "172.x.x.x:135": "OSError",
+          "172.x.x.x:445": "OSError",
+          "172.x.x.x:3000": "OSError",
+          "172.x.x.x:5432": "OSError",
+          "172.x.x.x:5433": "OSError",
+          "172.x.x.x:8000": "OSError",
+          "172.x.x.x:8080": "OSError"
+        },
+        "slirp_dns": "timeout"
+      }
+    },
+    "4": {
+      "verdict": "PASS",
+      "evidence": {
+        "controller_tcp": {
+          "10.0.2.2:55917": "ConnectionRefusedError",
+          "10.0.2.2:55914": "ConnectionRefusedError"
+        },
+        "via_proxy": {
+          "127.0.0.1:55917": "HTTP/1.1 403 Forbidden",
+          "localhost:55917": "HTTP/1.1 403 Forbidden",
+          "10.0.2.2:22": "HTTP/1.1 403 Forbidden"
+        },
+        "note": "D3.3 has no controller API/DB listener and no QMP; the SSH hostfwd and proxy ports were probed"
+      }
+    },
+    "5": {
+      "verdict": "PASS",
+      "evidence": {
+        "resolver": "gaierror",
+        "public_dns": {
+          "1.1.1.1": "OSError",
+          "8.8.8.8": "OSError"
+        },
+        "direct_tcp": {
+          "1.1.1.1:443": "OSError",
+          "160.79.104.10:443": "OSError",
+          "140.82.112.3:443": "OSError"
+        },
+        "via_proxy": {
+          "example.com:443": "HTTP/1.1 403 Forbidden",
+          "github.com:443": "HTTP/1.1 403 Forbidden",
+          "registry.npmjs.org:443": "HTTP/1.1 403 Forbidden",
+          "api.anthropic.com:80": "HTTP/1.1 403 Forbidden",
+          "2130706433:443": "HTTP/1.1 403 Forbidden",
+          "[::1]:443": "HTTP/1.1 403 Forbidden",
+          "api.anthropic.com:443": "HTTP/1.1 200 Connection Established"
+        },
+        "positive_control_api_anthropic": true
+      }
+    },
+    "6": {
+      "verdict": "PASS",
+      "evidence": {
+        "neighbors": {
+          "172.x.x.x:22": "OSError",
+          "172.x.x.x:80": "OSError",
+          "172.x.x.x:2375": "OSError",
+          "172.x.x.x:2376": "OSError",
+          "192.x.x.x:22": "OSError",
+          "192.x.x.x:80": "OSError",
+          "192.x.x.x:2375": "OSError",
+          "192.x.x.x:2376": "OSError",
+          "10.0.2.4:22": "timeout",
+          "10.0.2.4:80": "OSError",
+          "10.0.2.4:2375": "timeout",
+          "10.0.2.4:2376": "OSError"
+        },
+        "note": "owner WSL distros were stopped during the run; isolation comes from slirp restrict=on (no routing at all), not from their state"
+      }
+    },
+    "7": {
+      "verdict": "PASS",
+      "evidence": {
+        "sockets": [],
+        "tools": [],
+        "worker_sudo_exit": 1
+      }
+    },
+    "8": {
+      "verdict": "PASS",
+      "evidence": {
+        "home_fill_dd_exit": 1,
+        "enospc": true,
+        "guest_root_bytes": 25149710336,
+        "task_virtual_size": 25769803776,
+        "auth_disk_host_bytes": 2424832
+      }
+    },
+    "9": {
+      "verdict": "PASS",
+      "evidence": {
+        "guest_alloc_exit": 137,
+        "guest_alloc_outcome": "oom_killed",
+        "qemu_working_set_mb": 1853,
+        "job_memory_limit_mb": 2304,
+        "host_available_mb_during": 2603,
+        "host_cpu_pct_during_burn": 16.2,
+        "job_cpu_rate_cap_pct": 40,
+        "burn_s": 40,
+        "host_responsive_during_burn": true
+      }
+    },
+    "10": {
+      "verdict": "FAIL",
+      "evidence": {
+        "virtio_ports": [],
+        "usb": [],
+        "vsock": true,
+        "agents": [],
+        "qemu_arg_problems": [],
+        "pci_classes": [
+          "2 0x00ff00",
+          "      2 0x010000",
+          "      1 0x010601",
+          "      1 0x020000",
+          "      1 0x060000",
+          "      1 0x060100",
+          "      1 0x0c0500"
+        ]
+      }
+    },
+    "11": {
+      "verdict": "PASS",
+      "evidence": {
+        "worker_date_s_exit": 1,
+        "guest_clock_shift_h": 24,
+        "host_clock_unaffected": true,
+        "note": "policy pin / evidence / controller state live only on the host (unreachable per 1, 3, 4)"
+      }
+    },
+    "12": {
+      "verdict": "PASS",
+      "evidence": {
+        "import": "ok",
+        "host_recomputed_tree": "2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1",
+        "genuine_claim_accepted": true,
+        "forged_claim_rejected": true,
+        "gitdir_redirect_refused": "BUNDLE.BAD_HEADER",
+        "rule": "evidence binds to the HOST-computed tree_digest only; import = verify + fsck fetch into a fresh bare repo, never clone"
+      }
+    },
+    "13": {
+      "verdict": "PASS",
+      "evidence": {
+        "residue_found": [],
+        "sanitizer_marker": true,
+        "root_targets_unchanged": true,
+        "non_allowlisted_json_keys_dropped": true,
+        "golden_read_only": true
+      }
+    }
+  },
+  "proxy_decisions": [
+    "deny - EGRESS.IP_LITERAL x4",
+    "deny - EGRESS.HOST_NOT_ALLOWLISTED x4",
+    "deny - EGRESS.PORT_NOT_ALLOWED x1",
+    "allow api.anthropic.com EGRESS.CLOSED x1"
+  ],
+  "caveats": [
+    "AI-run automated test, not an external security audit",
+    "run under WHPX"
+  ]
+}

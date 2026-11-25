@@ -80,7 +80,9 @@ test('the shipped scopes file is valid, within the ceiling, and its D3.3 scope k
   assert.ok(cli.closure.exclude.includes('scripts/developer-harness-v3/tests/'))
   assert.ok(Object.keys(cli.digests).length >= 30, 'pins are populated')
   assert.ok(Object.keys(cli.digests).some((p) => p.startsWith('scripts/developer-harness-v3/authority/')), 'V3 authority code is inside the pinned closure')
-  assert.equal(cli.reviewed_source.ref, 'd857818bbf44ecceb76d5835320944b37b242b6b')
+  // Provenance names an immutable commit, never a label such as "working tree". That the commit resolves and its closure has exactly these
+  // digests is verified against git in bypass-hook.test.mjs ("shipped pins"), so a legitimate owner re-pin needs no test edit here.
+  assert.match(cli.reviewed_source.ref, /^[0-9a-f]{40}$/, 'reviewed_source.ref is a full commit sha')
   assert.equal(CONTRACT.actions.run_privileged_infrastructure, 'human_approval')
   assert.equal(CONTRACT.bypass_authorization.scopes_file, 'docs/developer-harness-v2/bypass-scopes.json')
 })
@@ -175,6 +177,17 @@ test('routine development on a dedicated branch proceeds without a prompt', () =
     'node scripts/developer-harness-v2/bypass-pins.mjs --print']) {
     const tool = /^Get-/.test(c) ? 'PowerShell' : 'Bash'
     ok(evaluateToolEvent(ev(tool, { command: c }), ctx()), c)
+  }
+})
+
+test('pin tool in bypass: only read-only modes; a flag can never pose as a --scope value and --scope cannot repeat (review B2)', () => {
+  for (const c of ['--print', '--check', '--print --json', '--scope dh3-d33 --print', '--scope=dh3-d33 --check', '--check --scope dh3-d33 --json']) {
+    ok(evaluateToolEvent(ev('Bash', { command: `node scripts/developer-harness-v2/bypass-pins.mjs ${c}` }), ctx()), c)
+  }
+  for (const c of ['--scope dh3-d33 --scope --verify-provenance', '--scope dh3-d33 --scope --verify-provenance --scope --fetch-if-shallow', '--scope --verify-provenance',
+    '--scope -x --print', '--scope=-x --print', '--scope dh3-d33 --scope dh3-d33 --print', '--scope', '--print --scope', '--print --from-ref 0123456789abcdef0123456789abcdef01234567',
+    '--verify-provenance', '--verify-provenance --fetch-if-shallow', '--print --write', '--write --from-ref 0123456789abcdef0123456789abcdef01234567']) {
+    denied(evaluateToolEvent(ev('Bash', { command: `node scripts/developer-harness-v2/bypass-pins.mjs ${c}` }), ctx()), c)
   }
 })
 

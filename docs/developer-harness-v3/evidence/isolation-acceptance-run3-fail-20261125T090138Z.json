@@ -1,0 +1,580 @@
+{
+  "schema": "patelrep.developer-harness-v3.isolation-acceptance",
+  "probe_version": 3,
+  "started_at": "2026-11-25T09:01:38.706Z",
+  "finished_at": "2026-11-25T09:04:39.747Z",
+  "verdict": "FAIL",
+  "reason": null,
+  "probe_error": null,
+  "accel": "whpx",
+  "claude_version": "2.1.331",
+  "identity": {
+    "candidate": {
+      "git_head": "180d5a231855d8e3f2b14279160300369a60a0e1",
+      "closure_differs_from_head": false,
+      "closure_paths_differing_from_head": [],
+      "closure": {
+        "file_count": 40,
+        "digest": "d97c7d3bd468b658834be9df8b6f6d988604739d5a1175442d3fbc40b8fb664e",
+        "files": {
+          "docs/developer-harness-v3/authority-contract.json": "526e9ababae227e806967d8679898de517b8d87119d3738457922249abae7937",
+          "docs/developer-harness-v3/task-lifecycle.json": "55102d01292ebfd9153cb9b022c5ec64646ab4bcc46dd463b1ac938603aa9da5",
+          "scripts/developer-harness-v3/authority/contract.mjs": "1127616b3b0ec4fe29f87b32f3b7c0b91d70ef51c88d43e6f711bed612486b62",
+          "scripts/developer-harness-v3/authority/evaluator.mjs": "05b017942feebc9dd00ec9f86fe92dd1a8235f989946ed5750743b91b2dce08a",
+          "scripts/developer-harness-v3/authority/evidence.mjs": "05a67dbc34d2cc83e2e6b6c89c713059afd229012749c8d914d157c7c7eb4c32",
+          "scripts/developer-harness-v3/authority/git-facts.mjs": "0ca54b7b42a448e6b77b552088c693e69480142c1e41a3e233ba86360347b602",
+          "scripts/developer-harness-v3/authority/migration-facts.mjs": "f7e5cadf4e3ab738884d872e96fe912e3ad47a80865e110b2f3eb6a5040e1139",
+          "scripts/developer-harness-v3/authority/policy-version.mjs": "61b7a9f2bd4c9eca3d130892e79b8862f3afda97cbd8cf5c045cf7bb602a4805",
+          "scripts/developer-harness-v3/authority/spend.mjs": "b5f08d1cda91458409839ba31d193c5bf99b410d85b9bdb6b62ed204c059a647",
+          "scripts/developer-harness-v3/bin/dh3.mjs": "0333033372f971702fc8082b5ac94bc0905b184aef2d355e371087b11c843989",
+          "scripts/developer-harness-v3/infra/artifacts.json": "6dc4efad8f4b7ce04150b151f89d6c6f5e01df4706310c5a63db1a3e515fb70c",
+          "scripts/developer-harness-v3/infra/cloud-init.mjs": "b0fa71ef96cc0c63bda7e8552fa692a8c493bffa8b6f28d253d0794ad8c00d53",
+          "scripts/developer-harness-v3/infra/job-supervisor.ps1": "0d825d896be3ba5cb6e141e1f62f2090c6b2b83a62e1be8a59dac86ec37c6f29",
+          "scripts/developer-harness-v3/infra/layout.mjs": "0c50c979293edb1ce2a62d53e855d578cab19fa80de5e9819f82976cd376de25",
+          "scripts/developer-harness-v3/infra/provision.mjs": "5748629629ac4bf7260fdf9acfa72fc4e8d4edf0aa69521c6375e649a75928e3",
+          "scripts/developer-harness-v3/infra/seed-iso.ps1": "42c883e1a6996dac5eca39dcbb3cea43186f914a4930c4778b184f31aad3990d",
+          "scripts/developer-harness-v3/infra/setup.mjs": "7b1d3a6cd99e6a4c17d63ca45eacfa4986386a124e727dfd97e35bf8ee7a47ed",
+          "scripts/developer-harness-v3/isolation/acceptance-rules.mjs": "00bbc500f72e949a20226f498379923cc70c14fe701fbed92d9a95c78f4e4e60",
+          "scripts/developer-harness-v3/isolation/acceptance.mjs": "2f9edecbcc56aff3e1144a04915616ba64664b5b8657ffb2a1247eac4c42b980",
+          "scripts/developer-harness-v3/isolation/guest-probe.py": "53bcda6603b339c715cab3df39c95bc0bca7986af3fa1a9375b3604d28cf3bcd",
+          "scripts/developer-harness-v3/isolation/pe-fixture.mjs": "404564d34b1dc594b9a80ea6ace44310985470f4eae943334bda0bc13bfad850",
+          "scripts/developer-harness-v3/isolation/subscription-probe.mjs": "dd3a18e1c4133fd5f39bebf063a1c8ff2a4d36923d02290fcf085d7744f13761",
+          "scripts/developer-harness-v3/lib/atomic.mjs": "82f7c998b53d80ab14fe95b1d4618d9493b1a57c40679da16bed9dd7a1bfa34e",
+          "scripts/developer-harness-v3/lib/canonical.mjs": "a6902a4422cf1446e483360711dad4a045a7e53429c52a8f0ab7b2e096103746",
+          "scripts/developer-harness-v3/lib/paths.mjs": "bb56cfdfeb2ee4bb1c16f0dfbd4dc5612ddf4b170861335443c2e7d51219b85a",
+          "scripts/developer-harness-v3/lifecycle/lifecycle.mjs": "7181c1df2d0a7e394a5f6496bd67aa0c529ffbdf00cec120a835afce6db41825",
+          "scripts/developer-harness-v3/lifecycle/resource-admission.mjs": "a9e73e5114f12fbf8d6ad421f6585f5c5abb0d10c8e2cfa58b5a967259377416",
+          "scripts/developer-harness-v3/runtime/artifact-transfer.mjs": "5014aa5041840f1131dd000c0a53dbdd4c7271d8b1d161ad3764b40262e3b4aa",
+          "scripts/developer-harness-v3/runtime/egress-policy.mjs": "c85afd6529831f3de779a51d88ceef1c3d1f0fc3485dd18068eda5926e8fd053",
+          "scripts/developer-harness-v3/runtime/egress-proxy-process.mjs": "ec4bd56d3903c0a9a55818908faa07077d5cecbf668deb5ed75047b1de1be570",
+          "scripts/developer-harness-v3/runtime/egress-proxy.mjs": "789da72b8c60b53e826ce44c0fb77c9759add9bbbede552f18a5c4141a063222",
+          "scripts/developer-harness-v3/runtime/host-sampler.mjs": "e7c0ce3803388fc6a9e76b769528be7b6404526d833c89fe86defb2dd220f727",
+          "scripts/developer-harness-v3/runtime/launcher.mjs": "5974c4d746a3b1c4ad1dd2456ab9a983cd4c895b7c36ef51e064becad9571c2c",
+          "scripts/developer-harness-v3/runtime/login-relay.mjs": "a53afc1bc8ff69cbd9791ca23134a4a8cfe4eefc7e13c7b77f31376ab1d96c9b",
+          "scripts/developer-harness-v3/runtime/qemu-args.mjs": "8e38d4e42bc005833d5aa13dbbd0926c646c7b735053b396b0d46a81438614a6",
+          "scripts/developer-harness-v3/runtime/resource-governor.mjs": "b5915175b05aaf12a99c64d04af24653c826bc2975ac17f66083e08d62d01949",
+          "scripts/developer-harness-v3/runtime/session-telemetry.mjs": "c40d1f970891f335f580f676c0c5096daa3332a1eaa8ee003e3ea9de21c10c1d",
+          "scripts/developer-harness-v3/runtime/subscription-governor.mjs": "9b940ac37b65760c2807a39befef3e64a91261a986352400ff3ca6b05455e7b1",
+          "scripts/developer-harness-v3/runtime/vm-controller.mjs": "48e19666c54531e4ddf754fb9f1145f0a2567d635767d3e62c63ad3afca579f4",
+          "scripts/developer-harness-v3/runtime/worker-lifecycle.mjs": "b53a2ad421b03d5f8cbe918b7af0c2bb9d13246d31ffdf2e97618d1bd2b225b7"
+        }
+      }
+    },
+    "vm_image": {
+      "golden_sha256_recorded": "be8f7e394180c31c15173abaa4557739f7d4daa7cf5253d920c0d61a88e9e230",
+      "golden_sha256_now": "be8f7e394180c31c15173abaa4557739f7d4daa7cf5253d920c0d61a88e9e230",
+      "base_image_sha512": "76488ba3bea2349cc595fedad7748b8ba98d6b36da398eaf2bbbae3db896ba1017d4ff41cd277926784cef2c1c11145a0d600f9b4afde9b8f174d698db0cda03",
+      "provisioned_at": "2026-11-25T07:35:23.233Z",
+      "claude_version": "2.1.331",
+      "claude_sha512": "2a8d02dfc5d79ff69ba4ac8ff1846cf985d98caf71b7721c989e43413e449ca6f3c9a41d5d28d2215592926b85e038797f27ff3ffcf273a4784c45633f031557",
+      "guest_hardening": {
+        "version": 1,
+        "vsock_disabled": true,
+        "binfmt_disabled": true,
+        "modprobe_file": "/etc/modprobe.d/90-dh3-no-host-channels.conf"
+      }
+    },
+    "runtime": {
+      "accel": "whpx",
+      "ram_mb": 1024,
+      "vcpus": 2,
+      "host_logical_cpus": 20,
+      "job_memory_limit_mb": 1536,
+      "normal_cpu_cap_pct": 40,
+      "binding_cpu_cap_pct": 5,
+      "qemu_version": "QEMU emulator version 11.1.3",
+      "qemu_argv_sha256": "6b549a9b5c01d1a4a59799bb78d937b8db083cdae9ab94795f05e1ba39e64dcc",
+      "qemu_argv": [
+        "-nodefaults",
+        "-no-user-config",
+        "-name",
+        "dh3-w1",
+        "-machine",
+        "q35,usb=off,vmport=off,smm=off",
+        "-accel",
+        "whpx",
+        "-cpu",
+        "qemu64,+sse4.1,+sse4.2,+popcnt,+ssse3",
+        "-smp",
+        "2,sockets=1,cores=2,threads=1",
+        "-m",
+        "1024M",
+        "-overcommit",
+        "mem-lock=off",
+        "-display",
+        "none",
+        "-vga",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        "none",
+        "-parallel",
+        "none",
+        "-rtc",
+        "base=utc,clock=host",
+        "-drive",
+        "file=<dh3>\\task.qcow2,if=none,id=task,format=qcow2,cache=writeback,discard=unmap,detect-zeroes=unmap",
+        "-device",
+        "virtio-blk-pci,drive=task,serial=dh3task",
+        "-drive",
+        "file=<dh3>\\auth.qcow2,if=none,id=auth,format=qcow2,cache=writeback,discard=unmap,detect-zeroes=unmap",
+        "-device",
+        "virtio-blk-pci,drive=auth,serial=dh3auth",
+        "-netdev",
+        "user,id=n0,restrict=on,ipv6=off,hostname=dh3-w1,hostfwd=tcp:127.0.0.1:61869-:22",
+        "-device",
+        "virtio-net-pci,netdev=n0,romfile=",
+        "-device",
+        "virtio-rng-pci",
+        "-device",
+        "virtio-balloon-pci,free-page-reporting=on"
+      ]
+    }
+  },
+  "scenarios": {
+    "1": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "host_fs": [],
+        "root_fs_type": "ext4",
+        "paths": [],
+        "block_devices": [
+          "vda",
+          "vdb"
+        ],
+        "user": "worker"
+      }
+    },
+    "2": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "binfmt_entries": [],
+        "binfmt_mounted": false,
+        "binfmt_status": null,
+        "binfmt_handlers": {},
+        "exec": {
+          "pe_exe": {
+            "ran": false,
+            "errno": "ENOEXEC"
+          },
+          "pe_noext": {
+            "ran": false,
+            "errno": "ENOEXEC"
+          },
+          "mz_stub": {
+            "ran": false,
+            "errno": "ENOEXEC"
+          },
+          "positive_control": {
+            "ran": true,
+            "rc": 42
+          }
+        },
+        "host_binary_paths": {
+          "/mnt/c/Windows/System32/cmd.exe": {
+            "ran": false,
+            "errno": "ENOENT"
+          },
+          "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe": {
+            "ran": false,
+            "errno": "ENOENT"
+          },
+          "/init": {
+            "ran": false,
+            "errno": "ENOENT"
+          }
+        },
+        "fixture": {
+          "sha256": "97dfcfff7e5eae8d634cf2850a15ae0d8b35ac475451ae34d8eec05e99b769c4",
+          "structural_problems": [],
+          "host_run_rc": 0,
+          "host_run_error": null
+        },
+        "windows_tools": [],
+        "wsl_env": []
+      }
+    },
+    "3": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "host_tcp": {
+          "10.0.2.2:22": "ECONNREFUSED",
+          "10.0.2.2:135": "ECONNREFUSED",
+          "10.0.2.2:445": "ECONNREFUSED",
+          "10.0.2.2:3000": "ECONNREFUSED",
+          "10.0.2.2:5432": "ECONNREFUSED",
+          "10.0.2.2:5433": "ECONNREFUSED",
+          "10.0.2.2:8000": "ECONNREFUSED",
+          "10.0.2.2:8080": "ECONNREFUSED",
+          "192.x.x.x#1:22": "ENETUNREACH",
+          "192.x.x.x#1:135": "ENETUNREACH",
+          "192.x.x.x#1:445": "ENETUNREACH",
+          "192.x.x.x#1:3000": "ENETUNREACH",
+          "192.x.x.x#1:5432": "ENETUNREACH",
+          "192.x.x.x#1:5433": "ENETUNREACH",
+          "192.x.x.x#1:8000": "ENETUNREACH",
+          "192.x.x.x#1:8080": "ENETUNREACH",
+          "172.x.x.x#2:22": "ENETUNREACH",
+          "172.x.x.x#2:135": "ENETUNREACH",
+          "172.x.x.x#2:445": "ENETUNREACH",
+          "172.x.x.x#2:3000": "ENETUNREACH",
+          "172.x.x.x#2:5432": "ENETUNREACH",
+          "172.x.x.x#2:5433": "ENETUNREACH",
+          "172.x.x.x#2:8000": "ENETUNREACH",
+          "172.x.x.x#2:8080": "ENETUNREACH"
+        },
+        "slirp_dns": "timeout"
+      }
+    },
+    "4": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "controller_tcp": {
+          "10.0.2.2:61887": "ECONNREFUSED",
+          "10.0.2.2:61869": "ECONNREFUSED"
+        },
+        "via_proxy": {
+          "127.0.0.1:61887": "HTTP/1.1 403 Forbidden",
+          "localhost:61887": "HTTP/1.1 403 Forbidden",
+          "10.0.2.2:22": "HTTP/1.1 403 Forbidden"
+        },
+        "host_proxy_log": {
+          "guest_claimed_denials": 9,
+          "host_denials": 9,
+          "guest_claimed_tunnels": 1,
+          "host_allows": [
+            "api.anthropic.com"
+          ]
+        }
+      },
+      "note": "D3.3 has no controller API/DB listener and no QMP; the SSH hostfwd and proxy ports were probed"
+    },
+    "5": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "resolver": "gaierror:-3",
+        "public_dns": {
+          "1.1.1.1": "ENETUNREACH",
+          "8.8.8.8": "ENETUNREACH"
+        },
+        "direct_tcp": {
+          "1.1.1.1:443": "ENETUNREACH",
+          "160.79.104.10:443": "ENETUNREACH",
+          "140.82.112.3:443": "ENETUNREACH"
+        },
+        "via_proxy": {
+          "example.com:443": "HTTP/1.1 403 Forbidden",
+          "github.com:443": "HTTP/1.1 403 Forbidden",
+          "registry.npmjs.org:443": "HTTP/1.1 403 Forbidden",
+          "api.anthropic.com:80": "HTTP/1.1 403 Forbidden",
+          "2130706433:443": "HTTP/1.1 403 Forbidden",
+          "[::1]:443": "HTTP/1.1 403 Forbidden",
+          "api.anthropic.com:443": "HTTP/1.1 200 Connection Established"
+        },
+        "positive_control_api_anthropic": true,
+        "host_proxy_log": {
+          "guest_claimed_denials": 9,
+          "host_denials": 9,
+          "guest_claimed_tunnels": 1,
+          "host_allows": [
+            "api.anthropic.com"
+          ]
+        }
+      }
+    },
+    "6": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "neighbors": {
+          "172.x.x.x#3:22": "ENETUNREACH",
+          "172.x.x.x#3:80": "ENETUNREACH",
+          "172.x.x.x#3:2375": "ENETUNREACH",
+          "172.x.x.x#3:2376": "ENETUNREACH",
+          "172.x.x.x#4:22": "ENETUNREACH",
+          "172.x.x.x#4:80": "ENETUNREACH",
+          "172.x.x.x#4:2375": "ENETUNREACH",
+          "172.x.x.x#4:2376": "ENETUNREACH",
+          "192.x.x.x#5:22": "ENETUNREACH",
+          "192.x.x.x#5:80": "ENETUNREACH",
+          "192.x.x.x#5:2375": "ENETUNREACH",
+          "192.x.x.x#5:2376": "ENETUNREACH",
+          "192.x.x.x#6:22": "ENETUNREACH",
+          "192.x.x.x#6:80": "ENETUNREACH",
+          "192.x.x.x#6:2375": "ENETUNREACH",
+          "192.x.x.x#6:2376": "ENETUNREACH",
+          "10.0.2.4:22": "timeout",
+          "10.0.2.4:80": "EHOSTUNREACH",
+          "10.0.2.4:2375": "timeout",
+          "10.0.2.4:2376": "EHOSTUNREACH"
+        },
+        "host_wsl_running_count": 0,
+        "host_docker_desktop_running": false,
+        "active_neighbors_exercised": false
+      },
+      "limitations": [
+        "no WSL distribution or Docker Desktop was running: an ACTIVE WSL/Docker network was not empirically exercised"
+      ]
+    },
+    "7": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "sockets": [],
+        "tools": [],
+        "worker_sudo_exit": 1,
+        "groups": [
+          "worker"
+        ]
+      }
+    },
+    "8": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "home_fill_dd_exit": 1,
+        "enospc": true,
+        "guest_root_bytes": 25149710336,
+        "task_virtual_size": 25769803776,
+        "auth_disk_host_bytes": 3080192
+      }
+    },
+    "9": {
+      "verdict": "FAIL",
+      "problems": [
+        "S9.HOST_CPU_CONTENDED"
+      ],
+      "evidence": {
+        "guest_alloc_exit": 137,
+        "guest_alloc_outcome": "oom_killed",
+        "qemu_alive_after_alloc": true,
+        "qemu_working_set_mb_after_alloc": 1079,
+        "job_memory_limit_mb": 1536,
+        "host_available_mb_min": 2128,
+        "host_memory_sampled_at": "after the guest allocation ended and during each CPU burn (not during the allocation itself)",
+        "host_responsive_samples": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "cpu": {
+          "logical_cpus": 20,
+          "vcpus": 2,
+          "vm_cpu_demand_pct": 10,
+          "normal_cap_pct": 40,
+          "binding_cap_pct": 5,
+          "work_per_guest_cpu_second_ratio": 0.541,
+          "wall_throughput_ratio_info": 0.541,
+          "expected_ratio_if_enforced": 0.5,
+          "max_accepted_ratio": 0.75,
+          "max_host_cpu_pct_accepted": 70,
+          "normal": {
+            "burn": {
+              "iterations": 52680,
+              "cpu_seconds": 79.88,
+              "reports": 2,
+              "busy_pct": 100,
+              "seconds": 40,
+              "workers": 2,
+              "cpus": 2
+            },
+            "job": {
+              "flags": 5,
+              "rate": 4000
+            },
+            "host_cpu_pct_samples": [
+              44,
+              null,
+              null
+            ],
+            "qemu_host_cpu_pct": 9.6,
+            "qemu_window": {
+              "qemu_cpu_ms_start": 46921.875,
+              "qemu_cpu_ms_end": 88375,
+              "start_offset_ms": 8751,
+              "end_offset_ms": 30400,
+              "end_inside_burn": true,
+              "logical_cpus": 20
+            }
+          },
+          "capped": {
+            "burn": {
+              "iterations": 28488,
+              "cpu_seconds": 79.84,
+              "reports": 2,
+              "busy_pct": 100,
+              "seconds": 40,
+              "workers": 2,
+              "cpus": 2
+            },
+            "job": {
+              "flags": 5,
+              "rate": 500
+            },
+            "host_cpu_pct_samples": [
+              10.5,
+              12.9,
+              10.7
+            ],
+            "qemu_host_cpu_pct": 5.1,
+            "qemu_window": {
+              "qemu_cpu_ms_start": 28796.875,
+              "qemu_cpu_ms_end": 51140.625,
+              "start_offset_ms": 8455,
+              "end_offset_ms": 30378,
+              "end_inside_burn": true,
+              "logical_cpus": 20
+            },
+            "qemu_max_accepted_pct": 6.25
+          }
+        }
+      }
+    },
+    "10": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "virtio_ports": [],
+        "usb": [],
+        "agents": [],
+        "qemu_arg_problems": [],
+        "dev_channels": [
+          {
+            "mode": 432,
+            "uid": 0,
+            "char": true,
+            "major": 10,
+            "minor": 238,
+            "registered": false,
+            "name": "vhost-net"
+          },
+          {
+            "mode": 432,
+            "uid": 0,
+            "char": true,
+            "major": 10,
+            "minor": 241,
+            "registered": false,
+            "name": "vhost-vsock"
+          }
+        ],
+        "vmbus_devices": null,
+        "virtio_devices": [
+          "0x1af4:0x0001",
+          "0x1af4:0x0002",
+          "0x1af4:0x0002",
+          "0x1af4:0x0004",
+          "0x1af4:0x0005"
+        ],
+        "pci_devices": [
+          "0x1af4:0x1000",
+          "0x1af4:0x1001",
+          "0x1af4:0x1001",
+          "0x1af4:0x1002",
+          "0x1af4:0x1005",
+          "0x8086:0x2918",
+          "0x8086:0x2922",
+          "0x8086:0x2930",
+          "0x8086:0x29c0"
+        ],
+        "host_channel_modules_loaded": [],
+        "vsock_raw": {
+          "dev_node": false,
+          "stream_socket": "EAFNOSUPPORT"
+        },
+        "vsock_root_open": "no_node",
+        "vsock_state": "absent",
+        "vsock_reasons": [],
+        "fw_cfg": {
+          "state": "listed",
+          "names": []
+        },
+        "smbios_type11_entries": 0,
+        "hardening_installs": [
+          "binfmt_misc",
+          "hv_sock",
+          "vhost_vsock",
+          "vmw_vmci",
+          "vmw_vsock_virtio_transport",
+          "vmw_vsock_virtio_transport_common",
+          "vmw_vsock_vmci_transport",
+          "vsock",
+          "vsock_diag",
+          "vsock_loopback"
+        ]
+      },
+      "limitations": []
+    },
+    "11": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "worker_date_s_exit": 1,
+        "guest_clock_shift_h": 24,
+        "host_clock_unaffected": true,
+        "note": "policy pin / evidence / controller state live only on the host (unreachable per 1, 3, 4)"
+      }
+    },
+    "12": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "import": "ok",
+        "host_recomputed_tree": "2e81171448eb9f2ee3821e3d447aa6b2fe3ddba1",
+        "genuine_claim_accepted": true,
+        "forged_claim_rejected": true,
+        "gitdir_redirect_refused": "BUNDLE.BAD_HEADER",
+        "scope": "host-side artifact integrity: import = verify + fsck fetch into a fresh bare repo (never clone); a guest tree claim is accepted only if it equals the HOST-recomputed tree",
+        "evaluator_evidence_binding": "NOT_TESTED: binding evidence to the D3.2 evaluator (signed isolation_attestation / delivery evidence) needs D3.4 issuer services and keys, which do not exist yet"
+      }
+    },
+    "13": {
+      "verdict": "PASS",
+      "problems": [],
+      "evidence": {
+        "planted_before_discard": [
+          "claude_json",
+          "claude_symlink",
+          "dh3new_symlink",
+          "dh3tmp_symlink",
+          "fifo",
+          "home_residue",
+          "settings",
+          "skills",
+          "task_residue"
+        ],
+        "plants_missing": [],
+        "hardlink_to_root_file": "refused",
+        "residue_found": [],
+        "sanitizer_marker": true,
+        "root_targets_unchanged": true,
+        "allowlisted_json_key_kept": true,
+        "non_allowlisted_json_keys_dropped": true,
+        "golden_read_only": true
+      }
+    }
+  },
+  "proxy_decisions": [
+    "deny - EGRESS.IP_LITERAL x4",
+    "deny - EGRESS.HOST_NOT_ALLOWLISTED x4",
+    "deny - EGRESS.PORT_NOT_ALLOWED x1",
+    "allow api.anthropic.com EGRESS.CLOSED x1"
+  ],
+  "caveats": [
+    "AI-run automated test, not an external security audit",
+    "run under WHPX",
+    "guest-reported facts come from a fresh overlay of the golden image before any task code ran; the host-validated QEMU argv is the authority for attached devices",
+    "a PASS here does not resolve the residual credential, provider-terms or host-account risks recorded in 17",
+    "scenarios 1-7, the guest part of 10, 11 (worker rc / guest shift), 13 (guest outputs) and 9 (guest OOM, throughput) rest on GUEST-REPORTED facts from a fresh overlay of the sealed golden image; host-verified: golden sha256, validated QEMU argv, proxy decision log (4, 5), 8 disk sizes, Job Object read-back, QEMU liveness/CPU/working set, host memory/CPU/responsiveness, 11 host clock, 12 import, 13 golden read-only, 2 fixture + Windows run"
+  ]
+}

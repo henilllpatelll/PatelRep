@@ -196,12 +196,14 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     'scripts/developer-harness-v2/m1-hardening.test.mjs': 'a395e8144c3a7248359b54f6e72c0080f9a1c3105b09e1ebd7dad765137d7220',
     'scripts/developer-harness-v2/path-resolution.test.mjs': 'be4b9c7905d54794af1279fbcb79f38cbb67f168ff8913395ee4807736ff4530',
     'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '5aaca7a977c30f7106bc49b1302e890c4272bffdabfef36aa33bea74c178f3b2',
-    'scripts/developer-harness-v2/bypass-authorization.mjs': 'd4fae1200cd948a16c6f9291c651fe0d88f5a6597e7abb9e9494df5d03e64fed',
+    // Pin-provenance remediation (owner-authorized, PR #252 review B1/B2/N1): full-sha --from-ref, provenance verification, single --scope.
+    // Predecessor pins: bypass-authorization.mjs d4fae120…, bypass-pins.mjs d73e1bd2…, bypass-authorization.test.mjs 100e518c…, bypass-hook.test.mjs 883e3dd7….
+    'scripts/developer-harness-v2/bypass-authorization.mjs': '44b39eb07d3a5a8d12e882d5bc2202f1d271cf4866ac0429dff7bc4ed3262371',
     'scripts/developer-harness-v2/bypass-digest.mjs': '79fc4296a5368df224e92e9e059f23acbde92f605f861c179829a0d224fb091a',
-    'scripts/developer-harness-v2/bypass-pins.mjs': 'd73e1bd2442aaeba7ef724243e176c1ba2af280818f8697e72f902367e838fb1',
+    'scripts/developer-harness-v2/bypass-pins.mjs': '5bd3e965d0c9337856c36cc8fd4de08b49d06365f8ca232730a27568c1cc7419',
     'scripts/developer-harness-v2/bypass-git-index.mjs': 'dd900befa6258c3cd23c050f98ae1d0f8f423776ba302edd257d831f18d22b99',
-    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '100e518c5aaeb935a4852cf0dc13a94ec50a158c065dd5f9602b7f634773f008',
-    'scripts/developer-harness-v2/bypass-hook.test.mjs': '883e3dd7eea0c215d0156f58509ab3d586e0562c8629d9bb87709d0f38df0088',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '97f82fc1ee6c06c54f4331eadb1e4138c10aac545b8a5827f17168d2106d81fd',
+    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'db6027a28a34e5118936d97a94df7c74da797da9c32d4e2a014f5707d883274e',
   }
   const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',
     'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])
