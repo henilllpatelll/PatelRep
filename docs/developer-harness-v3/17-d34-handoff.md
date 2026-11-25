@@ -4,9 +4,9 @@
 
 | Question | Verdict | Why |
 |---|---|---|
-| Human merge of the D3.3 PR | **GO for owner review** (merging activates nothing) | code + docs only under V3 paths; D3.2 contract/evaluator/lifecycle and all V2/CI files unchanged; 2 AI reviews + re-verification; tests green. Merge is your decision. |
-| Isolation acceptance | **PASS (D3.3 scope)** | run 2, 2026-11-25, WHPX: 13/13 scenarios on the real VM for candidate `b7bbae10` (closure digest `c1605655…`, owner-pinned), golden image rebuilt with guest hardening. Evidence and limits in 15. Not an external audit; the full 3 GB worker and an active WSL/Docker neighbour network were not exercised |
-| Runtime readiness for autonomous execution | **NO-GO** | owner login (O-2) and extra-usage verification (O-3) not done, and O-3 is currently blocked by defect D-1 (15); QEMU runs as the owner (O-7); provider-terms decision open (O-4); no issuer keys, so no `isolation_attestation`; V3 not in CI |
+| Human merge of the D3.3 PR | **Owner decision, with the open acceptance gap in view** (merging activates nothing) | code + docs only under V3 paths; D3.2 contract/evaluator/lifecycle and all V2/CI files unchanged; 2 AI reviews + re-verification; 228 V3 tests green. The current candidate has **not** passed isolation acceptance (next row), so this is not a clean GO. Merge is your decision. |
+| Isolation acceptance | **NOT PASSED for the current candidate** (12/13; open defect D-3) | candidate `180d5a23`, closure `d97c7d3b…` (owner-pinned): runs 3 and 4 (2026-11-25, WHPX, reused golden image `be8f7e39…`, identity re-verified) each passed scenarios 1–8 and 10–13 and failed scenario 9 with `S9.HOST_CPU_CONTENDED` (a host-CPU sample was `null`; every cap, memory and OOM fact held). The earlier run 2 PASS (13/13) is for the previous closure `c1605655…` and is `STALE`. Evidence and limits in 15. Not an external audit; the full 3 GB worker and an active WSL/Docker neighbour network were not exercised |
+| Runtime readiness for autonomous execution | **NO-GO** | isolation acceptance not passed on the current closure (D-3); owner login (O-2) and extra-usage verification (O-3) not done (O-3 is no longer blocked by D-1, which is fixed and pinned); QEMU runs as the owner (O-7); provider-terms decision open (O-4); no issuer keys, so no `isolation_attestation`; V3 not in CI |
 | V3 active | **no** | `activation.active_actions = []`; no Bypass Permissions anywhere |
 
 ## 2. Independent review (AI reviewers, not human or external auditors)
@@ -69,7 +69,7 @@ Also found **in the real VM run** (not by the reviewers): (1) the in-process pro
 
 ## 3. Hardening required before any activation (D3.9 gate)
 
-1. **O-1 WHPX**: done. WHPX is enabled and acceptance run 2 passed under WHPX (15). Re-run the suite after any re-provision or trusted-code change, including the D-1/D-2 fixes (15 "Known defects").
+1. **O-1 WHPX**: done (`RUNTIME.WHPX ok`). Acceptance passed under WHPX only for the previous closure (run 2, now `STALE`). On the current closure the suite must still pass: runs 3 and 4 failed scenario 9 on missing host-CPU samples (open defect D-3, 15). Re-run the suite after any re-provision or trusted-code change.
 2. **Dedicated Windows account for QEMU** (O-7): create a standard local user `dh3-worker` (admin), grant it read/write only to `%LOCALAPPDATA%\PatelRep\dh3\workers`, launch the supervisor through a scheduled task running as that user. A QEMU escape then lands in an account without the owner's files or credentials. Not implemented in D3.3.
 3. **QEMU outbound firewall rule** (O-6) as a second network layer.
 4. Owner login + `auth-check` + `probe-subscription`; verify that `--setting-sources ""` and the residue sanitizer keep the login usable (14 §5).
