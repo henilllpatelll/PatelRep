@@ -1,8 +1,11 @@
 // Developer Harness V2 — shared helpers for the Phase 2 policy modules. Pure functions only.
 import { isSensitivePath, normalizeSlashes, percentDecode, detectActivation } from './path-policy.mjs'
 
-/** A policy finding. `action` is always an action id declared in contract.json. */
-export const F = (action, code, detail) => ({ action, code, detail })
+/**
+ * A policy finding. `action` is always an action id declared in contract.json. `meta` (optional) carries the structured facts the
+ * owner-launched bypass authorizer (bypass-authorization.mjs) re-checks; it never changes a finding's class.
+ */
+export const F = (action, code, detail, meta) => (meta ? { action, code, detail, meta } : { action, code, detail })
 
 export const PROTECTED_BRANCHES = new Set(['main', 'master'])
 // Branch namespaces owned by trusted publishers (Feature Builder, Release Engineer). Developer pushes there

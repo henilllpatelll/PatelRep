@@ -196,7 +196,8 @@ export const SUITES = Object.freeze([
   // ── Developer harness (Phases 1–6): node --test only, no dependencies ──
   S('harness.contract', 'Harness Phase 1 contract tests', 'lightweight', { areas: ['harness'], steps: [nodeTest(hf('contract.test.mjs', 'ci/ci-integration.test.mjs'))], discovery: 'node_test' }),
   S('harness.policy', 'Harness Phase 2 policy and security regressions', 'lightweight', { areas: ['harness', 'security'], timeout_ms: 15 * 60 * 1000, discovery: 'node_test',
-    steps: [nodeTest(hf('policy-engine.test.mjs', 'policy-hook.test.mjs', 'm1-hardening.test.mjs', 'copymove-remediation.test.mjs', 'path-resolution.test.mjs', 'runtime-sandbox-env.test.mjs'))] }),
+    steps: [nodeTest(hf('policy-engine.test.mjs', 'policy-hook.test.mjs', 'm1-hardening.test.mjs', 'copymove-remediation.test.mjs', 'path-resolution.test.mjs', 'runtime-sandbox-env.test.mjs',
+      'bypass-authorization.test.mjs', 'bypass-hook.test.mjs'))] }),
   S('harness.context', 'Harness Phase 3 context and memory tests', 'lightweight', { areas: ['harness'], discovery: 'node_test',
     steps: [nodeTest(hf('context/archive.test.mjs', 'context/context-packs.test.mjs', 'context/instructions.test.mjs', 'context/memory-curate.test.mjs', 'context/openwolf-hooks.test.mjs'))] }),
   S('harness.routing', 'Harness Phase 4 routing and role tests', 'lightweight', { areas: ['harness', 'security'], discovery: 'node_test', steps: [nodeTest(hf('routing/roles.test.mjs', 'routing/router.test.mjs'))] }),

@@ -63,7 +63,13 @@ test('settings: the Phase 2 policy entry is the only registered hook and is unch
   assert.match(policy.command, /local-hook\.mjs" policy$/)
   if (phase2Settings) {
     assert.deepEqual(settings.hooks.PreToolUse[0], phase2Settings.hooks.PreToolUse[0], 'policy entry deep-equal to Phase 2')
-    assert.deepEqual(settings.permissions, phase2Settings.permissions, 'permissions semantically unchanged')
+    // V2 permission transition (owner decision 2026-11-24, 14-v2-permission-transition.md) is the ONLY permitted permissions change:
+    // `disableBypassPermissionsMode` and exactly these routine ask rules were removed; nothing was added and deny/allow are unchanged.
+    const TRANSITION_REMOVED_ASK = ['Bash(git push*)', 'Bash(npm install*)', 'Bash(npm i *)', 'Bash(npm ci*)', 'Bash(npm uninstall*)', 'Bash(npm update*)', 'Bash(pip install*)', 'Bash(gh pr create*)']
+    const { disableBypassPermissionsMode, ...phase2Rest } = phase2Settings.permissions
+    assert.equal(disableBypassPermissionsMode, 'disable', 'Phase 2 had disabled bypass mode')
+    assert.deepEqual(settings.permissions, { ...phase2Rest, ask: phase2Rest.ask.filter((r) => !TRANSITION_REMOVED_ASK.includes(r)) }, 'permissions unchanged apart from the recorded transition')
+    for (const r of TRANSITION_REMOVED_ASK) assert.ok(phase2Rest.ask.includes(r), `${r} existed in Phase 2`)
     assert.deepEqual(settings.enabledPlugins, phase2Settings.enabledPlugins)
   } else {
     t.diagnostic('SKIPPED deep-equal vs Phase 2: commit not in local history (shallow clone)')
@@ -172,6 +178,33 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     'scripts/developer-harness-v2/policy-engine.test.mjs': 'bd27b54bd68d76dfecbd9b03a0eaa01e9ed6709ecf025e7f376431da83b2af74',
   }
   const PATHRES_NEW = new Set(['scripts/developer-harness-v2/writer-options.mjs', 'scripts/developer-harness-v2/path-resolution.test.mjs'])
+  // V2 permission transition (owner decision 2026-11-24, 14-v2-permission-transition.md) is the ONLY further change to the enforcement
+  // set. It supersedes the earlier pins of the files it touches; content is pinned (LF-normalized sha256) so any other edit must update
+  // the pin in a reviewed change. Predecessor pins for the record: command-policy.mjs f525363f…, policy-engine.test.mjs bd27b54b…,
+  // path-policy.mjs b30a8bd5…, git-policy.mjs 58200c87…, policy-engine.mjs 4e4a31d5….
+  const TRANSITION_PINNED = {
+    '.claude/hooks/policy-hook.mjs': 'f45a1f9419a5ef26f216b8742775204f8db53f0e4e9f0081e3d2c371f3ac695f',
+    'docs/developer-harness-v2/contract.json': 'a1893abb511f3bd0fdcaeb5249684d2923c6037eb39762d210b8a1eecb061d3b',
+    'scripts/developer-harness-v2/command-policy.mjs': 'ac0305f531c8f89c769854eb80ef84afa856dac9b582e5423410558ad2dbd841',
+    'scripts/developer-harness-v2/command-tools.mjs': '19eaa90245c95606d9b896d8c7fe52eb2206f01ea2317683cb60775315503b4f',
+    'scripts/developer-harness-v2/git-policy.mjs': 'c2e327e18b46dd4c399b0693c42103f3cb66fe7f99976e71eab6f205ede1aa2a',
+    'scripts/developer-harness-v2/path-policy.mjs': '03955387f7be1123ccbd56b08045dc3ec7832a8baa5af2eaef891e547fd72e44',
+    'scripts/developer-harness-v2/policy-common.mjs': '1e4de44eab93bd838ff9b11e1eccf34a9140c892bc6bab968d7e5f1f9b765dec',
+    'scripts/developer-harness-v2/policy-engine.mjs': 'd4ce102a6f7aebcc9bdad92d705a61f32b3d2a56c3715c68e006cd0c77a8bb10',
+    'scripts/developer-harness-v2/policy-engine.test.mjs': '2934747bd6ead9f6b2326ec7f9b478cc9c161b8e6c81ba34dd6c8cab91384308',
+    'scripts/developer-harness-v2/copymove-remediation.test.mjs': 'ddf3815f46899d3a2abe10182e3eb2e1530aee16373ef6c22e516dfed3dd0add',
+    'scripts/developer-harness-v2/m1-hardening.test.mjs': 'a395e8144c3a7248359b54f6e72c0080f9a1c3105b09e1ebd7dad765137d7220',
+    'scripts/developer-harness-v2/path-resolution.test.mjs': 'be4b9c7905d54794af1279fbcb79f38cbb67f168ff8913395ee4807736ff4530',
+    'scripts/developer-harness-v2/runtime-failclosed-check.mjs': '5aaca7a977c30f7106bc49b1302e890c4272bffdabfef36aa33bea74c178f3b2',
+    'scripts/developer-harness-v2/bypass-authorization.mjs': 'd4fae1200cd948a16c6f9291c651fe0d88f5a6597e7abb9e9494df5d03e64fed',
+    'scripts/developer-harness-v2/bypass-digest.mjs': '79fc4296a5368df224e92e9e059f23acbde92f605f861c179829a0d224fb091a',
+    'scripts/developer-harness-v2/bypass-pins.mjs': 'd73e1bd2442aaeba7ef724243e176c1ba2af280818f8697e72f902367e838fb1',
+    'scripts/developer-harness-v2/bypass-git-index.mjs': 'dd900befa6258c3cd23c050f98ae1d0f8f423776ba302edd257d831f18d22b99',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs': '100e518c5aaeb935a4852cf0dc13a94ec50a158c065dd5f9602b7f634773f008',
+    'scripts/developer-harness-v2/bypass-hook.test.mjs': '883e3dd7eea0c215d0156f58509ab3d586e0562c8629d9bb87709d0f38df0088',
+  }
+  const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',
+    'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])
   const LF = String.fromCharCode(10)
   const CR = String.fromCharCode(13)
   const norm = (l) => (l.endsWith(CR) ? l.slice(0, -1) : l).replace(/,\s*$/, '')
@@ -186,6 +219,12 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify 
     return null
   }
   for (const rel of same) {
+    if (TRANSITION_PINNED[rel]) {
+      if (TRANSITION_NEW.has(rel)) assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in the V2 permission transition`)
+      else assert.notEqual(read(rel), gitShow(PHASE2, rel), `${rel} carries the approved V2 permission transition`)
+      assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), TRANSITION_PINNED[rel], `${rel} differs from the approved V2 permission transition content`)
+      continue
+    }
     if (PATHRES_NEW.has(rel)) {
       assert.equal(gitShow(PHASE2, rel), null, `${rel} is new in the Phase 4 path-resolution remediation`)
       if (PATHRES_PINNED[rel]) assert.equal(createHash('sha256').update(read(rel).split(CR + LF).join(LF)).digest('hex'), PATHRES_PINNED[rel], `${rel} differs from the approved path-resolution content`)
