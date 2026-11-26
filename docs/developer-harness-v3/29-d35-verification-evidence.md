@@ -6,8 +6,8 @@ Everything below is SIMULATED unless marked REAL. REAL = real temporary SQLite f
 | Run | Node | Files | Tests | Result |
 |---|---|---|---|---|
 | baseline (D3.4 suite, before any D3.5 change) | 24.19.0 | 38 | 486 | pass |
-| final head, `ci/resumable-runner.mjs` (REAL subprocesses, sequential, 1 GB heap) | 24.19.0 | __F24__ | __T24__ | __R24__ |
-| final head, same runner | 22.23.2 | __F22__ | __T22__ | __R22__ |
+| final head, `ci/resumable-runner.mjs` (REAL subprocesses, sequential, 1 GB heap) | 24.19.0 | 50 | 569 | **pass** (no unit reused, no interruption) |
+| final head, same runner | 22.23.2 | 50 | 569 | **pass** (no unit reused, no interruption) |
 All 486 D3.4 tests are preserved; two expectations changed intentionally (the F1 stale-billing-fact cases, doc 28). One INTERMITTENT failure of `d35-slots.test.mjs` was observed once on Node 22 before the review fixes (the runner then kept no output); 6 isolated Node 22 reruns and two full Node 22 runs passed. The runner now stores a redacted output tail of every non-passing unit; the residual is recorded in §4 (R-12). Linux: NOT run (no authorized running environment; WSL/Docker not started for it).
 
 Acceptance mapping (brief §14): 1 `d35-slots` (migration from V1 and V2, injected fault and REAL SIGKILL mid-migration, unknown versions) · 2 `d35-slots` (REAL 6-process and 5-process races) · 3–4 `d35-slots`, `d35-review-remediation` · 5 `d35-slots` (workspaces), `d35-cleanup` · 6–7 `d35-scheduler` · 8–10 `d35-resource-interruption`, `d35-runner` (REAL) · 11–13 `d35-recovery` · 14 `d35-cleanup` (REAL junction) · 15–16 `d35-disaster-recovery`, `d35-review-remediation` · 17–18 `d35-engineering` · 19–20 `d35-lifecycle-proposal` · 21 `d35-long-wait` · 22 `d35-scheduler` · 23 `d35-scheduler` (cancel during its own session) · 24 `d35-scheduler` · 25 `d35-boundaries`.
@@ -46,4 +46,5 @@ While the session was idle, Claude Code's low-memory reaper stopped the final No
 | R-13 | Linux execution of the V3 suite never performed | G-V3-CI |
 
 ## 5. Exact candidate
-Final head and exact-head CI: __HEAD__ (filled after the final push).
+Local runs above were made on code commit `5cf146d2`; the final PR head adds ONLY this document. Exact-head CI and Staging Gate: see the PR checks on the final head (the PR description/comment records them).
+V2: `node scripts/developer-harness-v2/ci/run-ci-suites.mjs` on this Windows worktree: FAIL on two environment-dependent cases unrelated to D3.5 (no V2 file changed): `context/archive.test.mjs` "source commit is an ancestor of HEAD" (the archived source commit is not reachable from this worktree's local history) and one unexpected skip in `harness.policy` (the host-dependent baseline already noted in 21). The protected CI Gate on GitHub (which runs the V2 suites in their supported environment) is the authoritative V2 result.
