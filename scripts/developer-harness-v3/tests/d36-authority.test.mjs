@@ -47,7 +47,9 @@ test('single-use evidence: consumed ONLY on allow, atomically with the intent; a
   assert.deepEqual(consumedRows(S.h, S.id), [], 'atomic refusal: the single-use diagnosis is NOT consumed'); assert.equal(S.h.ledger.db.prepare("SELECT COUNT(*) c FROM action_intents WHERE action='rerun_ci_jobs'").get().c, 0, 'and no intent row exists')
   // an invalidated artifact is never revived by re-accepting the same envelope
   const receipt = usableEvidence(S.h.ledger, S.id, S.h.policy, { types: ['publication_receipt'] })[0]; S.h.ledger.invalidateEvidence(receipt.evidence_id)
-  assert.equal((await S.h.delivery.accept(S.h.issuers.trusted_publisher, 'issue_publication_receipt', { task_id: S.id })).code, 'EVIDENCE.REISSUE_OF_INVALIDATED')
+  // D3.6 remediation (review M1): the issuer no longer re-serves an envelope the ledger invalidated (that stalled recovery); it issues a SUCCESSOR from its own fresh read, and the invalidated one stays invalidated
+  const again = await S.h.delivery.accept(S.h.issuers.trusted_publisher, 'issue_publication_receipt', { task_id: S.id }); assert.equal(again.ok, true); assert.notEqual(again.evidence_id, receipt.evidence_id, 'a NEW artifact, never the revived one')
+  assert.ok(S.h.ledger.db.prepare('SELECT invalidated_at FROM evidence WHERE evidence_id=?').get(receipt.evidence_id).invalidated_at !== null, 'the withdrawn one stays withdrawn')
   S.h.ledger.db.prepare('UPDATE evidence SET invalidated_at=NULL WHERE evidence_id=?').run(receipt.evidence_id) // test fixture: restore it for the allow case below
   // (b) allow: consumed exactly what the evaluator returned
   const ok = await S.create('rerun-B', {}, 'rerun_ci_jobs', params); assert.ok(ok.ok, JSON.stringify(ok.decision?.reason_codes ?? ok.code))

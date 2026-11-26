@@ -133,3 +133,16 @@ test('F2: the watchdog\'s START record is not best effort — a request nobody r
   await assert.rejects(() => withDeadline({ ...L, now: () => L.now(), db: { prepare: () => ({ run() { throw new Error('DISK_FULL') } }) } }, { opId: 'effect:in-x:1', taskId: id, kind: 'effect:x', ms: 1000 }, async () => { sent = true }), /DISK_FULL/)
   assert.equal(sent, false, 'the request was never sent'); h.close()
 })
+
+test('review O3/O4 (Opus): actions the remote does NOT protect against a late duplicate (no compare-and-swap) need a much longer absence window; an ABSENT read can never come from the future', async () => {
+  const { ABSENCE_RULE_NO_CAS, NO_CAS_ACTIONS, absenceProven } = await import('../orchestrator/delivery/observation.mjs')
+  assert.deepEqual([...NO_CAS_ACTIONS].sort(), ['dispatch_staging_candidate', 'update_pull_request_metadata'], 'exactly the actions the simulator does not protect with CAS / idempotency (push, PR creation, re-run, ready are protected)')
+  assert.ok(ABSENCE_RULE_NO_CAS.settleMs >= 10 * 60_000 && ABSENCE_RULE_NO_CAS.settleMs > ABSENCE_RULE.settleMs)
+  const rows = (...at) => at.map((t, k) => ({ state: 'absent', read_id: `r${k}`, observed_at: t }))
+  assert.equal(absenceProven(rows(61_000, 92_000), 0).proven, true, 'the ordinary rule')
+  assert.equal(absenceProven(rows(61_000, 92_000), 0, ABSENCE_RULE_NO_CAS).proven, false, 'two reads after one minute never conclude absence for a no-CAS action')
+  assert.equal(absenceProven(rows(601_000, 632_000), 0, ABSENCE_RULE_NO_CAS).proven, true)
+  const src = (await import('node:fs')).readFileSync(new URL('../orchestrator/ledger/intents.mjs', import.meta.url), 'utf8'); assert.ok(/NO_CAS_ACTIONS\.includes\(i\.action\) \? ABSENCE_RULE_NO_CAS/.test(src), 'reconcileIntent selects the rule by action')
+  const h = await harness(); const id = h.submit(); const { i, base, D } = await uncertainPush(h, id); h.clock.t = D + 200_000
+  const future = signed(h, base, 'future', 'absent', h.clock.t + 30_000); const r = reconcile(h, i, future); assert.equal(r.ok, false); assert.ok(r.problems.includes('OBSERVATION.TIME_INVALID'), 'an absent read dated after the ledger clock is refused (no skew allowance for absence)'); h.close()
+})

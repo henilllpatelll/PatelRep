@@ -95,3 +95,28 @@ test('F1 staging: PR association is validated — a Staging Gate whose run belon
   assert.equal(gate([srun(1, { event: 'push' })], [g]).state, 'missing', 'another event')
   const ok = gate([srun(1)], [g]); assert.equal(ok.state, 'success'); assert.equal(ok.run_id, 1); assert.equal(ok.attempt, 1)
 })
+
+// ---------------------------------------------------------------- independent-review findings (Opus M3, O6; Sonnet M1 is in d36-rem-stale-eligibility)
+test('review M3: LATEST ACTIVITY decides — a re-run of an OLDER run is newer than a younger run that finished earlier; a run whose age cannot be ordered fails closed', () => {
+  const youngerOk = run(2, { created_at: 20 }); const olderRerun = run(1, { created_at: 10, attempt: 2, started_at: 100, conclusion: 'failure' })
+  const s = state([olderRerun, youngerOk], [chk(10, 1, { attempt: 2, conclusion: 'failure' }), chk(11, 2)]); assert.equal(s.state, 'failed'); assert.equal(s.run_id, 1, 'the re-run (newest activity) decides, not the younger run')
+  assert.equal(state([run(1, { created_at: 10, attempt: 2, started_at: 100, status: 'in_progress', conclusion: null }), youngerOk], [chk(10, 1, { attempt: 1 }), chk(11, 2)]).state, 'pending')
+  assert.equal(state([run(1, { created_at: 10 }), run(2, { created_at: undefined })], [chk(10, 1), chk(11, 2)]).state, 'ambiguous', 'a newer run with NO created_at is never ignored (it used to sort oldest)')
+  assert.equal(state([run(1, { created_at: 10 }), run(2, { created_at: NaN })], [chk(10, 1), chk(11, 2)]).state, 'ambiguous')
+  assert.equal(state([run(1, { created_at: 10, started_at: 5 }), run(2, { created_at: 20 })], [chk(10, 1), chk(11, 2)]).run_id, 2, 'an early started_at never makes a run look OLDER than its creation')
+})
+
+test('review O6: CI runs are scoped to the task\'s PR — a same-branch same-SHA run for ANOTHER PR neither masks nor satisfies; an unusable PR number matches nothing', () => {
+  const names = requiredCiChecks(); const runs = []; const checks = []; let id = 0; const runOf = {}
+  for (const x of names) { if (!runOf[x.workflow]) { runOf[x.workflow] = run(++id, { workflow: x.workflow }); runs.push(runOf[x.workflow]) }; checks.push({ id: 100 + checks.length, name: x.name, head_sha: H, app_id: ACTIONS_APP_ID, run_id: runOf[x.workflow].id, attempt: 1, status: 'completed', conclusion: 'success' }) }
+  assert.equal(ciState({ runs, checks }, { head_sha: H, head_branch: BR, pr_number: 7 }).overall, 'success')
+  const foreign = [...runs, run(90, { workflow: WORKFLOWS.ci, pr_number: 999, status: 'in_progress', conclusion: null, created_at: 5000 })]
+  assert.equal(ciState({ runs: foreign, checks }, { head_sha: H, head_branch: BR, pr_number: 7 }).overall, 'success', 'another PR\'s run is not applicable')
+  assert.equal(ciState({ runs, checks }, { head_sha: H, head_branch: BR, pr_number: 8 }).overall, 'missing', 'results of another PR are never this PR\'s')
+  for (const bad of [undefined, null, NaN, '7']) assert.equal(ciState({ runs, checks }, { head_sha: H, head_branch: BR, pr_number: bad }).overall, 'missing', `unusable ${String(bad)}`)
+})
+
+test('review (provenance URL): a Staging Gate whose details point at ANOTHER host is not provenance', () => {
+  const g = (url) => stagingGate({ runs: [srun(1)], checks: [sgate(10, 1, { details_url: url })] }, { head_sha: H, pr_number: 7 }).state
+  assert.equal(g('https://github.com/henilllpatelll/PatelRep/actions/runs/1'), 'success'); assert.equal(g('https://evil.example/actions/runs/1'), 'missing'); assert.equal(g('https://github.com.evil.example/o/r/actions/runs/1'), 'missing')
+})

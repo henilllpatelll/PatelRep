@@ -13,6 +13,8 @@ import { usableEvidence } from '../ledger/evidence-store.mjs'
 import { isSatisfying } from '../../authority/evidence.mjs'
 import { enqueueOutbox } from '../ledger/intents.mjs'
 import { invalidateMilestones } from './state.mjs'
+import { riskRequiredEvidence } from './authorize.mjs'
+import { dependencyCurrent } from '../dependency-basis.mjs'
 
 export const GATE_EVIDENCE = Object.freeze({ ci: Object.freeze(['ci_gate', 'staging_gate', 'delivery_verification']), staging: Object.freeze(['staging_gate', 'delivery_verification']) })
 export const GATE_MILESTONES = Object.freeze({ ci: Object.freeze(['ci_verified', 'staging_verified', 'merge_eligible']), staging: Object.freeze(['staging_verified', 'merge_eligible']) })
@@ -27,6 +29,12 @@ export function recordBasis(L, taskId, kind, d) {
   const head = L.getTask(taskId).head_sha; const id = kind === 'ci' ? ciIdentity(d.ci) : stagingIdentity(d.staging)
   if (id) L.setMeta(basisKey(taskId, head, kind), id)
   return !!id
+}
+/** The identity the ISSUER's own read produced (the signed package), not the controller's earlier observation: the basis is what the package actually rests on. */
+export function recordBasisFromPackage(L, taskId, pkg) {
+  const head = L.getTask(taskId).head_sha
+  L.setMeta(basisKey(taskId, head, 'ci'), (pkg.ci ?? []).map((c) => `${c.name}@${c.run_id}.${c.run_attempt ?? c.attempt}.${c.attempt}`).sort().join('|'))
+  if (Number.isInteger(pkg.staging?.run_id)) L.setMeta(basisKey(taskId, head, 'staging'), `${pkg.staging.run_id}.${pkg.staging.run_attempt ?? pkg.staging.attempt}.${pkg.staging.attempt}`)
 }
 export const basisOf = (L, taskId, kind) => L.meta(basisKey(taskId, L.getTask(taskId).head_sha, kind)) ?? null
 const clearBasis = (L, taskId, head, kind) => L.db.prepare('DELETE FROM meta WHERE key=?').run(basisKey(taskId, head, kind))
@@ -86,17 +94,29 @@ export function deliveryEligibility(L, policy, taskId) {
   if (t.cancelled) problems.push('TASK.CANCELLED')
   if (t.state !== 'merge_eligible') problems.push(`STATE_NOT_MERGE_ELIGIBLE:${t.state}`)
   if (L.getSuspension(taskId)) problems.push('TASK.SUSPENDED')
+  if (t.handoff_ready !== 1) problems.push('HANDOFF_WITHDRAWN') // approvals expired / rebuilt: the delivery loop no longer visits the task, so nothing would ever withdraw its results
+  for (const type of ['test_results', 'independent_review', ...riskRequiredEvidence(t)]) if (!usableEvidence(L, taskId, policy, { types: [type] }).some((r) => (r.candidate_sha === null || r.candidate_sha === t.head_sha) && isSatisfying(r.envelope.payload))) problems.push(`APPROVAL_NOT_CURRENT:${type}`)
+  if (basisOf(L, taskId, 'ci') === null || basisOf(L, taskId, 'staging') === null) problems.push('RESULT_BASIS_MISSING') // a result nobody recorded cannot be checked for supersession: not eligible
+  if (L.db.prepare("SELECT 1 FROM action_intents WHERE task_id=? AND status IN ('uncertain','dispatched')").get(taskId)) problems.push('UNRESOLVED_REMOTE_EFFECT')
   if (withdrawalOf(L, taskId)) problems.push('ELIGIBILITY_WITHDRAWN')
   const base = L.currentBase(taskId)
   if (!L.db.prepare("SELECT 1 FROM delivery_milestones WHERE task_id=? AND milestone='merge_eligible' AND candidate_sha=? AND base_sha=? AND invalidated_at IS NULL").get(taskId, t.head_sha, base)) problems.push('MILESTONE_NOT_CURRENT')
   const ev = {}
   for (const type of ['ci_gate', 'staging_gate', 'delivery_verification']) {
-    const row = usableEvidence(L, taskId, policy, { types: [type] }).find((r) => r.candidate_sha === t.head_sha && r.envelope.payload.base_sha === base && isSatisfying(r.envelope.payload))
+    const heldDigest = type === 'delivery_verification' ? packageOf(L, taskId, t.head_sha)?.package_digest : null // the evidence must be the one issued for the HELD package, not merely any valid one
+    const row = usableEvidence(L, taskId, policy, { types: [type] }).find((r) => r.candidate_sha === t.head_sha && r.envelope.payload.base_sha === base && isSatisfying(r.envelope.payload) && (heldDigest == null || r.envelope.payload.idempotency_id === `dvp-${String(heldDigest).slice(0, 48)}`))
     if (!row) problems.push(`EVIDENCE_NOT_CURRENT:${type}`); else ev[type] = row
   }
+  if (!dependencyCurrent(L, taskId)) problems.push('DEPENDENCY_NOT_CURRENT')
   const held = packageOf(L, taskId, t.head_sha)
   if (!held) problems.push('PACKAGE_MISSING')
   else {
+    // every artifact the signed package LISTS must itself still be valid NOW (task authority, tests, reviews, publication receipt, CI and staging gates), and the list must be complete for this task
+    const need = ['task_authority', 'test_results', 'independent_review', ...riskRequiredEvidence(t), 'publication_receipt', 'ci_gate', 'staging_gate']
+    const listed = Array.isArray(held.package?.evidence) ? held.package.evidence : []
+    for (const type of need) if (!listed.some((e) => e.type === type)) problems.push(`PACKAGE_INCOMPLETE:${type}`)
+    const usable = new Map(usableEvidence(L, taskId, policy).map((r) => [r.evidence_id, r]))
+    for (const e of listed) { const row = usable.get(e.evidence_id); if (!row || !isSatisfying(row.envelope.payload) || row.payload_digest !== e.digest) problems.push(`PACKAGE_EVIDENCE_NOT_CURRENT:${e.type}`) }
     let digest = null; try { digest = digestOf(held.package) } catch { digest = null }
     if (digest === null || digest !== held.package_digest || held.package.candidate_sha !== t.head_sha || held.package.base_sha !== base || held.package.policy_revision !== policy.revision) problems.push('PACKAGE_NOT_THIS_CANDIDATE')
     else if (ev.delivery_verification && ev.delivery_verification.envelope.payload.idempotency_id !== `dvp-${digest.slice(0, 48)}`) problems.push('PACKAGE_NOT_THE_VERIFIED_ONE')

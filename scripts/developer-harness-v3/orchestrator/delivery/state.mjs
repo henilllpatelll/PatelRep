@@ -35,7 +35,8 @@ export function reach(L, taskId, milestone, { evidenceRef = null } = {}) {
   const c = L.currentCandidate(taskId); const t = L.getTask(taskId)
   if (!c || c.candidate_sha !== t.head_sha) return { ok: false, code: 'MILESTONE.NO_CURRENT_CANDIDATE' }
   const base = L.currentBase(taskId)
-  const prior = L.db.prepare('SELECT invalidated_at FROM delivery_milestones WHERE task_id=? AND milestone=? AND candidate_sha=?').get(taskId, milestone, c.candidate_sha)
+  const prior = L.db.prepare('SELECT invalidated_at, base_sha FROM delivery_milestones WHERE task_id=? AND milestone=? AND candidate_sha=?').get(taskId, milestone, c.candidate_sha)
+  if (prior && prior.base_sha !== base) return { ok: false, code: 'MILESTONE.BASE_MISMATCH' } // never revived under another base
   if (!prior) L.db.prepare('INSERT INTO delivery_milestones(task_id,milestone,candidate_sha,tree_digest,base_sha,evidence_ref,reached_at) VALUES (?,?,?,?,?,?,?)').run(taskId, milestone, c.candidate_sha, c.tree_digest, base, evidenceRef, L.now())
   // F1: a milestone WITHDRAWN because a newer CI / staging result superseded it is reached AGAIN only here, with fresh evidence (the ledger trigger allows nothing else to move it)
   else if (prior.invalidated_at !== null) L.db.prepare('UPDATE delivery_milestones SET invalidated_at=NULL, evidence_ref=?, reached_at=? WHERE task_id=? AND milestone=? AND candidate_sha=?').run(evidenceRef, Math.max(L.now(), prior.invalidated_at), taskId, milestone, c.candidate_sha)

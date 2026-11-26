@@ -41,7 +41,9 @@ export function deriveRequiredChecks({ ci, mobile, staging }) {
   return { ok: p.length === 0, problems: p, derived }
 }
 
-const runLatestFirst = (a, b) => ((b.created_at ?? 0) - (a.created_at ?? 0)) || (b.id - a.id)
+// LATEST ACTIVITY decides (a re-run of an older run is newer activity than a younger run that finished earlier); created_at then id break ties
+const activity = (r) => (Number.isFinite(r.started_at) ? Math.max(r.started_at, r.created_at) : r.created_at)
+const runLatestFirst = (a, b) => (activity(b) - activity(a)) || (b.created_at - a.created_at) || (b.id - a.id)
 const byAttemptDesc = (a, b) => (b.attempt - a.attempt) || (b.id - a.id)
 /**
  * The state of ONE required check for the exact head. `view` = a verified reader view (runs, checks). `expect` = { name, workflow, head_sha, head_branch?, events, pr_number? }.
@@ -60,6 +62,7 @@ export function checkState(view, { name, workflow, head_sha, head_branch = null,
   const spoofed = named.filter((c) => c.app_id !== ACTIONS_APP_ID).length
   const applicable = view.runs.filter((r) => r.workflow === workflow && events.includes(r.event) && r.head_sha === head_sha && (head_branch === null || r.head_branch === head_branch) && (pr_number === null || r.pr_number === pr_number))
   if (!applicable.length) return { name, state: 'missing', spoofed }
+  if (applicable.some((r) => !Number.isFinite(r.created_at) || !Number.isSafeInteger(r.id))) return { name, state: 'ambiguous', spoofed } // a run whose age cannot be ordered is never ignored, never preferred: fail closed
   applicable.sort(runLatestFirst)
   const run = applicable[0]
   const base = { name, run_id: run.id, attempt: run.attempt, run_attempt: run.attempt, spoofed }
@@ -88,7 +91,7 @@ export function checkState(view, { name, workflow, head_sha, head_branch = null,
 }
 
 /** The run behind a Staging Gate verdict must itself have completed successfully, belong to THIS PR and report a result that points at it. */
-const detailsPointAt = (url, runId) => typeof url === 'string' && (url === `sim://runs/${runId}` || new RegExp(`/actions/runs/${runId}(?:/|$)`).test(url))
+const detailsPointAt = (url, runId) => typeof url === 'string' && (url === `sim://runs/${runId}` || new RegExp(`^https://github\\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/actions/runs/${runId}(?:/|$)`).test(url))
 /**
  * D3.6 remediation F1 — the Staging Gate verdict for the exact head AND PR: ONE function for the delivery observation, the staging-gate issuance and the final delivery verification
  * (before, the issuance re-checked PR association and provenance and the verification did not). Same latest-run rule as checkState, restricted to staging runs of this PR.
@@ -108,8 +111,11 @@ export function stagingGate(view, { head_sha, pr_number }) {
 }
 
 /** All required CI checks for the exact head. overall: success only when EVERY one is success. */
-export function ciState(view, { head_sha, head_branch }) {
-  const checks = requiredCiChecks().map((x) => checkState(view, { ...x, head_sha, head_branch }))
+export function ciState(view, o) {
+  const { head_sha, head_branch } = o
+  // F1 remediation: CI runs are scoped to the task's PR too (a same-branch same-SHA run for another PR is not applicable); an explicit but unusable PR number matches nothing (fail closed)
+  const pr = Object.hasOwn(o, 'pr_number') ? (Number.isSafeInteger(o.pr_number) ? o.pr_number : NaN) : null
+  const checks = requiredCiChecks().map((x) => checkState(view, { ...x, head_sha, head_branch, pr_number: pr }))
   const by = (s) => checks.filter((c) => c.state === s)
   const overall = checks.every((c) => c.state === 'success') ? 'success'
     : by('failed').length || by('skipped').length || by('ambiguous').length ? 'failed'

@@ -21,7 +21,7 @@
 import { canonicalize, digestOf } from '../../lib/canonical.mjs'
 import { isSatisfying } from '../../authority/evidence.mjs'
 import { consumeAll, isSingleUse } from './evidence-store.mjs'
-import { OBSERVATION_DEFAULTS, absenceProven, isVerifiedObservation } from '../delivery/observation.mjs'
+import { ABSENCE_RULE_NO_CAS, NO_CAS_ACTIONS, OBSERVATION_DEFAULTS, absenceProven, isVerifiedObservation } from '../delivery/observation.mjs'
 import { effectSubject } from '../delivery/effect-subjects.mjs'
 
 const RETRYABLE = new Set(['failed', 'reconciled_absent'])
@@ -176,7 +176,7 @@ function observationProblems(ledger, i, o, { policy = null } = {}) {
   if (!t || o.repository !== t.repository) p.push('OBSERVATION.WRONG_REPOSITORY')
   try { const want = effectSubject(i.action, JSON.parse(i.params_json ?? 'null')); if (want !== null && o.subject !== want) p.push('OBSERVATION.WRONG_SUBJECT') } catch { p.push('OBSERVATION.SUBJECT_UNDERIVABLE') } // a delivery effect whose object cannot be named is never reconciled
   const since = i.dispatched_at ?? i.updated_at
-  if (o.observed_at > ledger.now() + OBSERVATION_DEFAULTS.skewMs || o.observed_at < since) p.push('OBSERVATION.TIME_INVALID') // a read made BEFORE the dispatch says nothing about its effect
+  if (o.observed_at > ledger.now() + OBSERVATION_DEFAULTS.skewMs || o.observed_at < since || (o.state === 'absent' && o.observed_at > ledger.now())) p.push('OBSERVATION.TIME_INVALID') // a read made BEFORE the dispatch says nothing about its effect
   if (ledger.now() - o.observed_at > OBSERVATION_DEFAULTS.maxAgeMs) p.push('OBSERVATION.STALE') // freshness is enforced HERE too, not only when the envelope was verified
   return [...new Set(p)]
 }
@@ -187,12 +187,18 @@ const recordObservation = (ledger, i, o) => ledger.db.prepare('INSERT OR IGNORE 
  * The outcome of a DIRECT response. success -> succeeded. A failure is `failed` (retryable) ONLY when `rejection` is a verified observation, bound to this intent, of the remote having
  * REJECTED the request before any effect (state 'rejected'); every other failure becomes `uncertain` and must be reconciled before anything is retried.
  */
-export function recordOutcome(ledger, id, { success, outcome = null, rejection = null }) {
+export function recordOutcome(ledger, id, { success, outcome = null, rejection = null, policy = null }) {
   return ledger.tx(() => {
     const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
     if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
     if (success === true) { const r = setStatus(ledger, id, ['dispatched'], 'succeeded', outcome); return r.ok ? { ...r, status: 'succeeded' } : r }
-    const pr = rejection ? observationProblems(ledger, i, rejection) : ['OBSERVATION.NONE']
+    // the `failed` (retryable) conclusion needs the SAME boundary as reconciliation: ACTIVE policy named, a read counted once, no request of ours still in flight
+    const pr = rejection ? observationProblems(ledger, i, rejection, { policy }) : ['OBSERVATION.NONE']
+    if (rejection && !pr.length) {
+      if (!policy?.revision) pr.push('OBSERVATION.ACTIVE_POLICY_REQUIRED')
+      if (ledger.db.prepare('SELECT 1 FROM remote_observations WHERE observation_id=?').get(rejection.observation_id)) pr.push('OBSERVATION.REPLAYED')
+      if (ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)) pr.push('OBSERVATION.EFFECT_STILL_IN_FLIGHT')
+    }
     if (!pr.length && rejection.state === 'rejected') { recordObservation(ledger, i, rejection); const r = setStatus(ledger, id, ['dispatched'], 'failed', outcome); return r.ok ? { ...r, status: 'failed' } : r }
     const r = setStatus(ledger, id, ['dispatched'], 'uncertain', outcome) // NOT proof of absence: a timeout or a lost response may have had its effect
     return r.ok ? { ...r, status: 'uncertain', problems: pr } : r
@@ -225,7 +231,7 @@ export function reconcileIntent(ledger, id, { observation, policy = null, outcom
     // the settle window starts at the LATER of the dispatch and the END OF OUR OWN REQUEST — ordinary settlement, late settlement, or the end of the process that made it. No ABSENT read taken before
     // that counts. (The end of a CLIENT never proves the server-side operation cannot still complete: it only starts the window, and the reads that follow decide.)
     const ended = ledger.db.prepare("SELECT MAX(settled_at) m FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('settled','settled_late','process_ended')").get(`effect:${i.intent_id}:%`)?.m ?? 0
-    const a = absenceProven(rows, Math.max(i.dispatched_at ?? i.updated_at, ended))
+    const a = absenceProven(rows, Math.max(i.dispatched_at ?? i.updated_at, ended), NO_CAS_ACTIONS.includes(i.action) ? ABSENCE_RULE_NO_CAS : undefined)
     if (!a.proven) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: [a.code] }
     return setStatus(ledger, id, ['uncertain'], 'reconciled_absent', outcome)
   })

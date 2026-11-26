@@ -85,7 +85,10 @@ export class DeliveryIssuer {
     let key = subjectKey
     for (let i = 1; i < 8; i += 1) {
       const prior = this.store.prepare('SELECT envelope_json FROM issued WHERE subject_key=?').get(key); if (!prior) break
-      const env = JSON.parse(prior.envelope_json); if (Date.parse(env.payload.expires_at) > this.clock()) return { ok: true, duplicate: true, envelope: env }
+      const env = JSON.parse(prior.envelope_json)
+      // F1 remediation (review M1): an unexpired envelope the controller's ledger has INVALIDATED (a withdrawn result) is never served again — recovery issues a SUCCESSOR subject from THIS read; an envelope the ledger has not seen, or still holds, is the same duplicate as before
+      const inv = this.ledger.db.prepare('SELECT invalidated_at FROM evidence WHERE evidence_id=?').get(env.payload.evidence_id)
+      if (Date.parse(env.payload.expires_at) > this.clock() && (!inv || inv.invalidated_at === null)) return { ok: true, duplicate: true, envelope: env }
       key = `${subjectKey}#r${i}`
     }
     const now = this.clock(); const ttl = Math.min(TTL_MS[type] ?? 3600_000, this.policy.contract.evidence_types[type].max_ttl_seconds * 1000); const stamp = h(key)
@@ -120,7 +123,7 @@ export class DeliveryIssuer {
   op_observe_delivery({ task_id }) {
     const x = this.#task(task_id, { observeOnly: true }); if (!x.ok) return x
     const r = this.#remote(x); const head = x.c?.candidate_sha ?? null
-    const ci = head && r.branch ? ciState(r.view, { head_sha: head, head_branch: r.branch }) : null
+    const ci = head && r.branch ? ciState(r.view, { head_sha: head, head_branch: r.branch, pr_number: r.pr?.number }) : null
     const staging = head ? stagingGate(r.view, { head_sha: head, pr_number: r.pr?.number }) : null // the SAME function the issuance and the final verification use (F1)
     const stagingRuns = r.view.runs.filter((y) => y.workflow === WORKFLOWS.staging && (y.pr_number === r.pr?.number || y.head_sha === head)).map((y) => ({ id: y.id, head_sha: y.head_sha, status: y.status, conclusion: y.conclusion, event: y.event, created_at: y.created_at, displaced: !!y.displaced, ineligible: !!y.ineligible }))
     const stagingBusy = r.view.runs.some((y) => y.workflow === WORKFLOWS.staging && ['pending', 'in_progress'].includes(y.status))
@@ -131,7 +134,7 @@ export class DeliveryIssuer {
   /** Bounded, REDACTED diagnoses of the failed required checks of the exact head (the controller never sees a raw log). */
   op_ci_failure_details({ task_id }) {
     const x = this.#task(task_id); if (!x.ok) return x; if (!x.c) return refuse('ISSUER.NO_CURRENT_CANDIDATE')
-    const r = this.#remote(x); const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch })
+    const r = this.#remote(x); const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch, pr_number: r.pr?.number })
     const failed = ci.checks.filter((c) => ['failed', 'cancelled'].includes(c.state))
     const results = failed.slice(0, 4).map((c) => { const d = diagnose({ source: 'ci', job: c.name, log: c.state === 'cancelled' ? 'The run was cancelled: runner is offline' : this.reader.jobLog(c.run_id, c.attempt) ?? '' }); return { job: c.name, run_id: c.run_id, attempt: c.attempt, ...d, excerpt: d.excerpt.slice(0, 6000) } })
     return this.#observation({ repository: x.t.repository, task_id, subject: `ci_failure:${task_id}`, state: 'present', candidate_sha: x.c.candidate_sha, details: { results } })
@@ -153,13 +156,13 @@ export class DeliveryIssuer {
     if (!this.#candidateAgrees(x.t, x.c, x.base)) return refuse('ISSUER.CANDIDATE_FACTS_DISAGREE')
     const r = this.#remote(x)
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha || r.ref !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
-    const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch })
+    const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch, pr_number: r.pr?.number })
     if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
     return this.#emit('ci_gate', `ci_gate:${task_id}:${x.c.candidate_sha}:${ci.checks.map((c) => `${c.run_id}.${c.run_attempt}.${c.attempt}`).join(',')}:e${x.t.fencing_token}`, x.t, this.#binds(x))
   }
   op_issue_ci_failure_diagnosis({ task_id, run_id, attempt }) {
     const x = this.#task(task_id); if (!x.ok) return x; if (!x.c) return refuse('ISSUER.NO_CURRENT_CANDIDATE')
-    const r = this.#remote(x); const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch })
+    const r = this.#remote(x); const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch, pr_number: r.pr?.number })
     const c = ci.checks.find((y) => y.run_id === run_id && y.attempt === attempt && ['failed', 'cancelled'].includes(y.state)); if (!c) return refuse('ISSUER.NO_SUCH_FAILED_ATTEMPT')
     const d = diagnose({ source: 'ci', job: c.name, log: c.state === 'cancelled' ? 'The run was cancelled: runner is offline' : this.reader.jobLog(run_id, attempt) ?? '' })
     if (d.classification !== 'transient') return refuse('ISSUER.NOT_TRANSIENT', d.classification) // only an infrastructure failure authorizes a re-run; a code defect never does
@@ -198,7 +201,7 @@ export class DeliveryIssuer {
     }
     const r = this.#remote(x)
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha || r.ref !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
-    const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch }); if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
+    const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch, pr_number: r.pr?.number }); if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
     const g = stagingGate(r.view, { head_sha: x.c.candidate_sha, pr_number: r.pr.number }); if (g.state !== 'success') return refuse(g.problem === 'STAGING.PROVENANCE_MISMATCH' ? 'ISSUER.STAGING_PROVENANCE_MISMATCH' : 'ISSUER.STAGING_NOT_SUCCESSFUL', g.state) // same provenance rule as the staging-gate issuance (F1)
     const pkg = { schema: 'patelrep.developer-harness-v3.delivery-verification-package', version: 1, simulated: true, task_id, repository: x.t.repository, base_sha: x.base, candidate_sha: x.c.candidate_sha, tree_digest: x.c.tree_digest,
       patch_digest: x.c.patch_digest, policy_revision: this.policy.revision, fencing_token: x.t.fencing_token, pr_number: r.pr.number, branch: r.branch, main_at_verification: r.main, evidence: ev,

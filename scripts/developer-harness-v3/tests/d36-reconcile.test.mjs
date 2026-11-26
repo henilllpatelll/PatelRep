@@ -127,7 +127,7 @@ test('recordOutcome: only an AUTHENTICATED rejection-before-effect makes a failu
   const { key_id: _k, ...fields } = base; void _k
   const signed = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...fields, observation_id: 'obs-rejected-1', read_id: 'read-rejected-1', state: 'rejected', details: {} }), { policy: h.policy, now: h.ledger.now() })
   assert.ok(signed.ok, JSON.stringify(signed.problems))
-  assert.equal(recordOutcome(h.ledger, i.intent_id, { success: false, rejection: signed.observation }).status, 'failed', 'a signed, bound rejection-before-effect is the ONLY way to `failed`')
+  assert.equal(recordOutcome(h.ledger, i.intent_id, { success: false, rejection: signed.observation, policy: h.policy }).status, 'failed', 'a signed, bound rejection-before-effect is the ONLY way to `failed`')
   assert.equal(getIntent(h.ledger, i.intent_id).status, 'failed'); h.close()
 })
 

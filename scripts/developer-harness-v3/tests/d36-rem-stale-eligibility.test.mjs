@@ -120,3 +120,50 @@ test('F1: the regression edges do not weaken the lifecycle — they exist ONLY i
   }
   void t; h.close()
 })
+
+// ---------------------------------------------------------------- independent-review findings (Sonnet M1; Opus M1, M2, O1)
+for (const lifecycle of ['authoritative', 'P6v3']) {
+  test(`review M1 [${lifecycle}]: a Mobile CI re-run that does NOT trigger staging withdraws eligibility and RECOVERS (the unchanged staging result is re-issued as a SUCCESSOR, never stalled on the invalidated envelope)`, async () => {
+    const h = await harness(lifecycle === 'P6v3' ? { lifecycle: 'P6v3' } : {}); const id = h.submit(); await toEligible(h, id); const before = pkgOf(h, id)
+    const run = h.github.s.runs.find((r) => r.workflow === WORKFLOWS.mobile && r.head_sha === h.ledger.getTask(id).head_sha)
+    run.attempt += 1; run.status = 'in_progress'; run.conclusion = null; run.started_at = h.clock.now(); run.completes_at = h.clock.now() + 120_000; h.github.save() // "re-run all jobs" of an advisory workflow: no new staging run
+    const e = await h.delivery.currentEligibility(id); assert.equal(e.eligible, false)
+    const r = await h.drive({ until: () => state(h, id) === 'merge_eligible' && el(h, id).eligible, maxRounds: 700 }); assert.ok(r.done, `${state(h, id)} ${JSON.stringify([el(h, id), h.ledger.getSuspension(id)])}`)
+    assert.equal(h.ledger.getSuspension(id), null); const after = pkgOf(h, id); assert.notEqual(after.package_digest, before.package_digest); assert.equal(after.package.staging.run_id, before.package.staging.run_id, 'the unchanged staging result is the same run, re-verified')
+    noMerge(h); h.close()
+  })
+}
+
+test('review M1 (Opus): currentEligibility is NOT eligible when the REMOTE drifted — foreign push onto the PR branch, PR closed, PR back to draft, main advanced', async () => {
+  for (const kind of ['foreign_push', 'closed', 'draft', 'main_advanced']) {
+    const h = await harness(); const id = h.submit(); await toEligible(h, id); assert.equal((await h.delivery.currentEligibility(id)).eligible, true, 'control')
+    if (kind === 'foreign_push') h.github.foreignPush(h.ledger.delivery(id).branch, 'f'.repeat(40))
+    if (kind === 'closed') { pr(h, id).state = 'closed'; h.github.save() }
+    if (kind === 'draft') { pr(h, id).draft = true; h.github.save() }
+    if (kind === 'main_advanced') h.github.advanceMain('e'.repeat(40))
+    const e = await h.delivery.currentEligibility(id); assert.equal(e.eligible, false, kind); assert.ok(e.problems.some((p) => /REMOTE_HEAD_NOT_CANDIDATE|PR_NOT_OWNED|PR_DRAFT|MAIN_ADVANCED/.test(p)), `${kind}: ${e.problems.join()}`)
+    noMerge(h); h.close()
+  }
+})
+
+test('review M2 (Opus): eligibility needs EVERY artifact the package lists, the handoff and dependency currency; a renewable one (publication receipt) is re-issued, an approval is not faked', async () => {
+  const h = await harness(); const id = h.submit(); await toEligible(h, id)
+  const kill = (type) => { for (const r of usableEvidence(h.ledger, id, h.policy, { types: [type] })) h.ledger.invalidateEvidence(r.evidence_id) }
+  for (const type of ['independent_review', 'test_results', 'task_authority', 'publication_receipt']) {
+    const x = await harness(); const i2 = x.submit(); await toEligible(x, i2)
+    for (const r of usableEvidence(x.ledger, i2, x.policy, { types: [type] })) x.ledger.invalidateEvidence(r.evidence_id)
+    const e = x.ledger.getTask(i2) && (await x.delivery.currentEligibility(i2)); assert.equal(e.eligible, false, type); assert.ok(e.problems.some((p) => p.includes(type)), `${type}: ${e.problems.join()}`); x.close()
+  }
+  // handoff withdrawn (approvals no longer current / task handed back): not eligible even though the evidence rows are untouched
+  h.ledger.db.prepare('UPDATE tasks SET handoff_ready=0 WHERE task_id=?').run(id); assert.ok((await h.delivery.currentEligibility(id)).problems.includes('HANDOFF_WITHDRAWN')); h.ledger.db.prepare('UPDATE tasks SET handoff_ready=1 WHERE task_id=?').run(id)
+  assert.equal(el(h, id).eligible, true); void kill
+  // renewable: the publication receipt (6 h) is re-issued from the issuer's own read and the package renewed — eligibility returns without any approval being faked
+  for (const r of usableEvidence(h.ledger, id, h.policy, { types: ['publication_receipt'] })) h.ledger.invalidateEvidence(r.evidence_id)
+  assert.equal(el(h, id).eligible, false); const r = await h.drive({ until: () => el(h, id).eligible, maxRounds: 200 }); assert.ok(r.done, JSON.stringify(el(h, id)))
+  assert.ok(usableEvidence(h.ledger, id, h.policy, { types: ['publication_receipt'] }).length >= 1); noMerge(h); h.close()
+})
+
+test('review (Sonnet 4): a queued run that NEVER starts is bounded — a technical suspension, not an endless wait', async () => {
+  const h = await harness({ dcfg: { pendingMaxMs: 3600_000 }, gh: { ciDisabled: true } }); const id = h.submit()
+  const r = await h.drive({ until: () => !!h.ledger.getSuspension(id), maxRounds: 400 }); assert.ok(r.done); assert.match(h.ledger.getSuspension(id).cause, /CI_RESULT_MISSING|CI_PENDING_TOO_LONG/); h.close()
+})
