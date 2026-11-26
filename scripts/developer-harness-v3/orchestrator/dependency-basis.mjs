@@ -34,6 +34,12 @@ const sameIdentity = (a, b) => json(identity(a)) === json(identity(b))
 /** Which dependencies' candidate/tree differ from the recorded basis. */
 const changedIds = (basis, observed) => { const by = new Map(basis.map((x) => [x.id, x])); return observed.filter((o) => { const x = by.get(o.id); return !x || x.candidate !== o.candidate || x.tree !== o.tree }).map((o) => o.id) }
 
+/** A refusal is recorded ONCE per distinct dependency state (a task that keeps waiting must not write a recovery row on every advance). */
+export function noteOnce(L, id, kind, detail) {
+  const key = `dep_note:${id}:${kind}`; const sig = digestOf({ detail, basis: identity(observeBasis(L, id)), stale: !!staleOf(L, id) })
+  if (L.meta(key) === sig) return false
+  L.setMeta(key, sig); L.recordRecovery(id, kind, detail); return true
+}
 export const staleOf = (L, id) => read(L, `dep_stale:${id}`)
 export const basisOf = (L, id) => read(L, `dep_basis:${id}`)
 

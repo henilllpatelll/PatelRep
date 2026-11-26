@@ -145,9 +145,8 @@ test('F1 unit boundary: a candidate that CHANGES while a test unit runs cannot y
   try {
     const old = L.currentCandidate(Y)
     h.adapters.tests.runUnit = async ({ unit }) => { calls.push(unit); if (unit === 'u2.test.mjs') assert.ok(L.submitCandidate(Y, { base_sha: old.base_sha, candidate_sha: 'a'.repeat(40), tree_digest: 'b'.repeat(40), patch_digest: 'c'.repeat(64) }).ok); return OK }
-    await s.round(); await s.round()
-    assert.ok(!calls.includes('u3.test.mjs') || calls.indexOf('u3.test.mjs') > calls.indexOf('u2.test.mjs'))
-    assert.equal(calls.filter((c) => c === 'u3.test.mjs').length <= 1, true)
+    await s.round()
+    assert.deepEqual(calls, ['u1.test.mjs', 'u2.test.mjs'], 'u3 of the superseded candidate never started')
     assert.equal(L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=? AND candidate_sha=?').get(Y, old.candidate_sha).c, 0, 'no run is recorded for the superseded candidate')
     assert.equal(L.db.prepare("SELECT COUNT(*) c FROM evidence WHERE task_id=? AND evidence_type='test_results' AND invalidated_at IS NULL").get(Y).c, 0)
     assert.notEqual(L.getTask(Y).state, 'independent_review', 'the stale run did not advance the task')

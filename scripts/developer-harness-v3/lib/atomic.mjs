@@ -3,7 +3,7 @@
 // Controller-side state (execution records, leases, reservations, ownership) is written with write-temp + fsync + rename so a crash or power
 // loss leaves either the old or the new file, never a half-written one. Readers bound the size and validate the schema; a file that fails
 // validation is reported as corrupt and is NEVER treated as authoritative (callers fail closed). This is minimal recovery state, not the D3.4 ledger.
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeSync } from 'node:fs'
+import { closeSync, existsSync, fsyncSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import path from 'node:path'
 
@@ -66,16 +66,22 @@ export function acquireLock(file, record, { isHolderAlive, hook = null } = {}) {
     if (alive !== false) return { ok: false, code: 'LOCK.HELD', holder: held.value }
     hook?.('judged_stale')
     // ---- serialized takeover
-    const mutexBody = JSON.stringify({ pid: process.pid, nonce, acquired_at: record.acquired_at, takeover_of: held.value.nonce ?? null })
+    const mutexBody = JSON.stringify({ ...record, pid: process.pid, nonce, acquired_at: record.acquired_at, takeover_of: held.value.nonce ?? null }) // carries the breaker's identity (start/name) so a reused pid cannot keep a dead breaker's mutex alive
     try { create(mutexFile, mutexBody) } catch (e) {
       if (e.code !== 'EEXIST') return { ok: false, code: 'LOCK.IO_ERROR' }
       const m = readJsonState(mutexFile, objectRecord)
+      // an EMPTY / half-written mutex (its breaker crashed between create and write) is breakable once it is clearly old; a readable one only when its holder is verifiably dead
+      const oldCorrupt = !m.ok && m.code === 'STATE.CORRUPT' && (() => { try { return Date.now() - statSync(mutexFile).mtimeMs > 10_000 } catch { return false } })()
       const mAlive = m.ok && typeof isHolderAlive === 'function' ? isHolderAlive(m.value) : null
-      if (mAlive !== false) return { ok: false, code: 'LOCK.TAKEOVER_BUSY' }
+      if (mAlive !== false && !oldCorrupt) return { ok: false, code: 'LOCK.TAKEOVER_BUSY' }
       const dead = `${mutexFile}.dead.${process.pid}.${randomBytes(6).toString('hex')}`
       try { renameSync(mutexFile, dead) } catch { return { ok: false, code: 'LOCK.TAKEOVER_BUSY' } }
       const got = readJsonState(dead, objectRecord)
-      if (!got.ok || got.value.nonce !== m.value.nonce) return { ok: false, code: 'LOCK.AMBIGUOUS' } // not the record that was judged dead: leave it, fail closed
+      if (oldCorrupt ? got.ok : (!got.ok || got.value.nonce !== m.value.nonce)) { // what we moved is NOT the record we judged dead (a live breaker replaced it first): put it back WITHOUT clobbering anything (link fails if the path is taken), then fail closed
+        let restored = false; try { linkSync(dead, mutexFile); restored = true } catch { /* the path is taken again: the evidence stays under its .dead name */ }
+        if (restored) rmSync(dead, { force: true })
+        return { ok: false, code: 'LOCK.AMBIGUOUS' }
+      }
       rmSync(dead, { force: true }); continue
     }
     let verdict = null

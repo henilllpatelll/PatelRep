@@ -80,6 +80,33 @@ test('ambiguous states fail closed: an unreadable lock is never taken over; a ta
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
+test('review N2: an empty / half-written takeover mutex is broken once clearly old (not before); a dead breaker mutex carrying a REUSED pid is judged by identity', async () => {
+  const { utimesSync } = await import('node:fs'); const dir = tmp(); const lock = path.join(dir, 'x.lock'); const mutex = `${lock}.takeover`
+  try {
+    writeFileSync(lock, JSON.stringify(DEAD)); writeFileSync(mutex, '')
+    assert.equal(acquireLock(lock, { execution_id: 'C', acquired_at: 'x' }, { isHolderAlive: deadOnly }).code, 'LOCK.TAKEOVER_BUSY', 'a fresh empty mutex may be a breaker mid-write: never broken')
+    const old = new Date(Date.now() - 60_000); utimesSync(mutex, old, old)
+    const ok = acquireLock(lock, { execution_id: 'C', acquired_at: 'x' }, { isHolderAlive: deadOnly }); assert.equal(ok.ok, true, 'an old corrupt mutex is cleared and the dead holder lock taken over'); assert.ok(holdsLock(lock, ok.nonce))
+    rmSync(lock); rmSync(mutex, { force: true }); writeFileSync(lock, JSON.stringify(DEAD)); writeFileSync(mutex, JSON.stringify({ pid: process.pid, start: 'not-my-start', nonce: 'm' }))
+    const reused = acquireLock(lock, { execution_id: 'C', acquired_at: 'x' }, { isHolderAlive: (h) => (h.start === 'not-my-start' ? false : h.pid !== 999999) }); assert.equal(reused.ok, true, 'the mutex record names a pid+start that is not alive any more: broken by identity')
+    // the breaker own mutex record now carries its identity
+    let seen = null; rmSync(lock); writeFileSync(lock, JSON.stringify(DEAD)); acquireLock(lock, { execution_id: 'C', acquired_at: 'x', start: 'S1', name: 'node.exe' }, { isHolderAlive: deadOnly, hook: (n) => { if (n === 'mutex_held') seen = JSON.parse(readFileSync(mutex, 'utf8')) } })
+    assert.equal(seen.start, 'S1'); assert.equal(seen.name, 'node.exe')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('review M2: breaking a DEAD takeover mutex never displaces a LIVE one — the live mutex is put back untouched and the attempt fails closed', () => {
+  const dir = tmp(); const lock = path.join(dir, 'x.lock'); const mutex = `${lock}.takeover`
+  try {
+    writeFileSync(lock, JSON.stringify(DEAD)); writeFileSync(mutex, JSON.stringify({ pid: 999999, nonce: 'dead-mutex' }))
+    const live = JSON.stringify({ pid: process.pid, nonce: 'live-mutex' })
+    const r = acquireLock(lock, { execution_id: 'C', acquired_at: 'x' }, { isHolderAlive: (h) => { if (h.nonce === 'dead-mutex') { rmSync(mutex); writeFileSync(mutex, live); return false } return h.pid !== 999999 } }) // a second breaker replaced the dead mutex with its own live one before we moved it
+    assert.equal(r.ok, false); assert.equal(r.code, 'LOCK.AMBIGUOUS')
+    assert.equal(readFileSync(mutex, 'utf8'), live, "the live breaker's mutex is back at its path")
+    assert.deepEqual(readdirSync(dir).filter((n) => /\.dead\./.test(n)), [], 'nothing left behind'); assert.equal(JSON.parse(readFileSync(lock, 'utf8')).nonce, 'deadnonce', 'the lock itself was not touched')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
 test('release and re-check: only the holder\'s own nonce releases; a lock that was replaced is detected before the next irreversible step', () => {
   const dir = tmp(); const lock = path.join(dir, 'x.lock')
   try {

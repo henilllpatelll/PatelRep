@@ -102,8 +102,9 @@ export function judgeWorkload(table, recorded, { lastSeenMs, slackMs } = {}) {
     }
     closure()
   }
-  // unproven: claims descent from a recorded process whose lifetime we cannot bound (never recorded as seen, no heartbeat) — held, never killed
-  const unproven = table.filter((p) => !ours.has(p.pid) && recStart.has(p.ppid) && Number(p.start) >= recStart.get(p.ppid) && !Number.isFinite(lastAlive(rec.find((r) => r.pid === p.ppid)))).map((p) => ({ ...identityOf(p), reason: 'CLAIMS_DESCENT_UNPROVEN' }))
+  // unproven (review N1): ANY live process that claims descent from a recorded process (its ppid is that pid, it was created after it) and is not proven ours — held, never killed. The only exception is a
+  // pid now held by a live STRANGER: a process created after that stranger started is the stranger's own child (a child cannot predate its parent), not ours and not in doubt.
+  const unproven = table.filter((p) => !ours.has(p.pid) && recStart.has(p.ppid) && Number(p.start) >= recStart.get(p.ppid) && !(live.has(p.ppid) && reused.includes(p.ppid) && Number(p.start) >= Number(live.get(p.ppid).start))).map((p) => ({ ...identityOf(p), reason: 'CLAIMS_DESCENT_UNPROVEN' }))
   return { ours: [...ours.values()].sort((a, b) => Number(b.start) - Number(a.start)), unproven, reused }
 }
 

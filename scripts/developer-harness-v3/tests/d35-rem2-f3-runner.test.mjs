@@ -108,8 +108,11 @@ test('F3: a surviving descendant whose ownership cannot be PROVEN holds the stat
     const x = await interrupted(f); tree = x.tree
     kill(tree.runner); await x.r1.done; await waitFor(() => !alive(tree.test)) // the runner dies, its job takes the test process with it; the detached grandchild is an orphan
     edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); j.workload.descendants = j.workload.descendants.filter((d) => d.pid !== tree.grandchild); for (const d of [j.workload.root, ...j.workload.descendants]) delete d.seen_at; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)); db.prepare('DELETE FROM resource_samples').run() }) // nothing bounds when the dead parent was last alive: unprovable
+    const beat = unit(f, 'b.test.mjs').result.heartbeat; assert.ok(Number.isFinite(beat), 'the unit carries its own heartbeat')
     const res = await startRunner(f, 'a,b', ['--workload-wait-min', '0.01']).done
     assert.equal(res.code, 75, res.out); assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.match(res.out, /"why":"WORKLOAD_UNPROVEN"/)
+    const res2 = await startRunner(f, 'a,b', ['--workload-wait-min', '0.01']).done; assert.equal(res2.code, 75)
+    assert.equal(unit(f, 'b.test.mjs').result.heartbeat, beat, 'review M1: held invocations never widen the window in which the dead root counts as alive')
     assert.equal(alive(tree.grandchild), true, 'the unproven orphan was NOT killed')
     assert.equal(unit(f, 'b.test.mjs').status, 'running', 'the held state is retained'); assert.equal(runs(f).length, 1, 'no duplicate execution')
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
@@ -124,6 +127,21 @@ test('F3: a unit whose workload identity was never recorded cannot be proven sto
     const res = await startRunner(f, 'a,b').done
     assert.equal(res.code, 75, res.out); assert.match(res.out, /"why":"WORKLOAD_IDENTITY_UNKNOWN"/)
     assert.equal(runs(f).length, 1); assert.equal(alive(tree.grandchild), true, 'nothing was killed on an unproven identity')
+  } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
+})
+
+test('review N3: the operator release of a unit whose identity was never recorded works ONLY when its recorded runner and root pid are both gone', { timeout: 180_000 }, async () => {
+  const f = fixture(); let tree
+  try {
+    const x = await interrupted(f); tree = x.tree
+    kill(tree.runner); await x.r1.done
+    edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); delete j.workload; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
+    // the root (node --test) died with the runner's job, but the forged record still names a live pid: refuse while ANY recorded owner could be alive
+    edit(f, (db) => { const j = unit(f, 'b.test.mjs').result; j.pid = process.pid; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
+    const refused = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done; assert.equal(refused.code, 75, refused.out); assert.match(refused.out, /RELEASE_REFUSED/); assert.equal(runs(f).length, 1)
+    edit(f, (db) => { const j = unit(f, 'b.test.mjs').result; j.pid = tree.root; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
+    kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild) && !alive(tree.root))
+    const released = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done; assert.equal(released.code, 0, released.out); assert.match(released.out, /released_by_operator/); assert.equal(runs(f).length, 2)
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
@@ -156,9 +174,9 @@ test('judgeWorkload (pure): recorded identity, descent from a proven process, or
   // root alive: its children (any depth) are ours; an unrelated process and a PRE-DATING "child" are not
   let j = judgeWorkload([P(10, 1, 1000), P(11, 10, 1100), P(12, 11, 1200), P(50, 1, 900), P(51, 10, 900)], rec, { lastSeenMs: 5000 })
   assert.deepEqual(j.ours.map((p) => p.pid).sort(), [10, 11, 12]); assert.deepEqual(j.unproven, [])
-  // root dead: an orphan created inside [root.start, lastSeen+slack] is ours; one created after that cannot be its child (a stranger's) and is neither ours nor claimed
+  // root dead: an orphan created inside [root.start, lastSeen+slack] is ours; one created after that still CLAIMS descent: unproven (held)
   j = judgeWorkload([P(11, 10, 1100), P(13, 10, 9000)], rec, { lastSeenMs: 5000, slackMs: 1000 })
-  assert.deepEqual(j.ours.map((p) => p.pid), [11]); assert.deepEqual(j.unproven, [])
+  assert.deepEqual(j.ours.map((p) => p.pid), [11]); assert.deepEqual(j.unproven.map((p) => p.pid), [13], 'created after the window but still claiming descent from the dead root: held, never killed')
   // a recorded descendant that died: its orphans are bounded by when IT was last seen alive
   const rec2 = { ...rec, descendants: [{ pid: 20, ppid: 10, start: '1500', name: 'node.exe', cmdline: 'c20', seen_at: 3000 }] }
   j = judgeWorkload([P(21, 20, 2500), P(22, 20, 4200)], rec2, { lastSeenMs: 5000, slackMs: 500 })
@@ -166,6 +184,10 @@ test('judgeWorkload (pure): recorded identity, descent from a proven process, or
   // the recorded root's pid is now a STRANGER: it is never ours; only what was created strictly inside the window the root was seen alive is
   j = judgeWorkload([P(10, 1, 7777, 'other.exe', 'x'), P(11, 10, 1100), P(14, 10, 5200)], rec, { lastSeenMs: 5000 })
   assert.deepEqual(j.reused, [10]); assert.deepEqual(j.ours.map((p) => p.pid), [11], 'the stranger is not ours')
+  // review N1: an orphan of a recorded process that died is UNPROVEN when it falls outside every proven window (here: created long after the parent was last seen) — never silently "stopped"
+  j = judgeWorkload([P(23, 20, 40000)], rec2, { lastSeenMs: 5000, slackMs: 500 }); assert.equal(j.ours.length, 0); assert.deepEqual(j.unproven.map((p) => p.pid), [23])
+  // ...but a child of the STRANGER that now holds a recorded pid (created after the stranger) is the stranger's own and is left alone
+  j = judgeWorkload([P(10, 1, 7777, 'other.exe', 'x'), P(60, 10, 8000)], rec, { lastSeenMs: 5000 }); assert.equal(j.ours.length, 0); assert.deepEqual(j.unproven, [])
   // no heartbeat and no last-seen → the dead parent's lifetime cannot be bounded: an orphan CLAIMING descent is unproven (held, never killed)
   j = judgeWorkload([P(11, 10, 1100)], rec, { lastSeenMs: NaN }); assert.equal(j.ours.length, 0); assert.deepEqual(j.unproven.map((p) => p.pid), [11])
   assert.equal(sameProcess(P(10, 1, 1000, 'node.exe', 'c10'), rec.root), true); assert.equal(sameProcess(P(10, 1, 1001, 'node.exe', 'c10'), rec.root), false)

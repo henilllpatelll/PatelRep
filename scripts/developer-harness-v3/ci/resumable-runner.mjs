@@ -53,7 +53,7 @@ export function holderAlive(h, { table = readProcessTableSync, alive = isPidAliv
   return p ? p.start === h.start : null
 }
 
-function runChild(root, rel, { onPid, onWorkload, workloadOf, sample, intervalMs, snapMs }) {
+function runChild(root, rel, { onPid, onWorkload, workloadOf, beat, sample, intervalMs, snapMs }) {
   return new Promise((resolve) => {
     const p = spawn(process.execPath, ['--test', '--test-reporter=spec', '--test-concurrency=1', rel], { cwd: root, env: minimalEnv(), stdio: ['ignore', 'pipe', 'pipe'] })
     onPid(p.pid)
@@ -64,7 +64,7 @@ function runChild(root, rel, { onPid, onWorkload, workloadOf, sample, intervalMs
     let out = ''; const cap = 64 * 1024 * 1024
     const killOnExit = () => { try { p.kill() } catch { /* gone */ } }; process.once('exit', killOnExit) // our own child never outlives the runner (review S-7)
     p.stdout.on('data', (d) => { if (out.length < cap) out += d }); p.stderr.on('data', (d) => { if (out.length < cap) out += d })
-    const tick = setInterval(sample, Math.max(200, Math.floor(intervalMs / 3))) // memory is sampled WHILE the unit runs: the classification needs in-window evidence
+    const tick = setInterval(() => { sample(); beat() }, Math.max(200, Math.floor(intervalMs / 3))) // memory is sampled WHILE the unit runs: the classification needs in-window evidence
     let timedOut = false; const kill = setTimeout(() => { timedOut = true; p.kill() }, FILE_TIMEOUT_MS)
     p.on('exit', (code, signal) => { exited = true; clearInterval(tick); clearTimeout(kill); clearTimeout(first); clearInterval(snapTimer); process.removeListener('exit', killOnExit); resolve({ status: code, signal, out, timedOut }) })
   })
@@ -91,18 +91,25 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
   const L = Ledger.open(stateFile)
   try {
     openGroup(L, { groupId, units: files })
-    const prevLastSeen = recentSamples(L, null, CTX, 1)[0]?.at ?? NaN // the dead runner's last heartbeat (read BEFORE our own first sample)
     const sample = () => { const s = { at: L.now(), free_mb: readFree(sampleFile) }; recordSample(L, null, CTX, s); return s }
     sample()
     // F3: a unit still `running` belongs to a runner that is gone — but its WORKLOAD (the test process tree) may not be. It is re-run only after that is PROVEN stopped; only provably task-owned processes are ever terminated.
+    const releaseUnit = arg(argv, '--release-unproven-unit') // OPERATOR ACTION (docs 29/30): releases ONE running unit whose workload identity was never recorded, and ONLY when everything that could be its owner is verifiably gone
     for (const u of unitsOf(L, groupId).filter((x) => x.status === 'running')) {
       const waitStart = L.now(); let v
+      if (releaseUnit === u.unit_id && !u.result.workload?.root) {
+        const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : null; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
+        if (runnerDead === true && rootGone) { log(`WORKLOAD ${u.unit_id} → released_by_operator (no identity was recorded; the recorded runner and root pid are both gone)
+`); continue }
+        log(`${JSON.stringify({ ok: false, code: 'RELEASE_REFUSED', unit: u.unit_id, runner_dead: runnerDead, root_gone: rootGone, state: stateFile })}
+`); return 75
+      }
       for (;;) {
-        v = await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: prevLastSeen })
+        v = await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: Number(u.result.heartbeat) })
         if (v.verified || v.code === 'WORKLOAD_IDENTITY_UNKNOWN' || L.now() - waitStart > cfg.workloadWaitMs) break
         await sleep(cfg.sampleIntervalMs)
       }
-      if (!v.verified) { L.setMeta(`runner_hold:${groupId}`, JSON.stringify({ unit: u.unit_id, code: v.code, at: L.now() })); log(`${JSON.stringify({ ok: false, code: 'UNIT_WORKLOAD_NOT_PROVEN_STOPPED', unit: u.unit_id, why: v.code, unproven: (v.unproven ?? []).map((p) => ({ pid: p.pid, name: p.name, reason: p.reason })).slice(0, 10), state: stateFile })}
+      if (!v.verified) { L.setMeta(`runner_hold:${groupId}`, JSON.stringify({ unit: u.unit_id, code: v.code, at: L.now() })); log(`${JSON.stringify({ ok: false, code: 'UNIT_WORKLOAD_NOT_PROVEN_STOPPED', unit: u.unit_id, why: v.code, hint: v.code === 'WORKLOAD_IDENTITY_UNKNOWN' ? 'no identity was recorded; if the recorded runner and root pid are gone, re-run with --release-unproven-unit <unit>' : undefined, unproven: (v.unproven ?? []).map((p) => ({ pid: p.pid, name: p.name, reason: p.reason })).slice(0, 10), state: stateFile })}
 `); return 75 }
       log(`WORKLOAD ${u.unit_id} → ${v.how}${v.terminated?.length ? ` (${v.terminated.length} task-owned process(es) terminated)` : ''}
 `)
@@ -129,6 +136,7 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
       const startedAt = L.now(); const rerun = u.status !== 'pending'
       startUnit(L, groupId, u.unit_id, { rerun })
       const r = await runChild(root, path.join(testDir, u.unit_id), { onPid: (pid) => L.db.prepare('UPDATE test_units SET result_json=? WHERE group_id=? AND unit_id=?').run(JSON.stringify({ started_at: startedAt, pid, rerun, runner: me ? { pid: me.pid, start: me.start } : null }), groupId, u.unit_id),
+        beat: () => { const cur = L.db.prepare("SELECT result_json FROM test_units WHERE group_id=? AND unit_id=? AND status='running'").get(groupId, u.unit_id); if (cur) L.db.prepare("UPDATE test_units SET result_json=? WHERE group_id=? AND unit_id=? AND status='running'").run(JSON.stringify({ ...JSON.parse(cur.result_json), heartbeat: L.now() }), groupId, u.unit_id) }, // THIS unit's own liveness proof: only the runner that is executing it writes it (an invocation that merely held or died earlier cannot widen it)
         workloadOf: () => { const cur = L.db.prepare("SELECT result_json FROM test_units WHERE group_id=? AND unit_id=? AND status='running'").get(groupId, u.unit_id); return cur ? (JSON.parse(cur.result_json).workload ?? null) : null }, snapMs: cfg.snapMs,
         onWorkload: (workload) => { const cur = L.db.prepare("SELECT result_json FROM test_units WHERE group_id=? AND unit_id=? AND status='running'").get(groupId, u.unit_id); if (cur) L.db.prepare("UPDATE test_units SET result_json=? WHERE group_id=? AND unit_id=? AND status='running'").run(JSON.stringify({ ...JSON.parse(cur.result_json), workload }), groupId, u.unit_id) }, sample, intervalMs: cfg.sampleIntervalMs })
       sample()
