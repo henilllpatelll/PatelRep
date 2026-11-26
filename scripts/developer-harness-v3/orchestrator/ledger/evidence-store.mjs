@@ -10,7 +10,7 @@ export const authorityOf = (task) => ({ repository: task.repository, base_sha: t
 
 export function bindingFor(ledger, taskId, policy) {
   const t = ledger.getTask(taskId); const c = ledger.currentCandidate(taskId)
-  return { repository: t.repository, base_sha: t.base_sha, candidate_sha: c?.candidate_sha, tree_digest: c?.tree_digest, patch_digest: c?.patch_digest, policy_revision: policy.revision,
+  return { repository: t.repository, base_sha: ledger.currentBase(taskId), candidate_sha: c?.candidate_sha, tree_digest: c?.tree_digest, patch_digest: c?.patch_digest, policy_revision: policy.revision,
     environment_id: t.environment_id ?? undefined, authority_digest: digestOf(authorityOf(t)) }
 }
 
@@ -59,8 +59,10 @@ export function usableEvidence(ledger, taskId, policy, { types = null } = {}) {
   const t = ledger.getTask(taskId); const now = ledger.now()
   const rows = ledger.db.prepare('SELECT * FROM evidence WHERE task_id=? AND invalidated_at IS NULL AND expires_at>? AND fencing_token=? AND policy_revision=?').all(taskId, now, t.fencing_token, policy.revision)
   return rows.filter((r) => (!types || types.includes(r.evidence_type)) && (r.candidate_sha === null || r.candidate_sha === t.head_sha)
-    && (!policy.contract.evidence_types[r.evidence_type]?.single_use || r.consumed_at === null)).map((r) => ({ ...r, envelope: JSON.parse(r.envelope_json) }))
+    && Object.hasOwn(policy.contract.evidence_types, r.evidence_type) // D3.6: own keys only (the D3.4 informational residual): an inherited name is never an evidence type
+    && (!policy.contract.evidence_types[r.evidence_type].single_use || r.consumed_at === null)).map((r) => ({ ...r, envelope: JSON.parse(r.envelope_json) }))
 }
+export const isSingleUse = (policy, type) => Object.hasOwn(policy.contract.evidence_types, type) && policy.contract.evidence_types[type].single_use === true
 export const satisfyingEvidence = (ledger, taskId, policy, type) => usableEvidence(ledger, taskId, policy, { types: [type] }).filter((r) => isSatisfying(r.envelope.payload))
 
 /** Atomically consume every id or none. Call inside the SAME transaction as the intent it authorizes (see intents.mjs beginIntent). */

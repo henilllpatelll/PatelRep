@@ -18,7 +18,9 @@
 import { digestOf } from '../lib/canonical.mjs'
 import { suspendTechnically } from './suspension.mjs'
 
-const BUILT_STATES = ['testing', 'independent_review', 'security_review', 'publishing']
+// D3.6: the delivery states are BUILT states too: a dependency change while a task is published, in CI, in staging or merge-eligible withdraws its approvals exactly like before
+// publication (authoritative lifecycle: fail closed; proposal P6v2 `dependency_rebuild` adds the delivery states to the rebuild edge).
+const BUILT_STATES = ['testing', 'independent_review', 'security_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible']
 const GATED_STATES = ['implementing', ...BUILT_STATES]
 const json = (v) => JSON.stringify(v)
 const read = (L, key) => { try { return JSON.parse(L.meta(key) ?? 'null') } catch { return null } }

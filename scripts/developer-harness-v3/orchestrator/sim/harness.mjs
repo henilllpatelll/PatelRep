@@ -57,10 +57,10 @@ export function loadOrMakePolicy(dirs) {
  * @param {{root:string, scenario?:object, clock?:FixtureClock, cfg?:object, hook?:Function, isolation?:object, issuerEndpoints?:object|null}} o
  *   issuerEndpoints: when given, the engine talks to REAL issuer processes over authenticated IPC; otherwise IssuerCore instances run in-process (tests only).
  */
-export function createHarness({ root, scenario = {}, clock = new FixtureClock(), cfg = {}, hook = null, isolation = null, issuerEndpoints = null, ledgerOptions = {} }) {
+export function createHarness({ root, scenario = {}, clock = new FixtureClock(), cfg = {}, hook = null, isolation = null, issuerEndpoints = null, ledgerOptions = {}, makePolicy = null }) {
   const dirs = { root, keys: path.join(root, 'keys-outside-repo'), world: path.join(root, 'world'), snapshots: path.join(root, 'snapshots'), issuer: path.join(root, 'issuer'), ledger: path.join(root, 'ledger.sqlite') }
   for (const d of Object.values(dirs)) if (!d.endsWith('.sqlite')) mkdirSync(d, { recursive: true })
-  const pol = loadOrMakePolicy(dirs)
+  const pol = makePolicy ? makePolicy(dirs) : loadOrMakePolicy(dirs) // D3.6: the delivery harness supplies its own (test-key) policy builder
   const ledger = Ledger.open(dirs.ledger, { clock: clock.now, ...ledgerOptions })
   saveWorld(dirs.world, loadWorld(dirs.world))
   const adapters = createSimAdapters({ dir: dirs.world, clock: clock.now, scenario, ledger })

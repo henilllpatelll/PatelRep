@@ -8,7 +8,7 @@ import path from 'node:path'
 import { Ledger } from '../orchestrator/ledger/ledger.mjs'
 import { acceptEvidence } from '../orchestrator/ledger/evidence-store.mjs'
 import { beginIntent, getIntent, markDispatched, markUncertain, reconcileIntent, recordOutcome, retryIntent } from '../orchestrator/ledger/intents.mjs'
-import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW } from './helpers.mjs'
+import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW, proveAbsent, signedObservation } from './helpers.mjs'
 
 const ACTION = 'publish_candidate_branch' // safeguarded; required evidence: task_authority + test_results (contract); requires_activation
 const AUTH = { allowed_paths: ['apps/mobile/**', 'supabase/migrations/**'], denied_paths: [] }
@@ -84,14 +84,15 @@ test('F3: reconciliation accepts ONLY explicit, validated, authoritative observa
     { ...OBS(row), observed_at: row.created_at - 5 }, { ...OBS(row), params_digest: 'f'.repeat(64) }, { ...OBS(row), candidate_sha: HEAD2 }, { ...OBS(row), source: '' }, { ...OBS(row), source: 5 }, { ...OBS(row), unavailable: true }, { ...OBS(row), state: 'present', pr: null }]
   for (const o of bad) { const r = reconcileIntent(S.L, iid, { observation: o }); assert.equal(r.ok, false, JSON.stringify(o)); assert.equal(r.code, 'INTENT.RECONCILIATION_INCONCLUSIVE'); assert.equal(getIntent(S.L, iid).status, 'uncertain') }
   assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE'); assert.equal(begin(S, S.fresh(), { idempotencyKey: 'pub-2' }).code, 'INTENT.UNRECONCILED_PRIOR')
-  assert.ok(reconcileIntent(S.L, iid, { observation: OBS(row) }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent'); S.L.close()
+  assert.equal(reconcileIntent(S.L, iid, { observation: OBS(row) }).problems[0], 'OBSERVATION.UNAUTHENTICATED', 'D3.6: even the well-formed caller object is not an observation')
+  assert.ok(proveAbsent(S.L, S.pol, iid, { reconcileIntent, getIntent }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent', 'D3.6: absence = two authenticated reads'); S.L.close()
 })
 
 test('F3: a retry re-validates EVERYTHING; expired or invalid authorization is never reused, and a NEW authorized intent supersedes the old reconciled one without re-consuming single-use evidence', () => {
   const S = setup(); const ids = S.fresh(); const i = begin(S, ids); const iid = i.intent.intent_id; const row = getIntent(S.L, iid)
-  assert.ok(dispatch(S, iid).ok); assert.ok(recordOutcome(S.L, iid, { success: false, outcome: { error: 'timeout' } }).ok); assert.equal(getIntent(S.L, iid).status, 'failed')
+  assert.ok(dispatch(S, iid).ok); assert.equal(recordOutcome(S.L, iid, { success: false, outcome: { error: 'timeout' } }).status, 'uncertain', 'D3.6: a timeout is UNCERTAIN, never proof of absence'); assert.ok(proveAbsent(S.L, S.pol, iid, { reconcileIntent, getIntent }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent')
   assert.ok(retryIntent(S.L, iid, { policy: S.policy }).ok, 'still-valid authorization may be retried after a proven-absent/failed effect'); assert.ok(dispatch(S, iid).ok); assert.ok(markUncertain(S.L, iid).ok)
-  assert.ok(reconcileIntent(S.L, iid, { observation: OBS(row) }).ok); S.clock.t += 3_100_000 // the authorization EXPIRES while the effect was being reconciled
+  assert.ok(proveAbsent(S.L, S.pol, iid, { reconcileIntent, getIntent }).ok); S.clock.t = S.L.now() + 3_100_000; S.L.clock = () => S.clock.t // the authorization EXPIRES while the effect was being reconciled
   const r = retryIntent(S.L, iid, { policy: S.policy }); assert.equal(r.ok, false); assert.equal(r.code, 'EVIDENCE.EXPIRED'); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent', 'refused retry changes nothing')
   assert.equal(begin(S, ids, { idempotencyKey: 'pub-2', supersedes: iid }).code, 'EVIDENCE.ALREADY_CONSUMED', 'single-use semantics intact: the old evidence is not re-consumed')
   const fresh = S.fresh(); const n = begin(S, fresh, { idempotencyKey: 'pub-2', supersedes: iid }); assert.ok(n.ok, JSON.stringify(n)); assert.equal(getIntent(S.L, iid).superseded_by, n.intent.intent_id); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE', 'a superseded intent is dead')
@@ -108,7 +109,7 @@ test('F3: supersession is only legal over a PROVEN-absent (or failed) intent —
 
 test('F3: reconciling a PRESENT effect records success and a retry of it is refused forever', () => {
   const S = setup(); const i = begin(S, S.fresh()); const iid = i.intent.intent_id; const row = getIntent(S.L, iid); assert.ok(dispatch(S, iid).ok); assert.ok(markUncertain(S.L, iid).ok)
-  assert.ok(reconcileIntent(S.L, iid, { observation: OBS(row, { state: 'present' }), outcome: { pr: 3 } }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE'); S.L.close()
+  assert.ok(reconcileIntent(S.L, iid, { observation: signedObservation(S.pol, row, { state: 'present', observed_at: S.L.now() }), outcome: { pr: 3 } }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE'); S.L.close()
 })
 
 test('F3/F5/F6/F4 schema: a V1 ledger migrates to V2 in place (data kept, constraints widened, new tables present) and V2 is readable by the read-only issuer handle', async () => {
@@ -132,9 +133,10 @@ test('F3: duplicate evidence ids in one intent are ONE authorization, not a cons
 test('R3-5: the EFFECT is unique, not only its authorization: two intents of one effect cannot both be in flight, a failed sibling must be superseded explicitly, and a succeeded effect is never fired again via a retry', () => {
   const S = setup(); const a = begin(S, S.fresh(), { idempotencyKey: 'A' }); const b = begin(S, S.fresh(), { idempotencyKey: 'B' }); assert.ok(a.ok && b.ok, 'both may be RECORDED')
   assert.ok(dispatch(S, a.intent.intent_id).ok); assert.equal(dispatch(S, b.intent.intent_id).code, 'INTENT.EFFECT_NOT_UNIQUE', 'the second is refused while the first is in flight')
-  assert.ok(recordOutcome(S.L, a.intent.intent_id, { success: false, outcome: { error: 'timeout' } }).ok); assert.ok(dispatch(S, b.intent.intent_id).ok); assert.ok(recordOutcome(S.L, b.intent.intent_id, { success: true, outcome: { pr: 1 } }).ok)
+  assert.ok(recordOutcome(S.L, a.intent.intent_id, { success: false, outcome: { error: 'timeout' } }).ok); assert.equal(dispatch(S, b.intent.intent_id).code, 'INTENT.EFFECT_NOT_UNIQUE', 'D3.6: an UNCERTAIN effect still blocks its sibling')
+  assert.ok(proveAbsent(S.L, S.pol, a.intent.intent_id, { reconcileIntent, getIntent }).ok); assert.ok(dispatch(S, b.intent.intent_id).ok); assert.ok(recordOutcome(S.L, b.intent.intent_id, { success: true, outcome: { pr: 1 } }).ok)
   assert.equal(retryIntent(S.L, a.intent.intent_id, { policy: S.policy }).code, 'INTENT.EFFECT_NOT_UNIQUE', 'A (failed) can no longer re-fire an effect B already achieved')
   assert.throws(() => S.L.db.exec("UPDATE action_intents SET status='dispatched'"), /UNIQUE|constraint/i, 'and the database itself refuses two in-flight effects'); S.L.close()
-  const T = setup(); const c = begin(T, T.fresh(), { idempotencyKey: 'C' }); assert.ok(dispatch(T, c.intent.intent_id).ok); assert.ok(recordOutcome(T.L, c.intent.intent_id, { success: false, outcome: {} }).ok)
+  const T = setup(); const c = begin(T, T.fresh(), { idempotencyKey: 'C' }); assert.ok(dispatch(T, c.intent.intent_id).ok); assert.ok(recordOutcome(T.L, c.intent.intent_id, { success: false, outcome: {} }).ok); assert.ok(proveAbsent(T.L, T.pol, c.intent.intent_id, { reconcileIntent, getIntent }).ok)
   assert.equal(begin(T, T.fresh(), { idempotencyKey: 'D' }).code, 'INTENT.SIBLING_NOT_SUPERSEDED'); assert.ok(begin(T, T.fresh(), { idempotencyKey: 'D', supersedes: c.intent.intent_id }).ok); T.L.close()
 })

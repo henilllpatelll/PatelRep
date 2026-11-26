@@ -33,9 +33,11 @@ function legacyLedger(file, version) {
   return db
 }
 
-test('schema: V1 and V2 are byte-for-byte the released SQL; V3 is additive and the version is 3', () => {
-  assert.equal(SCHEMA_VERSION, 3)
-  assert.deepEqual(MIGRATIONS.map((m) => m.version), [1, 2, 3])
+test('schema: V1, V2 and (since D3.6) V3 are byte-for-byte the released SQL; V3 and V4 are additive (V4 drops only the outbox it rebuilds to widen a CHECK); the version is 4', () => {
+  assert.equal(SCHEMA_VERSION, 4) // D3.6: V4 added (intentional expectation change, doc 40)
+  assert.deepEqual(MIGRATIONS.map((m) => m.version), [1, 2, 3, 4])
+  assert.equal(sha(MIGRATIONS[2].sql), '6cb67c397e7ca6b321d954d9afe38ff74f5c2c754fa3fe7b15d0f47804932fd5', 'V3 must never change (released in D3.5)')
+  assert.deepEqual([...MIGRATIONS[3].sql.matchAll(/DROP\s+(TABLE|INDEX|TRIGGER)\s+(\w+)/gi)].map((m) => m[2]), ['outbox'], 'V4 drops nothing but the outbox it rebuilds (rows kept)')
   assert.equal(sha(MIGRATIONS[0].sql), '071f80d1e563756cb80642463e4d62f955bb00966ae2cf3b7d73a3dfe2370ea8', 'V1 must never change')
   assert.equal(sha(MIGRATIONS[1].sql), '7c4c0e4d9572ce04658d55d106ebf82628538835b0824d857510682e724a42e6', 'V2 must never change')
   for (const forbidden of [/DROP\s+INDEX/i, /DROP\s+TABLE/i, /DROP\s+TRIGGER/i]) assert.doesNotMatch(MIGRATIONS[2].sql, forbidden, 'V3 removes nothing')
@@ -53,7 +55,7 @@ for (const from of [1, 2]) {
     db.exec("INSERT INTO evidence_nonces(nonce,payload_digest,seen_at) VALUES ('nonce-old','pd',1)")
     db.close()
     const L = Ledger.open(file, { clock: () => 5 })
-    assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, 3)
+    assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, SCHEMA_VERSION) // D3.6: migrates through V3 to the latest
     assert.equal(L.meta('ledger_id'), 'legacy-ledger', 'the ledger identity survives migration')
     assert.equal(L.getTask('t-old').fencing_token, 2)
     assert.equal(L.slotHolder().lease_id, 'l-old'); assert.equal(L.slotHolder().reasoning_slot, 1, 'a pre-V3 lease occupies slot 1')
@@ -72,7 +74,7 @@ test('migration: a fault INSIDE the V3 transaction leaves the ledger at V2, inta
   assert.equal(raw.prepare('PRAGMA user_version').get().user_version, 2)
   assert.equal(raw.prepare("SELECT COUNT(*) c FROM sqlite_master WHERE name IN ('slot_config','work_leases','authority_log')").get().c, 0, 'no partial V3 object survives')
   raw.close()
-  const L = Ledger.open(file); assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, 3); L.close()
+  const L = Ledger.open(file); assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, SCHEMA_VERSION); L.close()
 })
 
 test('migration: a REAL process killed (SIGKILL) inside the V3 migration transaction leaves V2; the next open migrates to V3', async () => {
@@ -82,7 +84,7 @@ test('migration: a REAL process killed (SIGKILL) inside the V3 migration transac
   assert.match(r.out, /KILLING/); assert.doesNotMatch(r.out, /NOT_KILLED/); assert.notEqual(r.code, 0, 'the process really died mid-transaction')
   const raw = new DatabaseSync(file, { readOnly: true }); assert.equal(raw.prepare('PRAGMA user_version').get().user_version, 2); raw.close()
   const L = Ledger.open(file)
-  assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, 3)
+  assert.equal(L.db.prepare('PRAGMA user_version').get().user_version, SCHEMA_VERSION)
   assert.equal(L.db.prepare("SELECT COUNT(*) c FROM evidence_nonces WHERE nonce='n1'").get().c, 1, 'consumed-nonce history preserved')
   L.close()
 })

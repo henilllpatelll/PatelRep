@@ -15,8 +15,12 @@ import { D33_THRESHOLDS } from '../runtime/resource-governor.mjs'
 import { acquireWork, closeWork, liveWork, materializeWork, supersedeWork } from './ledger/slots.mjs'
 import { createHash } from 'node:crypto'
 import { safeCode, suspendTechnically } from './suspension.mjs'
+import { withDeadline } from './delivery/watchdog.mjs'
 
-export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768, maxStepExceptions: 3, stepExceptionBackoffMs: 60_000 }) // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
+export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768, maxStepExceptions: 3, stepExceptionBackoffMs: 60_000, // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
+  // D3.6-I (R-20): the round stops WAITING for a step after `stepDetachMs` (real time) — the step keeps running and keeps everything it holds; its task is excluded until it settles.
+  // After `stepCeilingMs[kind]` cooperative cancellation is requested (the session stops gracefully at its next unit boundary). Nothing is ever killed or released by a timer.
+  stepDetachMs: 5 * 60_000, stepCeilingMs: Object.freeze({ ai: 21 * 3600_000, heavy: 2 * 3600_000, det: 15 * 60_000 }) })
 
 const WILD = /[*?[{]/
 const SEG_SPLIT = (g) => g.toLowerCase().split('/').filter((s) => s !== '')
@@ -103,7 +107,7 @@ const AI_STATES = new Set(['planning', 'implementing', 'independent_review', 'se
 const PRE_CLAIM = new Set(['submitted', 'queued', 'dependency_waiting'])
 
 export class Scheduler {
-  constructor(engine, cfg = {}) { this.e = engine; this.cfg = { ...SCHED_DEFAULTS, ...cfg }; this.maxConcurrent = 0; this.live = 0 }
+  constructor(engine, cfg = {}) { this.e = engine; this.cfg = { ...SCHED_DEFAULTS, ...cfg }; this.maxConcurrent = 0; this.live = 0; this.hung = new Map() }
   get L() { return this.e.ledger }
 
   passes() { return Object.fromEntries(this.L.db.prepare('SELECT task_id, passes FROM schedule_state').all().map((r) => [r.task_id, r.passes])) }
@@ -170,12 +174,12 @@ export class Scheduler {
     const e = this.e; const L = this.L; const A = e.adapters
     await e.deliverOutbox()
     const stuck = new Set((await e.reconcileOrphans({ reason: 'WORKER_TERMINATED' })).map((s) => s.task_id))
-    for (const w of liveWork(L)) { if (e.inflightWork.has(w.work_id)) { stuck.add(w.task_id); continue } let v = null; try { v = await A.tests?.verifyStopped?.(w) } catch { v = null } if (supersedeWork(L, { workId: w.work_id, stopVerified: v?.verified === true }).ok !== true) stuck.add(w.task_id) } // rounds never overlap: a live work lease here is an orphan
+    for (const w of liveWork(L)) { if (e.inflightWork.has(w.work_id) || e.detached.has(w.task_id)) { stuck.add(w.task_id); continue } let v = null; try { v = await A.tests?.verifyStopped?.(w) } catch { v = null } if (supersedeWork(L, { workId: w.work_id, stopVerified: v?.verified === true }).ok !== true) stuck.add(w.task_id) } // rounds never overlap: a live work lease here is an orphan
     // rounds never overlap: a pre-launch reservation still held here belongs to a round that died with its controller
     for (const r of L.db.prepare("SELECT holder_ref FROM reservations WHERE state='held' AND holder_ref LIKE 'sched-ai:%'").all()) if (!e.inflightHolders.has(r.holder_ref)) L.releaseReservation(r.holder_ref)
     this.checkGraph(); this.checkDependencyBasis(); this.releaseFinishedClaims()
     const now0 = L.now() // a task whose step threw is backed off (persisted), never re-admitted in the same instant
-    const rows = L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'").filter((r) => !stuck.has(r.task_id) && !((this.#stepExc(r.task_id)?.next_at ?? 0) > now0))
+    const rows = L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'").filter((r) => !stuck.has(r.task_id) && !this.hung.has(r.task_id) && !((this.#stepExc(r.task_id)?.next_at ?? 0) > now0))
     const passes = this.passes()
     const ranked = rankTasks(rows, { now: L.now(), passes, cfg: this.cfg })
     const items = ranked.map((r) => { const t = L.getTask(r.task_id); return { id: r.task_id, kind: this.kindOf(t), footprint: footprintOf(t), needsClaim: this.needsClaim(t), claimed: this.claimOf(r.task_id) } })
@@ -193,8 +197,11 @@ export class Scheduler {
     // the single-flight exclusion, every sibling's reservation and the orphan-reconciliation rules — ends only when EVERY admitted step has settled.
     for (const r of admitted) { if (r.holder) e.inflightHolders.add(r.holder); if (r.work?.ok) e.inflightWork.add(r.work.work.work_id) }
     let results
-    try { results = await Promise.all(admitted.map((r) => this.#runStep(r))) } finally {
-      for (const r of admitted) { if (r.holder) { e.inflightHolders.delete(r.holder); L.releaseReservation(r.holder) }; if (r.work?.ok) e.inflightWork.delete(r.work.work.work_id) }
+    // D3.6-I (R-20): a step that outlives its deadline is DETACHED — the round stops waiting for it, but it is NOT abandoned: it keeps its reservation, work slot and lease (all stay in
+    // flight), its task is excluded from new rounds, and ONLY its own late settlement releases them (#detach). Every step that settles in time is released exactly as before.
+    const release = (r) => { if (r.holder) { e.inflightHolders.delete(r.holder); L.releaseReservation(r.holder) }; if (r.work?.ok) e.inflightWork.delete(r.work.work.work_id) }
+    try { results = await Promise.all(admitted.map((r) => this.#bounded(r, release))) } finally {
+      for (const r of admitted) if (!this.hung.has(r.id)) release(r)
     }
     this.releaseFinishedClaims()
     const progressed = results.filter((x) => x.progressed)
@@ -203,6 +210,20 @@ export class Scheduler {
     return { progressed: progressed.length > 0, ran: admitted.map((r, i) => ({ id: r.id, kind: r.kind, action: results[i].action ?? null })), errors, skipped: plan.skipped, stuck: [...stuck], next_wakeup: wake.length ? Math.min(...wake) : null }
   }
 
+  /** Run one step under the watchdog. On the detach deadline the step is recorded as unresolved and DETACHED; on its ceiling, cooperative cancellation is requested. */
+  async #bounded(r, release) {
+    const e = this.e; const L = this.L; const p = this.#runStep(r)
+    if (!Number.isFinite(this.cfg.stepDetachMs) || this.cfg.stepDetachMs <= 0) return p
+    const holds = [r.holder, r.work?.work?.work_id].filter(Boolean)
+    const w = await withDeadline(L, { opId: `step:${r.id}:${L.now()}:${Math.random().toString(36).slice(2, 8)}`, taskId: r.id, kind: `step:${r.kind}`, ms: this.cfg.stepDetachMs, holds }, () => p)
+    if (!w.timedOut) return w.value
+    this.hung.set(r.id, { kind: r.kind, since: L.now() }); e.detached.add(r.id)
+    try { L.recordRecovery(r.id, 'watchdog_step_detached', { kind: r.kind, holds }) } catch { /* best effort */ }
+    const ceiling = this.cfg.stepCeilingMs?.[r.kind]; let t = null
+    if (Number.isFinite(ceiling)) { t = setTimeout(() => { if (this.hung.has(r.id)) { e.cancelRequested.add(r.id); try { L.recordRecovery(r.id, 'watchdog_cooperative_cancel_requested', { kind: r.kind }) } catch { /* best effort */ } } }, Math.max(0, ceiling - this.cfg.stepDetachMs)); t.unref?.() }
+    w.settled.catch(() => {}).finally(() => { clearTimeout(t); release(r); this.hung.delete(r.id); e.detached.delete(r.id); e.cancelRequested.delete(r.id); try { L.recordRecovery(r.id, 'watchdog_step_settled_late', { kind: r.kind }); this.releaseFinishedClaims() } catch { /* best effort */ } })
+    return { progressed: false, error: 'WATCHDOG.STEP_DETACHED' }
+  }
   /** The step wrapper that NEVER rejects: an unexpected exception becomes a recorded, bounded failure of that one task. */
   async #runStep(r) {
     try { const x = await this.#runOne(r); if (x.progressed) this.L.db.prepare('DELETE FROM meta WHERE key=?').run(`step_exc:${r.id}`); return x } catch (err) { return { progressed: false, error: this.#noteStepException(r.id, err) } }

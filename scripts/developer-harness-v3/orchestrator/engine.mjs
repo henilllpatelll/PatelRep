@@ -49,11 +49,15 @@ export class Engine {
   /** Work-lease ids and pre-launch reservation holders of the scheduling round that is running RIGHT NOW: never an orphan, whatever a later reconciliation concludes (D3.5 independent verification F1). */
   inflightWork = new Set()
   inflightHolders = new Set()
+  /** D3.6-I (R-20): tasks whose scheduler step outlived its watchdog deadline and is STILL RUNNING in this process. Everything such a step holds is in flight, never an orphan. */
+  detached = new Set()
+  /** D3.6-I: tasks whose detached step passed its hard ceiling: cooperative cancellation is requested — the next unit-boundary re-admission refuses, so the session stops GRACEFULLY there. */
+  cancelRequested = new Set()
   /** Reconcile every orphaned live lease, each on its own (task-scoped). @returns {Promise<object[]>} the ones that could NOT be cleared (they keep their slot). */
   async reconcileOrphans({ reason = 'WORKER_TERMINATED' } = {}) {
     const stuck = []
     for (const l of this.ledger.liveLeases()) {
-      if (this.inflight.has(l.lease_id)) continue
+      if (this.inflight.has(l.lease_id) || this.detached.has(l.task_id)) continue // a detached step's lease is live work of THIS process, not an orphan
       const r = await reconcileSlot(this, { reason, lease: l })
       if (!r.cleared) stuck.push({ task_id: l.task_id, lease_id: l.lease_id, code: r.code })
     }
@@ -72,6 +76,7 @@ export class Engine {
   async checkAdmission(taskId, need, { ownLease = null, ownWork = this.ownWork.get(taskId) ?? null, reverified = false } = {}) {
     const L = this.ledger; const A = this.adapters; const now = L.now(); const t = L.getTask(taskId)
     if (t.cancelled) return { ok: false, kind: 'cancelled', codes: ['TASK.CANCELLED'] }
+    if (this.cancelRequested.has(taskId)) return { ok: false, kind: 'wait', state: 'waiting_resources', reason: 'HOST_UNRESPONSIVE', eligible_at: now + this.cfg.resourceRecheckMs, codes: ['WATCHDOG.STEP_CEILING'] } // cooperative: stop at THIS boundary
     if (!L.requirementsIntact(taskId)) return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['TASK.REQUIREMENTS_TAMPERED'] }
     // D3.5: slots are per task. `own` = the asker's OWN live lease (continuing a session it holds); any other occupancy counts against the slot capacity (default 1 = the D3.4 single slot).
     const mine = L.leaseOfTask(taskId); const own = !!ownLease && !!mine && mine.lease_id === ownLease.lease_id && mine.state === 'active'
@@ -255,6 +260,9 @@ export class Engine {
       case 'independent_review': return stages.review(this, taskId, 'independent_review')
       case 'security_review': return stages.review(this, taskId, 'security_review')
       case 'publishing': return await stages.handoff(this, taskId)
+      // D3.6: a task IN DELIVERY whose local handoff was withdrawn (a transient dependency wait) re-establishes it from still-valid evidence of the SAME candidate; the delivery controller
+      // (delivery/controller.mjs) then continues. A changed candidate never reaches this: a head change always returns the task to `testing`.
+      case 'ci_running': case 'staging_verification': case 'merge_eligible': return await stages.handoff(this, taskId)
       default: return none // paused, blocked (owner-only exit), stages beyond D3.4's scope
     }
   }

@@ -221,7 +221,7 @@ export async function implementing(e, taskId) {
 /** @returns {string|null} a problem code. Scope and secrets are enforced on the RE-DERIVED path list, never on what the session says it changed. */
 function checkCandidate(e, task, f) {
   if (!f?.ok) return f?.code ?? 'CANDIDATE.NOT_DERIVABLE'
-  if (f.base_sha !== task.base_sha) return 'CANDIDATE.WRONG_BASE'
+  if (f.base_sha !== e.ledger.currentBase(task.task_id)) return 'CANDIDATE.WRONG_BASE' // D3.6: the current delivery base (= the submitted base until a base update)
   if (!Array.isArray(f.changed_paths) || !f.changed_paths.length) return 'CANDIDATE.EMPTY'
   if (f.changed_paths.length > e.policy.contract.limits.max_changed_paths) return 'CANDIDATE.TOO_MANY_CHANGES'
   for (const p of f.changed_paths) { const c = checkEntry({ path: p, mode: '100644' }, task.scope); if (c.length) return c[0].replace('SNAPSHOT.', 'CANDIDATE.') }
