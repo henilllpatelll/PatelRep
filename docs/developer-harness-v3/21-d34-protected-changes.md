@@ -57,6 +57,7 @@ Rendered from `orchestrator/activation-gates.mjs` (tested for completeness again
 | G-CLI-EFFORT | `--effort`/`--model` verified on the pinned guest binary | open | host 2.1.332 help + parser | run `parseCliHelp` in the guest |
 | G-TECH-SUSPENSION-STATE | Technical suspension is a first-class lifecycle state | prepared | inactive ledger suspension + P5 + reducer test | owner applies P5 and re-pins |
 | G-UNATTENDED-LONG-WAIT | Unattended waits > 6 h without owner re-verification of extra usage | open | cool-downs kept under the fact lifetime (tested); longer quota waits still need the owner | owner decision on unattended re-verification |
+| G-INTENT-EVALUATOR | Trusted evaluator integration + authenticated reconciliation source before any real effect | open | intents check evidence satisfaction; NOT the evaluator; reconciliation input unauthenticated (simulated) | D3.6 (doc 18 §8 F3b) |
 | G-LIVE-ADAPTER | A reviewed live session adapter exists | open | simulated only | D3.9 |
 | G-BYPASS-ACTIVATION | Bypass only inside proven isolation | open | never requested | D3.9 ceremony |
 

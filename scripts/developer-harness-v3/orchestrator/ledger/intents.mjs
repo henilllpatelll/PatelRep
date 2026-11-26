@@ -5,6 +5,8 @@
 // it becomes `uncertain`, and an uncertain intent may only be reconciled against the remote's real state before anything is retried. D3.4 ships no live
 // delivery adapter and activates no action; this is the interface D3.6 must use.
 //
+// NOT THE AUTHORITY EVALUATOR (F3b): this layer is crash-safety + single-use bookkeeping. It re-checks evidence validity AND satisfaction (D3.2 isSatisfying) but runs none of the evaluator's per-action
+// checks and trusts caller-supplied reconciliation observations. D3.6 must call authority evaluate() before every dispatch/retry and use an AUTHENTICATED reconciliation source (doc 18 §8, gate G-INTENT-EVALUATOR).
 // Remediation F3: an intent's authorization is re-validated at DISPATCH and at RETRY (not only at creation); reconciliation accepts only explicit, validated, authoritative observations;
 // a retry never reuses expired or invalid authorization; a NEW authorized intent supersedes an old PROVEN-absent one without re-consuming single-use evidence.
 import { digestOf } from '../../lib/canonical.mjs'
@@ -38,7 +40,7 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
   if (intent.fencing_token !== t.fencing_token) return 'INTENT.STALE_FENCING_TOKEN'
   if (intent.lease_id) { if (!lease) return 'INTENT.LEASE_REQUIRED'; if (lease.lease_id !== intent.lease_id) return 'INTENT.LEASE_MISMATCH' }
   if (lease) { const c = ledger.checkLease(lease); if (c) return c }
-  const spec = policy.contract.actions?.[intent.action]
+  const spec = Object.hasOwn(policy.contract.actions ?? {}, intent.action) ? policy.contract.actions[intent.action] : undefined // own keys only: 'constructor'/'toString'/'__proto__' are not actions
   if (!spec) return 'INTENT.UNKNOWN_ACTION'
   if (spec.class === 'prohibited') return 'INTENT.ACTION_PROHIBITED'
   if (!atCreation && spec.requires_activation === true && !(policy.contract.activation?.active_actions ?? []).includes(intent.action)) return 'INTENT.ACTION_NOT_ACTIVE'
