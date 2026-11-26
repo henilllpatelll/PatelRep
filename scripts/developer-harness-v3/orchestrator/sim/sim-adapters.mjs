@@ -27,10 +27,11 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
   function writeWork(task, unit, spec, stage) {
     if (stage !== 'implementing') { if (spec.plant) writeFileTree(wtDir(dir, task.task_id), [{ path: spec.plant.path, content: enc(spec.plant.content ?? 'planted by a read-only session\n') }]); return }
     const root = wtDir(dir, task.task_id); const w = loadWorld(dir); const cur = w.versions[task.task_id] ?? 0
-    const file = path.join(root, 'apps', 'mobile', 'feature.txt')
+    const rel = typeof task.requirements?.sim_path === 'string' ? task.requirements.sim_path : 'apps/mobile/feature.txt' // D3.5 multi-task scenarios: each task writes its own file
+    const file = path.join(root, ...rel.split('/'))
     mkdirSync(path.dirname(file), { recursive: true })
     const prev = existsSync(file) ? readFileSync(file, 'utf8') : ''
-    writeFileTree(root, [{ path: 'apps/mobile/feature.txt', content: enc(`${prev}unit ${unit} of v${cur + 1}\n`) }, ...(spec.extraFiles ?? []).filter(() => spec.extraFilesOnUnit == null || spec.extraFilesOnUnit === unit).map((x) => ({ path: x.path, content: enc(x.content) }))])
+    writeFileTree(root, [{ path: rel, content: enc(`${prev}unit ${unit} of v${cur + 1}\n`) }, ...(spec.extraFiles ?? []).filter(() => spec.extraFilesOnUnit == null || spec.extraFilesOnUnit === unit).map((x) => ({ path: x.path, content: enc(x.content) }))])
   }
 
   /** What a COMPLETED session hands back (the controller still re-derives and validates everything that matters). */
@@ -152,6 +153,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
       },
     },
     tests: {
+      async verifyStopped() { return { verified: true } }, // the simulated suite runs in-process: once run() returned nothing of it is left running
       async run({ task }) {
         const idx = L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(task.task_id).c
         const spec = (sc.tests ?? [])[idx] ?? (sc.tests ?? []).at(-1) ?? { passed: true }

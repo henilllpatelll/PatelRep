@@ -287,7 +287,7 @@ async function consumeDeliverable(e, taskId, kind, reviewId, lease) {
   if (!rv || !d || rv.status !== 'open') return discard(['REVIEW.DELIVERABLE_MISSING'])
   const ex = L.getExecution(d.execution_id)
   if (ex && !['terminated_verified', 'abandoned'].includes(ex.status)) return NONE // the session's stop is not proven (yet): nothing is accepted, nothing is bought; recovery decides
-  if (L.slotHolder()?.execution_id === d.execution_id) return NONE
+  if (L.liveLeaseOfExecution(d.execution_id)) return NONE // its lease still occupies a slot (D3.5: looked up per execution, not as "the" slot holder)
   const problems = []
   if (!cand || rv.candidate_sha !== cand.candidate_sha || rv.tree_digest !== cand.tree_digest || d.candidate_sha !== rv.candidate_sha || d.tree_digest !== rv.tree_digest) problems.push('REVIEW.DELIVERABLE_CANDIDATE_MISMATCH')
   if (!ex || ex.execution_id !== rv.execution_id || ex.context_id !== rv.context_id || d.context_id !== rv.context_id) problems.push('REVIEW.DELIVERABLE_EXECUTION_MISMATCH')

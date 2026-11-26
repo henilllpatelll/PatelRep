@@ -33,6 +33,20 @@ export class Engine {
     Object.assign(this, { ledger, policy, adapters, rng, hookFn: hook, snapshotRoot, mode, cfg: { ...ENGINE_DEFAULTS, ...cfg, renewal: { ...RENEWAL_DEFAULTS, ...(cfg.renewal ?? {}) }, retry: { ...RETRY_DEFAULTS, ...(cfg.retry ?? {}) }, technical: { ...TECH_DEFAULTS, ...(cfg.technical ?? {}) } } })
   }
   hook(name, ctx = {}) { this.hookFn?.(name, ctx) }
+  /** Leases this controller process is running right now (the parallel scheduler); every OTHER live lease is an orphan of a dead controller or a crashed session. */
+  inflight = new Set()
+  /** Work slots (heavy tests) the scheduler holds for a task while its step runs: the task's own work is not counted against itself at admission. */
+  ownWork = new Map()
+  /** Reconcile every orphaned live lease, each on its own (task-scoped). @returns {Promise<object[]>} the ones that could NOT be cleared (they keep their slot). */
+  async reconcileOrphans({ reason = 'WORKER_TERMINATED' } = {}) {
+    const stuck = []
+    for (const l of this.ledger.liveLeases()) {
+      if (this.inflight.has(l.lease_id)) continue
+      const r = await reconcileSlot(this, { reason, lease: l })
+      if (!r.cleared) stuck.push({ task_id: l.task_id, lease_id: l.lease_id, code: r.code })
+    }
+    return stuck
+  }
   /** The admission a stage needs (also used by the session runner to RE-admit at every unit boundary and before every fresh session). */
   needFor(stage) { return NEEDS[stage] ?? null }
   /** Start a fresh budget for a technically suspended task (operator/test convenience — NOT a permission decision). */
@@ -43,15 +57,19 @@ export class Engine {
    * Pure with respect to the ledger's task state: decides whether `stage` may start (or, with `ownLease`, may CONTINUE) now. Never starts anything.
    * `ownLease` = the lease of the session that is asking to continue: the slot it holds is its OWN, not an unrelated occupied reasoning slot; any other holder is still `busy`.
    */
-  async checkAdmission(taskId, need, { ownLease = null } = {}) {
+  async checkAdmission(taskId, need, { ownLease = null, ownWork = this.ownWork.get(taskId) ?? null } = {}) {
     const L = this.ledger; const A = this.adapters; const now = L.now(); const t = L.getTask(taskId)
     if (t.cancelled) return { ok: false, kind: 'cancelled', codes: ['TASK.CANCELLED'] }
     if (!L.requirementsIntact(taskId)) return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['TASK.REQUIREMENTS_TAMPERED'] }
-    const holder = L.slotHolder(); const own = !!ownLease && !!holder && holder.lease_id === ownLease.lease_id && holder.task_id === taskId && holder.state === 'active'
-    if (need.ai && holder && !own) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
+    // D3.5: slots are per task. `own` = the asker's OWN live lease (continuing a session it holds); any other occupancy counts against the slot capacity (default 1 = the D3.4 single slot).
+    const mine = L.leaseOfTask(taskId); const own = !!ownLease && !!mine && mine.lease_id === ownLease.lease_id && mine.state === 'active'
+    if (need.ai && !own && (mine || L.freeSlots('reasoning') === 0)) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
     if (need.ai && !own && sessionsUsed(L, taskId) >= this.cfg.technical.maxSessionsPerTask) return { ok: false, kind: 'suspend', cause: 'SESSION_BUDGET_EXHAUSTED', codes: ['SESSION_BUDGET_EXHAUSTED'] } // a NEW session only: continuing the paid one is not a new purchase
     const s = await A.resources.sample()
-    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: holder && !own ? 1 : 0, heavy_test_workloads: s.heavy ?? 0 }, reservations: s.reservations ?? [], now, accel: s.accel })
+    // active counts come from DURABLE leases (never an in-memory guess), and durable not-yet-materialized reservations are subtracted from what is available
+    const counts = L.activeCounts({ excludeLeaseId: own ? ownLease.lease_id : null, excludeWorkId: ownWork?.work_id ?? null })
+    const reservations = [...(s.reservations ?? []), ...L.pendingReservations({ excludeHolder: own ? ownLease.lease_id : ownWork?.work_id ?? null })]
+    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: counts.reasoning_sessions, heavy_test_workloads: Math.max(s.heavy ?? 0, counts.heavy_test_workloads) }, reservations, now, accel: s.accel })
     if (res.decision !== 'admit') return { ok: false, kind: 'wait', state: 'waiting_resources', reason: res.lifecycle_reason, eligible_at: now + this.cfg.resourceRecheckMs + Math.round(this.rng() * 5000), codes: res.reason_codes }
     if (!need.ai) return { ok: true }
     const gov = A.subscription.load()
@@ -107,8 +125,10 @@ export class Engine {
   async tick() {
     const L = this.ledger; const now = L.now()
     await this.deliverOutbox()
-    // recovery of an unverified/orphaned slot comes first: no new session may start while the old one is not proven dead
-    if (L.slotHolder()) { const r = await reconcileSlot(this, { reason: 'WORKER_TERMINATED' }); if (!r.cleared) return { progressed: false, held: true, code: r.code, next_wakeup: now + 5000 } }
+    // recovery of an unverified/orphaned slot comes first: no new session may start while the old one is not proven dead. Since D3.5 this is task-scoped (every live lease this
+    // controller is not itself running is an orphan, reconciled on its own); the sequential engine keeps the D3.4 rule that nothing else advances while any slot is stuck.
+    const stuck = await this.reconcileOrphans({ reason: 'WORKER_TERMINATED' })
+    if (stuck.length) return { progressed: false, held: true, code: stuck[0].code, next_wakeup: now + 5000 }
     for (const row of L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'")) {
       const r = await this.advance(row.task_id)
       if (r.progressed) return { progressed: true, task_id: row.task_id, action: r.action }
@@ -152,7 +172,7 @@ export class Engine {
       }
       case 'waiting_resources': case 'waiting_subscription': case 'waiting_external': return this.tryResume(t)
       case 'worker_recovery': case 'context_recovery': {
-        const r = await reconcileSlot(this, { reason: 'HOST_RESTARTED' })
+        const r = await reconcileSlot(this, { reason: 'HOST_RESTARTED', taskId }) // task-scoped: only THIS task's lease, never another task's
         if (!r.cleared) return none
         const back = L.transition(taskId, L.resumeTarget(taskId)); return back.ok ? done('recovered') : none
       }

@@ -149,7 +149,7 @@ export class IssuerCore {
     // the session's stop must be PROVEN: closed with verified termination, or abandoned by a recovery whose guest cleanup was verified (supersedeLease refuses to abandon anything else).
     // `termination_unverified`, `running`, `starting` — anything else — is refused.
     if (!ex || !['terminated_verified', 'abandoned'].includes(ex.status) || ex.context_id !== r.context_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
-    if (ex.status === 'abandoned' && this.ledger.slotHolder()?.execution_id === ex.execution_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
+    if (ex.status === 'abandoned' && this.ledger.liveLeaseOfExecution(ex.execution_id)) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
     if (ex.role !== (kind === 'independent_review' ? 'independent_reviewer' : 'security_reviewer')) return refuse('ISSUER.WRONG_REVIEWER_ROLE')
     const mv = verifyActualModel({ requested: REVIEW_FAMILY[kind], actual: ex.model_actual, mandatory: true })
     if (ex.model_requested !== REVIEW_FAMILY[kind] || !mv.ok) return refuse('ISSUER.MANDATORY_REVIEW_MODEL_NOT_SATISFIED', mv.code ?? 'ROUTE.WRONG_REQUESTED_MODEL')
