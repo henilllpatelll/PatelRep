@@ -120,9 +120,11 @@ export class Engine {
     const last = Number(this.ledger.meta('billing_reverify_last') ?? 0); if (now - last < this.cfg.subscriptionRecheckMs && last) return { ok: false, code: 'BILLING.REVERIFICATION_RATE_LIMITED' }
     this.ledger.setMeta('billing_reverify_last', now)
     let r = null; try { r = await f() } catch { r = null }
-    if (r && r.supported === true && r.billable === false && r.enabled === true) { this.adapters.subscription.save({ ...gov, extra_usage: { enabled: true, basis: String(r.basis ?? 'reverification').slice(0, 80), verified_at: now } }); return { ok: false, code: 'AUTH.EXTRA_USAGE_ENABLED' } }
+    if (r && r.supported === true && r.billable === false && r.enabled === true) { this.adapters.subscription.save({ ...(this.adapters.subscription.load() ?? gov), extra_usage: { enabled: true, basis: String(r.basis ?? 'reverification').slice(0, 80), verified_at: now } }); return { ok: false, code: 'AUTH.EXTRA_USAGE_ENABLED' } }
     if (!r || r.supported !== true || r.billable !== false || r.enabled !== false || !Number.isFinite(r.verified_at) || r.verified_at > now || now - r.verified_at > 60_000 || typeof r.basis !== 'string' || !/^SIMULATED_[A-Z_]{1,60}$/.test(r.basis)) return { ok: false, code: 'BILLING.REVERIFICATION_UNAVAILABLE' }
-    this.adapters.subscription.save({ ...gov, extra_usage: { enabled: false, basis: r.basis, source: 'adapter_reverification', verified_at: r.verified_at } })
+    const cur = this.adapters.subscription.load() // review S-9: the state may have changed during the await (an owner attestation wins)
+    if (!cur || cur.extra_usage?.enabled !== false || (cur.extra_usage?.verified_at ?? 0) > r.verified_at) return { ok: false, code: 'BILLING.REVERIFICATION_SUPERSEDED' }
+    this.adapters.subscription.save({ ...cur, extra_usage: { enabled: false, basis: r.basis, source: 'adapter_reverification', verified_at: r.verified_at } })
     this.ledger.recordRecovery(null, 'billing_reverified', { basis: r.basis.slice(0, 80), verified_at: r.verified_at })
     return { ok: true }
   }

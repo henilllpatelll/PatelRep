@@ -75,9 +75,9 @@ test('disk-pressure cleanup execution (simulated adapters, temp fixture): remove
   try {
     const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')] })
     f.L.closeLease(f.lease, { terminationVerified: true, endReason: 'completed' }) // while the task holds a live lease only idle-reviewer releases execute (review CR-8)
-    const dry = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: true })
+    const dry = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: true, procFacts: f.procFacts })
     assert.ok(dry.results.every((r) => r.status === 'planned')); assert.ok(existsSync(path.join(f.w1, 'overlay')), 'a dry run changes nothing')
-    const r = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
+    const r = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts })
     assert.deepEqual(r.results.map((x) => x.status), ['verified', 'verified'])
     assert.ok(!existsSync(path.join(f.w1, 'overlay'))); assert.ok(f.stopped.has(4100))
     assert.ok(existsSync(f.t2Overlay) && existsSync(path.join(f.t2Overlay, 'x.bin')), 'the junction target (another task\'s overlay) is intact')
@@ -99,17 +99,17 @@ test('cleanup crash safety: an intent interrupted while executing is RE-VERIFIED
     const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')], kinds: ['worker_overlay'] })
     f.L.closeLease(f.lease, { terminationVerified: true, endReason: 'completed' })
     f.h.engine.hookFn = (name) => { if (name === 'cleanup_executing') throw new Error('CRASH_INJECTED') }
-    await assert.rejects(() => executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false }), /CRASH_INJECTED/)
+    await assert.rejects(() => executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts }), /CRASH_INJECTED/)
     f.h.engine.hookFn = null
     assert.equal(f.L.db.prepare('SELECT status FROM cleanup_intents WHERE dry_run=0').get().status, 'executing')
-    const again = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
+    const again = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts })
     assert.equal(again.results[0].code, 'CLEANUP.INTENT_IN_FLIGHT', 'a second cleanup of the same resource cannot start while the first is unresolved')
     const rec = await reconcileCleanup(f.h.engine, { executor: f.executor })
     assert.deepEqual(rec.map((x) => x.status), ['failed'], 'the directory verifiably still exists: failed (review CR-15), NOT verified')
     assert.ok(existsSync(path.join(f.w1, 'overlay')), 'reconciliation did not delete anything')
-    const again2 = await executeCleanup(f.h.engine, await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, kinds: ['worker_overlay'] }), { executor: f.executor, dryRun: false })
+    const again2 = await executeCleanup(f.h.engine, await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, kinds: ['worker_overlay'] }), { executor: f.executor, dryRun: false, procFacts: f.procFacts })
     assert.deepEqual(again2.results.map((x) => x.status), ['verified'], 'a FAILED intent does not block a fresh, re-planned cleanup')
-    const live = await executeCleanup({ ledger: f.L, adapters: { simulated: false }, hook() {} }, p, { executor: f.executor, dryRun: false })
+    const live = await executeCleanup({ ledger: f.L, adapters: { simulated: false }, hook() {} }, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts })
     assert.equal(live.code, 'CLEANUP.LIVE_EXECUTION_NOT_AUTHORIZED')
   } finally { f.h.close() }
 })
@@ -128,12 +128,18 @@ test('review CR-8: execution re-checks the plan (tampered or stale plans refused
   const f = fixture()
   try {
     const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')] })
-    const live = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
+    const live = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts })
     assert.deepEqual(Object.fromEntries(live.results.map((r) => [r.id, r.code ?? r.status])), { [f.id.overlay]: 'CLEANUP.TASK_HAS_LIVE_LEASE', [f.id.idleReviewer]: 'verified' })
     assert.ok(existsSync(path.join(f.w1, 'overlay')))
     const tampered = { ...p, plan: { ...p.plan, allowed: [...p.plan.allowed, { id: f.id.t2, kind: 'worker_overlay', ref: f.t2Overlay }] } }
-    assert.equal((await executeCleanup(f.h.engine, tampered, { executor: f.executor, dryRun: false })).code, 'CLEANUP.PLAN_TAMPERED')
-    f.h.clock.advance(61_000); assert.equal((await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })).code, 'CLEANUP.PLAN_STALE')
+    assert.equal((await executeCleanup(f.h.engine, tampered, { executor: f.executor, dryRun: false, procFacts: f.procFacts })).code, 'CLEANUP.PLAN_TAMPERED')
+    // review S-2: a forged plan with a RECOMPUTED digest (another task's process, a forged pid) is refused item by item against a fresh plan
+    const forged = { ...p.plan, allowed: [{ id: f.id.running, kind: 'test_process', ref: null, process: { pid: 9999, start_time_ms: 1 } }, { id: f.id.t2, kind: 'worker_overlay', ref: f.t2Overlay, process: null }] }
+    const { digestOf } = await import('../lib/canonical.mjs')
+    const fr = await executeCleanup(f.h.engine, { plan: forged, digest: digestOf(forged) }, { executor: f.executor, dryRun: false, procFacts: f.procFacts })
+    assert.deepEqual(fr.results.map((x) => x.code), ['CLEANUP.NOT_IN_FRESH_PLAN', 'CLEANUP.NOT_IN_FRESH_PLAN']); assert.ok(!f.stopped.has(9999) && existsSync(f.t2Overlay))
+    assert.equal((await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.root })).code, 'CLEANUP.ROOT_MISMATCH', 'a caller cannot widen the task root')
+    f.h.clock.advance(61_000); assert.equal((await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false, procFacts: f.procFacts })).code, 'CLEANUP.PLAN_STALE')
     assert.ok(existsSync(f.t2Overlay))
   } finally { f.h.close() }
 })

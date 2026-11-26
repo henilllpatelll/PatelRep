@@ -428,6 +428,7 @@ CREATE TABLE reservations (
   disk_mb INTEGER NOT NULL CHECK (disk_mb BETWEEN 0 AND 1048576),
   fencing_token INTEGER NOT NULL,
   state TEXT NOT NULL CHECK (state IN ('held','materialized','released')),
+  expires_at INTEGER,
   created_at INTEGER NOT NULL,
   released_at INTEGER
 ) STRICT;

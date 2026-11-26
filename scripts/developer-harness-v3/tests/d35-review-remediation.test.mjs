@@ -103,3 +103,17 @@ test('CR-7: a proposal reducer is refused BEFORE any file is created; the temp c
   assert.equal(Ledger.isTempLedgerPath(path.join(`${os.tmpdir()}-evil`, 'x.sqlite')), false)
   assert.equal(Ledger.isTempLedgerPath(path.join(os.tmpdir(), 'x.sqlite')), true)
 })
+
+test('review S-1: a scheduler pre-reservation carries a real expiry and counts on the HOST side; a termination-unverified slot keeps its reservation counted', async () => {
+  const { pendingReservedMb } = await import('../runtime/resource-governor.mjs')
+  const h = H()
+  try {
+    const L = h.ledger; const a = h.submit({ requirements: { text: 'A' } }); const now = h.clock.now()
+    L.reserveFor(a, 'sched-ai:x', 'reasoning', { mem_mb: 4000 }, { expiresAt: now + 60_000 })
+    assert.equal(pendingReservedMb(L.pendingReservations(), now), 4000)
+    L.releaseReservation('sched-ai:x'); L.transition(a, 'queued'); L.transition(a, 'planning')
+    const l = L.acquireLease({ taskId: a, role: 'planner', stage: 'planning', model: 'sonnet', effort: 'high', ttlMs: 1000, reservation: { mem_mb: 900 } }).lease
+    L.closeLease(l, { terminationVerified: false, endReason: 'x' }); h.clock.advance(10_000)
+    assert.equal(pendingReservedMb(L.pendingReservations(), h.clock.now()), 900, 'an unverified stop keeps its memory counted after the lease expiry')
+  } finally { h.close() }
+})

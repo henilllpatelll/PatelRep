@@ -61,7 +61,8 @@ export class Ledger {
   close() { this.db.close() }
   /** In-memory, or a file whose (resolved) parent directory is the OS temp directory or inside it (path boundary respected; junctions resolved). */
   static isTempLedgerPath(file) {
-    if (file === null || file === ':memory:') return true
+    if (file === ':memory:') return true
+    if (typeof file !== 'string' || !file) return false // review S-8: no file = unknown = refused
     try { const tmp = realpathSync.native(os.tmpdir()); const dir = realpathSync.native(path.dirname(path.resolve(file))); const rel = path.relative(tmp.toLowerCase(), dir.toLowerCase()); return !rel.startsWith('..') && !path.isAbsolute(rel) } catch { return false }
   }
 
@@ -279,16 +280,18 @@ export class Ledger {
     return { reasoning_sessions: this.db.prepare("SELECT COUNT(*) c FROM leases WHERE state IN ('active','termination_unverified') AND lease_id IS NOT ?").get(excludeLeaseId).c,
       heavy_test_workloads: this.db.prepare("SELECT COUNT(*) c FROM work_leases WHERE kind='heavy_test' AND state IN ('active','termination_unverified') AND work_id IS NOT ?").get(excludeWorkId).c }
   }
-  #reserve(taskId, holderRef, profile, r, token, now) {
+  #reserve(taskId, holderRef, profile, r, token, now, expiresAt = null) {
     const mem = r.mem_mb ?? 0; const disk = r.disk_mb ?? 0
     if (!Number.isSafeInteger(mem) || !Number.isSafeInteger(disk)) throw new Error('LEDGER.RESERVATION_MALFORMED')
-    this.db.prepare('INSERT INTO reservations(reservation_id,task_id,holder_ref,profile,mem_mb,disk_mb,fencing_token,state,created_at) VALUES (?,?,?,?,?,?,?,?,?)').run(`rs-${randomUUID()}`, taskId, holderRef, profile, mem, disk, token, 'held', now)
+    this.db.prepare('INSERT INTO reservations(reservation_id,task_id,holder_ref,profile,mem_mb,disk_mb,fencing_token,state,expires_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)').run(`rs-${randomUUID()}`, taskId, holderRef, profile, mem, disk, token, 'held', expiresAt, now)
   }
-  reserveFor(taskId, holderRef, profile, r) { const t = this.getTask(taskId); this.#reserve(taskId, holderRef, profile, r, t.fencing_token, this.now()) }
+  /** A reservation not tied to a lease/work slot (the scheduler's pre-launch promise) must carry its own expiry, or it never counts (review S-1). */
+  reserveFor(taskId, holderRef, profile, r, { expiresAt = null } = {}) { const t = this.getTask(taskId); this.#reserve(taskId, holderRef, profile, r, t.fencing_token, this.now(), expiresAt) }
   releaseReservation(holderRef) { this.db.prepare("UPDATE reservations SET state='released', released_at=? WHERE holder_ref=? AND state<>'released'").run(this.now(), holderRef) }
   /** Memory promised to workloads that have NOT materialized yet, in the governor's reservation shape (it expires with its slot). `excludeHolder` = the asker's own reservation. */
   pendingReservations({ excludeHolder = null, excludeTask = null } = {}) {
-    return this.db.prepare(`SELECT r.holder_ref, r.task_id, r.mem_mb, COALESCE(l.expires_at, w.expires_at, 0) exp FROM reservations r LEFT JOIN leases l ON l.lease_id=r.holder_ref LEFT JOIN work_leases w ON w.work_id=r.holder_ref
+    // expiry: the reservation's own, else its slot's — and a slot whose termination is UNVERIFIED keeps counting whatever its lease expiry says (review S-1)
+    return this.db.prepare(`SELECT r.holder_ref, r.task_id, r.mem_mb, CASE WHEN l.state='termination_unverified' OR w.state='termination_unverified' THEN 8640000000000000 ELSE COALESCE(r.expires_at, l.expires_at, w.expires_at, 0) END exp FROM reservations r LEFT JOIN leases l ON l.lease_id=r.holder_ref LEFT JOIN work_leases w ON w.work_id=r.holder_ref
       WHERE r.state='held' AND r.holder_ref IS NOT ? AND r.task_id IS NOT ?`).all(excludeHolder, excludeTask).map((r) => ({ id: r.holder_ref, task_id: r.task_id, mb: r.mem_mb, materialized: false, expires_at: new Date(r.exp).toISOString() }))
   }
   reservationOf(holderRef) { return plain(this.db.prepare('SELECT * FROM reservations WHERE holder_ref=?').get(holderRef)) }

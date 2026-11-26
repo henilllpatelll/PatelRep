@@ -195,6 +195,8 @@ export class Scheduler {
     await e.deliverOutbox()
     const stuck = new Set((await e.reconcileOrphans({ reason: 'WORKER_TERMINATED' })).map((s) => s.task_id))
     for (const w of liveWork(L)) { let v = null; try { v = await A.tests?.verifyStopped?.(w) } catch { v = null } if (supersedeWork(L, { workId: w.work_id, stopVerified: v?.verified === true }).ok !== true) stuck.add(w.task_id) } // rounds never overlap: a live work lease here is an orphan
+    // rounds never overlap: a pre-launch reservation still held here belongs to a round that died with its controller
+    for (const r of L.db.prepare("SELECT holder_ref FROM reservations WHERE state='held' AND holder_ref LIKE 'sched-ai:%'").all()) L.releaseReservation(r.holder_ref)
     this.checkGraph(); this.checkDependencyBasis(); this.releaseFinishedClaims()
     const rows = L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'").filter((r) => !stuck.has(r.task_id))
     const passes = this.passes()
@@ -208,7 +210,7 @@ export class Scheduler {
       admitted.push(r)
     }
     // review CR-5: every admitted step's memory is RESERVED before any of them starts, so each admission check (inside the stage) sees the others' promises
-    for (const r of admitted) if (r.kind === 'ai' && this.cfg.reasoningReservationMb > 0) { r.holder = `sched-ai:${r.id}:${L.now()}:${Math.random().toString(36).slice(2, 10)}`; L.reserveFor(r.id, r.holder, 'reasoning', { mem_mb: this.cfg.reasoningReservationMb }) }
+    for (const r of admitted) if (r.kind === 'ai' && this.cfg.reasoningReservationMb > 0) { r.holder = `sched-ai:${r.id}:${L.now()}:${Math.random().toString(36).slice(2, 10)}`; L.reserveFor(r.id, r.holder, 'reasoning', { mem_mb: this.cfg.reasoningReservationMb }, { expiresAt: L.now() + e.cfg.leaseTtlMs }) }
     for (const r of admitted) if (r.kind === 'heavy') { const cand = L.currentCandidate(r.id); r.work = acquireWork(L, { taskId: r.id, unitRef: `testing:${cand?.candidate_sha ?? 'none'}`, reservation: { mem_mb: this.cfg.heavyReservationMb } }) }
     let results
     try { results = await Promise.all(admitted.map((r) => this.#runOne(r))) } finally { for (const r of admitted) if (r.holder) L.releaseReservation(r.holder) }

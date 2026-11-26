@@ -43,10 +43,11 @@ function runChild(root, rel, { onPid, sample, intervalMs }) {
   return new Promise((resolve) => {
     const p = spawn(process.execPath, ['--test', '--test-reporter=spec', '--test-concurrency=1', rel], { cwd: root, env: minimalEnv(), stdio: ['ignore', 'pipe', 'pipe'] })
     onPid(p.pid); let out = ''; const cap = 64 * 1024 * 1024
+    const killOnExit = () => { try { p.kill() } catch { /* gone */ } }; process.once('exit', killOnExit) // our own child never outlives the runner (review S-7)
     p.stdout.on('data', (d) => { if (out.length < cap) out += d }); p.stderr.on('data', (d) => { if (out.length < cap) out += d })
     const tick = setInterval(sample, Math.max(200, Math.floor(intervalMs / 3))) // memory is sampled WHILE the unit runs: the classification needs in-window evidence
     let timedOut = false; const kill = setTimeout(() => { timedOut = true; p.kill() }, FILE_TIMEOUT_MS)
-    p.on('exit', (code, signal) => { clearInterval(tick); clearTimeout(kill); resolve({ status: code, signal, out, timedOut }) })
+    p.on('exit', (code, signal) => { clearInterval(tick); clearTimeout(kill); process.removeListener('exit', killOnExit); resolve({ status: code, signal, out, timedOut }) })
   })
 }
 
@@ -57,7 +58,7 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
   if (!fixture) { const reg = checkRegistry(files); if (reg.length) { log(`${JSON.stringify({ ok: false, problems: reg })}\n`); return 1 } }
   const cfg = { ...UNIT_DEFAULTS, freeFloorMb: Number(arg(argv, '--floor-mb', UNIT_DEFAULTS.freeFloorMb)), sampleIntervalMs: Number(arg(argv, '--interval-ms', UNIT_DEFAULTS.sampleIntervalMs)), maxWaitMs: Number(arg(argv, '--max-wait-min', 240)) * 60_000 }
   const sampleFile = arg(argv, '--sample-file'); const reaperFile = arg(argv, '--reaper-record')
-  const code = codeDigest(root, fixture ? [testDir] : ['scripts/developer-harness-v3', 'docs/developer-harness-v3'])
+  const code = codeDigest(root, fixture ? [testDir] : ['scripts/developer-harness-v3', 'docs/developer-harness-v3', 'scripts/developer-harness-v2', 'docs/developer-harness-v2']) // every input the V3 files read (review S-7)
   const groupId = groupIdFor({ runner: 'v3-host', node: process.version, code, files })
   const stateFile = path.resolve(arg(argv, '--state', path.join(os.tmpdir(), 'dh3-resumable-runner', `${groupId}.sqlite`)))
   mkdirSync(path.dirname(stateFile), { recursive: true })
@@ -92,8 +93,9 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
       recordOutcome(L, groupId, u.unit_id, cls, { counts })
       if (cls.kind !== 'passed') { // a non-passing unit keeps a bounded, credential-scanned tail of its output for investigation (never authority)
         const tail = r.out.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').split('\n').filter((l) => /✖|not ok|Error|assert|expected|actual|at .*\.mjs/.test(l)).slice(0, 60).join('\n').slice(0, 8000)
-        L.setMeta(`unit_output:${groupId}:${u.unit_id}:${u.attempts + 1}`, /gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9-]{20,}|BEGIN [A-Z ]*PRIVATE KEY/.test(tail) ? '[REDACTED: credential-shaped content]' : tail)
-        log(`${tail.split('\n').slice(0, 12).map((l) => `     | ${l}`).join('\n')}\n`)
+        const safe = /gh[pousr]_[A-Za-z0-9]{20,}|sk[-_](live_|test_|ant-)?[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}/.test(tail) ? '[REDACTED: credential-shaped content]' : tail
+        L.setMeta(`unit_output:${groupId}:${u.unit_id}:${u.attempts + 1}`, safe)
+        log(`${safe.split('\n').slice(0, 12).map((l) => `     | ${l}`).join('\n')}\n`) // stdout gets the SAME redaction (review S-7)
       }
       const tag = { passed: 'ok  ', genuine_failure: 'FAIL', verified_resource_kill: 'INTR', ambiguous_interruption: 'INTR' }[cls.kind]
       log(`${tag} ${u.unit_id}${rerun ? ' (rerun)' : ''} tests=${counts.tests} pass=${counts.pass} fail=${counts.fail} skipped=${counts.skipped}${cls.kind.includes('interrupt') || cls.kind.includes('kill') ? ` → ${cls.kind}: not a result; will re-run first after re-admission` : ''}\n`)

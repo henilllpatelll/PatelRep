@@ -2,6 +2,7 @@
 // and ADDS what D3.3 left declarative: the mandatory guest cleanup (kill the worker's processes, then verify) BEFORE a lease is superseded or any new
 // session is admitted. Nothing the old session reported is believed; only host facts and the verified cleanup count. Unrelated processes are never touched
 // (the adapters only know task-owned supervisor/guest worker processes — `terminate_unowned_processes` is a prohibited action in the contract).
+import { existsSync } from 'node:fs'
 import { acquireLock, releaseLock } from '../lib/atomic.mjs'
 import { captureWork, persistCheckpoint } from './preserve.mjs'
 import { isPidAlive } from '../runtime/launcher.mjs'
@@ -58,7 +59,8 @@ export async function reconcileSlot(e, { reason = 'HOST_RESTARTED', taskId = nul
 /** Controller start-up: single controller (OS-level lock), uncertain effects, unacknowledged outbox, orphaned reasoning slot. */
 export async function recoverOnStart(e, { lockFile, isHolderAlive = (rec) => isPidAlive(rec.pid), witness = null }) {
   const L = e.ledger
-  if (witness) { const g = checkNotRolledBack(L, witness); if (!g.ok) return { ok: false, code: g.code } } // D3.5 (review CR-9): a ledger behind a trusted witness never runs
+  if (witness) { const g = checkNotRolledBack(L, witness); if (!g.ok) return { ok: false, code: g.code } }
+  if (L.file && L.file !== ':memory:' && existsSync(`${L.file}.restore-journal.json`)) return { ok: false, code: 'RESTORE.JOURNAL_PENDING' } // review S-4: an unsealed restore is completed by recoverLedger, never run // D3.5 (review CR-9): a ledger behind a trusted witness never runs
   const lock = acquireLock(lockFile, { execution_id: 'controller', acquired_at: new Date(L.now()).toISOString() }, { isHolderAlive })
   if (!lock.ok) return { ok: false, code: lock.code }
   const uncertain = markDispatchedAsUncertain(L)

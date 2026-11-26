@@ -44,7 +44,8 @@ export function attempt(L, scope, bucket, cfg = SUPERVISOR_DEFAULTS, code = null
     return { allowed: true, attempts, next_at: next, circuit: 'closed' }
   })
 }
-export const succeeded = (L, scope, bucket) => L.db.prepare('DELETE FROM recovery_attempts WHERE scope=? AND incident=?').run(scope, bucket)
+/** Success resets the count but keeps the minimum back-off before the next attempt (review S-6): a replacement that fails again at once is not immediately free. */
+export const succeeded = (L, scope, bucket, cfg = SUPERVISOR_DEFAULTS) => L.db.prepare("UPDATE recovery_attempts SET attempts=0, circuit='closed', last_at=?, next_at=? WHERE scope=? AND incident=?").run(L.now(), L.now() + cfg.backoffMs[0], scope, bucket)
 export const attemptsOf = (L, scope, bucket) => { const r = L.db.prepare('SELECT * FROM recovery_attempts WHERE scope=? AND incident=?').get(scope, bucket); return r ? { ...r } : null }
 
 export function quarantine(L, { taskId = null, kind, ref, reason, evidence = {} }) {

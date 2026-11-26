@@ -64,7 +64,9 @@ export function pathFacts(ref, root) {
 export async function planTaskCleanup(e, taskId, { procFacts, workspaceRoot = null, protectedRoots = [], kinds = null, now = e.ledger.now() } = {}) {
   const L = e.ledger; const t = L.getTask(taskId)
   if (!t) return { ok: false, code: 'TASK.UNKNOWN' }
-  const root = workspaceRoot ?? L.db.prepare('SELECT worktree_path FROM task_workspaces WHERE task_id=?').get(taskId)?.worktree_path ?? null
+  const wsRoot = L.db.prepare('SELECT worktree_path FROM task_workspaces WHERE task_id=?').get(taskId)?.worktree_path ?? null
+  if (workspaceRoot && wsRoot && path.resolve(workspaceRoot).toLowerCase() !== path.resolve(wsRoot).toLowerCase()) return { ok: false, code: 'CLEANUP.ROOT_MISMATCH' } // a caller can never widen the task's own root
+  const root = wsRoot ?? workspaceRoot ?? null
   const rows = ownedResources(L, taskId).filter((r) => r.lifecycle !== 'removed' && (!kinds || kinds.includes(r.kind)))
   const lastCp = L.latestCheckpoint(taskId)
   const pre = []; const refused = []
@@ -96,7 +98,7 @@ export async function planTaskCleanup(e, taskId, { procFacts, workspaceRoot = nu
   const ev = cleanupPlan({ registry, taskId, evaluateFn: evaluate, policy: e.policy, taskCtx: taskContext(L, taskId), now })
   for (const x of ev.refused) refused.push({ id: x.id, kind: pre.find((p) => p.row.resource_id === x.id).row.kind, codes: x.reason_codes })
   const allowed = pre.filter(({ row }) => ev.allowed.includes(row.resource_id)).map(({ row, facts }) => ({ id: row.resource_id, kind: row.kind, ref: row.canonical_ref, process: row.process_identity_json ? JSON.parse(row.process_identity_json) : null, facts }))
-  const plan = { task_id: taskId, at: now, root, allowed, refused }
+  const plan = { task_id: taskId, at: now, root, kinds, protected_roots: protectedRoots, allowed, refused }
   return { ok: true, plan, digest: digestOf(plan) }
 }
 
@@ -104,13 +106,23 @@ export async function planTaskCleanup(e, taskId, { procFacts, workspaceRoot = nu
  * Execute a plan. `dryRun` records the intents only. Real execution requires SIMULATED adapters (D3.5 authorizes no real destructive cleanup). Each item: durable intent →
  * executing → executor.remove (which must re-check identity itself) → executor.verifyGone → verified | failed | unknown.
  */
-export async function executeCleanup(e, planned, { executor, dryRun = true } = {}) {
+export async function executeCleanup(e, planned, { executor, dryRun = true, procFacts = e.adapters?.procFacts, protectedRoots = [] } = {}) {
   const L = e.ledger; const out = []
   if (!dryRun && e.adapters?.simulated !== true) return { ok: false, code: 'CLEANUP.LIVE_EXECUTION_NOT_AUTHORIZED' }
   if (digestOf(planned.plan) !== planned.digest) return { ok: false, code: 'CLEANUP.PLAN_TAMPERED' }
   if (L.now() - planned.plan.at > 60_000) return { ok: false, code: 'CLEANUP.PLAN_STALE' }
+  // review S-2: the plan object is CALLER data. Every item must also be allowed, identically, by a FRESH plan derived now from the ledger (ownership, identity, protection, evaluator,
+  // path and process facts); the protected roots can only be widened by the caller, never narrowed; kinds only narrow.
+  let freshAllowed = new Map()
+  if (!dryRun) {
+    const fresh = await planTaskCleanup(e, planned.plan.task_id, { procFacts, workspaceRoot: planned.plan.root ?? null, protectedRoots: [...new Set([...(planned.plan.protected_roots ?? []), ...protectedRoots])], kinds: planned.plan.kinds ?? null })
+    if (!fresh.ok) return fresh
+    freshAllowed = new Map(fresh.plan.allowed.map((a) => [a.id, a]))
+  }
+  const sameItem = (a, b) => !!a && !!b && a.kind === b.kind && (a.ref ?? null) === (b.ref ?? null) && JSON.stringify(a.process ?? null) === JSON.stringify(b.process ?? null)
   const busyTask = !!L.leaseOfTask(planned.plan.task_id) || !!L.db.prepare("SELECT 1 FROM work_leases WHERE task_id=? AND state IN ('active','termination_unverified')").get(planned.plan.task_id)
   for (const item of planned.plan.allowed) {
+    if (!dryRun && !sameItem(item, freshAllowed.get(item.id))) { out.push({ id: item.id, status: 'refused', code: 'CLEANUP.NOT_IN_FRESH_PLAN' }); continue }
     if (busyTask && item.kind !== 'review_agent') { out.push({ id: item.id, status: 'refused', code: 'CLEANUP.TASK_HAS_LIVE_LEASE' }); continue }
     if (item.ref && planned.plan.root) { const f = pathFacts(item.ref, planned.plan.root); if (!f.ok) { out.push({ id: item.id, status: 'refused', code: f.code }); continue } }
     const intentId = `ci-${randomUUID()}`; const now = L.now()
