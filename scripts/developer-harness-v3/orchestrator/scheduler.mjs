@@ -13,6 +13,7 @@
 //   * FAIRNESS: effective priority = priority − agingStep × ⌊waited / agingMs⌋; a task passed over `maxPassesBeforeReserve` times reserves the next slot of its kind.
 import { D33_THRESHOLDS } from '../runtime/resource-governor.mjs'
 import { acquireWork, closeWork, liveWork, materializeWork, supersedeWork } from './ledger/slots.mjs'
+import { createHash } from 'node:crypto'
 import { safeCode, suspendTechnically } from './suspension.mjs'
 
 export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768, maxStepExceptions: 3, stepExceptionBackoffMs: 60_000 }) // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
@@ -216,7 +217,7 @@ export class Scheduler {
     try {
       L.tx(() => {
         L.setMeta(`step_exc:${id}`, JSON.stringify({ n, last_at: now, next_at: now + this.cfg.stepExceptionBackoffMs * 2 ** (n - 1) }))
-        L.recordRecovery(id, 'scheduler_step_exception', { attempt: n, error: kind, message_digest: safeCode(String(err?.message ?? '')).slice(0, 80) })
+        L.recordRecovery(id, 'scheduler_step_exception', { attempt: n, error: kind, message_digest: createHash('sha256').update(String(err?.message ?? '')).digest('hex').slice(0, 16) })
       })
       if (n >= this.cfg.maxStepExceptions && !L.getSuspension(id)) suspendTechnically(this.e, id, { cause: 'SCHEDULER_STEP_EXCEPTION_REPEATED', stage: L.getTask(id)?.state ?? null, codes: [`SCHEDULER_STEP_EXCEPTION_REPEATED:${kind}`], terminal: true,
         howToResume: 'An admitted step threw an unexpected exception repeatedly (a controller or adapter defect, not a task failure). Fix the defect, then resume the task with the operator resume of the engine (a fresh budget).' })

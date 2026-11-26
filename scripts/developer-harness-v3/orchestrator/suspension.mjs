@@ -109,6 +109,6 @@ export function suspensionAllowsRun(e, taskId) {
 export function resumeSuspended(e, taskId) {
   const L = e.ledger; const s = L.getSuspension(taskId)
   if (!s) return { ok: false, problems: ['SUSPENSION.NONE'] }
-  L.tx(() => { leaveSuspensionState(L, taskId); L.clearSuspension(taskId); L.setMeta(`epoch:${taskId}`, 0); L.setMeta(`suspension_gen:${taskId}`, generationOf(L, taskId) + 1); L.setMeta(`session_offset:${taskId}`, L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.db.prepare('DELETE FROM recovery_attempts WHERE scope=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
+  L.tx(() => { leaveSuspensionState(L, taskId); L.clearSuspension(taskId); L.db.prepare('DELETE FROM meta WHERE key=?').run(`step_exc:${taskId}`); L.setMeta(`epoch:${taskId}`, 0); L.setMeta(`suspension_gen:${taskId}`, generationOf(L, taskId) + 1); L.setMeta(`session_offset:${taskId}`, L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.db.prepare('DELETE FROM recovery_attempts WHERE scope=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
   return { ok: true }
 }

@@ -165,6 +165,21 @@ test('PROPOSAL lifecycle: a dependency basis that changes DURING the downstream\
   } finally { h.close() }
 })
 
+test('security review S-4: a same-candidate dependency REBUILD is a NEW test epoch — units that passed under the old basis never count again', async () => {
+  const { runTestUnits } = await import('../orchestrator/test-units.mjs')
+  const h = H(); const calls = []
+  try {
+    const L = h.ledger; const s = new Scheduler(h.engine); const Y = h.submit(spec('y'))
+    for (let i = 0; i < 80 && L.getTask(Y).state !== 'testing'; i += 1) await s.round()
+    h.adapters.tests.units = async () => ['u1.test.mjs', 'u2.test.mjs']; h.adapters.tests.runUnit = async ({ unit }) => { calls.push(unit); return { status: 0, counts: { tests: 2, pass: 2, fail: 0, skipped: 0, cancelled: 0 } } }
+    const t = () => L.getTask(Y); const cand = L.currentCandidate(Y)
+    const a = await runTestUnits(h.engine, Y, t(), cand); assert.ok(a.done); assert.deepEqual(calls, ['u1.test.mjs', 'u2.test.mjs'])
+    const again = await runTestUnits(h.engine, Y, t(), cand); assert.ok(again.done); assert.equal(calls.length, 2, 'same epoch: completed units are final and not repeated')
+    L.setMeta(`dep_gen:${Y}`, 1) // what dependencyStep records when it rebuilds the task on a changed basis
+    const rebuilt = await runTestUnits(h.engine, Y, t(), cand); assert.ok(rebuilt.done); assert.deepEqual(calls.slice(2), ['u1.test.mjs', 'u2.test.mjs'], 'the unchanged candidate is TESTED AGAIN under the new basis')
+  } finally { h.close() }
+})
+
 test('idempotent and crash-safe: the sweep and the recovery can be repeated or interrupted at any point without changing the outcome', async () => {
   const h = H()
   try {

@@ -146,7 +146,8 @@ export async function runTestUnits(e, taskId, task, cand) {
   const units = await A.tests.units({ task, candidate: cand })
   // review CR-2: a scheduled re-verification (P6 back-edge) is a NEW run epoch: units passed before it never count again
   const runEpoch = Number(L.meta(`reverify_count:${taskId}:${cand.candidate_sha}`) ?? 0)
-  const groupId = groupIdFor({ task: taskId, candidate: cand.candidate_sha, tree: cand.tree_digest, token: task.fencing_token, units, run_epoch: runEpoch })
+  const depGen = Number(L.meta(`dep_gen:${taskId}`) ?? 0) // a dependency REBUILD is a new run epoch too: units that passed under the old dependency basis never count again, even for an unchanged candidate
+  const groupId = groupIdFor({ task: taskId, candidate: cand.candidate_sha, tree: cand.tree_digest, token: task.fencing_token, units, run_epoch: runEpoch, ...(depGen ? { dep_gen: depGen } : {}) })
   openGroup(L, { groupId, taskId, units, candidate: cand })
   // F3 (independent verification): a unit left `running` by a controller that died is re-run ONLY after its workload is PROVEN stopped. The adapter owns the proof (the live one — host process
   // facts + the worker's own process list — is gate G-LIVE-RECOVERY-ADAPTERS); an adapter that cannot offer one, or offers an unproven answer, HOLDS the unit: no duplicate execution.

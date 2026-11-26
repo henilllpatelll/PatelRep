@@ -162,7 +162,7 @@ export async function dependencyStep(e, id) {
     const r = L.tx(() => {
       const x = L.transition(id, rebuild.to, { reason_code: rebuild.reason }); if (!x.ok) return x
       L.setMeta(`remediation:${id}`, `A dependency (${stale.changed.join(', ')}) changed after this task was built on it (${stale.cause}). Rebuild the work on the CURRENT dependencies inside the task scope; the previous tests, reviews and handoff were withdrawn and will be obtained again.`)
-      L.setMeta(`dep_rebuild:${id}`, '1'); if (cand) L.setMeta(`reverify:${id}`, cand.candidate_sha)
+      L.setMeta(`dep_rebuild:${id}`, '1'); L.setMeta(`dep_gen:${id}`, Number(L.meta(`dep_gen:${id}`) ?? 0) + 1); if (cand) L.setMeta(`reverify:${id}`, cand.candidate_sha)
       L.recordRecovery(id, 'dependency_rebuild_started', { cause: stale.cause, changed: stale.changed })
       return x
     })

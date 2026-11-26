@@ -14,7 +14,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { holderAlive } from '../ci/resumable-runner.mjs'
-import { readProcessTable, readProcessTableSync, judgeWorkload, sameProcess, verifyWorkloadStopped } from '../ci/process-facts.mjs'
+import { captureWorkload, killVerified, readProcessTable, readProcessTableSync, judgeWorkload, refreshWorkload, sameProcess, validWorkload, verifyWorkloadStopped } from '../ci/process-facts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const RUNNER = process.env.DH3_RUNNER_UNDER_TEST ?? path.join(HERE, '..', 'ci', 'resumable-runner.mjs') // (the previous runner can be pointed at for the pre-fix reproduction)
@@ -191,6 +191,61 @@ test('judgeWorkload (pure): recorded identity, descent from a proven process, or
   // no heartbeat and no last-seen → the dead parent's lifetime cannot be bounded: an orphan CLAIMING descent is unproven (held, never killed)
   j = judgeWorkload([P(11, 10, 1100)], rec, { lastSeenMs: NaN }); assert.equal(j.ours.length, 0); assert.deepEqual(j.unproven.map((p) => p.pid), [11])
   assert.equal(sameProcess(P(10, 1, 1000, 'node.exe', 'c10'), rec.root), true); assert.equal(sameProcess(P(10, 1, 1001, 'node.exe', 'c10'), rec.root), false)
+})
+
+test('security review S-1: no slack — a stranger that reuses a dead recorded pid and starts a child shortly after the last proof of life is NEVER attributed to the workload (held, not killed)', async () => {
+  const P = (pid, ppid, start, name = 'node.exe') => ({ pid, ppid, name, start: String(start), cmdline: `c${pid}` })
+  const rec = { root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10', seen_at: 2000 }, descendants: [{ pid: 700, ppid: 10, start: '1500', name: 'git.exe', cmdline: 'c700', seen_at: 2000 }], snap_ms: 8000 }
+  const j = judgeWorkload([P(701, 700, 8000, 'notepad.exe')], rec, { lastSeenMs: 2000 }) // 6 s after the last time pid 700 was seen alive: inside the OLD 18 s slack
+  assert.equal(j.ours.length, 0); assert.deepEqual(j.unproven.map((p) => p.pid), [701])
+  const killed = []; const r = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 2000, read: async () => ({ ok: true, procs: [P(701, 700, 8000, 'notepad.exe')] }), kill: (pid) => killed.push(pid), pauseMs: 1 })
+  assert.equal(r.verified, false); assert.equal(r.code, 'WORKLOAD_UNPROVEN'); assert.deepEqual(killed, [], 'nothing was killed')
+})
+
+test('security review S-2: process facts are WINDOWS-only — any other platform is UNSUPPORTED and recovery fails closed (no mixed tick/ms time domains)', async () => {
+  assert.equal((await readProcessTable({ platform: 'linux' })).code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM'); assert.equal(readProcessTableSync({ platform: 'linux' }).code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM')
+  assert.equal(await killVerified({ pid: 1, start: '1', name: 'node.exe' }, { platform: 'linux' }), 'ERROR')
+})
+
+test('security review S-3: the record keeps EVERY live recorded identity (even when its intermediate exited and 130 newer children came and went); over the bound dead entries go first and truncation fails closed', async () => {
+  const P = (pid, ppid, start, name = 'node.exe') => ({ pid, ppid, name, start: String(start), cmdline: `c${pid}` })
+  const daemonId = { pid: 900, ppid: 800, start: '1200', name: 'daemon.exe', cmdline: 'c900' }
+  let w = { root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10', seen_at: 1 }, descendants: [{ ...daemonId, seen_at: 1 }], snap_ms: 500 }
+  const kids = Array.from({ length: 130 }, (_, i) => P(2000 + i, 10, 3000 + i, 'git.exe'))
+  w = refreshWorkload(w, { ok: true, procs: [P(10, 1, 1000), P(900, 800, 1200, 'daemon.exe'), ...kids] }, { now: 50_000 }) // the daemon's parent (800) is gone: it is reachable only by identity
+  assert.ok(w.descendants.some((d) => d.pid === 900 && d.seen_at === 50_000), 'the live daemon was refreshed and kept'); assert.ok(w.descendants.length <= 128); assert.equal(w.truncated, true, 'a live entry was shed: the record says so')
+  assert.equal(validWorkload(w), true)
+  const r = await verifyWorkloadStopped({ recorded: w, lastSeenMs: 50_000, read: async () => ({ ok: true, procs: [] }), pauseMs: 1 }); assert.equal(r.verified, false); assert.equal(r.code, 'WORKLOAD_RECORD_TRUNCATED')
+  const small = refreshWorkload({ root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10', seen_at: 1 }, descendants: [{ ...daemonId, seen_at: 1 }], snap_ms: 500 }, { ok: true, procs: [P(10, 1, 1000), P(900, 800, 1200, 'daemon.exe')] }, { now: 9 })
+  assert.equal(small.truncated, undefined); assert.equal(small.descendants[0].seen_at, 9)
+})
+
+test('security review S-6/S-8: the kill re-checks identity on the handle (a pid now held by another process is NEVER killed) and a forged record is refused', async () => {
+  const sleeper = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  try {
+    await waitFor(() => readProcessTableSync().procs.some((p) => p.pid === sleeper.pid))
+    const me = readProcessTableSync().procs.find((p) => p.pid === sleeper.pid)
+    assert.equal(await killVerified({ pid: sleeper.pid, start: String(Number(me.start) + 60_000), name: me.name }), 'CHANGED'); assert.ok(alive(sleeper.pid), 'a different creation time: not killed')
+    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: 'other.exe' }), 'CHANGED'); assert.ok(alive(sleeper.pid), 'a different image: not killed')
+    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: "x'; Stop-Process -Id 1 #" }), 'ERROR', 'a hostile name never reaches the command line')
+    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: me.name }), 'KILLED'); await waitFor(() => !alive(sleeper.pid))
+    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: me.name }), 'GONE')
+  } finally { kill(sleeper.pid) }
+  const forged = { root: { pid: 5, ppid: 1, start: 'not-a-number', name: 'node.exe', cmdline: 'c' }, descendants: [] }
+  assert.equal(validWorkload(forged), false); assert.equal(validWorkload({ root: { pid: 5, ppid: 1, start: '1', name: 'n', cmdline: 'c' }, descendants: Array.from({ length: 300 }, () => ({ pid: 6, ppid: 5, start: '2', name: 'n', cmdline: 'c' })) }), false, 'oversized')
+  assert.equal((await verifyWorkloadStopped({ recorded: forged, read: async () => { throw new Error('must not read') } })).code, 'WORKLOAD_RECORD_INVALID')
+})
+
+test('security review S-7: a recorded runner that is still alive (or unknowable) keeps the unit HELD — nothing is touched, no kill, exit 75', { timeout: 180_000 }, async () => {
+  const f = fixture(); let tree; const stranger = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+  try {
+    const x = await interrupted(f); tree = x.tree
+    kill(tree.runner); await x.r1.done
+    await waitFor(() => readProcessTableSync().procs.some((p) => p.pid === stranger.pid)); const s = readProcessTableSync().procs.find((p) => p.pid === stranger.pid)
+    edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); j.runner = { pid: stranger.pid, start: s.start }; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) }) // the recorded owner is ALIVE
+    const res = await startRunner(f, 'a,b', ['--workload-wait-min', '0.01']).done
+    assert.equal(res.code, 75, res.out); assert.match(res.out, /"why":"RECORDED_RUNNER_NOT_DEAD"/); assert.ok(alive(tree.grandchild), 'the workload was not touched'); assert.equal(runs(f).length, 1)
+  } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []); kill(stranger.pid) }
 })
 
 test('verifyWorkloadStopped: kills only what it proves (injected table + kill), re-reads after every round, and refuses when something remains', async () => {

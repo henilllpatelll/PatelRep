@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { Ledger } from '../orchestrator/ledger/ledger.mjs'
 import { acquireLock, holdsLock, releaseLock } from '../lib/atomic.mjs'
 import { isPidAlive } from '../runtime/launcher.mjs'
-import { captureWorkload, readProcessTable, readProcessTableSync, refreshWorkload, selfIdentity, verifyWorkloadStopped } from './process-facts.mjs'
+import { captureWorkload, readProcessTable, readProcessTableSync, refreshWorkload, selfIdentity, validWorkload, verifyWorkloadStopped } from './process-facts.mjs'
 import { UNIT_DEFAULTS, admitUnit, classifyUnit, groupIdFor, markLost, nextUnit, openGroup, recentSamples, recordOutcome, recordSample, startUnit, summarize, unitsOf } from '../orchestrator/test-units.mjs'
 import { FILE_TIMEOUT_MS, ROOT, TEST_DIR, checkRegistry, discover, minimalEnv, parseCounts } from './run-v3-suites.mjs'
 
@@ -80,7 +80,8 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
   const code = codeDigest(root, fixture ? [testDir] : ['scripts/developer-harness-v3', 'docs/developer-harness-v3', 'scripts/developer-harness-v2', 'docs/developer-harness-v2']) // every input the V3 files read (review S-7)
   const groupId = groupIdFor({ runner: 'v3-host', node: process.version, code, files })
   const stateFile = path.resolve(arg(argv, '--state', path.join(os.tmpdir(), 'dh3-resumable-runner', `${groupId}.sqlite`)))
-  mkdirSync(path.dirname(stateFile), { recursive: true })
+  mkdirSync(path.dirname(stateFile), { recursive: true, mode: 0o700 })
+  if (process.platform !== 'win32' && !arg(argv, '--state')) { const st = statSync(path.dirname(stateFile)); if (st.uid !== process.getuid() || (st.mode & 0o022) !== 0) { log(`${JSON.stringify({ ok: false, code: 'STATE_DIR_NOT_PRIVATE', dir: path.dirname(stateFile) })}\n`); return 1 } } // a shared /tmp directory another account created is never trusted
   // ONE runner per state file (found live during D3.5: the low-memory reaper stopped the shell but an orphaned runner kept running; a second runner then took the orphan's in-progress
   // unit for LOST). The lock records our pid; a holder that is verifiably dead is broken, a live (or unknown) one is never shared.
   const lockFile = `${stateFile}.lock`
@@ -97,15 +98,16 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
     const releaseUnit = arg(argv, '--release-unproven-unit') // OPERATOR ACTION (docs 29/30): releases ONE running unit whose workload identity was never recorded, and ONLY when everything that could be its owner is verifiably gone
     for (const u of unitsOf(L, groupId).filter((x) => x.status === 'running')) {
       const waitStart = L.now(); let v
-      if (releaseUnit === u.unit_id && !u.result.workload?.root) {
+      if (releaseUnit === u.unit_id && !validWorkload(u.result.workload)) {
         const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : null; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
-        if (runnerDead === true && rootGone) { log(`WORKLOAD ${u.unit_id} → released_by_operator (no identity was recorded; the recorded runner and root pid are both gone)
+        if (runnerDead === true && rootGone) { L.setMeta(`runner_release:${groupId}:${u.unit_id}`, JSON.stringify({ at: L.now(), runner: u.result.runner ?? null, pid: u.result.pid ?? null })); log(`WORKLOAD ${u.unit_id} → released_by_operator (no identity was recorded; the recorded runner and root pid are both gone)
 `); continue }
         log(`${JSON.stringify({ ok: false, code: 'RELEASE_REFUSED', unit: u.unit_id, runner_dead: runnerDead, root_gone: rootGone, state: stateFile })}
 `); return 75
       }
       for (;;) {
-        v = await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: Number(u.result.heartbeat) })
+        const runnerAlive = u.result.runner ? holderAlive(u.result.runner) : false // a recorded runner that is alive (or unknowable) may still own this unit: nothing is touched
+        v = runnerAlive !== false ? { verified: false, code: 'RECORDED_RUNNER_NOT_DEAD' } : await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: Number(u.result.heartbeat), guard: async () => holdsLock(lockFile, lock.nonce) })
         if (v.verified || v.code === 'WORKLOAD_IDENTITY_UNKNOWN' || L.now() - waitStart > cfg.workloadWaitMs) break
         await sleep(cfg.sampleIntervalMs)
       }
