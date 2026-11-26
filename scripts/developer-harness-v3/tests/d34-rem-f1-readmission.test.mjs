@@ -32,10 +32,13 @@ test('F1: expired extra-usage verification between units stops the session befor
   const scenario = impl(); let h
   h = H({ scenario }); afterImplementingUnit(h, 2, () => govSet(h, (g) => ({ ...g, extra_usage: { ...g.extra_usage, verified_at: T0 - 90 * 24 * 3600_000 } }))); const calls = spy(h); const id = h.submit()
   await settle(h); const t = h.ledger.getTask(id)
-  assert.equal(calls.filter((c) => c.stage === 'implementing').length, 2, 'no unit ran with an unverified extra-usage fact'); assert.equal(t.state, 'blocked'); assert.equal(t.lifecycle.blocker_reason, 'OWNER_DECISION_REQUIRED')
+  assert.equal(calls.filter((c) => c.stage === 'implementing').length, 2, 'no unit ran with an unverified extra-usage fact')
+  // D3.5-I (intentional expectation change, doc 28): a STALE but verified-OFF fact is still a genuine owner billing-safety condition (one consolidated package below), but the task WAITS for the
+  // re-verification instead of being BLOCKED, so no per-task owner resolve is needed. Enabled / unknown / future-dated facts remain blocks.
+  assert.equal(t.state, 'waiting_subscription'); assert.ok(h.ledger.getWait(id).detail.codes.includes('BILLING.REVERIFICATION_REQUIRED'))
   slotFree(h); assert.deepEqual(live(h), []); assert.ok(h.ledger.latestCheckpoint(id)?.verified === 1, 'work preserved before the stop')
   const pkg = JSON.parse(h.ledger.db.prepare("SELECT payload_json FROM outbox WHERE kind='genuine_blocker'").get().payload_json); assert.ok(pkg.codes.includes('AUTH.EXTRA_USAGE_UNVERIFIED'))
-  govSet(h, (g) => ({ ...g, extra_usage: { enabled: false, basis: 'SIMULATED_VERIFIED_OFF', verified_at: h.clock.now() - 1000 } })); assert.equal(h.engine.ownerResolve(id, 'owner-reverified-1').ok, true)
+  govSet(h, (g) => ({ ...g, extra_usage: { enabled: false, basis: 'SIMULATED_VERIFIED_OFF', verified_at: h.clock.now() - 1000 } })); assert.equal(h.engine.ownerResolve(id, 'owner-reverified-1').ok, false, 'D3.5-I: nothing to resolve per task — it resumes by itself once the fact is fresh')
   await drive(h); assert.equal(h.ledger.getTask(id).handoff_ready, 1); assert.equal(finalBytes(h, id), unitLines(5)); h.close()
 })
 
@@ -72,7 +75,7 @@ for (const [label, mutate, state, reason] of [
 
 test('F1: expired extra-usage verification immediately before renewal blocks the new session (checkpoint + verified stop kept)', async () => {
   const { h, id } = await renewalDenied((hh) => govSet(hh, (g) => ({ ...g, extra_usage: { ...g.extra_usage, verified_at: T0 - 90 * 24 * 3600_000 } })))
-  const t = h.ledger.getTask(id); assert.equal(t.state, 'blocked'); assert.equal(execs(h, id).filter((e) => e.role === 'implementer').length, 1); slotFree(h); assert.ok(h.ledger.latestCheckpoint(id)?.verified === 1); h.close()
+  const t = h.ledger.getTask(id); assert.equal(t.state, 'waiting_subscription', 'D3.5-I: a stale verified-off fact is a billing re-verification WAIT (doc 28), still no new session'); assert.equal(execs(h, id).filter((e) => e.role === 'implementer').length, 1); slotFree(h); assert.ok(h.ledger.latestCheckpoint(id)?.verified === 1); h.close()
 })
 
 test('F1: admission of an EXISTING lease is not "an unrelated occupied slot" — the holder itself is admitted; a different lease holder is busy', async () => {

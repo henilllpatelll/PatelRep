@@ -6,7 +6,7 @@
 //
 // MODE: only `simulated` exists in D3.4. `live` refuses to construct until every activation gate in activation-gates.mjs is closed.
 import { admit } from '../runtime/resource-governor.mjs'
-import { admitAiWork, lifecycleFor } from '../runtime/subscription-governor.mjs'
+import { GOVERNOR_DEFAULTS, admitAiWork, lifecycleFor } from '../runtime/subscription-governor.mjs'
 import { enqueueOutbox, claimOutbox, ackOutbox, retryEligible } from './ledger/intents.mjs'
 import { routeStage } from './routing.mjs'
 import { RENEWAL_DEFAULTS } from './context-renewal.mjs'
@@ -24,6 +24,12 @@ export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs
 /** state → what admission it needs before work may start in it */
 const NEEDS = { planning: { stage: 'planning', ai: true, profile: 'reasoning' }, implementing: { stage: 'implementing', ai: true, profile: 'reasoning' }, testing: { stage: 'testing', ai: false, profile: 'heavy_test' },
   independent_review: { stage: 'independent_review', ai: true, profile: 'reasoning' }, security_review: { stage: 'security_review', ai: true, profile: 'reasoning' } }
+
+/** The extra-usage fact says OFF, is well-formed and not future-dated, but is older than its lifetime: re-verification is due (nothing else about it is wrong). */
+export function extraUsageStaleButOff(gov, now, ttl = GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms) {
+  const x = gov?.extra_usage
+  return !!x && x.enabled === false && Number.isFinite(x.verified_at) && x.verified_at <= now && now - x.verified_at >= ttl
+}
 
 export class Engine {
   constructor({ ledger, policy, adapters, cfg = {}, rng = Math.random, hook = null, snapshotRoot, mode = 'simulated' }) {
@@ -59,7 +65,7 @@ export class Engine {
    * Pure with respect to the ledger's task state: decides whether `stage` may start (or, with `ownLease`, may CONTINUE) now. Never starts anything.
    * `ownLease` = the lease of the session that is asking to continue: the slot it holds is its OWN, not an unrelated occupied reasoning slot; any other holder is still `busy`.
    */
-  async checkAdmission(taskId, need, { ownLease = null, ownWork = this.ownWork.get(taskId) ?? null } = {}) {
+  async checkAdmission(taskId, need, { ownLease = null, ownWork = this.ownWork.get(taskId) ?? null, reverified = false } = {}) {
     const L = this.ledger; const A = this.adapters; const now = L.now(); const t = L.getTask(taskId)
     if (t.cancelled) return { ok: false, kind: 'cancelled', codes: ['TASK.CANCELLED'] }
     if (!L.requirementsIntact(taskId)) return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['TASK.REQUIREMENTS_TAMPERED'] }
@@ -78,6 +84,15 @@ export class Engine {
     const a = admitAiWork(gov, { now, priority: need.stage === 'security_review' ? 'security' : 'owner' })
     if (!a.admit) {
       const state = gov?.state
+      // D3.5-I: a verified-OFF extra-usage fact that is merely STALE (older than its lifetime) is a billing RE-VERIFICATION wait for ALL AI work — not a per-task owner block. No AI work
+      // starts until the fact is fresh again; when it is, every waiting task resumes by itself. Enabled, unknown, future-dated or malformed facts stay owner blockers (fail closed).
+      if (a.codes.includes('AUTH.EXTRA_USAGE_UNVERIFIED') && extraUsageStaleButOff(gov, now) && !['auth_expired', 'auth_unverified', 'unauthorized_billing'].includes(state)) {
+        const re = reverified ? { ok: false } : await this.reverifyBilling(gov, now)
+        if (re.ok) return this.checkAdmission(taskId, need, { ownLease, ownWork, reverified: true })
+        if (re.code === 'AUTH.EXTRA_USAGE_ENABLED') return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['AUTH.EXTRA_USAGE_ENABLED'] }
+        const reason = L.lc.recoverable_states.waiting_subscription.reasons.includes('BILLING_REVERIFICATION_REQUIRED') ? 'BILLING_REVERIFICATION_REQUIRED' : 'SUBSCRIPTION_LIMIT'
+        return { ok: false, kind: 'wait', state: 'waiting_subscription', reason, eligible_at: now + this.cfg.subscriptionRecheckMs, codes: ['AUTH.EXTRA_USAGE_UNVERIFIED', 'BILLING.REVERIFICATION_REQUIRED'] }
+      }
       if (!gov || a.codes.some((c) => /^AUTH\./.test(c)) || ['auth_expired', 'auth_unverified', 'unauthorized_billing'].includes(state)) {
         return { ok: false, kind: 'blocked', reason: state === 'auth_expired' ? 'OWNER_AUTH_EXPIRED' : 'OWNER_DECISION_REQUIRED', codes: a.codes }
       }
@@ -87,6 +102,22 @@ export class Engine {
     }
     const route = routeStage({ stage: need.stage, task: t, escalated: L.meta(`escalated:${taskId}`) === '1', subscription: { admit: true } })
     return route.wait ? { ok: false, kind: 'wait', state: 'waiting_subscription', reason: 'SUBSCRIPTION_LIMIT', eligible_at: now + this.cfg.subscriptionRecheckMs, codes: [route.code] } : { ok: true, route }
+  }
+
+  /**
+   * A SUPPORTED, NON-BILLABLE, authenticated re-verification of the extra-usage setting, if the subscription adapter offers one. The pinned CLI and the official documentation offer
+   * none today (doc 28): the live adapter has no such method, so this returns BILLING.NO_SUPPORTED_NONBILLABLE_SOURCE and the owner re-verifies. A response is accepted only if it
+   * says supported, non-billable, OFF, recent (≤ 60 s) and names its basis; anything else changes nothing. It never launches a session.
+   */
+  async reverifyBilling(gov, now) {
+    const f = this.adapters.subscription?.reverifyExtraUsage
+    if (typeof f !== 'function') return { ok: false, code: 'BILLING.NO_SUPPORTED_NONBILLABLE_SOURCE' }
+    let r = null; try { r = await f() } catch { r = null }
+    if (r && r.supported === true && r.billable === false && r.enabled === true) { this.adapters.subscription.save({ ...gov, extra_usage: { enabled: true, basis: String(r.basis ?? 'reverification').slice(0, 80), verified_at: now } }); return { ok: false, code: 'AUTH.EXTRA_USAGE_ENABLED' } }
+    if (!r || r.supported !== true || r.billable !== false || r.enabled !== false || !Number.isFinite(r.verified_at) || r.verified_at > now || now - r.verified_at > 60_000 || typeof r.basis !== 'string' || !r.basis) return { ok: false, code: 'BILLING.REVERIFICATION_UNAVAILABLE' }
+    this.adapters.subscription.save({ ...gov, extra_usage: { enabled: false, basis: r.basis.slice(0, 80), verified_at: r.verified_at } })
+    this.ledger.recordRecovery(null, 'billing_reverified', { basis: r.basis.slice(0, 80), verified_at: r.verified_at })
+    return { ok: true }
   }
 
   /** Check + side effects: moves the task to the right waiting/blocked state. @returns {{go:true, route?:object}|{go:false, outcome:string}} */
@@ -114,6 +145,16 @@ export class Engine {
     }
     if (t.state !== w.state || t.lifecycle.blocker_reason) { const r = L.transition(taskId, w.state, { reason_code: w.reason }); if (!r.ok) throw new Error(`ENGINE.WAIT_REFUSED:${r.problems[0]}`) }
     L.setWait(taskId, { kind: w.state, reason: w.reason, eligibleAt: w.eligible_at ?? null, detail: { codes: w.codes, ...(w.detail ?? {}) } })
+    if ((w.codes ?? []).includes('BILLING.REVERIFICATION_REQUIRED')) this.billingPackage()
+  }
+
+  /** ONE owner package per stale extra-usage fact for the WHOLE controller (deduplicated by the fact's timestamp), never one per task; every task keeps waiting and resumes by itself. */
+  billingPackage() {
+    const L = this.ledger; const g = this.adapters.subscription.load(); const at = g?.extra_usage?.verified_at ?? null
+    enqueueOutbox(L, { taskId: null, kind: 'genuine_blocker', dedupeKey: `billing-reverification:${at}`, payload: { scope: 'all AI work (tasks WAIT; none is blocked; nothing needs a per-task action)', reason: 'BILLING_REVERIFICATION_REQUIRED', codes: ['AUTH.EXTRA_USAGE_UNVERIFIED'],
+      fact_verified_at: at, fact_lifetime_ms: GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms, waiting_tasks: L.db.prepare("SELECT COUNT(*) c FROM waits WHERE detail_json LIKE '%BILLING.REVERIFICATION_REQUIRED%'").get().c,
+      owner_step: 'Re-verify that extra usage (usage credits) is OFF for this account: `dh3 attest-extra-usage-off`, then `dh3 probe-subscription` (doc 07). Every waiting task resumes automatically once the fact is fresh.',
+      why_not_automatic: 'No supported non-billable, unattended, machine-readable source of the extra-usage setting exists in the pinned CLI or the official documentation (doc 28); launching a session to find out would itself risk billing.' } })
   }
 
   /** ONE actionable package per genuine blocker (and only for genuine blockers): what is blocked, why, the exact owner action, and what is preserved. */
