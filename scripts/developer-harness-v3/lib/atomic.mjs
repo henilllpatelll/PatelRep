@@ -46,9 +46,12 @@ export function readJsonState(file, validate = () => true) {
  *   3. the stale file is moved to a unique name and its content re-verified; a mismatch is NEVER restored over anything — the state is ambiguous and the takeover fails closed;
  *   4. the new lock is created with O_EXCL: if a new contender slipped in while the file was absent it simply wins and the breaker reports LOCK.HELD.
  * A leftover mutex (a breaker that crashed inside its few-microsecond critical section) is broken only when ITS holder is verifiably dead; otherwise LOCK.TAKEOVER_BUSY (retry later).
+ * `strict` (D3.5 second-round remediation; used by the host runner, whose lock authorizes REAL host workloads): a leftover takeover mutex is NEVER broken, however dead its breaker looks — breaking it is the
+ * one step that still had a multi-racer window (a dead mutex replaced by a live one between judging and moving it). A strict acquirer reports LOCK.TAKEOVER_BUSY and an operator removes the leftover
+ * `<file>.takeover` by hand after confirming no runner is active. Every ambiguous state (unreadable lock, busy mutex, replaced lock, AMBIGUOUS) already fails closed and so authorizes nothing.
  * `hook(name)` is a test-only interleaving point (never passed in production).
  */
-export function acquireLock(file, record, { isHolderAlive, hook = null } = {}) {
+export function acquireLock(file, record, { isHolderAlive, hook = null, strict = false } = {}) {
   mkdirSync(path.dirname(file), { recursive: true })
   const nonce = randomBytes(12).toString('hex')
   const body = JSON.stringify({ ...record, pid: record.pid ?? process.pid, acquired_at: record.acquired_at, nonce })
@@ -69,6 +72,7 @@ export function acquireLock(file, record, { isHolderAlive, hook = null } = {}) {
     const mutexBody = JSON.stringify({ ...record, pid: process.pid, nonce, acquired_at: record.acquired_at, takeover_of: held.value.nonce ?? null }) // carries the breaker's identity (start/name) so a reused pid cannot keep a dead breaker's mutex alive
     try { create(mutexFile, mutexBody) } catch (e) {
       if (e.code !== 'EEXIST') return { ok: false, code: 'LOCK.IO_ERROR' }
+      if (strict) return { ok: false, code: 'LOCK.TAKEOVER_BUSY' } // never broken automatically (see above)
       const m = readJsonState(mutexFile, objectRecord)
       // an EMPTY / half-written mutex (its breaker crashed between create and write) is breakable once it is clearly old; a readable one only when its holder is verifiably dead
       const oldCorrupt = !m.ok && m.code === 'STATE.CORRUPT' && (() => { try { return Date.now() - statSync(mutexFile).mtimeMs > 10_000 } catch { return false } })()

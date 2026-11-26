@@ -38,7 +38,9 @@ const killTree = (pid) => { try { process.kill(pid) } catch { /* already gone */
 test('REAL processes: the test-file child is killed by the "reaper" while memory is below the floor → verified resource kill, automatic wait, re-run FIRST, no repeats, exit 0', { timeout: 120_000 }, async () => {
   const f = fixture(); writeFileSync(f.marker, 'hold')
   const r = startRunner(f, 'a,b,c')
-  const running = await waitFor(() => { const u = unitRow(f, 'b.test.mjs'); return u?.status === 'running' && JSON.parse(u.result_json).pid ? JSON.parse(u.result_json) : null })
+  // D3.5 second-round (intentional expectation change, same reason as the next test): an interrupted unit whose workload identity was never recorded is HELD, not re-run on the assumption that nothing
+  // survived — so the "reaper" must strike after the identity was recorded, as it does in a real incident (a unit that has been running for a while)
+  const running = await waitFor(() => { const u = unitRow(f, 'b.test.mjs'); return u?.status === 'running' && JSON.parse(u.result_json).pid && JSON.parse(u.result_json).workload ? JSON.parse(u.result_json) : null })
   await sleep(400) // b is really inside its long test now
   writeFileSync(f.mem, JSON.stringify({ free_mb: 1400 })); writeFileSync(f.reaper, JSON.stringify({ kind: 'low_memory_reaper', at: Date.now() }))
   killTree(running.pid) // the reaper kills the running unit's process

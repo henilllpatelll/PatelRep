@@ -5,6 +5,7 @@
 // NOTE (Windows): libuv places every child a Node process spawns in a kill-on-close job object, so an ordinary child dies with its parent. What survives a parent-only termination is a DETACHED
 // descendant (a server, browser or helper a test launches): the fixture's test file starts one. On POSIX hosts ordinary children survive too (the same code path proves them).
 // Pre-fix behaviour (the same scenario against the previous runner): the unit was marked lost and RE-RUN while its old test process tree was still executing (`overlap` non-empty).
+// SECOND-ROUND REMEDIATION (this file, honestly changed): the runner no longer TERMINATES any recovered process. A survivor HOLDS the unit (exit 75); the test plays the operator and stops the survivor itself.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -14,11 +15,15 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { holderAlive } from '../ci/resumable-runner.mjs'
-import { captureWorkload, killVerified, readProcessTable, readProcessTableSync, judgeWorkload, refreshWorkload, sameProcess, validWorkload, verifyWorkloadStopped } from '../ci/process-facts.mjs'
+import * as FACTS from '../ci/process-facts.mjs'
+import { captureWorkload, readProcessTable, readProcessTableSync, judgeWorkload, refreshWorkload, sameProcess, validWorkload, verifyWorkloadStopped } from '../ci/process-facts.mjs'
+import { Ledger } from '../orchestrator/ledger/ledger.mjs'
+import { openGroup, recordOutcome, startUnit, unitsOf } from '../orchestrator/test-units.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const RUNNER = process.env.DH3_RUNNER_UNDER_TEST ?? path.join(HERE, '..', 'ci', 'resumable-runner.mjs') // (the previous runner can be pointed at for the pre-fix reproduction)
 const ENV = { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP, NODE_NO_WARNINGS: '1' }
+const RUNNER_SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'ci', 'resumable-runner.mjs')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const alive = (pid) => { try { process.kill(pid, 0); return true } catch (e) { return e.code === 'EPERM' } }
 const kill = (pid) => { try { process.kill(pid) } catch { /* gone */ } }
@@ -69,7 +74,7 @@ async function interrupted(f) {
   return { r1, tree, rec }
 }
 
-test('F3 REPRODUCTION + FIX: the runner dies but its workload survives (parent-only termination) — the unit is NOT re-run until the old process tree is proven stopped and terminated; no overlap', { timeout: 180_000 }, async () => {
+test('F3 / second-round: the runner dies but its workload survives (parent-only termination) — the unit is HELD, NOTHING is terminated, nothing re-runs; once the OPERATOR stops the survivor the unit resumes with no overlap', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -77,12 +82,16 @@ test('F3 REPRODUCTION + FIX: the runner dies but its workload survives (parent-o
     assert.equal(unit(f, 'b.test.mjs').status, 'running', 'the dead runner left the unit running')
     assert.ok(alive(tree.grandchild), `the detached workload process really survived the runner (pid ${tree.grandchild})`)
     writeFileSync(path.join(f.root, 'old-pids.json'), JSON.stringify([tree.root, tree.test, tree.grandchild]))
+    const held = await startRunner(f, 'a,b', ['--workload-wait-min', '0.02']).done
+    assert.equal(held.code, 75, held.out); assert.match(held.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.match(held.out, /"why":"WORKLOAD_STILL_RUNNING"/)
+    assert.doesNotMatch(held.out, /terminated_task_owned|task-owned process/, 'the runner never reports (or performs) a termination of a recovered process')
+    assert.equal(alive(tree.grandchild), true, 'the surviving workload process was NOT killed by the runner'); assert.equal(runs(f).length, 1, 'no duplicate execution while the survivor runs'); assert.equal(unit(f, 'b.test.mjs').status, 'running')
+    kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild)) // the OPERATOR stops the survivor
     const res = await startRunner(f, 'a,b').done
     assert.equal(res.code, 0, res.out)
-    const rr = runs(f); assert.equal(rr.length, 2, 'the unit was re-run exactly once')
+    const rr = runs(f); assert.equal(rr.length, 2, 'the unit was re-run exactly once, after the survivor was gone')
     assert.deepEqual(rr[1].overlap, [], `the re-run started while the OLD workload was still alive: ${JSON.stringify(rr[1].overlap)}`)
-    assert.match(res.out, /WORKLOAD b\.test\.mjs → terminated_task_owned/)
-    assert.equal(alive(tree.grandchild), false, 'the surviving workload process was terminated before the re-run')
+    assert.match(res.out, /WORKLOAD b\.test\.mjs → observed_stopped/); assert.doesNotMatch(res.out, /terminated_task_owned|task-owned process/)
     assert.equal(JSON.parse(res.out.trim().split('\n').at(-1)).ok, true)
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
@@ -96,7 +105,7 @@ test('F3: a recorded pid that is now held by an UNRELATED process (pid reuse) is
     const t = readProcessTableSync(); const s = t.procs.find((p) => p.pid === stranger.pid); assert.ok(s)
     edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); j.workload.root = { ...j.workload.root, pid: stranger.pid }; j.workload.descendants = []; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
     const res = await startRunner(f, 'a,b').done
-    assert.equal(res.code, 0, res.out); assert.match(res.out, /WORKLOAD b\.test\.mjs → already_stopped/)
+    assert.equal(res.code, 0, res.out); assert.match(res.out, /WORKLOAD b\.test\.mjs → observed_stopped/)
     assert.equal(alive(stranger.pid), true, 'the unrelated process that reuses a recorded pid was NOT killed')
     assert.equal(runs(f).length, 2)
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []); kill(stranger.pid) }
@@ -142,6 +151,10 @@ test('review N3: the operator release of a unit whose identity was never recorde
     edit(f, (db) => { const j = unit(f, 'b.test.mjs').result; j.pid = tree.root; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
     kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild) && !alive(tree.root))
     const released = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done; assert.equal(released.code, 0, released.out); assert.match(released.out, /released_by_operator/); assert.equal(runs(f).length, 2)
+    // second-round: the release is an ATTESTATION. A recorded root pid that is gone proves nothing about descendants, so it is never reported as verified containment
+    assert.match(released.out, /OPERATOR ATTESTATION/); assert.match(released.out, /containment NOT verified/); assert.doesNotMatch(released.out, /observed_stopped/)
+    const summary = JSON.parse(released.out.trim().split('\n').at(-1)); assert.deepEqual(summary.operator_released_units, ['b.test.mjs']); assert.equal(summary.containment, 'NOT_VERIFIED')
+    const db = new DatabaseSync(f.state, { readOnly: true }); try { const m = JSON.parse(db.prepare("SELECT value FROM meta WHERE key LIKE 'runner_release:%'").get().value); assert.equal(m.attested_by, 'operator'); assert.equal(m.containment, 'NOT_VERIFIED') } finally { db.close() }
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
@@ -204,7 +217,6 @@ test('security review S-1: no slack — a stranger that reuses a dead recorded p
 
 test('security review S-2: process facts are WINDOWS-only — any other platform is UNSUPPORTED and recovery fails closed (no mixed tick/ms time domains)', async () => {
   assert.equal((await readProcessTable({ platform: 'linux' })).code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM'); assert.equal(readProcessTableSync({ platform: 'linux' }).code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM')
-  assert.equal(await killVerified({ pid: 1, start: '1', name: 'node.exe' }, { platform: 'linux' }), 'ERROR')
 })
 
 test('security review S-3: the record keeps EVERY live recorded identity (even when its intermediate exited and 130 newer children came and went); over the bound dead entries go first and truncation fails closed', async () => {
@@ -220,17 +232,9 @@ test('security review S-3: the record keeps EVERY live recorded identity (even w
   assert.equal(small.truncated, undefined); assert.equal(small.descendants[0].seen_at, 9)
 })
 
-test('security review S-6/S-8: the kill re-checks identity on the handle (a pid now held by another process is NEVER killed) and a forged record is refused', async () => {
-  const sleeper = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
-  try {
-    await waitFor(() => readProcessTableSync().procs.some((p) => p.pid === sleeper.pid))
-    const me = readProcessTableSync().procs.find((p) => p.pid === sleeper.pid)
-    assert.equal(await killVerified({ pid: sleeper.pid, start: String(Number(me.start) + 60_000), name: me.name }), 'CHANGED'); assert.ok(alive(sleeper.pid), 'a different creation time: not killed')
-    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: 'other.exe' }), 'CHANGED'); assert.ok(alive(sleeper.pid), 'a different image: not killed')
-    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: "x'; Stop-Process -Id 1 #" }), 'ERROR', 'a hostile name never reaches the command line')
-    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: me.name }), 'KILLED'); await waitFor(() => !alive(sleeper.pid))
-    assert.equal(await killVerified({ pid: sleeper.pid, start: me.start, name: me.name }), 'GONE')
-  } finally { kill(sleeper.pid) }
+test('second-round: there is NO kill primitive for recovered processes (killVerified is gone) and a forged record is refused before anything is read', async () => {
+  assert.equal('killVerified' in FACTS, false, 'process-facts exports no termination function')
+  assert.deepEqual(Object.keys(FACTS).filter((k) => /kill|terminate|stop(?!ped)/i.test(k)), [], 'nothing in the module is named like a termination primitive')
   const forged = { root: { pid: 5, ppid: 1, start: 'not-a-number', name: 'node.exe', cmdline: 'c' }, descendants: [] }
   assert.equal(validWorkload(forged), false); assert.equal(validWorkload({ root: { pid: 5, ppid: 1, start: '1', name: 'n', cmdline: 'c' }, descendants: Array.from({ length: 300 }, () => ({ pid: 6, ppid: 5, start: '2', name: 'n', cmdline: 'c' })) }), false, 'oversized')
   assert.equal((await verifyWorkloadStopped({ recorded: forged, read: async () => { throw new Error('must not read') } })).code, 'WORKLOAD_RECORD_INVALID')
@@ -248,15 +252,90 @@ test('security review S-7: a recorded runner that is still alive (or unknowable)
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []); kill(stranger.pid) }
 })
 
-test('verifyWorkloadStopped: kills only what it proves (injected table + kill), re-reads after every round, and refuses when something remains', async () => {
+test('verifyWorkloadStopped (second-round): OBSERVATION only — a live recorded process holds, an unrelated one is ignored, a callback that would kill is never invoked, and only an all-gone table verifies', async () => {
   const P = (pid, ppid, start) => ({ pid, ppid, name: 'node.exe', start: String(start), cmdline: `c${pid}` })
   const rec = { root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10' }, descendants: [] }
-  let table = [P(10, 1, 1000), P(11, 10, 1100), P(99, 1, 500)]; const killed = []
-  const r = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: true, procs: table }), kill: (pid) => { killed.push(pid); table = table.filter((p) => p.pid !== pid) }, pauseMs: 1 })
-  assert.equal(r.verified, true); assert.equal(r.how, 'terminated_task_owned'); assert.deepEqual(killed, [11, 10], 'leaf first'); assert.ok(!killed.includes(99), 'the unrelated process is never killed')
-  const stubborn = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: true, procs: [P(10, 1, 1000)] }), kill: () => {}, pauseMs: 1, rounds: 2 })
-  assert.equal(stubborn.verified, false); assert.equal(stubborn.code, 'WORKLOAD_STILL_RUNNING')
-  assert.equal((await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: false, code: 'PROCESS_FACTS.UNAVAILABLE' }), pauseMs: 1 })).code, 'PROCESS_FACTS.UNAVAILABLE', 'no facts, no proof')
+  const killed = []; const kill = (pid) => killed.push(pid)
+  const live = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: true, procs: [P(10, 1, 1000), P(11, 10, 1100), P(99, 1, 500)] }), kill, terminate: true, guard: async () => true })
+  assert.equal(live.verified, false); assert.equal(live.code, 'WORKLOAD_STILL_RUNNING'); assert.deepEqual(live.running.map((p) => p.pid).sort(), [10, 11]); assert.deepEqual(killed, [], 'a provably-ours process is still NOT terminated')
+  const orphan = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: true, procs: [P(11, 10, 1100), P(99, 1, 500)] }), kill })
+  assert.equal(orphan.verified, false, 'the root is gone but its orphan is alive: not stopped'); assert.deepEqual(killed, [])
+  const gone = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: true, procs: [P(99, 1, 500)] }), kill })
+  assert.equal(gone.verified, true); assert.equal(gone.how, 'observed_stopped'); assert.deepEqual(killed, [])
+  assert.equal((await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: false, code: 'PROCESS_FACTS.UNAVAILABLE' }) })).code, 'PROCESS_FACTS.UNAVAILABLE', 'no facts, no proof')
   assert.equal((await verifyWorkloadStopped({ recorded: null, read: async () => ({ ok: true, procs: [] }) })).code, 'WORKLOAD_IDENTITY_UNKNOWN')
+  assert.equal((await verifyWorkloadStopped({ recorded: { ...rec, truncated: true }, read: async () => ({ ok: true, procs: [] }) })).code, 'WORKLOAD_RECORD_TRUNCATED')
   const real = await readProcessTable(); assert.ok(real.ok && real.procs.some((p) => p.pid === process.pid && p.start && p.name), 'the real process table is readable and includes this process with its creation time')
+})
+
+// ------------------------------------------------------------------------------------------------------- second-round remediation (ChatGPT review of b712f17f)
+const P2 = (pid, ppid, start, name = 'node.exe', cmdline = `c${pid}`) => ({ pid, ppid, name, start: String(start), cmdline })
+const REC = () => ({ root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10', seen_at: 1 }, descendants: [{ pid: 20, ppid: 10, start: '1100', name: 'node.exe', cmdline: 'c20', seen_at: 1 }], snap_ms: 500 })
+
+test('REPRODUCTION + FIX (injected tables): a REUSED root pid never causes an unrelated process tree to be recorded as the workload; the stranger is never refreshed, dead identities are kept', () => {
+  const strangerTable = { ok: true, procs: [P2(10, 1, 7777, 'stranger.exe', 'stranger'), P2(11, 10, 7800, 'unrelated-child.exe', 'u'), P2(12, 11, 7900, 'unrelated-grandchild.exe', 'u2'), P2(20, 10, 1100)] }
+  const w = refreshWorkload(REC(), strangerTable, { now: 9000 })
+  assert.deepEqual(w.descendants.map((d) => d.pid), [20], 'ONLY the genuinely recorded descendant (verified by identity) is in the record — the stranger\'s children are not adopted')
+  assert.equal(w.root.seen_at, 1, 'a stranger holding the root pid is not proof of life for the root'); assert.equal(w.descendants[0].seen_at, 9000, 'the identity-verified live descendant IS refreshed')
+  // children of a verified-live recorded descendant ARE adopted (still ours by identity), even though the root is gone
+  const w2 = refreshWorkload(REC(), { ok: true, procs: [P2(20, 10, 1100), P2(21, 20, 1200)] }, { now: 9000 })
+  assert.deepEqual(w2.descendants.map((d) => d.pid).sort(), [20, 21]); assert.equal(w2.root.seen_at, 1)
+  // the root's whole subtree is gone: the dead identities are KEPT (their last-seen times bound later orphans)
+  const w3 = refreshWorkload(REC(), { ok: true, procs: [P2(99, 1, 5)] }, { now: 9000 }); assert.equal(w3.descendants.length, 1); assert.equal(w3.descendants[0].seen_at, 1)
+})
+
+test('captureWorkload (injected): a pid that does not look like the spawned child is never adopted as the root', () => {
+  const t = { ok: true, procs: [P2(10, 1, 100000, 'node.exe', 'node --test tests/b.test.mjs'), P2(11, 10, 100100)] }
+  const expect = { name: 'node.exe', cmdlineIncludes: 'tests/b.test.mjs', notBefore: 99000 }
+  assert.equal(captureWorkload(t, 10, { expect }).descendants.length, 1)
+  assert.equal(captureWorkload(t, 10, { expect: { ...expect, name: 'other.exe' } }), null, 'wrong image'); assert.equal(captureWorkload(t, 10, { expect: { ...expect, cmdlineIncludes: 'tests/zzz.test.mjs' } }), null, 'wrong command line')
+  assert.equal(captureWorkload(t, 10, { expect: { ...expect, notBefore: 100001 } }), null, 'created before the spawn: a reused pid, not our child'); assert.equal(captureWorkload(t, 404, { expect }), null)
+})
+
+test('REPRODUCTION + FIX (temp ledger): an interrupted unit KEEPS its workload identity, root pid, recording runner and heartbeat; a passed unit and the outcome fields are unchanged', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'dh35-keep-')); const L = Ledger.open(path.join(dir, 's.sqlite'))
+  try {
+    openGroup(L, { groupId: 'g', units: ['u.test.mjs', 'v.test.mjs'] })
+    const workload = REC(); const runner = { pid: 5, start: '7' }
+    for (const id of ['u.test.mjs', 'v.test.mjs']) { startUnit(L, 'g', id, {}); L.db.prepare('UPDATE test_units SET result_json=? WHERE unit_id=?').run(JSON.stringify({ started_at: 1, pid: 10, runner, heartbeat: 5, workload }), id) }
+    recordOutcome(L, 'g', 'u.test.mjs', { kind: 'ambiguous_interruption', evidence: { e: 1 } }, {})
+    const u = unitsOf(L, 'g')[0]; assert.equal(u.status, 'interrupted_ambiguous'); assert.deepEqual(u.result.workload, workload); assert.equal(u.result.pid, 10); assert.deepEqual(u.result.runner, runner); assert.equal(u.result.heartbeat, 5); assert.equal(u.result.kind, 'ambiguous_interruption'); assert.deepEqual(u.result.evidence, { e: 1 })
+    recordOutcome(L, 'g', 'v.test.mjs', { kind: 'passed' }, { counts: { tests: 1, pass: 1, fail: 0 } })
+    const v = unitsOf(L, 'g')[1]; assert.equal(v.status, 'passed'); assert.equal(v.result.workload, undefined, 'a completed unit is final and carries no interrupted-workload record')
+  } finally { L.close(); rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('REAL processes, ORDINARY interrupted-child path: the runner is alive, its test child is interrupted while a DETACHED workload process survives — the unit is HELD (nothing killed, not re-run); once the survivor is stopped the unit re-runs first', { timeout: 180_000 }, async () => {
+  const f = fixture(); let tree
+  try {
+    const r1 = startRunner(f, 'a,b', ['--workload-wait-min', '0.02'])
+    const rec = await waitFor(() => { const u = unit(f, 'b.test.mjs'); const g = existsSync(f.gc) ? Number(readFileSync(f.gc, 'utf8')) : null; return u?.status === 'running' && g && u.result.workload?.descendants?.some((d) => d.pid === g) ? u : null }, 90_000)
+    tree = { root: rec.result.pid, grandchild: Number(readFileSync(f.gc, 'utf8')), runner: r1.p.pid }
+    kill(tree.root) // the "reaper" interrupts the test child; the RUNNER stays alive
+    const res = await r1.done
+    assert.equal(res.code, 75, res.out); assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.match(res.out, /"why":"WORKLOAD_STILL_RUNNING"/)
+    const u = unit(f, 'b.test.mjs'); assert.match(u.status, /^interrupted_/); assert.ok(validWorkload(u.result.workload), 'the interrupted unit kept its workload identity (pre-fix: replaced by the outcome alone)'); assert.ok(u.result.workload.descendants.some((d) => d.pid === tree.grandchild))
+    assert.equal(alive(tree.grandchild), true, 'the survivor was NOT terminated'); assert.equal(runs(f).length, 1, 'the unit was NOT re-run on top of the surviving workload (pre-fix: re-run at once)')
+    kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild))
+    const again = await startRunner(f, 'a,b').done
+    assert.equal(again.code, 0, again.out); assert.match(again.out, /WORKLOAD b\.test\.mjs → observed_stopped/); assert.equal(runs(f).length, 2); assert.deepEqual(runs(f)[1].overlap, [])
+  } finally { cleanup(f, tree ? [tree.root, tree.grandchild, tree.runner] : []) }
+})
+
+test('REAL processes: a leftover takeover mutex next to a dead holder\'s lock is NEVER broken by the runner — it exits 75 and starts NO host workload (strict takeover)', { timeout: 120_000 }, async () => {
+  const f = fixture(); rmSync(f.hold)
+  try {
+    writeFileSync(`${f.state}.lock`, JSON.stringify({ execution_id: 'runner-dead', pid: 2_000_000_000, start: '1', acquired_at: 'x', nonce: 'n' }))
+    writeFileSync(`${f.state}.lock.takeover`, JSON.stringify({ execution_id: 'runner-dead-breaker', pid: 2_000_000_001, start: '1', acquired_at: 'x', nonce: 'm' }))
+    const res = await startRunner(f, 'a,b').done
+    assert.equal(res.code, 75, res.out); assert.match(res.out, /RUNNER_ALREADY_ACTIVE/); assert.match(res.out, /LOCK\.TAKEOVER_BUSY/)
+    assert.equal(runs(f).length, 0, 'no test workload was started'); assert.equal(unit(f, 'a.test.mjs'), null, 'no state was even opened'); assert.equal(existsSync(`${f.state}.lock.takeover`), true, 'the leftover mutex was left for the operator')
+  } finally { cleanup(f) }
+})
+
+test('static guard: the runner contains exactly ONE termination call — the handle of the child it spawned — and process-facts contains none', () => {
+  const strip = (t) => t.replace(/\/\/[^\n]*/g, '') // comments may talk about killing; code may not
+  const runner = strip(readFileSync(RUNNER_SRC, 'utf8')); const facts = strip(readFileSync(path.join(HERE, '..', 'ci', 'process-facts.mjs'), 'utf8'))
+  const kills = [...runner.matchAll(/\b[\w.]*\.kill\(/g)].map((m) => m[0]); assert.ok(kills.length >= 1, 'the spawned child can still be terminated through its own handle')
+  assert.equal(kills.every((k) => k === 'p.kill('), true, 'every kill is p.kill() on the spawned child handle'); const all = runner + facts; assert.equal(/process\.kill\(|\.Kill\(\)/.test(all) || /taskkill|Stop-Process|TerminateProcess/i.test(all), false, 'no process.kill(pid), no PowerShell Kill(), no taskkill/Stop-Process anywhere')
 })

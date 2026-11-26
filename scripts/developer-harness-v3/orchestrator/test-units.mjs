@@ -65,9 +65,16 @@ export function classifyUnit(o, cfg = UNIT_DEFAULTS) {
 }
 
 const STATUS = { passed: 'passed', genuine_failure: 'failed', verified_resource_kill: 'interrupted_resource', ambiguous_interruption: 'interrupted_ambiguous' }
+// D3.5 second-round remediation: an INTERRUPTED unit keeps the ownership facts of the run that was cut off (the recorded workload identity, the root pid, the recording runner, its heartbeat). They
+// are the only way a later invocation can establish that the old process tree is gone BEFORE the unit is re-run; replacing them with the outcome alone made that proof impossible.
+const KEPT_ON_INTERRUPTION = ['started_at', 'pid', 'runner', 'heartbeat', 'workload']
 export function recordOutcome(L, groupId, unitId, cls, raw = {}) {
   const status = STATUS[cls.kind]; if (!status) throw new Error('UNITS.BAD_CLASSIFICATION')
   const result = { kind: cls.kind, evidence: cls.evidence ?? null, counts: raw.counts ?? null, ended_at: L.now() }
+  if (INTERRUPTED.includes(status)) {
+    const cur = L.db.prepare("SELECT result_json FROM test_units WHERE group_id=? AND unit_id=? AND status='running'").get(groupId, unitId)
+    if (cur) { let prior = {}; try { prior = JSON.parse(cur.result_json) } catch { /* unreadable: nothing to keep */ } for (const k of KEPT_ON_INTERRUPTION) if (prior[k] !== undefined && result[k] === undefined) result[k] = prior[k] }
+  }
   L.db.prepare(`UPDATE test_units SET status=?, interruptions=interruptions+?, result_json=?, updated_at=? WHERE group_id=? AND unit_id=? AND status='running'`).run(status, INTERRUPTED.includes(status) ? 1 : 0, JSON.stringify(result), L.now(), groupId, unitId)
 }
 

@@ -122,3 +122,19 @@ test('release and re-check: only the holder\'s own nonce releases; a lock that w
     const b = acquireLock(lock, { execution_id: 'B', acquired_at: 'x' }); assert.ok(b.ok); assert.equal(releaseLock(lock, { execution_id: 'B', nonce: b.nonce }).ok, true); assert.equal(existsSync(lock), false)
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+
+test('second-round remediation (strict, used by the host runner): a leftover takeover mutex is NEVER broken — dead breaker, reused pid, old/empty mutex and the replaced-by-a-live-one race all end in LOCK.TAKEOVER_BUSY with the lock and mutex untouched', async () => {
+  const { utimesSync } = await import('node:fs'); const dir = tmp(); const lock = path.join(dir, 'x.lock'); const mutex = `${lock}.takeover`
+  const strict = (isHolderAlive) => acquireLock(lock, { execution_id: 'C', acquired_at: 'x' }, { isHolderAlive, strict: true })
+  try {
+    writeFileSync(lock, JSON.stringify(DEAD)); writeFileSync(mutex, JSON.stringify({ pid: 999999, nonce: 'm' }))
+    assert.equal(strict(deadOnly).code, 'LOCK.TAKEOVER_BUSY', "a dead breaker's mutex is not cleared by a strict acquirer"); assert.equal(JSON.parse(readFileSync(mutex, 'utf8')).nonce, 'm'); assert.equal(JSON.parse(readFileSync(lock, 'utf8')).nonce, 'deadnonce')
+    rmSync(mutex); writeFileSync(mutex, ''); const old = new Date(Date.now() - 60_000); utimesSync(mutex, old, old)
+    assert.equal(strict(deadOnly).code, 'LOCK.TAKEOVER_BUSY', 'an old empty mutex is not broken either'); assert.equal(readFileSync(mutex, 'utf8'), '')
+    rmSync(mutex); writeFileSync(mutex, JSON.stringify({ pid: process.pid, start: 'not-my-start', nonce: 'm' }))
+    assert.equal(strict((h) => (h.start === 'not-my-start' ? false : h.pid !== 999999)).code, 'LOCK.TAKEOVER_BUSY', 'a reused-pid mutex judged dead by identity is still not broken')
+    assert.deepEqual(readdirSync(dir).filter((n) => /\.dead\.|stale/.test(n)), [], 'nothing was moved, nothing left behind')
+    // an UNCONTENDED takeover of a verifiably dead holder (no mutex in the way) still works: automatic recovery is retained
+    rmSync(mutex); const ok = strict(deadOnly); assert.equal(ok.ok, true); assert.ok(holdsLock(lock, ok.nonce)); assert.equal(existsSync(mutex), false)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
