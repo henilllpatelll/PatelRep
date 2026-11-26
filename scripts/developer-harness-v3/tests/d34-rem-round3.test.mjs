@@ -101,3 +101,10 @@ test('R4-4: the re-attestation bound is the LEDGER review/run time across EVERY 
   const secret = `ghp_${'a1B2c3D4e5'.repeat(4)}`; const g = H({ scenario: { stages: { planning: [{ fail: `boom ${secret}`, failTimes: 100 }] } } }); const gid = g.submit(); await drive(g)
   assert.ok(!JSON.stringify(g.ledger.db.prepare('SELECT end_reason FROM executions').all()).includes('ghp_'), 'end_reason is code-shaped'); void gid; g.close()
 })
+
+test('R5-1: approvals older than the re-attestation bound end the handoff AT ONCE in a terminal suspension that names the real cause and what is needed (no wasted cool-downs, no misleading resume advice)', async () => {
+  let h; let fired = false
+  h = H({ hook: (n) => { if (n === 'after_evidence_accepted' && !fired && h.ledger.db.prepare("SELECT COUNT(*) c FROM evidence WHERE evidence_type='security_review'").get().c === 1) { fired = true; h.clock.advance(25 * 3600_000) } } })
+  const id = h.submit(); await drive(h); const s = h.ledger.getSuspension(id); assert.equal(h.ledger.getTask(id).handoff_ready, 0); assert.equal(s.disposition, 'terminal'); assert.equal(s.cause, 'HANDOFF_APPROVALS_TOO_OLD'); assert.equal(s.epoch, 1, 'no cool-down epochs were burned')
+  const n = notes(h, 'technical_suspension'); assert.equal(n.length, 1); const p = JSON.parse(n[0].payload_json); assert.ok(p.diagnostics.codes.includes('ISSUER.REATTESTATION_BOUND_EXCEEDED')); assert.match(p.how_to_resume, /NEW test run and NEW reviews/); assert.equal(owner(h).blockerRows, 0); h.close()
+})

@@ -382,8 +382,11 @@ async function reattest(e, taskId, missing) {
 }
 
 /** A handoff attempt that could not complete: a PERSISTED retry schedule (never a silent stall); when the budget is spent, a technical suspension — never an owner decision. */
-function handoffRetry(e, taskId, cause, fingerprint) {
+function handoffRetry(e, taskId, cause, fingerprint, problems = []) {
   const L = e.ledger
+  // approvals that are too OLD to re-attest can never be obtained by waiting: stop at once, say why, and say what is actually needed (no wasted cool-downs)
+  if (problems.length && problems.every((p) => p === 'ISSUER.REATTESTATION_BOUND_EXCEEDED')) return PROGRESS((suspendTechnically(e, taskId, { cause: 'HANDOFF_APPROVALS_TOO_OLD', stage: 'publishing', codes: ['ISSUER.REATTESTATION_BOUND_EXCEEDED'], terminal: true,
+    howToResume: 'The approvals for this candidate expired and are older than the re-attestation bound (24 h from the review/run). Waiting cannot fix that and engine.resumeSuspended will not either: a NEW test run and NEW reviews of the candidate are required, which needs the lifecycle back-edge publishing -> testing (proposal P3(c)) or a resubmission of the task.' }), 'technically_suspended'))
   const r = recordFailure(L, { taskId, stage: 'handoff', fingerprint, rng: e.rng }, e.cfg.retry)
   if (r.exhausted || budgetExceeded(e, taskId)) return technicallySuspend(e, taskId, cause, 'publishing', [cause])
   return NONE
@@ -396,8 +399,9 @@ export async function handoff(e, taskId) {
   const collect = () => need.map((type) => ({ type, ev: satisfyingEvidence(L, taskId, e.policy, type) }))
   let have = collect()
   let missing = have.filter((h) => !h.ev.length).map((h) => h.type)
-  if (missing.length) { await reattest(e, taskId, missing); have = collect(); missing = have.filter((h) => !h.ev.length).map((h) => h.type) }
-  if (missing.length) { L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing }); return handoffRetry(e, taskId, 'HANDOFF_EVIDENCE_UNOBTAINABLE', `handoff:evidence:${missing.join('+')}`) }
+  let reproblems = []
+  if (missing.length) { reproblems = (await reattest(e, taskId, missing)).problems; have = collect(); missing = have.filter((h) => !h.ev.length).map((h) => h.type) }
+  if (missing.length) { L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing }); return handoffRetry(e, taskId, 'HANDOFF_EVIDENCE_UNOBTAINABLE', `handoff:evidence:${missing.join('+')}`, reproblems) }
   const gaps = completenessProblems(L, taskId)
   if (gaps.length) { L.recordRecovery(taskId, 'handoff_incomplete', { gaps }); return handoffRetry(e, taskId, 'HANDOFF_INCOMPLETE', `handoff:incomplete:${gaps.slice(0, 3).join('+')}`.slice(0, 120)) }
   const cand = L.currentCandidate(taskId)

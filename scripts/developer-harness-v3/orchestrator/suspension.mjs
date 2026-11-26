@@ -55,7 +55,7 @@ export function budgetExceeded(e, taskId, { reviewKind = null } = {}) {
  * Enter a technical suspension. Idempotent for an active suspension (never stacks epochs for one cause). Returns the suspension row.
  * @param {{cause:string, stage?:string, codes?:string[]}} s
  */
-export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] }) {
+export function suspendTechnically(e, taskId, { cause, stage = null, codes = [], terminal: forceTerminal = false, howToResume = null }) {
   const L = e.ledger; const c = e.cfg.technical
   const active = L.getSuspension(taskId); if (active) return active
   // an owner-only cause is NEVER cooled down and retried (defence in depth: every caller already routes these, this makes the invariant local)
@@ -63,7 +63,7 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
   if (ownerCodes.length) { e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ownerCodes.map(safeCode) }); return null }
   return L.tx(() => {
     const now = L.now(); const epoch = epochOf(L, taskId) + 1
-    const terminal = epoch > c.maxEpochs || cause === 'SESSION_BUDGET_EXHAUSTED'
+    const terminal = forceTerminal || epoch > c.maxEpochs || cause === 'SESSION_BUDGET_EXHAUSTED'
     const base = c.cooldownsMs[Math.min(epoch - 1, c.cooldownsMs.length - 1)]
     let cool = base + Math.round(base * 0.1 * e.rng())
     // The cool-down must also end while the extra-usage fact is still fresh (it ages from the LAST provider stream, not from the suspension): clamp it, with a 10-minute floor.
@@ -81,8 +81,8 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
     L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) // the next epoch starts with fresh per-fingerprint budgets (the per-generation session cap resets only through an explicit resumeSuspended)
     L.recordRecovery(taskId, 'technical_suspension', { epoch, cause, stage, disposition: terminal ? 'terminal' : 'cooling_down', retry_at: retryAt })
     const payload = { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
-      automatic_resume_at: retryAt, diagnostics, how_to_resume: terminal ? 'Automatic engineering has stopped for this task (its retry and session budgets are spent). Inspect the diagnostics, then resume with a fresh budget (engine.resumeSuspended) — this is not a permission decision.'
-        : 'No action needed: the task resumes automatically at automatic_resume_at with a stronger/different strategy. It can be resumed earlier with engine.resumeSuspended.' }
+      automatic_resume_at: retryAt, diagnostics, how_to_resume: howToResume ?? (terminal ? 'Automatic engineering has stopped for this task (its retry and session budgets are spent). Inspect the diagnostics, then resume with a fresh budget (engine.resumeSuspended) — this is not a permission decision.'
+        : 'No action needed: the task resumes automatically at automatic_resume_at with a stronger/different strategy. It can be resumed earlier with engine.resumeSuspended.') }
     if (scanContent(Buffer.from(JSON.stringify(payload))).length) payload.diagnostics = { redacted: true, cause: safeCode(cause) } // a notification never carries a credential-shaped string
     enqueueOutbox(L, { taskId, kind: 'technical_suspension', dedupeKey: `suspension:${taskId}:g${generationOf(L, taskId)}:${epoch}`, payload })
     return L.getSuspension(taskId)
