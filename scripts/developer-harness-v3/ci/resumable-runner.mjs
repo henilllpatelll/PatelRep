@@ -59,7 +59,8 @@ function runChild(root, rel, { onPid, onWorkload, workloadOf, beat, sample, inte
     onPid(p.pid)
     // identity of the workload, recorded as soon as it can be read and REFRESHED while it runs (what descends from it, and when each process was last seen alive): an unrecorded workload can never be proven stopped
     let snapping = false; let exited = false
-    const snap = async () => { if (snapping || exited) return; snapping = true; try { const t = await readProcessTable(); if (t.ok && !exited) { const prev = workloadOf(); const w = prev ? refreshWorkload(prev, t) : captureWorkload(t, p.pid, { snapMs }); if (w) onWorkload(w) } } catch { /* identity capture is best effort; its absence makes a later recovery fail closed */ } finally { snapping = false } }
+    // `at` is taken BEFORE the read: proof of life is never later than the moment the table was requested
+    const snap = async () => { if (snapping || exited) return; snapping = true; try { const at = Date.now(); const t = await readProcessTable(); if (t.ok && !exited) { const prev = workloadOf(); const w = prev ? refreshWorkload(prev, t, { now: at }) : captureWorkload(t, p.pid, { snapMs, now: at }); if (w) onWorkload(w) } } catch { /* identity capture is best effort; its absence makes a later recovery fail closed */ } finally { snapping = false } }
     const first = setTimeout(snap, 700); const snapTimer = setInterval(snap, snapMs); snap()
     let out = ''; const cap = 64 * 1024 * 1024
     const killOnExit = () => { try { p.kill() } catch { /* gone */ } }; process.once('exit', killOnExit) // our own child never outlives the runner (review S-7)
@@ -85,7 +86,9 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
   // ONE runner per state file (found live during D3.5: the low-memory reaper stopped the shell but an orphaned runner kept running; a second runner then took the orphan's in-progress
   // unit for LOST). The lock records our pid; a holder that is verifiably dead is broken, a live (or unknown) one is never shared.
   const lockFile = `${stateFile}.lock`
-  const me = selfIdentity() // one process-table read: the lock records WHO we are (pid + creation time), so a reused pid can never keep a dead runner's lock alive
+  let me = selfIdentity(); for (let i = 0; i < 2 && !me && process.platform === 'win32'; i += 1) me = selfIdentity()
+  if (!me && process.platform === 'win32') { log(`${JSON.stringify({ ok: false, code: 'PROCESS_IDENTITY_UNAVAILABLE', state: stateFile })}\n`); return 75 } // a runner that cannot name itself could leave units no later runner can prove anything about
+  // one process-table read: the lock records WHO we are (pid + creation time), so a reused pid can never keep a dead runner's lock alive
   const lock = acquireLock(lockFile, { execution_id: `runner-${process.pid}`, acquired_at: new Date().toISOString(), start: me?.start ?? null, name: me?.name ?? null }, { isHolderAlive: (h) => holderAlive(h) })
   if (!lock.ok) { log(`${JSON.stringify({ ok: false, code: 'RUNNER_ALREADY_ACTIVE', lock: lock.code, holder_pid: lock.holder?.pid ?? null, state: stateFile })}\n`); return 75 }
   process.once('exit', () => { try { releaseLock(lockFile, { execution_id: `runner-${process.pid}`, nonce: lock.nonce }) } catch { /* best effort */ } })
@@ -99,14 +102,14 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
     for (const u of unitsOf(L, groupId).filter((x) => x.status === 'running')) {
       const waitStart = L.now(); let v
       if (releaseUnit === u.unit_id && !validWorkload(u.result.workload)) {
-        const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : null; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
+        const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : true; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
         if (runnerDead === true && rootGone) { L.setMeta(`runner_release:${groupId}:${u.unit_id}`, JSON.stringify({ at: L.now(), runner: u.result.runner ?? null, pid: u.result.pid ?? null })); log(`WORKLOAD ${u.unit_id} → released_by_operator (no identity was recorded; the recorded runner and root pid are both gone)
 `); continue }
         log(`${JSON.stringify({ ok: false, code: 'RELEASE_REFUSED', unit: u.unit_id, runner_dead: runnerDead, root_gone: rootGone, state: stateFile })}
 `); return 75
       }
       for (;;) {
-        const runnerAlive = u.result.runner ? holderAlive(u.result.runner) : false // a recorded runner that is alive (or unknowable) may still own this unit: nothing is touched
+        const runnerAlive = u.result.runner ? holderAlive(u.result.runner) : null // a recorded runner that is alive — or NOT recorded at all — may still own this unit: nothing is touched (the operator release is the explicit way out)
         v = runnerAlive !== false ? { verified: false, code: 'RECORDED_RUNNER_NOT_DEAD' } : await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: Number(u.result.heartbeat), guard: async () => holdsLock(lockFile, lock.nonce) })
         if (v.verified || v.code === 'WORKLOAD_IDENTITY_UNKNOWN' || L.now() - waitStart > cfg.workloadWaitMs) break
         await sleep(cfg.sampleIntervalMs)

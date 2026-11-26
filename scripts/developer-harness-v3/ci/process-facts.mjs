@@ -111,12 +111,12 @@ export function judgeWorkload(table, recorded, { lastSeenMs } = {}) {
 
 /**
  * Terminate ONE process, but only if the process holding that pid RIGHT NOW is still the recorded one: a single PowerShell call opens the process by pid, compares its creation time and image to the
- * recorded identity and kills THAT handle — a pid reused in the meantime is never killed. Name and start are validated before they reach the command text.
+ * recorded identity and kills THAT handle (`$p.Handle` caches ONE process handle that StartTime and Kill() then share) — a pid reused in the meantime is never killed. Name and start are validated before they reach the command text.
  * @returns {Promise<'KILLED'|'CHANGED'|'GONE'|'ERROR'>}
  */
 export function killVerified(p, { platform = process.platform } = {}) {
   if (platform !== 'win32' || !Number.isInteger(p?.pid) || p.pid <= 0 || !/^\d{1,20}$/.test(String(p.start)) || !/^[A-Za-z0-9._ -]{1,64}$/.test(String(p.name))) return Promise.resolve('ERROR')
-  const script = `$ErrorActionPreference='Stop'; try { $p=[System.Diagnostics.Process]::GetProcessById(${p.pid}); $ms=([DateTimeOffset]$p.StartTime).ToUnixTimeMilliseconds(); if ([math]::Abs($ms - ${p.start}) -le 2 -and (($p.ProcessName + '.exe') -ieq '${p.name}')) { $p.Kill(); 'KILLED' } else { 'CHANGED' } } catch [System.ArgumentException] { 'GONE' } catch { 'ERROR' }`
+  const script = `$ErrorActionPreference='Stop'; try { $p=[System.Diagnostics.Process]::GetProcessById(${p.pid}); $null=$p.Handle; $ms=([DateTimeOffset]$p.StartTime).ToUnixTimeMilliseconds(); if ([math]::Abs($ms - ${p.start}) -le 2 -and (($p.ProcessName + '.exe') -ieq '${p.name}')) { $p.Kill(); 'KILLED' } else { 'CHANGED' } } catch [System.ArgumentException] { 'GONE' } catch { 'ERROR' }`
   return new Promise((resolve) => {
     const cp = execFile(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', script], { env: sysEnv(), windowsHide: true, timeout: 20_000, encoding: 'utf8' }, (err, stdout) => resolve(err ? 'ERROR' : (['KILLED', 'CHANGED', 'GONE'].find((x) => String(stdout).trim() === x) ?? 'ERROR')))
     cp.stdin?.end()
