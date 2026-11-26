@@ -14,6 +14,7 @@ import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
 import { budgetExceeded, classifyBlocker, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
 import { runTestUnits } from './test-units.mjs'
+import { reportIncident } from './recovery-supervisor.mjs'
 
 const NONE = Object.freeze({ progressed: false })
 const PROGRESS = (action) => ({ progressed: true, action })
@@ -36,6 +37,7 @@ export function failStage(e, taskId, stageKey, out) {
   const L = e.ledger
   if (out.status === 'busy' || out.status === 'cancelled') return NONE
   if (out.status === 'suspend') return technicallySuspend(e, taskId, out.cause, stageKey, out.codes ?? [])
+  if (out.status === 'incident') { reportIncident(L, taskId, { kind: out.incident, code: out.code ? safeCode(out.code) : null, stage: stageKey, detail: out.detail ?? {} }); return PROGRESS('incident_reported') } // D3.5-C: handled by the recovery supervisor (bounded, persisted)
   if (out.status === 'wait') {
     const w = out.wait; const codes = w.codes?.length ? w.codes : [w.code]
     if (w.state === 'blocked') e.applyWait(taskId, { kind: 'blocked', reason: w.reason, codes })

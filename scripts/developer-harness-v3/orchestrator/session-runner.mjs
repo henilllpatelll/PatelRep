@@ -54,10 +54,11 @@ export async function runSessionStage(e, taskId, spec) {
   let outcome = null
   try {
     const prep = await A.worker.ensure(task)
-    if (!prep?.ok) { outcome = { status: 'failed', code: prep?.code ?? 'WORKER.NOT_AVAILABLE', fingerprint: fingerprint('worker', prep?.code) }; throw outcome }
+    // D3.5-C: a worker INCIDENT (failed sanitizer, contaminated worker, broken/missing overlay, golden mismatch) goes to the recovery supervisor, not to a blind retry
+    if (!prep?.ok) { outcome = prep?.incident ? { status: 'incident', incident: prep.incident, code: prep.code ?? null, detail: prep.detail ?? {} } : { status: 'failed', code: prep?.code ?? 'WORKER.NOT_AVAILABLE', fingerprint: fingerprint('worker', prep?.code) }; throw outcome }
     spec.onLeased?.(lease)
     let prompt = await buildPrompt(e, taskId, spec, null)
-    if (!prompt.ok) { outcome = { status: 'failed', code: prompt.code, fingerprint: fingerprint('prompt', prompt.code) }; throw outcome }
+    if (!prompt.ok) { outcome = prompt.incident ? { status: 'incident', incident: prompt.incident.kind, code: prompt.code, detail: prompt.incident } : { status: 'failed', code: prompt.code, fingerprint: fingerprint('prompt', prompt.code) }; throw outcome }
     prompt = prompt.prompt
     let resume = false
     L.markExecutionRunning(lease.execution_id)
@@ -170,7 +171,8 @@ async function buildPrompt(e, taskId, spec) {
   }
   const task = L.getTask(taskId)
   const observed = await e.adapters.git.prepareWorktree(task, { snapshotDir: checkpoint?.snapshot_ref ? resolve(checkpoint.snapshot_ref) : null, readonly: spec.readonly === true })
-  if (!observed?.ok) return { ok: false, code: observed?.code ?? 'WORKTREE.PREPARE_FAILED' }
+  // a checkpoint whose snapshot cannot be restored is a RESTORE incident (the supervisor de-verifies it and falls back to an older one), not a retry of the same failing restore
+  if (!observed?.ok) return { ok: false, code: observed?.code ?? 'WORKTREE.PREPARE_FAILED', incident: checkpoint && /^(SNAPSHOT|CHECKPOINT)\./.test(observed?.code ?? '') ? { kind: 'restore_failed', checkpoint_id: checkpoint.checkpoint_id } : null }
   if (checkpoint) {
     const rs = verifyRestoredState({ ledger: L, taskId, checkpointId: checkpoint.checkpoint_id, observed })
     if (!rs.ok) return { ok: false, code: rs.problems[0] }

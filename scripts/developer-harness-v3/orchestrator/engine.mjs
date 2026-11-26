@@ -15,6 +15,7 @@ import { liveExecutionAllowed } from './activation-gates.mjs'
 import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
 import { unitFloorReady } from './test-units.mjs'
+import { pendingIncident, superviseIncident } from './recovery-supervisor.mjs'
 import { TECH_DEFAULTS, budgetExceeded, classifyBlocker, resumeSuspended, sessionsUsed, suspendTechnically, suspensionAllowsRun } from './suspension.mjs'
 
 export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, technical: TECH_DEFAULTS,
@@ -150,7 +151,8 @@ export class Engine {
     const r = L.db.prepare('SELECT MIN(next_eligible_at) m FROM retry_budgets WHERE exhausted=0 AND next_eligible_at>?').get(L.now()).m
     const sus = L.db.prepare("SELECT MIN(s.retry_at) m FROM suspensions s JOIN tasks t ON t.task_id=s.task_id WHERE t.cancelled=0 AND t.handoff_ready=0 AND s.disposition='cooling_down'").get().m
     const ob = L.db.prepare("SELECT MIN(next_attempt_at) m FROM outbox WHERE status='pending' AND next_attempt_at>?").get(L.now()).m // an undelivered notification is never forgotten
-    const xs = [w, r, sus, ob].filter((x) => Number.isFinite(x))
+    const ra = L.db.prepare("SELECT MIN(next_at) m FROM recovery_attempts WHERE next_at>? AND scope IN (SELECT substr(key,10) FROM meta WHERE key LIKE 'incident:%')").get(L.now()).m // a pending incident's back-off
+    const xs = [w, r, sus, ob, ra].filter((x) => Number.isFinite(x))
     return xs.length ? Math.min(...xs) : null
   }
 
@@ -159,6 +161,7 @@ export class Engine {
     const done = (action) => ({ progressed: true, action })
     const none = { progressed: false }
     if (!suspensionAllowsRun(this, taskId)) return none // cooling down (a wake-up is scheduled) or terminal (an explicit disposition, one notification)
+    if (pendingIncident(L, taskId)) return superviseIncident(this, taskId) // D3.5-C: a reported incident is handled (bounded, persisted back-off) before anything else of this task
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }
       case 'queued': {
