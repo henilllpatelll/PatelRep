@@ -334,7 +334,7 @@ test('REAL processes: a leftover takeover mutex next to a dead holder\'s lock is
 })
 
 test('static guard: the ONLY termination in the runner is p.kill() on the handle of the child it spawned (two call sites: file timeout, runner exit) and process-facts contains none', () => {
-  const strip = (t) => t.replace(/\/\/[^\n]*/g, '') // comments may talk about killing; code may not
+  const strip = (t) => t.replace(/\/\/[^\n]*/g, '') // comments may talk about killing; code may not. Direct imports only: the runner reaches cleanup.mjs (refuses live execution unless simulated) via test-units and vm-controller.mjs (constants only) via process-facts; neither kill path is called
   const runner = strip(readFileSync(RUNNER_SRC, 'utf8')); const facts = strip(readFileSync(path.join(HERE, '..', 'ci', 'process-facts.mjs'), 'utf8'))
   const kills = [...runner.matchAll(/\b[\w.]*\.kill\(/g)].map((m) => m[0]); assert.equal(kills.length, 2, 'exactly the two known call sites (file timeout, runner exit) — a new one must be reviewed'); assert.equal(/\bimport\b[^\n]*['"]\.\.?\/[^'"]*(vm-controller|launcher|cleanup)/.test(strip(readFileSync(RUNNER_SRC, 'utf8')).replace(/import \{[^}]*isPidAlive[^}]*\} from '..\/runtime\/launcher.mjs'/, '')), false, 'the runner imports no module that terminates processes (launcher is imported for the read-only isPidAlive only)')
   assert.equal(kills.every((k) => k === 'p.kill('), true, 'every kill is p.kill() on the spawned child handle'); const all = runner + facts; assert.equal(/process\.kill\(|\.Kill\(\)/.test(all) || /taskkill|Stop-Process|TerminateProcess/i.test(all), false, 'no process.kill(pid), no PowerShell Kill(), no taskkill/Stop-Process anywhere')
@@ -360,7 +360,8 @@ test('review r7-2 (REAL): the operator release is consumed ONCE and never replay
     writeFileSync(path.join(f.root, 'tests', 'e.test.mjs'), "process.kill(process.ppid)\n") // kills its own `node --test` parent at once: no test counts, an ambiguous interruption, before any workload identity can be read
     const res = await startRunner(f, 'a,e', ['--release-unproven-unit', 'e.test.mjs', '--workload-wait-min', '0.01']).done
     assert.equal(res.code, 75, res.out); assert.doesNotMatch(res.out, /OPERATOR ATTESTATION|released_by_operator/, 'the flag was not honoured for a state the operator never saw')
-    assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED|UNIT_INTERRUPTED_REPEATEDLY/); assert.equal(JSON.parse(res.out.trim().split('\n').at(-1)).operator_released_units, undefined)
+    assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED|UNIT_INTERRUPTED_REPEATEDLY/); assert.match(res.out, /"why":"WORKLOAD_IDENTITY_UNKNOWN"/, 'held because no identity was recorded, not re-run to exhaustion')
+    const db = new DatabaseSync(f.state, { readOnly: true }); try { assert.equal(db.prepare("SELECT COUNT(*) c FROM meta WHERE key LIKE 'runner_release:%'").get().c, 0, 'no attestation was recorded') } finally { db.close() }
   } finally { cleanup(f) }
 })
 
@@ -372,5 +373,20 @@ test('review r7-3 (REAL): the release flag does not cover an INVALID or forged w
     edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); j.workload.root.start = 'not-a-number'; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
     const res = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done
     assert.equal(res.code, 75, res.out); assert.match(res.out, /"why":"WORKLOAD_RECORD_INVALID"/); assert.match(res.out, /cannot be trusted/); assert.doesNotMatch(res.out, /OPERATOR ATTESTATION/); assert.equal(runs(f).length, 1)
+  } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
+})
+
+test('review r7-M1 (REAL, simulates a host without process facts): a unit with NO recorded runner is releasable only if an EARLIER invocation started it — a start time at or after this invocation (its own interruption) is never attested', { timeout: 180_000 }, async () => {
+  const f = fixture(); let tree
+  try {
+    const x = await interrupted(f); tree = x.tree
+    kill(tree.runner); await x.r1.done; kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild) && !alive(tree.root))
+    const setRec = (fn) => edit(f, (db) => { const j = JSON.parse(db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get().result_json); delete j.workload; j.runner = null; fn(j); db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
+    setRec((j) => { j.started_at = Date.now() + 3_600_000 }) // "started by this invocation" (the runner record is null, as it is off Windows)
+    const refused = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs', '--workload-wait-min', '0.01']).done
+    assert.equal(refused.code, 75, refused.out); assert.match(refused.out, /"why":"RECORDED_RUNNER_NOT_DEAD"/, 'held: with no recorded runner the unit may still be owned'); assert.doesNotMatch(refused.out, /OPERATOR ATTESTATION/); assert.equal(runs(f).length, 1)
+    setRec((j) => { j.started_at = 1 }) // left by an earlier invocation
+    const ok = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done
+    assert.equal(ok.code, 0, ok.out); assert.match(ok.out, /OPERATOR ATTESTATION/); assert.equal(runs(f).length, 2)
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })

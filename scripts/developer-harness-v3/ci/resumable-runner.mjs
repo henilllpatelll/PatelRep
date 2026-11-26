@@ -106,12 +106,14 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
     // Either is re-run only after its RECORDED workload is OBSERVED gone. Nothing is ever terminated here: a survivor HOLDS the unit (exit 75) and the operator deals with it.
     const releaseUnit = arg(argv, '--release-unproven-unit') // OPERATOR ACTION (docs 29/30): an ATTESTATION for ONE unit whose workload identity was never recorded; it is never reported as verified containment
     const released = new Set(); const releasedEver = []; let releaseUsed = false
+    const invocationStartedAt = L.now() // independent of process facts (`me` is null off Windows): a unit STARTED by this invocation is never releasable, whatever its recorded runner says
+    const earlierInvocation = (u) => Number.isFinite(Number(u.result.started_at)) && Number(u.result.started_at) < invocationStartedAt // no readable start time = cannot tell = not releasable
     const ownRunner = (r) => !!me && !!r && r.pid === me.pid && r.start === me.start
     /** @returns {Promise<boolean>} true = the unit may proceed; false = HELD (the caller returns 75) */
     const gateUnit = async (u) => {
       if (released.has(u.unit_id)) return true
       // the attestation covers ONE state the operator could have seen: a unit left by an EARLIER invocation (never this invocation's own interruption), with NO workload record at all, and only once
-      if (releaseUnit === u.unit_id && !releaseUsed && !ownRunner(u.result.runner) && (u.result.workload === undefined || u.result.workload === null)) {
+      if (releaseUnit === u.unit_id && !releaseUsed && !ownRunner(u.result.runner) && earlierInvocation(u) && (u.result.workload === undefined || u.result.workload === null)) {
         const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : true; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
         if (runnerDead === true && rootGone) {
           L.setMeta(`runner_release:${groupId}:${u.unit_id}`, JSON.stringify({ at: L.now(), runner: u.result.runner ?? null, pid: u.result.pid ?? null, attested_by: 'operator', containment: 'NOT_VERIFIED' })); released.add(u.unit_id); releasedEver.push(u.unit_id); releaseUsed = true
