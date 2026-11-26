@@ -85,3 +85,16 @@ test('REAL processes: a COMPLETE run that reports a failure is a genuine failure
   assert.doesNotMatch(res2.out, /already passed/, 'changed code: a is re-run under the new group, nothing is reused')
   rmSync(f.root, { recursive: true, force: true })
 })
+
+test('REAL processes: a second runner on the SAME state file is refused while the first is alive (an orphaned runner is never shared); a dead holder\'s lock is broken', { timeout: 120_000 }, async () => {
+  const f = fixture(); writeFileSync(f.marker, 'hold')
+  const r1 = startRunner(f, 'a,b,c')
+  await waitFor(() => unitRow(f, 'b.test.mjs')?.status === 'running')
+  const r2 = await startRunner(f, 'a,b,c').done
+  assert.equal(r2.code, 75); assert.match(r2.out, /RUNNER_ALREADY_ACTIVE/)
+  assert.equal(unitRow(f, 'b.test.mjs').status, 'running', 'the refused runner did not mark the live unit lost')
+  rmSync(f.marker); const r = await r1.done; assert.equal(r.code, 0, r.out)
+  writeFileSync(`${f.state}.lock`, JSON.stringify({ execution_id: 'runner-dead', pid: 999999, acquired_at: new Date().toISOString() }))
+  const r3 = await startRunner(f, 'a,b,c').done; assert.equal(r3.code, 0, r3.out); assert.match(r3.out, /already passed/)
+  rmSync(f.root, { recursive: true, force: true })
+})

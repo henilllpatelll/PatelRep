@@ -19,6 +19,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Ledger } from '../orchestrator/ledger/ledger.mjs'
+import { acquireLock, releaseLock } from '../lib/atomic.mjs'
+import { isPidAlive } from '../runtime/launcher.mjs'
 import { UNIT_DEFAULTS, admitUnit, classifyUnit, groupIdFor, markLost, nextUnit, openGroup, recentSamples, recordOutcome, recordSample, startUnit, summarize, unitsOf } from '../orchestrator/test-units.mjs'
 import { FILE_TIMEOUT_MS, ROOT, TEST_DIR, checkRegistry, discover, minimalEnv, parseCounts } from './run-v3-suites.mjs'
 
@@ -62,6 +64,12 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
   const groupId = groupIdFor({ runner: 'v3-host', node: process.version, code, files })
   const stateFile = path.resolve(arg(argv, '--state', path.join(os.tmpdir(), 'dh3-resumable-runner', `${groupId}.sqlite`)))
   mkdirSync(path.dirname(stateFile), { recursive: true })
+  // ONE runner per state file (found live during D3.5: the low-memory reaper stopped the shell but an orphaned runner kept running; a second runner then took the orphan's in-progress
+  // unit for LOST). The lock records our pid; a holder that is verifiably dead is broken, a live (or unknown) one is never shared.
+  const lockFile = `${stateFile}.lock`
+  const lock = acquireLock(lockFile, { execution_id: `runner-${process.pid}`, acquired_at: new Date().toISOString() }, { isHolderAlive: (h) => (Number.isInteger(h.pid) ? isPidAlive(h.pid) : null) })
+  if (!lock.ok) { log(`${JSON.stringify({ ok: false, code: 'RUNNER_ALREADY_ACTIVE', lock: lock.code, holder_pid: lock.holder?.pid ?? null, state: stateFile })}\n`); return 75 }
+  process.once('exit', () => { try { releaseLock(lockFile, { execution_id: `runner-${process.pid}` }) } catch { /* best effort */ } })
   const L = Ledger.open(stateFile)
   try {
     openGroup(L, { groupId, units: files })
@@ -104,7 +112,7 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
     const ok = s.passed === s.units
     log(`${JSON.stringify({ ok, total_tests: s.tests, files: s.units, passed_files: s.passed, failed_files: s.failed, reused_files: reused.length, interrupted_now: s.interrupted, group: groupId, state: stateFile })}\n`)
     return ok ? 0 : (s.failed ? 1 : 75)
-  } finally { L.close() }
+  } finally { L.close(); releaseLock(lockFile, { execution_id: `runner-${process.pid}` }) }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exit(await main())

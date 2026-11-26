@@ -24,6 +24,9 @@ Dispositions: CR-1 in-flight leases + single-flight tick/round — fixed (verifi
 ## 3. Real low-memory incident reproduction
 `d35-resource-interruption.test.mjs` reproduces doc 23 with zero owner interventions (pinned call order: 11 green units, the reaped `d34-crash`, `d34-crash` again first, the remaining 26; one transition into `waiting_resources`; the 3072 MB runner floor, distinct from the VM threshold; the idle task-owned reviewer stopped, the owner's dev servers untouched). `d35-runner.test.mjs` does the same with REAL child processes killed by the test (as the reaper), including a reaped runner resumed by a second invocation.
 
+## 3a. A second REAL low-memory interruption during D3.5's own final verification (2026-11-26)
+While the session was idle, Claude Code's low-memory reaper stopped the final Node 24 → Node 22 suite chain (Node 24 had 17/50 files green; free memory 2.1 GB). Handled per D3.5: classified as resource pressure (no failure recorded), nothing of the owner's touched, a bounded monitor waited for ≥ 3 GB free on 3 consecutive samples (admitted after the owner's load dropped: 3955 MB), then the runner RESUMED from its state — Node 24 reused the 17 completed files and finished 568/568. **New finding from it:** the reaper stopped the shell but the Node 22 runner survived as an orphan and kept running; a second runner on the same state file then took the orphan's in-progress unit for LOST (it summarized early, exit 75, no wrong pass/fail recorded). Fixed: the runner now holds an exclusive, liveness-checked lock on its state file (`RUNNER_ALREADY_ACTIVE`; a dead holder's lock is broken), tested with real processes. This fix came after the independent reviews and was NOT independently re-reviewed (tooling only; no authority path).
+
 ## 4. Residual-risk register (activation preconditions; nothing here is closed by simulation)
 | Id | Risk | Gate / owner |
 |---|---|---|
