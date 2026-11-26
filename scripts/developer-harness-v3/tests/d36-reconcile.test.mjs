@@ -154,6 +154,22 @@ test('security review MAND-1: absence is NEVER concluded while this process\'s o
   for (const k of [0, 1]) { h.clock.advance(61_000 + k * 31_000); const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); assert.ok(o.ok); last = reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }) }
   assert.equal(last.code, 'INTENT.RECONCILIATION_PENDING'); assert.deepEqual(last.problems, ['OBSERVATION.EFFECT_STILL_IN_FLIGHT']); assert.equal(getIntent(h.ledger, i.intent_id).status, 'uncertain')
   h.ledger.db.prepare("UPDATE operation_deadlines SET state='settled_late' WHERE op_id=?").run(`effect:${i.intent_id}:x`)
-  h.clock.advance(31_000); const o3 = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: 'obs-m1-2', read_id: 'read-m1-2', state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() })
-  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o3.observation }).ok, 'after its own settlement the authenticated reads decide'); h.close()
+  h.ledger.db.prepare("UPDATE operation_deadlines SET settled_at=? WHERE op_id=?").run(h.ledger.now(), `effect:${i.intent_id}:x`)
+  const read = (k) => { const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); return reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }) }
+  h.clock.advance(61_000); assert.equal(read(2).code, 'INTENT.RECONCILIATION_PENDING', 'reads taken while the call was in flight do NOT count: one read after settlement is not enough')
+  h.clock.advance(31_000); assert.ok(read(3).ok, 'two spaced reads AFTER its own settlement conclude absence'); h.close()
+})
+
+test('security re-verification: after a CRASH the in-flight rows of the dead process end on restart (process_ended), reads taken before that do not count, and two later spaced reads conclude absence', async () => {
+  const root = tmp(); const h = await harness({ root }); const id = h.submit(); h.github.inject('push_ref', 'reject')
+  await h.drive({ until: () => intents(h, id).some((i) => i.action === 'publish_candidate_branch' && i.status === 'uncertain'), maxRounds: 100 })
+  const i = intents(h, id).find((x) => x.action === 'publish_candidate_branch')
+  h.ledger.db.prepare("INSERT INTO operation_deadlines(op_id,task_id,kind,started_at,deadline_at,state,holds_json) VALUES (?,?,?,?,?,'running','[]')").run(`effect:${i.intent_id}:crashed`, id, 'effect:publish_candidate_branch', h.ledger.now(), h.ledger.now() + 1) // the controller died mid-call
+  h.clock.advance(5 * 60_000); const clock = h.clock; h.close()
+  const h2 = await harness({ root, clock }); await h2.delivery.tick() // start(): the dead process's row ends now
+  assert.equal(h2.ledger.db.prepare('SELECT state FROM operation_deadlines WHERE op_id=?').get(`effect:${i.intent_id}:crashed`).state, 'process_ended')
+  const before = h2.ledger.db.prepare("SELECT COUNT(*) c FROM remote_observations WHERE intent_id=? AND state='absent'").get(i.intent_id).c
+  assert.equal(getIntent(h2.ledger, i.intent_id).status, 'uncertain', 'no read taken before the restart (or within the new settle window) proves absence')
+  assert.ok((await h2.drive({ until: () => state(h2, id) === 'merge_eligible', maxRounds: 300 })).done); assert.equal(ops(h2, 'push_ref').length, 1)
+  void before; h2.close()
 })

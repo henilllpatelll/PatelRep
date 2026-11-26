@@ -160,7 +160,7 @@ export class DeliveryController {
     this.started = true; markDispatchedAsUncertain(this.L)
     // operations of the PREVIOUS (dead) controller process can no longer land through it: their rows end here, so the absence rule (settle window + spaced reads) can decide again.
     // Without this a crash would make an uncertain effect permanently unreconcilable as absent (liveness). Single-controller lock assumed (D3.4 OS lock).
-    this.L.db.prepare("UPDATE operation_deadlines SET state='process_ended', settled_at=? WHERE state IN ('running','unresolved')").run(this.L.now())
+    this.L.db.prepare("UPDATE operation_deadlines SET state='process_ended', settled_at=? WHERE state IN ('running','unresolved') AND op_id LIKE 'effect:%'").run(this.L.now())
   }
 
   // ------------------------------------------------------------------ the loop

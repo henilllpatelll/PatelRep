@@ -211,7 +211,9 @@ export function reconcileIntent(ledger, id, { observation, outcome = null } = {}
     // security review MAND-1: no read can prove absence while THIS process's own request for the effect may still land (its deadline passed but the call never settled)
     const live = ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)
     if (live) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: ['OBSERVATION.EFFECT_STILL_IN_FLIGHT'] }
-    const a = absenceProven(rows, i.dispatched_at ?? i.updated_at)
+    // the settle window starts at the LATER of the dispatch and the end of our own call (late settlement, or the end of the process that made it): no read taken before that counts
+    const ended = ledger.db.prepare("SELECT MAX(settled_at) m FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('settled_late','process_ended')").get(`effect:${i.intent_id}:%`)?.m ?? 0
+    const a = absenceProven(rows, Math.max(i.dispatched_at ?? i.updated_at, ended))
     if (!a.proven) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: [a.code] }
     return setStatus(ledger, id, ['uncertain'], 'reconciled_absent', outcome)
   })
