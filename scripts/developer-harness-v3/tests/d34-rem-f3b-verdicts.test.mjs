@@ -128,7 +128,7 @@ test('F3b: the satisfaction rule IS the D3.2 rule (no parallel definition): inte
   assert.equal(isSatisfying({ verdict: 'pass', findings: [OPEN_HIGH] }), false); assert.equal(isSatisfying({ verdict: 'pass', findings: [{ id: 'm', severity: 'medium', resolved: false }] }), true)
 })
 
-test('F3b (review finding): an action named like an Object.prototype member is UNKNOWN — it never reaches creation or dispatch, with or without evidence', () => {
+test('F3b (review finding): an action named like an Object.prototype member is UNKNOWN — it is refused at creation (dispatch and retry share the same bindingProblem), with or without evidence', () => {
   const S = setup()
   for (const action of ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf']) {
     const r = begin(S, [], { action, idempotencyKey: `proto-${action}` }); assert.equal(r.ok, false, action); assert.equal(r.code, 'INTENT.UNKNOWN_ACTION', action)
