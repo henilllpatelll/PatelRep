@@ -7,7 +7,7 @@
 |---|---|---|---|---|
 | 1 | P1v2 | `d12edfdd6fc56bbaafa920870ae2be718a53dd2026e6090508fdd0ca2c20bac2` | authority/git-facts.mjs, issuer/facts-git.mjs, trusted-git.mjs → authority/, d34-issuer test | P1 |
 | 2 | P6v3 | `57679d68a39291a5a5976d8e3e30a900c195b6d7d7cd32b18f762c002cc1a1cb` | task-lifecycle.json, lifecycle/lifecycle.mjs | P6v2 (and P6, P5) |
-| 3 | P7 | see `proposals/manifest.json` | authority-contract.json, authority/{contract,evaluator,evidence}.mjs | — (new) |
+| 3 | P7 | `c0f997a0f8c3ed2f4f0c5881629b031c6590f911c2678aec7f027ab25117a065` | authority-contract.json, authority/{contract,evaluator,evidence}.mjs | — (new) |
 | 4 | P2 | `c42ca081049c5b3e8144634c866ad6a014e568795490183196add56eea6c52ec` | ci.yml, V2 guard + Phase-2 pins, fetch-pinned-provenance.mjs | — |
 P1v2 and P2 are unchanged from D3.5 (digests re-verified against the merged files; both apply to main `41995dcb`). P6v2 (`8a25be45eee6a121d281fb80c872b7cbb57f7c7272185f5d50e96f9503df84f8`) and P6 are superseded and kept byte-for-byte (P6v3 = P6v2 plus the two regression edges of the F1 remediation; apply P6v3 INSTEAD of P6v2, never both); P7 changes NO existing action (the three D3.2 delivery actions stay byte-identical, so the D3.2 authority tests keep their meaning). The proposals touch disjoint files. No proposal activates any action.
 

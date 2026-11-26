@@ -2,11 +2,11 @@
 
 Everything below is SIMULATED (simulated GitHub/staging world, test keys, temp ledgers) unless stated otherwise. Nothing was activated, merged, released or deployed; no real GitHub write, staging dispatch, remote database change or credential was made or requested by V3 code.
 
-## 1. Regression (exact code commit `aa119828`; later commits add only documentation)
+## 1. Regression (exact code commit `e707b28a`, clean tree; the commits after it add only documentation)
 | Run | Result |
 |---|---|
-| Full V3 suite, Windows, Node 24.19.0 (`run-v3-suites.mjs`, sequential, 1 GB heap, no skips) | **673/673 tests, 62 files, PASS** (no skip) |
-| Full V3 suite, Windows, Node 22.23.2 | **673/673 tests, 62 files, PASS** (no skip) |
+| Full V3 suite, Windows, Node 24.19.0 (`ci/resumable-runner.mjs`, sequential, 1 GB heap, 3 GB free-memory admission floor, no skips) | **713/713 tests, 65 files, PASS** (0 reused, 0 interrupted; group `ug-e32bd297…`) |
+| Full V3 suite, Windows, Node 22.23.2 (same runner, run after Node 24 finished, never concurrently) | **713/713 tests, 65 files, PASS** (0 reused, 0 interrupted; group `ug-3efc96f3…`) |
 | V2 suites (`run-ci-suites.mjs`, Windows) | FAIL only on the two host-dependent suites already recorded by D3.5 (doc 29 §5: `harness.policy`, `harness.context`); no V2 file is changed; GitHub CI Gate runs V2 in its supported environment |
 | Linux | **NOT RUN** — needs the protected CI integration (doc 39); no other authorized Linux environment exists and WSL/Docker were not started |
 New files: `d36-authority` (11), `d36-reconcile` (14), `d36-ci-staging` (14), `d36-lifecycle` (7), `d36-watchdog` (5), `d36-e2e` (1), `d36-proposals` (4). The brief's 40 required scenarios are covered across them (authority 1–10, 38; reconciliation 14–18; publication 12–13; CI 19–24, 26; base 25; staging 27–30; eligibility and dependencies 31–32; watchdog and cancellation 33–35; boundaries 36–37, 39; proposals 40; the end-to-end scenario with an implementation failure, a transient and a genuine CI failure, a head replacement, a lost publication response, a controller restart, staging contention, two concurrent tasks with a dependency and zero owner interventions).
@@ -48,4 +48,6 @@ P1v2 `d12edfdd…` and P2 `c42ca081…` re-verified against main and unchanged. 
 ## 6. Final runs and their history (honest record)
 * `2d32c712` full runs: Node 24 had 2 intermittent failures under full-suite load (`d34-crash`, `d35-rem2-f3-runner`; both pass in isolation, D3.4/D3.5 real-process tests, unchanged code paths); Node 22 exposed 2 REAL portability defects in D3.6 code — an unref'd watchdog timer let Node 22 end the event loop while awaited (`d36-watchdog`), and the P7 regression assertion matched only the spec reporter (`d36-proposals`). Fixed in `aa119828`.
 * `aa119828` (final code): Node 24.19.0 **673/673 PASS**, Node 22.23.2 **673/673 PASS** (62 files each). The Opus security GO is for `2d32c712`; `aa119828` changes only the timer reference and a test reporter flag (not security-material) and was not re-reviewed.
+* **Final remediation code `e707b28a`** (F1/F2 remediation plus review rounds; Opus GO on this exact commit): Node 24.19.0 **713/713 PASS** and Node 22.23.2 **713/713 PASS** (65 files each). A first Node 24 full run was interrupted by host memory pressure (about 2 GB free against the 3 GB floor) — a resource interruption, not a regression. Its 45 completed files left no state on disk and were not bound to a recorded code digest, so nothing was reused; the full suite was re-run under the supported resumable runner, which waited for the 3 GB admission floor (never bypassing the low-memory reaper) and then ran every file. No unrelated or recovered process was terminated.
+* Proposals re-verified at `e707b28a`: all 8 manifest digests match their files; P6v3 supersedes P6v2 (which supersedes P6/P5); P1v2, P6v3, P7 and P2 each pass `git apply --check` on the branch tree; the owner procedure (doc 39) lists P1v2, P6v3, P7, P2 in that order.
 * GitHub, PR #257: see the PR checks on the exact head. Note: a `Supabase Preview` check appears on PRs from the Supabase GitHub app integration (no workflow file defines it; it reported *skipping*). V3 does not treat it as a required check; deriving it from a trusted source is recorded as R-34.
