@@ -4,7 +4,7 @@
 > principles in §2, the declaration contents in §3 and the seven readiness states in §4. **Proposed** (PA-02): field
 > names, the illustrative format, the state precedence, the evaluation design and milestones. Nothing in this document
 > is implemented as a shared component today.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

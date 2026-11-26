@@ -7,7 +7,7 @@
 > **Proposed** (PA-20): the phases, methods and draft thresholds. This document authorizes no customer data
 > collection, no paid model calls, no external integration and no production activation; each needs its own explicit
 > approval.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 
@@ -17,7 +17,7 @@ Readiness and the employee protection policy are first exercised on real work.
 
 ## 2. Pilot workflows (priority order)
 
-| # | Workflow | What "better" means | Existing native foundation at `90204d83` |
+| # | Workflow | What "better" means | Existing native foundation at `41995dcb` |
 |---|---|---|---|
 | 1 | Shift handovers | Less time writing and reading handovers; fewer items lost between shifts | Logbook (`routers/logbook.py`); AI shift summaries (`logbook.shift-summary` job, which records "skipped" when no AI provider is configured); housekeeper handoff text built on the phone |
 | 2 | Voice-based issue reporting | Faster, more complete reports from the floor; less walking to find someone | Mobile issue reporting from rooms, assets and work orders; voice input through on-device speech recognition (native builds only, no audio sent) feeding the task parser ([MOBILE_HOUSEKEEPER_AI.md](../MOBILE_HOUSEKEEPER_AI.md)) |

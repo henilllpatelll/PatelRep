@@ -6,7 +6,7 @@
 > article's "Not:" interpretation, experience principle 6 and the truthfulness principles' wording in §5 are
 > **proposed** (PA-18) pending founder confirmation. "Today:" notes record repository facts. Changing a founder-approved
 > item requires a reviewed decision-register change approved by the founder.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. The test every feature must pass
 

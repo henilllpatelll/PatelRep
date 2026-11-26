@@ -5,7 +5,7 @@
 > [decision register](15-strategic-decision-register.md#1-founder-approved-decisions)). The Ask PatelRep pipeline
 > (PA-06), memory model (PA-07), domain risk floors (PA-16) and the autonomy ladder diagram are **proposed**. The
 > Customer Agent Harness contracts linked below remain authoritative and unchanged.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Strategic intent
 
@@ -37,7 +37,7 @@ accuracy, cost and speed.
 
 The four levels are already defined in code (`apps/api/services/agent_harness/vocabulary.py`, `AutonomyLevel`):
 
-| Level | Meaning (from code) | Where it stands at `90204d83` |
+| Level | Meaning (from code) | Where it stands at `41995dcb` |
 |---|---|---|
 | 1 Observe | Observation and recommendations only; no writes | Read tools exist (H2/H5); the harness is default-disabled and no worker is deployed |
 | 2 Human-approved | Writes only with a valid, server-recorded human approval | Two writes exist (`engineering.work_orders.assign` v2, `housekeeping.room_assignments.assign` v1); default-disabled, isolated-database tested, production refused in code |

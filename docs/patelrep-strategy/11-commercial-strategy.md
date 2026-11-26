@@ -4,7 +4,7 @@
 > billing safeguards and controlled-overage contracts are preserved (FD-36). The design principles in §2 are
 > **proposed**. Exact pricing, allowances, fair-use rules, exceptional overage and third-party fee treatment are
 > **open** (§10). This document changes no billing code, contract, Stripe object or customer term.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Direction
 

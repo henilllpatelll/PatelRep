@@ -3,7 +3,7 @@
 > **Status:** The responsibilities of Data Intelligence, the data-use boundaries and the infrastructure stance are
 > founder-approved ([FD-29, FD-41](15-strategic-decision-register.md#1-founder-approved-decisions)). The provenance
 > envelope, quality model, benchmarking model and milestones are **proposed** (PA-08, PA-15).
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

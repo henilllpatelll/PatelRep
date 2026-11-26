@@ -5,7 +5,7 @@
 > those responsibilities are structured into components, the canonical data model scope and the metering design are
 > **proposed** (PA-04, PA-05, PA-13). **No commercial integration partnership is recorded in the repository, and none
 > is claimed here.**
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

@@ -3,7 +3,7 @@
 > **Status:** The mission, brand promise, platform definition, balance, staffing stance, sales principle and markets
 > are founder-approved (FD-16 to FD-22 in the [decision register](15-strategic-decision-register.md#1-founder-approved-decisions)).
 > The mechanisms table in §5 is a proposed framing; §11 records repository history.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Mission
 

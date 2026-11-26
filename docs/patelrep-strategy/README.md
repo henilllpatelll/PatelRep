@@ -10,8 +10,9 @@ below until reviewed work adopts them.
 
 > **Phase 0 — Strategic Foundation.** Documentation only. Nothing here authorizes implementing, activating, deploying
 > or releasing any proposed functionality.
-> **Baseline:** repository facts in these documents were checked against `origin/main` @ `90204d83` (2026-11-26);
-> statements about live production state are limited to what the repository records.
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). Repository facts were checked against `90204d83` and
+> re-checked at `41995dcb`, whose only change was the Developer Harness V3 D3.5 merge (V3 paths only). Statements about
+> live production state are limited to what the repository records.
 
 ## Authority and precedence
 

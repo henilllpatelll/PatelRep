@@ -4,7 +4,7 @@
 > responsibility for sensitive decisions are founder-approved ([FD-35](15-strategic-decision-register.md#1-founder-approved-decisions)).
 > Their product interpretations (§2 right column, §3 detail), the analytics rules' specifics, the checklist and the
 > review items are **proposed** (PA-19). This policy governs future product work; it does not change code.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

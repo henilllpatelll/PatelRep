@@ -4,7 +4,7 @@
 > adoption (FD-42). The Strategy Fit Record format, acceptance and evaluation standards and the rollout ladder are
 > **proposed** (PA-14). Documentation only: this file changes no instruction file, workflow, gate, ruleset or
 > enforcement mechanism.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

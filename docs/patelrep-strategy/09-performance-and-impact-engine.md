@@ -6,7 +6,7 @@
 > (formulas, provenance, reporting periods, permissions, validation, freshness) and the improvement cycle.
 > **Proposed** (PA-03, PA-09): the formula, field names, attribution method and milestones. No customer outcome has
 > been measured yet.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 

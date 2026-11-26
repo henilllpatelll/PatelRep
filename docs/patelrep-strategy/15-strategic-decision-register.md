@@ -2,7 +2,7 @@
 
 > **Status:** The register of record for PatelRep's strategic decisions. Entries in §1 are founder-approved; every other
 > section records proposals, open decisions, dependencies, implementation status or conflicts, as labeled.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 Identifier prefixes: **FD** founder-approved decision · **PA** proposed architecture · **OC** open commercial decision
 · **TD** technical decision deferred to implementation · **ED** external dependency · **IF** existing implemented
@@ -167,14 +167,14 @@ Active on `main` where deployed; scheduled jobs run only in production.
 | IN-08 | AI flags `hk_ai_assistant`, `hk_ai_photo_analysis`, `hk_ai_task_translation`, `eng_ai_repair_assist`, `ai_agents` | Default off |
 | IN-09 | OPERA OHIP sync, webhooks and SFTP ingestion; room-status write-back | `opera_pilot_enabled` false; write-back uncalled |
 | IN-10 | Guest SMS, Stripe and Resend paths without credentials | Environment-dependent |
-| IN-11 | Developer Harness V3 D3.2–D3.4 | Activation gates open |
+| IN-11 | Developer Harness V3 D3.2–D3.5 | 28 activation gates, none closed; D3.4–D3.5 simulated |
 | IN-12 | Dependency Orchestrator | Paused (per the V3 verification register) |
 | IN-13 | Autonomous Feature Builder and Feature Orchestrator | Optional, dispatch-only path |
 | IN-14 | `tenant_groups` schema | Not read by application code |
 
 ## 8. Future functionality
 
-FF-01 V3 D3.5–D3.9 (W1) · FF-02 H7 P3–P8 (W2) · FF-03 H8 (W3) · FF-04 Connect Core (W4) · FF-05 Data Intelligence
+FF-01 V3 D3.6–D3.9 (W1) · FF-02 H7 P3–P8 (W2) · FF-03 H8 (W3) · FF-04 Connect Core (W4) · FF-05 Data Intelligence
 foundation (W5) · FF-06 capability readiness layer (W6) · FF-07 Hours Returned and impact views (W7) · FF-08 universal
 Ask PatelRep (W8) · FF-09 room-ready notification and handover improvements (W9) · FF-10 payroll and timekeeping
 integration, forward staffing forecast (W10) · FF-11 department-head views and exception queue (W11) · FF-12 owner,

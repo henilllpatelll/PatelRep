@@ -3,7 +3,7 @@
 > **Status:** Preservation of every existing boundary is founder-approved (FD-24, FD-26, FD-39 in the
 > [decision register](15-strategic-decision-register.md#1-founder-approved-decisions)). Principles for new foundations
 > are **proposed**. This document changes no policy, contract, workflow, ruleset, permission or credential.
-> **Baseline:** `origin/main` @ `90204d83` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 
@@ -47,7 +47,7 @@ the disagreement is recorded in the [conflicts register](15-strategic-decision-r
 | Agent spend and billing | Atomic provider-spend reservations (H3); customer billing default `disabled`, Stripe test mode only (H4) | [agent-harness/orchestrator.md](../agent-harness/orchestrator.md), [agent-harness/customer-billing.md](../agent-harness/customer-billing.md) |
 | Emergency stops | Platform pause, cost stop, hotel/agent/tool pause, credential revocation, kill switches | [agent-harness/security.md](../agent-harness/security.md), [agent-harness/adr-0006-h7-bounded-autonomy.md](../agent-harness/adr-0006-h7-bounded-autonomy.md) |
 | Developer vs customer agents | Developer agents may never activate customer execution, grants, decide-v2 or billing | [developer-harness-v2/02-architecture-contract.md §6](../developer-harness-v2/02-architecture-contract.md) |
-| Developer Harness V3 | Inactive; activation only after every gate in the register is closed (D3.9 owner ceremony); V2 authoritative until then | [developer-harness-v3/21-d34-protected-changes.md §5](../developer-harness-v3/21-d34-protected-changes.md) |
+| Developer Harness V3 | Inactive; activation only after every gate in the code-rendered register (`scripts/developer-harness-v3/orchestrator/activation-gates.mjs`, 28 gates, none closed) is closed, at the D3.9 owner ceremony; V2 authoritative until then | [developer-harness-v3/21-d34-protected-changes.md §5](../developer-harness-v3/21-d34-protected-changes.md), [developer-harness-v3/README.md](../developer-harness-v3/README.md) |
 | Delivery | CI Gate and Staging Gate on the exact head; human merge; Production Release as a separate decision; Release Engineer as the only repair path. The one narrow exception is the Release Engineer recovery path (auto-merge of eligible recovery PRs, an automatically requested release when the owner has enabled it, automatic rollback under its policy) | [RELEASE_PROCESS.md](../RELEASE_PROCESS.md), [AUTONOMOUS_RELEASE_ENGINEER.md](../AUTONOMOUS_RELEASE_ENGINEER.md) |
 | Migrations | Forward-only; never edit history; destructive-SQL guard; security-sensitive migrations need a reviewed staging preview | [DATABASE_MIGRATIONS.md](../DATABASE_MIGRATIONS.md), [STAGING_REVIEWED_MIGRATION_PREVIEW.md](../STAGING_REVIEWED_MIGRATION_PREVIEW.md) |
 | Credentials | Adapters own provider credentials; credentials never enter model context, tool arguments, traces or audit metadata; production and publisher credentials are never exposed to coding agents | [agent-harness/architecture.md §7](../agent-harness/architecture.md), [`CLAUDE.md`](../../CLAUDE.md) |
