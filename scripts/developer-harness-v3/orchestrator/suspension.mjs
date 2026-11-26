@@ -20,7 +20,12 @@ import { GOVERNOR_DEFAULTS } from '../runtime/subscription-governor.mjs'
 export const TECH_DEFAULTS = Object.freeze({ maxRemediationCyclesPerEpoch: 6, maxStageFailuresPerEpoch: 8, maxReviewRoundsPerEpoch: 4, cooldownsMs: Object.freeze([30 * 60_000, 2 * 3600_000, 5 * 3600_000]), maxEpochs: 3, maxSessionsPerTask: 150 })
 
 /** Failure text originates in adapters/workers (UNTRUSTED). Only short code-shaped strings that carry no credential pattern are stored or notified; anything else becomes a stable hash. */
-export const safeCode = (c) => { const s = String(c ?? ''); return /^[A-Za-z0-9_.:|+#=/\-]{1,120}$/.test(s) && !scanContent(Buffer.from(s)).length ? s : `REDACTED:${createHash('sha256').update(s).digest('hex').slice(0, 12)}` }
+export const safeCode = (c) => {
+  const s = String(c ?? ''); const h = createHash('sha256').update(s).digest('hex').slice(0, 12)
+  if (/^[A-Za-z0-9_.:|+#=/\-]{1,120}$/.test(s) && !scanContent(Buffer.from(s)).length) return s
+  const prefix = s.split(':')[0] // the code-shaped HEAD survives (so classification does not change); only the free-text tail is replaced
+  return /^[A-Z][A-Z0-9_.]{1,60}$/.test(prefix) && !scanContent(Buffer.from(prefix)).length ? `${prefix}:REDACTED:${h}` : `REDACTED:${h}`
+}
 
 const OWNER_ONLY = [/^SESSION\.PERMISSION_MODE_MISMATCH/, /^TASK\.REQUIREMENTS_TAMPERED$/, /^AUTH\./, /^SUBSCRIPTION\.STATE(_UNKNOWN$|:)/, /^ISOLATION/, /^PROHIBITED_ACTION/, /^OWNER_/, /^UNRESOLVABLE_REQUIREMENT_CONFLICT/]
 /** 'owner' only for the genuine owner-only conditions; EVERYTHING else — including unknown codes — is 'technical' (the safe default is not to interrupt the owner). */
@@ -68,7 +73,7 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
     const retryAt = terminal ? null : now + cool
     const t = L.getTask(taskId)
     const budgets = L.db.prepare('SELECT stage, fingerprint, attempts FROM retry_budgets WHERE task_id=? ORDER BY stage, fingerprint').all(taskId).map((r) => ({ stage: r.stage, fingerprint: r.fingerprint, attempts: r.attempts }))
-    const recent = L.recoveryHistory(taskId).filter((x) => x.kind === 'stage_failure').slice(-5).map((x) => ({ stage: x.detail.stage, code: x.detail.code, fingerprint: x.detail.fingerprint }))
+    const recent = L.recoveryHistory(taskId).filter((x) => x.kind === 'stage_failure').slice(-5).map((x) => ({ stage: x.detail.stage ?? null, code: x.detail.code ?? null, fingerprint: x.detail.fingerprint ?? null }))
     const diagnostics = { stage, cause, codes: codes.slice(0, 10), epoch, lifecycle_state: t.state, head_sha: t.head_sha, failure_fingerprints: budgets, recent_failures: recent, sessions_used: sessionsUsed(L, taskId),
       escalated_model: L.meta(`escalated:${taskId}`) === '1', open_mandatory_findings: L.openMandatoryFindings(taskId).map((f) => ({ id: f.finding_id, severity: f.severity, path: f.path })).slice(0, 20) }
     L.setMeta(`epoch:${taskId}`, epoch)

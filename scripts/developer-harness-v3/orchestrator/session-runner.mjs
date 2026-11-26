@@ -14,6 +14,7 @@ import { createTelemetry, feedLine, verifyInit } from '../runtime/session-teleme
 import { classifyObservation, lifecycleFor, nextGovernorState } from '../runtime/subscription-governor.mjs'
 import { renewalDecision, verifyCheckpoint, composeRestorePrompt, verifyRestoredState, snapshotDirResolver } from './context-renewal.mjs'
 import { captureWork, persistCheckpoint, preserveOnExit } from './preserve.mjs'
+import { safeCode } from './suspension.mjs'
 import { MODEL_FAMILIES, verifyActualModel } from './routing.mjs'
 
 const fingerprint = (...parts) => parts.join('|').slice(0, 120)
@@ -126,7 +127,7 @@ export async function runSessionStage(e, taskId, spec) {
   // The stop is VERIFIED, so the worker tree is quiescent: preserve whatever uncommitted scoped work a non-completing exit leaves behind BEFORE the slot is released (a crash in between is
   // found by recovery, which captures it atomically with the supersession). An unverified stop captures nothing now — recovery does, once cleanup is verified.
   if (outcome.status !== 'done' && term.verified && !outcome.checkpointed && spec.readonly !== true) await preserveOnExit(e, taskId, { reason: `SESSION_EXIT:${outcome.status}`, stage: spec.stage, lease })
-  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status })
+  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : safeCode(outcome.code ?? outcome.status) })
   e.hook('after_lease_closed', { taskId })
   if (!closed.ok) return { status: 'failed', code: closed.code, fingerprint: fingerprint('close', closed.code), executions }
   if (!term.verified) return { status: 'termination_unverified', executions, lease }

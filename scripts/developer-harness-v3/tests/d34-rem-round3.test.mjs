@@ -66,3 +66,38 @@ test('R3-8: argv safety parses EVERY occurrence in both `flag v` and `flag=v` fo
   for (const argv of bad) assert.ok(checkInvocationSafety({ argv }).length > 0, argv.join(' '))
   for (const argv of [['--permission-mode', 'dontAsk', '--setting-sources', ''], ['--permission-mode=dontAsk'], ['--model', 'sonnet']]) assert.deepEqual(checkInvocationSafety({ argv }), [], argv.join(' '))
 })
+
+// ---------------------------------------------------------------- round 4 (Opus re-verification of the round-3 fixes)
+import { safeCode, classifyBlocker } from '../orchestrator/suspension.mjs'
+
+test('R4-1: redaction keeps the code-shaped HEAD, so an owner condition stays an owner condition however hostile its tail is', () => {
+  for (const raw of ['SESSION.PERMISSION_MODE_MISMATCH:bypass Permissions', 'AUTH.API_KEY_SOURCE_ACTIVE:/login managed key', `AUTH.API_KEY_SOURCE_ACTIVE:ghp_${'a1B2c3D4e5'.repeat(4)}`]) {
+    const s = safeCode(raw); assert.equal(classifyBlocker(raw), 'owner'); assert.equal(classifyBlocker(s), 'owner', s); assert.ok(!s.includes(' ') && !s.includes('ghp_') && !s.includes('/login'), s) }
+  assert.match(safeCode('free text with spaces'), /^REDACTED:[0-9a-f]{12}$/); assert.equal(safeCode('PLAN.SHAPE'), 'PLAN.SHAPE')
+})
+
+test('R4-2: a hostile init value (free text in the permission mode) is STILL one session and one owner blocker — and the engine does not crash on a later technical suspension of the same task', async () => {
+  const scenario = { stages: { planning: [{ permissionMode: 'bypass Permissions' }] }, tests: [{ passed: false, fingerprint: 'never' }] }; const h = H({ scenario, cfg: { technical: { maxRemediationCyclesPerEpoch: 2, maxEpochs: 1, cooldownsMs: [3600_000] } } })
+  const id = h.submit(); await drive(h); assert.equal(h.ledger.getTask(id).state, 'blocked'); assert.equal(execs(h, id).length, 1); assert.equal(owner(h).blockerRows, 1); assert.equal(notes(h, 'technical_suspension').length, 0)
+  assert.equal(h.engine.ownerResolve(id, 'owner-fixed-the-launcher').ok, true); scenario.stages.planning = [{}] // the owner fixed the launcher
+  await drive(h) // ordinary test failures now exhaust the budget: this used to throw `canonicalize: unsupported type undefined` out of tick()
+  assert.equal(h.ledger.getSuspension(id).disposition, 'terminal'); assert.ok(h.ledger.getSuspension(id).diagnostics.recent_failures.every((f) => 'fingerprint' in f)); h.close()
+})
+
+test('R4-3: a failing dirty-worktree probe is a bounded, scheduled technical failure — never a silent stall with an open review', async () => {
+  const h = H(); const id = h.submit(); const cs = h.adapters.git.captureSnapshot.bind(h.adapters.git)
+  h.adapters.git.captureSnapshot = async (...a) => { if (h.ledger.db.prepare('SELECT 1 FROM review_deliverables').get()) throw new Error('probe down'); return cs(...a) }
+  const r = await settle(h); assert.ok(r.next_wakeup !== null, 'a retry is scheduled'); assert.ok(h.ledger.recoveryHistory(id).some((x) => x.kind === 'stage_failure' && x.detail.code === 'REVIEW.WORKTREE_PROBE_FAILED'))
+  await drive(h); assert.ok(h.ledger.getSuspension(id)?.disposition === 'terminal' || h.ledger.getTask(id).handoff_ready === 1); h.close()
+})
+
+test('R4-4: the re-attestation bound is the LEDGER review/run time across EVERY recovery epoch (a new epoch cannot restart the clock); end_reason never stores free text', async () => {
+  const h = H({ scenario: { stages: { independent_review: [{}] } } }); const id = h.submit(); await drive(h); const rv = h.ledger.db.prepare("SELECT review_id FROM reviews WHERE kind='independent_review' AND status='verified_pass'").get().review_id
+  for (let month = 1; month <= 2; month += 1) {
+    h.clock.advance(30 * 24 * 3600_000); const got = h.ledger.acquireLease({ taskId: id, role: 'implementer', stage: 'implementing', model: 'sonnet', effort: 'medium', ttlMs: 60_000 }); assert.ok(got.ok); assert.ok(h.ledger.supersedeLease({ guestCleanupVerified: true }).ok)
+    const r = h.cores.independent_reviewer.handle('issue_review', { task_id: id, review_id: rv }); assert.equal(r.ok, false, `epoch ${month + 1}`); assert.equal(r.code, 'ISSUER.REATTESTATION_BOUND_EXCEEDED')
+    const t = h.cores.orchestrator.handle('issue_test_results', { task_id: id, run_id: h.ledger.latestTestRun(id).run_id }); assert.equal(t.code, 'ISSUER.REATTESTATION_BOUND_EXCEEDED') }
+  h.close()
+  const secret = `ghp_${'a1B2c3D4e5'.repeat(4)}`; const g = H({ scenario: { stages: { planning: [{ fail: `boom ${secret}`, failTimes: 100 }] } } }); const gid = g.submit(); await drive(g)
+  assert.ok(!JSON.stringify(g.ledger.db.prepare('SELECT end_reason FROM executions').all()).includes('ghp_'), 'end_reason is code-shaped'); void gid; g.close()
+})

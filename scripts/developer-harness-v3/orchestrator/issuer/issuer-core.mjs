@@ -116,6 +116,7 @@ export class IssuerCore {
     const run = this.ledger.db.prepare('SELECT * FROM test_runs WHERE run_id=? AND task_id=?').get(run_id, task_id)
     if (!run) return refuse('ISSUER.UNKNOWN_RUN')
     if (run.candidate_sha !== c.candidate_sha || run.tree_digest !== c.tree_digest) return refuse('ISSUER.RUN_FOR_ANOTHER_CANDIDATE')
+    if (this.clock() - run.created_at > MAX_REATTEST_AGE_MS) return refuse('ISSUER.REATTESTATION_BOUND_EXCEEDED') // ledger time of the run, across every epoch
     // A run from the CURRENT or an EARLIER recovery epoch may be (re-)attested for the unchanged candidate; one from a FUTURE epoch cannot exist.
     if (run.fencing_token > t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
     if (run.passed !== 1 && t.lifecycle.state !== 'testing') return refuse('ISSUER.NOT_A_PASSING_RUN')
@@ -138,6 +139,8 @@ export class IssuerCore {
     if (r.status !== 'submitted' && r.status !== 'verified_pass') return refuse('ISSUER.REVIEW_NOT_SUBMITTED') // verified_pass only for re-attestation
     if (r.candidate_sha !== c.candidate_sha || r.tree_digest !== c.tree_digest) return refuse('ISSUER.REVIEW_FOR_ANOTHER_CANDIDATE')
     if (r.policy_revision !== this.policy.revision || r.environment_id !== t.environment_id) return refuse('ISSUER.REVIEW_BINDING_MISMATCH')
+    // the bound is measured from the LEDGER's own review time and applies to EVERY issuance, so a recovery epoch (a fresh subject key) cannot restart the clock
+    if (this.clock() - r.created_at > MAX_REATTEST_AGE_MS) return refuse('ISSUER.REATTESTATION_BOUND_EXCEEDED')
     // Epoch rule (same as test results): a review made in an earlier recovery epoch for the SAME candidate may be re-attested under the current one.
     // Every other check below still applies in full, and a review row from a future epoch cannot exist.
     if (r.fencing_token > t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')

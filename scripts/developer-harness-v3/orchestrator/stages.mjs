@@ -43,7 +43,7 @@ export function failStage(e, taskId, stageKey, out) {
   }
   // a billing/authentication/permission condition is an OWNER matter the moment it is seen: no back-off, no retry, no cool-down
   const ownerCode = [out.code, ...(out.codes ?? [])].find((c) => c && classifyBlocker(c) === 'owner')
-  if (ownerCode) { L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: safeCode(ownerCode), owner_condition: true }); e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [safeCode(ownerCode)] }); return PROGRESS('blocked_owner_condition') }
+  if (ownerCode) { L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: safeCode(ownerCode), fingerprint: `owner:${safeCode(ownerCode)}`.slice(0, 120), owner_condition: true }); e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [safeCode(ownerCode)] }); return PROGRESS('blocked_owner_condition') }
   const unverified = out.status === 'termination_unverified' // the slot stays held until recovery proves the session dead; the attempt is BUDGETED so a stuck stop cannot buy sessions forever
   const fp = safeCode(unverified ? `termination-unverified:${stageKey}` : (out.fingerprint ?? `${stageKey}:${out.code ?? 'unknown'}`)); const code = unverified ? 'TERMINATION_UNVERIFIED' : safeCode(out.code)
   const r = recordFailure(L, { taskId, stage: stageKey, fingerprint: fp, rng: e.rng }, e.cfg.retry)
@@ -300,7 +300,7 @@ async function consumeDeliverable(e, taskId, kind, reviewId, lease) {
   const post = await A.git.treeDigestAfterReview(L.getTask(taskId), lease ?? null)
   L.recordReviewReadonlyCheck(reviewId, { snapshotDigest: cand.tree_digest, postTreeDigest: post })
   e.hook('after_review_readonly_verified', { taskId })
-  let dirty = null; try { dirty = await A.git.captureSnapshot(L.getTask(taskId), null) } catch { return NONE } // the read-only proof covers UNCOMMITTED and untracked files too; unknown ⇒ nothing is accepted yet
+  let dirty = null; try { dirty = await A.git.captureSnapshot(L.getTask(taskId), null) } catch { return failStage(e, taskId, stageKey, { status: 'failed', code: 'REVIEW.WORKTREE_PROBE_FAILED', fingerprint: 'review:probe-failed' }) } // the read-only proof covers UNCOMMITTED and untracked files too; unknown ⇒ nothing is accepted yet
   if (post !== cand.tree_digest || (dirty?.length ?? 0) > 0) { L.setReviewStatus(reviewId, 'verified_fail'); L.deleteReviewDeliverable(reviewId); L.recordRecovery(taskId, 'reviewer_modified_candidate', { kind, review_id: reviewId }); return failStage(e, taskId, stageKey, { status: 'failed', code: 'REVIEW.CANDIDATE_MODIFIED_BY_REVIEWER', fingerprint: 'review:modified-candidate' }) }
   const plan = L.currentPlan(taskId); const task = L.getTask(taskId)
   const sub = normalizeSubmission(JSON.parse(d.deliverable_json)?.submission, { requireCoverage: kind === 'independent_review', stepIds: plan?.steps.map((s) => s.id) ?? [], stepTitles: Object.fromEntries((plan?.steps ?? []).map((s) => [s.id, s.title])), criteria: task.acceptance.criteria ?? [] })
@@ -339,7 +339,7 @@ async function finalizeReview(e, taskId, kind, reviewId) {
   if (payload.verdict === 'pass') {
     if (kind === 'independent_review') { // never advance past the independent review while a step or criterion lacks independent, satisfied coverage
       const gaps = completenessProblems(L, taskId, reviewId)
-      if (gaps.length) { L.setReviewStatus(reviewId, 'verified_fail', payload.evidence_id); L.invalidateEvidence(payload.evidence_id); /* the approval just accepted must not stay live for this head */ L.recordRecovery(taskId, 'completeness_gate_failed', { review_id: reviewId, gaps })
+      if (gaps.length) { L.tx(() => { L.setReviewStatus(reviewId, 'verified_fail', payload.evidence_id); L.invalidateEvidence(payload.evidence_id) }); /* the approval just accepted must not stay live for this head */ L.recordRecovery(taskId, 'completeness_gate_failed', { review_id: reviewId, gaps })
         return enterRemediation(e, taskId, { reason: 'REVIEW_FINDINGS_OPEN', stageKey, fingerprint: `${kind}:completeness:${gaps.slice(0, 4).join('+')}`.slice(0, 120), instruction: `Completeness is not proven for the candidate: ${gaps.join(', ')}. Complete every plan step and acceptance criterion.` }) }
     }
     const next = kind === 'independent_review' ? (task.lifecycle.security_review_required ? 'security_review' : 'publishing') : 'publishing'
