@@ -45,7 +45,7 @@ function assertConsistent(root, id, { expectRecoveries = null } = {}) {
 
 const POINTS = [['after_lease_acquired', 1], ['after_lease_acquired', 2], ['after_lease_acquired', 3], ['after_lease_acquired', 4], ['after_session_started', 2], ['after_unit', 3], ['after_checkpoint_recorded', 1], ['after_checkpoint_verified', 1], ['after_renewal_old_stopped', 1], ['after_renewal_new_lease', 1],
   ['after_session_terminated', 1], ['after_session_terminated', 2], ['after_lease_closed', 2], ['after_plan_saved', 1], ['after_candidate_recorded', 1], ['after_test_run_recorded', 1], ['after_evidence_issued', 1], ['after_evidence_accepted', 1],
-  ['after_review_opened', 1], ['after_review_submitted', 1], ['after_evidence_issued', 3], ['after_evidence_accepted', 3], ['after_review_submitted', 2], ['after_handoff', 1]]
+  ['after_review_opened', 1], ['after_session_terminated', 3], ['after_session_terminated', 4], ['after_lease_closed', 3], ['after_lease_closed', 4], ['after_review_submitted', 1], ['after_evidence_issued', 3], ['after_evidence_accepted', 3], ['after_review_submitted', 2], ['after_handoff', 1]]
 
 for (const [point, nth] of POINTS) {
   test(`SIGKILL at ${point} #${nth}, then restart: recovers, completes the handoff, and every durability invariant holds`, () => {
@@ -53,7 +53,7 @@ for (const [point, nth] of POINTS) {
     const first = controller(root, { crash_at: `${point}:${nth}` })
     assert.ok(existsSync(path.join(root, 'crashed-at.txt')), `the crash point was reached (exit ${first.status}/${first.signal}: ${first.err.slice(0, 200)})`); assert.equal(readFileSync(path.join(root, 'crashed-at.txt'), 'utf8'), `${point}:${nth}`)
     assert.notEqual(first.status, 0, 'the first controller died; it did not exit cleanly'); assert.equal(existsSync(path.join(root, 'controller.lock')), true, 'the dead controller left its lock behind')
-    let last; for (let i = 0; i < 3; i += 1) { last = controller(root); if (last.status === 0) break }
+    const last = controller(root) // the FIRST restart must succeed on its own
     assert.equal(last.status, 0, `restart failed: ${last.err.slice(0, 400)}`); assert.equal(JSON.parse(last.out).idle, true); assert.equal(JSON.parse(last.out).simulated, true)
     assertConsistent(root, id)
   })
@@ -95,6 +95,15 @@ test('MULTI-PROCESS end to end: controller process + four REAL issuer processes 
     const run = (over) => new Promise((resolve) => { const f = path.join(root, `mp-${Math.random().toString(36).slice(2)}.json`); writeFileSync(f, JSON.stringify({ root, scenario: SCENARIO, issuer_endpoints: iss.endpoints, ...over })); const p = spawn(process.execPath, [MAIN, f], { env: CHILD_ENV }); let out = ''; let err = ''; p.stdout.on('data', (d) => { out += d }); p.stderr.on('data', (d) => { err += d }); p.on('exit', (code) => resolve({ code, out, err })) })
     const a = await run({ crash_at: 'after_evidence_issued:2' }); assert.ok(existsSync(path.join(root, 'crashed-at.txt')), a.err); const b = await run({}); assert.equal(b.code, 0, b.err)
     assertConsistent(root, id); const L = Ledger.open(path.join(root, 'ledger.sqlite')); const store = L.db.prepare("SELECT evidence_type, issuer_identity FROM evidence WHERE task_id=? ORDER BY evidence_type").all(id).map((r) => `${r.evidence_type}:${r.issuer_identity}`)
-    assert.deepEqual(store, ['independent_review:independent_reviewer', 'security_review:security_reviewer', 'test_results:orchestrator'].filter((s) => store.includes(s)).sort().length === 3 ? ['independent_review:independent_reviewer', 'security_review:security_reviewer', 'test_results:orchestrator'] : store, 'each approval was signed by its OWN issuer process'); L.close()
+    assert.deepEqual(store, ['independent_review:independent_reviewer', 'security_review:security_reviewer', 'test_results:orchestrator'], 'each approval was signed by its OWN issuer process'); L.close()
   } finally { iss.stop() }
+})
+
+test('NO REPEATED PAID WORK: after a crash at each post-session boundary, the number of executions per role equals an uncrashed run (no second session was bought)', () => {
+  const roles = (root) => { const L = Ledger.open(path.join(root, 'ledger.sqlite')); try { return Object.fromEntries(L.db.prepare("SELECT role, COUNT(*) n FROM executions GROUP BY role").all().map((r) => [r.role, r.n])) } finally { L.close() } }
+  const base = prepare(); assert.equal(controller(base.root).status, 0); const baseline = roles(base.root)
+  for (const point of [['after_plan_saved', 1], ['after_session_terminated', 1], ['after_session_terminated', 2], ['after_candidate_recorded', 1], ['after_review_submitted', 1], ['after_handoff', 1]]) {
+    const { root } = prepare(); controller(root, { crash_at: `${point[0]}:${point[1]}` }); assert.equal(controller(root).status, 0); const got = roles(root)
+    assert.deepEqual(got, baseline, `${point.join('#')}: executions by role ${JSON.stringify(got)} vs uncrashed ${JSON.stringify(baseline)}`)
+  }
 })

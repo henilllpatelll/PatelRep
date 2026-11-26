@@ -98,7 +98,7 @@ export class Ledger {
     t.requirements = JSON.parse(t.requirements_json); t.scope = JSON.parse(t.scope_json); t.acceptance = JSON.parse(t.acceptance_json); t.lifecycle = JSON.parse(t.lifecycle_json)
     return t
   }
-  listTasks(where = '1=1', ...args) { return this.db.prepare(`SELECT task_id,state,state_revision,fencing_token,priority,cancelled,handoff_ready,head_sha,created_at FROM tasks WHERE ${where} ORDER BY priority, created_at`).all(...args).map(plain) }
+  listTasks(where = '1=1', ...args) { return this.db.prepare(`SELECT task_id,state,state_revision,fencing_token,priority,cancelled,handoff_ready,head_sha,created_at FROM tasks WHERE ${where} ORDER BY priority, created_at, task_id`).all(...args).map(plain) }
 
   /** Re-verify that the stored original requirements still match their digest (tamper/corruption check used before every session start). */
   requirementsIntact(taskId) {
@@ -172,7 +172,9 @@ export class Ledger {
 
   // ---------------------------------------------------------------- pause / resume / cancel / dependencies
   pause(taskId) { return this.transition(taskId, 'paused', { reason_code: 'OWNER_PAUSED' }) }
-  resume(taskId) { const t = this.getTask(taskId); if (t.cancelled) return { ok: false, problems: ['TASK.CANCELLED'] }; return this.transition(taskId, t.lifecycle.resume_to) }
+  /** Where a waiting/paused/blocked task goes next: the reducer's own rule (a wait that began as remediation can only return to `implementing`). */
+  resumeTarget(taskId) { const t = this.getTask(taskId); return t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to }
+  resume(taskId) { const t = this.getTask(taskId); if (t.cancelled) return { ok: false, problems: ['TASK.CANCELLED'] }; return this.transition(taskId, this.resumeTarget(taskId)) }
   /** `cancelled` is a ledger flag + a pause: the D3.2 lifecycle has no terminal `cancelled` state (proposal in docs 21). A cancelled task is never scheduled, never completed. */
   cancel(taskId) {
     return this.tx(() => {

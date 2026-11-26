@@ -51,7 +51,7 @@ export function minimalEnv() {
 export function runAll({ root = ROOT, files = discover(root), spawn = spawnSync } = {}) {
   const problems = checkRegistry(files); const results = []
   for (const f of files) {
-    const r = spawn(process.execPath, ['--test', '--test-concurrency=1', path.join(TEST_DIR, f)], { cwd: root, env: minimalEnv(), encoding: 'utf8', timeout: FILE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 })
+    const r = spawn(process.execPath, ['--test', '--test-reporter=spec', '--test-concurrency=1', path.join(TEST_DIR, f)], { cwd: root, env: minimalEnv(), encoding: 'utf8', timeout: FILE_TIMEOUT_MS, maxBuffer: 64 * 1024 * 1024 })
     const counts = parseCounts(`${r.stdout ?? ''}\n${r.stderr ?? ''}`); const why = judge(counts, r.status ?? -1)
     results.push({ file: f, ...counts, status: r.status, problems: why }); if (why.length) problems.push(...why.map((x) => `${f}:${x}`))
     process.stdout.write(`${why.length ? 'FAIL' : 'ok  '} ${f} tests=${counts.tests} pass=${counts.pass} fail=${counts.fail} skipped=${counts.skipped}\n`)

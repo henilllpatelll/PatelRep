@@ -15,7 +15,7 @@ import { liveExecutionAllowed } from './activation-gates.mjs'
 import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
 
-export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 10 * 60_000, maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, maxReviewRounds: 4, maxStageFailures: 8,
+export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, maxReviewRounds: 4, maxStageFailures: 8,
   resourceRecheckMs: 30_000, subscriptionRecheckMs: 15 * 60_000, networkRecheckMs: 60_000 })
 
 /** state → what admission it needs before work may start in it */
@@ -82,7 +82,7 @@ export class Engine {
   /** ONE actionable package per genuine blocker (and only for genuine blockers): what is blocked, why, the exact owner action, and what is preserved. */
   blockerPackage(taskId, reason, codes) {
     const L = this.ledger; const t = L.getTask(taskId)
-    enqueueOutbox(L, { taskId, kind: 'genuine_blocker', dedupeKey: `blocker:${taskId}:${reason}:${codes.join(',')}`, payload: { task_id: taskId, reason, codes, state_when_blocked: t.lifecycle.resume_to, head_sha: t.head_sha,
+    enqueueOutbox(L, { taskId, kind: 'genuine_blocker', dedupeKey: `blocker:${taskId}:${t.state_revision}:${reason}:${codes.join(',')}`, payload: { task_id: taskId, reason, codes, state_when_blocked: t.lifecycle.resume_to, head_sha: t.head_sha,
       preserved: { ledger: 'all state, plan, checkpoints and evidence retained', resume: 'owner_action_id required to leave blocked' } } })
   }
 
@@ -122,18 +122,18 @@ export class Engine {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }
       case 'queued': {
         if (L.deadDependencies(taskId).length) return none
-        if (L.openDependencies(taskId).length) { L.transition(taskId, 'dependency_waiting', { reason_code: 'DEPENDENCY_TASK_OPEN' }); return done('dependency_waiting') }
+        if (L.openDependencies(taskId).length) { const w = L.transition(taskId, 'dependency_waiting', { reason_code: 'DEPENDENCY_TASK_OPEN' }); return w.ok ? done('dependency_waiting') : none }
         const r = L.transition(taskId, 'planning'); return r.ok ? done('planning') : none
       }
       case 'dependency_waiting': {
         if (L.deadDependencies(taskId).length || L.openDependencies(taskId).length) return none
-        const r = L.transition(taskId, t.lifecycle.resume_to); return r.ok ? done('dependencies_satisfied') : none
+        const r = L.transition(taskId, L.resumeTarget(taskId)); return r.ok ? done('dependencies_satisfied') : none
       }
       case 'waiting_resources': case 'waiting_subscription': case 'waiting_external': return this.tryResume(t)
       case 'worker_recovery': case 'context_recovery': {
         const r = await reconcileSlot(this, { reason: 'HOST_RESTARTED' })
         if (!r.cleared) return none
-        const back = L.transition(taskId, t.lifecycle.resume_to); return back.ok ? done('recovered') : none
+        const back = L.transition(taskId, L.resumeTarget(taskId)); return back.ok ? done('recovered') : none
       }
       case 'remediation': {
         if (!['testing', 'independent_review', 'security_review'].every((k) => retryEligible(L, taskId, k))) return none
@@ -166,8 +166,8 @@ export class Engine {
   ownerResolve(taskId, ownerActionId) {
     const L = this.ledger; const t = L.getTask(taskId)
     if (t.state !== 'blocked') return { ok: false, problems: ['TASK.NOT_BLOCKED'] }
-    const r = L.transition(taskId, t.lifecycle.resume_to, { owner_action_id: ownerActionId })
-    if (r.ok) L.clearWait(taskId)
+    const r = L.transition(taskId, L.resumeTarget(taskId), { owner_action_id: ownerActionId })
+    if (r.ok) { L.clearWait(taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) } // a fresh owner decision starts a fresh retry epoch
     return r
   }
 

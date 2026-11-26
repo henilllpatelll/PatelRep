@@ -155,7 +155,7 @@ export async function testing(e, taskId) {
   const task0 = L.getTask(taskId); const cand0 = L.currentCandidate(taskId)
   // crash after a test run for THIS candidate and token was recorded: reuse it instead of re-running the suite
   const prev = L.latestTestRun(taskId)
-  const reuse = prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token && !prev.evidence_id && prev.consumed !== 1
+  const reuse = prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token
   if (!reuse) {
     const g = await e.gate(taskId, { stage: 'testing', ai: false, profile: 'heavy_test' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
@@ -193,7 +193,7 @@ export async function review(e, taskId, kind) {
   if (!retryEligible(L, taskId, stageKey)) return NONE
   const cur0 = L.currentCandidate(taskId)
   // crash after a review was SUBMITTED (read-only verified, findings stored): finalize it — never pay for a second AI review of the same candidate
-  const pend = L.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind=? AND status='submitted' AND candidate_sha=? ORDER BY round DESC LIMIT 1").get(taskId, kind, cur0?.candidate_sha ?? '')
+  const pend = L.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind=? AND status IN ('submitted','verified_pass') AND candidate_sha=? ORDER BY round DESC LIMIT 1").get(taskId, kind, cur0?.candidate_sha ?? '')
   if (pend) return finalizeReview(e, taskId, kind, pend.review_id)
   L.db.prepare("UPDATE reviews SET status='invalidated' WHERE task_id=? AND kind=? AND status='open'").run(taskId, kind) // stale rows from a crashed attempt
   const rounds = L.db.prepare("SELECT COUNT(*) c FROM reviews WHERE task_id=? AND kind=? AND status IN ('verified_pass','verified_fail')").get(taskId, kind).c
@@ -230,10 +230,9 @@ async function finalizeReview(e, taskId, kind, reviewId) {
   e.hook('after_evidence_accepted', { taskId })
   const payload = issued.envelope.payload
   if (payload.verdict === 'pass') {
-    L.setReviewStatus(reviewId, 'verified_pass', payload.evidence_id)
     const next = kind === 'independent_review' ? (task.lifecycle.security_review_required ? 'security_review' : 'publishing') : 'publishing'
-    const t = L.transition(taskId, next)
-    if (!t.ok) return NONE
+    // the verdict and the lifecycle transition are ONE transaction: a crash (or a refused transition) can never leave a passed review whose task did not advance
+    try { L.tx(() => { L.setReviewStatus(reviewId, 'verified_pass', payload.evidence_id); const r = L.transition(taskId, next); if (!r.ok) throw new Error(`TRANSITION:${r.problems[0]}`) }) } catch (err) { if (/^TRANSITION:/.test(err.message)) return NONE; throw err }
     return next === 'publishing' ? await handoff(e, taskId) : PROGRESS('review_passed')
   }
   L.setReviewStatus(reviewId, 'verified_fail', payload.evidence_id)
@@ -277,7 +276,13 @@ export async function handoff(e, taskId) {
   let have = collect()
   let missing = have.filter((h) => !h.ev.length).map((h) => h.type)
   if (missing.length) { await reattest(e, taskId, missing); have = collect(); missing = have.filter((h) => !h.ev.length).map((h) => h.type) }
-  if (missing.length) { L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing }); L.setMeta(`needs_reverification:${taskId}`, '1'); return NONE } // fail closed; lifecycle back-edge proposed in 21
+  if (missing.length) {
+    // fail closed, but never a silent permanent stall: bounded attempts, then ONE genuine-blocker package (lifecycle back-edge for expired approvals is proposal P3(c))
+    L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing })
+    const tries = L.recoveryHistory(taskId).filter((x) => x.kind === 'handoff_evidence_insufficient').length
+    if (tries >= 5) { e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['HANDOFF_EVIDENCE_UNOBTAINABLE', ...missing] }); return PROGRESS('blocked_handoff_evidence') }
+    return NONE
+  }
   const cand = L.currentCandidate(taskId)
   const paths = JSON.parse(L.meta(`paths:${taskId}:${cand.candidate_sha}`) ?? '[]')
   const protectedTouched = paths.filter((p) => { const n = normalizeRepoPath(p); return n.ok && matchesAny(e.policy.contract.protected_paths, n.path) })
@@ -290,8 +295,9 @@ export async function handoff(e, taskId) {
     renewals: L.recoveryHistory(taskId).filter((r) => r.kind === 'context_renewed').length, plan_digest: L.currentPlan(taskId)?.digest ?? null,
     not_done: ['publish_candidate_branch', 'pull_request', 'ci_gate', 'staging_gate', 'merge', 'production_release'] }
   const digest = digestOf(pkg)
-  L.tx(() => { L.setMeta(`handoff:${taskId}`, JSON.stringify({ ...pkg, digest })); L.db.prepare('UPDATE tasks SET handoff_ready=1, updated_at=? WHERE task_id=?').run(L.now(), taskId) })
-  enqueueOutbox(L, { taskId, kind: 'handoff_ready', dedupeKey: `handoff:${taskId}:${cand.candidate_sha}`, payload: { task_id: taskId, candidate_sha: cand.candidate_sha, digest, simulated: pkg.simulated } })
+  // package, readiness flag and the notification are ONE transaction (a crash cannot mark a task ready and lose its notification)
+  L.tx(() => { L.setMeta(`handoff:${taskId}`, JSON.stringify({ ...pkg, digest })); L.db.prepare('UPDATE tasks SET handoff_ready=1, updated_at=? WHERE task_id=?').run(L.now(), taskId)
+    enqueueOutbox(L, { taskId, kind: 'handoff_ready', dedupeKey: `handoff:${taskId}:${cand.candidate_sha}`, payload: { task_id: taskId, candidate_sha: cand.candidate_sha, digest, simulated: pkg.simulated } }) })
   e.hook('after_handoff', { taskId })
   return PROGRESS('handoff_ready')
 }

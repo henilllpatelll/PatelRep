@@ -221,3 +221,35 @@ test('ZERO routine owner interventions: ONE submission drives planning, implemen
   assert.ok(calls.length >= 10); assert.equal(h.ledger.slotHolder(), null); assert.ok(h.ledger.requirementsIntact(id)); const pkg = JSON.parse(h.ledger.meta(`handoff:${id}`)); assert.equal(pkg.simulated, true); assert.equal(pkg.candidate.candidate_sha, h.ledger.currentCandidate(id).candidate_sha)
   assert.ok(new Set(execs(h, id).map((e) => e.context_id)).size === execs(h, id).length); h.close()
 })
+
+test('review-driven regressions: pause/resume inside remediation targets implementing; a recurring blocker is re-notified and its retry epoch resets; a lease outlives a full work unit', async () => {
+  // (1) pause then resume while in `remediation` (the reducer only allows implementing)
+  const a = H({ scenario: { tests: [{ passed: false, fingerprint: 'f' }, { passed: true }] } }); const ida = a.submit()
+  for (let i = 0; i < 20 && a.ledger.getTask(ida).state !== 'remediation'; i += 1) await a.engine.tick()
+  assert.equal(a.ledger.getTask(ida).state, 'remediation'); assert.ok(a.ledger.pause(ida).ok); const r = a.ledger.resume(ida); assert.ok(r.ok, JSON.stringify(r.problems)); assert.equal(a.ledger.getTask(ida).state, 'implementing'); await drive(a); assert.equal(a.ledger.getTask(ida).handoff_ready, 1); a.close()
+  // (2) the SAME blocker twice is two notifications; ownerResolve starts a fresh retry epoch
+  const b = H(); const idb = b.submit(); b.adapters.subscription.save({ ...b.adapters.subscription.load(), state: 'auth_expired' }); await drive(b)
+  assert.equal(owner(b).blockerRows, 1); b.adapters.subscription.save({ ...b.adapters.subscription.load(), state: 'available' }); assert.ok(b.engine.ownerResolve(idb, 'o-1').ok)
+  b.adapters.subscription.save({ ...b.adapters.subscription.load(), state: 'auth_expired' }); await drive(b); assert.equal(owner(b).blockerRows, 2, 'a recurrence is not silently deduplicated'); assert.equal(b.ledger.db.prepare('SELECT COUNT(*) c FROM retry_budgets').get().c, 0); b.close()
+  // (3) a lease must outlive the longest work unit
+  const c = H(); assert.ok(c.engine.cfg.leaseTtlMs >= (c.engine.cfg.renewal.maxMinutes + 1) * 60_000); c.close()
+})
+
+test('a review that passed but whose task did not advance is FINISHED on restart without paying for another review session', async () => {
+  const h = H(); const id = h.submit(); const calls = spy(h)
+  for (let i = 0; i < 40 && h.ledger.getTask(id).state !== 'security_review'; i += 1) await h.engine.tick()
+  assert.equal(h.ledger.getTask(id).state, 'security_review'); const before = execs(h, id).length
+  // simulate the crash window: the review is marked verified_pass but the lifecycle transition never happened
+  const rv = h.ledger.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind='independent_review'").get(id); assert.ok(rv)
+  const sec = calls.filter((c2) => c2.stage === 'security_review').length; assert.equal(sec, 0)
+  await drive(h); assert.equal(h.ledger.getTask(id).handoff_ready, 1); assert.equal(execs(h, id).filter((e) => e.role === 'independent_reviewer').length, 1); h.close()
+})
+
+test('a handoff whose approvals can never be re-obtained does not stall silently: bounded attempts, then ONE genuine blocker', async () => {
+  const h = H(); const id = h.submit()
+  for (let i = 0; i < 60; i += 1) { await h.engine.tick(); if (h.ledger.getTask(id).state === 'publishing' || h.ledger.getTask(id).handoff_ready) break }
+  // undo the handoff to model "approvals gone": drop all evidence validity and the passing artefacts the re-attestation needs
+  h.ledger.db.prepare('UPDATE tasks SET handoff_ready=0 WHERE task_id=?').run(id); h.ledger.db.prepare('UPDATE evidence SET invalidated_at=1').run(); h.ledger.db.prepare("UPDATE reviews SET status='invalidated'").run(); h.ledger.db.prepare('UPDATE test_runs SET passed=0').run()
+  for (let i = 0; i < 8; i += 1) await h.engine.tick()
+  assert.equal(h.ledger.getTask(id).state, 'blocked'); assert.equal(owner(h).blockerRows, 1); h.close()
+})

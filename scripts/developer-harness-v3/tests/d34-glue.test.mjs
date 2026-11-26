@@ -31,9 +31,9 @@ test('session invocation goes through the D3.3 launcher AND the D3.2 evaluator: 
 })
 
 test('D3.3 adapters wire the real components; everything that would run a live session refuses; an engine will not accept them', async () => {
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'dh34-glue-')); const calls = []
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'dh34-glue-')); const calls = []; let stopped = false
   const A = createD33Adapters({ W: { dir }, cfg: { vm: { name: 'x' }, accel: 'whpx' }, stateDir: dir, sampleHost: async () => ({ available_mb: 5000 }), readVmRecord: () => ({ schema: 'patelrep.developer-harness-v3.vm-supervisor', supervisor_pid: 1, qemu_pid: 2, marker: 'm', state: 'running' }),
-    liveness: () => ({ supervisor: true, qemu: true, qemuImage: 'qemu-system-x86_64.exe', reused: false }), killWorkerProcesses: () => { calls.push('kill'); return true }, stopVm: async () => { calls.push('stop') } })
+    liveness: () => ({ supervisor: !stopped, qemu: !stopped, qemuImage: 'qemu-system-x86_64.exe', reused: false }), killWorkerProcesses: () => { calls.push('kill'); return true }, stopVm: async () => { calls.push('stop'); stopped = true } })
   assert.equal(A.simulated, false); assert.equal((await A.resources.sample()).accel, 'whpx'); assert.equal(A.subscription.load(), null, 'absent governor state => null => the engine blocks, never "available"')
   const rec = { schema: 'patelrep.developer-harness-v3.subscription-governor', state: 'available', next_eligible_at: null, updated_at: 1, extra_usage: { enabled: false, basis: 'b', verified_at: 1 } }; assert.ok(isSubscriptionStateRecord(rec)); A.subscription.save(rec); assert.deepEqual(A.subscription.load(), rec)
   assert.equal((await A.worker.liveness()).liveness.qemu, true); assert.deepEqual(await A.worker.cleanupGuest(), { verified: true }); assert.deepEqual(await A.worker.stopWorker(), { verified: true }); assert.deepEqual(calls, ['kill', 'stop'])

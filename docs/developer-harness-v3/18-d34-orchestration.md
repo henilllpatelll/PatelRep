@@ -9,7 +9,7 @@ It adds only `scripts/developer-harness-v3/{orchestrator,ci}/**`, `scripts/devel
 | Part | File(s) | What it is |
 |---|---|---|
 | Ledger | `ledger/{schema,ledger,evidence-store,intents,backup}.mjs` | SQLite (`node:sqlite`, built in, no service/dependency): tasks, append-only events, plans, executions, leases, candidates, checkpoints, reviews/findings, test runs, evidence + nonces, retry budgets, waits, recovery history, resources, dependencies, action intents, outbox |
-| Engine | `engine.mjs`, `stages.mjs`, `session-runner.mjs`, `recovery.mjs` | deterministic single-threaded state machine; AI only inside session stages |
+| Engine | `engine.mjs`, `stages.mjs`, `session-runner.mjs`, `recovery.mjs` | deterministic single-threaded state machine; AI only inside session stages. Lease TTL (35 min) exceeds the longest work unit (30 min) |
 | Routing | `routing.mjs` | pure model/effort routing, forbidden-argument/env checks, actual-model verification |
 | Context | `context-renewal.mjs`, `snapshot.mjs` | renewal decision, checkpoints, restore prompt, worktree snapshots |
 | Reviews | `review.mjs` | structured-findings normalization; severity decides what is mandatory |
@@ -51,7 +51,7 @@ Sequence (tested, with SIGKILL at each boundary): boundary → worktree snapshot
 
 ## 5. Recovery
 
-Controller start: single-controller OS lock (stale lock from a dead pid is broken, a live one refuses), uncertain intents, un-acked outbox, clock-jump record, then `reconcileSlot` regardless of lease expiry. `reconcileSlot` uses D3.3 `recoveryDecision` (unknown liveness or PID reuse ⇒ investigate, slot stays held), then **guest cleanup (kill + verify)** before `supersedeLease` (token +1) and before any new lease. Unrelated processes are never touched. Stage handlers resume from durable facts (saved plan, pending candidate, recorded test run, submitted review, persisted stage deliverable) instead of repeating paid work. After a recovery the token has advanced, so earlier approvals no longer verify (D3.2 binds evidence to the token); `handoff` therefore **re-attests**: each issuer re-issues the same verdict under the new epoch after re-checking the ledger and its own candidate derivation. A *changed* candidate is never re-attested.
+Controller start: single-controller OS lock (stale lock from a dead pid is broken, a live one refuses), uncertain intents, un-acked outbox, clock-jump record, then `reconcileSlot` regardless of lease expiry. `reconcileSlot` uses D3.3 `recoveryDecision` (unknown liveness or PID reuse ⇒ investigate, slot stays held), then **guest cleanup (kill + verify)** before `supersedeLease` (token +1) and before any new lease. Unrelated processes are never touched. Stage handlers resume from durable facts (saved plan, pending candidate, recorded test run, submitted review, persisted stage deliverable) instead of repeating paid work. **Residual (documented, not fixed):** a REVIEW session's result is persisted only when its findings are stored as submitted; a crash between the review lease close and that transaction repeats one review session (planning/implementing deliverables are persisted before the session is torn down). After a recovery the token has advanced, so earlier approvals no longer verify (D3.2 binds evidence to the token); `handoff` therefore **re-attests**: each issuer re-issues the same verdict under the new epoch after re-checking the ledger and its own candidate derivation. A *changed* candidate is never re-attested.
 
 ## 6. Trust boundaries (what protects what)
 

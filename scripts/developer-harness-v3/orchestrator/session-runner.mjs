@@ -83,13 +83,14 @@ export async function runSessionStage(e, taskId, spec) {
   } catch (err) {
     if (!outcome) outcome = { status: 'failed', code: 'SESSION.RUNNER_ERROR', fingerprint: fingerprint('runner', String(err?.message).slice(0, 60)) }
   }
+  // A finished planning/implementing deliverable is persisted (plain data) BEFORE the session is torn down, so a crash anywhere after the session produced it —
+  // including during termination — never costs a second paid session (the stage handler consumes and clears it). REVIEW results are not persisted here: a crash
+  // between the lease close and the `submitted` transaction repeats ONE review session (documented residual, doc 18 §5).
+  if (outcome.status === 'done' && ['planning', 'implementing'].includes(spec.stage)) L.setMeta(`stage_done:${taskId}:${spec.stage}`, JSON.stringify(outcome.deliverable))
   // Termination is verified INDEPENDENTLY of the adapter's session result, and the slot is released only on a verified stop.
   const term = await safeTerminate(A, lease)
   e.hook('after_session_terminated', { taskId })
-  // A finished planning/implementing deliverable is persisted IN THE SAME TRANSACTION as the verified lease release, so a crash right after the session never costs
-  // a second session (the stage handler consumes and clears it).
-  const persist = outcome.status === 'done' && ['planning', 'implementing'].includes(spec.stage) ? () => L.setMeta(`stage_done:${taskId}:${spec.stage}`, JSON.stringify(outcome.deliverable)) : null
-  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status, alsoOnVerified: persist })
+  const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status })
   e.hook('after_lease_closed', { taskId })
   if (!closed.ok) return { status: 'failed', code: closed.code, fingerprint: fingerprint('close', closed.code), executions }
   if (!term.verified) return { status: 'termination_unverified', executions, lease }
@@ -156,9 +157,9 @@ async function renew(e, taskId, spec, lease, dec) {
   if (!next.ok) return { status: 'failed', code: next.code, fingerprint: fingerprint('renew-lease', next.code) }
   e.hook('after_renewal_new_lease', { taskId })
   const back = L.transition(taskId, resumeTo)
-  if (!back.ok) { L.closeLease(next.lease, { terminationVerified: true, endReason: 'RENEWAL_ABORTED' }); return { status: 'failed', code: back.problems[0], fingerprint: fingerprint('renew-resume', back.problems[0]) } }
+  if (!back.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_ABORTED' }); return { status: 'failed', code: back.problems[0], fingerprint: fingerprint('renew-resume', back.problems[0]) } }
   const p = await buildPrompt(e, taskId, spec)
-  if (!p.ok) { L.closeLease(next.lease, { terminationVerified: true, endReason: 'RENEWAL_RESTORE_FAILED' }); return { status: 'failed', code: p.code, fingerprint: fingerprint('renew-restore', p.code) } }
+  if (!p.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_RESTORE_FAILED' }); return { status: 'failed', code: p.code, fingerprint: fingerprint('renew-restore', p.code) } }
   L.markExecutionRunning(next.lease.execution_id)
   L.recordRecovery(taskId, 'context_renewed', { basis: dec.basis, measured: dec.measured, utilization: dec.utilization, checkpoint: cp.id, from: lease.execution_id, to: next.lease.execution_id })
   return { status: 'renewed', lease: next.lease, prompt: p.prompt }

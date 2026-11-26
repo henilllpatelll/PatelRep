@@ -49,7 +49,7 @@ export function createD33Adapters(d) {
       async ensure() { throw new Error('D33.WORKER_START_REQUIRES_OWNER_SETUP_AND_ADMISSION (use dh3 provision/start; gate G-FULL-WORKER)') },
       async liveness() { const record = d.readVmRecord(d.W); return { record, liveness: record ? d.liveness(record) : { supervisor: false, qemu: false, qemuImage: null, reused: false } } },
       async cleanupGuest() { try { return { verified: d.killWorkerProcesses(d.W, d.cfg.vm) === true } } catch { return { verified: false } } },
-      async stopWorker() { try { await d.stopVm(d.W, d.cfg.vm); return { verified: true } } catch { return { verified: false } } },
+      async stopWorker() { try { await d.stopVm(d.W, d.cfg.vm); const rec = d.readVmRecord(d.W); const lv = rec ? d.liveness(rec) : { supervisor: false, qemu: false }; return { verified: lv.supervisor === false && lv.qemu === false } } catch { return { verified: false } } },
       terminateSession: NOT_LIVE('terminateSession'),
     },
     session: { runUnit: NOT_LIVE('runUnit') },
