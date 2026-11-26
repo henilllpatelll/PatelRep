@@ -11,7 +11,8 @@ if (mode === 'kill-migration') {
   Ledger.open(file, { migrationHook: (v) => { if (v === Number(a)) { process.stdout.write('KILLING\n'); process.kill(process.pid, 'SIGKILL') } } })
   process.stdout.write('NOT_KILLED\n')
 } else {
-  const L = Ledger.open(file)
+  let L
+  try { L = Ledger.open(file) } catch (e) { process.stdout.write(JSON.stringify({ label, ok: false, code: `OPEN_THROW:${String(e.message).slice(0, 80)}`, slot: null })); process.exit(0) }
   while (!existsSync(go)) await new Promise((r) => setTimeout(r, 2)) // all workers released together
   let r
   try { r = mode === 'work' ? acquireWork(L, { taskId: a, unitRef: `race:${label}` }) : L.acquireLease({ taskId: a, role: 'implementer', stage: 'implementing', model: 'sonnet', effort: 'high' }) } catch (e) { r = { ok: false, code: `THROW:${String(e.message).slice(0, 80)}` } }

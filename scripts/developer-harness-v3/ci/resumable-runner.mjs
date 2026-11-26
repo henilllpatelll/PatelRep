@@ -90,6 +90,11 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
       const counts = parseCounts(r.out)
       const cls = classifyUnit({ status: r.status, signal: r.signal, timedOut: r.timedOut, counts, startedAt, endedAt: L.now(), samples: recentSamples(L, null, CTX, 200), reaper: readReaper(reaperFile) }, cfg)
       recordOutcome(L, groupId, u.unit_id, cls, { counts })
+      if (cls.kind !== 'passed') { // a non-passing unit keeps a bounded, credential-scanned tail of its output for investigation (never authority)
+        const tail = r.out.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').split('\n').filter((l) => /✖|not ok|Error|assert|expected|actual|at .*\.mjs/.test(l)).slice(0, 60).join('\n').slice(0, 8000)
+        L.setMeta(`unit_output:${groupId}:${u.unit_id}:${u.attempts + 1}`, /gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9-]{20,}|BEGIN [A-Z ]*PRIVATE KEY/.test(tail) ? '[REDACTED: credential-shaped content]' : tail)
+        log(`${tail.split('\n').slice(0, 12).map((l) => `     | ${l}`).join('\n')}\n`)
+      }
       const tag = { passed: 'ok  ', genuine_failure: 'FAIL', verified_resource_kill: 'INTR', ambiguous_interruption: 'INTR' }[cls.kind]
       log(`${tag} ${u.unit_id}${rerun ? ' (rerun)' : ''} tests=${counts.tests} pass=${counts.pass} fail=${counts.fail} skipped=${counts.skipped}${cls.kind.includes('interrupt') || cls.kind.includes('kill') ? ` → ${cls.kind}: not a result; will re-run first after re-admission` : ''}\n`)
     }
