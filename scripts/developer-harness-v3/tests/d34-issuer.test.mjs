@@ -172,8 +172,8 @@ test('authenticated IPC with REAL issuer processes: wrong secret, replayed MAC, 
   try {
     const ep = iss.endpoints.orchestrator
     const ok = await callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.orchestrator, op: 'issue_test_results', params: { task_id: id, run_id: run.run_id } }); assert.ok(ok.ok); assert.equal(ok.envelope.payload.evidence_type, 'test_results')
-    assert.equal((await callIssuer({ listenPath: ep.listenPath, secret: randomBytes(32), op: 'issue_test_results', params: { task_id: id, run_id: run.run_id } })).code, 'IPC.AUTH_FAILED')
-    assert.equal((await callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.independent_reviewer, op: 'status' })).code, 'IPC.AUTH_FAILED', 'another role\'s secret does not authenticate')
+    await assert.rejects(callIssuer({ listenPath: ep.listenPath, secret: randomBytes(32), op: 'issue_test_results', params: { task_id: id, run_id: run.run_id } }), /IPC\.SERVER_NOT_AUTHENTICATED/)
+    await assert.rejects(callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.independent_reviewer, op: 'status' }), /IPC\.SERVER_NOT_AUTHENTICATED/, 'another role\'s secret does not authenticate')
     assert.equal((await callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.orchestrator, op: 'sign_anything', params: { payload: {} } })).code, 'ISSUER.OPERATION_NOT_PERMITTED_FOR_IDENTITY')
     // replay: a MAC captured on one connection is useless on another (fresh challenge per connection)
     const captured = await new Promise((resolve) => { const s = net.connect(ep.listenPath); s.setEncoding('utf8'); let buf = ''; s.on('data', (d) => { buf += d; const m = JSON.parse(buf.split('\n')[0]); import('node:crypto').then(({ createHmac }) => { const req = { op: 'status', params: {} }; resolve({ ...req, mac: createHmac('sha256', iss.secrets.orchestrator).update(`${m.challenge}\n{"op":"status","params":{}}`).digest('hex') }); s.destroy() }) }) })
@@ -182,14 +182,14 @@ test('authenticated IPC with REAL issuer processes: wrong secret, replayed MAC, 
     assert.equal((await raw('not json\n')).code, 'IPC.MALFORMED'); assert.equal((await raw(`${JSON.stringify({ op: 'status', mac: 'x', extra: 1 })}\n`)).code, 'IPC.MALFORMED'); assert.equal((await raw(`${JSON.stringify({ op: 'BAD OP!', mac: 'x' })}\n`)).code, 'IPC.MALFORMED')
     assert.equal((await raw(`${'x'.repeat(70_000)}\n`)).code, 'IPC.FRAME_TOO_LARGE')
     const client = createIssuerClient({ orchestrator: ep }); assert.ok((await client.testResults(id, run.run_id)).duplicate, 'idempotent through the real process boundary')
-    assert.equal((await createIssuerClient({ orchestrator: { listenPath: ep.listenPath, secretFile: iss.endpoints.independent_reviewer.secretFile } }).testResults(id, run.run_id)).code, 'IPC.AUTH_FAILED')
+    assert.equal((await createIssuerClient({ orchestrator: { listenPath: ep.listenPath, secretFile: iss.endpoints.independent_reviewer.secretFile } }).testResults(id, run.run_id)).code, 'CLIENT.ISSUER_UNREACHABLE')
     assert.equal((await createIssuerClient({}).testResults(id, run.run_id)).code, 'CLIENT.UNKNOWN_ROLE_OR_OPERATION'); assert.equal((await createIssuerClient({ orchestrator: { listenPath: ipcPath('d34-nobody', h.dirs.root), secretFile: ep.secretFile } }).testResults(id, run.run_id)).code, 'CLIENT.ISSUER_UNREACHABLE')
   } finally { iss.stop(); h.close() }
 })
 
 test('the issuer process refuses to start with a policy that does not match its out-of-band pin, and cannot write the controller ledger', async () => {
   const { h } = await runUntil('after_test_run_recorded'); writeFileSync(path.join(h.dirs.root, 'bundle.json'), JSON.stringify(h.pol.bundle)); writeFileSync(path.join(h.dirs.root, 's.secret'), randomBytes(32))
-  const cfg = { identity: 'orchestrator', key_id: h.pol.keyIds.orchestrator, key_dir: h.dirs.keys, ledger_file: h.dirs.ledger, store_file: path.join(h.dirs.issuer, 'x.sqlite'), policy_bundle_file: path.join(h.dirs.root, 'bundle.json'), policy_pin: 'f'.repeat(64), ipc_path: ipcPath('d34-pin', h.dirs.root), ipc_secret_file: path.join(h.dirs.root, 's.secret'), facts_module: path.join(ORCH, 'sim', 'facts-sim.mjs'), sim_world_dir: h.dirs.world }
+  const cfg = { identity: 'orchestrator', key_id: h.pol.keyIds.orchestrator, key_dir: h.dirs.keys, ledger_file: h.dirs.ledger, store_file: path.join(h.dirs.issuer, 'x.sqlite'), policy_bundle_file: path.join(h.dirs.root, 'bundle.json'), policy_pin: 'f'.repeat(64), ipc_path: ipcPath('d34-pin', h.dirs.root), ipc_secret_file: path.join(h.dirs.root, 's.secret'), allow_test_keys: true, facts_module: path.join(ORCH, 'sim', 'facts-sim.mjs'), sim_world_dir: h.dirs.world }
   writeFileSync(path.join(h.dirs.root, 'c.json'), JSON.stringify(cfg)); const r = spawnSync(process.execPath, [path.join(ORCH, 'issuer', 'issuer-main.mjs'), path.join(h.dirs.root, 'c.json')], { encoding: 'utf8', timeout: 20000 })
   assert.equal(r.status, 2); assert.match(r.stderr, /ISSUER\.POLICY_REJECTED:POLICY\.REVISION_MISMATCH/)
   const rel = spawnSync(process.execPath, [path.join(ORCH, 'issuer', 'issuer-main.mjs'), path.join(h.dirs.root, 'c.json'), 'extra'], { encoding: 'utf8', timeout: 20000 }); assert.equal(rel.status, 2); assert.match(rel.stderr, /ISSUER\.USAGE/)
@@ -237,4 +237,35 @@ test('a git.exe planted in the working directory is never run: the runner takes 
 
 test('policy loading for issuers: a bundle whose revision does not match the pin is rejected (the pin comes from outside the candidate environment)', () => {
   const h = createHarness({ root: tmp() }); assert.equal(loadPolicy(h.pol.bundle, 'f'.repeat(64)).problems[0], 'POLICY.REVISION_MISMATCH'); assert.ok(loadPolicy(h.pol.bundle, policyRevision(h.pol.bundle)).ok); h.close(); void pathToFileURL
+})
+
+// ---------------------------------------------------------------- security-review regressions
+test('a server that cannot prove it knows the secret (a pipe squatter) is a TRANSPORT failure, not a verdict; a connection flood cannot crash an issuer', async () => {
+  const { h, id } = await runUntil('after_test_run_recorded'); const run = h.ledger.latestTestRun(id); const iss = await startIssuers(h)
+  try {
+    const sq = path.join(h.dirs.root, 'squat'); const lp = ipcPath('d34-squat', h.dirs.root)
+    const server = net.createServer((s) => { s.write('{"challenge":"abc"}\n'); s.on('data', () => { s.end(JSON.stringify({ ok: false, code: 'ISSUER.CONTEXT_NOT_INDEPENDENT', rmac: 'f'.repeat(64) }) + '\n') }) }); await new Promise((r) => server.listen(lp, r))
+    await assert.rejects(callIssuer({ listenPath: lp, secret: iss.secrets.orchestrator, op: 'status' }), /IPC\.SERVER_NOT_AUTHENTICATED/); server.close(); void sq
+    const ep = iss.endpoints.orchestrator; const held = []
+    for (let i = 0; i < 12; i += 1) held.push(net.connect(ep.listenPath).on('error', () => {}))
+    await new Promise((r) => setTimeout(r, 150)); for (let i = 0; i < 40; i += 1) net.connect(ep.listenPath).on('error', () => {}).destroy()
+    await new Promise((r) => setTimeout(r, 200)); held.forEach((s) => s.destroy()); await new Promise((r) => setTimeout(r, 200))
+    assert.ok((await callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.orchestrator, op: 'status' })).ok, 'the issuer survived the flood')
+  } finally { iss.stop(); h.close() }
+})
+
+test('routing denylist hardening: bypass spellings, case, permission modes and account/model env variables are refused', async () => {
+  const { checkInvocationSafety } = await import('../orchestrator/routing.mjs')
+  for (const argv of [['--permission-mode', 'bypassPermissions'], ['--allow-dangerously-skip-permissions'], ['--FALLBACK-MODEL=haiku'], ['--dangerously-skip-permissions']]) assert.ok(checkInvocationSafety({ argv }).length > 0, argv.join(' '))
+  assert.deepEqual(checkInvocationSafety({ argv: ['--permission-mode', 'dontAsk'] }), [])
+  for (const e of ['CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'CLAUDE_CONFIG_DIR']) assert.ok(checkInvocationSafety({ argv: [], envNames: [e] }).length > 0, e)
+})
+
+test('a test-keyed issuer refuses to start without the explicit test flag; the gate register entries cannot be mutated; a replaced git binary is detected', async () => {
+  const h = createHarness({ root: tmp() }); writeFileSync(path.join(h.dirs.root, 'bundle.json'), JSON.stringify(h.pol.bundle)); writeFileSync(path.join(h.dirs.root, 's.secret'), randomBytes(32))
+  const cfg = { identity: 'orchestrator', key_id: h.pol.keyIds.orchestrator, key_dir: h.dirs.keys, ledger_file: h.dirs.ledger, store_file: path.join(h.dirs.issuer, 'y.sqlite'), policy_bundle_file: path.join(h.dirs.root, 'bundle.json'), policy_pin: h.pol.revision, ipc_path: ipcPath('d34-tk', h.dirs.root), ipc_secret_file: path.join(h.dirs.root, 's.secret'), facts_module: path.join(ORCH, 'sim', 'facts-sim.mjs'), sim_world_dir: h.dirs.world }
+  writeFileSync(path.join(h.dirs.root, 'tk.json'), JSON.stringify(cfg)); const r = spawnSync(process.execPath, [path.join(ORCH, 'issuer', 'issuer-main.mjs'), path.join(h.dirs.root, 'tk.json')], { encoding: 'utf8', timeout: 20000 }); assert.equal(r.status, 2); assert.match(r.stderr, /ISSUER\.TEST_KEY_REFUSED/); h.close()
+  const { GATES, liveExecutionAllowed } = await import('../orchestrator/activation-gates.mjs'); assert.throws(() => { 'use strict'; GATES[0].status = 'closed' }, TypeError); assert.equal(liveExecutionAllowed().allowed, false)
+  const g = gitOf(); const res = resolveGit({ candidates: [g] }); assert.ok(res.ok)
+  assert.throws(() => trustedGit(g, process.cwd(), ['--version'], { expectSha256: '0'.repeat(64) }), /EXECUTABLE_CHANGED_AFTER_RESOLUTION/); assert.ok(trustedGit(g, process.cwd(), ['--version'], { expectSha256: res.sha256 }).length > 0)
 })

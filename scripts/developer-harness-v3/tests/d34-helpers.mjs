@@ -20,7 +20,7 @@ export async function startIssuers(h) {
   for (const role of Object.keys(OPS)) {
     const secretFile = path.join(h.dirs.root, `${role}.secret`); secrets[role] = randomBytes(32); writeFileSync(secretFile, secrets[role], { mode: 0o600 })
     const listenPath = ipcPath(`d34-${role}-${randomBytes(4).toString('hex')}`, h.dirs.root); endpoints[role] = { listenPath, secretFile }
-    const cfg = { identity: role, key_id: h.pol.keyIds[role], key_dir: h.dirs.keys, ledger_file: h.dirs.ledger, store_file: path.join(h.dirs.issuer, `p-${role}.sqlite`), policy_bundle_file: path.join(h.dirs.root, 'bundle.json'), policy_pin: h.pol.revision, ipc_path: listenPath, ipc_secret_file: secretFile,
+    const cfg = { identity: role, key_id: h.pol.keyIds[role], key_dir: h.dirs.keys, ledger_file: h.dirs.ledger, store_file: path.join(h.dirs.issuer, `p-${role}.sqlite`), policy_bundle_file: path.join(h.dirs.root, 'bundle.json'), policy_pin: h.pol.revision, ipc_path: listenPath, ipc_secret_file: secretFile, allow_test_keys: true,
       facts_module: path.join(ORCH, 'sim', 'facts-sim.mjs'), sim_world_dir: h.dirs.world }
     const cfgFile = path.join(h.dirs.root, `${role}.json`); writeFileSync(cfgFile, JSON.stringify(cfg))
     const p = spawn(process.execPath, [path.join(ORCH, 'issuer', 'issuer-main.mjs'), cfgFile], { stdio: ['ignore', 'pipe', 'pipe'], env: CHILD_ENV })

@@ -8,7 +8,7 @@ D3.4 modified **no** protected path (no `.github/**`, V2 file, `.claude/**`, V3 
 | ID | File | Digest (sha256) | Mandatory for D3.4 completion? | Activation prerequisite |
 |---|---|---|---|---|
 | P1 | `proposals/P1-git-facts-trusted-git.patch` — `authority/git-facts.mjs` stops spawning a bare `git` | `194760b4…d7600` | **No** (D3.4's issuer already uses the hardened runner) | G-TRUSTED-GIT |
-| P2 | `proposals/P2-consolidated-ci-integration.patch` — ONE control-plane change: trusted prep step for the provenance fetch, the V3 suite step, the V2 guard re-pinned (6-step job) | `eca70654…b1e7` | **No** | G-V3-CI, G-V2-PROVENANCE-FETCH |
+| P2 | `proposals/P2-consolidated-ci-integration.patch` — ONE control-plane change: trusted prep step for the provenance fetch, the V3 suite step, the V2 guard re-pinned (6-step job) and the Phase-2 identity test's pin for the edited ypass-hook.test.mjs | `eca70654…b1e7` | **No** | G-V3-CI, G-V2-PROVENANCE-FETCH |
 | P3 | lifecycle contract additions (design only, §3) | — | No | recommended before D3.5 |
 | P4 | a `dh3-d34`/`dh3-d35` scope in `bypass-scopes.json` (§4) | — | No | owner choice |
 
@@ -56,3 +56,9 @@ Rendered from `orchestrator/activation-gates.mjs` (tested for completeness again
 | G-CLI-EFFORT | `--effort`/`--model` verified on the pinned guest binary | open | host 2.1.332 help + parser | run `parseCliHelp` in the guest |
 | G-LIVE-ADAPTER | A reviewed live session adapter exists | open | simulated only | D3.9 |
 | G-BYPASS-ACTIVATION | Bypass only inside proven isolation | open | never requested | D3.9 ceremony |
+
+## 6. Amendments from the independent security review (2026-11-25)
+* **P1 must also move orchestrator/trusted-git.mjs into uthority/** (and the import path in the patch with it): otherwise P4's development scope (everything under scripts/developer-harness-v3/** except uthority/**) would let development sessions edit the git hardening that authority code imports (review F12). Not done here because uthority/** is owner-only.
+* **P2 originally broke openwolf-hooks.test.mjs** (it pins ypass-hook.test.mjs by sha256); found by running the V2 runner, fixed in the shipped patch. Two V2 policy tests fail only inside the scratch worktree and pass on the real branch; one cannot rule out an environmental cause without an unpatched scratch run.
+* New gate **G-ISSUER-INDEPENDENT-FACTS**: review issuers read read-only proof, model identity, termination and independence from controller-written ledger rows (review F4). A compromised controller could have a review row signed; fixing needs a source the controller cannot write.
+

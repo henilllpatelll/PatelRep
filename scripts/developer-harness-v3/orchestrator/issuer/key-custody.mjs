@@ -63,10 +63,12 @@ export function loadSigningKey(keyDir, keyId) {
 /** Emergency deactivation: marker first (stops signing immediately, even in a running issuer), then the key file is renamed out of the loadable name. Idempotent. */
 export function emergencyDeactivate(keyDir, keyId, { reason = 'unspecified', now = Date.now() } = {}) {
   if (!KEY_ID.test(keyId ?? '')) return { ok: false, code: 'KEY.BAD_KEY_ID' }
-  writeFileSync(deactivationMarker(keyDir, keyId), JSON.stringify({ key_id: keyId, reason: String(reason).slice(0, 200), at: new Date(now).toISOString() }), { mode: 0o600 })
-  const file = privatePath(keyDir, keyId)
-  if (existsSync(file)) renameSync(file, `${file}.revoked.${randomBytes(4).toString('hex')}`)
-  return { ok: true }
+  try {
+    writeFileSync(deactivationMarker(keyDir, keyId), JSON.stringify({ key_id: keyId, reason: String(reason).slice(0, 200), at: new Date(now).toISOString() }), { mode: 0o600 })
+    const file = privatePath(keyDir, keyId)
+    if (existsSync(file)) renameSync(file, `${file}.revoked.${randomBytes(4).toString('hex')}`)
+    return { ok: true }
+  } catch (e) { return { ok: false, code: `KEY.DEACTIVATION_FAILED:${e.code ?? 'ERR'}` } } // e.g. EACCES when the ACL excludes the caller: reported, never thrown
 }
 
 // ---------------------------------------------------------------- policy proposals (root-of-trust: owner ceremony only)
@@ -110,7 +112,7 @@ export function aclPlan({ keyDir, ipcDir, issuerAccount, controllerAccount }) {
   if (issuerAccount === controllerAccount) return { ok: false, code: 'ACL.ISSUER_AND_CONTROLLER_MUST_DIFFER' }
   return { ok: true, commands: [
     ['icacls', q(keyDir), '/inheritance:r'],
-    ['icacls', q(keyDir), '/grant:r', `${issuerAccount}:(OI)(CI)F`, 'SYSTEM:(OI)(CI)F'],
+    ['icacls', q(keyDir), '/grant:r', `${issuerAccount}:(OI)(CI)F`, 'SYSTEM:(OI)(CI)F', 'Administrators:(OI)(CI)F'],
     ['icacls', q(keyDir), '/deny', `${controllerAccount}:(OI)(CI)(R,W,X)`],
     ['icacls', q(ipcDir), '/inheritance:r'],
     ['icacls', q(ipcDir), '/grant:r', `${issuerAccount}:(OI)(CI)R`, `${controllerAccount}:(OI)(CI)R`, 'SYSTEM:(OI)(CI)F'],

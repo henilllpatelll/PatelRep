@@ -173,7 +173,7 @@ CREATE TABLE findings (
   evidence TEXT NOT NULL,
   reproduction TEXT NOT NULL,
   remediation TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('open','remediated','accepted_optional')),
+  status TEXT NOT NULL CHECK (status IN ('open','remediated','accepted_optional','carried','confirmed')),
   PRIMARY KEY (review_id, finding_id)
 ) STRICT;
 

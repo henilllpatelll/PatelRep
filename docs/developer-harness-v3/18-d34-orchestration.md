@@ -60,10 +60,11 @@ Controller start: single-controller OS lock (stale lock from a dead pid is broke
 | Candidate/worker → controller | candidate re-derivation, scope + secrets + customer-agent + migration checks, untrusted snapshot/checkpoint/notes handling, read-only tree digest check | the worker kernel boundary is the D3.3 VM (gates G-WORKER-ACCOUNT, G-FULL-WORKER) |
 | Controller → issuer keys | the controller imports only `issuer-client.mjs` (static test); keys live in a directory outside every repository; issuers open the ledger read-only | **same OS account in dev**: separate processes are not credential isolation. Real isolation needs per-role accounts + ACLs (G-ISSUER-ACCOUNTS, plan in `key-custody.aclPlan`) |
 | IPC | per-connection challenge + HMAC with a per-role secret; closed request schema; ≤64 KB frames; ≤8 connections | Node cannot read a pipe client's SID: authentication is secret possession |
-| Reviewer output → approval | issuer recomputes the verdict, independence, model identity and read-only proof from the ledger | the orchestrator issuer trusts the controller-recorded test run (the controller *is* that identity) |
+| Reviewer output → approval | issuer recomputes the verdict, independence, model identity and read-only proof from the ledger | ALL issuers trust controller-written ledger rows for test runs and for review-session facts (read-only proof, model identity, termination, independence): a compromised controller could have a review signed. Gate G-ISSUER-INDEPENDENT-FACTS |
 | Money/accounts | `--fallback-model`/API-key/base-URL refusal, extra-usage re-check per stage, no setup-token code | provider eligibility is not established (doc 20) |
 | Customer agent | candidate refused if it touches `apps/api/**/agent*`; D3.2 evaluator denies the prohibited actions | heuristic path globs |
 
 ## 7. Not done in D3.4 (see 20, 21, 23)
 
 Live session adapter, live candidate/test adapters, publishing/CI/staging/merge/production (D3.6–D3.7), parallel execution and advanced self-healing (D3.5), Telegram/dashboard (D3.8), real issuer keys and the owner ceremony, any activation. **Runtime activation verdict: NO-GO.**
+

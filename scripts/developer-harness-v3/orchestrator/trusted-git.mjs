@@ -55,7 +55,8 @@ export function minimalEnv(exe) {
 }
 
 /** Run git with `--literal-pathspecs -C repoDir`. Throws only a coded Error (no stderr text). */
-export function trustedGit(exe, repoDir, args, { maxBuffer = 64 * 1024 * 1024, input = null } = {}) {
+export function trustedGit(exe, repoDir, args, { maxBuffer = 64 * 1024 * 1024, input = null, expectSha256 = null } = {}) {
+  if (expectSha256 && createHash('sha256').update(readFileSync(exe)).digest('hex') !== expectSha256) throw new Error('GIT.EXECUTABLE_CHANGED_AFTER_RESOLUTION')
   try {
     return execFileSync(exe, ['--literal-pathspecs', '-C', repoDir, ...HARDENING, ...args], { env: minimalEnv(exe), cwd: os.tmpdir(), maxBuffer, windowsHide: true, shell: false, input: input ?? undefined, stdio: ['pipe', 'pipe', 'ignore'] })
   } catch (e) { const err = new Error(`GIT.COMMAND_FAILED:${String(e?.status ?? e?.code ?? 'unknown').slice(0, 20)}`); err.status = e?.status; throw err }

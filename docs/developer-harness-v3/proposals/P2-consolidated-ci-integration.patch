@@ -116,3 +116,16 @@ index 00000000..6d718862
 +}
 +if (n === 0) { process.stderr.write('no trusted executions found\n'); process.exit(1) }
 +process.exit(failed ? 1 : 0)
+diff --git a/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs b/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
+index 42e650d8..0b8c816e 100644
+--- a/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
++++ b/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
+@@ -203,7 +203,7 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify
+     'scripts/developer-harness-v2/bypass-pins.mjs': '5bd3e965d0c9337856c36cc8fd4de08b49d06365f8ca232730a27568c1cc7419',
+     'scripts/developer-harness-v2/bypass-git-index.mjs': 'dd900befa6258c3cd23c050f98ae1d0f8f423776ba302edd257d831f18d22b99',
+     'scripts/developer-harness-v2/bypass-authorization.test.mjs': '97f82fc1ee6c06c54f4331eadb1e4138c10aac545b8a5827f17168d2106d81fd',
+-    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'db6027a28a34e5118936d97a94df7c74da797da9c32d4e2a014f5707d883274e',
++    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'af49f37f8e7af80ee311a545989389cf11211b0de6db71e2c6f252991f2a5b63',
+   }
+   const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',
+     'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])

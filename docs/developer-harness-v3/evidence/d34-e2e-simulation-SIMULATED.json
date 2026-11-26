@@ -108,7 +108,7 @@
   ],
   "reasoning_slot_held_at_end": false,
   "handoff": {
-    "digest": "1eb057d9ca8b6f7650fac3581f277ee41636af39e74ad1604b0547d44a0d8fd6",
+    "digest": "0ac2842426c3443c5c25a9550f9ff68ad80772dfdf815b76c6b417f578598d98",
     "evidence_types": [
       "test_results",
       "independent_review",

@@ -12,7 +12,7 @@ import { createTelemetry, feedLine, verifyInit } from '../runtime/session-teleme
 import { classifyObservation, lifecycleFor, nextGovernorState } from '../runtime/subscription-governor.mjs'
 import { renewalDecision, buildCheckpoint, verifyCheckpoint, composeRestorePrompt, verifyRestoredState, snapshotDirResolver } from './context-renewal.mjs'
 import { createSnapshot } from './snapshot.mjs'
-import { verifyActualModel } from './routing.mjs'
+import { MODEL_FAMILIES, verifyActualModel } from './routing.mjs'
 
 const fingerprint = (...parts) => parts.join('|').slice(0, 120)
 
@@ -53,7 +53,8 @@ export async function runSessionStage(e, taskId, spec) {
 
       const initProblems = verifyInit(tel.init, { permissionMode: 'dontAsk', version: cfg.cliVersion })
       if (initProblems.length) { outcome = { status: 'failed', code: initProblems[0], fingerprint: fingerprint('init', initProblems[0]) }; throw outcome }
-      const mv = verifyActualModel({ requested: spec.route.model, actual, mandatory: spec.mandatory })
+      const foreign = [...tel.models].filter((m) => !MODEL_FAMILIES[spec.route.model]?.test(m))
+      const mv = spec.mandatory && foreign.length ? { ok: false, code: 'ROUTE.MODEL_SUBSTITUTED' } : verifyActualModel({ requested: spec.route.model, actual, mandatory: spec.mandatory })
       if (!mv.ok) { outcome = { status: 'failed', code: mv.code, fingerprint: fingerprint('model', mv.code, actual) }; throw outcome }
 
       const obs = classifyObservation({ telemetry: tel, exit: unit.exit ?? null, killedReason: unit.killedReason ?? null }, { now: L.now() })

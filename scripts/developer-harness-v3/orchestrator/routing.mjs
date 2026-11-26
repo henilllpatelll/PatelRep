@@ -23,7 +23,7 @@ export const ALLOWED_PAIRS = Object.freeze({ sonnet: Object.freeze(['medium', 'h
 
 export const NON_AI_STAGES = Object.freeze(['scheduling', 'authorization', 'quota_waiting', 'resource_waiting', 'monitoring', 'evidence_verification', 'test_execution', 'lease_management', 'checkpoint_verification', 'notification'])
 
-export const FORBIDDEN_ARGV = Object.freeze(['--fallback-model', '--dangerously-skip-permissions', '--api-key', '--auth-token', '--setting-sources=user', '--settings'])
+export const FORBIDDEN_ARGV = Object.freeze(['--fallback-model', '--dangerously-skip-permissions', '--allow-dangerously-skip-permissions', '--api-key', '--auth-token', '--settings'])
 export const FORBIDDEN_ENV = Object.freeze(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_BASE_URL'])
 
 const SECURITY_WORDS = /\b(security|secret|credential|auth(entication|orization)?|rls|privilege|grant|jwt|tenant isolation|issuer|signing|key custody|evidence|attestation)\b/i
@@ -62,10 +62,11 @@ export function routeStage({ stage, task, escalated = false, subscription = { ad
 export function checkInvocationSafety({ argv, envNames = [] }) {
   const codes = []
   for (const a of argv) {
-    const name = String(a).split('=')[0]
+    const name = String(a).split('=')[0].toLowerCase()
     if (FORBIDDEN_ARGV.some((f) => f === name || String(a).startsWith(`${f}=`))) codes.push(`ROUTE.FORBIDDEN_ARGUMENT:${name}`)
   }
-  for (const e of envNames) if (FORBIDDEN_ENV.includes(e) || /API_KEY|AUTH_TOKEN|OAUTH_TOKEN/.test(e)) codes.push(`ROUTE.FORBIDDEN_ENV:${e}`)
+  const pm = argv.indexOf('--permission-mode'); if (pm >= 0 && argv[pm + 1] !== 'dontAsk') codes.push('ROUTE.FORBIDDEN_PERMISSION_MODE')
+  for (const e of envNames) if (FORBIDDEN_ENV.includes(e) || /API_KEY|AUTH_TOKEN|OAUTH_TOKEN|^ANTHROPIC_|^CLAUDE_CODE_USE_|^CLAUDE_CONFIG_DIR$/.test(e)) codes.push(`ROUTE.FORBIDDEN_ENV:${e}`)
   return codes
 }
 

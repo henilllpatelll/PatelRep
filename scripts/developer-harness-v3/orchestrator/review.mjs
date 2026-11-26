@@ -31,7 +31,8 @@ export function normalizeSubmission(sub) {
     if (mandatory && (!evidence || !reproduction || !remediation)) { problems.push(`REVIEW.MANDATORY_FINDING_INCOMPLETE:${f.id}`); continue }
     findings.push({ id: f.id, severity: f.severity, mandatory, path: p.path, evidence: evidence || 'n/a', reproduction: reproduction || 'n/a', remediation: remediation || 'n/a' })
   }
-  return problems.length ? { ok: false, problems } : { ok: true, findings, summary: clean(sub.summary).slice(0, MAX_TEXT) }
+  const confirmed = Array.isArray(sub.confirmed_resolved) ? sub.confirmed_resolved.filter((x) => typeof x === 'string' && ID.test(x)).slice(0, MAX_FINDINGS) : []
+  return problems.length ? { ok: false, problems } : { ok: true, findings, summary: clean(sub.summary).slice(0, MAX_TEXT), confirmed_resolved: confirmed }
 }
 
 /** Remediation instruction text. Review findings are UNTRUSTED DATA (a reviewer is a model); they are fenced and cannot change scope or requirements. */

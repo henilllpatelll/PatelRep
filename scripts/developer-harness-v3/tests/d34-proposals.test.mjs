@@ -34,7 +34,7 @@ test('proposal content: P1 removes every bare `git` call from authority/git-fact
   const p2 = readFileSync(path.join(DIR, manifest.proposals.find((p) => p.id === 'P2').file), 'utf8')
   assert.ok(p2.includes('-    const r = verifyPinProvenance(REPO, e, { fetchIfShallow: true })') && p2.includes('fetch-pinned-provenance.mjs') && p2.includes('run-v3-suites.mjs') && p2.includes("+  if (st.length !== 6) p.push('RELEASE_STEP_COUNT')".replace('+  if', '+  if').slice(0, 5)))
   // the guard keeps every existing rule: only count/index/pin lines are changed, none of its mutation tests or structural rules is deleted
-  const removed = p2.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')); assert.ok(removed.length <= 8, `P2 removes ${removed.length} lines`); assert.ok(removed.every((l) => /BASELINE_(WORKFLOW|RELEASE_BLOCK)_SHA256|RELEASE_STEP_COUNT|const h = st\[3\]|fetchIfShallow/.test(l)), removed.join('\n'))
+  const removed = p2.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')); assert.ok(removed.length <= 10, `P2 removes ${removed.length} lines`); assert.ok(removed.every((l) => /BASELINE_(WORKFLOW|RELEASE_BLOCK)_SHA256|RELEASE_STEP_COUNT|const h = st\[3\]|fetchIfShallow|db6027a28a34/.test(l)), removed.join('\n'))
 })
 
 test('classification: nothing here is mandatory for D3.4 completion; every proposal maps to a registered activation gate; the not-a-patch items are declared', () => {

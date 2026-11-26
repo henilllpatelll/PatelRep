@@ -13,6 +13,7 @@ export const GATES = Object.freeze([
   { id: 'G-EXTRA-USAGE', title: 'Extra-usage (usage credits) verified OFF (O-3)', status: 'open', d34: 'engine admission re-checks the verified-off fact on every AI stage (D3.3 admitAiWork)', owner_step: '`dh3 attest-extra-usage-off` + `probe-subscription`', source: '07, 17' },
   { id: 'G-ISSUER-KEYS', title: 'Trusted issuer keys generated and registered through the policy bootstrap ceremony', status: 'prepared', d34: 'key-custody.mjs (generate / ACL plan / registration, rotation, revocation proposals / emergency deactivation); test keys only', owner_step: 'owner root-of-trust ceremony (04), real keys, pinned policy revision', source: '04, 19' },
   { id: 'G-ISSUER-ACCOUNTS', title: 'One OS account per issuer role with restrictive ACLs and OS-enforced process identity', status: 'prepared', d34: 'issuer processes, authenticated IPC, ACL plan; peer SID is NOT verifiable from Node', owner_step: 'create per-role accounts, apply aclPlan(), run each issuer as its own account, verify with icacls', source: '19' },
+  { id: 'G-ISSUER-INDEPENDENT-FACTS', title: 'Issuers derive review-session facts (read-only proof, model identity, termination, independence) from a source the CONTROLLER cannot write', status: 'open', d34: 'issuers currently read controller-written ledger rows for these; documented residual (a compromised controller could have a review row signed)', owner_step: 'a worker-side or host-side attestation channel the controller cannot forge', source: '18 §6, security review F4' },
   { id: 'G-ATTESTATION', title: 'Current signed isolation attestation from the delivery_verifier issuer', status: 'prepared', d34: 'issuer path implemented and REFUSES on the D3.3 probe-VM facts', owner_step: 'issue only after G-WORKER-ACCOUNT, G-FULL-WORKER, G-EGRESS-FIREWALL and a current acceptance run', source: '15, 19' },
   { id: 'G-V3-CI', title: 'V3 test suite wired into the protected CI gate', status: 'prepared', d34: 'exact workflow/runner proposal + digests (21)', owner_step: 'human-approved control-plane PR that updates the ci.yml pin', source: '09, 21' },
   { id: 'G-NEIGHBOR-TEST', title: 'Isolation tested with WSL/Docker neighbours ACTIVE', status: 'open', d34: 'none', owner_step: 'run verify-isolation while Docker Desktop and WSL are running', source: '17 §1' },
@@ -24,6 +25,8 @@ export const GATES = Object.freeze([
   { id: 'G-LIVE-ADAPTER', title: 'A live session adapter (runSession) exists, is reviewed and has run end to end', status: 'open', d34: 'only the simulated adapter exists; the engine refuses live mode', owner_step: 'D3.9', source: '09' },
   { id: 'G-BYPASS-ACTIVATION', title: 'Bypass Permissions enabled ONLY inside proven isolation (V3 activation ceremony)', status: 'open', d34: 'never requested; routing forbids --dangerously-skip-permissions', owner_step: 'D3.9 owner ceremony', source: '09' },
 ])
+
+GATES.forEach((g) => Object.freeze(g)) // entries are immutable too: a status cannot be flipped in-process
 
 export function liveExecutionAllowed(gates = GATES) {
   const open = gates.filter((g) => g.status !== 'closed')

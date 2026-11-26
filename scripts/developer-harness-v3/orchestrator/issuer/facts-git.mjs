@@ -10,15 +10,16 @@ export function createFacts({ verifier_repo_dir, git_candidates, git_sha256 = nu
   return {
     candidate({ base_sha, candidate_sha }) {
       if (!g.ok || !v.sha40(base_sha) || !v.sha40(candidate_sha)) return { ok: false, code: g.code ?? 'FACTS.BAD_INPUT' }
+      const run = (args, o = {}) => trustedGit(g.exe, verifier_repo_dir, args, { ...o, expectSha256: g.sha256 }) // the executable is re-hashed before EVERY run
       try {
         for (const sha of [base_sha, candidate_sha]) {
           let resolved = null
-          try { resolved = trustedGit(g.exe, verifier_repo_dir, ['rev-parse', '--verify', '--quiet', `${sha}^{commit}`]).toString('utf8').trim() } catch { resolved = null }
+          try { resolved = run(['rev-parse', '--verify', '--quiet', `${sha}^{commit}`]).toString('utf8').trim() } catch { resolved = null }
           if (resolved !== sha) return { ok: false, code: 'FACTS.COMMIT_UNRESOLVED' }
         }
-        try { trustedGit(g.exe, verifier_repo_dir, ['merge-base', '--is-ancestor', base_sha, candidate_sha]) } catch { return { ok: false, code: 'FACTS.BASE_NOT_ANCESTOR' } }
-        const tree = trustedGit(g.exe, verifier_repo_dir, ['rev-parse', '--verify', `${candidate_sha}^{tree}`]).toString('utf8').trim()
-        const patch = trustedGit(g.exe, verifier_repo_dir, ['diff', '--binary', '--full-index', '--no-renames', '--no-color', '--ignore-submodules=none', '--no-ext-diff', '--no-textconv', base_sha, candidate_sha], { maxBuffer: 128 * 1024 * 1024 })
+        try { run(['merge-base', '--is-ancestor', base_sha, candidate_sha]) } catch { return { ok: false, code: 'FACTS.BASE_NOT_ANCESTOR' } }
+        const tree = run(['rev-parse', '--verify', `${candidate_sha}^{tree}`]).toString('utf8').trim()
+        const patch = run(['diff', '--binary', '--full-index', '--no-renames', '--no-color', '--ignore-submodules=none', '--no-ext-diff', '--no-textconv', base_sha, candidate_sha], { maxBuffer: 128 * 1024 * 1024 })
         return { ok: true, candidate_sha, tree_digest: tree, patch_digest: createHash('sha256').update(patch).digest('hex') }
       } catch { return { ok: false, code: 'FACTS.GIT_ERROR' } }
     },

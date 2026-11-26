@@ -15,6 +15,7 @@ import { canonicalize } from '../../lib/canonical.mjs'
 export const MAX_FRAME = 64 * 1024
 export const ipcPath = (name, dir) => (process.platform === 'win32' ? `\\\\.\\pipe\\dh3-${name}` : path.join(dir, `${name}.sock`))
 const mac = (secret, challenge, req) => createHmac('sha256', secret).update(`${challenge}\n${canonicalize(req)}`).digest('hex')
+const rmac = (secret, challenge, o) => createHmac('sha256', secret).update(`resp\n${challenge}\n${canonicalize(o)}`).digest('hex')
 const eq = (a, b) => { const x = Buffer.from(a); const y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y) }
 const OPNAME = /^[a-z_]{3,40}$/
 
@@ -23,11 +24,11 @@ export function startIssuerServer({ listenPath, secret, core, maxConnections = 8
   if (process.platform !== 'win32') rmSync(listenPath, { force: true })
   let active = 0
   const server = net.createServer((sock) => {
-    if (active >= maxConnections) { sock.end('{"ok":false,"code":"IPC.BUSY"}\n'); return }
+    if (active >= maxConnections) { sock.on('error', () => {}); sock.end('{"ok":false,"code":"IPC.BUSY"}\n'); return }
     active += 1; sock.setEncoding('utf8'); sock.setTimeout(requestTimeoutMs, () => sock.destroy())
     const challenge = randomBytes(24).toString('hex'); let buf = ''; let done = false
     sock.on('close', () => { active -= 1 }); sock.on('error', () => {})
-    const reply = (o) => { if (!done) { done = true; sock.end(`${JSON.stringify(o)}\n`) } }
+    const reply = (o) => { if (!done) { done = true; sock.end(`${JSON.stringify({ ...o, rmac: rmac(secret, challenge, o) })}\n`) } } // the SERVER proves it knows the secret too: a squatter cannot answer
     sock.write(`${JSON.stringify({ challenge })}\n`)
     sock.on('data', (chunk) => {
       buf += chunk
@@ -42,13 +43,13 @@ export function startIssuerServer({ listenPath, secret, core, maxConnections = 8
       return reply(out)
     })
   })
-  return new Promise((resolve, reject) => { server.once('error', reject); server.listen(listenPath, () => resolve({ server, close: () => new Promise((r) => server.close(() => r())) })) })
+  return new Promise((resolve, reject) => { server.once('error', reject); server.on('error', () => {}); server.listen(listenPath, () => resolve({ server, close: () => new Promise((r) => server.close(() => r())) })) })
 }
 
 /** One request per connection. Rejects on timeout/transport error; a refusal from the issuer is a normal `{ok:false}` result. */
 export function callIssuer({ listenPath, secret, op, params = {}, timeoutMs = 8000 }) {
   return new Promise((resolve, reject) => {
-    const sock = net.connect(listenPath); sock.setEncoding('utf8'); let buf = ''; let sent = false
+    const sock = net.connect(listenPath); sock.setEncoding('utf8'); let buf = ''; let sent = false; let ch = null
     const timer = setTimeout(() => { sock.destroy(); reject(new Error('IPC.TIMEOUT')) }, timeoutMs)
     sock.on('error', (e) => { clearTimeout(timer); reject(e) })
     sock.on('data', (c) => {
@@ -57,8 +58,11 @@ export function callIssuer({ listenPath, secret, op, params = {}, timeoutMs = 80
       let nl = buf.indexOf('\n'); if (nl < 0) return
       const line = buf.slice(0, nl); buf = buf.slice(nl + 1)
       let m; try { m = JSON.parse(line) } catch { sock.destroy(); clearTimeout(timer); return reject(new Error('IPC.BAD_RESPONSE')) }
-      if (!sent && typeof m.challenge === 'string') { sent = true; const req = { op, params }; sock.write(`${JSON.stringify({ ...req, mac: mac(secret, m.challenge, req) })}\n`); return }
-      clearTimeout(timer); sock.end(); resolve(m)
+      if (!sent && typeof m.challenge === 'string') { sent = true; ch = m.challenge; const req = { op, params }; sock.write(`${JSON.stringify({ ...req, mac: mac(secret, m.challenge, req) })}\n`); return }
+      clearTimeout(timer); sock.end()
+      const { rmac: got, ...rest } = m
+      if (!ch || typeof got !== 'string' || !eq(rmac(secret, ch, rest), got)) return reject(new Error('IPC.SERVER_NOT_AUTHENTICATED')) // an unauthenticated 'refusal' is a transport failure, never a verdict
+      resolve(rest)
     })
   })
 }

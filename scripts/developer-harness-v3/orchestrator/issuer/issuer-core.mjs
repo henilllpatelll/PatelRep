@@ -138,9 +138,12 @@ export class IssuerCore {
     if (sibling) return refuse('ISSUER.REVIEW_CONTEXT_REUSED')
     const ic = this.#independentCandidate(t, c); if (!ic.ok) return ic
     const rows = this.ledger.db.prepare('SELECT * FROM findings WHERE review_id=?').all(review_id)
+    // mandatory findings from EARLIER rounds stay blocking until an independent reviewer confirmed them (status 'confirmed'); the implementer cannot clear them by editing
+    const carried = this.ledger.db.prepare("SELECT * FROM findings WHERE task_id=? AND mandatory=1 AND status='carried' AND review_id<>? AND review_id IN (SELECT review_id FROM reviews WHERE kind=?)").all(task_id, review_id, kind)
     // critical/high are ALWAYS blocking regardless of the reviewer's `mandatory` flag; a reviewer can add blockers but never remove them
-    const blocking = rows.filter((f) => (f.mandatory === 1 || f.severity === 'critical' || f.severity === 'high') && f.status === 'open')
-    const findings = rows.map((f) => ({ id: f.finding_id, severity: f.severity, resolved: f.status !== 'open' }))
+    const blocking = rows.filter((f) => (f.mandatory === 1 || f.severity === 'critical' || f.severity === 'high') && f.status === 'open').concat(carried)
+    const seen = new Set(rows.map((f) => f.finding_id))
+    const findings = [...rows.map((f) => ({ id: f.finding_id, severity: f.severity, resolved: f.status !== 'open' })), ...carried.filter((f) => !seen.has(f.finding_id)).map((f) => ({ id: f.finding_id, severity: f.severity, resolved: false }))]
     return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
       findings, verdict: blocking.length ? 'findings_open' : 'pass' }, t)
   }
@@ -153,9 +156,9 @@ export class IssuerCore {
     // Every condition below is independently required; the D3.3 probe-VM PASS alone satisfies NONE of the last four (see docs 15/17, gates G-*).
     const need = { suite_passed_all_scenarios: iso?.suite_passed_all_scenarios === true, acceptance_current_for_closure_and_image: iso?.current === true,
       full_size_worker_admitted: iso?.full_size_worker_admitted === true, worker_runs_as_dedicated_account: iso?.dedicated_worker_account === true,
-      qemu_outbound_firewall_rule: iso?.qemu_firewall_rule === true, environment_id_matches: iso?.environment_id === environment_id }
+      qemu_outbound_firewall_rule: iso?.qemu_firewall_rule === true, environment_id_matches: iso?.environment_id === environment_id, acceptance_digest_present: /^[0-9a-f]{64}$/.test(iso?.acceptance_digest ?? '') }
     const failed = Object.entries(need).filter(([, ok]) => !ok).map(([k]) => `ISOLATION.${k}`)
     if (failed.length) return refuse('ISSUER.ISOLATION_PRECONDITIONS_UNMET', ...failed)
-    return this.#emit('isolation_attestation', `isolation_attestation:${environment_id}:${iso.acceptance_digest}`, { environment_id, verdict: 'pass' }, t)
+    return this.#emit('isolation_attestation', `isolation_attestation:${task_id}:${environment_id}:${iso.acceptance_digest}:e${t.fencing_token}`, { environment_id, verdict: 'pass' }, t)
   }
 }

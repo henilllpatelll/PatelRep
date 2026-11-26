@@ -47,7 +47,12 @@ const setStatus = (ledger, id, from, to, outcome = null) => ledger.tx(() => {
   const r = ledger.db.prepare(`UPDATE action_intents SET status=?, outcome_json=COALESCE(?,outcome_json), updated_at=? WHERE intent_id=? AND status IN (${from.map(() => '?').join(',')})`).run(to, outcome ? JSON.stringify(outcome) : null, ledger.now(), id, ...from)
   return r.changes === 1 ? { ok: true } : { ok: false, code: 'INTENT.BAD_TRANSITION' }
 })
-export const markDispatched = (ledger, id) => setStatus(ledger, id, ['intended'], 'dispatched')
+// fenced: a stale controller (older fencing token than the task's) cannot dispatch
+export const markDispatched = (ledger, id) => ledger.tx(() => {
+  const r = ledger.db.prepare('SELECT i.fencing_token f, t.fencing_token tf FROM action_intents i JOIN tasks t ON t.task_id=i.task_id WHERE i.intent_id=?').get(id)
+  if (!r || r.f !== r.tf) return { ok: false, code: 'INTENT.STALE_FENCING_TOKEN' }
+  return setStatus(ledger, id, ['intended'], 'dispatched')
+})
 export const recordOutcome = (ledger, id, { success, outcome }) => setStatus(ledger, id, ['dispatched'], success ? 'succeeded' : 'failed', outcome)
 export const markUncertain = (ledger, id) => setStatus(ledger, id, ['dispatched'], 'uncertain')
 /** Reconcile an uncertain intent against the REMOTE's observed state. Only after this may a retry happen (and only if the effect is absent). */

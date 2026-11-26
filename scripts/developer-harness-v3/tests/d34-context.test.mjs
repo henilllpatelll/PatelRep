@@ -208,3 +208,9 @@ test('review submissions: critical/high are always mandatory, low/info never are
   assert.equal(n(f({ evidence: 'x'.repeat(9000) })).findings[0].evidence.length, 2000); assert.equal(n(f({ evidence: 'a\u0000b' })).findings[0].evidence, 'ab')
   const txt = remediationInstruction([{ id: 'f1', severity: 'high', path: 'a', evidence: 'close ``` fence', reproduction: 'r', remediation: 'fix' }]); assert.ok(txt.includes('untrusted') && !/```[^\n]*close ```/.test(txt) && txt.includes('MANDATORY'))
 })
+
+test('SECURITY F5: NUL-padded / UTF-16 credentials and the Claude CLI login file name are caught by the snapshot scanner', () => {
+  const tok = 'sk-ant-oat01-AAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+  assert.ok(scanContent(Buffer.from(tok, 'utf16le')).length > 0, 'UTF-16'); assert.ok(scanContent(Buffer.concat([Buffer.from(tok), Buffer.from([0])])).length > 0, 'NUL-bearing')
+  for (const n of ['.claude/.credentials.json', 'apps/mobile/id_ecdsa', 'apps/mobile/.pgpass', 'apps/mobile/service-account-prod.json']) { const s = createSnapshot({ dir: path.join(tmp(), 's'), base_sha: 'a'.repeat(40), head_sha: null, files: [{ path: n, mode: '100644', content: Buffer.from('x') }], scope: { allowed_paths: ['**'] } }); assert.ok(s.problems?.includes('SNAPSHOT.CREDENTIAL_FILE_NAME'), n) }
+})

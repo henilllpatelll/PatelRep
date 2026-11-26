@@ -13,12 +13,14 @@ import { matchesAny, normalizeRepoPath } from '../lib/paths.mjs'
 export const SNAPSHOT_SCHEMA = 'patelrep.developer-harness-v3.worktree-snapshot'
 export const LIMITS = Object.freeze({ max_files: 2000, max_file_bytes: 5 * 1024 * 1024, max_total_bytes: 64 * 1024 * 1024, max_manifest_bytes: 2 * 1024 * 1024 })
 const MODES = new Set(['100644', '100755', 'deleted'])
-const CREDENTIAL_NAME = /(^|\/)(\.env(\..*)?|id_rsa|id_ed25519|.*\.(pem|p12|pfx|key|keystore)|\.npmrc|\.netrc|credentials(\.json)?|\.git-credentials)$/i
+const CREDENTIAL_NAME = /(^|\/)(\.env(\..*)?|id_rsa|id_ed25519|.*\.(pem|p12|pfx|key|keystore)|\.npmrc|\.netrc|\.?credentials(\.json)?|id_ecdsa|\.pgpass|service-account[^/]*\.json|\.git-credentials)$/i
 const CREDENTIAL_CONTENT = [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\bsk-ant-[A-Za-z0-9_-]{20,}/, /\bgh[pousr]_[A-Za-z0-9]{30,}/, /\bgithub_pat_[A-Za-z0-9_]{30,}/, /\bAKIA[0-9A-Z]{16}\b/, /\bsk_live_[A-Za-z0-9]{16,}/,
   /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/, /\b(SERVICE_ROLE_KEY|CLIENT_SECRET|PASSWORD|API_KEY|AUTH_TOKEN|ACCESS_TOKEN)\s*[=:]\s*["']?[A-Za-z0-9/+_.=-]{24,}/i]
 
 export const sha256Buf = (b) => createHash('sha256').update(b).digest('hex')
-export const scanContent = (buf) => (buf.includes(0) ? [] : CREDENTIAL_CONTENT.filter((re) => re.test(buf.toString('utf8'))).map((re) => `SNAPSHOT.CREDENTIAL_CONTENT:${re.source.slice(0, 24)}`))
+// NUL-bearing buffers (UTF-16, padded) are scanned too: with the NULs stripped AND as utf16le; only deliberate encoding (base64, XOR…) escapes a scanner — the real control is that the worker cannot read the login (G-CRED-ISOLATION)
+const views = (b) => (b.includes(0) ? [b.toString('utf8'), b.toString('utf16le'), Buffer.from(b.filter((x) => x !== 0)).toString('latin1')] : [b.toString('utf8')])
+export const scanContent = (buf) => { const v = views(buf); return CREDENTIAL_CONTENT.filter((re) => v.some((s) => re.test(s))).map((re) => `SNAPSHOT.CREDENTIAL_CONTENT:${re.source.slice(0, 24)}`) }
 
 /** Validate one manifest entry's PATH and MODE against the task scope. Pure. */
 export function checkEntry(entry, scope) {

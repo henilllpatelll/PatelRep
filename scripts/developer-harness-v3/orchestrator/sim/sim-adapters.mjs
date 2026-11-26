@@ -46,7 +46,8 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
     if (readonly) {
       if (spec.tamper) w.tamper_review = true; else delete w.tamper_review
       saveWorld(dir, w)
-      return { submission: { findings: spec.findings ?? [], summary: 'simulated review' } }
+      const carried = L.db.prepare("SELECT finding_id FROM findings WHERE task_id=? AND mandatory=1 AND status='carried' AND review_id IN (SELECT review_id FROM reviews WHERE kind=?)").all(task.task_id, stage).map((r) => r.finding_id)
+      return { submission: { findings: spec.findings ?? [], summary: 'simulated review', confirmed_resolved: spec.noConfirm ? [] : carried } }
     }
     return {}
   }

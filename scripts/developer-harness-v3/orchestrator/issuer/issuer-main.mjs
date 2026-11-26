@@ -17,6 +17,7 @@ const cfgPath = process.argv[2]
 if (!cfgPath || process.argv.length !== 3) fail('ISSUER.USAGE')
 let cfg; try { cfg = JSON.parse(readFileSync(cfgPath, 'utf8')) } catch { fail('ISSUER.CONFIG_UNREADABLE') }
 for (const k of ['identity', 'key_id', 'key_dir', 'ledger_file', 'store_file', 'policy_bundle_file', 'policy_pin', 'ipc_path', 'ipc_secret_file', 'facts_module']) if (typeof cfg[k] !== 'string') fail(`ISSUER.CONFIG_MISSING:${k}`)
+if (/^test-/.test(cfg.key_id) && cfg.allow_test_keys !== true) fail('ISSUER.TEST_KEY_REFUSED')
 if (!path.isAbsolute(cfg.facts_module)) fail('ISSUER.FACTS_MODULE_MUST_BE_ABSOLUTE')
 const loaded = loadPolicy(JSON.parse(readFileSync(cfg.policy_bundle_file, 'utf8')), cfg.policy_pin)
 if (!loaded.ok) fail(`ISSUER.POLICY_REJECTED:${loaded.problems[0]}`)
