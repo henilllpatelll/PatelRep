@@ -155,7 +155,13 @@ export class DeliveryController {
     return { status: r.code === 'INTENT.RECONCILIATION_CONFLICT' ? 'conflict' : 'uncertain', intent_id: i.intent_id, code: r.code }
   }
   /** Restart duty: anything dispatched without an outcome is uncertain (never assumed failed, never blindly retried). */
-  start() { if (!this.started) { this.started = true; markDispatchedAsUncertain(this.L) } }
+  start() {
+    if (this.started) return
+    this.started = true; markDispatchedAsUncertain(this.L)
+    // operations of the PREVIOUS (dead) controller process can no longer land through it: their rows end here, so the absence rule (settle window + spaced reads) can decide again.
+    // Without this a crash would make an uncertain effect permanently unreconcilable as absent (liveness). Single-controller lock assumed (D3.4 OS lock).
+    this.L.db.prepare("UPDATE operation_deadlines SET state='process_ended', settled_at=? WHERE state IN ('running','unresolved')").run(this.L.now())
+  }
 
   // ------------------------------------------------------------------ the loop
   async tick() {

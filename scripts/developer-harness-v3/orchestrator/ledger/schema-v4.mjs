@@ -100,7 +100,7 @@ CREATE TABLE operation_deadlines (
   kind TEXT NOT NULL,
   started_at INTEGER NOT NULL,
   deadline_at INTEGER NOT NULL,
-  state TEXT NOT NULL CHECK (state IN ('running','settled','unresolved','settled_late')),
+  state TEXT NOT NULL CHECK (state IN ('running','settled','unresolved','settled_late','process_ended')),
   holds_json TEXT NOT NULL DEFAULT '[]',
   settled_at INTEGER
 ) STRICT;
