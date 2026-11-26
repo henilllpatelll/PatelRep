@@ -21,7 +21,8 @@
 import { canonicalize, digestOf } from '../../lib/canonical.mjs'
 import { isSatisfying } from '../../authority/evidence.mjs'
 import { consumeAll, isSingleUse } from './evidence-store.mjs'
-import { absenceProven, isVerifiedObservation } from '../delivery/observation.mjs'
+import { OBSERVATION_DEFAULTS, absenceProven, isVerifiedObservation } from '../delivery/observation.mjs'
+import { effectSubject } from '../delivery/effect-subjects.mjs'
 
 const RETRYABLE = new Set(['failed', 'reconciled_absent'])
 const TERMINAL_OK = new Set(['succeeded', 'reconciled_succeeded'])
@@ -158,8 +159,11 @@ export const markDispatched = (ledger, id, { policy, lease = null } = {}) => led
   const r = setStatus(ledger, id, ['intended'], 'dispatched'); if (r.ok) ledger.db.prepare('UPDATE action_intents SET dispatched_at=? WHERE intent_id=?').run(ledger.now(), id)
   return r
 })
-/** Structural binding of a verified observation to THIS intent (identity, effect parameters, candidate, task, and a read made after the dispatch). */
-function observationProblems(ledger, i, o) {
+/**
+ * Binding of a verified observation to THIS intent at the reconciliation boundary (D3.6 remediation F2): identity (task, intent), the expected REPOSITORY, the EXACT effect subject derived from
+ * the recorded parameters, the parameter digest, the candidate, the ACTIVE policy revision (when `policy` is given — reconcileIntent always requires it), freshness, and a read made after the dispatch.
+ */
+function observationProblems(ledger, i, o, { policy = null } = {}) {
   if (!isVerifiedObservation(o)) return ['OBSERVATION.UNAUTHENTICATED'] // a caller-supplied object is never an observation, whatever fields it carries
   const p = []
   if (o.task_id !== i.task_id) p.push('OBSERVATION.WRONG_TASK')
@@ -167,9 +171,14 @@ function observationProblems(ledger, i, o) {
   if (o.params_digest !== i.params_digest) p.push('OBSERVATION.WRONG_SUBJECT')
   if ((o.candidate_sha ?? null) !== (i.candidate_sha ?? null)) p.push('OBSERVATION.WRONG_CANDIDATE')
   if (o.policy_revision !== i.policy_revision) p.push('OBSERVATION.WRONG_POLICY_REVISION')
+  if (policy && o.policy_revision !== policy.revision) p.push('OBSERVATION.WRONG_POLICY_REVISION') // the ACTIVE policy, not only the one the intent was written under
+  const t = ledger.getTask(i.task_id)
+  if (!t || o.repository !== t.repository) p.push('OBSERVATION.WRONG_REPOSITORY')
+  try { const want = effectSubject(i.action, JSON.parse(i.params_json ?? 'null')); if (want !== null && o.subject !== want) p.push('OBSERVATION.WRONG_SUBJECT') } catch { p.push('OBSERVATION.SUBJECT_UNDERIVABLE') } // a delivery effect whose object cannot be named is never reconciled
   const since = i.dispatched_at ?? i.updated_at
-  if (o.observed_at > ledger.now() + 60_000 || o.observed_at < since) p.push('OBSERVATION.TIME_INVALID') // review O2: the same 60 s skew the observation verifier allows // a read made BEFORE the dispatch says nothing about its effect
-  return p
+  if (o.observed_at > ledger.now() + OBSERVATION_DEFAULTS.skewMs || o.observed_at < since) p.push('OBSERVATION.TIME_INVALID') // a read made BEFORE the dispatch says nothing about its effect
+  if (ledger.now() - o.observed_at > OBSERVATION_DEFAULTS.maxAgeMs) p.push('OBSERVATION.STALE') // freshness is enforced HERE too, not only when the envelope was verified
+  return [...new Set(p)]
 }
 const recordObservation = (ledger, i, o) => ledger.db.prepare('INSERT OR IGNORE INTO remote_observations(observation_id,intent_id,task_id,subject,state,read_id,observed_at,remote_version,digest,recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
   .run(o.observation_id, i.intent_id, i.task_id, o.subject, o.state, o.read_id, o.observed_at, o.remote_version ?? null, digestOf({ ...o }), ledger.now())
@@ -196,14 +205,16 @@ export const markUncertain = (ledger, id) => setStatus(ledger, id, ['dispatched'
  * present -> reconciled_succeeded (conclusive). absent -> reconciled_absent only when absenceProven() holds over every recorded read. conflict -> stays uncertain (escalated by the caller).
  * Anything unauthenticated or bound to another effect is INCONCLUSIVE and changes nothing.
  */
-export function reconcileIntent(ledger, id, { observation, outcome = null } = {}) {
+export function reconcileIntent(ledger, id, { observation, policy = null, outcome = null } = {}) {
   return ledger.tx(() => {
     const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
     if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
-    const problems = observationProblems(ledger, i, observation)
+    const problems = observationProblems(ledger, i, observation, { policy })
+    if (isVerifiedObservation(observation) && !policy?.revision) problems.push('OBSERVATION.ACTIVE_POLICY_REQUIRED') // fail closed: the ACTIVE policy must be named at the boundary
     if (!problems.length && !['present', 'absent', 'conflict'].includes(observation.state)) problems.push('OBSERVATION.STATE_NOT_RECONCILING')
     if (problems.length) return { ok: false, code: 'INTENT.RECONCILIATION_INCONCLUSIVE', problems }
     if (i.status !== 'uncertain') return { ok: false, code: 'INTENT.BAD_TRANSITION' }
+    if (ledger.db.prepare('SELECT 1 FROM remote_observations WHERE observation_id=?').get(observation.observation_id)) return { ok: false, code: 'INTENT.RECONCILIATION_INCONCLUSIVE', problems: ['OBSERVATION.REPLAYED'] } // each signed read counts ONCE
     recordObservation(ledger, i, observation)
     if (observation.state === 'conflict') return { ok: false, code: 'INTENT.RECONCILIATION_CONFLICT', problems: ['OBSERVATION.REMOTE_INCONSISTENT'] }
     const rows = ledger.db.prepare('SELECT state, read_id, observed_at FROM remote_observations WHERE intent_id=?').all(i.intent_id)
@@ -211,8 +222,9 @@ export function reconcileIntent(ledger, id, { observation, outcome = null } = {}
     // security review MAND-1: no read can prove absence while THIS process's own request for the effect may still land (its deadline passed but the call never settled)
     const live = ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)
     if (live) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: ['OBSERVATION.EFFECT_STILL_IN_FLIGHT'] }
-    // the settle window starts at the LATER of the dispatch and the end of our own call (late settlement, or the end of the process that made it): no read taken before that counts
-    const ended = ledger.db.prepare("SELECT MAX(settled_at) m FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('settled_late','process_ended')").get(`effect:${i.intent_id}:%`)?.m ?? 0
+    // the settle window starts at the LATER of the dispatch and the END OF OUR OWN REQUEST — ordinary settlement, late settlement, or the end of the process that made it. No ABSENT read taken before
+    // that counts. (The end of a CLIENT never proves the server-side operation cannot still complete: it only starts the window, and the reads that follow decide.)
+    const ended = ledger.db.prepare("SELECT MAX(settled_at) m FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('settled','settled_late','process_ended')").get(`effect:${i.intent_id}:%`)?.m ?? 0
     const a = absenceProven(rows, Math.max(i.dispatched_at ?? i.updated_at, ended))
     if (!a.proven) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: [a.code] }
     return setStatus(ledger, id, ['uncertain'], 'reconciled_absent', outcome)

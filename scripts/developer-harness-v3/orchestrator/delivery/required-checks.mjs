@@ -41,28 +41,70 @@ export function deriveRequiredChecks({ ci, mobile, staging }) {
   return { ok: p.length === 0, problems: p, derived }
 }
 
-const latestFirst = (a, b) => (b.run.created_at - a.run.created_at) || (b.run.id - a.run.id) || (b.check.attempt - a.check.attempt) || (b.check.id - a.check.id)
+const runLatestFirst = (a, b) => ((b.created_at ?? 0) - (a.created_at ?? 0)) || (b.id - a.id)
+const byAttemptDesc = (a, b) => (b.attempt - a.attempt) || (b.id - a.id)
 /**
- * The state of ONE required check for the exact head. `view` = a verified reader view (runs, checks). `expect` = { name, workflow, head_sha, head_branch?, events }.
- * @returns {{name:string, state:'success'|'pending'|'failed'|'cancelled'|'skipped'|'missing'|'ambiguous', run_id?:number, attempt?:number, check_id?:number, spoofed:number}}
+ * The state of ONE required check for the exact head. `view` = a verified reader view (runs, checks). `expect` = { name, workflow, head_sha, head_branch?, events, pr_number? }.
+ *
+ * D3.6 remediation F1 — the LATEST APPLICABLE RUN decides, independently of which checks it has reported so far:
+ *   1. applicable runs = the expected workflow, an expected event, the exact head SHA, the expected branch (and PR, when one is expected); the newest of them (created_at, then id) is THE run;
+ *   2. the verdict is that run's check at the run's LATEST attempt (from the pinned app, exactly one). A newer run / attempt that has not reported yet is `pending` (running) or, once
+ *      completed, cancelled / skipped / failed / missing — it is NEVER replaced by an older run's or an older attempt's success;
+ *   3. the one supported exception is a PARTIAL re-run ("re-run failed jobs": jobs that already succeeded are not re-executed and keep their earlier-attempt result): an earlier-attempt
+ *      SUCCESS of this check from the pinned app is carried over only when the run's latest attempt has COMPLETED with conclusion success, and the highest earlier attempt that reported
+ *      the check succeeded (a later attempt that reported it, with any other result, shadows it). A running or failed latest attempt carries nothing over.
+ * @returns {{name:string, state:'success'|'pending'|'failed'|'cancelled'|'skipped'|'missing'|'ambiguous', run_id?:number, attempt?:number, run_attempt?:number, check_id?:number, carried_over?:boolean, spoofed:number}}
  */
-export function checkState(view, { name, workflow, head_sha, head_branch = null, events = ['pull_request'] }) {
-  const runs = new Map(view.runs.map((r) => [r.id, r]))
+export function checkState(view, { name, workflow, head_sha, head_branch = null, events = ['pull_request'], pr_number = null }) {
   const named = view.checks.filter((c) => c.name === name && c.head_sha === head_sha)
   const spoofed = named.filter((c) => c.app_id !== ACTIONS_APP_ID).length
-  const trusted = named.filter((c) => c.app_id === ACTIONS_APP_ID).map((check) => ({ check, run: runs.get(check.run_id) }))
-    .filter(({ check, run }) => run && run.workflow === workflow && events.includes(run.event) && run.head_sha === head_sha && (head_branch === null || run.head_branch === head_branch) && check.attempt === run.attempt)
-  if (!trusted.length) return { name, state: 'missing', spoofed }
-  trusted.sort(latestFirst)
-  const top = trusted[0]
-  if (trusted.length > 1 && trusted[1].run.id === top.run.id && trusted[1].check.attempt === top.check.attempt) return { name, state: 'ambiguous', spoofed } // two trusted results for ONE attempt: fail closed
-  const base = { name, run_id: top.run.id, attempt: top.check.attempt, check_id: top.check.id, spoofed, details_url: top.check.details_url ?? null }
-  if (top.check.status !== 'completed') return { ...base, state: 'pending' }
-  const c = top.check.conclusion
-  if (c === 'success') return { ...base, state: 'success' }
-  if (c === 'cancelled') return { ...base, state: 'cancelled' }
-  if (c === 'skipped' || c === 'neutral') return { ...base, state: 'skipped' }
-  return { ...base, state: 'failed' }
+  const applicable = view.runs.filter((r) => r.workflow === workflow && events.includes(r.event) && r.head_sha === head_sha && (head_branch === null || r.head_branch === head_branch) && (pr_number === null || r.pr_number === pr_number))
+  if (!applicable.length) return { name, state: 'missing', spoofed }
+  applicable.sort(runLatestFirst)
+  const run = applicable[0]
+  const base = { name, run_id: run.id, attempt: run.attempt, run_attempt: run.attempt, spoofed }
+  const mine = named.filter((c) => c.app_id === ACTIONS_APP_ID && c.run_id === run.id)
+  const now = mine.filter((c) => c.attempt === run.attempt)
+  if (now.length > 1) return { ...base, state: 'ambiguous' } // two trusted results for ONE attempt: fail closed
+  let check = now[0] ?? null; let carried = false
+  if (!check && run.status === 'completed' && run.conclusion === 'success') {
+    const earlier = mine.filter((c) => c.attempt < run.attempt).sort(byAttemptDesc); const top = earlier[0]
+    if (top && earlier.filter((c) => c.attempt === top.attempt).length > 1) return { ...base, state: 'ambiguous' }
+    if (top && top.status === 'completed' && top.conclusion === 'success') { check = top; carried = true }
+  }
+  if (!check) { // the latest run has reported nothing for this check (for this attempt): its own state decides, never an older run's
+    if (run.status !== 'completed') return { ...base, state: 'pending' }
+    if (run.conclusion === 'cancelled') return { ...base, state: 'cancelled' }
+    if (run.conclusion === 'skipped' || run.conclusion === 'neutral') return { ...base, state: 'skipped' }
+    return { ...base, state: run.conclusion === 'success' ? 'missing' : 'failed' }
+  }
+  const out = { ...base, attempt: check.attempt, check_id: check.id, details_url: check.details_url ?? null, ...(carried ? { carried_over: true } : {}) }
+  if (check.status !== 'completed') return { ...out, state: 'pending' }
+  const c = check.conclusion
+  if (c === 'success') return { ...out, state: 'success' }
+  if (c === 'cancelled') return { ...out, state: 'cancelled' }
+  if (c === 'skipped' || c === 'neutral') return { ...out, state: 'skipped' }
+  return { ...out, state: 'failed' }
+}
+
+/** The run behind a Staging Gate verdict must itself have completed successfully, belong to THIS PR and report a result that points at it. */
+const detailsPointAt = (url, runId) => typeof url === 'string' && (url === `sim://runs/${runId}` || new RegExp(`/actions/runs/${runId}(?:/|$)`).test(url))
+/**
+ * D3.6 remediation F1 — the Staging Gate verdict for the exact head AND PR: ONE function for the delivery observation, the staging-gate issuance and the final delivery verification
+ * (before, the issuance re-checked PR association and provenance and the verification did not). Same latest-run rule as checkState, restricted to staging runs of this PR.
+ * @returns {ReturnType<typeof checkState> & {problem?:string}}
+ */
+export function stagingGate(view, { head_sha, pr_number }) {
+  const g = checkState(view, { name: TRUSTED_CHECKS.staging_gate.name, workflow: WORKFLOWS.staging, head_sha, events: ['workflow_run', 'workflow_dispatch'], pr_number: Number.isSafeInteger(pr_number) ? pr_number : NaN })
+  if (g.run_id === undefined) return g
+  const run = view.runs.find((y) => y.id === g.run_id)
+  if (!run) return { ...g, state: 'missing', problem: 'STAGING.RUN_UNKNOWN' }
+  if (g.state === 'success') {
+    if (run.status !== 'completed') return { ...g, state: 'pending' }
+    if (run.conclusion !== 'success') return { ...g, state: run.conclusion === 'cancelled' ? 'cancelled' : run.conclusion === 'skipped' ? 'skipped' : 'failed' }
+    if (run.pr_number !== pr_number || !detailsPointAt(g.details_url, run.id)) return { ...g, state: 'missing', problem: 'STAGING.PROVENANCE_MISMATCH' }
+  }
+  return g
 }
 
 /** All required CI checks for the exact head. overall: success only when EVERY one is success. */

@@ -24,7 +24,7 @@ test('expected checks are DERIVED from the trusted workflow files and must equal
 })
 
 test('aggregation is EXACT-HEAD: wrong app (spoofed), wrong workflow/event/branch, an older head, a stale attempt, duplicates, skipped and missing are never success', () => {
-  const run = (id, o = {}) => ({ id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H1, head_branch: 'dh3/t', attempt: 1, created_at: id, ...o })
+  const run = (id, o = {}) => ({ id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H1, head_branch: 'dh3/t', attempt: 1, status: 'completed', conclusion: 'success', created_at: id, ...o })
   const chk = (id, runId, o = {}) => ({ id, name: 'CI Gate', head_sha: H1, app_id: ACTIONS_APP_ID, run_id: runId, attempt: 1, status: 'completed', conclusion: 'success', ...o })
   const s = (runs, checks, head = H1) => checkState({ runs, checks }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: head, head_branch: 'dh3/t' }).state
   assert.equal(s([run(1)], [chk(10, 1)]), 'success')
@@ -32,7 +32,7 @@ test('aggregation is EXACT-HEAD: wrong app (spoofed), wrong workflow/event/branc
   assert.equal(checkState({ runs: [run(1)], checks: [chk(10, 1, { app_id: 999 })] }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: H1, head_branch: 'dh3/t' }).spoofed, 1)
   assert.equal(s([run(1, { workflow: '.github/workflows/evil.yml' })], [chk(10, 1)]), 'missing'); assert.equal(s([run(1, { event: 'workflow_dispatch' })], [chk(10, 1)]), 'missing'); assert.equal(s([run(1, { head_branch: 'other' })], [chk(10, 1)]), 'missing')
   assert.equal(s([run(1)], [chk(10, 1)], H2), 'missing', 'success on an EARLIER head is never success for the replacement head')
-  assert.equal(s([run(1, { attempt: 2 })], [chk(10, 1, { attempt: 1 })]), 'missing', 'a result of a superseded attempt is stale')
+  assert.equal(s([run(1, { attempt: 2, status: 'in_progress', conclusion: null })], [chk(10, 1, { attempt: 1 })]), 'pending', 'a result of a superseded attempt is stale while the newer attempt is running (D3.6 remediation F1: was "missing"; a COMPLETED successful attempt carries an earlier success only as a partial re-run, tested in d36-rem-latest-run)')
   assert.equal(s([run(1, { attempt: 2 })], [chk(10, 1, { attempt: 2, conclusion: 'failure' }), chk(11, 1, { attempt: 1 })]), 'failed', 'the LATEST attempt decides')
   assert.equal(s([run(1), run(2)], [chk(10, 1, { conclusion: 'failure' }), chk(11, 2)]), 'success', 'the latest RUN decides')
   assert.equal(s([run(1)], [chk(10, 1), chk(11, 1, { conclusion: 'failure' })]), 'ambiguous', 'two trusted results for ONE attempt: fail closed')

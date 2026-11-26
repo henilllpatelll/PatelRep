@@ -47,6 +47,7 @@ export async function proposalAuthority() {
   return { label: 'PROPOSAL_UNDER_TEST', root: t, loadPolicy: c.loadPolicy, buildPolicyBundle: c.buildPolicyBundle, policyRevision: c.policyRevision, contract: c.loadContractFile(path.join(t, 'docs/developer-harness-v3/authority-contract.json')), evaluate: ev.evaluate, evidence }
 }
 /** The P6v2-patched lifecycle reducer (D3.5 proposal-reducer configuration). */
+export const P6V3_PATCH = 'P6v3-lifecycle-consolidated-delivery-regression.patch'
 export async function proposalReducer(patch = 'P6v2-lifecycle-consolidated-delivery.patch') {
   const t = disposableCopy([patch], ['scripts/developer-harness-v3/lifecycle/lifecycle.mjs', 'scripts/developer-harness-v3/lib/canonical.mjs', 'docs/developer-harness-v3/task-lifecycle.json'], 'dh36-p6v2-')
   const mod = await import(pathToFileURL(path.join(t, 'scripts/developer-harness-v3/lifecycle/lifecycle.mjs')).href)
@@ -74,13 +75,13 @@ function policyMaker({ authority, activate }) {
 }
 
 /**
- * @param {{root:string, proposal?:boolean, lifecycle?:'authoritative'|'P6v2', activate?:string[], scenario?:object, gh?:object, facts?:object, cfg?:object, dcfg?:object, clock?:FixtureClock, authority?:object, reducer?:object}} o
+ * @param {{root:string, proposal?:boolean, lifecycle?:'authoritative'|'P6v2'|'P6v3', activate?:string[], scenario?:object, gh?:object, facts?:object, cfg?:object, dcfg?:object, clock?:FixtureClock, authority?:object, reducer?:object}} o
  */
 export async function createDeliveryHarness({ root, proposal = false, lifecycle = 'authoritative', activate = proposal ? DELIVERY_ACTIONS : [], scenario = {}, gh = {}, facts = {}, cfg = {}, dcfg = {}, clock = new FixtureClock(), authority = null, reducer = null }) {
   // security review OPT-3: an ACTIVATED test policy (proposal or explicit activation) and its ledger may live ONLY under the OS temp directory
   if ((proposal || activate.length) && !Ledger.isTempLedgerPath(path.join(root, 'ledger.sqlite'))) throw new Error('DELIVERY_HARNESS.ACTIVATED_POLICY_OUTSIDE_TEMP')
   const auth = proposal ? (authority ?? await proposalAuthority()) : null
-  const red = lifecycle === 'P6v2' ? (reducer ?? await proposalReducer()) : null
+  const red = lifecycle === 'P6v2' || lifecycle === 'P6v3' ? (reducer ?? await proposalReducer(lifecycle === 'P6v3' ? P6V3_PATCH : undefined)) : null
   const h = createHarness({ root, scenario, clock, cfg, makePolicy: policyMaker({ authority: auth, activate }), ledgerOptions: red ? { proposalReducer: red } : {} })
   const github = new SimGitHub({ dir: h.dirs.world, clock: clock.now, mainSha: BASE, scenario: gh })
   const dfacts = createDeliveryFacts({ dir: h.dirs.world, ledger: h.ledger, contract: h.policy.contract, scenario: facts, evaluatorKnowsRisk: !!auth })
@@ -108,6 +109,6 @@ export async function createDeliveryHarness({ root, proposal = false, lifecycle 
     }
     return { done: until(), rounds: maxRounds, log }
   }
-  writeFileSync(path.join(root, 'SIMULATED.txt'), `Produced by the D3.6 delivery simulation (${proposal ? 'PROPOSAL_UNDER_TEST: P7' : 'AUTHORITATIVE'}${red ? ' + P6v2' : ''}). No network, GitHub, staging, model or production key was involved.\n`)
+  writeFileSync(path.join(root, 'SIMULATED.txt'), `Produced by the D3.6 delivery simulation (${proposal ? 'PROPOSAL_UNDER_TEST: P7' : 'AUTHORITATIVE'}${red ? ` + ${lifecycle}` : ''}). No network, GitHub, staging, model or production key was involved.\n`)
   return { ...h, github, dfacts, issuers, delivery, credential, authority: auth, reducer: red, drive, close: () => close(), label: proposal ? 'PROPOSAL_UNDER_TEST' : 'AUTHORITATIVE' }
 }

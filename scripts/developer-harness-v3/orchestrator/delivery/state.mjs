@@ -34,7 +34,11 @@ export function reach(L, taskId, milestone, { evidenceRef = null } = {}) {
   if (!MILESTONES.includes(milestone)) return { ok: false, code: 'MILESTONE.UNKNOWN_OR_NOT_D36' }
   const c = L.currentCandidate(taskId); const t = L.getTask(taskId)
   if (!c || c.candidate_sha !== t.head_sha) return { ok: false, code: 'MILESTONE.NO_CURRENT_CANDIDATE' }
-  L.db.prepare('INSERT OR IGNORE INTO delivery_milestones(task_id,milestone,candidate_sha,tree_digest,base_sha,evidence_ref,reached_at) VALUES (?,?,?,?,?,?,?)').run(taskId, milestone, c.candidate_sha, c.tree_digest, L.currentBase(taskId), evidenceRef, L.now())
+  const base = L.currentBase(taskId)
+  const prior = L.db.prepare('SELECT invalidated_at FROM delivery_milestones WHERE task_id=? AND milestone=? AND candidate_sha=?').get(taskId, milestone, c.candidate_sha)
+  if (!prior) L.db.prepare('INSERT INTO delivery_milestones(task_id,milestone,candidate_sha,tree_digest,base_sha,evidence_ref,reached_at) VALUES (?,?,?,?,?,?,?)').run(taskId, milestone, c.candidate_sha, c.tree_digest, base, evidenceRef, L.now())
+  // F1: a milestone WITHDRAWN because a newer CI / staging result superseded it is reached AGAIN only here, with fresh evidence (the ledger trigger allows nothing else to move it)
+  else if (prior.invalidated_at !== null) L.db.prepare('UPDATE delivery_milestones SET invalidated_at=NULL, evidence_ref=?, reached_at=? WHERE task_id=? AND milestone=? AND candidate_sha=?').run(evidenceRef, Math.max(L.now(), prior.invalidated_at), taskId, milestone, c.candidate_sha)
   return { ok: true }
 }
 /** Milestones of a candidate that is no longer current (a head change, a base update) are invalidated — kept as history, never reused. @returns {number} rows invalidated */

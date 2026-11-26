@@ -37,10 +37,10 @@ test('reconcileIntent accepts nothing but a VERIFIED observation of THIS effect:
   const copy = { ...o.observation, authoritative: true }
   assert.deepEqual(reconcileIntent(h.ledger, i.intent_id, { observation: copy }).problems, ['OBSERVATION.UNAUTHENTICATED'], 'the same fields, unbranded: refused')
   assert.deepEqual(reconcileIntent(h.ledger, i.intent_id, { observation: { state: 'present', authoritative: true, observed_at: h.ledger.now(), params_digest: i.params_digest, candidate_sha: i.candidate_sha, source: 'github' } }).problems, ['OBSERVATION.UNAUTHENTICATED'])
-  const other = await observe(h, 'observe_main', {}); assert.ok(other.ok); assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: other.observation }).problems.includes('OBSERVATION.WRONG_SUBJECT'))
+  const other = await observe(h, 'observe_main', {}); assert.ok(other.ok); assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: other.observation, policy: h.policy }).problems.includes('OBSERVATION.WRONG_SUBJECT'))
   assert.equal(getIntent(h.ledger, i.intent_id).status, 'uncertain')
-  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }).ok, 'the authenticated observation of this effect reconciles it'); assert.equal(getIntent(h.ledger, i.intent_id).status, 'reconciled_succeeded')
-  assert.equal(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }).code, 'INTENT.BAD_TRANSITION', 'a duplicate (replayed) observation changes nothing'); h.close()
+  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation, policy: h.policy }).ok, 'the authenticated observation of this effect reconciles it'); assert.equal(getIntent(h.ledger, i.intent_id).status, 'reconciled_succeeded')
+  assert.equal(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation, policy: h.policy }).code, 'INTENT.BAD_TRANSITION', 'a duplicate (replayed) observation changes nothing'); h.close()
 })
 
 test('lost successful response: the push happened, the response was lost -> UNCERTAIN -> reconciled PRESENT -> delivery continues; the effect happened EXACTLY once', async () => {
@@ -104,7 +104,7 @@ test('ledger restore: sealing makes every unfinished intent UNCERTAIN; reconcili
   sealAfterRestore(h.ledger, { manifest: { sha256: 'a'.repeat(64), file: 'simulated-backup', authority_seq: 1 } })
   const i = pushIntent(h, id); assert.equal(i.status, 'uncertain')
   const o = await observe(h, 'observe_intent', { intent_id: i.intent_id }); assert.ok(o.ok); assert.equal(o.observation.state, 'present')
-  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }).ok); assert.equal(pushIntent(h, id).status, 'reconciled_succeeded'); assert.equal(ops(h, 'push_ref').length, 1); h.close()
+  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o.observation, policy: h.policy }).ok); assert.equal(pushIntent(h, id).status, 'reconciled_succeeded'); assert.equal(ops(h, 'push_ref').length, 1); h.close()
 })
 
 test('remote conflict (the remote shows NEITHER our effect nor its absence: a foreign PR on the task branch) stays uncertain and becomes ONE owner decision — never adopted, never overwritten', async () => {
@@ -151,11 +151,11 @@ test('security review MAND-1: absence is NEVER concluded while this process\'s o
   h.ledger.db.prepare("INSERT INTO operation_deadlines(op_id,task_id,kind,started_at,deadline_at,state,holds_json) VALUES (?,?,?,?,?,'unresolved','[]')").run(`effect:${i.intent_id}:x`, id, 'effect:publish_candidate_branch', 1, 2) // the call outlived its deadline and never settled
   const { key_id: _k, ...base } = (await observe(h, 'observe_intent', { intent_id: i.intent_id })).observation; void _k
   let last = null
-  for (const k of [0, 1]) { h.clock.advance(61_000 + k * 31_000); const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); assert.ok(o.ok); last = reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }) }
+  for (const k of [0, 1]) { h.clock.advance(61_000 + k * 31_000); const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); assert.ok(o.ok); last = reconcileIntent(h.ledger, i.intent_id, { observation: o.observation, policy: h.policy }) }
   assert.equal(last.code, 'INTENT.RECONCILIATION_PENDING'); assert.deepEqual(last.problems, ['OBSERVATION.EFFECT_STILL_IN_FLIGHT']); assert.equal(getIntent(h.ledger, i.intent_id).status, 'uncertain')
   h.ledger.db.prepare("UPDATE operation_deadlines SET state='settled_late' WHERE op_id=?").run(`effect:${i.intent_id}:x`)
   h.ledger.db.prepare("UPDATE operation_deadlines SET settled_at=? WHERE op_id=?").run(h.ledger.now(), `effect:${i.intent_id}:x`)
-  const read = (k) => { const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); return reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }) }
+  const read = (k) => { const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); return reconcileIntent(h.ledger, i.intent_id, { observation: o.observation, policy: h.policy }) }
   h.clock.advance(61_000); assert.equal(read(2).code, 'INTENT.RECONCILIATION_PENDING', 'reads taken while the call was in flight do NOT count: one read after settlement is not enough')
   h.clock.advance(31_000); assert.ok(read(3).ok, 'two spaced reads AFTER its own settlement conclude absence'); h.close()
 })

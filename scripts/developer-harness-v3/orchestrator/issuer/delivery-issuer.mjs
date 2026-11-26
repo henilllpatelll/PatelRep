@@ -17,7 +17,7 @@ import { canonicalize, digestOf } from '../../lib/canonical.mjs'
 import { loadSigningKey } from './key-custody.mjs'
 import { OBSERVATION_SCHEMA, observationMessage } from '../delivery/observation.mjs'
 import { authorityOf } from '../ledger/evidence-store.mjs'
-import { ciState, checkState, TRUSTED_CHECKS, WORKFLOWS } from '../delivery/required-checks.mjs'
+import { ciState, stagingGate, WORKFLOWS } from '../delivery/required-checks.mjs'
 import { diagnose } from '../delivery/diagnostics.mjs'
 import { observeEffect } from '../delivery/effect-subjects.mjs'
 
@@ -121,7 +121,7 @@ export class DeliveryIssuer {
     const x = this.#task(task_id, { observeOnly: true }); if (!x.ok) return x
     const r = this.#remote(x); const head = x.c?.candidate_sha ?? null
     const ci = head && r.branch ? ciState(r.view, { head_sha: head, head_branch: r.branch }) : null
-    const staging = head ? checkState(r.view, { name: TRUSTED_CHECKS.staging_gate.name, workflow: WORKFLOWS.staging, head_sha: head, events: ['workflow_run', 'workflow_dispatch'] }) : null
+    const staging = head ? stagingGate(r.view, { head_sha: head, pr_number: r.pr?.number }) : null // the SAME function the issuance and the final verification use (F1)
     const stagingRuns = r.view.runs.filter((y) => y.workflow === WORKFLOWS.staging && (y.pr_number === r.pr?.number || y.head_sha === head)).map((y) => ({ id: y.id, head_sha: y.head_sha, status: y.status, conclusion: y.conclusion, event: y.event, created_at: y.created_at, displaced: !!y.displaced, ineligible: !!y.ineligible }))
     const stagingBusy = r.view.runs.some((y) => y.workflow === WORKFLOWS.staging && ['pending', 'in_progress'].includes(y.status))
     return this.#observation({ repository: x.t.repository, task_id, subject: `delivery:${task_id}`, state: 'present', candidate_sha: head ?? undefined, remote_version: r.ref ?? 'none',
@@ -155,7 +155,7 @@ export class DeliveryIssuer {
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha || r.ref !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
     const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch })
     if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
-    return this.#emit('ci_gate', `ci_gate:${task_id}:${x.c.candidate_sha}:${ci.checks.map((c) => `${c.run_id}.${c.attempt}`).join(',')}:e${x.t.fencing_token}`, x.t, this.#binds(x))
+    return this.#emit('ci_gate', `ci_gate:${task_id}:${x.c.candidate_sha}:${ci.checks.map((c) => `${c.run_id}.${c.run_attempt}.${c.attempt}`).join(',')}:e${x.t.fencing_token}`, x.t, this.#binds(x))
   }
   op_issue_ci_failure_diagnosis({ task_id, run_id, attempt }) {
     const x = this.#task(task_id); if (!x.ok) return x; if (!x.c) return refuse('ISSUER.NO_CURRENT_CANDIDATE')
@@ -179,11 +179,10 @@ export class DeliveryIssuer {
     const r = this.#remote(x)
     // the audited gap (doc 31 §4): the workflow reports Staging Gate without re-checking the PR head; the verifier re-checks it at read time
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
-    const g = checkState(r.view, { name: TRUSTED_CHECKS.staging_gate.name, workflow: WORKFLOWS.staging, head_sha: x.c.candidate_sha, events: ['workflow_run', 'workflow_dispatch'] })
-    if (g.state !== 'success') return refuse('ISSUER.STAGING_NOT_SUCCESSFUL', g.state)
+    const g = stagingGate(r.view, { head_sha: x.c.candidate_sha, pr_number: r.pr.number })
+    if (g.state !== 'success') return refuse(g.problem === 'STAGING.PROVENANCE_MISMATCH' ? 'ISSUER.STAGING_PROVENANCE_MISMATCH' : 'ISSUER.STAGING_NOT_SUCCESSFUL', g.state)
     const run = r.view.runs.find((y) => y.id === g.run_id)
-    if (!run || run.conclusion !== 'success' || run.pr_number !== r.pr.number || g.details_url !== `sim://runs/${run.id}`) return refuse('ISSUER.STAGING_PROVENANCE_MISMATCH')
-    return this.#emit('staging_gate', `staging_gate:${task_id}:${x.c.candidate_sha}:${run.id}.${run.attempt}:e${x.t.fencing_token}`, x.t, this.#binds(x))
+    return this.#emit('staging_gate', `staging_gate:${task_id}:${x.c.candidate_sha}:${run.id}.${g.run_attempt}.${g.attempt}:e${x.t.fencing_token}`, x.t, this.#binds(x))
   }
   /** The signed SIMULATED delivery-verification package: every current evidence id + digest bound to the exact candidate and policy, plus the remote facts re-read now. */
   op_issue_delivery_verification({ task_id }) {
@@ -200,10 +199,10 @@ export class DeliveryIssuer {
     const r = this.#remote(x)
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha || r.ref !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
     const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch }); if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
-    const g = checkState(r.view, { name: TRUSTED_CHECKS.staging_gate.name, workflow: WORKFLOWS.staging, head_sha: x.c.candidate_sha, events: ['workflow_run', 'workflow_dispatch'] }); if (g.state !== 'success') return refuse('ISSUER.STAGING_NOT_SUCCESSFUL', g.state)
+    const g = stagingGate(r.view, { head_sha: x.c.candidate_sha, pr_number: r.pr.number }); if (g.state !== 'success') return refuse(g.problem === 'STAGING.PROVENANCE_MISMATCH' ? 'ISSUER.STAGING_PROVENANCE_MISMATCH' : 'ISSUER.STAGING_NOT_SUCCESSFUL', g.state) // same provenance rule as the staging-gate issuance (F1)
     const pkg = { schema: 'patelrep.developer-harness-v3.delivery-verification-package', version: 1, simulated: true, task_id, repository: x.t.repository, base_sha: x.base, candidate_sha: x.c.candidate_sha, tree_digest: x.c.tree_digest,
       patch_digest: x.c.patch_digest, policy_revision: this.policy.revision, fencing_token: x.t.fencing_token, pr_number: r.pr.number, branch: r.branch, main_at_verification: r.main, evidence: ev,
-      ci: ci.checks.map((c) => ({ name: c.name, run_id: c.run_id, attempt: c.attempt })), staging: { run_id: g.run_id, attempt: g.attempt }, verified_at: now, merge_authority: 'NONE (D3.6 never merges; D3.7 supplies merge evidence)' }
+      ci: ci.checks.map((c) => ({ name: c.name, run_id: c.run_id, attempt: c.attempt, run_attempt: c.run_attempt })), staging: { run_id: g.run_id, attempt: g.attempt, run_attempt: g.run_attempt }, verified_at: now, merge_authority: 'NONE (D3.6 never merges; D3.7 supplies merge evidence)' }
     const s = this.#sign(Buffer.from(`${PACKAGE_DOMAIN}${canonicalize(pkg)}`, 'utf8')); if (!s.ok) return s
     const digest = digestOf(pkg)
     const e = this.#emit('delivery_verification', `delivery_verification:${task_id}:${x.c.candidate_sha}:${digest}`, x.t, { ...this.#binds(x), idempotency_id: `dvp-${digest.slice(0, 48)}` })

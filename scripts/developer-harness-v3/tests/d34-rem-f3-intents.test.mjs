@@ -109,7 +109,7 @@ test('F3: supersession is only legal over a PROVEN-absent (or failed) intent —
 
 test('F3: reconciling a PRESENT effect records success and a retry of it is refused forever', () => {
   const S = setup(); const i = begin(S, S.fresh()); const iid = i.intent.intent_id; const row = getIntent(S.L, iid); assert.ok(dispatch(S, iid).ok); assert.ok(markUncertain(S.L, iid).ok)
-  assert.ok(reconcileIntent(S.L, iid, { observation: signedObservation(S.pol, row, { state: 'present', observed_at: S.L.now() }), outcome: { pr: 3 } }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE'); S.L.close()
+  assert.ok(reconcileIntent(S.L, iid, { observation: signedObservation(S.pol, row, { state: 'present', observed_at: S.L.now() }), policy: S.policy, outcome: { pr: 3 } }).ok); assert.equal(getIntent(S.L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.NOT_RETRYABLE'); S.L.close()
 })
 
 test('F3/F5/F6/F4 schema: a V1 ledger migrates to V2 in place (data kept, constraints widened, new tables present) and V2 is readable by the read-only issuer handle', async () => {

@@ -1,0 +1,19 @@
+D3.6 independent-verification remediation (F1, F2) - REPRODUCTIONS against the ORIGINAL head 875dd71405fc005ce3afe0cae99351131764f8c1 (before any change). SIMULATED: temp ledgers, simulated GitHub/staging, generated test keys.
+Each REPRO line is the observed (defective) behaviour; every test PASSES while the defect is present.
+
+== F1 unit: required-checks.mjs checkState (tests/_scratch_repro/f1.mjs)
+older success + newer run in_progress, NO check  => {"name":"CI Gate","run_id":1,"attempt":1,"check_id":10,"spoofed":0,"details_url":null,"state":"success"}
+older success + newer run queued, NO check       => {"name":"CI Gate","run_id":1,"attempt":1,"check_id":10,"spoofed":0,"details_url":null,"state":"success"}
+same run, attempt bumped to 2 (in progress), attempt-1 success only => {"name":"CI Gate","state":"missing","spoofed":0}
+older success + newer run FAILED, no check       => {"name":"CI Gate","run_id":1,"attempt":1,"check_id":10,"spoofed":0,"details_url":null,"state":"success"}
+older success + newer run CANCELLED, no check    => {"name":"CI Gate","run_id":1,"attempt":1,"check_id":10,"spoofed":0,"details_url":null,"state":"success"}
+
+== F1/F2 harness: tests/zz-repro-before.test.mjs
+REPRO> state= merge_eligible usable evidence= ci_gate,delivery_verification,independent_review,publication_receipt,security_review,staging_gate,task_authority,test_results package held= true
+REPRO> issue_staging_gate -> ISSUER.STAGING_PROVENANCE_MISMATCH | issue_delivery_verification -> ISSUED package for staging run 5003 (PR 4242 != 101)
+REPRO> push intent status= succeeded | pushes that reached the remote= 0 | remote ref= {}
+REPRO> reconcile #1 -> INTENT.RECONCILIATION_PENDING | reconcile #2 -> OK status=reconciled_absent (reads were taken BEFORE the request ended at S)
+✔ F1-R1: stale merge_eligible — a newer same-SHA CI run is queued with NO check; the old package/evidence stay valid (3512.6774ms)
+✔ F1-R2: staging provenance — the final verification accepts a Staging Gate whose run belongs to ANOTHER PR (issuance re-checks it, verification does not) (2687.8625ms)
+✔ F2-R3: an EMPTY / unrelated direct response is treated as success (and a remote effect that never happened is recorded as succeeded) (1348.7081ms)
+✔ F2-R4: absence observations taken BEFORE an ordinary settlement count (settled is not in the settle-window query) -> reconciled_absent -> retry -> duplicate effect risk (1844.4067ms)

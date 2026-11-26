@@ -23,7 +23,7 @@ export const EXPECTED_FILES = Object.freeze(['d33-acceptance-review', 'd33-accep
   // D3.5 independent-verification remediation (F1 concurrency, F2 dependency basis, F3 process ownership / lock)
   'd35-rem2-f1-concurrency', 'd35-rem2-f2-dependency', 'd35-rem2-f3-engine', 'd35-rem2-f3-lock', 'd35-rem2-f3-runner',
   // D3.6 delivery (deliberate registry additions)
-  'd36-authority', 'd36-ci-staging', 'd36-e2e', 'd36-lifecycle', 'd36-proposals', 'd36-reconcile', 'd36-watchdog',
+  'd36-authority', 'd36-ci-staging', 'd36-e2e', 'd36-lifecycle', 'd36-proposals', 'd36-reconcile', 'd36-rem-latest-run', 'd36-rem-outcomes', 'd36-rem-stale-eligibility', 'd36-watchdog',
   'evaluator', 'final-review', 'foundation', 'git-facts', 'hardening', 'lifecycle', 'promotion', 'security', 'subscription'].map((n) => `${n}.test.mjs`))
 
 export const discover = (root = ROOT) => readdirSync(path.join(root, TEST_DIR)).filter((f) => f.endsWith('.test.mjs')).sort()

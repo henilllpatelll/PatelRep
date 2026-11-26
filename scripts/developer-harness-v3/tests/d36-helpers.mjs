@@ -5,18 +5,19 @@ import path from 'node:path'
 import { sign } from 'node:crypto'
 import { canonicalize } from '../lib/canonical.mjs'
 import { OBSERVATION_DOMAIN, OBSERVATION_SCHEMA, verifyRemoteObservation } from '../orchestrator/delivery/observation.mjs'
-import { createDeliveryHarness, proposalAuthority, proposalReducer } from '../orchestrator/sim/delivery-harness.mjs'
+import { P6V3_PATCH, createDeliveryHarness, proposalAuthority, proposalReducer } from '../orchestrator/sim/delivery-harness.mjs'
 import { privatePath } from '../orchestrator/issuer/key-custody.mjs'
 import { createPrivateKey } from 'node:crypto'
 
 export const tmp = (p = 'dh36-') => mkdtempSync(path.join(os.tmpdir(), p))
-let AUTH = null; let RED = null
+let AUTH = null; let RED = null; let RED3 = null
 /** The labelled PROPOSAL_UNDER_TEST authority (P7 on a disposable copy), built once per test file. */
 export const auth = async () => (AUTH ??= await proposalAuthority())
 export const p6v2 = async () => (RED ??= await proposalReducer())
+export const p6v3 = async () => (RED3 ??= await proposalReducer(P6V3_PATCH))
 export async function harness(o = {}) {
   const proposal = o.proposal ?? true
-  return createDeliveryHarness({ root: o.root ?? tmp(), ...o, proposal, ...(proposal ? { authority: await auth() } : {}), ...(o.lifecycle === 'P6v2' ? { reducer: await p6v2() } : {}) })
+  return createDeliveryHarness({ root: o.root ?? tmp(), ...o, proposal, ...(proposal ? { authority: await auth() } : {}), ...(o.lifecycle === 'P6v2' ? { reducer: await p6v2() } : {}), ...(o.lifecycle === 'P6v3' ? { reducer: await p6v3() } : {}) })
 }
 const DELIVERY = ['publishing', 'ci_running', 'staging_verification', 'merge_eligible']
 /** Drive the ENGINE only, until the task's local handoff (nothing is published). */

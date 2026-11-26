@@ -51,6 +51,8 @@ export class SimGitHub {
     if (fault === 'reject') { this.save(); throw err(422, 'GITHUB.VALIDATION_FAILED', { before_effect: true }) }
     if (fault === 'timeout_before') { this.save(); throw err(0, 'ETIMEDOUT') }
     if (fault === 'crash_before') { this.save(); throw new SimCrash(op) } // the controller dies after sending, before any effect and before any outcome is recorded
+    // a server-side effect that lands LATER than the client's failure (queueing / retry inside the remote): the client sees an error NOW, the remote applies the request at `delayedEffectMs`
+    if (fault === 'delay_effect') { (this.s.pending ??= []).push({ op, args: { ...args }, at: this.clock() + (this.sc.delayedEffectMs ?? 300_000) }); this.save(); throw err(0, 'ECONNRESET') }
     if (fault === 'hang') { this.save(); return new Promise((_, rej) => { signal?.addEventListener('abort', () => rej(err(0, 'ABORTED_BY_CALLER')), { once: true }) }) }
     const result = this.#apply(op, args)
     this.s.ops.push({ op, at: this.clock(), args: { ...args, body: undefined } }); this.save()
@@ -114,6 +116,7 @@ export class SimGitHub {
   /** Progress every run to the current time (deterministic). */
   #tick() {
     const now = this.clock()
+    for (const p of (this.s.pending ?? []).filter((x) => x.at <= now)) { this.s.pending = this.s.pending.filter((x) => x !== p); try { this.#apply(p.op, p.args); this.s.ops.push({ op: p.op, at: p.at, delayed: true, args: { ...p.args, body: undefined } }) } catch { /* the remote rejected the late request (e.g. not fast-forward): no effect */ } }
     for (const r of this.s.runs.filter((x) => x.workflow !== STAGING_WORKFLOW && x.status === 'in_progress' && x.completes_at <= now)) {
       const o = this.#outcome(r.workflow === CI_WORKFLOW ? 'ci' : 'mobile', r.head_sha, r.attempt)
       r.status = 'completed'; r.completed_at = r.completes_at; r.conclusion = o === 'pass' ? 'success' : o === 'cancel' ? 'cancelled' : 'failure'; r.outcome = o

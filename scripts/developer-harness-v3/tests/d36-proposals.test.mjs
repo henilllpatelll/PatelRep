@@ -34,7 +34,7 @@ test('manifest: P6v2 and P7 are digest-pinned, LF-only, apply cleanly and are NO
 
 test('P7 regression: the D3.2 authority suites (evaluator, security, promotion, foundation) pass against the PATCHED authority on a disposable copy', () => {
   const files = ['scripts/developer-harness-v3/authority/contract.mjs', 'scripts/developer-harness-v3/authority/evaluator.mjs', 'scripts/developer-harness-v3/authority/evidence.mjs', 'scripts/developer-harness-v3/authority/migration-facts.mjs', 'scripts/developer-harness-v3/authority/policy-version.mjs', 'scripts/developer-harness-v3/authority/spend.mjs', 'scripts/developer-harness-v3/authority/git-facts.mjs',
-    'scripts/developer-harness-v3/lib/canonical.mjs', 'scripts/developer-harness-v3/lib/paths.mjs', 'docs/developer-harness-v3/authority-contract.json', 'docs/developer-harness-v3/task-lifecycle.json', 'docs/developer-harness-v2/contract.json', 'scripts/developer-harness-v3/orchestrator/delivery/observation.mjs',
+    'scripts/developer-harness-v3/lib/canonical.mjs', 'scripts/developer-harness-v3/lib/paths.mjs', 'docs/developer-harness-v3/authority-contract.json', 'docs/developer-harness-v3/task-lifecycle.json', 'docs/developer-harness-v2/contract.json', 'scripts/developer-harness-v3/orchestrator/delivery/observation.mjs', 'scripts/developer-harness-v3/orchestrator/delivery/effect-subjects.mjs',
     ...['helpers.mjs', 'evaluator.test.mjs', 'security.test.mjs', 'promotion.test.mjs', 'foundation.test.mjs'].map((f) => `scripts/developer-harness-v3/tests/${f}`)]
   const t = disposableCopy(['P7-delivery-authority.patch'], files, 'dh36-p7-regress-')
   for (const d of readdirSync(path.join(ROOT, 'scripts/developer-harness-v3/lifecycle'))) { mkdirSync(path.join(t, 'scripts/developer-harness-v3/lifecycle'), { recursive: true }); copyFileSync(path.join(ROOT, 'scripts/developer-harness-v3/lifecycle', d), path.join(t, 'scripts/developer-harness-v3/lifecycle', d)) }
@@ -64,5 +64,23 @@ test('boundaries: no merge or release authority anywhere in delivery; no new ter
   for (const f of ['orchestrator/delivery/controller.mjs', 'orchestrator/delivery/watchdog.mjs', 'orchestrator/delivery/state.mjs', 'orchestrator/scheduler.mjs', 'orchestrator/issuer/delivery-issuer.mjs']) assert.ok(!/\.kill\(|taskkill|process\.kill|Stop-Process/.test(src(f)), `${f}: no termination`)
   for (const f of ['orchestrator/sim/sim-adapters.mjs', 'orchestrator/session-runner.mjs', 'runtime/launcher.mjs', 'orchestrator/stages.mjs']) assert.ok(!/scope: ['"]publisher['"]|PATELREP_APP_PRIVATE_KEY|credential: this.credential|publisher.call/.test(src(f)), `${f} never sees the publisher credential`)
   assert.deepEqual(loadContractFile().activation.active_actions, []); assert.equal(liveExecutionAllowed().allowed, false); assert.equal(GATES.filter((g) => g.status === 'closed').length, 0)
-  assert.deepEqual(checkRegistry(), []); for (const f of ['d36-authority', 'd36-ci-staging', 'd36-e2e', 'd36-lifecycle', 'd36-proposals', 'd36-reconcile', 'd36-watchdog']) assert.ok(EXPECTED_FILES.includes(`${f}.test.mjs`))
+  assert.deepEqual(checkRegistry(), []); for (const f of ['d36-authority', 'd36-ci-staging', 'd36-e2e', 'd36-lifecycle', 'd36-proposals', 'd36-reconcile', 'd36-rem-latest-run', 'd36-rem-outcomes', 'd36-rem-stale-eligibility', 'd36-watchdog']) assert.ok(EXPECTED_FILES.includes(`${f}.test.mjs`))
+})
+
+test('D3.6 remediation: P6v3 supersedes P6v2 — pinned, LF-only, applies, NOT applied; P6v2 and its digest are untouched; P6v3 = P6v2 plus EXACTLY the two regression edges', () => {
+  const by = Object.fromEntries(manifest.proposals.map((p) => [p.id, p]))
+  assert.equal(by.P6v2.sha256, '8a25be45eee6a121d281fb80c872b7cbb57f7c7272185f5d50e96f9503df84f8', 'the predecessor keeps its reviewed digest'); assert.equal(by.P6v2.superseded_by, 'P6v3')
+  const buf = readFileSync(path.join(DIR, by.P6v3.file)); assert.equal(createHash('sha256').update(buf).digest('hex'), by.P6v3.sha256); assert.ok(!buf.includes(13), 'LF only')
+  assert.equal(createHash('sha256').update(readFileSync(path.join(DIR, by.P6v2.file))).digest('hex'), by.P6v2.sha256, 'P6v2 is byte-for-byte as reviewed')
+  assert.equal(spawnSync('git', ['-C', ROOT, '-c', 'core.autocrlf=false', 'apply', '--check', '-p1', path.join(DIR, by.P6v3.file)]).status, 0, 'P6v3 applies to the current tree')
+  for (const g of by.P6v3.activation_prerequisite.split(/ and /)) assert.ok(GATES.some((x) => x.id === g), `${g} registered`)
+  assert.equal(Object.hasOwn(loadLifecycle(), 'ci_regression'), false, 'P6v3 is NOT applied to the authoritative lifecycle'); assert.equal(Object.hasOwn(loadLifecycle(), 'base_conflict_rebuild'), false)
+  const files = ['docs/developer-harness-v3/task-lifecycle.json', 'scripts/developer-harness-v3/lifecycle/lifecycle.mjs', 'scripts/developer-harness-v3/lib/canonical.mjs']
+  const a = disposableCopy([by.P6v2.file], files, 'dh36-p6v2-cmp-'); const b = disposableCopy([by.P6v3.file], files, 'dh36-p6v3-cmp-')
+  const A = JSON.parse(readFileSync(path.join(a, files[0]), 'utf8')); const B = JSON.parse(readFileSync(path.join(b, files[0]), 'utf8'))
+  for (const k of Object.keys(A)) assert.deepEqual(B[k], A[k], `P6v3 preserves ${k} exactly`)
+  assert.deepEqual(Object.keys(B).filter((k) => !Object.hasOwn(A, k)).sort(), ['ci_regression', 'staging_regression'])
+  assert.deepEqual([B.ci_regression.from, B.ci_regression.to, B.ci_regression.reason], [['staging_verification', 'merge_eligible'], 'ci_running', 'CI_RESULT_SUPERSEDED']); assert.deepEqual([B.staging_regression.from, B.staging_regression.to, B.staging_regression.reason], [['merge_eligible'], 'staging_verification', 'STAGING_RESULT_SUPERSEDED'])
+  assert.deepEqual(B.ci_regression.invalidates, ['ci_gate', 'staging_gate', 'delivery_verification']); assert.deepEqual(B.staging_regression.invalidates, ['staging_gate', 'delivery_verification'])
+  assert.ok(!['merged', 'completed'].some((s) => B.ci_regression.to === s || B.staging_regression.to === s), 'no edge reaches merged')
 })

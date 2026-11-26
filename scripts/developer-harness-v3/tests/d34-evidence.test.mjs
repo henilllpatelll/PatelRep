@@ -118,7 +118,7 @@ test('action intents: idempotency, stale policy/candidate, evidence consumption 
   assert.equal(reconcileIntent(L, iid, { observation: 'absent' }).code, 'INTENT.RECONCILIATION_INCONCLUSIVE', 'a bare string is not an observation')
   assert.equal(reconcileIntent(L, iid, { observation: obs(L, iid) }).code, 'INTENT.RECONCILIATION_INCONCLUSIVE', 'D3.6: a caller-supplied object with authoritative:true is NOT an observation')
   assert.ok(proveAbsent(L, pol, iid, { reconcileIntent, getIntent }).ok); assert.equal(getIntent(L, iid).status, 'reconciled_absent') // D3.6: absence = two authenticated reads
-  assert.ok(retryIntent(L, iid, D).ok); assert.ok(markDispatched(L, iid, D).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observation: signedObservation(pol, getIntent(L, iid), { state: 'present', observed_at: L.now() }), outcome: { pr: 1 } }).ok)
+  assert.ok(retryIntent(L, iid, D).ok); assert.ok(markDispatched(L, iid, D).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observation: signedObservation(pol, getIntent(L, iid), { state: 'present', observed_at: L.now() }), policy: pol.policy, outcome: { pr: 1 } }).ok)
   assert.equal(getIntent(L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(L, iid, D).code, 'INTENT.NOT_RETRYABLE', 'a reconciled success is never retried')
   L.close()
 })

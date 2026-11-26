@@ -9,14 +9,15 @@
 export const WATCHDOG_DEFAULTS = Object.freeze({ circuitThreshold: 3, circuitWindowMs: 30 * 60_000, circuitBaseMs: 5 * 60_000, circuitMaxMs: 2 * 3600_000 })
 const TIMEOUT = Symbol('timeout')
 
-function row(L, id, f) { try { L.db.prepare(f.sql).run(...f.args) } catch { /* the deadline record is best effort; the hold itself lives with the caller */ } void id }
+function row(L, id, f) { try { L.db.prepare(f.sql).run(...f.args) } catch { /* settlement bookkeeping is best effort: a row left `running` is only ever read as "still in flight" (fail closed); the hold itself lives with the caller */ } void id }
 
 /**
  * Run `fn(signal)` under a real-time deadline. @returns {Promise<{timedOut:false, value:any}|{timedOut:true, settled:Promise<any>}>} (throws what fn throws, if it settles in time)
  */
 export async function withDeadline(L, { opId, taskId = null, kind, ms, holds = [] }, fn) {
   const now = L.now()
-  row(L, opId, { sql: "INSERT OR REPLACE INTO operation_deadlines(op_id,task_id,kind,started_at,deadline_at,state,holds_json) VALUES (?,?,?,?,?,'running',?)", args: [opId, taskId, kind, now, now + ms, JSON.stringify(holds)] })
+  // F2: the START record is NOT best effort — the absence rule reads when a request ended, and a request nobody recorded must never be sent (a failure here throws BEFORE `fn` runs)
+  L.db.prepare("INSERT OR REPLACE INTO operation_deadlines(op_id,task_id,kind,started_at,deadline_at,state,holds_json) VALUES (?,?,?,?,?,'running',?)").run(opId, taskId, kind, now, now + ms, JSON.stringify(holds))
   const ac = new AbortController(); let timer = null
   const p = Promise.resolve().then(() => fn(ac.signal))
   const late = (state) => row(L, opId, { sql: 'UPDATE operation_deadlines SET state=?, settled_at=? WHERE op_id=?', args: [state, L.now(), opId] })

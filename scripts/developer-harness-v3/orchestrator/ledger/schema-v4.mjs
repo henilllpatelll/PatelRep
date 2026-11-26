@@ -52,7 +52,9 @@ CREATE TABLE delivery_milestones (
   PRIMARY KEY (task_id, milestone, candidate_sha)
 ) STRICT;
 CREATE TRIGGER delivery_milestones_no_delete BEFORE DELETE ON delivery_milestones BEGIN SELECT RAISE(ABORT, 'LEDGER.NO_DELETE'); END;
-CREATE TRIGGER delivery_milestones_identity BEFORE UPDATE OF task_id, milestone, candidate_sha, tree_digest, base_sha, reached_at ON delivery_milestones BEGIN SELECT RAISE(ABORT, 'LEDGER.MILESTONE_IMMUTABLE'); END;
+CREATE TRIGGER delivery_milestones_identity BEFORE UPDATE OF task_id, milestone, candidate_sha, tree_digest, base_sha ON delivery_milestones BEGIN SELECT RAISE(ABORT, 'LEDGER.MILESTONE_IMMUTABLE'); END;
+-- D3.6 remediation F1: reached_at moves ONLY when an INVALIDATED milestone (a withdrawn CI / staging / eligibility result) is legitimately reached AGAIN with fresh evidence; the first reach stays in the authority log
+CREATE TRIGGER delivery_milestones_reached_at BEFORE UPDATE OF reached_at ON delivery_milestones WHEN NOT (OLD.invalidated_at IS NOT NULL AND NEW.invalidated_at IS NULL AND NEW.reached_at >= OLD.reached_at) BEGIN SELECT RAISE(ABORT, 'LEDGER.MILESTONE_IMMUTABLE'); END;
 CREATE TRIGGER delivery_milestones_no_merged BEFORE INSERT ON delivery_milestones WHEN NEW.milestone = 'merged' BEGIN SELECT RAISE(ABORT, 'LEDGER.MERGED_REQUIRES_D37_MERGE_EVIDENCE'); END;
 -- what a dependency REQUIRES of its upstream: 'locally_verified' (the D3.4/D3.5 ordering boundary; the dependent's worktree does NOT contain the upstream code) or 'merged' (code dependency: waits for D3.7 merge evidence)
 ALTER TABLE task_dependencies ADD COLUMN requires TEXT NOT NULL DEFAULT 'locally_verified' CHECK (requires IN ('locally_verified','merged'));
@@ -108,6 +110,7 @@ CREATE INDEX operation_deadlines_state ON operation_deadlines(state, deadline_at
 CREATE TRIGGER al_observation AFTER INSERT ON remote_observations BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('remote_observation', NEW.observation_id, NEW.recorded_at); END;
 CREATE TRIGGER al_milestone AFTER INSERT ON delivery_milestones BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('milestone_' || NEW.milestone, NEW.task_id || ':' || NEW.candidate_sha, NEW.reached_at); END;
 CREATE TRIGGER al_milestone_invalidated AFTER UPDATE OF invalidated_at ON delivery_milestones WHEN NEW.invalidated_at IS NOT NULL AND OLD.invalidated_at IS NULL BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('milestone_invalidated', NEW.task_id || ':' || NEW.milestone, NEW.invalidated_at); END;
+CREATE TRIGGER al_milestone_reached_again AFTER UPDATE OF invalidated_at ON delivery_milestones WHEN OLD.invalidated_at IS NOT NULL AND NEW.invalidated_at IS NULL BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('milestone_reached_again_' || NEW.milestone, NEW.task_id || ':' || NEW.candidate_sha, NEW.reached_at); END;
 CREATE TRIGGER al_staging AFTER UPDATE OF state ON staging_reservations WHEN NEW.state <> OLD.state BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('staging_' || NEW.state, NEW.reservation_id, COALESCE(NEW.released_at, NEW.acquired_at)); END;
 CREATE TRIGGER al_staging_acquired AFTER INSERT ON staging_reservations BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('staging_held', NEW.reservation_id, NEW.acquired_at); END;
 CREATE TRIGGER al_delivery_base AFTER UPDATE OF generation ON deliveries WHEN NEW.generation <> OLD.generation BEGIN INSERT INTO authority_log(kind,ref,at) VALUES ('delivery_base', NEW.task_id || ':' || NEW.generation, NEW.updated_at); END;
