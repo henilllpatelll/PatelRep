@@ -333,9 +333,44 @@ test('REAL processes: a leftover takeover mutex next to a dead holder\'s lock is
   } finally { cleanup(f) }
 })
 
-test('static guard: the runner contains exactly ONE termination call — the handle of the child it spawned — and process-facts contains none', () => {
+test('static guard: the ONLY termination in the runner is p.kill() on the handle of the child it spawned (two call sites: file timeout, runner exit) and process-facts contains none', () => {
   const strip = (t) => t.replace(/\/\/[^\n]*/g, '') // comments may talk about killing; code may not
   const runner = strip(readFileSync(RUNNER_SRC, 'utf8')); const facts = strip(readFileSync(path.join(HERE, '..', 'ci', 'process-facts.mjs'), 'utf8'))
-  const kills = [...runner.matchAll(/\b[\w.]*\.kill\(/g)].map((m) => m[0]); assert.ok(kills.length >= 1, 'the spawned child can still be terminated through its own handle')
+  const kills = [...runner.matchAll(/\b[\w.]*\.kill\(/g)].map((m) => m[0]); assert.equal(kills.length, 2, 'exactly the two known call sites (file timeout, runner exit) — a new one must be reviewed'); assert.equal(/\bimport\b[^\n]*['"]\.\.?\/[^'"]*(vm-controller|launcher|cleanup)/.test(strip(readFileSync(RUNNER_SRC, 'utf8')).replace(/import \{[^}]*isPidAlive[^}]*\} from '..\/runtime\/launcher.mjs'/, '')), false, 'the runner imports no module that terminates processes (launcher is imported for the read-only isPidAlive only)')
   assert.equal(kills.every((k) => k === 'p.kill('), true, 'every kill is p.kill() on the spawned child handle'); const all = runner + facts; assert.equal(/process\.kill\(|\.Kill\(\)/.test(all) || /taskkill|Stop-Process|TerminateProcess/i.test(all), false, 'no process.kill(pid), no PowerShell Kill(), no taskkill/Stop-Process anywhere')
+})
+
+// ------------------------------------------------------------------------------------------------------- review round 7 (Opus security) — mandatory findings
+test('review r7-1 (injected tables): a recorded pid that appears TWICE (a dead recorded process and a later one that reused the pid) never hides a live descendant — held, not "observed_stopped"', async () => {
+  const D1 = { pid: 30, ppid: 10, start: '1500', name: 'node.exe', cmdline: 'c30a', seen_at: 2000 }; const D2 = { pid: 30, ppid: 10, start: '4000', name: 'node.exe', cmdline: 'c30b', seen_at: 4500 }
+  const rec = { root: { pid: 10, ppid: 1, start: '1000', name: 'node.exe', cmdline: 'c10', seen_at: 4600 }, descendants: [D1, D2], snap_ms: 500 }
+  const O = P2(77, 30, 2500, 'orphan.exe', 'o') // detached by D1 AFTER D1's last snapshot (2500 > 2000), D1 and D2 and the root are all gone
+  const twice = await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 4600, read: async () => ({ ok: true, procs: [O] }) })
+  assert.equal(twice.verified, false, 'pre-fix: verified:true with the orphan alive'); assert.equal(twice.code, 'WORKLOAD_UNPROVEN'); assert.deepEqual(twice.unproven.map((p) => p.pid), [77])
+  const control = await verifyWorkloadStopped({ recorded: { ...rec, descendants: [D1] }, lastSeenMs: 4600, read: async () => ({ ok: true, procs: [O] }) }); assert.equal(control.code, 'WORKLOAD_UNPROVEN', 'the control without the duplicate already held')
+  // D2 alive is still recognised as ours (by identity), D1's window still attributes what D1 started while it was seen alive, and a stranger on pid 30 is still a stranger
+  let j = judgeWorkload([P2(30, 10, 4000, 'node.exe', 'c30b'), P2(31, 30, 4200)], rec, { lastSeenMs: 4600 }); assert.deepEqual(j.ours.map((p) => p.pid).sort(), [30, 31]); assert.deepEqual(j.reused, [])
+  j = judgeWorkload([P2(30, 10, 1600, 'node.exe', 'c30a-other'), P2(32, 30, 1700)], rec, { lastSeenMs: 4600 }); assert.deepEqual(j.reused, [30], 'a live process that matches NO recorded identity for the pid is a stranger')
+  j = judgeWorkload([P2(30, 1, 9000, 'stranger.exe', 'x'), P2(33, 30, 9500)], rec, { lastSeenMs: 4600 }); assert.deepEqual(j.unproven, [], 'a child created after the live stranger started is the stranger\'s own')
+})
+
+test('review r7-2 (REAL): the operator release is consumed ONCE and never replayed onto an interruption this invocation caused itself (a fast-dying unit is HELD, never auto-attested)', { timeout: 180_000 }, async () => {
+  const f = fixture(); rmSync(f.hold)
+  try {
+    writeFileSync(path.join(f.root, 'tests', 'e.test.mjs'), "process.kill(process.ppid)\n") // kills its own `node --test` parent at once: no test counts, an ambiguous interruption, before any workload identity can be read
+    const res = await startRunner(f, 'a,e', ['--release-unproven-unit', 'e.test.mjs', '--workload-wait-min', '0.01']).done
+    assert.equal(res.code, 75, res.out); assert.doesNotMatch(res.out, /OPERATOR ATTESTATION|released_by_operator/, 'the flag was not honoured for a state the operator never saw')
+    assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED|UNIT_INTERRUPTED_REPEATEDLY/); assert.equal(JSON.parse(res.out.trim().split('\n').at(-1)).operator_released_units, undefined)
+  } finally { cleanup(f) }
+})
+
+test('review r7-3 (REAL): the release flag does not cover an INVALID or forged workload record — it is held, with an honest hint, and not attested', { timeout: 180_000 }, async () => {
+  const f = fixture(); let tree
+  try {
+    const x = await interrupted(f); tree = x.tree
+    kill(tree.runner); await x.r1.done; kill(tree.grandchild); await waitFor(() => !alive(tree.grandchild) && !alive(tree.root))
+    edit(f, (db) => { const row = db.prepare("SELECT result_json FROM test_units WHERE unit_id='b.test.mjs'").get(); const j = JSON.parse(row.result_json); j.workload.root.start = 'not-a-number'; db.prepare("UPDATE test_units SET result_json=? WHERE unit_id='b.test.mjs'").run(JSON.stringify(j)) })
+    const res = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done
+    assert.equal(res.code, 75, res.out); assert.match(res.out, /"why":"WORKLOAD_RECORD_INVALID"/); assert.match(res.out, /cannot be trusted/); assert.doesNotMatch(res.out, /OPERATOR ATTESTATION/); assert.equal(runs(f).length, 1)
+  } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })

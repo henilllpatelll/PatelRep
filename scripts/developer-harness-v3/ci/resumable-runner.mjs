@@ -4,9 +4,9 @@
 //   * each file is a unit in a small SQLite state file (the V3 ledger schema, task-less units); a unit that PASSED is final for this exact code (the group id digests every
 //     V3 source file, the Node version and the file list — a code change is a new group, so no result is ever reused for different code);
 //   * before every unit the runner re-admits against the free-memory FLOOR (3072 MB for the 1 GB-heap runner; hysteresis: 3 consecutive samples) and, if it is not met,
-//     WAITS with a bounded timer and a persisted next-eligible time (it never bypasses or disables the host's low-memory reaper and never kills anything);
+//     WAITS with a bounded timer and a persisted next-eligible time (it never bypasses or disables the host's low-memory reaper and kills nothing but the test child it spawned itself, through that child's own handle);
 //   * an interrupted unit is classified from evidence (classifyUnit): a reaper record or an external kill below the floor = verified resource kill; otherwise ambiguous —
-//     either way it is RE-RUN FIRST and nothing is reported as a regression; a runner that was itself killed leaves its unit `running`, which the next invocation treats as lost;
+//     either way it is RE-RUN FIRST (once its old workload is observed gone, below) and nothing is reported as a regression; a runner that was itself killed leaves its unit `running`, which the next invocation treats as lost;
 //   * only a COMPLETE run that reports failures is a failure (exit 1).
 //
 //   node scripts/developer-harness-v3/ci/resumable-runner.mjs [--state <file>] [--floor-mb 3072] [--interval-ms 15000] [--max-wait-min 240] [--reaper-record <json file>]
@@ -105,15 +105,16 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
     // F3: a unit still `running` belongs to a runner that is gone — but its WORKLOAD (the test process tree) may not be. An INTERRUPTED unit (also ours, this invocation) may have left a surviving workload too.
     // Either is re-run only after its RECORDED workload is OBSERVED gone. Nothing is ever terminated here: a survivor HOLDS the unit (exit 75) and the operator deals with it.
     const releaseUnit = arg(argv, '--release-unproven-unit') // OPERATOR ACTION (docs 29/30): an ATTESTATION for ONE unit whose workload identity was never recorded; it is never reported as verified containment
-    const released = new Set(); const releasedEver = []
+    const released = new Set(); const releasedEver = []; let releaseUsed = false
     const ownRunner = (r) => !!me && !!r && r.pid === me.pid && r.start === me.start
     /** @returns {Promise<boolean>} true = the unit may proceed; false = HELD (the caller returns 75) */
     const gateUnit = async (u) => {
       if (released.has(u.unit_id)) return true
-      if (releaseUnit === u.unit_id && !validWorkload(u.result.workload)) {
-        const runnerDead = ownRunner(u.result.runner) ? true : (u.result.runner ? holderAlive(u.result.runner) === false : true); const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
+      // the attestation covers ONE state the operator could have seen: a unit left by an EARLIER invocation (never this invocation's own interruption), with NO workload record at all, and only once
+      if (releaseUnit === u.unit_id && !releaseUsed && !ownRunner(u.result.runner) && (u.result.workload === undefined || u.result.workload === null)) {
+        const runnerDead = u.result.runner ? holderAlive(u.result.runner) === false : true; const rootGone = Number.isInteger(u.result.pid) ? !isPidAlive(u.result.pid) : true
         if (runnerDead === true && rootGone) {
-          L.setMeta(`runner_release:${groupId}:${u.unit_id}`, JSON.stringify({ at: L.now(), runner: u.result.runner ?? null, pid: u.result.pid ?? null, attested_by: 'operator', containment: 'NOT_VERIFIED' })); released.add(u.unit_id); releasedEver.push(u.unit_id)
+          L.setMeta(`runner_release:${groupId}:${u.unit_id}`, JSON.stringify({ at: L.now(), runner: u.result.runner ?? null, pid: u.result.pid ?? null, attested_by: 'operator', containment: 'NOT_VERIFIED' })); released.add(u.unit_id); releasedEver.push(u.unit_id); releaseUsed = true
           log(`WORKLOAD ${u.unit_id} → released_by_operator (OPERATOR ATTESTATION: no workload identity was recorded; the recorded root pid being gone proves nothing about its descendants — containment NOT verified)\n`); return true
         }
         log(`${JSON.stringify({ ok: false, code: 'RELEASE_REFUSED', unit: u.unit_id, runner_dead: runnerDead, root_gone: rootGone, state: stateFile })}\n`); return false
@@ -122,10 +123,10 @@ export async function main(argv = process.argv.slice(2), log = (s) => process.st
       for (;;) {
         const runnerAlive = ownRunner(u.result.runner) ? false : (u.result.runner ? holderAlive(u.result.runner) : null) // a recorded runner that is alive — or NOT recorded at all — may still own this unit: nothing is touched (the operator release is the explicit way out)
         v = runnerAlive !== false ? { verified: false, code: 'RECORDED_RUNNER_NOT_DEAD' } : await verifyWorkloadStopped({ recorded: u.result.workload, lastSeenMs: Number(u.result.heartbeat) })
-        if (v.verified || v.code === 'WORKLOAD_IDENTITY_UNKNOWN' || L.now() - waitStart > cfg.workloadWaitMs) break
+        if (v.verified || ['WORKLOAD_IDENTITY_UNKNOWN', 'WORKLOAD_RECORD_INVALID', 'WORKLOAD_RECORD_TRUNCATED'].includes(v.code) || L.now() - waitStart > cfg.workloadWaitMs) break
         await sleep(cfg.sampleIntervalMs)
       }
-      if (!v.verified) { L.setMeta(`runner_hold:${groupId}`, JSON.stringify({ unit: u.unit_id, code: v.code, at: L.now() })); log(`${JSON.stringify({ ok: false, code: 'UNIT_WORKLOAD_NOT_PROVEN_STOPPED', unit: u.unit_id, status: u.status, why: v.code, hint: v.code === 'WORKLOAD_IDENTITY_UNKNOWN' ? 'no identity was recorded; if the recorded runner and root pid are gone, an operator may attest with --release-unproven-unit <unit> (containment is NOT verified by that)' : 'a recorded process is still alive or could not be accounted for: nothing was terminated; stop it yourself (or wait for it to exit) and re-invoke', still_running: (v.running ?? []).slice(0, 10), unproven: (v.unproven ?? []).map((p) => ({ pid: p.pid, name: p.name, reason: p.reason })).slice(0, 10), state: stateFile })}\n`); return false }
+      if (!v.verified) { L.setMeta(`runner_hold:${groupId}`, JSON.stringify({ unit: u.unit_id, code: v.code, at: L.now() })); log(`${JSON.stringify({ ok: false, code: 'UNIT_WORKLOAD_NOT_PROVEN_STOPPED', unit: u.unit_id, status: u.status, why: v.code, hint: v.code === 'WORKLOAD_IDENTITY_UNKNOWN' ? 'no identity was recorded; if the recorded runner and root pid are gone, an operator may attest with --release-unproven-unit <unit> (containment is NOT verified by that; usable once, for a unit left by an earlier invocation)' : v.code === 'RECORDED_RUNNER_NOT_DEAD' ? 'the runner that recorded this unit is alive or could not be shown dead: do NOT touch its processes; wait for it, or confirm it is gone and re-invoke' : ['WORKLOAD_RECORD_INVALID', 'WORKLOAD_RECORD_TRUNCATED'].includes(v.code) ? 'the recorded workload cannot be trusted (invalid, forged or truncated): inspect the state file by hand; the release flag does not cover this' : 'a recorded process is still alive or could not be accounted for: nothing was terminated; stop it yourself (or wait for it to exit) and re-invoke', still_running: (v.running ?? []).slice(0, 10), unproven: (v.unproven ?? []).map((p) => ({ pid: p.pid, name: p.name, reason: p.reason })).slice(0, 10), state: stateFile })}\n`); return false }
       log(`WORKLOAD ${u.unit_id} → ${v.how} (every recorded process observed gone; nothing was terminated)\n`)
       return true
     }

@@ -102,16 +102,17 @@ export const validWorkload = (w) => !!w && typeof w === 'object' && ID(w.root) &
 export function judgeWorkload(table, recorded, { lastSeenMs } = {}) {
   const live = new Map(table.map((p) => [p.pid, p])); const rec = [recorded.root, ...(recorded.descendants ?? [])].filter(Boolean)
   const ours = new Map(); const reused = []
-  for (const r of rec) { const l = live.get(r.pid); if (l && sameProcess(l, r)) ours.set(l.pid, l); else if (l) reused.push(r.pid) }
+  // a pid can appear MORE THAN ONCE in the record (a dead recorded process and a later, different one that reused the pid): every comparison is by full identity, never by pid alone
+  const recByPid = new Map(); for (const r of rec) { const g = recByPid.get(r.pid) ?? []; g.push(r); recByPid.set(r.pid, g) }
+  for (const [pid, group] of recByPid) { const l = live.get(pid); if (!l) continue; if (group.some((r) => sameProcess(l, r))) ours.set(pid, l); else reused.push(pid) }
   const closure = () => { for (let grew = true; grew;) { grew = false; for (const p of table) if (!ours.has(p.pid) && ours.has(p.ppid) && Number(p.start) >= Number(ours.get(p.ppid).start)) { ours.set(p.pid, p); grew = true } } }
   closure() // rule 2
   // rule 3: a recorded process that is not alive any more was alive until (at least) the last time it was SEEN — for the root, until its runner's last heartbeat. A process created by it inside that window is its child.
   const lastAlive = (r) => Math.max(Number.isFinite(Number(r.seen_at)) ? Number(r.seen_at) : -Infinity, r === recorded.root && Number.isFinite(lastSeenMs) ? lastSeenMs : -Infinity)
-  const recStart = new Map(rec.map((r) => [r.pid, Number(r.start)]))
   for (let grew = true; grew;) {
     grew = false
     for (const r of rec) {
-      if (ours.has(r.pid)) continue; const bound = lastAlive(r); if (!Number.isFinite(bound)) continue
+      if (sameProcess(live.get(r.pid), r)) continue; const bound = lastAlive(r); if (!Number.isFinite(bound)) continue
       const limit = bound // strictly inside the window the recorded process was PROVEN alive (a slack would let a pid-reusing stranger's child be attributed to the workload)
       for (const p of table) if (!ours.has(p.pid) && p.ppid === r.pid && Number(p.start) >= Number(r.start) && Number(p.start) <= limit) { ours.set(p.pid, p); grew = true }
     }
@@ -119,7 +120,8 @@ export function judgeWorkload(table, recorded, { lastSeenMs } = {}) {
   }
   // unproven (review N1): ANY live process that claims descent from a recorded process (its ppid is that pid, it was created after it) and is not proven ours — held, never killed. The only exception is a
   // pid now held by a live STRANGER: a process created after that stranger started is the stranger's own child (a child cannot predate its parent), not ours and not in doubt.
-  const unproven = table.filter((p) => !ours.has(p.pid) && recStart.has(p.ppid) && Number(p.start) >= recStart.get(p.ppid) && !(live.has(p.ppid) && reused.includes(p.ppid) && Number(p.start) >= Number(live.get(p.ppid).start))).map((p) => ({ ...identityOf(p), reason: 'CLAIMS_DESCENT_UNPROVEN' }))
+  const claimsDescent = (p) => (recByPid.get(p.ppid) ?? []).some((r) => Number(p.start) >= Number(r.start)) // ANY recorded identity with that pid (not just the last one)
+  const unproven = table.filter((p) => !ours.has(p.pid) && claimsDescent(p) && !(live.has(p.ppid) && reused.includes(p.ppid) && Number(p.start) >= Number(live.get(p.ppid).start))).map((p) => ({ ...identityOf(p), reason: 'CLAIMS_DESCENT_UNPROVEN' }))
   return { ours: [...ours.values()].sort((a, b) => Number(b.start) - Number(a.start)), unproven, reused }
 }
 
