@@ -16,8 +16,10 @@ import { renewalDecision, verifyCheckpoint, composeRestorePrompt, verifyRestored
 import { captureWork, persistCheckpoint, preserveOnExit } from './preserve.mjs'
 import { safeCode } from './suspension.mjs'
 import { MODEL_FAMILIES, verifyActualModel } from './routing.mjs'
+import { normalizeFingerprint } from './engineering-recovery.mjs'
 
-const fingerprint = (...parts) => parts.join('|').slice(0, 120)
+// D3.5-G: volatile tokens in UNTRUSTED failure text (hashes, uuids, line numbers, temp paths) are normalized so a failure cannot evade its budget by changing shape
+const fingerprint = (...parts) => parts.map((p) => normalizeFingerprint(p ?? '')).join('|').slice(0, 120)
 const isCount = (x) => Number.isSafeInteger(x) && x >= 0
 
 /** Map a denied admission onto a session outcome (the stage handler's failStage turns it into the right waiting/blocked/suspended state). */
