@@ -167,3 +167,24 @@ test('review (Sonnet 4): a queued run that NEVER starts is bounded — a technic
   const h = await harness({ dcfg: { pendingMaxMs: 3600_000 }, gh: { ciDisabled: true } }); const id = h.submit()
   const r = await h.drive({ until: () => !!h.ledger.getSuspension(id), maxRounds: 400 }); assert.ok(r.done); assert.match(h.ledger.getSuspension(id).cause, /CI_RESULT_MISSING|CI_PENDING_TOO_LONG/); h.close()
 })
+
+test('re-verification M-1: a MISSING main is not eligible; the package is only issued while main IS the base; currentEligibility returns what it observed (the pin for the merge)', async () => {
+  const h = await harness(); const id = h.submit(); await toEligible(h, id)
+  const ok = await h.delivery.currentEligibility(id); assert.equal(ok.eligible, true); assert.equal(ok.observed.candidate_sha, h.ledger.getTask(id).head_sha); assert.equal(ok.observed.pr_head_sha, ok.observed.candidate_sha); assert.equal(ok.observed.main, h.ledger.currentBase(id)); assert.ok(ok.observed.observed_at > 0)
+  const p = pkgOf(h, id).package; assert.equal(p.main_at_verification, h.ledger.currentBase(id)); assert.equal(el(h, id).eligible, true)
+  h.github.s.main = null; h.github.s.refLog.main = []; h.github.save()
+  const e = await h.delivery.currentEligibility(id); assert.equal(e.eligible, false); assert.ok(e.problems.includes('MAIN_ADVANCED'), e.problems.join())
+  h.github.advanceMain('e'.repeat(40)); assert.equal((await h.issuers.delivery_verifier.handle('issue_delivery_verification', { task_id: id })).code, 'ISSUER.MAIN_NOT_THE_BASE')
+  // a held package whose recorded main / PR / branch / fencing differ from THIS delivery is not eligible
+  const key = `delivery_package:${id}:${h.ledger.getTask(id).head_sha}`; const held = JSON.parse(h.ledger.meta(key)); const base = h.ledger.currentBase(id)
+  for (const [field, value, problem] of [['main_at_verification', 'f'.repeat(40), 'PACKAGE_MAIN_NOT_THE_BASE'], ['pr_number', 99999, 'PACKAGE_NOT_THIS_DELIVERY'], ['branch', 'dh3/other', 'PACKAGE_NOT_THIS_DELIVERY'], ['fencing_token', 99, 'PACKAGE_NOT_THIS_DELIVERY']]) {
+    const forged = structuredClone(held); forged.package[field] = value; h.ledger.setMeta(key, JSON.stringify(forged)); assert.ok(el(h, id).problems.some((x) => x === problem || x.startsWith('PACKAGE_')), `${field}: ${el(h, id).problems.join()}`)
+  }
+  void base; h.close()
+})
+
+test('re-verification O-1: successors are BOUNDED and the bound ends in an explicit refusal and a technical suspension — never an internal error or an endless wait', async () => {
+  const h = await harness(); const id = h.submit(); await toEligible(h, id); let last = null
+  for (let k = 0; k < 12; k += 1) { last = await h.delivery.accept(h.issuers.delivery_verifier, 'issue_staging_gate', { task_id: id }); if (!last.ok) break; h.ledger.invalidateEvidence(last.evidence_id) }
+  assert.equal(last.code, 'ISSUER.SUCCESSOR_BUDGET_EXHAUSTED'); const r = h.delivery.wait(id, last.code); assert.equal(r.action, 'technically_suspended'); assert.equal(h.ledger.getSuspension(id).cause, 'ISSUER.SUCCESSOR_BUDGET_EXHAUSTED'); h.close()
+})

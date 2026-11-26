@@ -116,7 +116,10 @@ export function deliveryEligibility(L, policy, taskId) {
     const listed = Array.isArray(held.package?.evidence) ? held.package.evidence : []
     for (const type of need) if (!listed.some((e) => e.type === type)) problems.push(`PACKAGE_INCOMPLETE:${type}`)
     const usable = new Map(usableEvidence(L, taskId, policy).map((r) => [r.evidence_id, r]))
-    for (const e of listed) { const row = usable.get(e.evidence_id); if (!row || !isSatisfying(row.envelope.payload) || row.payload_digest !== e.digest) problems.push(`PACKAGE_EVIDENCE_NOT_CURRENT:${e.type}`) }
+    for (const e of listed) { const row = usable.get(e.evidence_id); if (!row || row.evidence_type !== e.type || !isSatisfying(row.envelope.payload) || row.payload_digest !== e.digest) problems.push(`PACKAGE_EVIDENCE_NOT_CURRENT:${e.type}`) }
+    const dl = L.delivery(taskId); const p = held.package
+    if (p.main_at_verification !== base) problems.push('PACKAGE_MAIN_NOT_THE_BASE')
+    if (!dl || p.pr_number !== dl.pr_number || p.branch !== dl.branch || p.fencing_token !== t.fencing_token) problems.push('PACKAGE_NOT_THIS_DELIVERY')
     let digest = null; try { digest = digestOf(held.package) } catch { digest = null }
     if (digest === null || digest !== held.package_digest || held.package.candidate_sha !== t.head_sha || held.package.base_sha !== base || held.package.policy_revision !== policy.revision) problems.push('PACKAGE_NOT_THIS_CANDIDATE')
     else if (ev.delivery_verification && ev.delivery_verification.envelope.payload.idempotency_id !== `dvp-${digest.slice(0, 48)}`) problems.push('PACKAGE_NOT_THE_VERIFIED_ONE')

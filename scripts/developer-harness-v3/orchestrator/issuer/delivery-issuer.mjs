@@ -83,13 +83,14 @@ export class DeliveryIssuer {
     if (!Object.hasOwn(this.policy.contract.evidence_types, type)) return refuse('ISSUER.EVIDENCE_TYPE_NOT_IN_POLICY')
     if (!this.policy.contract.evidence_types[type].issuers.includes(this.identity)) return refuse('ISSUER.NOT_AN_ISSUER_OF_TYPE')
     let key = subjectKey
-    for (let i = 1; i < 8; i += 1) {
+    for (let i = 0; ; i += 1) {
+      if (i >= 8) return refuse('ISSUER.SUCCESSOR_BUDGET_EXHAUSTED') // bounded: the controller turns this into a technical suspension
+      key = i === 0 ? subjectKey : `${subjectKey}#r${i}`
       const prior = this.store.prepare('SELECT envelope_json FROM issued WHERE subject_key=?').get(key); if (!prior) break
       const env = JSON.parse(prior.envelope_json)
       // F1 remediation (review M1): an unexpired envelope the controller's ledger has INVALIDATED (a withdrawn result) is never served again — recovery issues a SUCCESSOR subject from THIS read; an envelope the ledger has not seen, or still holds, is the same duplicate as before
       const inv = this.ledger.db.prepare('SELECT invalidated_at FROM evidence WHERE evidence_id=?').get(env.payload.evidence_id)
       if (Date.parse(env.payload.expires_at) > this.clock() && (!inv || inv.invalidated_at === null)) return { ok: true, duplicate: true, envelope: env }
-      key = `${subjectKey}#r${i}`
     }
     const now = this.clock(); const ttl = Math.min(TTL_MS[type] ?? 3600_000, this.policy.contract.evidence_types[type].max_ttl_seconds * 1000); const stamp = h(key)
     const payload = { evidence_id: `ev-${type}-${stamp.slice(0, 24)}`, evidence_type: type, issuer_identity: this.identity, task_id: t.task_id, repository: t.repository, policy_revision: this.policy.revision,
@@ -201,6 +202,7 @@ export class DeliveryIssuer {
     }
     const r = this.#remote(x)
     if (!this.#ownedPr(x, r) || r.pr.head_sha !== x.c.candidate_sha || r.ref !== x.c.candidate_sha) return refuse('ISSUER.PR_HEAD_NOT_CANDIDATE')
+    if (r.main !== x.base) return refuse('ISSUER.MAIN_NOT_THE_BASE') // the strict main ruleset: a package is only issued for a candidate that is up to date with main
     const ci = ciState(r.view, { head_sha: x.c.candidate_sha, head_branch: r.branch, pr_number: r.pr?.number }); if (ci.overall !== 'success') return refuse('ISSUER.CI_NOT_SUCCESSFUL', ci.overall)
     const g = stagingGate(r.view, { head_sha: x.c.candidate_sha, pr_number: r.pr.number }); if (g.state !== 'success') return refuse(g.problem === 'STAGING.PROVENANCE_MISMATCH' ? 'ISSUER.STAGING_PROVENANCE_MISMATCH' : 'ISSUER.STAGING_NOT_SUCCESSFUL', g.state) // same provenance rule as the staging-gate issuance (F1)
     const pkg = { schema: 'patelrep.developer-harness-v3.delivery-verification-package', version: 1, simulated: true, task_id, repository: x.t.repository, base_sha: x.base, candidate_sha: x.c.candidate_sha, tree_digest: x.c.tree_digest,

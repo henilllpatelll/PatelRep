@@ -19,7 +19,7 @@ export const ABSENCE_RULE = Object.freeze({ minReads: 2, settleMs: 60_000, gapMs
 
 /** Actions the remote does NOT protect against a late duplicate (no compare-and-swap, not idempotent): a delayed server-side effect landing after a retry would duplicate it, so absence needs a much longer settle window. */
 export const ABSENCE_RULE_NO_CAS = Object.freeze({ minReads: 2, settleMs: 10 * 60_000, gapMs: 30_000 })
-export const NO_CAS_ACTIONS = Object.freeze(['update_pull_request_metadata', 'dispatch_staging_candidate'])
+export const NO_CAS_ACTIONS = Object.freeze(['update_pull_request_metadata', 'rerun_ci_jobs', 'dispatch_staging_candidate']) // GitHub's re-run API has no attempt precondition: the simulator's attempt check is NOT a guarantee a live remote gives
 const STATES = ['present', 'absent', 'conflict', 'rejected']
 const SUBJECT = (x) => typeof x === 'string' && /^[a-z_]{2,40}:[A-Za-z0-9._:/#@+-]{1,200}$/.test(x)
 const detailOk = (d) => { try { return isPlainObject(d) && Buffer.byteLength(canonicalize(d)) <= 32768 } catch { return false } }

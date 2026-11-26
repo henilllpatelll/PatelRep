@@ -24,7 +24,7 @@ test('expected checks are DERIVED from the trusted workflow files and must equal
 })
 
 test('aggregation is EXACT-HEAD: wrong app (spoofed), wrong workflow/event/branch, an older head, a stale attempt, duplicates, skipped and missing are never success', () => {
-  const run = (id, o = {}) => ({ id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H1, head_branch: 'dh3/t', attempt: 1, status: 'completed', conclusion: 'success', created_at: id, ...o })
+  const run = (id, o = {}) => ({ id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H1, head_branch: 'dh3/t', attempt: 1, status: 'completed', conclusion: 'success', created_at: id, ...(o.attempt > 1 ? { started_at: id + 5 } : {}), ...o })
   const chk = (id, runId, o = {}) => ({ id, name: 'CI Gate', head_sha: H1, app_id: ACTIONS_APP_ID, run_id: runId, attempt: 1, status: 'completed', conclusion: 'success', ...o })
   const s = (runs, checks, head = H1) => checkState({ runs, checks }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: head, head_branch: 'dh3/t' }).state
   assert.equal(s([run(1)], [chk(10, 1)]), 'success')

@@ -202,7 +202,7 @@ export class DeliveryController {
     L.recordRecovery(i.task_id, 'effect_unresolved_retained', { intent_id: i.intent_id, action: i.action, code })
     enqueueOutbox(L, { taskId: i.task_id, kind: 'delivery_status', dedupeKey: `delivery:${i.task_id}:effect_unresolved:${i.intent_id}`, payload: { task_id: i.task_id, milestone: 'effect_unresolved', intent_id: i.intent_id, action: i.action, simulated: true, retained: true, retry: 'NEVER until safe absence or presence is proven' } })
   }
-  wait(taskId, code, { at = null } = {}) { schedulePoll(this.L, taskId, 'delivery', { baseMs: this.cfg.pollBaseMs, maxMs: this.cfg.pollMaxMs, code, at }); return { progressed: false, waiting: code } }
+  wait(taskId, code, { at = null } = {}) { if (code === 'ISSUER.SUCCESSOR_BUDGET_EXHAUSTED') return this.suspend(taskId, code, [code]); schedulePoll(this.L, taskId, 'delivery', { baseMs: this.cfg.pollBaseMs, maxMs: this.cfg.pollMaxMs, code, at }); return { progressed: false, waiting: code } }
 
   async step(taskId) {
     const L = this.L; const t = L.getTask(taskId)
@@ -220,6 +220,7 @@ export class DeliveryController {
     if (t.state === 'publishing') return this.publishing(t, d)
     if (d.ref !== t.head_sha || (d.pr && d.pr.head_sha !== t.head_sha)) return this.wait(taskId, 'REMOTE_HEAD_NOT_YET_VISIBLE') // eventual consistency: the push is ours (checked above); wait
     // F1: a result the approvals rest on may have been SUPERSEDED by a newer applicable run of the same SHA (pending, failed, cancelled, or just a different run): withdraw what rested on it NOW
+    if (d.main && d.main !== L.currentBase(taskId) && ['staging_verification', 'merge_eligible'].includes(t.state)) return this.baseUpdate(t, d, 'MAIN_ADVANCED') // STRICT main ruleset: a newer main needs a new, re-verified candidate
     if (this.withdrawIfSuperseded(t, d)) return P('eligibility_withdrawn')
     if (t.state === 'ci_running') return this.ciRunning(t, d)
     if (t.state === 'staging_verification') return this.staging(t, d)
@@ -244,8 +245,9 @@ export class DeliveryController {
       const remote = []
       if (d.ref !== t.head_sha || d.pr?.head_sha !== t.head_sha) remote.push('REMOTE_HEAD_NOT_CANDIDATE')
       if (!d.owned_pr) remote.push('PR_NOT_OWNED'); else if (d.pr.draft) remote.push('PR_DRAFT')
-      if (d.main && d.main !== this.L.currentBase(taskId)) remote.push('MAIN_ADVANCED') // the main ruleset is strict: a newer main needs a new candidate
-      const r = deliveryEligibility(this.L, this.policy, taskId); return remote.length ? { eligible: false, problems: [...remote, ...r.problems] } : r
+      if (d.main !== this.L.currentBase(taskId)) remote.push('MAIN_ADVANCED') // strict main ruleset; a MISSING main is not eligible either
+      const r = deliveryEligibility(this.L, this.policy, taskId); const observed = { candidate_sha: t.head_sha, pr_head_sha: d.pr?.head_sha ?? null, main: d.main ?? null, observed_at: o.observation.observed_at } // D3.7 pins its merge to THESE (the merge API's sha=)
+      return { eligible: r.eligible && !remote.length, problems: [...remote, ...r.problems], observed }
     }
     return deliveryEligibility(this.L, this.policy, taskId)
   }
@@ -371,7 +373,7 @@ export class DeliveryController {
     const L = this.L; const id = t.task_id
     const p = await this.issuePackage(t); if (!p.ok) return p.refused ? this.afterEffect(id, 'delivery_verification', p.refused) : this.wait(id, p.wait.code)
     const a = p.a
-    const x = L.tx(() => { const r = L.transition(id, 'merge_eligible'); if (r.ok) { reach(L, id, 'merge_eligible', { evidenceRef: a.evidence_id }); this.holdPackage(t, a); recordBasisFromPackage(L, id, a.issued.package); clearWithdrawal(L, id) } return r })
+    const x = L.tx(() => { const r = L.transition(id, 'merge_eligible'); if (r.ok) { if (!reach(L, id, 'merge_eligible', { evidenceRef: a.evidence_id }).ok) throw new Error('MILESTONE.NOT_REACHABLE'); this.holdPackage(t, a); recordBasisFromPackage(L, id, a.issued.package); clearWithdrawal(L, id) } return r })
     if (!x.ok) return this.wait(id, x.problems[0])
     await this.maybeReleaseStaging(id, 'STAGING_VERIFIED')
     await this.ensureReady(t) // review O5: marked ready AFTER the eligibility transition; re-ensured on every merge_eligible step
@@ -392,13 +394,12 @@ export class DeliveryController {
   // ------------------------------------------------------------------ merge_eligible: monitored, never merged
   async mergeEligible(t, d) {
     const L = this.L; const id = t.task_id
-    if (d.main && d.main !== L.currentBase(id)) return this.baseUpdate(t, d, 'MAIN_ADVANCED') // the main ruleset is STRICT (up to date before merge): a newer main needs a new, re-verified candidate
     const pr = d.pr; if (pr?.draft) { const r = await this.ensureReady(t); if (r && r.status !== 'succeeded') return this.afterEffect(id, 'mark_ready', r) }
     // F1: after a withdrawal (authoritative lifecycle: the task stays here with NO valid evidence) or an expiry, re-verify the LATEST green results into a FRESH package
     if (withdrawalOf(L, id) || deliveryEligibility(L, this.policy, id).problems.some((p) => /^(EVIDENCE_NOT_CURRENT|PACKAGE_|MILESTONE_NOT_CURRENT|RESULT_BASIS_MISSING)/.test(p))) return this.restore(t, d)
     return this.wait(id, 'MERGE_ELIGIBLE_AWAITING_D37', { at: L.now() + this.cfg.mergeEligibleRecheckMs })
   }
-  /** The latest results are not green: wait, BOUNDED. Past 2 x ciMissingGraceMs the task is technically suspended (which also releases a shared-staging hold the task no longer uses) — never an indefinite wait that blocks every other task. */
+  /** Latest results not green: wait, BOUNDED (past 2 x ciMissingGraceMs a technical suspension, which also releases an unused shared-staging hold) — never an endless wait. */
   holdForCurrent(t, d, kind) {
     const L = this.L; const id = t.task_id; const key = `eligibility_hold_since:${id}:${t.head_sha}:${kind}`; const since = Number(L.meta(key) ?? 0) || (L.setMeta(key, String(L.now())), L.now())
     if (L.now() - since > this.cfg.ciMissingGraceMs * 2) return this.suspend(id, kind === 'ci_not_current' ? 'CI_NOT_CURRENT_UNRECOVERED' : 'MERGE_ELIGIBILITY_NOT_RECOVERED', [`CI:${d.ci?.overall ?? 'unavailable'}`, `STAGING:${d.staging?.state ?? 'unavailable'}`], { howToResume: 'A newer CI or staging run of this exact candidate superseded its results and has not recovered. The authoritative lifecycle cannot step the task back (proposal P6v3 adds the edges); fix or re-run the failing workflow, then resume.' })
@@ -418,7 +419,7 @@ export class DeliveryController {
     if (!this.have(id, 'ci_gate') || resultBasis(L, id, 'ci') === null) { const a = await this.accept(this.verifier, 'issue_ci_gate', { task_id: id }); if (!a.ok) return this.wait(id, a.code); reach(L, id, 'ci_verified', { evidenceRef: a.evidence_id }); recordBasis(L, id, 'ci', d) }
     if (!this.have(id, 'staging_gate') || resultBasis(L, id, 'staging') === null) { const a = await this.accept(this.verifier, 'issue_staging_gate', { task_id: id }); if (!a.ok) return this.wait(id, a.code); reach(L, id, 'staging_verified', { evidenceRef: a.evidence_id }); recordBasis(L, id, 'staging', d) }
     const p = await this.issuePackage(t); if (!p.ok) return p.refused ? this.afterEffect(id, 'delivery_verification', p.refused) : this.wait(id, p.wait.code)
-    L.tx(() => { reach(L, id, 'merge_eligible', { evidenceRef: p.a.evidence_id }); this.holdPackage(t, p.a); recordBasisFromPackage(L, id, p.a.issued.package); clearWithdrawal(L, id); this.clearHolds(t) })
+    L.tx(() => { if (!reach(L, id, 'merge_eligible', { evidenceRef: p.a.evidence_id }).ok) throw new Error('MILESTONE.NOT_REACHABLE'); this.holdPackage(t, p.a); recordBasisFromPackage(L, id, p.a.issued.package); clearWithdrawal(L, id); this.clearHolds(t) })
     this.status(id, 'merge_eligibility_restored', { package_digest: p.a.issued.package_digest, merge: 'NOT PERFORMED (D3.6 has no merge authority)' })
     return P('merge_eligibility_restored')
   }
@@ -474,7 +475,7 @@ export class DeliveryController {
     if (o.state === 'unresolved' && !unresolvedIntent && own.length === 0) resolveStaging(this.L, taskId, { observedIdle: true }) // review O3: an unresolved hold becomes releasable only with proof
     releaseStaging(this.L, taskId, { observedIdle: own.length === 0, basis })
   }
-  suspend(taskId, cause, codes = [], extra = {}) { suspendTechnically(this.e, taskId, { cause, stage: this.L.getTask(taskId).state, codes, ...extra }); return P('technically_suspended') }
+  suspend(taskId, cause, codes = [], extra = {}) { this.clearHolds(this.L.getTask(taskId)); suspendTechnically(this.e, taskId, { cause, stage: this.L.getTask(taskId).state, codes, ...extra }); return P('technically_suspended') }
   ownerBlock(taskId, code) { this.e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [`OWNER_DECISION_REQUIRED:${code}`] }); return P('owner_blocked') }
   status(taskId, milestone, payload) { enqueueOutbox(this.L, { taskId, kind: 'delivery_status', dedupeKey: `delivery:${taskId}:${milestone}:${this.L.getTask(taskId).head_sha}${payload.package_digest ? `:${String(payload.package_digest).slice(0, 16)}` : ''}`, payload: { task_id: taskId, milestone, candidate_sha: this.L.getTask(taskId).head_sha, simulated: true, ...payload } }) }
 }

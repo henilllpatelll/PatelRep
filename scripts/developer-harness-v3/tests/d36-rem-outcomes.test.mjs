@@ -136,7 +136,7 @@ test('F2: the watchdog\'s START record is not best effort — a request nobody r
 
 test('review O3/O4 (Opus): actions the remote does NOT protect against a late duplicate (no compare-and-swap) need a much longer absence window; an ABSENT read can never come from the future', async () => {
   const { ABSENCE_RULE_NO_CAS, NO_CAS_ACTIONS, absenceProven } = await import('../orchestrator/delivery/observation.mjs')
-  assert.deepEqual([...NO_CAS_ACTIONS].sort(), ['dispatch_staging_candidate', 'update_pull_request_metadata'], 'exactly the actions the simulator does not protect with CAS / idempotency (push, PR creation, re-run, ready are protected)')
+  assert.deepEqual([...NO_CAS_ACTIONS].sort(), ['dispatch_staging_candidate', 'rerun_ci_jobs', 'update_pull_request_metadata'], 'the actions a LIVE remote does not protect with a precondition (push expected_old, one open PR per head and idempotent ready are)')
   assert.ok(ABSENCE_RULE_NO_CAS.settleMs >= 10 * 60_000 && ABSENCE_RULE_NO_CAS.settleMs > ABSENCE_RULE.settleMs)
   const rows = (...at) => at.map((t, k) => ({ state: 'absent', read_id: `r${k}`, observed_at: t }))
   assert.equal(absenceProven(rows(61_000, 92_000), 0).proven, true, 'the ordinary rule')

@@ -5,7 +5,8 @@ import assert from 'node:assert/strict'
 import { ACTIONS_APP_ID, WORKFLOWS, checkState, ciState, requiredCiChecks, stagingGate } from '../orchestrator/delivery/required-checks.mjs'
 
 const H = 'a'.repeat(40); const BR = 'dh3/t'
-const run = (id, o = {}) => ({ id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H, head_branch: BR, pr_number: 7, attempt: 1, status: 'completed', conclusion: 'success', created_at: id * 10, ...o })
+// a re-run (attempt > 1) always carries its start time (the reader supplies it); the malformed-field tests below set it explicitly
+const run = (id, o = {}) => { const r = { id, workflow: WORKFLOWS.ci, event: 'pull_request', head_sha: H, head_branch: BR, pr_number: 7, attempt: 1, status: 'completed', conclusion: 'success', created_at: id * 10, ...o }; if (r.attempt > 1 && !Object.hasOwn(o, 'started_at')) r.started_at = r.created_at + 5; return r }
 const chk = (id, runId, o = {}) => ({ id, name: 'CI Gate', head_sha: H, app_id: ACTIONS_APP_ID, run_id: runId, attempt: 1, status: 'completed', conclusion: 'success', ...o })
 const state = (runs, checks, o = {}) => checkState({ runs, checks }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: H, head_branch: BR, ...o })
 
@@ -70,7 +71,7 @@ test('F1: the required-CI aggregate follows the same rule per check, and an outs
 })
 
 // ---------------------------------------------------------------- staging: the same rule, plus PR association and provenance in ONE shared function
-const srun = (id, o = {}) => ({ id, workflow: WORKFLOWS.staging, event: 'workflow_run', head_sha: H, pr_number: 7, attempt: 1, status: 'completed', conclusion: 'success', created_at: id * 10, ...o })
+const srun = (id, o = {}) => { const r = { id, workflow: WORKFLOWS.staging, event: 'workflow_run', head_sha: H, pr_number: 7, attempt: 1, status: 'completed', conclusion: 'success', created_at: id * 10, ...o }; if (r.attempt > 1 && !Object.hasOwn(o, 'started_at')) r.started_at = r.created_at + 5; return r }
 const sgate = (id, runId, o = {}) => ({ id, name: 'Staging Gate', head_sha: H, app_id: ACTIONS_APP_ID, run_id: runId, attempt: 1, status: 'completed', conclusion: 'success', details_url: `sim://runs/${runId}`, ...o })
 const gate = (runs, checks, o = {}) => stagingGate({ runs, checks }, { head_sha: H, pr_number: 7, ...o })
 
@@ -119,4 +120,15 @@ test('review O6: CI runs are scoped to the task\'s PR — a same-branch same-SHA
 test('review (provenance URL): a Staging Gate whose details point at ANOTHER host is not provenance', () => {
   const g = (url) => stagingGate({ runs: [srun(1)], checks: [sgate(10, 1, { details_url: url })] }, { head_sha: H, pr_number: 7 }).state
   assert.equal(g('https://github.com/henilllpatelll/PatelRep/actions/runs/1'), 'success'); assert.equal(g('https://evil.example/actions/runs/1'), 'missing'); assert.equal(g('https://github.com.evil.example/o/r/actions/runs/1'), 'missing')
+})
+
+test('re-verification M-2: a MALFORMED ordering field (non-numeric / null / ISO started_at, a future timestamp, a missing or invalid attempt, a re-run without its start time) fails closed — it never revives a stale run\'s decision', () => {
+  const young = run(2, { created_at: 20 }); const rerun = (o) => run(1, { created_at: 10, attempt: 2, status: 'in_progress', conclusion: null, started_at: 100, ...o })
+  const s = (runs, view = {}) => checkState({ runs, checks: [chk(10, 1, { attempt: 1 }), chk(11, 2)], ...view }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: H, head_branch: BR }).state
+  assert.equal(s([rerun({}), young]), 'pending', 'control: numeric started_at')
+  for (const bad of ['5000', '2026-11-26T10:00:00Z', null, undefined, NaN, Infinity]) assert.equal(s([rerun({ started_at: bad }), young]), 'ambiguous', `started_at=${String(bad)} on a re-run`)
+  assert.equal(s([run(1, { created_at: 10, started_at: '5000' }), young]), 'ambiguous', 'a present-but-malformed started_at, even on attempt 1')
+  assert.equal(s([run(1, { created_at: 10, started_at: 9e15, conclusion: 'success' }), run(2, { created_at: 20, conclusion: 'failure' })], { at: 1000 }), 'ambiguous', 'a timestamp from the far future')
+  for (const bad of [undefined, 0, -1, 1.5, '1']) assert.equal(s([run(1, { created_at: 10, attempt: bad }), young]), 'ambiguous', `attempt=${String(bad)}`)
+  assert.equal(s([run(1, { created_at: 10 }), young], { at: 1000 }), 'success', 'timestamps within the view\'s time are fine')
 })
