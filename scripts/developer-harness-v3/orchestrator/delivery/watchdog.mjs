@@ -20,7 +20,7 @@ export async function withDeadline(L, { opId, taskId = null, kind, ms, holds = [
   const ac = new AbortController(); let timer = null
   const p = Promise.resolve().then(() => fn(ac.signal))
   const late = (state) => row(L, opId, { sql: 'UPDATE operation_deadlines SET state=?, settled_at=? WHERE op_id=?', args: [state, L.now(), opId] })
-  const t = new Promise((res) => { timer = setTimeout(() => res(TIMEOUT), ms); timer.unref?.() })
+  const t = new Promise((res) => { timer = setTimeout(() => res(TIMEOUT), ms) }) // referenced on purpose (Node 22 ends the loop on an unref'd-only wait); cleared on settlement
   const r = await Promise.race([p.then((value) => ({ value }), (error) => ({ error })), t])
   if (r === TIMEOUT) {
     ac.abort()
