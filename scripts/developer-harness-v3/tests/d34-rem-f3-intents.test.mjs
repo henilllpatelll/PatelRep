@@ -124,3 +124,7 @@ test('F3/F5/F6/F4 schema: a V1 ledger migrates to V2 in place (data kept, constr
   assert.deepEqual(L.db.prepare("SELECT name FROM pragma_table_info('action_intents') WHERE name IN ('tree_digest','lease_id','superseded_by','supersedes') ORDER BY name").all().map((r) => r.name), ['lease_id', 'superseded_by', 'supersedes', 'tree_digest'])
   L.close(); const ro = Ledger.openReadOnly(file, { clock: () => NOW }); assert.equal(ro.db.prepare('SELECT COUNT(*) c FROM outbox').get().c, 2); ro.close()
 })
+
+test('F3: duplicate evidence ids in one intent are ONE authorization, not a consumption race', () => {
+  const S = setup(); const ids = S.fresh(); const i = begin(S, [...ids, ...ids]); assert.ok(i.ok, JSON.stringify(i)); assert.equal(JSON.parse(i.intent.evidence_ids_json).length, 2); assert.ok(dispatch(S, i.intent.intent_id).ok); S.L.close()
+})

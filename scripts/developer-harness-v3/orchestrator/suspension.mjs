@@ -11,6 +11,7 @@
 //     one notification says so. `resumeSuspended` starts a fresh budget (an operator convenience, not a permission);
 //   * every suspension is one deduplicated outbox notification with actionable diagnostics.
 import { enqueueOutbox } from './ledger/intents.mjs'
+import { GOVERNOR_DEFAULTS } from '../runtime/subscription-governor.mjs'
 
 // Every cool-down is SHORTER than the extra-usage fact lifetime (GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms = 6 h): a resume after a cool-down must not need the owner to re-verify billing safety, because the
 // fact is refreshed only by a session's own provider stream (doc 07). A test pins this invariant.
@@ -24,7 +25,9 @@ export const epochOf = (L, taskId) => Number(L.meta(`epoch:${taskId}`) ?? 0)
 const floorOf = (L, taskId) => JSON.parse(L.meta(`epoch_floor:${taskId}`) ?? '{"rec":0,"rev":0}')
 const setFloor = (L, taskId) => L.setMeta(`epoch_floor:${taskId}`, JSON.stringify({ rec: L.db.prepare('SELECT COALESCE(MAX(recovery_id),0) m FROM recovery_history').get().m, rev: L.db.prepare('SELECT COALESCE(MAX(rowid),0) m FROM reviews').get().m }))
 
-export const sessionsUsed = (L, taskId) => L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c
+/** Sessions bought in the CURRENT generation: `resumeSuspended` starts a new generation, so an operator's fresh budget really is fresh. */
+export const sessionsUsed = (L, taskId) => L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c - Number(L.meta(`session_offset:${taskId}`) ?? 0)
+const generationOf = (L, taskId) => Number(L.meta(`suspension_gen:${taskId}`) ?? 0)
 export const recordsInEpoch = (L, taskId, kind) => L.db.prepare('SELECT COUNT(*) c FROM recovery_history WHERE task_id=? AND kind=? AND recovery_id>?').get(taskId, kind, floorOf(L, taskId).rec).c
 export const reviewRoundsInEpoch = (L, taskId, kind) => L.db.prepare("SELECT COUNT(*) c FROM reviews WHERE task_id=? AND kind=? AND rowid>? AND status IN ('verified_pass','verified_fail','submitted')").get(taskId, kind, floorOf(L, taskId).rev).c
 
@@ -49,7 +52,12 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
     const now = L.now(); const epoch = epochOf(L, taskId) + 1
     const terminal = epoch > c.maxEpochs || cause === 'SESSION_BUDGET_EXHAUSTED'
     const base = c.cooldownsMs[Math.min(epoch - 1, c.cooldownsMs.length - 1)]
-    const retryAt = terminal ? null : now + base + Math.round(base * 0.1 * e.rng())
+    let cool = base + Math.round(base * 0.1 * e.rng())
+    // The cool-down must also end while the extra-usage fact is still fresh (it ages from the LAST provider stream, not from the suspension): clamp it, with a 10-minute floor.
+    const verifiedAt = e.adapters.subscription?.load?.()?.extra_usage?.verified_at
+    const room = Number.isFinite(verifiedAt) && verifiedAt <= now ? GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms - (now - verifiedAt) - 10 * 60_000 : null // an ALREADY-stale fact cannot be saved by waiting less
+    if (room !== null && room > 0) cool = Math.min(cool, Math.max(10 * 60_000, room))
+    const retryAt = terminal ? null : now + cool
     const t = L.getTask(taskId)
     const budgets = L.db.prepare('SELECT stage, fingerprint, attempts FROM retry_budgets WHERE task_id=? ORDER BY stage, fingerprint').all(taskId).map((r) => ({ stage: r.stage, fingerprint: r.fingerprint, attempts: r.attempts }))
     const recent = L.recoveryHistory(taskId).filter((x) => x.kind === 'stage_failure').slice(-5).map((x) => ({ stage: x.detail.stage, code: x.detail.code, fingerprint: x.detail.fingerprint }))
@@ -59,7 +67,7 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
     L.setSuspension(taskId, { epoch, disposition: terminal ? 'terminal' : 'cooling_down', cause, stage, retryAt, diagnostics })
     L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) // the next epoch starts with fresh per-fingerprint budgets (the lifetime caps above do NOT reset)
     L.recordRecovery(taskId, 'technical_suspension', { epoch, cause, stage, disposition: terminal ? 'terminal' : 'cooling_down', retry_at: retryAt })
-    enqueueOutbox(L, { taskId, kind: 'technical_suspension', dedupeKey: `suspension:${taskId}:${epoch}`, payload: { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
+    enqueueOutbox(L, { taskId, kind: 'technical_suspension', dedupeKey: `suspension:${taskId}:g${generationOf(L, taskId)}:${epoch}`, payload: { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
       automatic_resume_at: retryAt, diagnostics, how_to_resume: terminal ? 'Automatic engineering has stopped for this task (its retry and session budgets are spent). Inspect the diagnostics, then resume with a fresh budget (engine.resumeSuspended) — this is not a permission decision.'
         : 'No action needed: the task resumes automatically at automatic_resume_at with a stronger/different strategy. It can be resumed earlier with engine.resumeSuspended.' } })
     return L.getSuspension(taskId)
@@ -79,6 +87,6 @@ export function suspensionAllowsRun(e, taskId) {
 export function resumeSuspended(e, taskId) {
   const L = e.ledger; const s = L.getSuspension(taskId)
   if (!s) return { ok: false, problems: ['SUSPENSION.NONE'] }
-  L.tx(() => { L.clearSuspension(taskId); L.setMeta(`epoch:${taskId}`, 0); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
+  L.tx(() => { L.clearSuspension(taskId); L.setMeta(`epoch:${taskId}`, 0); L.setMeta(`suspension_gen:${taskId}`, generationOf(L, taskId) + 1); L.setMeta(`session_offset:${taskId}`, L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
   return { ok: true }
 }

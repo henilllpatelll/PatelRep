@@ -106,10 +106,10 @@ test('a reviewer that modifies the candidate (read-only violated) is detected by
   assert.equal(h.ledger.getTask(id).handoff_ready, 1, 'a clean second review then succeeds'); h.close()
 })
 
-test('mandatory security review is NEVER downgraded: a substituted (wrong) actual model fails the stage, no evidence is issued, and repeated substitution becomes ONE genuine blocker', async () => {
+test('mandatory security review is NEVER downgraded: a substituted (wrong) actual model fails the stage, no evidence is issued, and repeated substitution becomes a bounded TECHNICAL suspension (terminal after its epochs), never an owner blocker', async () => {
   const h = H({ scenario: { stages: { security_review: [{ actualModel: 'sonnet' }] } } }); const id = h.submit(); await drive(h)
-  const t = h.ledger.getTask(id); assert.equal(t.state, 'blocked'); assert.equal(h.ledger.db.prepare("SELECT COUNT(*) c FROM evidence WHERE evidence_type='security_review'").get().c, 0)
-  assert.ok(h.ledger.recoveryHistory(id).filter((x) => x.kind === 'stage_failure' && x.detail.code === 'ROUTE.MODEL_SUBSTITUTED').length >= 2); assert.equal(owner(h).blockerRows, 1)
+  const t = h.ledger.getTask(id); assert.notEqual(t.state, 'blocked'); assert.equal(h.ledger.getSuspension(id).disposition, 'terminal'); assert.equal(h.ledger.db.prepare("SELECT COUNT(*) c FROM evidence WHERE evidence_type='security_review'").get().c, 0)
+  assert.ok(h.ledger.recoveryHistory(id).filter((x) => x.kind === 'stage_failure' && x.detail.code === 'ROUTE.MODEL_SUBSTITUTED').length >= 2); assert.equal(owner(h).blockerRows, 0)
   for (const e of execs(h, id).filter((x) => x.role === 'security_reviewer')) assert.equal(e.model_requested, 'opus', 'never requested anything weaker'); h.close()
 })
 

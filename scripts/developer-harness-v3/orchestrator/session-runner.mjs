@@ -68,7 +68,7 @@ export async function runSessionStage(e, taskId, spec) {
       e.hook('after_unit', { taskId })
       const before = tel.assistant_messages
       for (const line of unit.lines ?? []) if (feedLine(tel, line) === 'assistant') lastUsageAt = L.now()
-      turns += isCount(unit.turns) ? unit.turns : Math.max(0, tel.assistant_messages - before) // a hostile/garbled turn count can neither go negative nor disable the ceilings
+      turns += Math.max(isCount(unit.turns) ? unit.turns : 0, tel.assistant_messages - before) // the adapter's report can only RAISE the count above what the stream itself shows: a low or garbled number cannot weaken the ceilings
       const actual = tel.last_usage?.model ?? tel.init?.model ?? null
       L.recordTelemetry(lease.execution_id, { model_actual: actual, cli_version: tel.init?.claude_code_version ?? null, context_window: tel.context_window?.tokens ?? null, turns, telemetry: summarize(tel) })
       if (tel.context_window && tel.init?.claude_code_version) L.setMeta(`window:${tel.init.claude_code_version}:${tel.context_window.model}`, tel.context_window.tokens)
@@ -110,8 +110,7 @@ export async function runSessionStage(e, taskId, spec) {
     if (!outcome) outcome = { status: 'failed', code: 'SESSION.RUNNER_ERROR', fingerprint: fingerprint('runner', String(err?.message).slice(0, 60)) }
   }
   // A finished planning/implementing deliverable is persisted (plain data) BEFORE the session is torn down, so a crash anywhere after the session produced it —
-  // including during termination — never costs a second paid session (the stage handler consumes and clears it). REVIEW results are not persisted here: a crash
-  // between the lease close and the `submitted` transaction repeats ONE review session (documented residual, doc 18 §5).
+  // including during termination — never costs a second paid session (the stage handler consumes and clears it). REVIEW deliverables are persisted too (next block).
   if (outcome.status === 'done' && ['planning', 'implementing'].includes(spec.stage)) L.setMeta(`stage_done:${taskId}:${spec.stage}`, JSON.stringify(outcome.deliverable))
   // A finished REVIEW deliverable is ALSO durable before teardown (F6) — but UNTRUSTED: it is consumed only after termination, candidate binding, context independence and the read-only proof are verified
   // (stages.mjs `review`), and the issuer refuses a review that is not `submitted` with a verified-stopped execution. A crash anywhere after this line never costs a second paid review.
@@ -124,7 +123,7 @@ export async function runSessionStage(e, taskId, spec) {
   e.hook('after_session_terminated', { taskId })
   // The stop is VERIFIED, so the worker tree is quiescent: preserve whatever uncommitted scoped work a non-completing exit leaves behind BEFORE the slot is released (a crash in between is
   // found by recovery, which captures it atomically with the supersession). An unverified stop captures nothing now — recovery does, once cleanup is verified.
-  if (outcome.status !== 'done' && term.verified && !outcome.checkpointed) await preserveOnExit(e, taskId, { reason: `SESSION_EXIT:${outcome.status}`, stage: spec.stage, lease })
+  if (outcome.status !== 'done' && term.verified && !outcome.checkpointed && spec.readonly !== true) await preserveOnExit(e, taskId, { reason: `SESSION_EXIT:${outcome.status}`, stage: spec.stage, lease })
   const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status })
   e.hook('after_lease_closed', { taskId })
   if (!closed.ok) return { status: 'failed', code: closed.code, fingerprint: fingerprint('close', closed.code), executions }
@@ -148,13 +147,19 @@ async function buildPrompt(e, taskId, spec) {
   let checkpoint = null
   if (!spec.readonly) {
     const newest = L.latestCheckpoint(taskId, { verifiedOnly: true })
+    const liveHead = (await e.adapters.git.workerHead?.(L.getTask(taskId), null))?.head_sha ?? null
     if (newest) {
       const v = verifyCheckpoint(L, newest.checkpoint_id, { snapshotDir: resolve, stage: spec.stage })
+      // A checkpoint is a snapshot of uncommitted work ON a worker head. If the worker has COMMITTED since (the ledger head only moves when a candidate is recorded), restoring it would overlay
+      // an older tree on newer committed work: it is SUPERSEDED, never restored.
+      if (v.ok && (newest.payload.worker_head_sha ?? null) !== liveHead) { v.ok = false; v.problems = ['CHECKPOINT.SUPERSEDED_BY_WORKER_COMMIT'] }
       if (v.ok) checkpoint = newest
       else if (!L.meta(`cp_unusable:${newest.checkpoint_id}`)) { L.setMeta(`cp_unusable:${newest.checkpoint_id}`, '1'); L.recordRecovery(taskId, 'checkpoint_unusable', { checkpoint_id: newest.checkpoint_id, problems: v.problems, held_snapshot: !!newest.snapshot_ref }) }
     }
     if (!checkpoint) { // nothing usable: whatever the worktree still holds is preserved before prepareWorktree resets it
-      const cap = await captureWork(e, taskId, null); const p = persistCheckpoint(e, taskId, cap, { reason: 'PRE_RESET_PRESERVATION', stage: spec.stage })
+      const cap = await captureWork(e, taskId, null)
+      if (cap.error) return { ok: false, code: cap.error.split(':').slice(0, 2).join(':') } // work that cannot be preserved is never reset: the stage fails (bounded, budgeted) with the worktree untouched
+      const p = persistCheckpoint(e, taskId, cap, { reason: 'PRE_RESET_PRESERVATION', stage: spec.stage })
       if (p.ok && p.id && p.recorded) checkpoint = L.getCheckpoint(p.id)
     }
   }

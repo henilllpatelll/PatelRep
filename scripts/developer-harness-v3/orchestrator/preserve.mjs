@@ -15,12 +15,16 @@ export async function captureWork(e, taskId, lease = null) {
   let raw = []; let workerHead = null
   try { raw = (await e.adapters.git.captureSnapshot(task, lease)) ?? [] } catch (err) { return { files: 0, snapshot: null, quarantined: [], workerHead: null, error: `CAPTURE.FAILED:${String(err?.message).slice(0, 60)}` } }
   try { workerHead = (await e.adapters.git.workerHead?.(task, lease))?.head_sha ?? null } catch { workerHead = null }
-  const { safe, quarantined } = partitionFiles(raw, task.scope)
-  if (!safe.length) return { files: 0, snapshot: null, quarantined, workerHead }
+  let worktree = 'unknown'
+  try { worktree = (await e.adapters.git.worktreeState?.(task, lease)) ?? 'unknown' } catch { worktree = 'unknown' } // 'present' | 'missing' | 'unknown': an EMPTY capture alone cannot tell a clean tree from a gone one
+  const { safe, quarantined, unpreservable } = partitionFiles(raw, task.scope)
+  // Legitimate work that cannot be snapshotted (oversize / too many files) is NOT discarded: the capture reports an ERROR, so nothing is torn down or reset on the strength of it.
+  const tooBig = unpreservable.length ? `CAPTURE.UNPRESERVABLE_WORK:${unpreservable.length}` : null
+  if (!safe.length) return { files: 0, snapshot: null, quarantined, workerHead, worktree, ...(tooBig ? { error: tooBig } : {}) }
   const ref = `snap-${randomUUID()}`
   const made = createSnapshot({ dir: snapshotDirResolver(e.snapshotRoot)(ref), base_sha: task.base_sha, head_sha: task.head_sha, files: safe, scope: task.scope })
-  if (!made.ok) return { files: 0, snapshot: null, quarantined: [...quarantined, ...safe.map((f) => ({ path: f.path, problems: made.problems.slice(0, 3) }))], workerHead, error: made.problems[0] }
-  return { files: safe.length, snapshot: { ref, digest: made.digest }, quarantined, workerHead }
+  if (!made.ok) return { files: 0, snapshot: null, quarantined: [...quarantined, ...safe.map((f) => ({ path: f.path, problems: made.problems.slice(0, 3) }))], workerHead, worktree, error: made.problems[0] }
+  return { files: safe.length, snapshot: { ref, digest: made.digest }, quarantined, workerHead, worktree, ...(tooBig ? { error: tooBig } : {}) }
 }
 
 /**
@@ -30,11 +34,13 @@ export async function captureWork(e, taskId, lease = null) {
 export function persistCheckpoint(e, taskId, cap, { reason, stage, force = false, always = false, carry = false, notes = '' }) {
   const L = e.ledger; const resolve = snapshotDirResolver(e.snapshotRoot)
   if (cap.quarantined.length) L.recordRecovery(taskId, 'unsafe_artifacts_quarantined', { reason, artifacts: cap.quarantined.slice(0, 50).map((q) => ({ path: q.path, problems: q.problems })), count: cap.quarantined.length })
-  if (cap.error) L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { reason, problems: [cap.error] })
+  // A FAILED or INCOMPLETE capture never becomes a (possibly empty) "verified" checkpoint: that would supersede a good older snapshot and license the caller to tear the worktree down.
+  if (cap.error) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { reason, problems: [cap.error] }); return { ok: false, problems: [cap.error], recorded: true } }
   const prior = L.latestCheckpoint(taskId); const hasPriorSnapshot = !!prior?.snapshot_ref
   // RECOVERY carry-forward: a recovery bumps the fencing epoch, which (by design) makes every earlier checkpoint stale — so when the worktree itself is gone, the last checkpoint's snapshot is carried into a
   // NEW checkpoint of this epoch, but only if that earlier checkpoint is otherwise still valid (same stage, head, plan, requirements and an intact snapshot).
-  if (carry && !cap.snapshot && hasPriorSnapshot) {
+  // Only when the capture says the worktree is GONE (not merely clean) and the worker's head is exactly where the old snapshot was taken (the snapshot sits on that head, not on a later commit).
+  if (carry && !cap.snapshot && hasPriorSnapshot && cap.worktree === 'missing' && (prior.payload.worker_head_sha ?? null) === (cap.workerHead ?? null)) {
     const v = verifyCheckpoint(L, prior.checkpoint_id, { snapshotDir: resolve, stage })
     if (v.ok || v.problems.every((p) => p === 'CHECKPOINT.STALE_FENCING_TOKEN')) { cap = { ...cap, snapshot: { ref: prior.snapshot_ref, digest: prior.snapshot_digest }, files: 0 }; L.recordRecovery(taskId, 'checkpoint_carried_forward', { from: prior.checkpoint_id, snapshot: prior.snapshot_ref }) }
   }

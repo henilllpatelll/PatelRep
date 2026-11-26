@@ -56,7 +56,8 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
  * Record an intent (and consume its single-use evidence) in ONE transaction. `supersedes` names an earlier intent of this task whose effect is PROVEN absent (failed / reconciled_absent): the new
  * intent needs its OWN fresh, valid evidence (consumed evidence is never re-consumed), and the old intent becomes permanently non-retryable.
  */
-export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds = [], lease = null, policy, policyRevision = policy?.revision, candidateSha = null, supersedes = null }) {
+export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds: rawEvidenceIds = [], lease = null, policy, policyRevision = policy?.revision, candidateSha = null, supersedes = null }) {
+  const evidenceIds = [...new Set(rawEvidenceIds)] // a repeated id is one authorization, not a consumption race
   return ledger.tx(() => {
     const t = ledger.getTask(taskId)
     if (!t) return { ok: false, code: 'TASK.UNKNOWN' }

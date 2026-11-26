@@ -140,12 +140,13 @@ export class Engine {
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }
       case 'queued': {
-        if (L.deadDependencies(taskId).length) return none
+        if (L.deadDependencies(taskId).length) return this.dependencyConflict(taskId)
         if (L.openDependencies(taskId).length) { const w = L.transition(taskId, 'dependency_waiting', { reason_code: 'DEPENDENCY_TASK_OPEN' }); return w.ok ? done('dependency_waiting') : none }
         const r = L.transition(taskId, 'planning'); return r.ok ? done('planning') : none
       }
       case 'dependency_waiting': {
-        if (L.deadDependencies(taskId).length || L.openDependencies(taskId).length) return none
+        if (L.deadDependencies(taskId).length) return this.dependencyConflict(taskId)
+        if (L.openDependencies(taskId).length) return none
         const r = L.transition(taskId, L.resumeTarget(taskId)); return r.ok ? done('dependencies_satisfied') : none
       }
       case 'waiting_resources': case 'waiting_subscription': case 'waiting_external': return this.tryResume(t)
@@ -166,6 +167,13 @@ export class Engine {
       case 'publishing': return await stages.handoff(this, taskId)
       default: return none // paused, blocked (owner-only exit), stages beyond D3.4's scope
     }
+  }
+
+  /** A task whose dependency was CANCELLED can never proceed by itself: an explicit owner-level conflict with one actionable package, not an indefinite silent stall. */
+  dependencyConflict(taskId) {
+    const dead = this.ledger.deadDependencies(taskId)
+    this.applyWait(taskId, { kind: 'blocked', reason: 'UNRESOLVABLE_REQUIREMENT_CONFLICT', codes: [...dead.map((d) => `UNRESOLVABLE_REQUIREMENT_CONFLICT:DEPENDENCY_CANCELLED:${d}`)] })
+    return { progressed: true, action: 'blocked_dependency_cancelled' }
   }
 
   async tryResume(t) {

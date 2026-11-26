@@ -9,12 +9,11 @@ import { digestOf } from '../lib/canonical.mjs'
 import { matchesAny, normalizeRepoPath } from '../lib/paths.mjs'
 import { acceptEvidence, satisfyingEvidence } from './ledger/evidence-store.mjs'
 import { recordFailure, retryEligible, enqueueOutbox } from './ledger/intents.mjs'
-import { admissionOutcome, runSessionStage } from './session-runner.mjs'
+import { runSessionStage } from './session-runner.mjs'
 import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
 import { budgetExceeded, reviewRoundsInEpoch, suspendTechnically } from './suspension.mjs'
 
-void admissionOutcome
 const NONE = Object.freeze({ progressed: false })
 const PROGRESS = (action) => ({ progressed: true, action })
 const PLAN_INSTRUCTION = 'Produce a plan for the task: reply with the ordered steps needed (id, title, depends_on, covers = the indexes of the acceptance criteria the step satisfies, optional touches = path globs the step must change). EVERY acceptance criterion must be covered by at least one step. Do not implement anything yet. Do not ask the owner anything.'
@@ -48,8 +47,8 @@ export function failStage(e, taskId, stageKey, out) {
   L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: code ?? null, fingerprint: fp, attempts: r.attempts, repeated_identical: r.repeated_identical })
   const ai = AI_STAGES.includes(stageKey); const escalated = L.meta(`escalated:${taskId}`) === '1'
   const over = budgetExceeded(e, taskId)
+  if (over || (r.exhausted && (escalated || !ai))) return technicallySuspend(e, taskId, over ?? `REPEATED_FAILURE:${stageKey}`, stageKey, [`REPEATED_FAILURE:${stageKey}`, code ?? 'unknown'])
   if (r.repeated_identical && !escalated && ai) { L.setMeta(`escalated:${taskId}`, '1'); L.recordRecovery(taskId, 'model_escalated', { stage: stageKey }) }
-  else if ((r.exhausted && (escalated || !ai)) || over) return technicallySuspend(e, taskId, over ?? `REPEATED_FAILURE:${stageKey}`, stageKey, [`REPEATED_FAILURE:${stageKey}`, code ?? 'unknown'])
   return PROGRESS(unverified ? 'termination_unverified' : 'stage_failed_backoff')
 }
 
