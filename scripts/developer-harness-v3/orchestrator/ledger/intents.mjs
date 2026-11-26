@@ -8,11 +8,17 @@
 // Remediation F3: an intent's authorization is re-validated at DISPATCH and at RETRY (not only at creation); reconciliation accepts only explicit, validated, authoritative observations;
 // a retry never reuses expired or invalid authorization; a NEW authorized intent supersedes an old PROVEN-absent one without re-consuming single-use evidence.
 import { digestOf } from '../../lib/canonical.mjs'
+import { isSatisfying } from '../../authority/evidence.mjs'
 import { consumeAll } from './evidence-store.mjs'
 
 const RETRYABLE = new Set(['failed', 'reconciled_absent'])
 const TERMINAL_OK = new Set(['succeeded', 'reconciled_succeeded'])
 const consumerOf = (key) => `intent:${key}`
+
+/** The signed payload as stored at acceptance, only if the row is readable and consistent with it; otherwise null (a corrupted record is never trusted). */
+function storedPayload(row) {
+  try { const p = JSON.parse(row.envelope_json)?.payload; return p && typeof p === 'object' && p.evidence_id === row.evidence_id && p.evidence_type === row.evidence_type ? p : null } catch { return null }
+}
 
 /**
  * EVERY authorization binding an intent depends on, re-checked from the CURRENT ledger and the CURRENT active policy. Used at creation, at DISPATCH and at RETRY: an intent that was valid when
@@ -40,7 +46,7 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
     const dup = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND intent_id<>? AND (status IN ('dispatched','uncertain') OR (status IN ('succeeded','reconciled_succeeded') AND params_digest=? AND candidate_sha IS ?))").get(intent.task_id, intent.action, intent.intent_id, intent.params_digest, intent.candidate_sha)
     if (dup) return 'INTENT.EFFECT_NOT_UNIQUE'
   }
-  const have = new Set(); const now = ledger.now()
+  const have = new Set(); const now = ledger.now(); const reviewContexts = { independent_review: new Set(), security_review: new Set() }
   for (const id of JSON.parse(intent.evidence_ids_json)) {
     const e = ledger.db.prepare('SELECT * FROM evidence WHERE evidence_id=? AND task_id=?').get(id, intent.task_id)
     if (!e) return 'EVIDENCE.UNKNOWN'
@@ -50,9 +56,17 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
     if (e.policy_revision !== policy.revision) return 'EVIDENCE.STALE_POLICY_REVISION'
     if (e.fencing_token !== t.fencing_token) return 'EVIDENCE.STALE_FENCING_TOKEN'
     if (e.candidate_sha !== null && e.candidate_sha !== t.head_sha) return 'EVIDENCE.STALE_CANDIDATE'
+    // F3b: PRESENCE IS NOT AUTHORIZATION. The store records authentic NON-passing evidence (a failed run, a failed review, open findings); only evidence that SATISFIES under the D3.2 rule may authorize
+    // an intent, its dispatch or its retry. Every cited artifact must satisfy (a failing one smuggled in beside passing ones is refused), judged from the stored payload as it is NOW.
+    const payload = storedPayload(e); if (!payload) return 'EVIDENCE.UNREADABLE'
+    let satisfying = false; try { satisfying = isSatisfying(payload) } catch { satisfying = false }
+    if (!satisfying) return 'INTENT.EVIDENCE_NOT_SATISFYING'
+    if (Object.hasOwn(reviewContexts, e.evidence_type)) reviewContexts[e.evidence_type].add(payload.context_id)
     have.add(e.evidence_type)
   }
   for (const need of spec.required_evidence ?? []) if (!have.has(need)) return 'INTENT.EVIDENCE_NOT_AUTHORIZING_ACTION' // the evidence must be of the kinds THIS action requires, not merely valid
+  const req = spec.required_evidence ?? [] // the evaluator's rule (EVIDENCE.REVIEW_CONTEXTS_NOT_DISTINCT): one reviewer context cannot supply both approvals
+  if (req.includes('independent_review') && req.includes('security_review') && [...reviewContexts.independent_review].some((c) => reviewContexts.security_review.has(c))) return 'INTENT.REVIEW_CONTEXTS_NOT_DISTINCT'
   return null
 }
 
