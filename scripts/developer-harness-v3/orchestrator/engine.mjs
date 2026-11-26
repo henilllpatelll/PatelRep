@@ -16,6 +16,7 @@ import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
 import { unitFloorReady } from './test-units.mjs'
 import { pendingIncident, superviseIncident } from './recovery-supervisor.mjs'
+import { dependencyStep, sweepDependencyBasis } from './dependency-basis.mjs'
 import { TECH_DEFAULTS, budgetExceeded, classifyBlocker, resumeSuspended, sessionsUsed, suspendTechnically, suspensionAllowsRun } from './suspension.mjs'
 
 export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, technical: TECH_DEFAULTS,
@@ -45,6 +46,9 @@ export class Engine {
   inflight = new Set()
   /** Work slots (heavy tests) the scheduler holds for a task while its step runs: the task's own work is not counted against itself at admission. */
   ownWork = new Map()
+  /** Work-lease ids and pre-launch reservation holders of the scheduling round that is running RIGHT NOW: never an orphan, whatever a later reconciliation concludes (D3.5 independent verification F1). */
+  inflightWork = new Set()
+  inflightHolders = new Set()
   /** Reconcile every orphaned live lease, each on its own (task-scoped). @returns {Promise<object[]>} the ones that could NOT be cleared (they keep their slot). */
   async reconcileOrphans({ reason = 'WORKER_TERMINATED' } = {}) {
     const stuck = []
@@ -186,12 +190,16 @@ export class Engine {
     // controller is not itself running is an orphan, reconciled on its own); the sequential engine keeps the D3.4 rule that nothing else advances while any slot is stuck.
     const stuck = await this.reconcileOrphans({ reason: 'WORKER_TERMINATED' })
     if (stuck.length) return { progressed: false, held: true, code: stuck[0].code, next_wakeup: now + 5000 }
+    this.checkDependencyBasis()
     for (const row of L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'")) {
       const r = await this.advance(row.task_id)
       if (r.progressed) return { progressed: true, task_id: row.task_id, action: r.action }
     }
     return { progressed: false, next_wakeup: this.nextWakeup() }
   }
+
+  /** D3.5 F2: withdraw what a changed dependency basis invalidated (all tasks, to a fixed point). @returns {string[]} the tasks newly withdrawn. */
+  checkDependencyBasis() { return sweepDependencyBasis(this) }
 
   /** Run until nothing can progress. `maxTicks` bounds runaway loops in tests; time-based waits are skipped by the caller advancing the fixture clock. */
   async runUntilIdle({ maxTicks = 500 } = {}) {
@@ -217,6 +225,7 @@ export class Engine {
     const none = { progressed: false }
     if (!suspensionAllowsRun(this, taskId)) return none // cooling down (a wake-up is scheduled) or terminal (an explicit disposition, one notification)
     if (L.getTask(taskId).state !== s) return done('suspension_ended') // a lifecycle that SHOWS suspensions (P6) just left technical_suspension: that is progress
+    { const d = await dependencyStep(this, taskId); if (d) return d } // D3.5 F2: a changed/unready dependency basis is dealt with before any stage can build, verify or hand off on it
     if (pendingIncident(L, taskId)) return superviseIncident(this, taskId) // D3.5-C: a reported incident is handled (bounded, persisted back-off) before anything else of this task
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }

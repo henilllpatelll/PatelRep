@@ -13,8 +13,9 @@
 //   * FAIRNESS: effective priority = priority − agingStep × ⌊waited / agingMs⌋; a task passed over `maxPassesBeforeReserve` times reserves the next slot of its kind.
 import { D33_THRESHOLDS } from '../runtime/resource-governor.mjs'
 import { acquireWork, closeWork, liveWork, materializeWork, supersedeWork } from './ledger/slots.mjs'
+import { safeCode, suspendTechnically } from './suspension.mjs'
 
-export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768 }) // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
+export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768, maxStepExceptions: 3, stepExceptionBackoffMs: 60_000 }) // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
 
 const WILD = /[*?[{]/
 const SEG_SPLIT = (g) => g.toLowerCase().split('/').filter((s) => s !== '')
@@ -135,34 +136,8 @@ export class Scheduler {
     return bad
   }
 
-  /**
-   * Downstream assumptions follow their dependencies: when a dependency's candidate CHANGES or it is no longer handoff-ready after a dependent started on it, the dependent's
-   * approvals are withdrawn (its handoff, if any, is undone) and the new basis is recorded; a dependency that was CANCELLED is an owner-level conflict.
-   */
-  checkDependencyBasis() {
-    const L = this.L; const changed = []
-    for (const row of L.db.prepare("SELECT key, value FROM meta WHERE key LIKE 'dep_basis:%'").all()) {
-      const id = row.key.slice('dep_basis:'.length); const t = L.getTask(id)
-      if (!t || t.cancelled || t.state === 'completed') continue
-      const basis = JSON.parse(row.value)
-      if (L.deadDependencies(id).length) { if (t.state !== 'blocked') this.e.dependencyConflict(id); continue }
-      const now = basis.map((b) => ({ id: b.id, candidate: L.currentCandidate(b.id)?.candidate_sha ?? null, handoff: L.getTask(b.id)?.handoff_ready ?? 0 }))
-      if (now.every((n, i) => n.candidate === basis[i].candidate && n.handoff === 1)) continue
-      L.tx(() => {
-        L.db.prepare('UPDATE evidence SET invalidated_at=? WHERE task_id=? AND invalidated_at IS NULL').run(L.now(), id)
-        L.db.prepare('UPDATE tasks SET handoff_ready=0, updated_at=? WHERE task_id=?').run(L.now(), id)
-        L.setMeta(`dep_basis:${id}`, JSON.stringify(now))
-        L.recordRecovery(id, 'dependency_basis_changed', { before: basis, after: now })
-      })
-      changed.push(id)
-    }
-    return changed
-  }
-  #recordBasis(id) {
-    const L = this.L; if (L.meta(`dep_basis:${id}`)) return
-    const deps = L.db.prepare('SELECT depends_on FROM task_dependencies WHERE task_id=? ORDER BY depends_on').all(id).map((r) => r.depends_on)
-    if (deps.length) L.setMeta(`dep_basis:${id}`, JSON.stringify(deps.map((d) => ({ id: d, candidate: L.currentCandidate(d)?.candidate_sha ?? null, handoff: L.getTask(d).handoff_ready }))))
-  }
+  /** D3.5 F2: downstream approvals and handoffs follow their dependencies (see dependency-basis.mjs): withdrawn when a dependency's candidate changed, is not ready or was cancelled. */
+  checkDependencyBasis() { return this.e.checkDependencyBasis() }
 
   /** What slot kind the task's NEXT step needs. */
   kindOf(t) {
@@ -194,11 +169,12 @@ export class Scheduler {
     const e = this.e; const L = this.L; const A = e.adapters
     await e.deliverOutbox()
     const stuck = new Set((await e.reconcileOrphans({ reason: 'WORKER_TERMINATED' })).map((s) => s.task_id))
-    for (const w of liveWork(L)) { let v = null; try { v = await A.tests?.verifyStopped?.(w) } catch { v = null } if (supersedeWork(L, { workId: w.work_id, stopVerified: v?.verified === true }).ok !== true) stuck.add(w.task_id) } // rounds never overlap: a live work lease here is an orphan
+    for (const w of liveWork(L)) { if (e.inflightWork.has(w.work_id)) { stuck.add(w.task_id); continue } let v = null; try { v = await A.tests?.verifyStopped?.(w) } catch { v = null } if (supersedeWork(L, { workId: w.work_id, stopVerified: v?.verified === true }).ok !== true) stuck.add(w.task_id) } // rounds never overlap: a live work lease here is an orphan
     // rounds never overlap: a pre-launch reservation still held here belongs to a round that died with its controller
-    for (const r of L.db.prepare("SELECT holder_ref FROM reservations WHERE state='held' AND holder_ref LIKE 'sched-ai:%'").all()) L.releaseReservation(r.holder_ref)
+    for (const r of L.db.prepare("SELECT holder_ref FROM reservations WHERE state='held' AND holder_ref LIKE 'sched-ai:%'").all()) if (!e.inflightHolders.has(r.holder_ref)) L.releaseReservation(r.holder_ref)
     this.checkGraph(); this.checkDependencyBasis(); this.releaseFinishedClaims()
-    const rows = L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'").filter((r) => !stuck.has(r.task_id))
+    const now0 = L.now() // a task whose step threw is backed off (persisted), never re-admitted in the same instant
+    const rows = L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'").filter((r) => !stuck.has(r.task_id) && !((this.#stepExc(r.task_id)?.next_at ?? 0) > now0))
     const passes = this.passes()
     const ranked = rankTasks(rows, { now: L.now(), passes, cfg: this.cfg })
     const items = ranked.map((r) => { const t = L.getTask(r.task_id); return { id: r.task_id, kind: this.kindOf(t), footprint: footprintOf(t), needsClaim: this.needsClaim(t), claimed: this.claimOf(r.task_id) } })
@@ -206,17 +182,46 @@ export class Scheduler {
     for (const s of plan.skipped) { this.#notePass(s.id); if (s.reason === 'SCOPE_CONFLICT' && !L.getWait(s.id)) L.setWait(s.id, { kind: 'scope_conflict', reason: 'SCOPE_CONFLICT', detail: { with: s.with } }) }
     const admitted = []
     for (const r of plan.run) {
-      if (r.claim) { const c = this.claim(r.id); if (!c.ok) { this.#notePass(r.id); continue } if (L.getWait(r.id)?.kind === 'scope_conflict') L.clearWait(r.id); this.#recordBasis(r.id) }
+      if (r.claim) { const c = this.claim(r.id); if (!c.ok) { this.#notePass(r.id); continue } if (L.getWait(r.id)?.kind === 'scope_conflict') L.clearWait(r.id); }
       admitted.push(r)
     }
     // review CR-5: every admitted step's memory is RESERVED before any of them starts, so each admission check (inside the stage) sees the others' promises
     for (const r of admitted) if (r.kind === 'ai' && this.cfg.reasoningReservationMb > 0) { r.holder = `sched-ai:${r.id}:${L.now()}:${Math.random().toString(36).slice(2, 10)}`; L.reserveFor(r.id, r.holder, 'reasoning', { mem_mb: this.cfg.reasoningReservationMb }, { expiresAt: L.now() + e.cfg.leaseTtlMs }) }
     for (const r of admitted) if (r.kind === 'heavy') { const cand = L.currentCandidate(r.id); r.work = acquireWork(L, { taskId: r.id, unitRef: `testing:${cand?.candidate_sha ?? 'none'}`, reservation: { mem_mb: this.cfg.heavyReservationMb } }) }
+    // F1 (independent verification): ALL-SETTLED semantics. An unexpected exception in ONE admitted step is isolated to that step (recorded, bounded back-off); the round — and with it
+    // the single-flight exclusion, every sibling's reservation and the orphan-reconciliation rules — ends only when EVERY admitted step has settled.
+    for (const r of admitted) { if (r.holder) e.inflightHolders.add(r.holder); if (r.work?.ok) e.inflightWork.add(r.work.work.work_id) }
     let results
-    try { results = await Promise.all(admitted.map((r) => this.#runOne(r))) } finally { for (const r of admitted) if (r.holder) L.releaseReservation(r.holder) }
+    try { results = await Promise.all(admitted.map((r) => this.#runStep(r))) } finally {
+      for (const r of admitted) { if (r.holder) { e.inflightHolders.delete(r.holder); L.releaseReservation(r.holder) }; if (r.work?.ok) e.inflightWork.delete(r.work.work.work_id) }
+    }
     this.releaseFinishedClaims()
     const progressed = results.filter((x) => x.progressed)
-    return { progressed: progressed.length > 0, ran: admitted.map((r, i) => ({ id: r.id, kind: r.kind, action: results[i].action ?? null })), skipped: plan.skipped, stuck: [...stuck], next_wakeup: e.nextWakeup() }
+    const errors = admitted.map((r, i) => (results[i].error ? { id: r.id, code: results[i].error } : null)).filter(Boolean)
+    const wake = [e.nextWakeup(), ...this.#backoffWakeups()].filter((x) => Number.isFinite(x))
+    return { progressed: progressed.length > 0, ran: admitted.map((r, i) => ({ id: r.id, kind: r.kind, action: results[i].action ?? null })), errors, skipped: plan.skipped, stuck: [...stuck], next_wakeup: wake.length ? Math.min(...wake) : null }
+  }
+
+  /** The step wrapper that NEVER rejects: an unexpected exception becomes a recorded, bounded failure of that one task. */
+  async #runStep(r) {
+    try { const x = await this.#runOne(r); if (x.progressed) this.L.db.prepare('DELETE FROM meta WHERE key=?').run(`step_exc:${r.id}`); return x } catch (err) { return { progressed: false, error: this.#noteStepException(r.id, err) } }
+  }
+  #stepExc(id) { try { return JSON.parse(this.L.meta(`step_exc:${id}`) ?? 'null') } catch { return null } }
+  #backoffWakeups() { return this.L.db.prepare("SELECT value FROM meta WHERE key LIKE 'step_exc:%'").all().map((r) => { try { return JSON.parse(r.value).next_at } catch { return null } }).filter((x) => Number.isFinite(x) && x > this.L.now()) }
+  /** Record the failure (code-shaped only: exception text is untrusted), back off (doubling, persisted) and, past the bound, suspend the task technically and terminally. Never an owner decision. */
+  #noteStepException(id, err) {
+    const L = this.L; const now = L.now(); const prev = this.#stepExc(id) ?? { n: 0 }; const n = prev.n + 1
+    const code = 'SCHEDULER.STEP_EXCEPTION'
+    const kind = safeCode(`${err?.name ?? 'Error'}${err?.code ? `:${err.code}` : ''}`)
+    try {
+      L.tx(() => {
+        L.setMeta(`step_exc:${id}`, JSON.stringify({ n, last_at: now, next_at: now + this.cfg.stepExceptionBackoffMs * 2 ** (n - 1) }))
+        L.recordRecovery(id, 'scheduler_step_exception', { attempt: n, error: kind, message_digest: safeCode(String(err?.message ?? '')).slice(0, 80) })
+      })
+      if (n >= this.cfg.maxStepExceptions && !L.getSuspension(id)) suspendTechnically(this.e, id, { cause: 'SCHEDULER_STEP_EXCEPTION_REPEATED', stage: L.getTask(id)?.state ?? null, codes: [`SCHEDULER_STEP_EXCEPTION_REPEATED:${kind}`], terminal: true,
+        howToResume: 'An admitted step threw an unexpected exception repeatedly (a controller or adapter defect, not a task failure). Fix the defect, then resume the task with the operator resume of the engine (a fresh budget).' })
+    } catch { /* the failure record is best effort: the round must still settle and stay exclusive */ }
+    return code
   }
 
   async #runOne(r) {

@@ -57,7 +57,9 @@ test('REAL processes: the test-file child is killed by the "reaper" while memory
 test('REAL processes: the RUNNER itself is reaped mid-unit (whole tree killed) → the next invocation finds the unit lost, re-runs it first, and reuses the completed unit', { timeout: 120_000 }, async () => {
   const f = fixture(); writeFileSync(f.marker, 'hold')
   const r1 = startRunner(f, 'a,b,c')
-  const running = await waitFor(() => { const u = unitRow(f, 'b.test.mjs'); return u?.status === 'running' && JSON.parse(u.result_json).pid ? JSON.parse(u.result_json) : null })
+  // D3.5 F3 (intentional expectation change): the reaper must strike AFTER the workload's identity was recorded — an unrecorded workload can never be proven stopped, so a runner killed in the first
+  // instants of a unit is (correctly) refused on resume (d35-rem2-f3-runner.test.mjs); a real incident hits a unit that has been running for a while
+  const running = await waitFor(() => { const u = unitRow(f, 'b.test.mjs'); return u?.status === 'running' && JSON.parse(u.result_json).pid && JSON.parse(u.result_json).workload ? JSON.parse(u.result_json) : null })
   await sleep(300)
   writeFileSync(f.reaper, JSON.stringify({ kind: 'low_memory_reaper', at: Date.now() }))
   killTree(r1.p.pid); killTree(running.pid); await r1.done

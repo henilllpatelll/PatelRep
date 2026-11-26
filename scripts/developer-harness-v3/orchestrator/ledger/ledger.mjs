@@ -162,6 +162,9 @@ export class Ledger {
     })
   }
 
+  /** Withdraw EVERY accepted approval of a task and the review rows they rest on (a changed dependency basis: nothing obtained under the old basis may be re-attested). */
+  withdrawApprovals(taskId) { this.tx(() => { this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE task_id=? AND invalidated_at IS NULL').run(this.now(), taskId); this.db.prepare("UPDATE reviews SET status='invalidated' WHERE task_id=? AND status IN ('open','submitted','verified_pass')").run(taskId) }) }
+
   /** Withdraw ONE accepted approval (e.g. a completeness gate refused the candidate the approval was issued for). */
   invalidateEvidence(evidenceId) { this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE evidence_id=? AND invalidated_at IS NULL').run(this.now(), evidenceId) }
 

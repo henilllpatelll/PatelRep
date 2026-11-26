@@ -1,8 +1,8 @@
 diff --git a/docs/developer-harness-v3/task-lifecycle.json b/docs/developer-harness-v3/task-lifecycle.json
-index 1da2ee8..a7ada65 100644
+index 1da2ee8..de8cd18 100644
 --- a/docs/developer-harness-v3/task-lifecycle.json
 +++ b/docs/developer-harness-v3/task-lifecycle.json
-@@ -5,17 +5,22 @@
+@@ -5,17 +5,23 @@
    "main_flow": ["submitted", "queued", "planning", "implementing", "testing", "independent_review", "security_review", "publishing", "ci_running", "staging_verification", "merge_eligible", "merged", "production_release", "production_verification", "completed"],
    "recoverable_states": {
      "waiting_resources": { "reasons": ["MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "HOST_UNRESPONSIVE"] },
@@ -24,11 +24,12 @@ index 1da2ee8..a7ada65 100644
 +  "terminal_states": ["completed", "cancelled"],
 +  "cancellation": { "$comment": "P6: explicit, terminal, owner-only cancellation. Never after merge (a merged change is reverted by a NEW task, not cancelled).", "requires_owner_action": true, "not_from_effective": ["merged", "production_release", "production_verification"] },
 +  "reverification": { "$comment": "P6 (P3(c)): approvals that expired beyond the bounded re-attestation window are REPLACED by new verification work on the SAME candidate; old approvals are never extended.", "from": "publishing", "to": "testing", "reason": "APPROVALS_EXPIRED", "invalidates": ["test_results", "independent_review", "security_review"] },
++  "dependency_rebuild": { "$comment": "P6 (D3.5 independent verification F2): a task built and verified on a dependency basis that CHANGED is REBUILT, never re-attested: back to `implementing` with the declared reason; every approval it holds is invalidated. Without this edge the authoritative lifecycle fails closed (terminal technical suspension).", "from": ["testing", "independent_review", "security_review", "publishing"], "to": "implementing", "reason": "DEPENDENCY_CHANGED", "invalidates": ["test_results", "independent_review", "security_review"] },
 +  "owner_hold": { "$comment": "P6 (P3(g)): entering `blocked` sets a sticky owner hold. While it is set, moving between recoverable states (waiting_*, paused, recovery, technical_suspension) KEEPS it, and every exit to a main-flow state requires owner_action_id. Only an owner action (or an owner cancellation) clears it.", "enabled": true },
    "forward": {
      "submitted": ["queued"],
      "queued": ["planning"],
-@@ -35,7 +40,7 @@
+@@ -35,7 +41,7 @@
    },
    "remediation_from": ["testing", "independent_review", "security_review", "ci_running", "staging_verification"],
    "incident_from": ["merged", "production_release", "production_verification"],
@@ -38,7 +39,7 @@ index 1da2ee8..a7ada65 100644
    "evidence_invalidation": {
      "head_change": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"],
 diff --git a/scripts/developer-harness-v3/lifecycle/lifecycle.mjs b/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
-index 0ce756b..b846ca6 100644
+index 0ce756b..7674968 100644
 --- a/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
 +++ b/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
 @@ -19,15 +19,15 @@ const MAX_REMEMBERED = 256
@@ -59,7 +60,7 @@ index 0ce756b..b846ca6 100644
    try {
      if (checkShape(event, EVENT_SPEC, 'event').length) return fail('EVENT.MALFORMED')
      if (event.task_id !== task.task_id) return fail('EVENT.WRONG_TASK')
-@@ -72,24 +72,39 @@ export function applyEvent(lc, task, event) {
+@@ -72,24 +72,45 @@ export function applyEvent(lc, task, event) {
  
      // transition
      const to = event.to
@@ -102,6 +103,12 @@ index 0ce756b..b846ca6 100644
 +    if (rv && task.state === rv.from && to === rv.to) {
 +      if (event.reason_code !== rv.reason) return fail('TRANSITION.REASON_NOT_ALLOWED_FOR_STATE')
 +      return next({ state: to, invalidated_evidence: rv.invalidates })
++    }
++    // dependency-rebuild back-edge (a dependency's candidate changed after this task was built on it): only from the declared states, only with the declared reason; its approvals are invalidated, never re-attested
++    const dr = lc.dependency_rebuild
++    if (dr && dr.from.includes(task.state) && to === dr.to) {
++      if (event.reason_code !== dr.reason) return fail('TRANSITION.REASON_NOT_ALLOWED_FOR_STATE')
++      return next({ state: to, invalidated_evidence: dr.invalidates })
      }
      if (!lc.forward[task.state].includes(to)) return fail('TRANSITION.ILLEGAL')
      if (task.state === 'independent_review' && to === 'publishing' && task.security_review_required) return fail('TRANSITION.SECURITY_REVIEW_REQUIRED')

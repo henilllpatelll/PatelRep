@@ -20,6 +20,8 @@ export const EXPECTED_FILES = Object.freeze(['d33-acceptance-review', 'd33-accep
   'd34-ci-runner', 'd34-context', 'd34-crash', 'd34-engine', 'd34-evidence', 'd34-glue', 'd34-issuer', 'd34-ledger', 'd34-proposals', 'd34-rem-f1-readmission', 'd34-rem-f2-crash', 'd34-rem-f2-preserve', 'd34-rem-f3-intents', 'd34-rem-f3b-verdicts', 'd34-rem-f4-completeness', 'd34-rem-f5-autonomy', 'd34-rem-f6-review-persist', 'd34-rem-round2', 'd34-rem-round3',
   // D3.5 (deliberate registry additions)
   'd35-boundaries', 'd35-cleanup', 'd35-disaster-recovery', 'd35-engineering', 'd35-lifecycle-proposal', 'd35-long-wait', 'd35-recovery', 'd35-resource-interruption', 'd35-review-remediation', 'd35-runner', 'd35-scheduler', 'd35-slots',
+  // D3.5 independent-verification remediation (F1 concurrency, F2 dependency basis, F3 process ownership / lock)
+  'd35-rem2-f1-concurrency', 'd35-rem2-f2-dependency', 'd35-rem2-f3-engine', 'd35-rem2-f3-lock', 'd35-rem2-f3-runner',
   'evaluator', 'final-review', 'foundation', 'git-facts', 'hardening', 'lifecycle', 'promotion', 'security', 'subscription'].map((n) => `${n}.test.mjs`))
 
 export const discover = (root = ROOT) => readdirSync(path.join(root, TEST_DIR)).filter((f) => f.endsWith('.test.mjs')).sort()

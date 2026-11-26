@@ -154,6 +154,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
     },
     tests: {
       async verifyStopped() { return { verified: true } }, // the simulated suite runs in-process: once run() returned nothing of it is left running
+      async verifyUnitStopped() { return { verified: true } }, // the same: a simulated unit is an in-process call, so a unit that was cut off leaves nothing behind
       async run({ task }) {
         const idx = L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(task.task_id).c
         const spec = (sc.tests ?? [])[idx] ?? (sc.tests ?? []).at(-1) ?? { passed: true }

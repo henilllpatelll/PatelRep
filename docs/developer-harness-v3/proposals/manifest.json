@@ -74,13 +74,13 @@
     {
       "id": "P6",
       "file": "P6-lifecycle-consolidated.patch",
-      "sha256": "104a5c5962918d2c36567542b1f442c90906b642a7a11785821e37623a085fa6",
+      "sha256": "705290e04eba88367d680b1b5ea3716e4325d9f044ceaeec19c607a97581bb79",
       "touches": [
         "docs/developer-harness-v3/task-lifecycle.json",
         "scripts/developer-harness-v3/lifecycle/lifecycle.mjs"
       ],
       "protected_class": "V3 lifecycle contract + reducer (root of trust; owner-only)",
-      "purpose": "ONE consolidated lifecycle change (21 §3 P3(a)(b)(c)(e)(g) + D3.5): (1) recoverable `technical_suspension` (P5 reasons + RECOVERY_EXHAUSTED, RESOURCE_WAIT_EXCEEDED); (2) re-verification back-edge publishing -> testing (reason APPROVALS_EXPIRED) that invalidates the approvals it replaces; (3) terminal, owner-only `cancelled` (never after merge); (4) waiting_external PROVIDER_UNAVAILABLE and waiting_subscription BILLING_REVERIFICATION_REQUIRED (never blockers); (5) the blocked-state escape fix: a STICKY owner hold set on entering blocked, kept across every recoverable hop (waiting, paused, recovery, suspension) and fencing/head events, cleared only by an owner action or an owner cancellation.",
+      "purpose": "ONE consolidated lifecycle change (21 §3 P3(a)(b)(c)(e)(g) + D3.5): (1) recoverable `technical_suspension` (P5 reasons + RECOVERY_EXHAUSTED, RESOURCE_WAIT_EXCEEDED); (2) re-verification back-edge publishing -> testing (reason APPROVALS_EXPIRED) that invalidates the approvals it replaces; (3) terminal, owner-only `cancelled` (never after merge); (4) waiting_external PROVIDER_UNAVAILABLE and waiting_subscription BILLING_REVERIFICATION_REQUIRED (never blockers); (5) the blocked-state escape fix: a STICKY owner hold set on entering blocked, kept across every recoverable hop (waiting, paused, recovery, suspension) and fencing/head events, cleared only by an owner action or an owner cancellation; (6) D3.5 independent-verification F2: a `dependency_rebuild` back-edge (testing | independent_review | security_review | publishing -> implementing, reason DEPENDENCY_CHANGED) that invalidates the approvals a task obtained on a dependency basis that later CHANGED — the task is rebuilt and re-verified, never re-attested. Without it the authoritative lifecycle fails closed.",
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
       "verified": "tests/d35-lifecycle-proposal.test.mjs applies P6 to a DISPOSABLE copy of the real reducer + contract and drives it: every direct/indirect/paused/recovery/suspension/fenced hop out of blocked is refused without an owner action; cancellation, re-verification and the new reasons; and the ENGINE end to end in a labelled proposal configuration (proposalReducer, temp ledgers only). The authoritative reducer is unchanged (a test proves the old loophole is still there and that the controller never uses it).",

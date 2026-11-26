@@ -13,6 +13,7 @@
 //   5. Bounded: ambiguous reruns per unit, resource interruptions per unit and the total wait are capped; beyond them a TECHNICAL suspension with one diagnostic package.
 import { createHash } from 'node:crypto'
 import { executeCleanup, planTaskCleanup } from './cleanup.mjs'
+import { safeCode } from './suspension.mjs'
 
 export const UNIT_DEFAULTS = Object.freeze({ runnerHeapMb: 1024, freeFloorMb: 3072, clearSamples: 3, sampleIntervalMs: 15_000, maxWaitMs: 4 * 3600_000, maxAmbiguousReruns: 2, maxResourceInterruptions: 6, evidenceWindowMs: 60_000 })
 const UNIT_ID = /^[A-Za-z0-9._-]{1,120}$/
@@ -102,6 +103,20 @@ async function sampleFree(e, taskId) {
   recordSample(e.ledger, taskId, 'test_unit', x); return x
 }
 
+/**
+ * F1 (independent verification): is the work this run was started for still the task's CURRENT work? A cancelled task, an advanced fencing token or a changed candidate means the run (and any unit of it that is still
+ * executing) is STALE: its outcome may be recorded as a fact about the OLD candidate but can never become accepted evidence or start another unit.
+ * @returns {string|null} a STALE.* code
+ */
+export function staleRun(L, taskId, { token, candidate }) {
+  const t = L.getTask(taskId); if (!t) return 'STALE.TASK_UNKNOWN'
+  if (t.cancelled) return 'STALE.TASK_CANCELLED'
+  if (token !== undefined && t.fencing_token !== token) return 'STALE.FENCING_TOKEN_CHANGED'
+  const cur = L.currentCandidate(taskId)
+  if (!cur || cur.candidate_sha !== candidate.candidate_sha || cur.tree_digest !== candidate.tree_digest) return 'STALE.CANDIDATE_CHANGED'
+  return null
+}
+
 /** Release ONLY idle resources this task owns (an idle reviewer) through the cleanup authority. Never anything unregistered or another task's. */
 export async function releaseIdleOwned(e, taskId) {
   const A = e.adapters
@@ -123,7 +138,7 @@ function waitFor(e, taskId, { groupId, unit, code }) {
 }
 
 /**
- * Run (or resume) the candidate's test UNITS. @returns {Promise<{done:true,res:object}|{wait:object}|{suspend:true,cause:string,codes:string[]}>}
+ * Run (or resume) the candidate's test UNITS. @returns {Promise<{done:true,res:object}|{wait:object}|{suspend:true,cause:string,codes:string[]}|{stale:true,code:string}>}
  * Adapter contract: tests.units({task,candidate}) → string[]; tests.runUnit({task,candidate,unit}) → {status, signal?, timedOut?, counts, reaper?}.
  */
 export async function runTestUnits(e, taskId, task, cand) {
@@ -133,9 +148,17 @@ export async function runTestUnits(e, taskId, task, cand) {
   const runEpoch = Number(L.meta(`reverify_count:${taskId}:${cand.candidate_sha}`) ?? 0)
   const groupId = groupIdFor({ task: taskId, candidate: cand.candidate_sha, tree: cand.tree_digest, token: task.fencing_token, units, run_epoch: runEpoch })
   openGroup(L, { groupId, taskId, units, candidate: cand })
+  // F3 (independent verification): a unit left `running` by a controller that died is re-run ONLY after its workload is PROVEN stopped. The adapter owns the proof (the live one — host process
+  // facts + the worker's own process list — is gate G-LIVE-RECOVERY-ADAPTERS); an adapter that cannot offer one, or offers an unproven answer, HOLDS the unit: no duplicate execution.
+  for (const u of unitsOf(L, groupId).filter((x) => x.status === 'running')) {
+    let v = null; try { v = await A.tests.verifyUnitStopped?.({ task, candidate: cand, unit: u.unit_id, group_id: groupId, recorded: u.result }) } catch { v = null }
+    if (v?.verified !== true) { L.recordRecovery(taskId, 'test_unit_workload_unverified', { group_id: groupId, unit: u.unit_id, code: safeCode(v?.code ?? (typeof A.tests.verifyUnitStopped === 'function' ? 'WORKLOAD_STOP_UNPROVEN' : 'NO_WORKLOAD_VERIFIER')) }); return waitFor(e, taskId, { groupId, unit: u.unit_id, code: 'RESOURCE.TEST_UNIT_WORKLOAD_UNVERIFIED' }) }
+  }
   const lost = markLost(L, groupId, { samples: recentSamples(L, taskId, 'test_unit'), reaper: await A.tests.reaperRecord?.() ?? null }, cfg)
   for (const x of lost) L.recordRecovery(taskId, 'test_unit_interrupted', { group_id: groupId, unit: x.unit, kind: x.kind, lost: true, evidence: x.evidence })
+  const token0 = task.fencing_token
   for (let guard = 0; guard < units.length * (cfg.maxResourceInterruptions + cfg.maxAmbiguousReruns + 2); guard += 1) {
+    const stale0 = staleRun(L, taskId, { token: token0, candidate: cand }); if (stale0) return { stale: true, code: stale0 } // boundary: nothing new starts for cancelled or superseded work
     const u = nextUnit(L, groupId)
     if (!u) break
     if (u.status === 'interrupted_ambiguous' && u.interruptions > cfg.maxAmbiguousReruns) return { suspend: true, cause: 'TEST_UNIT_INTERRUPTED_REPEATEDLY', codes: [`UNIT:${u.unit_id}:ambiguous`] }
@@ -153,6 +176,7 @@ export async function runTestUnits(e, taskId, task, cand) {
     const cls = classifyUnit({ ...raw, startedAt, endedAt: L.now(), samples: recentSamples(L, taskId, 'test_unit'), reaper: raw?.reaper ?? null }, cfg)
     recordOutcome(L, groupId, u.unit_id, cls, raw)
     e.hook('after_unit_recorded', { taskId, unit: u.unit_id, kind: cls.kind })
+    const stale1 = staleRun(L, taskId, { token: token0, candidate: cand }); if (stale1) { L.recordRecovery(taskId, 'test_run_stale', { group_id: groupId, unit: u.unit_id, code: stale1 }); return { stale: true, code: stale1 } } // boundary: the unit's outcome stays a fact about the OLD candidate
     if (cls.kind === 'verified_resource_kill' || cls.kind === 'ambiguous_interruption') {
       L.recordRecovery(taskId, 'test_unit_interrupted', { group_id: groupId, unit: u.unit_id, kind: cls.kind, evidence: cls.evidence, completed: summarize(L, groupId).passed })
       await releaseIdleOwned(e, taskId)
