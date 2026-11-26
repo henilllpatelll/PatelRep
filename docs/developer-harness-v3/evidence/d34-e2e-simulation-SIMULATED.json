@@ -1,0 +1,126 @@
+{
+  "label": "SIMULATED — scripted sessions, fixture clock, test keys; no model, VM, network, provider credential or production key was involved. Not evidence of live behaviour.",
+  "schema": "patelrep.developer-harness-v3.d34-e2e-simulation",
+  "version": 1,
+  "simulated": true,
+  "base_main_sha": "5ced4d309cf3532a490a48dbd06c575994822eac",
+  "submissions": 1,
+  "final_state": "publishing",
+  "handoff_ready": true,
+  "completed": false,
+  "engine_ticks": 40,
+  "clock_wakeups_waited_out": 18,
+  "simulated_elapsed_minutes": 131,
+  "lifecycle_events": [
+    {
+      "state": "context_recovery",
+      "n": 1
+    },
+    {
+      "state": "implementing",
+      "n": 10
+    },
+    {
+      "state": "independent_review",
+      "n": 3
+    },
+    {
+      "state": "planning",
+      "n": 1
+    },
+    {
+      "state": "publishing",
+      "n": 1
+    },
+    {
+      "state": "queued",
+      "n": 1
+    },
+    {
+      "state": "remediation",
+      "n": 3
+    },
+    {
+      "state": "security_review",
+      "n": 2
+    },
+    {
+      "state": "testing",
+      "n": 4
+    },
+    {
+      "state": "waiting_resources",
+      "n": 1
+    },
+    {
+      "state": "waiting_subscription",
+      "n": 1
+    }
+  ],
+  "executions_by_role": {
+    "implementer": 6,
+    "independent_reviewer": 3,
+    "planner": 1,
+    "security_reviewer": 2
+  },
+  "models_requested": [
+    "opus/high x2",
+    "sonnet/high x3",
+    "sonnet/medium x7"
+  ],
+  "context_renewals": [
+    {
+      "basis": "measured_context_utilization",
+      "measured": true,
+      "utilization": 0.775
+    }
+  ],
+  "reviews": [
+    "independent_review#1:verified_fail",
+    "independent_review#2:invalidated",
+    "security_review#1:verified_fail",
+    "independent_review#3:verified_pass",
+    "security_review#2:verified_pass"
+  ],
+  "test_runs": [
+    "fail",
+    "pass",
+    "pass",
+    "pass"
+  ],
+  "waiting_episodes": {
+    "subscription": 1,
+    "resources": 1
+  },
+  "remediations": 3,
+  "evidence_accepted": [
+    "independent_review x3",
+    "security_review x2",
+    "test_results x3"
+  ],
+  "owner_interventions": {
+    "blocked_events": 0,
+    "owner_action_events": 0,
+    "genuine_blocker_notifications": 0
+  },
+  "notifications": [
+    "handoff_ready"
+  ],
+  "reasoning_slot_held_at_end": false,
+  "handoff": {
+    "digest": "1eb057d9ca8b6f7650fac3581f277ee41636af39e74ad1604b0547d44a0d8fd6",
+    "evidence_types": [
+      "test_results",
+      "independent_review",
+      "security_review"
+    ],
+    "not_done": [
+      "publish_candidate_branch",
+      "pull_request",
+      "ci_gate",
+      "staging_gate",
+      "merge",
+      "production_release"
+    ]
+  }
+}

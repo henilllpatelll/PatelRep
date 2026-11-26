@@ -1,0 +1,55 @@
+{
+  "schema": "patelrep.developer-harness-v3.d34-protected-change-proposals",
+  "version": 1,
+  "base_main_sha": "5ced4d309cf3532a490a48dbd06c575994822eac",
+  "apply_with": "git apply -p1 <patch>   (from the repository root, on a fresh branch from main; owner-controlled; then re-pin as needed)",
+  "proposals": [
+    {
+      "id": "P1",
+      "file": "P1-git-facts-trusted-git.patch",
+      "sha256": "194760b43bd749baa97170d365407ad86f43d2d3b56de6a4316689b3a78d7600",
+      "touches": [
+        "scripts/developer-harness-v3/authority/git-facts.mjs"
+      ],
+      "protected_class": "V3 authority code (owner-only; excluded from the dh3 development scopes)",
+      "purpose": "Remove the bare `git` executable trust issue (D3.3 review round 2 N5): resolve an absolute allow-listed git outside the repo and cwd, rebuilt minimal environment, every command-executing config key neutralised.",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TRUSTED-GIT",
+      "verified": "applied in a scratch worktree: scripts/developer-harness-v3/tests git-facts.test.mjs + security.test.mjs + d34-issuer.test.mjs = 41/41; `git apply --check` clean on the branch; the new orchestrator/trusted-git.mjs it imports is part of THIS PR.",
+      "effects": "authority/** changes the dh3 closure digests; the owner re-pins from the reviewed commit (14-v2 §4)."
+    },
+    {
+      "id": "P2",
+      "file": "P2-consolidated-ci-integration.patch",
+      "sha256": "eca70654f38e09d12a06bb76313fced78d6738df2e9a6546a965f77eb8d5b1e7",
+      "touches": [
+        ".github/workflows/ci.yml",
+        "scripts/developer-harness-v2-ci-workflow.test.mjs",
+        "scripts/developer-harness-v2/bypass-hook.test.mjs",
+        "scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs (new)"
+      ],
+      "protected_class": "control plane (.github/**, V2 guard and V2 scripts): human-approved control-plane PR only",
+      "purpose": "ONE consolidated change: (a) a trusted CI preparation step that performs the by-sha provenance fetch, so the V2 provenance test no longer touches the network; (b) the V3 suite step (`run-v3-suites.mjs`); (c) the V2 workflow guard re-pinned for the 6-step job.",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-V3-CI and G-V2-PROVENANCE-FETCH",
+      "verified": "applied in a scratch worktree: the re-pinned guard scripts/developer-harness-v2-ci-workflow.test.mjs = 6/6 (with Git bash on PATH; the guard executes `bash`); the pin method was first validated by reproducing the baseline pins; `git apply --check` clean on the branch. The Linux execution of the full V3 suite is NOT verified here (see 22).",
+      "new_pins": "workflow sha256 and release-workflow-contract block sha256 are inside the patch (BASELINE_WORKFLOW_SHA256, BASELINE_RELEASE_BLOCK_SHA256)"
+    }
+  ],
+  "not_patches": [
+    {
+      "id": "P3",
+      "title": "task-lifecycle contract additions",
+      "mandatory_for_d34_completion": false,
+      "status": "DESIGN ONLY (not applied, not tested against the reducer pins)",
+      "detail": "see 21 §3"
+    },
+    {
+      "id": "P4",
+      "title": "a dh3-d34 / dh3-d35 development scope in docs/developer-harness-v2/bypass-scopes.json",
+      "mandatory_for_d34_completion": false,
+      "status": "NOT FOUND in the baseline; this PR was built without one (see 21 §4)",
+      "detail": "owner-controlled"
+    }
+  ]
+}

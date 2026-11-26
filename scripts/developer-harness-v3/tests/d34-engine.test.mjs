@@ -210,12 +210,12 @@ test('NON-AI work (testing, admission, evidence, scheduling, notification) never
 })
 
 test('ZERO routine owner interventions: ONE submission drives planning, implementation, renewals, a failed test, mandatory findings, a quota pause and a memory pause to a verified handoff [SIMULATED]', async () => {
-  const sc = { baseContext: 20_000, growthPerUnit: 45_000, contextWindow: 200_000, quota: [{ from: T0 + 60_000, to: T0 + 2 * 3600_000 }], pressure: [{ from: T0 + 3 * 3600_000, to: T0 + 3 * 3600_000 + 5 * 60_000, available_mb: 600 }],
+  const sc = { baseContext: 20_000, growthPerUnit: 45_000, contextWindow: 200_000, quota: [{ from: T0 + 60_000, to: T0 + 2 * 3600_000 }], pressure: [{ from: T0 + 2 * 3600_000, to: T0 + 2 * 3600_000 + 10 * 60_000, available_mb: 600 }],
     tests: [{ passed: false, fingerprint: 'ui-state', summary: 'indicator stays visible' }, { passed: true }],
     stages: { implementing: [{ units: 4 }, { units: 2 }, { units: 1 }], independent_review: [{ findings: [MAND('rv-1')] }, { findings: [] }], security_review: [{ findings: [MAND('sec-1', 'critical')] }, { findings: [] }] } }
   const h = H({ scenario: sc }); const calls = spy(h); const id = h.submit(); await drive(h, { rounds: 200 })
   const t = h.ledger.getTask(id); assert.equal(t.handoff_ready, 1, `final state ${t.state}`); assert.equal(t.state, 'publishing')
-  const hist = h.ledger.recoveryHistory(id); assert.ok(hist.filter((x) => x.kind === 'context_renewed').length >= 1, 'renewal happened'); assert.ok(h.ledger.db.prepare("SELECT COUNT(*) c FROM task_events WHERE to_state='waiting_subscription'").get().c >= 1, 'quota pause happened')
+  const hist = h.ledger.recoveryHistory(id); assert.ok(hist.filter((x) => x.kind === 'context_renewed').length >= 1, 'renewal happened'); assert.ok(h.ledger.db.prepare("SELECT COUNT(*) c FROM task_events WHERE to_state='waiting_subscription'").get().c >= 1, 'quota pause happened'); assert.ok(h.ledger.db.prepare("SELECT COUNT(*) c FROM task_events WHERE to_state='waiting_resources'").get().c >= 1, 'memory pause happened')
   assert.ok(h.ledger.db.prepare("SELECT COUNT(*) c FROM task_events WHERE to_state='remediation'").get().c >= 3, 'test failure + two review rounds remediated'); assert.equal(h.ledger.db.prepare("SELECT COUNT(*) c FROM reviews WHERE kind='independent_review'").get().c >= 2, true)
   assert.deepEqual(owner(h), { blockedEvents: 0, ownerActions: 0, blockerRows: 0 }); assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM tasks').get().c, 1, 'a single initial task, no further prompt'); assert.deepEqual(h.adapters.notifier.sent.map((s) => s.kind), ['handoff_ready'])
   assert.ok(calls.length >= 10); assert.equal(h.ledger.slotHolder(), null); assert.ok(h.ledger.requirementsIntact(id)); const pkg = JSON.parse(h.ledger.meta(`handoff:${id}`)); assert.equal(pkg.simulated, true); assert.equal(pkg.candidate.candidate_sha, h.ledger.currentCandidate(id).candidate_sha)
