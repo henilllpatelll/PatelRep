@@ -191,7 +191,7 @@ export class DeliveryController {
     }
     // cancelled tasks: no new effect, ever; their shared-staging hold is released only once observation proves nothing of theirs is queued or running
     // review M1: an owner that can no longer use staging (cancelled, technically suspended, blocked) releases it once observation proves nothing of its own is queued or running
-    for (const o of [stagingOwner(L)].filter(Boolean)) { const t = L.getTask(o.task_id); if (t?.cancelled || L.getSuspension(o.task_id) || t?.state === 'blocked') await this.maybeReleaseStaging(o.task_id, t?.cancelled ? 'TASK_CANCELLED' : L.getSuspension(o.task_id) ? 'TASK_SUSPENDED' : 'TASK_BLOCKED') }
+    for (const o of [stagingOwner(L)].filter(Boolean)) { const t = L.getTask(o.task_id); if (t?.cancelled || L.getSuspension(o.task_id) || t?.state === 'blocked' || t?.handoff_ready !== 1 || !DELIVERY_STATES.includes(t?.state)) await this.maybeReleaseStaging(o.task_id, t?.cancelled ? 'TASK_CANCELLED' : L.getSuspension(o.task_id) ? 'TASK_SUSPENDED' : t?.state === 'blocked' ? 'TASK_BLOCKED' : 'TASK_LEFT_DELIVERY') }
     return { progressed: out.some((x) => x.progressed), steps: out, next_wakeup: this.nextWakeup() }
   }
   nextWakeup() { return nextPoll(this.L) }
@@ -306,7 +306,7 @@ export class DeliveryController {
     }
     // failed / cancelled: deterministic diagnosis first (in the verifier: the controller never sees a raw log)
     const fd = await this.observe('ci_failure_details', { task_id: id }, { task_id: id, subject: `ci_failure:${id}` }); if (!fd.ok) return this.wait(id, fd.code, { at: fd.reset_at })
-    const results = fd.observation.details.results ?? []
+    const results = fd.observation.details.results ?? []; if (!results.length) return this.suspend(id, 'CI_RESULT_UNUSABLE', ['CI.NO_DIAGNOSABLE_FAILED_CHECK']) // an ambiguous / malformed verdict is a technical condition, never a code-fix request
     for (const r of results) recordDiagnosis(L, { taskId: id, candidateSha: t.head_sha, source: 'ci', runId: r.run_id, attempt: r.attempt, job: r.job, d: r })
     if (results.some((r) => r.classification === 'protected_control_plane')) return this.suspend(id, 'PROTECTED_CONTROL_PLANE_FAILURE', results.filter((r) => r.classification === 'protected_control_plane').map((r) => `CI.PROTECTED:${r.fingerprint}`), { terminal: true, howToResume: 'A protected control-plane guard failed on this candidate. That is never a routine CI repair: prepare a protected proposal through the owner-controlled procedure (doc 39).' })
     if (results.length && results.every((r) => r.classification === 'transient')) return this.rerunCi(t, results)

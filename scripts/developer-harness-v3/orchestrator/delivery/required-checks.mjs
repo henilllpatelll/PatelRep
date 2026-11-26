@@ -45,7 +45,8 @@ export function deriveRequiredChecks({ ci, mobile, staging }) {
 const activity = (r) => (Number.isFinite(r.started_at) ? Math.max(r.started_at, r.created_at) : r.created_at)
 const SKEW_MS = 60_000
 /** A run whose ordering fields cannot be trusted (non-numeric / future timestamps, no attempt, a re-run without its start time) is never ignored and never preferred: the verdict fails closed. */
-const unorderable = (r, at) => !Number.isSafeInteger(r.id) || !Number.isFinite(r.created_at) || !Number.isSafeInteger(r.attempt) || r.attempt < 1
+const unorderable = (r, at) => !Number.isSafeInteger(r.id) || !Number.isFinite(r.created_at) || r.created_at <= 0 || !Number.isSafeInteger(r.attempt) || r.attempt < 1
+  || (Number.isFinite(r.started_at) && (r.started_at <= 0 || r.started_at < r.created_at)) // a run cannot start before it was created (a reader mixing units or a forged field)
   || (r.started_at !== undefined && r.started_at !== null && !Number.isFinite(r.started_at))
   || (r.attempt > 1 && !Number.isFinite(r.started_at)) || (Number.isFinite(at) && (r.created_at > at + SKEW_MS || (Number.isFinite(r.started_at) && r.started_at > at + SKEW_MS)))
 const runLatestFirst = (a, b) => (activity(b) - activity(a)) || (b.created_at - a.created_at) || (b.id - a.id)
@@ -67,7 +68,7 @@ export function checkState(view, { name, workflow, head_sha, head_branch = null,
   const spoofed = named.filter((c) => c.app_id !== ACTIONS_APP_ID).length
   const applicable = view.runs.filter((r) => r.workflow === workflow && events.includes(r.event) && r.head_sha === head_sha && (head_branch === null || r.head_branch === head_branch) && (pr_number === null || r.pr_number === pr_number))
   if (!applicable.length) return { name, state: 'missing', spoofed }
-  if (applicable.some((r) => unorderable(r, view.at))) return { name, state: 'ambiguous', spoofed } // a run whose age cannot be ordered is never ignored, never preferred: fail closed
+  if (applicable.some((r) => unorderable(r, view.at)) || new Set(applicable.map((r) => r.id)).size !== applicable.length) return { name, state: 'ambiguous', spoofed } // duplicate run ids (a paginated listing) are never merged into one // a run whose age cannot be ordered is never ignored, never preferred: fail closed
   applicable.sort(runLatestFirst)
   const run = applicable[0]
   const base = { name, run_id: run.id, attempt: run.attempt, run_attempt: run.attempt, spoofed }

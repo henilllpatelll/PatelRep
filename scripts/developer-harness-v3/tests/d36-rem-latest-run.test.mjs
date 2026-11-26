@@ -104,7 +104,7 @@ test('review M3: LATEST ACTIVITY decides — a re-run of an OLDER run is newer t
   assert.equal(state([run(1, { created_at: 10, attempt: 2, started_at: 100, status: 'in_progress', conclusion: null }), youngerOk], [chk(10, 1, { attempt: 1 }), chk(11, 2)]).state, 'pending')
   assert.equal(state([run(1, { created_at: 10 }), run(2, { created_at: undefined })], [chk(10, 1), chk(11, 2)]).state, 'ambiguous', 'a newer run with NO created_at is never ignored (it used to sort oldest)')
   assert.equal(state([run(1, { created_at: 10 }), run(2, { created_at: NaN })], [chk(10, 1), chk(11, 2)]).state, 'ambiguous')
-  assert.equal(state([run(1, { created_at: 10, started_at: 5 }), run(2, { created_at: 20 })], [chk(10, 1), chk(11, 2)]).run_id, 2, 'an early started_at never makes a run look OLDER than its creation')
+  assert.equal(state([run(1, { created_at: 10, started_at: 5 }), run(2, { created_at: 20 })], [chk(10, 1), chk(11, 2)]).state, 'ambiguous', 'a run that started before it was created is unorderable (round 3: it used to be clamped, which hid a mixed-unit reader)')
 })
 
 test('review O6: CI runs are scoped to the task\'s PR — a same-branch same-SHA run for ANOTHER PR neither masks nor satisfies; an unusable PR number matches nothing', () => {
@@ -131,4 +131,14 @@ test('re-verification M-2: a MALFORMED ordering field (non-numeric / null / ISO 
   assert.equal(s([run(1, { created_at: 10, started_at: 9e15, conclusion: 'success' }), run(2, { created_at: 20, conclusion: 'failure' })], { at: 1000 }), 'ambiguous', 'a timestamp from the far future')
   for (const bad of [undefined, 0, -1, 1.5, '1']) assert.equal(s([run(1, { created_at: 10, attempt: bad }), young]), 'ambiguous', `attempt=${String(bad)}`)
   assert.equal(s([run(1, { created_at: 10 }), young], { at: 1000 }), 'success', 'timestamps within the view\'s time are fine')
+})
+
+test('re-verification (round 3): impossible timestamps and duplicate run ids fail closed — started before created, non-positive times, mixed units, a repeated id', () => {
+  const young = run(2, { created_at: 20 }); const s = (runs) => checkState({ runs, checks: [chk(10, 1, { attempt: 1 }), chk(11, 2)] }, { name: 'CI Gate', workflow: WORKFLOWS.ci, head_sha: H, head_branch: BR }).state
+  const rerun = (o) => run(1, { created_at: 10, attempt: 2, status: 'in_progress', conclusion: null, started_at: 100, ...o })
+  assert.equal(s([rerun({}), young]), 'pending', 'control')
+  for (const bad of [{ started_at: 5 }, { started_at: -1e12 }, { started_at: 0 }, { created_at: -5 }, { created_at: 0 }]) assert.equal(s([rerun(bad), young]), 'ambiguous', JSON.stringify(bad))
+  assert.equal(s([run(1, { created_at: 10 }), run(2, { created_at: -5, conclusion: 'failure' })]), 'ambiguous', 'a NEWER failing run with a negative created_at must not lose the ordering silently')
+  assert.equal(s([run(1, { created_at: 10, started_at: 10 }), young]), 'success', 'started_at == created_at is legitimate (a run that started at once)')
+  assert.equal(s([run(1, { created_at: 10 }), run(1, { created_at: 11, attempt: 2, status: 'in_progress', conclusion: null, started_at: 12 })]), 'ambiguous', 'two applicable runs with the SAME id (a paginated listing) are never merged')
 })
