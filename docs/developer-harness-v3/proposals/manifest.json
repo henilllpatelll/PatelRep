@@ -35,6 +35,20 @@
       "activation_prerequisite": "G-V3-CI and G-V2-PROVENANCE-FETCH",
       "verified": "applied in a scratch worktree: the re-pinned guard scripts/developer-harness-v2-ci-workflow.test.mjs and the Phase-2 identity test openwolf-hooks.test.mjs (which pins bypass-hook.test.mjs by sha256 — the FIRST version of this patch missed that pin and broke it; found by running the V2 runner, fixed) = 14/14 together (with Git bash on PATH; the guard executes `bash`). Full V2 runner there: the failures also present on the UNMODIFIED branch on this host remain; two further policy tests (New-Item/mkdir, junction) fail only in the scratch-worktree LOCATION and pass on the real branch with the same V2 files — location-dependent, not caused by the patch, but not proven by an unpatched scratch run; the pin method was first validated by reproducing the baseline pins; `git apply --check` clean on the branch. The Linux execution of the full V3 suite is NOT verified here (see 22).",
       "new_pins": "workflow sha256 and release-workflow-contract block sha256 are inside the patch (BASELINE_WORKFLOW_SHA256, BASELINE_RELEASE_BLOCK_SHA256)"
+    },
+    {
+      "id": "P5",
+      "file": "P5-lifecycle-technical-suspension.patch",
+      "sha256": "0fdfda32ac53e64e3b7507300d2947a5ab37071f85f20d910afa09329f471dec",
+      "touches": [
+        "docs/developer-harness-v3/task-lifecycle.json"
+      ],
+      "protected_class": "V3 lifecycle contract (root of trust; owner-only)",
+      "purpose": "Add ONE recoverable lifecycle state, `technical_suspension`, with reasons RETRY_BUDGET_EXHAUSTED / SESSION_BUDGET_EXHAUSTED / REVIEW_BUDGET_EXHAUSTED / REMEDIATION_BUDGET_EXHAUSTED / HANDOFF_EVIDENCE_UNOBTAINABLE, so that an exhausted AUTOMATED retry budget is visible in the lifecycle instead of only in the ledger `suspensions` table. The reducer needs NO code change: it already handles any state declared under recoverable_states generically (entry from any non-terminal state, resume only to the recorded state, never a genuine blocker because it is not `blocked`).",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TECH-SUSPENSION-STATE",
+      "verified": "tests/d34-proposals.test.mjs applies the patch to a COPY of the lifecycle contract and drives the REAL reducer: entry from implementing, testing, independent_review, remediation and publishing; the only exit is the recorded resume target (remediation resumes to implementing); an owner_action_id is not required; it is not a blocked state; a wrong resume target and an unknown reason are refused. `git apply --check` is clean on the branch. NOT applied here: task-lifecycle.json is root of trust.",
+      "effects": "changes the lifecycle contract digest the policy bootstrap pins; after the owner applies and re-pins it, `suspendTechnically` (orchestrator/suspension.mjs) gains one extra line — a reducer transition into technical_suspension with the same reason code — and the ledger `suspensions` row stays the scheduling source of truth. Until then the ledger-level suspension is the INACTIVE conservative solution and the reducer is untouched."
     }
   ],
   "not_patches": [
@@ -43,7 +57,7 @@
       "title": "task-lifecycle contract additions",
       "mandatory_for_d34_completion": false,
       "status": "DESIGN ONLY (not applied, not tested against the reducer pins)",
-      "detail": "see 21 §3"
+      "detail": "see 21 §3. Item (e) technical suspension is now an exact patch: P5"
     },
     {
       "id": "P4",

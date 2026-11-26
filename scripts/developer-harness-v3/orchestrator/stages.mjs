@@ -1,44 +1,56 @@
 // Developer Harness V3 (D3.4) — per-state stage handlers for the engine. Each handler performs ONE bounded step and returns {progressed, action}.
 // Model output is never trusted: the plan is validated, the candidate is re-derived by the controller's own git adapter and scope-checked, review
 // submissions are normalized, and every approval is a SIGNED envelope from an issuer process that re-derives its own facts.
+//
+// Remediation (D3.4 verification round): COMPLETENESS is verified, not claimed (F4); exhausted retries become TECHNICAL suspensions, never owner decisions (F5); a finished review
+// deliverable is durable before its session is torn down and consumed only after independent verification (F6).
 import { createHash } from 'node:crypto'
 import { digestOf } from '../lib/canonical.mjs'
 import { matchesAny, normalizeRepoPath } from '../lib/paths.mjs'
 import { acceptEvidence, satisfyingEvidence } from './ledger/evidence-store.mjs'
-import { failureCount, recordFailure, retryEligible, enqueueOutbox } from './ledger/intents.mjs'
-import { runSessionStage } from './session-runner.mjs'
+import { recordFailure, retryEligible, enqueueOutbox } from './ledger/intents.mjs'
+import { admissionOutcome, runSessionStage } from './session-runner.mjs'
 import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
+import { budgetExceeded, reviewRoundsInEpoch, suspendTechnically } from './suspension.mjs'
 
+void admissionOutcome
 const NONE = Object.freeze({ progressed: false })
 const PROGRESS = (action) => ({ progressed: true, action })
-const PLAN_INSTRUCTION = 'Produce a plan for the task: reply with the ordered steps needed (id, title, depends_on). Do not implement anything yet. Do not ask the owner anything.'
+const PLAN_INSTRUCTION = 'Produce a plan for the task: reply with the ordered steps needed (id, title, depends_on, covers = the indexes of the acceptance criteria the step satisfies, optional touches = path globs the step must change). EVERY acceptance criterion must be covered by at least one step. Do not implement anything yet. Do not ask the owner anything.'
 const IMPLEMENT_INSTRUCTION = 'Implement the remaining plan steps inside the task scope, commit your work on the task branch, and run the relevant local checks. Do not ask the owner anything; there is nobody to answer.'
-const REVIEW_INSTRUCTION = { independent_review: 'You are an INDEPENDENT code reviewer with a fresh context. The candidate is READ-ONLY: do not edit, commit or run anything that writes. Report structured findings (id, severity, path, evidence, reproduction, remediation). Do not approve; a trusted verifier decides.',
+const STRATEGY_HINT = 'Earlier attempts at this task failed repeatedly. Choose a materially DIFFERENT implementation strategy from the failed ones described below; do not repeat the same approach.'
+const COVERAGE_ASK = ' ALSO report coverage: for EVERY plan step (coverage.steps[{id,status,evidence}]) and EVERY acceptance criterion (coverage.criteria[{index,status,evidence}]) say whether the candidate satisfies it (satisfied | unsatisfied | unknown), citing what you checked. Do not trust the implementer\'s claim of completion.'
+const REVIEW_INSTRUCTION = { independent_review: `You are an INDEPENDENT code reviewer with a fresh context. The candidate is READ-ONLY: do not edit, commit or run anything that writes. Report structured findings (id, severity, path, evidence, reproduction, remediation). Do not approve; a trusted verifier decides.${COVERAGE_ASK}`,
   security_review: 'You are an INDEPENDENT SECURITY reviewer with a fresh context. The candidate is READ-ONLY: do not edit, commit or run anything that writes. Report structured findings (id, severity, path, evidence, reproduction, remediation). Do not approve; a trusted verifier decides.' }
+const AI_STAGES = ['implementing', 'planning']
 
 // ------------------------------------------------------------------ shared failure policy
-/** A stage that did not complete: record the failure fingerprint, back off, escalate once, and only then (and only then) declare a genuine blocker. */
+const technicallySuspend = (e, taskId, cause, stage, codes) => { suspendTechnically(e, taskId, { cause, stage, codes }); return PROGRESS('technically_suspended') }
+
+/**
+ * A stage that did not complete: record the failure fingerprint, back off, escalate the model once, and when the AUTOMATED budget is spent suspend TECHNICALLY (durable cool-down, automatic resume,
+ * diagnostics notification). A genuine owner blocker comes only from admission/authentication/isolation (engine.applyWait) — never from a retry budget running out.
+ */
 export function failStage(e, taskId, stageKey, out) {
   const L = e.ledger
-  if (out.status === 'busy') return NONE
-  if (out.status === 'termination_unverified') return PROGRESS('termination_unverified') // the next tick reconciles the held slot before anything else
+  if (out.status === 'busy' || out.status === 'cancelled') return NONE
+  if (out.status === 'suspend') return technicallySuspend(e, taskId, out.cause, stageKey, out.codes ?? [])
   if (out.status === 'wait') {
-    const w = out.wait
-    if (w.state === 'blocked') e.applyWait(taskId, { kind: 'blocked', reason: w.reason, codes: [w.code] })
-    else e.applyWait(taskId, { kind: 'wait', state: w.state, reason: w.reason, eligible_at: w.eligible_at ?? L.now() + e.cfg.subscriptionRecheckMs, codes: [w.code] })
+    const w = out.wait; const codes = w.codes?.length ? w.codes : [w.code]
+    if (w.state === 'blocked') e.applyWait(taskId, { kind: 'blocked', reason: w.reason, codes })
+    else e.applyWait(taskId, { kind: 'wait', state: w.state, reason: w.reason, eligible_at: w.eligible_at ?? L.now() + e.cfg.subscriptionRecheckMs, codes })
     return PROGRESS('waiting')
   }
-  const fp = out.fingerprint ?? `${stageKey}:${out.code ?? 'unknown'}`
+  const unverified = out.status === 'termination_unverified' // the slot stays held until recovery proves the session dead; the attempt is BUDGETED so a stuck stop cannot buy sessions forever
+  const fp = unverified ? `termination-unverified:${stageKey}` : (out.fingerprint ?? `${stageKey}:${out.code ?? 'unknown'}`); const code = unverified ? 'TERMINATION_UNVERIFIED' : out.code
   const r = recordFailure(L, { taskId, stage: stageKey, fingerprint: fp, rng: e.rng }, e.cfg.retry)
-  L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: out.code ?? null, fingerprint: fp, attempts: r.attempts, repeated_identical: r.repeated_identical })
-  const escalated = L.meta(`escalated:${taskId}`) === '1'
-  if (r.repeated_identical && !escalated && ['implementing', 'planning'].includes(stageKey)) { L.setMeta(`escalated:${taskId}`, '1'); L.recordRecovery(taskId, 'model_escalated', { stage: stageKey }) }
-  else if ((r.exhausted && (escalated || !['implementing', 'planning'].includes(stageKey))) || failureCount(L, taskId, stageKey) >= e.cfg.maxStageFailures) {
-    e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [`REPEATED_FAILURE:${stageKey}`, out.code ?? 'unknown'] })
-    return PROGRESS('blocked_after_repeated_identical_failure')
-  }
-  return PROGRESS('stage_failed_backoff')
+  L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: code ?? null, fingerprint: fp, attempts: r.attempts, repeated_identical: r.repeated_identical })
+  const ai = AI_STAGES.includes(stageKey); const escalated = L.meta(`escalated:${taskId}`) === '1'
+  const over = budgetExceeded(e, taskId)
+  if (r.repeated_identical && !escalated && ai) { L.setMeta(`escalated:${taskId}`, '1'); L.recordRecovery(taskId, 'model_escalated', { stage: stageKey }) }
+  else if ((r.exhausted && (escalated || !ai)) || over) return technicallySuspend(e, taskId, over ?? `REPEATED_FAILURE:${stageKey}`, stageKey, [`REPEATED_FAILURE:${stageKey}`, code ?? 'unknown'])
+  return PROGRESS(unverified ? 'termination_unverified' : 'stage_failed_backoff')
 }
 
 function enterRemediation(e, taskId, { reason, fingerprint, instruction, stageKey }) {
@@ -46,27 +58,35 @@ function enterRemediation(e, taskId, { reason, fingerprint, instruction, stageKe
   const r = recordFailure(L, { taskId, stage: stageKey, fingerprint, rng: e.rng }, e.cfg.retry)
   const escalated = L.meta(`escalated:${taskId}`) === '1'
   L.setMeta(`remediation:${taskId}`, instruction)
+  L.recordRecovery(taskId, 'remediation_entered', { reason, stage: stageKey, fingerprint, attempts: r.attempts })
   if (r.repeated_identical && !escalated) { L.setMeta(`escalated:${taskId}`, '1'); L.recordRecovery(taskId, 'model_escalated', { stage: stageKey, reason }) }
-  else if (r.exhausted && escalated) {
-    e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [`REPEATED_IDENTICAL_FAILURE:${reason}`] })
-    return PROGRESS('blocked_after_escalation')
-  }
   const t = L.transition(taskId, 'remediation', { reason_code: reason })
   if (!t.ok) throw new Error(`ENGINE.REMEDIATION_REFUSED:${t.problems[0]}`)
+  // The budget is judged ACROSS fingerprints, candidate changes and stages of the epoch: a failure that keeps changing its shape cannot evade it.
+  const over = budgetExceeded(e, taskId)
+  if ((r.exhausted && escalated) || over) return technicallySuspend(e, taskId, over ?? `REPEATED_IDENTICAL_FAILURE:${reason}`, stageKey, [`REPEATED_IDENTICAL_FAILURE:${reason}`])
   return PROGRESS('remediation')
 }
 
 // ------------------------------------------------------------------ planning
 const STEP_ID = /^[a-z][a-z0-9-]{0,30}$/
-function validatePlan(plan) {
+const GLOB = /^[A-Za-z0-9_.\-*/\[\]{}@+~ ]{1,200}$/
+function validatePlan(plan, task) {
   if (!plan || !Array.isArray(plan.steps) || plan.steps.length < 1 || plan.steps.length > 50) return { ok: false, code: 'PLAN.SHAPE' }
+  const criteria = (task.acceptance.criteria ?? []).length
   const seen = new Set(); const steps = []
   for (const s of plan.steps) {
     if (!s || !STEP_ID.test(s.id ?? '') || seen.has(s.id) || typeof s.title !== 'string' || !s.title.trim()) return { ok: false, code: 'PLAN.STEP_INVALID' }
     const deps = Array.isArray(s.depends_on) ? s.depends_on : []
     if (deps.some((d) => !seen.has(d))) return { ok: false, code: 'PLAN.DEPENDENCY_ORDER' } // only earlier steps: acyclic by construction
-    seen.add(s.id); steps.push({ id: s.id, title: s.title.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 200), depends_on: deps })
+    const covers = s.covers === undefined ? [] : s.covers
+    if (!Array.isArray(covers) || covers.length > 50 || covers.some((c) => !Number.isSafeInteger(c) || c < 0 || c >= criteria)) return { ok: false, code: 'PLAN.STEP_INVALID' }
+    const touches = s.touches === undefined ? [] : s.touches
+    if (!Array.isArray(touches) || touches.length > 20 || touches.some((g) => typeof g !== 'string' || !GLOB.test(g) || g.includes('..') || g.startsWith('/'))) return { ok: false, code: 'PLAN.STEP_INVALID' }
+    seen.add(s.id); steps.push({ id: s.id, title: s.title.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 200), depends_on: deps, covers: [...new Set(covers)], ...(touches.length ? { touches } : {}) })
   }
+  // EVERY original acceptance criterion must be covered by some step: a plan that drops one is refused before any implementation is paid for
+  for (let i = 0; i < criteria; i += 1) if (!steps.some((s) => s.covers.includes(i))) return { ok: false, code: 'PLAN.ACCEPTANCE_NOT_COVERED' }
   return { ok: true, plan: { steps } }
 }
 
@@ -82,7 +102,7 @@ export async function planning(e, taskId) {
     if (out.status !== 'done') return failStage(e, taskId, 'planning', out)
     deliverable = out.deliverable
   }
-  const v = validatePlan(deliverable.plan)
+  const v = validatePlan(deliverable.plan, L.getTask(taskId))
   if (!v.ok) { L.db.prepare('DELETE FROM meta WHERE key=?').run(`stage_done:${taskId}:planning`); return failStage(e, taskId, 'planning', { status: 'failed', code: v.code, fingerprint: `plan:${v.code}` }) }
   L.tx(() => { L.savePlan(taskId, v.plan); L.db.prepare('DELETE FROM meta WHERE key=?').run(`stage_done:${taskId}:planning`) })
   e.hook('after_plan_saved', { taskId })
@@ -98,17 +118,35 @@ function finishImplementing(e, taskId) {
   return t.ok ? PROGRESS('candidate_recorded') : NONE
 }
 
+/**
+ * The implementer's `completed_steps` is a CLAIM, never proof. A claimed step counts as done only if the plan's own declared path expectations (`touches`) are met by the controller-derived
+ * changed paths. Whatever remains is the work still to do; independent coverage by a reviewer is the second, separate check (F4).
+ * @returns {{unfinished:object[], rejected:object[]}}
+ */
+function applyClaims(L, taskId, claimed, changedPaths) {
+  const plan = L.currentPlan(taskId); const rejected = []
+  const spec = new Map(plan.plan.steps.map((s) => [s.id, s]))
+  for (const step of plan.steps) {
+    if (step.status === 'done' || step.status === 'abandoned' || !claimed.has(step.id)) continue
+    const touches = spec.get(step.id)?.touches ?? []
+    const met = !touches.length || changedPaths.some((p) => { const n = normalizeRepoPath(p); return n.ok && matchesAny(touches, n.path) })
+    if (met) L.setStepStatus(taskId, plan.version, step.id, 'done'); else rejected.push({ id: step.id, why: `claimed done but the candidate changes no path matching ${touches.join(', ')}` })
+  }
+  return { unfinished: L.remainingSteps(taskId), rejected }
+}
+
 export async function implementing(e, taskId) {
   const L = e.ledger; const A = e.adapters
   const pending = L.meta(`candidate_pending:${taskId}`); const have = L.currentCandidate(taskId)
   if (pending && have && pending === have.candidate_sha) return finishImplementing(e, taskId) // crash after the candidate was recorded: continue, do not redo the session
   if (!retryEligible(L, taskId, 'implementing')) return NONE
   const remediation = L.meta(`remediation:${taskId}`)
+  const hint = L.meta(`strategy_hint:${taskId}`) === '1' ? `${STRATEGY_HINT}\n\n` : ''
   let deliverable = JSON.parse(L.meta(`stage_done:${taskId}:implementing`) ?? 'null') // crash after the session finished: derive and validate its result, do not redo it
   if (!deliverable) {
     const g = await e.gate(taskId, { stage: 'implementing', ai: true, profile: 'reasoning' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
-    const out = await runSessionStage(e, taskId, { stage: 'implementing', role: 'implementer', route: g.route, mandatory: false, instruction: remediation ? `${IMPLEMENT_INSTRUCTION}\n\n${remediation}` : IMPLEMENT_INSTRUCTION })
+    const out = await runSessionStage(e, taskId, { stage: 'implementing', role: 'implementer', route: g.route, mandatory: false, instruction: `${hint}${remediation ? `${IMPLEMENT_INSTRUCTION}\n\n${remediation}` : IMPLEMENT_INSTRUCTION}` })
     if (out.status !== 'done') return failStage(e, taskId, 'implementing', out)
     deliverable = out.deliverable
   }
@@ -120,8 +158,15 @@ export async function implementing(e, taskId) {
   if (bad) { discard(); return failStage(e, taskId, 'implementing', { status: 'failed', code: bad, fingerprint: `candidate:${bad}` }) }
   const cur = L.currentCandidate(taskId)
   if (cur && cur.candidate_sha === f.candidate_sha && cur.tree_digest === f.tree_digest && remediation) { discard(); return failStage(e, taskId, 'implementing', { status: 'failed', code: 'CANDIDATE.UNCHANGED_AFTER_REMEDIATION', fingerprint: 'candidate:unchanged' }) }
+  // COMPLETENESS: claims are verified against the plan's own expectations; unfinished mandatory steps send the task BACK to implementation before anything is tested, reviewed or approved.
   const plan = L.currentPlan(taskId)
-  for (const id of deliverable.completed_steps ?? []) if (plan?.steps.some((s) => s.id === id)) L.setStepStatus(taskId, plan.version, id, 'done')
+  const { unfinished, rejected } = plan ? applyClaims(L, taskId, new Set((Array.isArray(deliverable.completed_steps) ? deliverable.completed_steps : []).filter((id) => typeof id === 'string')), f.changed_paths) : { unfinished: [], rejected: [] }
+  if (unfinished.length) {
+    discard()
+    const msg = [`Plan steps still INCOMPLETE (a claim of completion is not proof): ${unfinished.map((s) => `${s.id} (${s.title})`).join('; ')}.`, ...rejected.map((r) => `Rejected claim ${r.id}: ${r.why}.`), 'Finish them inside the task scope; do not claim a step that is not done.'].join('\n')
+    L.setMeta(`remediation:${taskId}`, [remediation, msg].filter(Boolean).join('\n\n'))
+    return failStage(e, taskId, 'implementing', { status: 'failed', code: 'IMPLEMENTATION.INCOMPLETE', fingerprint: `incomplete:${unfinished.map((s) => s.id).join('+')}`.slice(0, 120) })
+  }
   // candidate + its path list + the "pending" marker are ONE transaction: a crash leaves either nothing or all of it
   const sub = L.tx(() => { const r = L.submitCandidate(taskId, { base_sha: f.base_sha, candidate_sha: f.candidate_sha, tree_digest: f.tree_digest, patch_digest: f.patch_digest })
     if (r.ok) { L.setMeta(`paths:${taskId}:${f.candidate_sha}`, JSON.stringify(f.changed_paths.slice(0, 2000))); L.setMeta(`candidate_pending:${taskId}`, f.candidate_sha) } return r })
@@ -204,9 +249,12 @@ export async function review(e, taskId, kind) {
   // crash after a review was SUBMITTED (read-only verified, findings stored): finalize it — never pay for a second AI review of the same candidate
   const pend = L.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind=? AND status IN ('submitted','verified_pass') AND candidate_sha=? ORDER BY round DESC LIMIT 1").get(taskId, kind, cur0?.candidate_sha ?? '')
   if (pend) return finalizeReview(e, taskId, kind, pend.review_id)
-  L.db.prepare("UPDATE reviews SET status='invalidated' WHERE task_id=? AND kind=? AND status='open'").run(taskId, kind) // stale rows from a crashed attempt
-  const rounds = L.db.prepare("SELECT COUNT(*) c FROM reviews WHERE task_id=? AND kind=? AND status IN ('verified_pass','verified_fail')").get(taskId, kind).c
-  if (rounds >= e.cfg.maxReviewRounds) { e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [`REVIEW_ROUNDS_EXCEEDED:${kind}`] }); return PROGRESS('blocked_review_rounds') }
+  // F6: a finished deliverable that was persisted BEFORE its session's teardown: consume it after INDEPENDENT verification — never buy the same review twice
+  const open = L.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind=? AND status='open' ORDER BY round DESC LIMIT 1").get(taskId, kind)
+  if (open && L.getReviewDeliverable(open.review_id)) { const r = await consumeDeliverable(e, taskId, kind, open.review_id, null); if (!r.discarded) return r }
+  L.db.prepare("UPDATE reviews SET status='invalidated' WHERE task_id=? AND kind=? AND status='open'").run(taskId, kind) // stale rows from a crashed attempt that never produced a result
+  // review rounds are budgeted PER EPOCH across candidates and failure shapes; an exhausted budget is a technical suspension, never an owner decision
+  if (reviewRoundsInEpoch(L, taskId, kind) >= e.cfg.technical.maxReviewRoundsPerEpoch) return technicallySuspend(e, taskId, `REVIEW_ROUNDS_EXCEEDED:${kind}`, kind, [`REVIEW_ROUNDS_EXCEEDED:${kind}`])
   const g = await e.gate(taskId, { stage: kind, ai: true, profile: 'reasoning' })
   if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
   const task = L.getTask(taskId); const cand = L.currentCandidate(taskId)
@@ -215,17 +263,64 @@ export async function review(e, taskId, kind) {
     onLeased: (lease) => {
       const ex = L.getExecution(lease.execution_id)
       if (!reviewId) { reviewId = L.openReview(taskId, { kind, execution: ex, candidate: cand, policy_revision: e.policy.revision, environment_id: task.environment_id }); e.hook('after_review_opened', { taskId }) } else L.rebindReview(reviewId, ex)
-    } })
-  if (out.status !== 'done') { if (reviewId) L.setReviewStatus(reviewId, 'invalidated'); return failStage(e, taskId, stageKey, out) }
-  const sub = normalizeSubmission(out.deliverable.submission)
-  if (!sub.ok) { L.setReviewStatus(reviewId, 'invalidated'); return failStage(e, taskId, stageKey, { status: 'failed', code: sub.problems[0], fingerprint: `review-submission:${sub.problems[0]}` }) }
-  // READ-ONLY enforcement is verified by the controller, independent of the reviewer's instructions: the candidate tree must be byte-identical afterwards.
-  const post = await A.git.treeDigestAfterReview(L.getTask(taskId), out.last_lease)
+    },
+    // durable BEFORE teardown, bound to this review/execution/context/candidate; UNTRUSTED until consumeDeliverable has verified everything
+    persistDeliverable: (deliverable, lease) => { const ex = L.getExecution(lease.execution_id); L.saveReviewDeliverable(reviewId, { task_id: taskId, candidate_sha: cand.candidate_sha, tree_digest: cand.tree_digest, execution_id: ex.execution_id, context_id: ex.context_id, deliverable }) } })
+  // `termination_unverified` keeps the review OPEN with its (already persisted, untrusted) deliverable: it is consumed only after recovery proves the session dead. Anything else ends the review.
+  if (out.status !== 'done') { if (reviewId && out.status !== 'termination_unverified') { L.setReviewStatus(reviewId, 'invalidated'); L.deleteReviewDeliverable(reviewId) } return failStage(e, taskId, stageKey, out) }
+  const r = await consumeDeliverable(e, taskId, kind, reviewId, out.last_lease)
+  return r.discarded ? failStage(e, taskId, stageKey, { status: 'failed', code: r.code, fingerprint: `review-deliverable:${r.code}` }) : r
+}
+
+/**
+ * Verify, then accept, a persisted reviewer deliverable. Nothing here trusts the reviewer: TERMINATION must be verified (execution terminated_verified, or abandoned by a recovery that verified cleanup),
+ * the deliverable must bind to THIS review, execution, context and the CURRENT candidate + tree, the reviewer's context must be independent of every implementer/other reviewer context, and the
+ * read-only proof (tree digest after the stop equals the reviewed tree) is recomputed NOW. Any mismatch DISCARDS it (recorded) and a fresh review is bought.
+ * @returns {Promise<{discarded:true, code:string}|{progressed:boolean, action?:string}>}
+ */
+async function consumeDeliverable(e, taskId, kind, reviewId, lease) {
+  const L = e.ledger; const A = e.adapters; const stageKey = kind
+  const rv = L.getReview(reviewId); const d = L.getReviewDeliverable(reviewId); const cand = L.currentCandidate(taskId)
+  const discard = (codes) => { L.setReviewStatus(reviewId, 'invalidated'); L.deleteReviewDeliverable(reviewId); L.recordRecovery(taskId, 'review_deliverable_discarded', { review_id: reviewId, kind, codes }); return { discarded: true, code: codes[0] } }
+  if (!rv || !d || rv.status !== 'open') return discard(['REVIEW.DELIVERABLE_MISSING'])
+  const ex = L.getExecution(d.execution_id)
+  if (ex && !['terminated_verified', 'abandoned'].includes(ex.status)) return NONE // the session's stop is not proven (yet): nothing is accepted, nothing is bought; recovery decides
+  if (L.slotHolder()?.execution_id === d.execution_id) return NONE
+  const problems = []
+  if (!cand || rv.candidate_sha !== cand.candidate_sha || rv.tree_digest !== cand.tree_digest || d.candidate_sha !== rv.candidate_sha || d.tree_digest !== rv.tree_digest) problems.push('REVIEW.DELIVERABLE_CANDIDATE_MISMATCH')
+  if (!ex || ex.execution_id !== rv.execution_id || ex.context_id !== rv.context_id || d.context_id !== rv.context_id) problems.push('REVIEW.DELIVERABLE_EXECUTION_MISMATCH')
+  else {
+    if (L.implementerContextIds(taskId).includes(ex.context_id) || L.db.prepare('SELECT 1 FROM executions WHERE task_id=? AND context_id=? AND execution_id<>?').get(taskId, ex.context_id, ex.execution_id)) problems.push('REVIEW.CONTEXT_NOT_INDEPENDENT')
+    if (L.db.prepare('SELECT 1 FROM reviews WHERE task_id=? AND context_id=? AND review_id<>?').get(taskId, ex.context_id, reviewId)) problems.push('REVIEW.CONTEXT_REUSED')
+  }
+  if (problems.length) return discard(problems)
+  // READ-ONLY enforcement is verified by the controller, independent of the reviewer's instructions: the candidate tree must be byte-identical after the (verified) stop.
+  const post = await A.git.treeDigestAfterReview(L.getTask(taskId), lease ?? null)
   L.recordReviewReadonlyCheck(reviewId, { snapshotDigest: cand.tree_digest, postTreeDigest: post })
-  if (post !== cand.tree_digest) { L.setReviewStatus(reviewId, 'verified_fail'); L.recordRecovery(taskId, 'reviewer_modified_candidate', { kind, review_id: reviewId }); return failStage(e, taskId, stageKey, { status: 'failed', code: 'REVIEW.CANDIDATE_MODIFIED_BY_REVIEWER', fingerprint: 'review:modified-candidate' }) }
-  L.tx(() => { L.addFindings(reviewId, taskId, sub.findings); for (const fid of sub.confirmed_resolved) L.db.prepare("UPDATE findings SET status='confirmed' WHERE task_id=? AND finding_id=? AND status='carried' AND review_id IN (SELECT review_id FROM reviews WHERE kind=?)").run(taskId, fid, kind); L.setReviewStatus(reviewId, 'submitted') })
+  e.hook('after_review_readonly_verified', { taskId })
+  if (post !== cand.tree_digest) { L.setReviewStatus(reviewId, 'verified_fail'); L.deleteReviewDeliverable(reviewId); L.recordRecovery(taskId, 'reviewer_modified_candidate', { kind, review_id: reviewId }); return failStage(e, taskId, stageKey, { status: 'failed', code: 'REVIEW.CANDIDATE_MODIFIED_BY_REVIEWER', fingerprint: 'review:modified-candidate' }) }
+  const plan = L.currentPlan(taskId); const task = L.getTask(taskId)
+  const sub = normalizeSubmission(JSON.parse(d.deliverable_json)?.submission, { requireCoverage: kind === 'independent_review', stepIds: plan?.steps.map((s) => s.id) ?? [], stepTitles: Object.fromEntries((plan?.steps ?? []).map((s) => [s.id, s.title])), criteria: task.acceptance.criteria ?? [] })
+  if (!sub.ok) { L.setReviewStatus(reviewId, 'invalidated'); L.deleteReviewDeliverable(reviewId); return failStage(e, taskId, stageKey, { status: 'failed', code: sub.problems[0], fingerprint: `review-submission:${sub.problems[0]}` }) }
+  L.tx(() => { L.addFindings(reviewId, taskId, sub.findings); L.addCoverage(reviewId, taskId, cand.candidate_sha, sub.coverage)
+    for (const fid of sub.confirmed_resolved) L.db.prepare("UPDATE findings SET status='confirmed' WHERE task_id=? AND finding_id=? AND status='carried' AND review_id IN (SELECT review_id FROM reviews WHERE kind=?)").run(taskId, fid, kind)
+    L.setReviewStatus(reviewId, 'submitted'); L.deleteReviewDeliverable(reviewId) })
   e.hook('after_review_submitted', { taskId })
   return finalizeReview(e, taskId, kind, reviewId)
+}
+
+/** What is still unproven about the candidate's completeness: plan steps not done, or steps/criteria without SATISFIED coverage from the independent review of THIS candidate. */
+export function completenessProblems(L, taskId, reviewId = null) {
+  const t = L.getTask(taskId); const plan = L.currentPlan(taskId); const cand = L.currentCandidate(taskId)
+  if (!plan || !cand) return ['COMPLETENESS.NO_PLAN_OR_CANDIDATE']
+  const problems = []
+  for (const s of plan.steps) if (s.status !== 'done') problems.push(`step:${s.id}:not_done`)
+  const rid = reviewId ?? L.db.prepare("SELECT review_id FROM reviews WHERE task_id=? AND kind='independent_review' AND status='verified_pass' AND candidate_sha=? AND tree_digest=? ORDER BY round DESC LIMIT 1").get(taskId, cand.candidate_sha, cand.tree_digest)?.review_id
+  if (!rid) return [...problems, 'COMPLETENESS.NO_INDEPENDENT_REVIEW']
+  const rows = new Map(L.coverageOf(rid).map((r) => [`${r.subject_type}:${r.subject_ref}`, r.status]))
+  for (const s of plan.steps) if (rows.get(`step:${s.id}`) !== 'satisfied') problems.push(`step:${s.id}:not_covered`)
+  for (let i = 0; i < (t.acceptance.criteria ?? []).length; i += 1) if (rows.get(`criterion:${i}`) !== 'satisfied') problems.push(`criterion:${i}:not_covered`)
+  return problems
 }
 
 /** Issuer → accept → verdict. Transport failures keep the SUBMITTED review (a retry re-asks the issuer, not the model); substantive refusals invalidate it. */
@@ -239,6 +334,11 @@ async function finalizeReview(e, taskId, kind, reviewId) {
   e.hook('after_evidence_accepted', { taskId })
   const payload = issued.envelope.payload
   if (payload.verdict === 'pass') {
+    if (kind === 'independent_review') { // never advance past the independent review while a step or criterion lacks independent, satisfied coverage
+      const gaps = completenessProblems(L, taskId, reviewId)
+      if (gaps.length) { L.setReviewStatus(reviewId, 'verified_fail', payload.evidence_id); L.recordRecovery(taskId, 'completeness_gate_failed', { review_id: reviewId, gaps })
+        return enterRemediation(e, taskId, { reason: 'REVIEW_FINDINGS_OPEN', stageKey, fingerprint: `${kind}:completeness:${gaps.slice(0, 4).join('+')}`.slice(0, 120), instruction: `Completeness is not proven for the candidate: ${gaps.join(', ')}. Complete every plan step and acceptance criterion.` }) }
+    }
     const next = kind === 'independent_review' ? (task.lifecycle.security_review_required ? 'security_review' : 'publishing') : 'publishing'
     // the verdict and the lifecycle transition are ONE transaction: a crash (or a refused transition) can never leave a passed review whose task did not advance
     try { L.tx(() => { L.setReviewStatus(reviewId, 'verified_pass', payload.evidence_id); const r = L.transition(taskId, next); if (!r.ok) throw new Error(`TRANSITION:${r.problems[0]}`) }) } catch (err) { if (/^TRANSITION:/.test(err.message)) return NONE; throw err }
@@ -253,8 +353,8 @@ async function finalizeReview(e, taskId, kind, reviewId) {
 // ------------------------------------------------------------------ delivery handoff (D3.4's end state; publishing/CI/staging/merge are D3.6+)
 /**
  * Approvals are bound to the task's fencing token (D3.2). After a recovery the token advanced, so earlier approvals no longer verify even though the candidate did not
- * change. Re-attestation asks each issuer to RE-ISSUE the same verdict under the current epoch: the issuer re-checks everything against the ledger and its own
- * independent candidate derivation first. Nothing is re-signed by the controller, and a changed candidate (head change) is never re-attested — it re-enters testing.
+ * change. Re-attestation asks each issuer to RE-ISSUE the same verdict under the current epoch (and, for an approval that has EXPIRED, a fresh one): the issuer re-checks everything against the
+ * ledger and its own independent candidate derivation first. Nothing is re-signed by the controller, and a changed candidate (head change) is never re-attested — it re-enters testing.
  */
 async function reattest(e, taskId, missing) {
   const L = e.ledger; const cand = L.currentCandidate(taskId); const problems = []
@@ -278,30 +378,37 @@ async function reattest(e, taskId, missing) {
   return { ok: problems.length === 0, problems }
 }
 
+/** A handoff attempt that could not complete: a PERSISTED retry schedule (never a silent stall); when the budget is spent, a technical suspension — never an owner decision. */
+function handoffRetry(e, taskId, cause, fingerprint) {
+  const L = e.ledger
+  const r = recordFailure(L, { taskId, stage: 'handoff', fingerprint, rng: e.rng }, e.cfg.retry)
+  if (r.exhausted || budgetExceeded(e, taskId)) return technicallySuspend(e, taskId, cause, 'publishing', [cause])
+  return NONE
+}
+
 export async function handoff(e, taskId) {
   const L = e.ledger; const t = L.getTask(taskId)
+  if (!retryEligible(L, taskId, 'handoff')) return NONE
   const need = ['test_results', 'independent_review', ...(t.lifecycle.security_review_required ? ['security_review'] : [])]
   const collect = () => need.map((type) => ({ type, ev: satisfyingEvidence(L, taskId, e.policy, type) }))
   let have = collect()
   let missing = have.filter((h) => !h.ev.length).map((h) => h.type)
   if (missing.length) { await reattest(e, taskId, missing); have = collect(); missing = have.filter((h) => !h.ev.length).map((h) => h.type) }
-  if (missing.length) {
-    // fail closed, but never a silent permanent stall: bounded attempts, then ONE genuine-blocker package (lifecycle back-edge for expired approvals is proposal P3(c))
-    L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing })
-    const tries = L.recoveryHistory(taskId).filter((x) => x.kind === 'handoff_evidence_insufficient').length
-    if (tries >= 5) { e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['HANDOFF_EVIDENCE_UNOBTAINABLE', ...missing] }); return PROGRESS('blocked_handoff_evidence') }
-    return NONE
-  }
+  if (missing.length) { L.recordRecovery(taskId, 'handoff_evidence_insufficient', { missing }); return handoffRetry(e, taskId, 'HANDOFF_EVIDENCE_UNOBTAINABLE', `handoff:evidence:${missing.join('+')}`) }
+  const gaps = completenessProblems(L, taskId)
+  if (gaps.length) { L.recordRecovery(taskId, 'handoff_incomplete', { gaps }); return handoffRetry(e, taskId, 'HANDOFF_INCOMPLETE', `handoff:incomplete:${gaps.slice(0, 3).join('+')}`.slice(0, 120)) }
   const cand = L.currentCandidate(taskId)
   const paths = JSON.parse(L.meta(`paths:${taskId}:${cand.candidate_sha}`) ?? '[]')
   const protectedTouched = paths.filter((p) => { const n = normalizeRepoPath(p); return n.ok && matchesAny(e.policy.contract.protected_paths, n.path) })
   const execs = L.db.prepare('SELECT role, COUNT(*) n FROM executions WHERE task_id=? GROUP BY role').all(taskId)
+  const plan = L.currentPlan(taskId)
   const pkg = { schema: 'patelrep.developer-harness-v3.delivery-handoff', version: 1, simulated: e.adapters.simulated === true, task_id: taskId, repository: t.repository, base_sha: t.base_sha,
     candidate: { candidate_sha: cand.candidate_sha, tree_digest: cand.tree_digest, patch_digest: cand.patch_digest }, policy_revision: e.policy.revision, environment_id: t.environment_id, fencing_token: t.fencing_token,
     evidence: have.map((h) => ({ type: h.type, evidence_id: h.ev[0].evidence_id, digest: h.ev[0].payload_digest, expires_at: h.ev[0].expires_at })),
     protected_paths_touched: protectedTouched, requires_control_plane_process: protectedTouched.length > 0,
+    completeness: { steps_done: plan.steps.filter((s) => s.status === 'done').length, steps_total: plan.steps.length, criteria_covered: (t.acceptance.criteria ?? []).length, criteria_total: (t.acceptance.criteria ?? []).length, basis: 'every step done AND every step and criterion SATISFIED by the independent review of this exact candidate' },
     reviews: L.db.prepare('SELECT kind, round, status FROM reviews WHERE task_id=? ORDER BY created_at, rowid').all(taskId).map((r) => ({ ...r })), executions: Object.fromEntries(execs.map((r) => [r.role, r.n])),
-    renewals: L.recoveryHistory(taskId).filter((r) => r.kind === 'context_renewed').length, plan_digest: L.currentPlan(taskId)?.digest ?? null,
+    renewals: L.recoveryHistory(taskId).filter((r) => r.kind === 'context_renewed').length, plan_digest: plan?.digest ?? null,
     not_done: ['publish_candidate_branch', 'pull_request', 'ci_gate', 'staging_gate', 'merge', 'production_release'] }
   const digest = digestOf(pkg)
   // package, readiness flag and the notification are ONE transaction (a crash cannot mark a task ready and lose its notification)

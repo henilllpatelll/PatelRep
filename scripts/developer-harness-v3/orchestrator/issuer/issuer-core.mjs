@@ -71,9 +71,20 @@ export class IssuerCore {
     return { ok: true }
   }
 
-  #emit(type, subjectKey, payloadFields, t) {
-    const prior = this.store.prepare('SELECT envelope_json FROM issued WHERE subject_key=?').get(subjectKey)
-    if (prior) return { ok: true, duplicate: true, envelope: JSON.parse(prior.envelope_json) }
+  /**
+   * Issue at most once per subject — while the issued approval is still LIVE. An approval that has EXPIRED may be re-issued under a successor subject (`#r1`, `#r2`, …): every fact is re-derived by the
+   * caller (preflight, independent candidate facts, review/run bindings) before this is reached, so a re-issue is the same verdict about the same candidate with a fresh lifetime, never a new judgment.
+   * An unexpired approval is returned unchanged (replay protection); the controller separately accepts each nonce once.
+   */
+  #emit(type, baseKey, payloadFields, t) {
+    let subjectKey = baseKey
+    for (let i = 1; ; i += 1) {
+      const prior = this.store.prepare('SELECT envelope_json FROM issued WHERE subject_key=?').get(subjectKey)
+      if (!prior) break
+      const env = JSON.parse(prior.envelope_json)
+      if (Date.parse(env.payload.expires_at) > this.clock()) return { ok: true, duplicate: true, envelope: env }
+      subjectKey = `${baseKey}#r${i}`
+    }
     const k = loadSigningKey(this.keyDir, this.keyId) // checked on EVERY issuance: emergency deactivation takes effect immediately
     if (!k.ok) return refuse(k.code)
     const now = this.clock(); const max = this.policy.contract.evidence_types[type].max_ttl_seconds * 1000
@@ -127,7 +138,10 @@ export class IssuerCore {
     if (r.fencing_token > t.fencing_token) return refuse('ISSUER.STALE_FENCING_TOKEN')
     if (r.readonly_verified !== 1 || r.post_tree_digest !== r.tree_digest) return refuse('ISSUER.READONLY_NOT_VERIFIED')
     const ex = this.ledger.getExecution(r.execution_id)
-    if (!ex || ex.status !== 'terminated_verified' || ex.context_id !== r.context_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
+    // the session's stop must be PROVEN: closed with verified termination, or abandoned by a recovery whose guest cleanup was verified (supersedeLease refuses to abandon anything else).
+    // `termination_unverified`, `running`, `starting` — anything else — is refused.
+    if (!ex || !['terminated_verified', 'abandoned'].includes(ex.status) || ex.context_id !== r.context_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
+    if (ex.status === 'abandoned' && this.ledger.slotHolder()?.execution_id === ex.execution_id) return refuse('ISSUER.REVIEW_SESSION_NOT_VERIFIED_STOPPED')
     if (ex.role !== (kind === 'independent_review' ? 'independent_reviewer' : 'security_reviewer')) return refuse('ISSUER.WRONG_REVIEWER_ROLE')
     const mv = verifyActualModel({ requested: REVIEW_FAMILY[kind], actual: ex.model_actual, mandatory: true })
     if (ex.model_requested !== REVIEW_FAMILY[kind] || !mv.ok) return refuse('ISSUER.MANDATORY_REVIEW_MODEL_NOT_SATISFIED', mv.code ?? 'ROUTE.WRONG_REQUESTED_MODEL')

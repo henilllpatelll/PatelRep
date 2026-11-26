@@ -2,24 +2,28 @@
 // and ADDS what D3.3 left declarative: the mandatory guest cleanup (kill the worker's processes, then verify) BEFORE a lease is superseded or any new
 // session is admitted. Nothing the old session reported is believed; only host facts and the verified cleanup count. Unrelated processes are never touched
 // (the adapters only know task-owned supervisor/guest worker processes — `terminate_unowned_processes` is a prohibited action in the contract).
-import { randomUUID } from 'node:crypto'
 import { acquireLock, releaseLock } from '../lib/atomic.mjs'
-import { buildCheckpoint, snapshotDirResolver, verifyCheckpoint } from './context-renewal.mjs'
-import { createSnapshot } from './snapshot.mjs'
+import { captureWork, persistCheckpoint } from './preserve.mjs'
 import { isPidAlive } from '../runtime/launcher.mjs'
 import { recoveryDecision } from '../runtime/worker-lifecycle.mjs'
 import { markDispatchedAsUncertain, requeueClaimedOutbox } from './ledger/intents.mjs'
 
 /**
- * Resolve the reasoning slot if it is held. Fail closed: on any doubt the slot stays held and NO session starts.
+ * Resolve the reasoning slot if it is held. Fail closed: on any doubt the slot stays held and NO session starts. EVIDENCE MUST BE EXPLICIT: a liveness probe that throws or reports unknown,
+ * a cleanup/stop/process-verification result that is missing or is not exactly `verified: true` — none of these is ever treated as "cleaned up".
+ * The dead session's uncommitted work is captured BEFORE the lease is superseded and its checkpoint commits IN THE SAME TRANSACTION as the supersession, so there is no instant at which the
+ * slot is free but the work is not durable.
  * @returns {Promise<{cleared:boolean, code?:string, decision?:string, new_fencing_token?:number}>}
  */
 export async function reconcileSlot(e, { reason = 'HOST_RESTARTED' } = {}) {
   const L = e.ledger; const A = e.adapters
   const holder = L.slotHolder()
   if (!holder) return { cleared: true }
-  let facts
-  try { facts = await A.worker.liveness() } catch { facts = { record: null, liveness: { supervisor: null, qemu: null } } }
+  let facts = null
+  try { facts = await A.worker.liveness() } catch { facts = null }
+  if (!facts || typeof facts !== 'object' || typeof facts.liveness !== 'object' || facts.liveness === null) {
+    L.recordRecovery(holder.task_id, 'recovery_investigate', { codes: ['RECOVERY.LIVENESS_UNAVAILABLE'] }); return { cleared: false, code: 'RECOVERY.LIVENESS_UNAVAILABLE', decision: 'investigate' }
+  }
   const lease = { expires_at: new Date(holder.expires_at).toISOString(), fencing_token: holder.fencing_token }
   const d = recoveryDecision({ record: facts.record, lease, liveness: facts.liveness, now: L.now() })
   if (d.action === 'investigate') { L.recordRecovery(holder.task_id, 'recovery_investigate', { codes: d.codes }); return { cleared: false, code: d.codes[0], decision: d.action } }
@@ -29,35 +33,21 @@ export async function reconcileSlot(e, { reason = 'HOST_RESTARTED' } = {}) {
   let verified = false
   try {
     if (d.action === 'terminate' || d.action === 'mark_exited') verified = (await A.worker.stopWorker?.())?.verified === true
-    // 'reattach' (and every other action): the session under the OLD lease must be dead before the new lease exists
-    else verified = (await A.worker.cleanupGuest())?.verified === true
-    if (d.action === 'reattach' && verified) verified = (await A.worker.verifyNoWorkerProcesses?.())?.verified !== false
+    // 'reattach' / 'none': the session under the OLD lease must be dead before the new lease exists — kill, then independently verify that no worker process remains
+    else verified = (await A.worker.cleanupGuest?.())?.verified === true && (await A.worker.verifyNoWorkerProcesses?.())?.verified === true
   } catch { verified = false }
-  const r = L.supersedeLease({ guestCleanupVerified: verified, reason: reason === 'HOST_RESTARTED' ? 'HOST_RESTARTED' : 'WORKER_TERMINATED' })
+  const lc = reason === 'HOST_RESTARTED' ? 'HOST_RESTARTED' : 'WORKER_TERMINATED'
+  const stage = L.getExecution(holder.execution_id)?.stage ?? null
+  const cap = verified ? await captureWork(e, holder.task_id, null) : null // only a verified-dead session leaves a quiescent tree to read
+  e.hook('before_lease_supersede', { taskId: holder.task_id })
+  const r = L.supersedeLease({ guestCleanupVerified: verified, reason: lc, alsoOnSuperseded: () => {
+    if (!cap) return null
+    try { return persistCheckpoint(e, holder.task_id, cap, { reason: 'CRASH_RECOVERY', stage, carry: true }) } catch (err) { L.recordRecovery(holder.task_id, 'uncommitted_work_not_preserved', { error: String(err?.message).slice(0, 80) }); return null }
+  } })
   if (!r.ok) return { cleared: false, code: r.code, decision: d.action }
+  e.hook('after_lease_superseded', { taskId: holder.task_id })
   L.recordRecovery(holder.task_id, 'worker_recovered', { decision: d.action, codes: d.codes, new_fencing_token: r.new_fencing_token })
-  await preserveUncommittedWork(e, holder.task_id)
   return { cleared: true, decision: d.action, new_fencing_token: r.new_fencing_token }
-}
-
-/**
- * The old session is verified dead, so the worker's tree is quiescent. Capture whatever UNCOMMITTED scoped work it left as a verified checkpoint, so a crash
- * (or an unclean stop) does not silently discard it. Best effort and fail-safe: an unsafe/oversized/credential-bearing tree is NOT preserved (recorded, never trusted).
- */
-async function preserveUncommittedWork(e, taskId) {
-  const L = e.ledger
-  try {
-    const task = L.getTask(taskId); const files = await e.adapters.git.captureSnapshot(task, null)
-    if (!files?.length) return { preserved: false }
-    const ref = `snap-${randomUUID()}`; const resolve = snapshotDirResolver(e.snapshotRoot)
-    const made = createSnapshot({ dir: resolve(ref), base_sha: task.base_sha, head_sha: task.head_sha, files, scope: task.scope })
-    if (!made.ok) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { problems: made.problems }); return { preserved: false } }
-    const cp = buildCheckpoint(L, taskId, { reason: 'CRASH_RECOVERY', snapshot: { ref, digest: made.digest }, workerHead: (await e.adapters.git.workerHead?.(task, null))?.head_sha ?? null })
-    const v = verifyCheckpoint(L, cp.id, { snapshotDir: resolve })
-    if (!v.ok) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { problems: v.problems }); return { preserved: false } }
-    L.markCheckpointVerified(cp.id); L.recordRecovery(taskId, 'uncommitted_work_preserved', { checkpoint: cp.id, files: files.length })
-    return { preserved: true }
-  } catch (err) { L.recordRecovery(taskId, 'uncommitted_work_not_preserved', { error: String(err?.message).slice(0, 80) }); return { preserved: false } }
 }
 
 /** Controller start-up: single controller (OS-level lock), uncertain effects, unacknowledged outbox, orphaned reasoning slot. */

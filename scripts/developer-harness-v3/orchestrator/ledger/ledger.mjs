@@ -270,7 +270,7 @@ export class Ledger {
    * Recovery: supersede a lease that is expired, orphaned (controller restarted) or termination-unverified. Requires VERIFIED guest cleanup; otherwise nothing
    * changes and the slot stays held. On success the task's fencing token advances by exactly one via the reducer's `worker_recovered`.
    */
-  supersedeLease({ guestCleanupVerified, reason = 'HOST_RESTARTED' }) {
+  supersedeLease({ guestCleanupVerified, reason = 'HOST_RESTARTED', alsoOnSuperseded = null }) {
     return this.tx(() => {
       const l = this.db.prepare("SELECT * FROM leases WHERE state IN ('active','termination_unverified')").get()
       if (!l) return { ok: true, none: true }
@@ -281,7 +281,9 @@ export class Ledger {
       const r = this.applyLifecycleEvent(l.task_id, this.eventFor(l.task_id, 'worker_recovered', { idempotency_id: `recover-${l.lease_id}`, reason_code: reason, new_fencing_token: t.fencing_token + 1 }))
       if (!r.ok) throw new Error(r.problems[0])
       this.db.prepare('INSERT INTO recovery_history(task_id,kind,detail_json,at) VALUES (?,?,?,?)').run(l.task_id, 'lease_superseded', json({ lease_id: l.lease_id, reason, new_token: t.fencing_token + 1 }), now)
-      return { ok: true, task_id: l.task_id, new_fencing_token: t.fencing_token + 1, superseded_lease: l.lease_id }
+      // same transaction: whatever must be durable WITH the supersession (the recovery checkpoint of the dead session's work) either commits together with it or not at all
+      const extra = alsoOnSuperseded ? alsoOnSuperseded({ task_id: l.task_id, new_fencing_token: t.fencing_token + 1 }) : null
+      return { ok: true, extra, task_id: l.task_id, new_fencing_token: t.fencing_token + 1, superseded_lease: l.lease_id }
     })
   }
   recordRecovery(taskId, kind, detail) { this.db.prepare('INSERT INTO recovery_history(task_id,kind,detail_json,at) VALUES (?,?,?,?)').run(taskId, kind, json(detail), this.now()) }
@@ -328,6 +330,25 @@ export class Ledger {
   setWait(taskId, { kind, reason, eligibleAt = null, detail = {} }) { this.db.prepare('INSERT OR REPLACE INTO waits(task_id,kind,reason,since,eligible_at,detail_json) VALUES (?,?,?,?,?,?)').run(taskId, kind, reason, this.now(), eligibleAt, json(detail)) }
   clearWait(taskId) { this.db.prepare('DELETE FROM waits WHERE task_id=?').run(taskId) }
   getWait(taskId) { const w = this.db.prepare('SELECT * FROM waits WHERE task_id=?').get(taskId); return w ? { ...plain(w), detail: JSON.parse(w.detail_json) } : null }
+
+  // ---------------------------------------------------------------- technical suspensions (F5)
+  getSuspension(taskId) { const r = this.db.prepare('SELECT * FROM suspensions WHERE task_id=?').get(taskId); return r ? { ...plain(r), diagnostics: JSON.parse(r.diagnostics_json) } : null }
+  setSuspension(taskId, { epoch, disposition, cause, stage = null, retryAt = null, diagnostics = {} }) {
+    this.db.prepare('INSERT OR REPLACE INTO suspensions(task_id,epoch,disposition,cause,stage,since,retry_at,diagnostics_json) VALUES (?,?,?,?,?,?,?,?)').run(taskId, epoch, disposition, cause, stage, this.now(), retryAt, json(diagnostics))
+  }
+  clearSuspension(taskId) { this.db.prepare('DELETE FROM suspensions WHERE task_id=?').run(taskId) }
+
+  // ---------------------------------------------------------------- reviewer deliverables and acceptance coverage (F6, F4)
+  saveReviewDeliverable(reviewId, { task_id, candidate_sha, tree_digest, execution_id, context_id, deliverable }) {
+    this.db.prepare('INSERT OR REPLACE INTO review_deliverables(review_id,task_id,candidate_sha,tree_digest,execution_id,context_id,deliverable_json,persisted_at) VALUES (?,?,?,?,?,?,?,?)')
+      .run(reviewId, task_id, candidate_sha, tree_digest, execution_id, context_id, json(JSON.parse(JSON.stringify(deliverable ?? null))), this.now()) // JSON round-trip: `undefined` members are dropped, exactly as the wire format would
+  }
+  getReviewDeliverable(reviewId) { return plain(this.db.prepare('SELECT * FROM review_deliverables WHERE review_id=?').get(reviewId)) }
+  deleteReviewDeliverable(reviewId) { this.db.prepare('DELETE FROM review_deliverables WHERE review_id=?').run(reviewId) }
+  addCoverage(reviewId, taskId, candidateSha, rows) {
+    for (const r of rows) this.db.prepare('INSERT OR REPLACE INTO coverage(review_id,task_id,candidate_sha,subject_type,subject_ref,status,evidence) VALUES (?,?,?,?,?,?,?)').run(reviewId, taskId, candidateSha, r.type, String(r.ref), r.status, String(r.evidence ?? '').slice(0, 2000))
+  }
+  coverageOf(reviewId) { return this.db.prepare('SELECT subject_type, subject_ref, status FROM coverage WHERE review_id=?').all(reviewId).map(plain) }
 
   // ---------------------------------------------------------------- reviews and test runs
   openReview(taskId, { kind, execution, candidate, policy_revision, environment_id }) {

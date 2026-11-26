@@ -12,9 +12,9 @@ import { beginIntent, getIntent, markDispatched, markDispatchedAsUncertain, mark
 import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW } from './helpers.mjs'
 
 const AUTH = { allowed_paths: ['apps/mobile/**', 'supabase/migrations/**'], denied_paths: [] }
-function setup() {
+function setup({ activate = [] } = {}) {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'dh34-ev-')); const file = path.join(dir, 'l.sqlite')
-  const pol = buildPolicy()
+  const pol = buildPolicy({ activate })
   const L = Ledger.open(file, { clock: () => NOW })
   const r = L.submitTask({ task_id: 'task-1', repository: REPO, base_sha: BASE, requirements: { text: 'r' }, scope: AUTH, acceptance: { criteria: ['c'] }, risk_class: 'routine', policy_revision: pol.policy.revision, environment_id: ENV_ID })
   assert.ok(r.ok, JSON.stringify(r)); for (const s of ['queued', 'planning', 'implementing']) assert.ok(L.transition('task-1', s).ok)
@@ -93,36 +93,41 @@ test('concurrent consumption through two SQLite connections: exactly one consume
   L2.close(); L.close()
 })
 
-const intent = (L, pol, ids, over = {}) => beginIntent(L, { taskId: 'task-1', action: 'publish_candidate_branch', idempotencyKey: 'pub-1', params: { branch: 'feature/x' }, evidenceIds: ids, policyRevision: pol.policy.revision, candidateSha: HEAD, ...over })
+const intent = (L, pol, ids, over = {}) => beginIntent(L, { taskId: 'task-1', action: 'publish_candidate_branch', idempotencyKey: 'pub-1', params: { branch: 'feature/x' }, evidenceIds: ids, policy: pol.policy, candidateSha: HEAD, ...over })
+const obs = (L, iid, over = {}) => { const i = getIntent(L, iid); return { state: 'absent', authoritative: true, observed_at: NOW, params_digest: i.params_digest, candidate_sha: i.candidate_sha, source: 'github.list_branches', ...over } }
+/** the evidence kinds publish_candidate_branch REQUIRES (contract): task_authority + test_results */
+const authz = (S) => ['task_authority', 'test_results'].map((t) => { const e = S.ev(t); assert.ok(acceptEvidence(S.L, e, { policy: S.pol.policy }).ok); return e.payload.evidence_id })
+const ACTIVE = { activate: ['publish_candidate_branch'] }
 
-test('action intents: idempotency, stale policy/candidate, evidence consumption in the SAME transaction, uncertain outcomes reconcile before any retry', () => {
-  const { L, pol, ev } = setup(); const e = ev('delivery_verification'); assert.ok(acceptEvidence(L, e, { policy: pol.policy }).ok); const id = e.payload.evidence_id
-  assert.equal(intent(L, pol, [id], { policyRevision: 'f'.repeat(64) }).code, 'INTENT.STALE_POLICY_REVISION'); assert.equal(intent(L, pol, [id], { candidateSha: 'f'.repeat(40) }).code, 'INTENT.STALE_CANDIDATE')
+test('action intents: idempotency, stale policy/candidate, evidence consumption in the SAME transaction, uncertain outcomes reconcile (explicit validated observation) before any retry', () => {
+  const S = setup(ACTIVE); const { L, pol } = S; const ids = authz(S); const id = ids[0]; const D = { policy: pol.policy }
+  assert.equal(intent(L, pol, ids, { policyRevision: 'f'.repeat(64) }).code, 'INTENT.STALE_POLICY_REVISION'); assert.equal(intent(L, pol, ids, { candidateSha: 'f'.repeat(40) }).code, 'INTENT.STALE_CANDIDATE')
   assert.equal(L.db.prepare('SELECT consumed_at FROM evidence WHERE evidence_id=?').get(id).consumed_at, null, 'refused intents consume nothing')
   assert.equal(intent(L, pol, ['ev-unknown']).code, 'EVIDENCE.UNKNOWN')
-  const i1 = intent(L, pol, [id]); assert.ok(i1.ok && !i1.duplicate); assert.notEqual(L.db.prepare('SELECT consumed_at FROM evidence WHERE evidence_id=?').get(id).consumed_at, null)
-  const again = intent(L, pol, [id]); assert.ok(again.ok && again.duplicate, 'same key + same params returns the same intent without consuming again')
-  assert.equal(intent(L, pol, [id], { params: { branch: 'feature/other' } }).code, 'INTENT.IDEMPOTENCY_CONFLICT')
+  const i1 = intent(L, pol, ids); assert.ok(i1.ok && !i1.duplicate); assert.notEqual(L.db.prepare('SELECT consumed_at FROM evidence WHERE evidence_id=?').get(id).consumed_at, null)
+  const again = intent(L, pol, ids); assert.ok(again.ok && again.duplicate, 'same key + same params returns the same intent without consuming again')
+  assert.equal(intent(L, pol, ids, { params: { branch: 'feature/other' } }).code, 'INTENT.IDEMPOTENCY_CONFLICT')
   const iid = i1.intent.intent_id
   assert.equal(recordOutcome(L, iid, { success: true }).code, 'INTENT.BAD_TRANSITION', 'cannot record an outcome before dispatch')
-  assert.ok(markDispatched(L, iid).ok)
+  assert.ok(markDispatched(L, iid, D).ok)
   // the controller dies after dispatching: restart marks it UNCERTAIN, never failed, never retried blindly
   assert.deepEqual(markDispatchedAsUncertain(L), [iid]); assert.equal(getIntent(L, iid).status, 'uncertain')
-  assert.equal(retryIntent(L, iid).code, 'INTENT.NOT_RETRYABLE')
-  const second = intent(L, pol, [], { idempotencyKey: 'pub-2' }); assert.equal(second.code, 'INTENT.UNRECONCILED_PRIOR', 'a new attempt is refused until the prior effect is reconciled')
+  assert.equal(retryIntent(L, iid, D).code, 'INTENT.NOT_RETRYABLE')
+  const second = intent(L, pol, authz(S), { idempotencyKey: 'pub-2' }); assert.equal(second.code, 'INTENT.UNRECONCILED_PRIOR', 'a new attempt is refused until the prior effect is reconciled')
   assert.ok(intent(L, pol, [], { idempotencyKey: 'pub-1' }).must_reconcile)
-  assert.ok(reconcileIntent(L, iid, { observed: 'absent' }).ok); assert.equal(getIntent(L, iid).status, 'reconciled_absent')
-  assert.ok(retryIntent(L, iid).ok); assert.ok(markDispatched(L, iid).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observed: 'present', outcome: { pr: 1 } }).ok)
-  assert.equal(getIntent(L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(L, iid).code, 'INTENT.NOT_RETRYABLE', 'a reconciled success is never retried')
+  assert.equal(reconcileIntent(L, iid, { observation: 'absent' }).code, 'INTENT.RECONCILIATION_INCONCLUSIVE', 'a bare string is not an observation')
+  assert.ok(reconcileIntent(L, iid, { observation: obs(L, iid) }).ok); assert.equal(getIntent(L, iid).status, 'reconciled_absent')
+  assert.ok(retryIntent(L, iid, D).ok); assert.ok(markDispatched(L, iid, D).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observation: obs(L, iid, { state: 'present' }), outcome: { pr: 1 } }).ok)
+  assert.equal(getIntent(L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(L, iid, D).code, 'INTENT.NOT_RETRYABLE', 'a reconciled success is never retried')
   L.close()
 })
 
 test('intents refuse stale leases, cancelled tasks and unknown tasks', () => {
-  const { L, pol } = setup()
+  const S = setup(ACTIVE); const { L, pol } = S
   const lease = L.acquireLease({ taskId: 'task-1', role: 'implementer', stage: 'implementing', model: 'sonnet', effort: 'high', ttlMs: 1000 }).lease
-  assert.equal(intent(L, pol, [], { lease: { ...lease, fencing_token: 9 }, idempotencyKey: 'a' }).code, 'LEASE.STALE_FENCING_TOKEN')
-  assert.ok(intent(L, pol, [], { lease, idempotencyKey: 'b' }).ok)
-  assert.equal(beginIntent(L, { taskId: 'ghost', action: 'x', idempotencyKey: 'c', params: {}, policyRevision: pol.policy.revision, candidateSha: null }).code, 'TASK.UNKNOWN')
+  assert.equal(intent(L, pol, authz(S), { lease: { ...lease, fencing_token: 9 }, idempotencyKey: 'a' }).code, 'LEASE.STALE_FENCING_TOKEN')
+  assert.ok(intent(L, pol, authz(S), { lease, idempotencyKey: 'b' }).ok)
+  assert.equal(beginIntent(L, { taskId: 'ghost', action: 'x', idempotencyKey: 'c', params: {}, policy: pol.policy, candidateSha: null }).code, 'TASK.UNKNOWN')
   L.closeLease(lease, { terminationVerified: true, endReason: 'x' }); L.cancel('task-1')
   assert.equal(intent(L, pol, [], { idempotencyKey: 'd' }).code, 'TASK.CANCELLED'); L.close()
 })

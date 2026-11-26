@@ -14,8 +14,9 @@ import { RETRY_DEFAULTS } from './ledger/intents.mjs'
 import { liveExecutionAllowed } from './activation-gates.mjs'
 import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
+import { TECH_DEFAULTS, budgetExceeded, classifyBlocker, resumeSuspended, sessionsUsed, suspendTechnically, suspensionAllowsRun } from './suspension.mjs'
 
-export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, maxReviewRounds: 4, maxStageFailures: 8,
+export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, technical: TECH_DEFAULTS,
   resourceRecheckMs: 30_000, subscriptionRecheckMs: 15 * 60_000, networkRecheckMs: 60_000 })
 
 /** state → what admission it needs before work may start in it */
@@ -29,18 +30,28 @@ export class Engine {
       throw new Error(`ENGINE.LIVE_EXECUTION_DISABLED:${g.open.length} activation gates open`)
     }
     if (adapters?.simulated !== true) throw new Error('ENGINE.SIMULATED_MODE_REQUIRES_SIMULATED_ADAPTERS')
-    Object.assign(this, { ledger, policy, adapters, rng, hookFn: hook, snapshotRoot, mode, cfg: { ...ENGINE_DEFAULTS, ...cfg, renewal: { ...RENEWAL_DEFAULTS, ...(cfg.renewal ?? {}) }, retry: { ...RETRY_DEFAULTS, ...(cfg.retry ?? {}) } } })
+    Object.assign(this, { ledger, policy, adapters, rng, hookFn: hook, snapshotRoot, mode, cfg: { ...ENGINE_DEFAULTS, ...cfg, renewal: { ...RENEWAL_DEFAULTS, ...(cfg.renewal ?? {}) }, retry: { ...RETRY_DEFAULTS, ...(cfg.retry ?? {}) }, technical: { ...TECH_DEFAULTS, ...(cfg.technical ?? {}) } } })
   }
   hook(name, ctx = {}) { this.hookFn?.(name, ctx) }
+  /** The admission a stage needs (also used by the session runner to RE-admit at every unit boundary and before every fresh session). */
+  needFor(stage) { return NEEDS[stage] ?? null }
+  /** Start a fresh budget for a technically suspended task (operator/test convenience — NOT a permission decision). */
+  resumeSuspended(taskId) { return resumeSuspended(this, taskId) }
 
   // ------------------------------------------------------------ admission
-  /** Pure with respect to the ledger's task state: decides whether `stage` may start now. Never starts anything. */
-  async checkAdmission(taskId, need) {
+  /**
+   * Pure with respect to the ledger's task state: decides whether `stage` may start (or, with `ownLease`, may CONTINUE) now. Never starts anything.
+   * `ownLease` = the lease of the session that is asking to continue: the slot it holds is its OWN, not an unrelated occupied reasoning slot; any other holder is still `busy`.
+   */
+  async checkAdmission(taskId, need, { ownLease = null } = {}) {
     const L = this.ledger; const A = this.adapters; const now = L.now(); const t = L.getTask(taskId)
+    if (t.cancelled) return { ok: false, kind: 'cancelled', codes: ['TASK.CANCELLED'] }
     if (!L.requirementsIntact(taskId)) return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['TASK.REQUIREMENTS_TAMPERED'] }
-    if (need.ai && L.slotHolder()) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
+    const holder = L.slotHolder(); const own = !!ownLease && !!holder && holder.lease_id === ownLease.lease_id && holder.task_id === taskId && holder.state === 'active'
+    if (need.ai && holder && !own) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
+    if (need.ai && !own && sessionsUsed(L, taskId) >= this.cfg.technical.maxSessionsPerTask) return { ok: false, kind: 'suspend', cause: 'SESSION_BUDGET_EXHAUSTED', codes: ['SESSION_BUDGET_EXHAUSTED'] } // a NEW session only: continuing the paid one is not a new purchase
     const s = await A.resources.sample()
-    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: L.slotHolder() ? 1 : 0, heavy_test_workloads: s.heavy ?? 0 }, reservations: s.reservations ?? [], now, accel: s.accel })
+    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: holder && !own ? 1 : 0, heavy_test_workloads: s.heavy ?? 0 }, reservations: s.reservations ?? [], now, accel: s.accel })
     if (res.decision !== 'admit') return { ok: false, kind: 'wait', state: 'waiting_resources', reason: res.lifecycle_reason, eligible_at: now + this.cfg.resourceRecheckMs + Math.round(this.rng() * 5000), codes: res.reason_codes }
     if (!need.ai) return { ok: true }
     const gov = A.subscription.load()
@@ -62,13 +73,18 @@ export class Engine {
   async gate(taskId, need) {
     const r = await this.checkAdmission(taskId, need)
     if (r.ok) return { go: true, route: r.route }
-    if (r.kind === 'busy') return { go: false, outcome: 'busy' }
+    if (r.kind === 'busy' || r.kind === 'cancelled') return { go: false, outcome: 'busy' }
+    if (r.kind === 'suspend') { suspendTechnically(this, taskId, { cause: r.cause, stage: need.stage, codes: r.codes }); return { go: false, outcome: 'suspended' } }
     this.applyWait(taskId, r)
     return { go: false, outcome: r.kind }
   }
 
   applyWait(taskId, w) {
     const L = this.ledger; const t = L.getTask(taskId)
+    // A genuine blocker needs at least one OWNER-ONLY cause. Anything else reaching here is an engineering condition mislabelled as an owner decision: it becomes a technical suspension.
+    if (w.kind === 'blocked' && !(w.codes ?? []).some((c) => classifyBlocker(c) === 'owner') && !['OWNER_AUTH_EXPIRED', 'OWNER_ROOT_OF_TRUST_CEREMONY', 'PROHIBITED_ACTION_REQUIRED', 'ISOLATION_UNPROVEN', 'UNRESOLVABLE_REQUIREMENT_CONFLICT'].includes(w.reason)) {
+      suspendTechnically(this, taskId, { cause: (w.codes ?? [])[0] ?? w.reason ?? 'UNKNOWN', stage: t.state, codes: w.codes ?? [] }); return
+    }
     if (w.kind === 'blocked') {
       if (t.state !== 'blocked') { const r = L.transition(taskId, 'blocked', { reason_code: w.reason }); if (!r.ok) throw new Error(`ENGINE.BLOCK_REFUSED:${r.problems[0]}`) }
       L.setWait(taskId, { kind: 'blocked', reason: w.reason, detail: { codes: w.codes } })
@@ -110,7 +126,9 @@ export class Engine {
     const L = this.ledger
     const w = L.db.prepare("SELECT MIN(eligible_at) m FROM waits w JOIN tasks t ON t.task_id=w.task_id WHERE t.cancelled=0 AND t.handoff_ready=0 AND w.eligible_at IS NOT NULL").get().m
     const r = L.db.prepare('SELECT MIN(next_eligible_at) m FROM retry_budgets WHERE exhausted=0 AND next_eligible_at>?').get(L.now()).m
-    const xs = [w, r].filter((x) => Number.isFinite(x))
+    const sus = L.db.prepare("SELECT MIN(s.retry_at) m FROM suspensions s JOIN tasks t ON t.task_id=s.task_id WHERE t.cancelled=0 AND t.handoff_ready=0 AND s.disposition='cooling_down'").get().m
+    const ob = L.db.prepare("SELECT MIN(next_attempt_at) m FROM outbox WHERE status='pending' AND next_attempt_at>?").get(L.now()).m // an undelivered notification is never forgotten
+    const xs = [w, r, sus, ob].filter((x) => Number.isFinite(x))
     return xs.length ? Math.min(...xs) : null
   }
 
@@ -118,6 +136,7 @@ export class Engine {
     const L = this.ledger; const t = L.getTask(taskId); const s = t.state
     const done = (action) => ({ progressed: true, action })
     const none = { progressed: false }
+    if (!suspensionAllowsRun(this, taskId)) return none // cooling down (a wake-up is scheduled) or terminal (an explicit disposition, one notification)
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }
       case 'queued': {
@@ -155,7 +174,8 @@ export class Engine {
     const target = t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to
     const need = NEEDS[target] ?? { stage: 'deterministic', ai: false, profile: 'deterministic' }
     const r = await this.checkAdmission(t.task_id, need)
-    if (r.kind === 'busy') return { progressed: false }
+    if (r.kind === 'busy' || r.kind === 'cancelled') return { progressed: false }
+    if (r.kind === 'suspend') { suspendTechnically(this, t.task_id, { cause: r.cause, stage: target, codes: r.codes }); return { progressed: true, action: 'technically_suspended' } }
     if (r.ok) { const x = L.transition(t.task_id, target); if (x.ok) { L.clearWait(t.task_id); return { progressed: true, action: 'resumed' } } return { progressed: false } }
     // still not admissible: refresh the wait (and change state only if the reason class changed) — never flap events
     this.applyWait(t.task_id, r)

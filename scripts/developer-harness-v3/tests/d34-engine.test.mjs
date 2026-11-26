@@ -79,13 +79,13 @@ test('failed tests → remediation (findings as untrusted data) → new candidat
   const states = h.ledger.db.prepare('SELECT to_state FROM task_events WHERE task_id=? ORDER BY seq').all(id).map((r) => r.to_state); assert.ok(states.includes('remediation')); assert.deepEqual(owner(h), { blockedEvents: 0, ownerActions: 0, blockerRows: 0 }); h.close()
 })
 
-test('identical failures never loop: back-off, ONE escalation to Opus, then a single genuine-blocker package (never TEST_FAILED as a blocker reason)', async () => {
+test('identical failures never loop: back-off, ONE escalation to Opus, then a TECHNICAL suspension — never an owner blocker (and never TEST_FAILED as a blocker reason); after its epochs a terminal disposition', async () => {
   const h = H({ scenario: { tests: [{ passed: false, fingerprint: 'same-failure', summary: 's' }] } }); const calls = spy(h); const id = h.submit(); await drive(h)
-  const t = h.ledger.getTask(id); assert.equal(t.state, 'blocked'); assert.equal(t.lifecycle.blocker_reason, 'OWNER_DECISION_REQUIRED'); assert.equal(t.handoff_ready, 0)
-  const impl = calls.filter((c) => c.stage === 'implementing'); assert.ok(impl.length >= 2 && impl.length <= 4, `bounded attempts: ${impl.length}`); assert.equal(impl[0].model, 'sonnet'); assert.ok(impl.some((c) => c.model === 'opus' && c.effort === 'high'), 'escalated once to Opus high')
-  assert.ok(h.ledger.recoveryHistory(id).some((x) => x.kind === 'model_escalated')); const o = owner(h); assert.equal(o.blockerRows, 1, 'exactly ONE actionable package'); assert.equal(o.blockedEvents, 1)
-  const pkg = JSON.parse(h.ledger.db.prepare("SELECT payload_json FROM outbox WHERE kind='genuine_blocker'").get().payload_json); assert.ok(pkg.codes.some((c) => c.startsWith('REPEATED_IDENTICAL_FAILURE'))); assert.ok(pkg.preserved.ledger)
-  assert.equal(h.engine.ownerResolve(id, 'owner-decision-1').ok, true, 'only an explicit owner action leaves blocked'); h.close()
+  const t = h.ledger.getTask(id); assert.notEqual(t.state, 'blocked', 'an exhausted retry budget is an engineering condition, not an owner decision'); assert.equal(t.handoff_ready, 0)
+  const impl = calls.filter((c) => c.stage === 'implementing'); assert.equal(impl[0].model, 'sonnet'); assert.ok(impl.some((c) => c.model === 'opus' && c.effort === 'high'), 'escalated once to Opus high'); assert.ok(impl.length <= 12, `bounded paid sessions across ALL epochs: ${impl.length}`)
+  assert.ok(h.ledger.recoveryHistory(id).some((x) => x.kind === 'model_escalated')); assert.deepEqual(owner(h), { blockedEvents: 0, ownerActions: 0, blockerRows: 0 }, 'zero owner involvement')
+  const s = h.ledger.getSuspension(id); assert.equal(s.disposition, 'terminal'); const notes = h.ledger.db.prepare("SELECT payload_json FROM outbox WHERE kind='technical_suspension'").all().map((r) => JSON.parse(r.payload_json)); assert.ok(notes.length >= 2 && notes.every((n) => n.owner_permission_required === false))
+  assert.ok(notes[0].diagnostics.failure_fingerprints.some((f) => /same-failure/.test(f.fingerprint))); assert.equal(h.engine.ownerResolve(id, 'x').ok, false, 'there is nothing to resolve: it was never an owner blocker'); h.close()
 })
 
 test('mandatory review findings → remediation → automatic re-test and fresh re-review; optional (cosmetic) findings never cause a cycle; a changed candidate invalidates earlier approvals', async () => {
@@ -116,7 +116,7 @@ test('mandatory security review is NEVER downgraded: a substituted (wrong) actua
 test('missing/invalid session telemetry: a missing init, a wrong permission mode or API-key auth source ends the session; nothing from it is accepted', async () => {
   for (const [spec, code] of [[{ version: '9.9.9' }, 'SESSION.VERSION_MISMATCH']]) {
     const h = H({ scenario: { stages: { planning: [spec] } } }); const id = h.submit(); await drive(h)
-    assert.ok(h.ledger.recoveryHistory(id).some((x) => x.kind === 'stage_failure' && x.detail.code === code), code); assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM plans WHERE task_id=?').get(id).c, 0); assert.equal(h.ledger.getTask(id).state, 'blocked'); h.close()
+    assert.ok(h.ledger.recoveryHistory(id).some((x) => x.kind === 'stage_failure' && x.detail.code === code), code); assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM plans WHERE task_id=?').get(id).c, 0); assert.notEqual(h.ledger.getTask(id).state, 'blocked', 'a version mismatch is technical'); assert.equal(h.ledger.getSuspension(id).disposition, 'terminal'); h.close()
   }
 })
 
@@ -245,13 +245,14 @@ test('a review that passed but whose task did not advance is FINISHED on restart
   await drive(h); assert.equal(h.ledger.getTask(id).handoff_ready, 1); assert.equal(execs(h, id).filter((e) => e.role === 'independent_reviewer').length, 1); h.close()
 })
 
-test('a handoff whose approvals can never be re-obtained does not stall silently: bounded attempts, then ONE genuine blocker', async () => {
+test('a handoff whose approvals can never be re-obtained does not stall silently: a persisted retry schedule, then technical suspensions ending in ONE terminal disposition — never an owner blocker', async () => {
   const h = H(); const id = h.submit()
   for (let i = 0; i < 60; i += 1) { await h.engine.tick(); if (h.ledger.getTask(id).state === 'publishing' || h.ledger.getTask(id).handoff_ready) break }
   // undo the handoff to model "approvals gone": drop all evidence validity and the passing artefacts the re-attestation needs
   h.ledger.db.prepare('UPDATE tasks SET handoff_ready=0 WHERE task_id=?').run(id); h.ledger.db.prepare('UPDATE evidence SET invalidated_at=1').run(); h.ledger.db.prepare("UPDATE reviews SET status='invalidated'").run(); h.ledger.db.prepare('UPDATE test_runs SET passed=0').run()
   for (let i = 0; i < 8; i += 1) await h.engine.tick()
-  assert.equal(h.ledger.getTask(id).state, 'blocked'); assert.equal(owner(h).blockerRows, 1); h.close()
+  assert.equal(h.ledger.getTask(id).state, 'publishing'); assert.equal(owner(h).blockerRows, 0, 'not an owner decision'); assert.ok(h.engine.nextWakeup() !== null || h.ledger.getSuspension(id) !== null, 'a retry is SCHEDULED (or an explicit suspension recorded) — never a silent stall')
+  await drive(h); assert.equal(h.ledger.getSuspension(id).disposition, 'terminal'); assert.equal(h.ledger.db.prepare("SELECT COUNT(*) c FROM outbox WHERE kind='technical_suspension'").get().c, 4); assert.equal(owner(h).blockerRows, 0); h.close()
 })
 test('SECURITY F1: a mandatory finding is NOT cleared by the implementer changing something — only an independent reviewer\'s confirmation clears it; unconfirmed it keeps blocking across rounds', async () => {
   const sc = { stages: { security_review: [{ findings: [MAND('sec-9', 'critical')] }, { noConfirm: true, findings: [] }, { findings: [] }] } }

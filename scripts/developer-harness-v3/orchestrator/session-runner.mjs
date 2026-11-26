@@ -6,15 +6,37 @@
 //   * every unit's stream is fed through the D3.3 telemetry parser; the requested vs ACTUAL model is checked (silent substitution = failure);
 //   * the init event is verified (no API-key source, pinned CLI version, expected permission mode) or the session is ended;
 //   * renewal follows the 10-step order of the brief: boundary → persist → verify checkpoint → graceful stop → verified stop → fresh lease → restore → verify → continue;
+//   * EVERY unit boundary and EVERY fresh-session renewal re-runs resource + subscription admission (pressure, eligibility, auth, extra-usage freshness, cancellation); a denial
+//     preserves a verified checkpoint, terminates the session (verified) and enters the right waiting state — never a silent continue;
+//   * every NON-completing exit (wait, failure, cancellation) preserves the worker's uncommitted scoped work as a verified checkpoint AFTER the stop is verified;
 //   * crash hooks sit at every boundary so the subprocess crash tests can kill the controller there.
-import { randomUUID } from 'node:crypto'
 import { createTelemetry, feedLine, verifyInit } from '../runtime/session-telemetry.mjs'
 import { classifyObservation, lifecycleFor, nextGovernorState } from '../runtime/subscription-governor.mjs'
-import { renewalDecision, buildCheckpoint, verifyCheckpoint, composeRestorePrompt, verifyRestoredState, snapshotDirResolver } from './context-renewal.mjs'
-import { createSnapshot } from './snapshot.mjs'
+import { renewalDecision, verifyCheckpoint, composeRestorePrompt, verifyRestoredState, snapshotDirResolver } from './context-renewal.mjs'
+import { captureWork, persistCheckpoint, preserveOnExit } from './preserve.mjs'
 import { MODEL_FAMILIES, verifyActualModel } from './routing.mjs'
 
 const fingerprint = (...parts) => parts.join('|').slice(0, 120)
+const isCount = (x) => Number.isSafeInteger(x) && x >= 0
+
+/** Map a denied admission onto a session outcome (the stage handler's failStage turns it into the right waiting/blocked/suspended state). */
+export function admissionOutcome(adm) {
+  if (adm.kind === 'wait') return { status: 'wait', wait: { state: adm.state, reason: adm.reason, eligible_at: adm.eligible_at ?? null, code: adm.codes?.[0] ?? 'ADMISSION.WAIT', codes: adm.codes ?? [] } }
+  if (adm.kind === 'blocked') return { status: 'wait', wait: { state: 'blocked', reason: adm.reason, code: adm.codes?.[0] ?? 'ADMISSION.BLOCKED', codes: adm.codes ?? [] } }
+  if (adm.kind === 'cancelled') return { status: 'cancelled', code: 'TASK.CANCELLED' }
+  if (adm.kind === 'suspend') return { status: 'suspend', cause: adm.cause, codes: adm.codes ?? [] }
+  return { status: 'failed', code: 'ADMISSION.SLOT_CONFLICT', fingerprint: fingerprint('admission', 'slot-conflict') }
+}
+
+/** Between work units: cancellation, a task moved out of its stage, and FRESH admission for the next unit (the running session is admitted against itself, not against an occupied slot). */
+async function boundaryCheck(e, taskId, spec, lease) {
+  const t = e.ledger.getTask(taskId)
+  if (t.cancelled) return { status: 'cancelled', code: 'TASK.CANCELLED' }
+  if (t.state !== spec.stage) return { status: 'cancelled', code: 'TASK.STATE_CHANGED' }
+  const need = e.needFor(spec.stage); if (!need) return null
+  const adm = await e.checkAdmission(taskId, need, { ownLease: lease })
+  return adm.ok ? null : admissionOutcome(adm)
+}
 
 /**
  * @param {object} e engine ({ledger, adapters, cfg, hook, rng, snapshotRoot})
@@ -46,7 +68,7 @@ export async function runSessionStage(e, taskId, spec) {
       e.hook('after_unit', { taskId })
       const before = tel.assistant_messages
       for (const line of unit.lines ?? []) if (feedLine(tel, line) === 'assistant') lastUsageAt = L.now()
-      turns += Number.isFinite(unit.turns) ? unit.turns : tel.assistant_messages - before
+      turns += isCount(unit.turns) ? unit.turns : Math.max(0, tel.assistant_messages - before) // a hostile/garbled turn count can neither go negative nor disable the ceilings
       const actual = tel.last_usage?.model ?? tel.init?.model ?? null
       L.recordTelemetry(lease.execution_id, { model_actual: actual, cli_version: tel.init?.claude_code_version ?? null, context_window: tel.context_window?.tokens ?? null, turns, telemetry: summarize(tel) })
       if (tel.context_window && tel.init?.claude_code_version) L.setMeta(`window:${tel.init.claude_code_version}:${tel.context_window.model}`, tel.context_window.tokens)
@@ -68,6 +90,9 @@ export async function runSessionStage(e, taskId, spec) {
       if (unit.status === 'failed') { outcome = { status: 'failed', code: unit.code ?? 'SESSION.UNIT_FAILED', fingerprint: fingerprint('unit', unit.code, unit.fingerprint) }; throw outcome }
       if (unit.status === 'work_complete') { deliverable = unit.work ?? {}; break }
 
+      const bd = await boundaryCheck(e, taskId, spec, lease)
+      if (bd) { outcome = bd; throw outcome }
+
       const knownWindows = Object.fromEntries(L.db.prepare("SELECT key, value FROM meta WHERE key LIKE 'window:%'").all().map((r) => [r.key.slice(7), Number(r.value)]))
       const dec = renewalDecision({ telemetry: tel, family: spec.route.model, cliVersion: cfg.cliVersion, knownWindows, now: L.now(), lastUsageAt, turns, startedAt, cfg: cfg.renewal })
       L.recordRecovery(taskId, 'renewal_check', { basis: dec.basis, measured: dec.measured, utilization: dec.utilization, renew: dec.renew, rejected: dec.rejected })
@@ -88,9 +113,18 @@ export async function runSessionStage(e, taskId, spec) {
   // including during termination — never costs a second paid session (the stage handler consumes and clears it). REVIEW results are not persisted here: a crash
   // between the lease close and the `submitted` transaction repeats ONE review session (documented residual, doc 18 §5).
   if (outcome.status === 'done' && ['planning', 'implementing'].includes(spec.stage)) L.setMeta(`stage_done:${taskId}:${spec.stage}`, JSON.stringify(outcome.deliverable))
+  // A finished REVIEW deliverable is ALSO durable before teardown (F6) — but UNTRUSTED: it is consumed only after termination, candidate binding, context independence and the read-only proof are verified
+  // (stages.mjs `review`), and the issuer refuses a review that is not `submitted` with a verified-stopped execution. A crash anywhere after this line never costs a second paid review.
+  if (outcome.status === 'done' && spec.persistDeliverable) {
+    try { spec.persistDeliverable(outcome.deliverable, lease) } catch (err) { outcome = { status: 'failed', code: 'REVIEW.DELIVERABLE_UNPERSISTABLE', fingerprint: fingerprint('persist', String(err?.message).slice(0, 40)) } } // never let a hostile deliverable block the teardown below
+    if (outcome.status === 'done') e.hook('after_review_deliverable_persisted', { taskId })
+  }
   // Termination is verified INDEPENDENTLY of the adapter's session result, and the slot is released only on a verified stop.
   const term = await safeTerminate(A, lease)
   e.hook('after_session_terminated', { taskId })
+  // The stop is VERIFIED, so the worker tree is quiescent: preserve whatever uncommitted scoped work a non-completing exit leaves behind BEFORE the slot is released (a crash in between is
+  // found by recovery, which captures it atomically with the supersession). An unverified stop captures nothing now — recovery does, once cleanup is verified.
+  if (outcome.status !== 'done' && term.verified && !outcome.checkpointed) await preserveOnExit(e, taskId, { reason: `SESSION_EXIT:${outcome.status}`, stage: spec.stage, lease })
   const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: outcome.status === 'done' ? 'completed' : outcome.code ?? outcome.status })
   e.hook('after_lease_closed', { taskId })
   if (!closed.ok) return { status: 'failed', code: closed.code, fingerprint: fingerprint('close', closed.code), executions }
@@ -104,20 +138,33 @@ async function safeTerminate(A, lease) {
   try { const r = await A.worker.terminateSession(lease); return { verified: r?.verified === true } } catch { return { verified: false } }
 }
 
+/**
+ * The session's prompt and worktree. CRASH-SAFE: restoration never "consumes" a checkpoint — the newest verified checkpoint that is still valid for this stage / head / epoch is restored EVERY time
+ * a session starts, so a crash after (or during) a restore can always be restored again. If no checkpoint is usable (corrupt, missing, stale) the live worktree is preserved BEFORE it is reset,
+ * and the unusable checkpoint is recorded: work is never discarded silently.
+ */
 async function buildPrompt(e, taskId, spec) {
-  const { ledger: L } = e
-  const cp = L.latestCheckpoint(taskId, { verifiedOnly: true })
-  const consumed = Number(L.meta(`cp_consumed:${taskId}`) ?? 0)
-  const usable = cp && cp.seq > consumed ? cp : null
+  const { ledger: L } = e; const resolve = snapshotDirResolver(e.snapshotRoot)
   let checkpoint = null
-  if (usable) { const v = verifyCheckpoint(L, usable.checkpoint_id, { snapshotDir: snapshotDirResolver(e.snapshotRoot) }); if (v.ok) checkpoint = usable; else L.recordRecovery(taskId, 'stale_checkpoint_ignored', { checkpoint_id: usable.checkpoint_id, problems: v.problems }) }
+  if (!spec.readonly) {
+    const newest = L.latestCheckpoint(taskId, { verifiedOnly: true })
+    if (newest) {
+      const v = verifyCheckpoint(L, newest.checkpoint_id, { snapshotDir: resolve, stage: spec.stage })
+      if (v.ok) checkpoint = newest
+      else if (!L.meta(`cp_unusable:${newest.checkpoint_id}`)) { L.setMeta(`cp_unusable:${newest.checkpoint_id}`, '1'); L.recordRecovery(taskId, 'checkpoint_unusable', { checkpoint_id: newest.checkpoint_id, problems: v.problems, held_snapshot: !!newest.snapshot_ref }) }
+    }
+    if (!checkpoint) { // nothing usable: whatever the worktree still holds is preserved before prepareWorktree resets it
+      const cap = await captureWork(e, taskId, null); const p = persistCheckpoint(e, taskId, cap, { reason: 'PRE_RESET_PRESERVATION', stage: spec.stage })
+      if (p.ok && p.id && p.recorded) checkpoint = L.getCheckpoint(p.id)
+    }
+  }
   const task = L.getTask(taskId)
-  const observed = await e.adapters.git.prepareWorktree(task, { snapshotDir: checkpoint?.snapshot_ref ? snapshotDirResolver(e.snapshotRoot)(checkpoint.snapshot_ref) : null, readonly: spec.readonly === true })
+  const observed = await e.adapters.git.prepareWorktree(task, { snapshotDir: checkpoint?.snapshot_ref ? resolve(checkpoint.snapshot_ref) : null, readonly: spec.readonly === true })
   if (!observed?.ok) return { ok: false, code: observed?.code ?? 'WORKTREE.PREPARE_FAILED' }
   if (checkpoint) {
     const rs = verifyRestoredState({ ledger: L, taskId, checkpointId: checkpoint.checkpoint_id, observed })
     if (!rs.ok) return { ok: false, code: rs.problems[0] }
-    L.setMeta(`cp_consumed:${taskId}`, checkpoint.seq)
+    e.hook('after_checkpoint_restored', { taskId })
   }
   const pack = await e.adapters.contextPack?.({ task }) ?? ''
   const p = composeRestorePrompt({ ledger: L, taskId, checkpoint, contextPackMarkdown: pack, stageInstruction: spec.instruction })
@@ -127,41 +174,35 @@ async function buildPrompt(e, taskId, spec) {
 /** The renewal sequence. Any failure BEFORE the old session is verified stopped leaves the old lease in place (and the caller ends the stage as a failure). */
 async function renew(e, taskId, spec, lease, dec) {
   const { ledger: L, adapters: A, cfg } = e
-  const task = L.getTask(taskId)
-  // 1-2. stop starting new work (we are at a unit boundary) and capture the uncommitted scoped work
-  const files = await A.git.captureSnapshot(task, lease)
-  let snapshot = null
-  if (files && files.length) {
-    const ref = `snap-${randomUUID()}`
-    const made = createSnapshot({ dir: snapshotDirResolver(e.snapshotRoot)(ref), base_sha: task.base_sha, head_sha: task.head_sha, files, scope: task.scope })
-    if (!made.ok) return { status: 'failed', code: made.problems[0], fingerprint: fingerprint('snapshot', made.problems[0]) }
-    snapshot = { ref, digest: made.digest }
-  }
+  // 1-2. stop starting new work (we are at a unit boundary) and capture the uncommitted scoped work (unsafe files are quarantined, never allowed to cost the safe ones)
+  const cap = await captureWork(e, taskId, lease)
   // 3. the task enters context_recovery (CONTEXT_RENEWAL) BEFORE anything is torn down: a crash from here on is found in that state
   const resumeTo = L.getTask(taskId).state
   const t1 = L.transition(taskId, 'context_recovery', { reason_code: 'CONTEXT_RENEWAL' })
   if (!t1.ok) return { status: 'failed', code: t1.problems[0], fingerprint: fingerprint('renew-transition', t1.problems[0]) }
-  // 4-5. persist then VERIFY the checkpoint for completeness and integrity
-  const cp = buildCheckpoint(L, taskId, { reason: `CONTEXT_RENEWAL:${dec.basis}`, snapshot, notes: await A.session.notes?.(lease) ?? '', workerHead: (await A.git.workerHead?.(task, lease))?.head_sha ?? null })
+  // 4-5. persist then VERIFY the checkpoint for completeness and integrity (persistCheckpoint verifies and marks it)
+  const p = persistCheckpoint(e, taskId, cap, { reason: `CONTEXT_RENEWAL:${dec.basis}`, stage: spec.stage, always: true, notes: await A.session.notes?.(lease) ?? '' })
   e.hook('after_checkpoint_recorded', { taskId })
-  const v = verifyCheckpoint(L, cp.id, { snapshotDir: snapshotDirResolver(e.snapshotRoot) })
-  if (!v.ok) { L.transition(taskId, resumeTo); return { status: 'failed', code: v.problems[0], fingerprint: fingerprint('checkpoint', v.problems[0]) } }
-  L.markCheckpointVerified(cp.id)
+  if (!p.ok) { L.transition(taskId, resumeTo); return { status: 'failed', code: p.problems?.[0] ?? 'CHECKPOINT.NOT_VERIFIED', fingerprint: fingerprint('checkpoint', p.problems?.[0]) } }
   e.hook('after_checkpoint_verified', { taskId })
   // 6-7. graceful stop, then INDEPENDENT verification of the stop before the slot is released
   const term = await safeTerminate(A, lease)
   const closed = L.closeLease(lease, { terminationVerified: term.verified, endReason: 'CONTEXT_RENEWAL' })
   if (!closed.ok || !term.verified) return { status: 'termination_unverified', code: 'RENEWAL.OLD_SESSION_NOT_VERIFIED_STOPPED' }
   e.hook('after_renewal_old_stopped', { taskId })
+  // 7b. a FRESH session is a new admission: resource pressure, subscription eligibility, authentication, extra-usage freshness and cancellation are re-checked NOW. If denied, the verified
+  // checkpoint and the verified stop above are exactly what the waiting state needs; no lease is acquired and nothing starts.
+  const adm = await e.checkAdmission(taskId, e.needFor(spec.stage) ?? { stage: spec.stage, ai: true, profile: 'reasoning' })
+  if (!adm.ok) return { ...admissionOutcome(adm), checkpointed: true }
   // 8. fresh lease and a fresh context (new context id), 9. restore and verify, 10. continue
   const next = L.acquireLease({ taskId, role: spec.role, stage: spec.stage, model: spec.route.model, effort: spec.route.effort, ttlMs: cfg.leaseTtlMs })
   if (!next.ok) return { status: 'failed', code: next.code, fingerprint: fingerprint('renew-lease', next.code) }
   e.hook('after_renewal_new_lease', { taskId })
   const back = L.transition(taskId, resumeTo)
   if (!back.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_ABORTED' }); return { status: 'failed', code: back.problems[0], fingerprint: fingerprint('renew-resume', back.problems[0]) } }
-  const p = await buildPrompt(e, taskId, spec)
-  if (!p.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_RESTORE_FAILED' }); return { status: 'failed', code: p.code, fingerprint: fingerprint('renew-restore', p.code) } }
+  const pr = await buildPrompt(e, taskId, spec)
+  if (!pr.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_RESTORE_FAILED' }); return { status: 'failed', code: pr.code, fingerprint: fingerprint('renew-restore', pr.code) } }
   L.markExecutionRunning(next.lease.execution_id)
-  L.recordRecovery(taskId, 'context_renewed', { basis: dec.basis, measured: dec.measured, utilization: dec.utilization, checkpoint: cp.id, from: lease.execution_id, to: next.lease.execution_id })
-  return { status: 'renewed', lease: next.lease, prompt: p.prompt }
+  L.recordRecovery(taskId, 'context_renewed', { basis: dec.basis, measured: dec.measured, utilization: dec.utilization, checkpoint: p.id, from: lease.execution_id, to: next.lease.execution_id })
+  return { status: 'renewed', lease: next.lease, prompt: pr.prompt }
 }

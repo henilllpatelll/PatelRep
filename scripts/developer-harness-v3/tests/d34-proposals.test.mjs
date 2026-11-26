@@ -42,3 +42,24 @@ test('classification: nothing here is mandatory for D3.4 completion; every propo
   for (const p of manifest.proposals) { assert.equal(p.mandatory_for_d34_completion, false); for (const g of p.activation_prerequisite.split(/ and /)) assert.ok(ids.has(`G-${g.replace(/^G-/, '')}`), g) }
   assert.deepEqual(manifest.not_patches.map((n) => n.id), ['P3', 'P4']); assert.ok(existsSync(path.join(ROOT, 'docs/developer-harness-v3/21-d34-protected-changes.md')) || true)
 })
+
+test('P5: applied to a COPY of the lifecycle contract, the REAL reducer accepts technical_suspension as a recoverable state with the same safety properties as the other waiting states', async () => {
+  const { mkdtempSync, mkdirSync, copyFileSync } = await import('node:fs'); const os = await import('node:os')
+  const { applyEvent, createTask, loadLifecycle } = await import('../lifecycle/lifecycle.mjs')
+  const tmp = mkdtempSync(path.join(os.tmpdir(), 'dh34-p5-')); mkdirSync(path.join(tmp, 'docs/developer-harness-v3'), { recursive: true }); const copy = path.join(tmp, 'docs/developer-harness-v3/task-lifecycle.json')
+  copyFileSync(path.join(ROOT, 'docs/developer-harness-v3/task-lifecycle.json'), copy)
+  const unpatched = loadLifecycle(copy); assert.equal(Object.hasOwn(unpatched.recoverable_states, 'technical_suspension'), false, 'the repository contract is unchanged: P5 is a proposal')
+  const ap = spawnSync('git', ['apply', '-p1', path.join(DIR, 'P5-lifecycle-technical-suspension.patch')], { cwd: tmp, encoding: 'utf8' }); assert.equal(ap.status, 0, ap.stderr)
+  const lc = loadLifecycle(copy); assert.ok(Object.hasOwn(lc.recoverable_states, 'technical_suspension'));
+  let n = 0; const ev = (t, kind, f = {}) => ({ event_id: `e${++n}`, idempotency_id: `i${n}`, task_id: 't1', kind, expected_revision: t.state_revision, fencing_token: t.fencing_token, ...f })
+  const step = (t, to, f = {}) => { const r = applyEvent(lc, t, ev(t, 'transition', { to, ...f })); return r }
+  for (const from of ['implementing', 'testing', 'independent_review', 'security_review', 'publishing']) {
+    let t = createTask({ task_id: 't1' }); for (const s of ['queued', 'planning', 'implementing', 'testing', 'independent_review', 'security_review', 'publishing']) { t = step(t, s).task; if (s === from) break }
+    const into = step(t, 'technical_suspension', { reason_code: 'RETRY_BUDGET_EXHAUSTED' }); assert.ok(into.ok, `${from}: ${into.problems}`); assert.equal(into.task.resume_to, from)
+    assert.equal(step(into.task, 'blocked', { reason_code: 'OWNER_DECISION_REQUIRED' }).ok, true, 'the owner may still raise a genuine blocker from it'); assert.equal(step(into.task, from === 'testing' ? 'implementing' : 'testing', {}).ok, false, 'the only exit is the recorded resume target')
+    assert.ok(step(into.task, from).ok, `${from}: resumes to the recorded state with NO owner action`); assert.equal(step(into.task, 'technical_suspension', { reason_code: 'NOT_A_REASON' }).ok, false)
+  }
+  let t = createTask({ task_id: 't1' }); for (const s of ['queued', 'planning', 'implementing', 'testing']) t = step(t, s).task
+  const rem = step(t, 'remediation', { reason_code: 'TEST_FAILED' }); const sus = step(rem.task, 'technical_suspension', { reason_code: 'REMEDIATION_BUDGET_EXHAUSTED' }); assert.ok(sus.ok); assert.ok(step(sus.task, 'implementing').ok, 'a wait that began as remediation resumes to implementing')
+  assert.equal(step(sus.task, 'blocked', { reason_code: 'TEST_FAILED' }).ok, false, 'never_blocked_reasons still apply')
+})

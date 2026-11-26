@@ -7,7 +7,7 @@
 //   * one action intent per idempotency key,
 //   * original requirements are immutable and digest-bound.
 // Migrations are explicit, ordered and each runs in its own transaction; a database newer than this code is refused (never downgraded).
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 export const LEDGER_APPLICATION_ID = 0x44483334 // 'DH34'
 
 const V1 = `
@@ -284,4 +284,67 @@ CREATE TABLE outbox (
 ) STRICT;
 `
 
-export const MIGRATIONS = Object.freeze([{ version: 1, sql: V1 }])
+
+// V2 (D3.4 remediation F3-F6). Additive: nothing here removes or weakens a V1 constraint. The outbox is rebuilt ONLY to widen its `kind` CHECK (SQLite cannot alter a CHECK in place).
+const V2 = `
+-- F3: an intent is bound to the candidate TREE, the creating lease and (when re-authorized) the intent it supersedes.
+ALTER TABLE action_intents ADD COLUMN tree_digest TEXT;
+ALTER TABLE action_intents ADD COLUMN lease_id TEXT;
+ALTER TABLE action_intents ADD COLUMN superseded_by TEXT;
+ALTER TABLE action_intents ADD COLUMN supersedes TEXT;
+
+-- F5: a technical (non-owner) suspension: the task keeps its lifecycle state, is not scheduled until retry_at (cooling_down) or ever again by itself (terminal).
+CREATE TABLE suspensions (
+  task_id TEXT PRIMARY KEY REFERENCES tasks(task_id),
+  epoch INTEGER NOT NULL,
+  disposition TEXT NOT NULL CHECK (disposition IN ('cooling_down','terminal')),
+  cause TEXT NOT NULL,
+  stage TEXT,
+  since INTEGER NOT NULL,
+  retry_at INTEGER,
+  diagnostics_json TEXT NOT NULL,
+  CHECK ((disposition = 'cooling_down' AND retry_at IS NOT NULL) OR (disposition = 'terminal' AND retry_at IS NULL))
+) STRICT;
+
+-- F6: a finished reviewer deliverable, durable BEFORE its session is torn down. It is UNTRUSTED until the controller has verified termination, candidate binding, context independence and the read-only proof.
+CREATE TABLE review_deliverables (
+  review_id TEXT PRIMARY KEY REFERENCES reviews(review_id),
+  task_id TEXT NOT NULL REFERENCES tasks(task_id),
+  candidate_sha TEXT NOT NULL,
+  tree_digest TEXT NOT NULL,
+  execution_id TEXT NOT NULL,
+  context_id TEXT NOT NULL,
+  deliverable_json TEXT NOT NULL,
+  persisted_at INTEGER NOT NULL
+) STRICT;
+
+-- F4: what an INDEPENDENT reviewer found about each plan step and each acceptance criterion for one candidate.
+CREATE TABLE coverage (
+  review_id TEXT NOT NULL REFERENCES reviews(review_id),
+  task_id TEXT NOT NULL REFERENCES tasks(task_id),
+  candidate_sha TEXT NOT NULL,
+  subject_type TEXT NOT NULL CHECK (subject_type IN ('step','criterion')),
+  subject_ref TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('satisfied','unsatisfied','unknown')),
+  evidence TEXT NOT NULL,
+  PRIMARY KEY (review_id, subject_type, subject_ref)
+) STRICT;
+CREATE INDEX coverage_task ON coverage(task_id, candidate_sha);
+
+CREATE TABLE outbox_v2 (
+  outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id TEXT,
+  kind TEXT NOT NULL CHECK (kind IN ('completion','genuine_blocker','handoff_ready','production_incident','technical_suspension')),
+  dedupe_key TEXT NOT NULL UNIQUE,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending','claimed','sent')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+) STRICT;
+INSERT INTO outbox_v2 SELECT * FROM outbox;
+DROP TABLE outbox;
+ALTER TABLE outbox_v2 RENAME TO outbox;
+`
+
+export const MIGRATIONS = Object.freeze([{ version: 1, sql: V1 }, { version: 2, sql: V2 }])

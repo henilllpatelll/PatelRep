@@ -50,6 +50,7 @@ export function createD33Adapters(d) {
       async liveness() { const record = d.readVmRecord(d.W); return { record, liveness: record ? d.liveness(record) : { supervisor: false, qemu: false, qemuImage: null, reused: false } } },
       async cleanupGuest() { try { return { verified: d.killWorkerProcesses(d.W, d.cfg.vm) === true } } catch { return { verified: false } } },
       async stopWorker() { try { await d.stopVm(d.W, d.cfg.vm); const rec = d.readVmRecord(d.W); const lv = rec ? d.liveness(rec) : { supervisor: false, qemu: false }; return { verified: lv.supervisor === false && lv.qemu === false } } catch { return { verified: false } } },
+      async verifyNoWorkerProcesses() { try { return { verified: d.workerProcessesGone?.(d.W, d.cfg.vm) === true } } catch { return { verified: false } } }, // an injected probe, or UNVERIFIED: absence of evidence is not cleanup
       terminateSession: NOT_LIVE('terminateSession'),
     },
     session: { runUnit: NOT_LIVE('runUnit') },

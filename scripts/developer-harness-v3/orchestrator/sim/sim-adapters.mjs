@@ -30,13 +30,13 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
     const file = path.join(root, 'apps', 'mobile', 'feature.txt')
     mkdirSync(path.dirname(file), { recursive: true })
     const prev = existsSync(file) ? readFileSync(file, 'utf8') : ''
-    writeFileTree(root, [{ path: 'apps/mobile/feature.txt', content: enc(`${prev}unit ${unit} of v${cur + 1}\n`) }, ...(spec.extraFiles ?? []).map((x) => ({ path: x.path, content: enc(x.content) }))])
+    writeFileTree(root, [{ path: 'apps/mobile/feature.txt', content: enc(`${prev}unit ${unit} of v${cur + 1}\n`) }, ...(spec.extraFiles ?? []).filter(() => spec.extraFilesOnUnit == null || spec.extraFilesOnUnit === unit).map((x) => ({ path: x.path, content: enc(x.content) }))])
   }
 
   /** What a COMPLETED session hands back (the controller still re-derives and validates everything that matters). */
   function deliverable(task, stage, spec, readonly) {
     const w = loadWorld(dir)
-    if (stage === 'planning') return { plan: { steps: spec.steps ?? [{ id: 'step-a', title: 'Implement the feature' }, { id: 'step-b', title: 'Add tests', depends_on: ['step-a'] }] } }
+    if (stage === 'planning') return { plan: { steps: spec.steps ?? [{ id: 'step-a', title: 'Implement the feature', covers: [0] }, { id: 'step-b', title: 'Add tests', depends_on: ['step-a'], covers: [1] }] } }
     if (stage === 'implementing') {
       const files = readTree(wtDir(dir, task.task_id)); const v = (w.versions[task.task_id] ?? 0) + 1
       const cd = commitDir(dir, task.task_id, v); wipe(cd); mkdirSync(cd, { recursive: true }); writeFileTree(cd, files)
@@ -47,7 +47,10 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
       if (spec.tamper) w.tamper_review = true; else delete w.tamper_review
       saveWorld(dir, w)
       const carried = L.db.prepare("SELECT finding_id FROM findings WHERE task_id=? AND mandatory=1 AND status='carried' AND review_id IN (SELECT review_id FROM reviews WHERE kind=?)").all(task.task_id, stage).map((r) => r.finding_id)
-      return { submission: { findings: spec.findings ?? [], summary: 'simulated review', confirmed_resolved: spec.noConfirm ? [] : carried } }
+      const plan = L.currentPlan(task.task_id); const cov = spec.coverage ?? {}
+      const coverage = spec.omitCoverage || !plan ? undefined : { steps: plan.steps.map((s) => ({ id: s.id, status: cov.steps?.[s.id] ?? 'satisfied', evidence: 'simulated reviewer checked the step against the candidate' })),
+        criteria: (task.acceptance.criteria ?? []).map((_, i) => ({ index: i, status: cov.criteria?.[i] ?? 'satisfied', evidence: 'simulated reviewer checked the criterion against the candidate' })) }
+      return { submission: { findings: spec.findings ?? [], summary: 'simulated review', confirmed_resolved: spec.noConfirm ? [] : carried, coverage } }
     }
     return {}
   }
@@ -81,6 +84,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         w.alive_sessions = {}; saveWorld(dir, w)
         return { verified: true }
       },
+      async verifyNoWorkerProcesses() { const w = loadWorld(dir); return { verified: Object.keys(w.alive_sessions).length === 0 } },
       async stopWorker() { const w = loadWorld(dir); w.vm.running = false; w.alive_sessions = {}; w.vm.state = 'exited'; saveWorld(dir, w); return { verified: true } },
       async liveness() {
         const w = loadWorld(dir)

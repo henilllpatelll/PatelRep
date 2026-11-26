@@ -11,7 +11,9 @@ import { MODEL_FAMILIES } from './routing.mjs'
 import { verifySnapshot } from './snapshot.mjs'
 import path from 'node:path'
 
-export const RENEWAL_DEFAULTS = Object.freeze({ threshold: 0.7, maxTurns: 20, maxMinutes: 30, telemetryMaxAgeMs: 5 * 60_000, minPlausibleWindow: 8_000 })
+// maxTurns/maxMinutes = the bounded work UNIT used when exact utilization is unavailable. hardMaxTurns/hardMaxMinutes = ceilings that apply ALWAYS, even to valid below-threshold telemetry.
+export const RENEWAL_DEFAULTS = Object.freeze({ threshold: 0.7, maxTurns: 20, maxMinutes: 30, hardMaxTurns: 60, hardMaxMinutes: 90, telemetryMaxAgeMs: 5 * 60_000, minPlausibleWindow: 8_000 })
+const isCount = (x) => Number.isSafeInteger(x) && x >= 0
 export const CHECKPOINT_SCHEMA = 'patelrep.developer-harness-v3.checkpoint'
 export const MAX_NOTES_CHARS = 4000
 export const MAX_PROMPT_CHARS = 60_000
@@ -26,19 +28,28 @@ export function renewalDecision({ telemetry: t, family, cliVersion, knownWindows
   const parts = u ? [u.input_tokens, u.cache_read_input_tokens, u.cache_creation_input_tokens, u.output_tokens] : []
   if (!u) rejected.push('TELEMETRY.NO_USAGE')
   else if (parts.some((x) => x == null)) rejected.push('TELEMETRY.USAGE_INCOMPLETE')
+  else if (!parts.every(isCount)) rejected.push('TELEMETRY.USAGE_INVALID') // negative, fractional, unsafe-huge or non-numeric token counts are never arithmetic inputs
   if (u && !(MODEL_FAMILIES[family] && typeof u.model === 'string' && MODEL_FAMILIES[family].test(u.model))) rejected.push('TELEMETRY.MODEL_MISMATCH')
   if (!t?.init?.claude_code_version || t.init.claude_code_version !== cliVersion) rejected.push('TELEMETRY.CLI_VERSION_MISMATCH')
-  if (!Number.isFinite(lastUsageAt) || lastUsageAt > now) rejected.push('TELEMETRY.TIMESTAMP_INVALID')
+  if (!Number.isFinite(lastUsageAt) || !Number.isFinite(now) || lastUsageAt > now) rejected.push('TELEMETRY.TIMESTAMP_INVALID')
   else if (now - lastUsageAt > cfg.telemetryMaxAgeMs) rejected.push('TELEMETRY.STALE')
   let window = null
   if (u && t?.context_window?.model === u.model) window = t.context_window.tokens
   else if (u && Number.isFinite(knownWindows[`${cliVersion}:${u.model}`])) window = knownWindows[`${cliVersion}:${u.model}`]
-  if (!Number.isFinite(window)) rejected.push('TELEMETRY.WINDOW_UNKNOWN')
+  if (window == null || !Number.isFinite(window)) rejected.push('TELEMETRY.WINDOW_UNKNOWN')
+  else if (!isCount(window) || window === 0) rejected.push('TELEMETRY.WINDOW_INVALID')
   else if (window < cfg.minPlausibleWindow) rejected.push('TELEMETRY.WINDOW_IMPLAUSIBLE')
-  const used = parts.length && parts.every((x) => x != null) ? parts.reduce((s, n) => s + n, 0) : null
-  if (used != null && Number.isFinite(window) && used > window) rejected.push('TELEMETRY.INCONSISTENT_USED_EXCEEDS_WINDOW')
+  const sum = parts.length && parts.every(isCount) ? parts.reduce((s, n) => s + n, 0) : null
+  const used = sum != null && Number.isSafeInteger(sum) && sum > 0 ? sum : null // a request that used no context at all, or a sum past 2^53, is not a measurement
+  if (sum != null && used == null) rejected.push('TELEMETRY.USAGE_INVALID')
+  if (used != null && isCount(window) && window > 0 && used > window) rejected.push('TELEMETRY.INCONSISTENT_USED_EXCEEDS_WINDOW')
   const compacted = (t?.compactions ?? 0) > 0
 
+  // HARD ceilings come first and look at nothing the model's telemetry says: a missing/invalid turn count or start time counts as EXCEEDED (fail toward renewal, never toward "unbounded").
+  const turnsOk = isCount(turns); const timeOk = Number.isFinite(startedAt) && Number.isFinite(now) && startedAt <= now
+  const elapsedMin = timeOk ? (now - startedAt) / 60_000 : Number.POSITIVE_INFINITY
+  const hardTurns = !turnsOk || turns >= cfg.hardMaxTurns; const hardTime = elapsedMin >= cfg.hardMaxMinutes
+  if (hardTurns || hardTime) return { renew: true, basis: hardTurns ? 'hard_ceiling_turns' : 'hard_ceiling_minutes', measured: false, utilization: null, rejected, used_tokens: null, window_tokens: null, limits: { hardMaxTurns: cfg.hardMaxTurns, hardMaxMinutes: cfg.hardMaxMinutes } }
   if (compacted) return { renew: true, basis: 'compaction_observed', measured: false, utilization: null, rejected, used_tokens: used, window_tokens: window }
   if (rejected.length === 0) {
     const exact = used / window // the DECISION uses the exact ratio; only the reported figure is rounded (139,999/200,000 must not round up to 70%)
@@ -46,7 +57,6 @@ export function renewalDecision({ telemetry: t, family, cliVersion, knownWindows
     return { renew: exact >= cfg.threshold, basis: 'measured_context_utilization', measured: true, utilization, rejected, used_tokens: used, window_tokens: window, threshold: cfg.threshold }
   }
   // Fallback: bounded work units. Labelled as such; no percentage is reported.
-  const elapsedMin = (now - startedAt) / 60_000
   const byTurns = turns >= cfg.maxTurns; const byTime = elapsedMin >= cfg.maxMinutes
   return { renew: byTurns || byTime, basis: byTurns ? 'bounded_work_unit_turns' : byTime ? 'bounded_work_unit_minutes' : 'bounded_work_unit_not_reached', measured: false, utilization: null, rejected, used_tokens: null, window_tokens: null, limits: { maxTurns: cfg.maxTurns, maxMinutes: cfg.maxMinutes } }
 }
@@ -58,12 +68,12 @@ export const maxSafeTokensPerTurn = (windowTokens, cfg = RENEWAL_DEFAULTS) => Ma
 export const sanitizeNotes = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').slice(0, MAX_NOTES_CHARS)
 
 /** Build and persist an UNVERIFIED checkpoint from ledger facts. `snapshot` = {ref, digest} (already created and verified by the caller) or null for a clean tree. */
-export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes = '', workerHead = null }) {
+export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes = '', workerHead = null, stage = null, quarantined = [] }) {
   const t = ledger.getTask(taskId)
   const plan = ledger.currentPlan(taskId)
   const evidenceRows = ledger.db.prepare('SELECT evidence_id, evidence_type, payload_digest FROM evidence WHERE task_id=? AND invalidated_at IS NULL ORDER BY accepted_at').all(taskId)
   const payload = {
-    schema: CHECKPOINT_SCHEMA, version: 1, task_id: taskId, reason, state: t.state, state_revision: t.state_revision, fencing_token: t.fencing_token,
+    schema: CHECKPOINT_SCHEMA, version: 1, task_id: taskId, reason, stage, state: t.state, state_revision: t.state_revision, fencing_token: t.fencing_token,
     requirements_digest: t.requirements_digest, base_sha: t.base_sha, head_sha: t.head_sha,
     // The WORKER's branch head at capture time. It may legitimately be ahead of the ledger head (committed, candidate not yet accepted); restore must reproduce THIS one.
     worker_head_sha: /^[0-9a-f]{40}$/.test(workerHead ?? '') ? workerHead : null,
@@ -72,6 +82,8 @@ export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes
     evidence_refs: evidenceRows.map((r) => ({ evidence_id: r.evidence_id, type: r.evidence_type, digest: r.payload_digest })),
     candidate: ledger.currentCandidate(taskId) ? (({ candidate_sha, tree_digest, patch_digest }) => ({ candidate_sha, tree_digest, patch_digest }))(ledger.currentCandidate(taskId)) : null,
     snapshot: snapshot ? { ref: snapshot.ref, digest: snapshot.digest } : null,
+    // unsafe artifacts that were NOT preserved (path + problem codes only: never content). Recorded so the loss is explicit, never silent.
+    quarantined: quarantined.slice(0, 200).map((q) => ({ path: String(q.path).slice(0, 300), problems: q.problems.slice(0, 5) })),
     untrusted_notes: sanitizeNotes(notes),
   }
   const id = ledger.recordCheckpoint(taskId, { reason, payload, snapshot_ref: snapshot?.ref ?? null, snapshot_digest: snapshot?.digest ?? null })
@@ -82,7 +94,7 @@ export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes
  * Completeness + integrity verification. A checkpoint is usable only after this returns ok; `markCheckpointVerified` is the caller's next step.
  * `snapshotDir(ref)` maps a snapshot ref to its directory INSIDE the controller's snapshot store (refs are never paths from the model).
  */
-export function verifyCheckpoint(ledger, checkpointId, { snapshotDir }) {
+export function verifyCheckpoint(ledger, checkpointId, { snapshotDir, stage = null }) {
   const problems = []
   const cp = ledger.getCheckpoint(checkpointId)
   if (!cp) return { ok: false, problems: ['CHECKPOINT.UNKNOWN'] }
@@ -90,6 +102,7 @@ export function verifyCheckpoint(ledger, checkpointId, { snapshotDir }) {
   if (digestOf(p) !== cp.payload_digest) problems.push('CHECKPOINT.PAYLOAD_DIGEST_MISMATCH')
   if (p.schema !== CHECKPOINT_SCHEMA || p.task_id !== cp.task_id) problems.push('CHECKPOINT.MALFORMED')
   if (!ledger.requirementsIntact(cp.task_id) || p.requirements_digest !== t.requirements_digest || cp.requirements_digest !== t.requirements_digest) problems.push('CHECKPOINT.REQUIREMENTS_CHANGED')
+  if (stage && p.stage && p.stage !== stage) problems.push('CHECKPOINT.WRONG_STAGE')
   if (p.base_sha !== t.base_sha) problems.push('CHECKPOINT.BASE_CHANGED')
   if (p.head_sha !== t.head_sha) problems.push('CHECKPOINT.STALE_HEAD')
   if (p.fencing_token !== t.fencing_token) problems.push('CHECKPOINT.STALE_FENCING_TOKEN')

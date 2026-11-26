@@ -3,42 +3,95 @@
 // A database transaction CANNOT atomically commit a remote side effect (a GitHub push, a PR). So an effect is modelled as an INTENT written (together with the
 // evidence consumption that authorizes it) BEFORE the call, then an OUTCOME written after. A crash between the two leaves the intent `dispatched`; on restart
 // it becomes `uncertain`, and an uncertain intent may only be reconciled against the remote's real state before anything is retried. D3.4 ships no live
-// delivery adapter; this is the interface D3.6 must use.
+// delivery adapter and activates no action; this is the interface D3.6 must use.
+//
+// Remediation F3: an intent's authorization is re-validated at DISPATCH and at RETRY (not only at creation); reconciliation accepts only explicit, validated, authoritative observations;
+// a retry never reuses expired or invalid authorization; a NEW authorized intent supersedes an old PROVEN-absent one without re-consuming single-use evidence.
 import { digestOf } from '../../lib/canonical.mjs'
 import { consumeAll } from './evidence-store.mjs'
 
 const RETRYABLE = new Set(['failed', 'reconciled_absent'])
 const TERMINAL_OK = new Set(['succeeded', 'reconciled_succeeded'])
+const consumerOf = (key) => `intent:${key}`
 
-export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds = [], lease = null, policyRevision, candidateSha = null }) {
+/**
+ * EVERY authorization binding an intent depends on, re-checked from the CURRENT ledger and the CURRENT active policy. Used at creation, at DISPATCH and at RETRY: an intent that was valid when
+ * it was written is not thereby valid when it is sent. Pure reads. @returns {string|null} the first problem code.
+ */
+function bindingProblem(ledger, intent, { policy, lease = null, atCreation = false }) {
+  const t = ledger.getTask(intent.task_id)
+  if (!t) return 'TASK.UNKNOWN'
+  if (t.cancelled) return 'TASK.CANCELLED'
+  if (!policy?.contract || intent.policy_revision !== policy.revision || t.policy_revision !== policy.revision) return 'INTENT.STALE_POLICY_REVISION'
+  if (intent.candidate_sha !== t.head_sha) return 'INTENT.STALE_CANDIDATE'
+  if (intent.candidate_sha !== null) {
+    const c = ledger.currentCandidate(t.task_id)
+    if (!c || c.candidate_sha !== intent.candidate_sha) return 'INTENT.STALE_CANDIDATE'
+    if (intent.tree_digest != null && c.tree_digest !== intent.tree_digest) return 'INTENT.STALE_TREE'
+  }
+  if (intent.fencing_token !== t.fencing_token) return 'INTENT.STALE_FENCING_TOKEN'
+  if (intent.lease_id) { if (!lease) return 'INTENT.LEASE_REQUIRED'; if (lease.lease_id !== intent.lease_id) return 'INTENT.LEASE_MISMATCH' }
+  if (lease) { const c = ledger.checkLease(lease); if (c) return c }
+  const spec = policy.contract.actions?.[intent.action]
+  if (!spec) return 'INTENT.UNKNOWN_ACTION'
+  if (spec.class === 'prohibited') return 'INTENT.ACTION_PROHIBITED'
+  if (!atCreation && spec.requires_activation === true && !(policy.contract.activation?.active_actions ?? []).includes(intent.action)) return 'INTENT.ACTION_NOT_ACTIVE'
+  const have = new Set(); const now = ledger.now()
+  for (const id of JSON.parse(intent.evidence_ids_json)) {
+    const e = ledger.db.prepare('SELECT * FROM evidence WHERE evidence_id=? AND task_id=?').get(id, intent.task_id)
+    if (!e) return 'EVIDENCE.UNKNOWN'
+    if (e.invalidated_at !== null) return 'EVIDENCE.INVALIDATED'
+    if (atCreation) { if (e.consumed_at !== null) return 'EVIDENCE.ALREADY_CONSUMED' } else if (e.consumed_by !== consumerOf(intent.idempotency_key)) return 'EVIDENCE.NOT_CONSUMED_BY_THIS_INTENT'
+    if (e.expires_at <= now) return 'EVIDENCE.EXPIRED'
+    if (e.policy_revision !== policy.revision) return 'EVIDENCE.STALE_POLICY_REVISION'
+    if (e.fencing_token !== t.fencing_token) return 'EVIDENCE.STALE_FENCING_TOKEN'
+    if (e.candidate_sha !== null && e.candidate_sha !== t.head_sha) return 'EVIDENCE.STALE_CANDIDATE'
+    have.add(e.evidence_type)
+  }
+  for (const need of spec.required_evidence ?? []) if (!have.has(need)) return 'INTENT.EVIDENCE_NOT_AUTHORIZING_ACTION' // the evidence must be of the kinds THIS action requires, not merely valid
+  return null
+}
+
+/**
+ * Record an intent (and consume its single-use evidence) in ONE transaction. `supersedes` names an earlier intent of this task whose effect is PROVEN absent (failed / reconciled_absent): the new
+ * intent needs its OWN fresh, valid evidence (consumed evidence is never re-consumed), and the old intent becomes permanently non-retryable.
+ */
+export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds = [], lease = null, policy, policyRevision = policy?.revision, candidateSha = null, supersedes = null }) {
   return ledger.tx(() => {
     const t = ledger.getTask(taskId)
     if (!t) return { ok: false, code: 'TASK.UNKNOWN' }
+    if (t.cancelled) return { ok: false, code: 'TASK.CANCELLED' } // before the replay shortcut: a cancelled task is never advanced by repeating a call
     const params_digest = digestOf(params)
     const prior = ledger.db.prepare('SELECT * FROM action_intents WHERE idempotency_key=?').get(idempotencyKey)
     if (prior) {
       if (prior.params_digest !== params_digest || prior.task_id !== taskId || prior.action !== action) return { ok: false, code: 'INTENT.IDEMPOTENCY_CONFLICT' }
-      return { ok: true, duplicate: true, intent: { ...prior }, must_reconcile: prior.status === 'uncertain' || prior.status === 'dispatched' }
+      return { ok: true, duplicate: true, intent: { ...prior }, must_reconcile: prior.status === 'uncertain' || prior.status === 'dispatched' } // a replay authorizes nothing: dispatch re-validates everything
     }
-    if (t.cancelled) return { ok: false, code: 'TASK.CANCELLED' }
-    if (policyRevision !== t.policy_revision) return { ok: false, code: 'INTENT.STALE_POLICY_REVISION' }
+    if (policyRevision !== t.policy_revision || !policy || policy.revision !== policyRevision) return { ok: false, code: 'INTENT.STALE_POLICY_REVISION' }
     if (candidateSha !== t.head_sha) return { ok: false, code: 'INTENT.STALE_CANDIDATE' }
-    if (lease) { const c = ledger.checkLease(lease); if (c) return { ok: false, code: c } }
+    const cand = candidateSha ? ledger.currentCandidate(taskId) : null
     const unreconciled = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND status IN ('uncertain','dispatched')").get(taskId, action)
     if (unreconciled) return { ok: false, code: 'INTENT.UNRECONCILED_PRIOR', intent_id: unreconciled.intent_id }
-    for (const id of evidenceIds) {
-      const e = ledger.db.prepare('SELECT * FROM evidence WHERE evidence_id=? AND task_id=?').get(id, taskId)
-      if (!e) return { ok: false, code: 'EVIDENCE.UNKNOWN', id }
-      if (e.invalidated_at !== null) return { ok: false, code: 'EVIDENCE.INVALIDATED', id }
-      if (e.expires_at <= ledger.now()) return { ok: false, code: 'EVIDENCE.EXPIRED', id }
-      if (e.fencing_token !== t.fencing_token) return { ok: false, code: 'EVIDENCE.STALE_FENCING_TOKEN', id }
-      if (e.candidate_sha !== null && e.candidate_sha !== t.head_sha) return { ok: false, code: 'EVIDENCE.STALE_CANDIDATE', id }
+    let old = null
+    if (supersedes) {
+      old = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=? AND task_id=?').get(supersedes, taskId)
+      if (!old) return { ok: false, code: 'INTENT.SUPERSEDES_UNKNOWN' }
+      if (TERMINAL_OK.has(old.status)) return { ok: false, code: 'INTENT.EFFECT_ALREADY_APPLIED' }
+      if (old.superseded_by) return { ok: false, code: 'INTENT.ALREADY_SUPERSEDED' }
+      if (!RETRYABLE.has(old.status)) return { ok: false, code: 'INTENT.UNRECONCILED_PRIOR', intent_id: old.intent_id } // only a PROVEN-absent or failed effect may be superseded
     }
-    const c = consumeAll(ledger, evidenceIds, `intent:${idempotencyKey}`) // one transaction with the intent row below
-    if (!c.ok) return c
+    const applied = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND params_digest=? AND candidate_sha IS ? AND status IN ('succeeded','reconciled_succeeded')").get(taskId, action, params_digest, candidateSha)
+    if (applied) return { ok: false, code: 'INTENT.EFFECT_ALREADY_APPLIED', intent_id: applied.intent_id }
     const now = ledger.now(); const intentId = `in-${digestOf({ idempotencyKey }).slice(0, 24)}`
-    ledger.db.prepare('INSERT INTO action_intents(intent_id,task_id,action,idempotency_key,params_digest,candidate_sha,policy_revision,fencing_token,evidence_ids_json,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(intentId, taskId, action, idempotencyKey, params_digest, candidateSha, policyRevision, t.fencing_token, JSON.stringify(evidenceIds), 'intended', now, now)
+    const draft = { intent_id: intentId, task_id: taskId, action, idempotency_key: idempotencyKey, params_digest, candidate_sha: candidateSha, tree_digest: cand?.tree_digest ?? null, policy_revision: policyRevision, fencing_token: t.fencing_token,
+      lease_id: lease?.lease_id ?? null, evidence_ids_json: JSON.stringify(evidenceIds) }
+    const problem = bindingProblem(ledger, draft, { policy, lease, atCreation: true })
+    if (problem) return { ok: false, code: problem }
+    const c = consumeAll(ledger, evidenceIds, consumerOf(idempotencyKey)) // one transaction with the intent row below
+    if (!c.ok) return c
+    ledger.db.prepare('INSERT INTO action_intents(intent_id,task_id,action,idempotency_key,params_digest,candidate_sha,tree_digest,policy_revision,fencing_token,lease_id,supersedes,evidence_ids_json,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(intentId, taskId, action, idempotencyKey, params_digest, candidateSha, draft.tree_digest, policyRevision, t.fencing_token, draft.lease_id, old?.intent_id ?? null, draft.evidence_ids_json, 'intended', now, now)
+    if (old) ledger.db.prepare('UPDATE action_intents SET superseded_by=? WHERE intent_id=?').run(intentId, old.intent_id)
     return { ok: true, duplicate: false, intent: { ...ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(intentId) } }
   })
 }
@@ -47,19 +100,50 @@ const setStatus = (ledger, id, from, to, outcome = null) => ledger.tx(() => {
   const r = ledger.db.prepare(`UPDATE action_intents SET status=?, outcome_json=COALESCE(?,outcome_json), updated_at=? WHERE intent_id=? AND status IN (${from.map(() => '?').join(',')})`).run(to, outcome ? JSON.stringify(outcome) : null, ledger.now(), id, ...from)
   return r.changes === 1 ? { ok: true } : { ok: false, code: 'INTENT.BAD_TRANSITION' }
 })
-// fenced: a stale controller (older fencing token than the task's) cannot dispatch
-export const markDispatched = (ledger, id) => ledger.tx(() => {
-  const r = ledger.db.prepare('SELECT i.fencing_token f, t.fencing_token tf FROM action_intents i JOIN tasks t ON t.task_id=i.task_id WHERE i.intent_id=?').get(id)
-  if (!r || r.f !== r.tf) return { ok: false, code: 'INTENT.STALE_FENCING_TOKEN' }
+const revalidate = (ledger, id, { policy, lease }) => {
+  const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
+  if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
+  const p = bindingProblem(ledger, i, { policy, lease })
+  return p ? { ok: false, code: p } : { ok: true, intent: i }
+}
+
+/** DISPATCH gate: the task, candidate + tree, policy, fencing epoch, lease, evidence (validity AND expiry) and the action's own authorization are all re-validated NOW. A refusal changes nothing. */
+export const markDispatched = (ledger, id, { policy, lease = null } = {}) => ledger.tx(() => {
+  const v = revalidate(ledger, id, { policy, lease }); if (!v.ok) return v
   return setStatus(ledger, id, ['intended'], 'dispatched')
 })
 export const recordOutcome = (ledger, id, { success, outcome }) => setStatus(ledger, id, ['dispatched'], success ? 'succeeded' : 'failed', outcome)
 export const markUncertain = (ledger, id) => setStatus(ledger, id, ['dispatched'], 'uncertain')
-/** Reconcile an uncertain intent against the REMOTE's observed state. Only after this may a retry happen (and only if the effect is absent). */
-export const reconcileIntent = (ledger, id, { observed, outcome = null }) => setStatus(ledger, id, ['uncertain'], observed === 'present' ? 'reconciled_succeeded' : 'reconciled_absent', outcome)
-export const retryIntent = (ledger, id) => ledger.tx(() => {
-  const i = ledger.db.prepare('SELECT status FROM action_intents WHERE intent_id=?').get(id)
-  if (!i || !RETRYABLE.has(i.status)) return { ok: false, code: 'INTENT.NOT_RETRYABLE' }
+
+const OBS_KEYS = new Set(['state', 'authoritative', 'observed_at', 'params_digest', 'candidate_sha', 'source', 'ref'])
+/**
+ * Only an EXPLICIT, VALIDATED, AUTHORITATIVE remote observation reconciles an uncertain intent: { state:'present'|'absent', authoritative:true, observed_at, params_digest, candidate_sha, source }.
+ * Anything else — missing, unknown state, non-authoritative, stale, about another effect, unknown fields — is INCONCLUSIVE: the intent stays uncertain and nothing may be retried.
+ */
+export function reconcileIntent(ledger, id, { observation, outcome = null } = {}) {
+  return ledger.tx(() => {
+    const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
+    if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
+    const o = observation; const problems = []
+    if (!o || typeof o !== 'object' || Array.isArray(o)) problems.push('OBSERVATION.MALFORMED')
+    else {
+      for (const k of Object.keys(o)) if (!OBS_KEYS.has(k)) problems.push(`OBSERVATION.UNKNOWN_FIELD:${k}`)
+      if (o.state !== 'present' && o.state !== 'absent') problems.push('OBSERVATION.STATE_NOT_EXPLICIT')
+      if (o.authoritative !== true) problems.push('OBSERVATION.NOT_AUTHORITATIVE')
+      if (!Number.isFinite(o.observed_at) || o.observed_at > ledger.now() || o.observed_at < i.updated_at) problems.push('OBSERVATION.TIME_INVALID')
+      if (o.params_digest !== i.params_digest) problems.push('OBSERVATION.WRONG_SUBJECT')
+      if (i.candidate_sha !== null && o.candidate_sha !== i.candidate_sha) problems.push('OBSERVATION.WRONG_CANDIDATE')
+      if (typeof o.source !== 'string' || !o.source.trim() || o.source.length > 200) problems.push('OBSERVATION.SOURCE_MISSING')
+    }
+    if (problems.length) return { ok: false, code: 'INTENT.RECONCILIATION_INCONCLUSIVE', problems }
+    return setStatus(ledger, id, ['uncertain'], o.state === 'present' ? 'reconciled_succeeded' : 'reconciled_absent', outcome)
+  })
+}
+/** A retry of the SAME intent: only for a proven-absent/failed effect, only while EVERY binding and the original authorization are still valid (expired or invalidated authorization is never reused). */
+export const retryIntent = (ledger, id, { policy, lease = null } = {}) => ledger.tx(() => {
+  const i = ledger.db.prepare('SELECT status, superseded_by FROM action_intents WHERE intent_id=?').get(id)
+  if (!i || !RETRYABLE.has(i.status) || i.superseded_by) return { ok: false, code: 'INTENT.NOT_RETRYABLE' }
+  const v = revalidate(ledger, id, { policy, lease }); if (!v.ok) return v
   return setStatus(ledger, id, [...RETRYABLE], 'intended')
 })
 export const isDone = (intent) => TERMINAL_OK.has(intent.status)
