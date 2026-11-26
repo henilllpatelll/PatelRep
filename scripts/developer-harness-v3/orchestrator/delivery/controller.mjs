@@ -227,7 +227,6 @@ export class DeliveryController {
     if (t.state === 'merge_eligible') return this.mergeEligible(t, d)
     return NONE
   }
-
   /** F1: withdraw everything that rested on a result a newer applicable run superseded. @returns {object|null} */
   withdrawIfSuperseded(t, d) {
     if (!['staging_verification', 'merge_eligible'].includes(t.state)) return null
