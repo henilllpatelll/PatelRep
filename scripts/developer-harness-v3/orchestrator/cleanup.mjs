@@ -96,7 +96,7 @@ export async function planTaskCleanup(e, taskId, { procFacts, workspaceRoot = nu
   const ev = cleanupPlan({ registry, taskId, evaluateFn: evaluate, policy: e.policy, taskCtx: taskContext(L, taskId), now })
   for (const x of ev.refused) refused.push({ id: x.id, kind: pre.find((p) => p.row.resource_id === x.id).row.kind, codes: x.reason_codes })
   const allowed = pre.filter(({ row }) => ev.allowed.includes(row.resource_id)).map(({ row, facts }) => ({ id: row.resource_id, kind: row.kind, ref: row.canonical_ref, process: row.process_identity_json ? JSON.parse(row.process_identity_json) : null, facts }))
-  const plan = { task_id: taskId, at: now, allowed, refused }
+  const plan = { task_id: taskId, at: now, root, allowed, refused }
   return { ok: true, plan, digest: digestOf(plan) }
 }
 
@@ -107,7 +107,12 @@ export async function planTaskCleanup(e, taskId, { procFacts, workspaceRoot = nu
 export async function executeCleanup(e, planned, { executor, dryRun = true } = {}) {
   const L = e.ledger; const out = []
   if (!dryRun && e.adapters?.simulated !== true) return { ok: false, code: 'CLEANUP.LIVE_EXECUTION_NOT_AUTHORIZED' }
+  if (digestOf(planned.plan) !== planned.digest) return { ok: false, code: 'CLEANUP.PLAN_TAMPERED' }
+  if (L.now() - planned.plan.at > 60_000) return { ok: false, code: 'CLEANUP.PLAN_STALE' }
+  const busyTask = !!L.leaseOfTask(planned.plan.task_id) || !!L.db.prepare("SELECT 1 FROM work_leases WHERE task_id=? AND state IN ('active','termination_unverified')").get(planned.plan.task_id)
   for (const item of planned.plan.allowed) {
+    if (busyTask && item.kind !== 'review_agent') { out.push({ id: item.id, status: 'refused', code: 'CLEANUP.TASK_HAS_LIVE_LEASE' }); continue }
+    if (item.ref && planned.plan.root) { const f = pathFacts(item.ref, planned.plan.root); if (!f.ok) { out.push({ id: item.id, status: 'refused', code: f.code }); continue } }
     const intentId = `ci-${randomUUID()}`; const now = L.now()
     try { L.db.prepare('INSERT INTO cleanup_intents(intent_id,task_id,resource_id,plan_digest,dry_run,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)').run(intentId, planned.plan.task_id, item.id, planned.digest, dryRun ? 1 : 0, 'planned', now, now) } catch (err) {
       if (/UNIQUE/.test(String(err.message))) { out.push({ id: item.id, status: 'refused', code: 'CLEANUP.INTENT_IN_FLIGHT' }); continue } throw err
@@ -141,7 +146,7 @@ export async function reconcileCleanup(e, { executor }) {
   for (const ci of L.db.prepare("SELECT c.*, r.kind, r.canonical_ref, r.process_identity_json FROM cleanup_intents c JOIN resources r ON r.resource_id=c.resource_id WHERE c.dry_run=0 AND c.status IN ('executing','unknown')").all()) {
     const item = { id: ci.resource_id, kind: ci.kind, ref: ci.canonical_ref, process: ci.process_identity_json ? JSON.parse(ci.process_identity_json) : null }
     let g = null; try { g = await executor.verifyGone(item) } catch { g = null }
-    const status = g?.gone === true ? 'verified' : 'unknown'
+    const status = g?.gone === true ? 'verified' : g?.gone === false ? 'failed' : 'unknown'
     finishIntent(L, ci.intent_id, item, status, { reconciled: true })
     out.push({ id: ci.resource_id, status })
   }

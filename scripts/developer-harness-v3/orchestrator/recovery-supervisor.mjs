@@ -16,7 +16,7 @@ import { suspendTechnically } from './suspension.mjs'
 
 export const SUPERVISOR_DEFAULTS = Object.freeze({
   maxAttempts: Object.freeze({ worker_replace: 3, unverified_termination: 5, checkpoint_restore: 4, provider_wait: 12, disk_pressure: 4 }),
-  backoffMs: Object.freeze([30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000]), circuitOpenMs: 2 * 3600_000,
+  backoffMs: Object.freeze([30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000]), circuitOpenMs: 2 * 3600_000, decayMs: 6 * 3600_000,
 })
 export const INCIDENTS = Object.freeze(['sanitizer_failed', 'worker_contaminated', 'overlay_missing', 'overlay_broken', 'golden_mismatch', 'checkpoint_corrupt', 'restore_failed', 'unverified_termination', 'provider_unavailable', 'network_unavailable', 'disk_pressure'])
 const BUCKET = { sanitizer_failed: 'worker_replace', worker_contaminated: 'worker_replace', overlay_missing: 'worker_replace', overlay_broken: 'worker_replace', checkpoint_corrupt: 'checkpoint_restore', restore_failed: 'checkpoint_restore',
@@ -28,9 +28,12 @@ const cfgOf = (e) => ({ ...SUPERVISOR_DEFAULTS, ...(e.cfg.supervisor ?? {}), max
 export function attempt(L, scope, bucket, cfg = SUPERVISOR_DEFAULTS, code = null) {
   return L.tx(() => {
     const now = L.now(); const max = cfg.maxAttempts[bucket] ?? 3
-    const row = L.db.prepare('SELECT * FROM recovery_attempts WHERE scope=? AND incident=?').get(scope, bucket)
+    let row = L.db.prepare('SELECT * FROM recovery_attempts WHERE scope=? AND incident=?').get(scope, bucket)
     if (row && now < row.next_at) return { allowed: false, attempts: row.attempts, next_at: row.next_at, circuit: row.circuit, backing_off: true }
-    const attempts = (row?.attempts ?? 0) + 1
+    // review CR-4: a closed circuit whose last attempt is older than decayMs starts over (isolated blips over a long task never accumulate); an OPEN circuit whose wait elapsed is
+    // HALF-OPEN: exactly one trial attempt, and a failure re-opens it (each opening is a technical suspension, so the suspension epochs still bound the total)
+    if (row && row.circuit === 'closed' && now - row.last_at > (cfg.decayMs ?? Infinity)) row = null
+    const attempts = row?.circuit === 'open' ? max : (row?.attempts ?? 0) + 1
     if (attempts > max) {
       const next = now + cfg.circuitOpenMs
       L.db.prepare("INSERT INTO recovery_attempts(scope,incident,attempts,first_at,last_at,next_at,circuit,last_code) VALUES (?,?,?,?,?,?,'open',?) ON CONFLICT(scope,incident) DO UPDATE SET attempts=excluded.attempts, last_at=excluded.last_at, next_at=excluded.next_at, circuit='open', last_code=excluded.last_code").run(scope, bucket, attempts, row?.first_at ?? now, now, next, code)
@@ -128,7 +131,7 @@ async function replaceWorker(e, taskId, inc, cfg) {
   if (lease) { const r = await reconcileSlot(e, { reason: 'WORKER_TERMINATED', taskId }); if (!r.cleared) return { progressed: true, action: 'replacement_waits_for_verified_termination' } } // rule (1)
   const cap = await captureWork(e, taskId, null)
   const kept = persistCheckpoint(e, taskId, cap, { reason: `WORKER_REPLACEMENT:${inc.kind}`, stage: inc.stage, force: true })
-  if (!kept.ok) {
+  if (!kept.ok || (!kept.recorded && cap.worktree === 'unknown')) {
     quarantine(L, { taskId, kind: 'worker', ref: inc.detail?.overlay ?? 'task-overlay', reason: 'WORK_PRESERVATION_UNVERIFIED', evidence: { problems: kept.problems ?? [], incident: inc.kind } })
     clearIncident(L, taskId)
     suspendTechnically(e, taskId, { cause: 'WORK_PRESERVATION_UNVERIFIED', stage: inc.stage, codes: [...(kept.problems ?? []).slice(0, 3), inc.kind],

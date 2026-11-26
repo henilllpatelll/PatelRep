@@ -135,7 +135,8 @@ export function checkNotRolledBack(L, witness) {
 }
 
 const journalFile = (liveFile) => `${liveFile}.restore-journal.json`
-const moveDb = (from, to) => { for (const sfx of ['', '-wal', '-shm']) if (existsSync(from + sfx)) renameSync(from + sfx, to + sfx) }
+// every companion file moves (review CR-3): a crash between the renames leaves a WAL/SHM behind, and the next step moves it too — a stale WAL is never replayed onto the candidate
+const moveDb = (from, to, hook = null) => { for (const sfx of ['', '-wal', '-shm']) { if (existsSync(from + sfx)) renameSync(from + sfx, to + sfx); if (sfx === '') hook?.('after_move_main') } }
 
 /**
  * Restore the live ledger from the newest backup that verifies, if — and only if — freshness is proven. Otherwise the candidate is left QUARANTINED in `candidateDir`.
@@ -176,11 +177,17 @@ export function resumeRecovery({ liveFile, hook = null, now = Date.now }) {
   if (!j.ok) return { ok: false, code: 'RESTORE.JOURNAL_UNREADABLE' }
   const J = j.value
   if (J.step === 'begin') {
-    if (existsSync(liveFile)) moveDb(liveFile, J.preserved) // preserve the corrupt (or replaced) live ledger for diagnostics
+    moveDb(liveFile, J.preserved, hook) // preserve the corrupt (or replaced) live ledger — and ANY companion WAL/SHM — for diagnostics
     atomicWriteJson(jf, { ...J, step: 'live_preserved' }); J.step = 'live_preserved'; hook?.('after_live_preserved')
   }
   if (J.step === 'live_preserved') {
-    if (!existsSync(liveFile)) { if (!existsSync(J.candidate)) return { ok: false, code: 'RESTORE.CANDIDATE_LOST' }; renameSync(J.candidate, liveFile) }
+    if (!existsSync(liveFile)) {
+      if (!existsSync(J.candidate)) return { ok: false, code: 'RESTORE.CANDIDATE_LOST' }
+      moveDb(liveFile, J.preserved) // a leftover -wal/-shm from an interrupted first step
+      if (existsSync(`${liveFile}-wal`) || existsSync(`${liveFile}-shm`)) return { ok: false, code: 'RESTORE.STALE_COMPANION_FILES' }
+      if (sha256File(J.candidate) !== J.manifest.sha256) return { ok: false, code: 'RESTORE.CANDIDATE_CHANGED' } // re-verified at swap time
+      renameSync(J.candidate, liveFile)
+    }
     atomicWriteJson(jf, { ...J, step: 'swapped' }); J.step = 'swapped'; hook?.('after_swapped')
   }
   if (J.step === 'swapped') {

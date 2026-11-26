@@ -4,7 +4,7 @@
 // compare-and-swap and an append-only event log, never different semantics. All time comes from an injected clock (fixture clocks in tests).
 // The database is controller-owned state. Nothing read back from it (including checkpoints and model summaries) is authority.
 import { DatabaseSync } from 'node:sqlite'
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, realpathSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
@@ -32,12 +32,13 @@ export class Ledger {
   constructor(db, { clock = Date.now, file = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
     this.db = db; this.clock = clock; this.file = file
     if (proposalReducer && (proposalReducer.label !== 'PROPOSAL_UNDER_TEST' || typeof proposalReducer.applyEvent !== 'function' || typeof proposalReducer.createTask !== 'function' || !proposalReducer.lc)) throw new Error('LEDGER.PROPOSAL_REDUCER_INVALID')
-    if (proposalReducer && !(file === null || file === ':memory:' || path.resolve(file).toLowerCase().startsWith(path.resolve(os.tmpdir()).toLowerCase()))) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP')
+    if (proposalReducer && !Ledger.isTempLedgerPath(file)) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP')
     this.reducer = proposalReducer ?? { applyEvent, createTask }; this.lc = proposalReducer?.lc ?? loadLifecycle(); this.proposal = !!proposalReducer; this.ownerActionVerifier = ownerActionVerifier
   }
 
   /** `migrationHook(version)` runs INSIDE each migration's transaction after its SQL (fault-injection point for the interrupted-migration tests; never set in production). */
   static open(file, { clock = Date.now, maxBytes = MAX_LEDGER_BYTES, migrationHook = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
+    if (proposalReducer && !Ledger.isTempLedgerPath(file)) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP') // refused BEFORE anything is created (review CR-7)
     if (file !== ':memory:' && existsSync(file) && statSync(file).size > maxBytes) throw new Error('LEDGER.TOO_LARGE')
     const db = new DatabaseSync(file)
     db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA trusted_schema = OFF;')
@@ -58,6 +59,11 @@ export class Ledger {
     return new Ledger(db, { clock, file })
   }
   close() { this.db.close() }
+  /** In-memory, or a file whose (resolved) parent directory is the OS temp directory or inside it (path boundary respected; junctions resolved). */
+  static isTempLedgerPath(file) {
+    if (file === null || file === ':memory:') return true
+    try { const tmp = realpathSync.native(os.tmpdir()); const dir = realpathSync.native(path.dirname(path.resolve(file))); const rel = path.relative(tmp.toLowerCase(), dir.toLowerCase()); return !rel.startsWith('..') && !path.isAbsolute(rel) } catch { return false }
+  }
 
   #migrate(hook = null) {
     const appId = this.db.prepare('PRAGMA application_id').get().application_id
@@ -281,9 +287,9 @@ export class Ledger {
   reserveFor(taskId, holderRef, profile, r) { const t = this.getTask(taskId); this.#reserve(taskId, holderRef, profile, r, t.fencing_token, this.now()) }
   releaseReservation(holderRef) { this.db.prepare("UPDATE reservations SET state='released', released_at=? WHERE holder_ref=? AND state<>'released'").run(this.now(), holderRef) }
   /** Memory promised to workloads that have NOT materialized yet, in the governor's reservation shape (it expires with its slot). `excludeHolder` = the asker's own reservation. */
-  pendingReservations({ excludeHolder = null } = {}) {
+  pendingReservations({ excludeHolder = null, excludeTask = null } = {}) {
     return this.db.prepare(`SELECT r.holder_ref, r.task_id, r.mem_mb, COALESCE(l.expires_at, w.expires_at, 0) exp FROM reservations r LEFT JOIN leases l ON l.lease_id=r.holder_ref LEFT JOIN work_leases w ON w.work_id=r.holder_ref
-      WHERE r.state='held' AND r.holder_ref IS NOT ?`).all(excludeHolder).map((r) => ({ id: r.holder_ref, task_id: r.task_id, mb: r.mem_mb, materialized: false, expires_at: new Date(r.exp).toISOString() }))
+      WHERE r.state='held' AND r.holder_ref IS NOT ? AND r.task_id IS NOT ?`).all(excludeHolder, excludeTask).map((r) => ({ id: r.holder_ref, task_id: r.task_id, mb: r.mem_mb, materialized: false, expires_at: new Date(r.exp).toISOString() }))
   }
   reservationOf(holderRef) { return plain(this.db.prepare('SELECT * FROM reservations WHERE holder_ref=?').get(holderRef)) }
   /** @returns {string|null} a LEASE.* code when the presented lease is not the CURRENT, unexpired, same-token lease; null when valid. */

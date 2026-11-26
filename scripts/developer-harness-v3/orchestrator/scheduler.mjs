@@ -14,7 +14,7 @@
 import { D33_THRESHOLDS } from '../runtime/resource-governor.mjs'
 import { acquireWork, closeWork, liveWork, materializeWork, supersedeWork } from './ledger/slots.mjs'
 
-export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 0 })
+export const SCHED_DEFAULTS = Object.freeze({ agingMs: 30 * 60_000, agingStep: 10, maxPassesBeforeReserve: 6, maxDeterministicPerRound: 8, heavyReservationMb: 1536, reasoningReservationMb: 768 }) // guest minimums of the D3.3 governor (heavy 1536, reasoning 768)
 
 const WILD = /[*?[{]/
 const SEG_SPLIT = (g) => g.toLowerCase().split('/').filter((s) => s !== '')
@@ -174,6 +174,7 @@ export class Scheduler {
     return 'det'
   }
   needsClaim(t) {
+    if (['paused', 'blocked', 'technical_suspension'].includes(t.state)) return false // review CR-13: a parked task takes no NEW claim (one it holds is kept)
     if (!PRE_CLAIM.has(t.state)) return true
     if (t.state === 'submitted') return false
     return this.L.openDependencies(t.task_id).length === 0 && this.L.deadDependencies(t.task_id).length === 0 // about to start work: claim now, never while still waiting
@@ -185,6 +186,11 @@ export class Scheduler {
   }
 
   async round() {
+    if (this.e.busy) return { progressed: false, busy: true, ran: [], skipped: [], stuck: [], next_wakeup: this.e.nextWakeup() } // single-flight with engine.tick (review CR-1)
+    this.e.busy = true
+    try { return await this.#round() } finally { this.e.busy = false }
+  }
+  async #round() {
     const e = this.e; const L = this.L; const A = e.adapters
     await e.deliverOutbox()
     const stuck = new Set((await e.reconcileOrphans({ reason: 'WORKER_TERMINATED' })).map((s) => s.task_id))
@@ -195,13 +201,17 @@ export class Scheduler {
     const ranked = rankTasks(rows, { now: L.now(), passes, cfg: this.cfg })
     const items = ranked.map((r) => { const t = L.getTask(r.task_id); return { id: r.task_id, kind: this.kindOf(t), footprint: footprintOf(t), needsClaim: this.needsClaim(t), claimed: this.claimOf(r.task_id) } })
     const plan = planRound({ items, claims: this.liveClaims(), capacity: this.capacity(), passes, cfg: this.cfg })
-    for (const s of plan.skipped) { this.#notePass(s.id); if (s.reason === 'SCOPE_CONFLICT') L.setWait(s.id, { kind: 'scope_conflict', reason: 'SCOPE_CONFLICT', detail: { with: s.with } }) }
+    for (const s of plan.skipped) { this.#notePass(s.id); if (s.reason === 'SCOPE_CONFLICT' && !L.getWait(s.id)) L.setWait(s.id, { kind: 'scope_conflict', reason: 'SCOPE_CONFLICT', detail: { with: s.with } }) }
     const admitted = []
     for (const r of plan.run) {
       if (r.claim) { const c = this.claim(r.id); if (!c.ok) { this.#notePass(r.id); continue } if (L.getWait(r.id)?.kind === 'scope_conflict') L.clearWait(r.id); this.#recordBasis(r.id) }
       admitted.push(r)
     }
-    const results = await Promise.all(admitted.map((r) => this.#runOne(r)))
+    // review CR-5: every admitted step's memory is RESERVED before any of them starts, so each admission check (inside the stage) sees the others' promises
+    for (const r of admitted) if (r.kind === 'ai' && this.cfg.reasoningReservationMb > 0) { r.holder = `sched-ai:${r.id}:${L.now()}:${Math.random().toString(36).slice(2, 10)}`; L.reserveFor(r.id, r.holder, 'reasoning', { mem_mb: this.cfg.reasoningReservationMb }) }
+    for (const r of admitted) if (r.kind === 'heavy') { const cand = L.currentCandidate(r.id); r.work = acquireWork(L, { taskId: r.id, unitRef: `testing:${cand?.candidate_sha ?? 'none'}`, reservation: { mem_mb: this.cfg.heavyReservationMb } }) }
+    let results
+    try { results = await Promise.all(admitted.map((r) => this.#runOne(r))) } finally { for (const r of admitted) if (r.holder) L.releaseReservation(r.holder) }
     this.releaseFinishedClaims()
     const progressed = results.filter((x) => x.progressed)
     return { progressed: progressed.length > 0, ran: admitted.map((r, i) => ({ id: r.id, kind: r.kind, action: results[i].action ?? null })), skipped: plan.skipped, stuck: [...stuck], next_wakeup: e.nextWakeup() }
@@ -212,10 +222,9 @@ export class Scheduler {
     this.live += 1; this.maxConcurrent = Math.max(this.maxConcurrent, this.live)
     try {
       if (r.kind !== 'heavy') { const x = await e.advance(r.id); if (x.progressed) this.#noteRun(r.id); return x }
-      const t = L.getTask(r.id); const cand = L.currentCandidate(r.id)
-      const w = acquireWork(L, { taskId: r.id, unitRef: `testing:${cand?.candidate_sha ?? 'none'}`, reservation: { mem_mb: this.cfg.heavyReservationMb } })
-      if (!w.ok) return { progressed: false }
-      e.ownWork.set(r.id, w.work); materializeWork(L, w.work.work_id)
+      const t = L.getTask(r.id); const w = r.work
+      if (!w?.ok) return { progressed: false }
+      e.ownWork.set(r.id, w.work) // materialized by the testing stage only when the run really starts
       let verified = false
       try { const x = await e.advance(r.id); if (x.progressed) this.#noteRun(r.id); return x } finally {
         e.ownWork.delete(r.id)

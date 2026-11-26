@@ -74,6 +74,7 @@ test('disk-pressure cleanup execution (simulated adapters, temp fixture): remove
   const f = fixture()
   try {
     const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')] })
+    f.L.closeLease(f.lease, { terminationVerified: true, endReason: 'completed' }) // while the task holds a live lease only idle-reviewer releases execute (review CR-8)
     const dry = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: true })
     assert.ok(dry.results.every((r) => r.status === 'planned')); assert.ok(existsSync(path.join(f.w1, 'overlay')), 'a dry run changes nothing')
     const r = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
@@ -96,6 +97,7 @@ test('cleanup crash safety: an intent interrupted while executing is RE-VERIFIED
   const f = fixture()
   try {
     const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')], kinds: ['worker_overlay'] })
+    f.L.closeLease(f.lease, { terminationVerified: true, endReason: 'completed' })
     f.h.engine.hookFn = (name) => { if (name === 'cleanup_executing') throw new Error('CRASH_INJECTED') }
     await assert.rejects(() => executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false }), /CRASH_INJECTED/)
     f.h.engine.hookFn = null
@@ -103,10 +105,10 @@ test('cleanup crash safety: an intent interrupted while executing is RE-VERIFIED
     const again = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
     assert.equal(again.results[0].code, 'CLEANUP.INTENT_IN_FLIGHT', 'a second cleanup of the same resource cannot start while the first is unresolved')
     const rec = await reconcileCleanup(f.h.engine, { executor: f.executor })
-    assert.deepEqual(rec.map((x) => x.status), ['unknown'], 'the directory still exists: unknown, NOT verified')
+    assert.deepEqual(rec.map((x) => x.status), ['failed'], 'the directory verifiably still exists: failed (review CR-15), NOT verified')
     assert.ok(existsSync(path.join(f.w1, 'overlay')), 'reconciliation did not delete anything')
-    rmSync(path.join(f.w1, 'overlay'), { recursive: true, force: true }) // (the interrupted executor had in fact finished the removal)
-    assert.deepEqual((await reconcileCleanup(f.h.engine, { executor: f.executor })).map((x) => x.status), ['verified'])
+    const again2 = await executeCleanup(f.h.engine, await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, kinds: ['worker_overlay'] }), { executor: f.executor, dryRun: false })
+    assert.deepEqual(again2.results.map((x) => x.status), ['verified'], 'a FAILED intent does not block a fresh, re-planned cleanup')
     const live = await executeCleanup({ ledger: f.L, adapters: { simulated: false }, hook() {} }, p, { executor: f.executor, dryRun: false })
     assert.equal(live.code, 'CLEANUP.LIVE_EXECUTION_NOT_AUTHORIZED')
   } finally { f.h.close() }
@@ -119,5 +121,19 @@ test('registration requires identity: a process needs pid + creation time (never
     assert.throws(() => registerOwned(f.L, f.t1, { kind: 'review_agent', processIdentity: { image: 'node.exe' } }), /PROCESS_IDENTITY_REQUIRED/)
     assert.throws(() => registerOwned(f.L, f.t1, { kind: 'temp_dir', canonicalRef: 'relative/dir' }), /CANONICAL_PATH_REQUIRED/)
     assert.throws(() => registerOwned(f.L, f.t1, { kind: 'whatever', canonicalRef: f.w1 }), /KIND_UNKNOWN/)
+  } finally { f.h.close() }
+})
+
+test('review CR-8: execution re-checks the plan (tampered or stale plans refused) and a task with a LIVE lease gets only idle-reviewer releases', async () => {
+  const f = fixture()
+  try {
+    const p = await planTaskCleanup(f.h.engine, f.t1, { procFacts: f.procFacts, workspaceRoot: f.w1, protectedRoots: [path.join(f.w1, 'primary')] })
+    const live = await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })
+    assert.deepEqual(Object.fromEntries(live.results.map((r) => [r.id, r.code ?? r.status])), { [f.id.overlay]: 'CLEANUP.TASK_HAS_LIVE_LEASE', [f.id.idleReviewer]: 'verified' })
+    assert.ok(existsSync(path.join(f.w1, 'overlay')))
+    const tampered = { ...p, plan: { ...p.plan, allowed: [...p.plan.allowed, { id: f.id.t2, kind: 'worker_overlay', ref: f.t2Overlay }] } }
+    assert.equal((await executeCleanup(f.h.engine, tampered, { executor: f.executor, dryRun: false })).code, 'CLEANUP.PLAN_TAMPERED')
+    f.h.clock.advance(61_000); assert.equal((await executeCleanup(f.h.engine, p, { executor: f.executor, dryRun: false })).code, 'CLEANUP.PLAN_STALE')
+    assert.ok(existsSync(f.t2Overlay))
   } finally { f.h.close() }
 })

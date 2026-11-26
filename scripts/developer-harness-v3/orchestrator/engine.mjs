@@ -76,8 +76,11 @@ export class Engine {
     const s = await A.resources.sample()
     // active counts come from DURABLE leases (never an in-memory guess), and durable not-yet-materialized reservations are subtracted from what is available
     const counts = L.activeCounts({ excludeLeaseId: own ? ownLease.lease_id : null, excludeWorkId: ownWork?.work_id ?? null })
-    const reservations = [...(s.reservations ?? []), ...L.pendingReservations({ excludeHolder: own ? ownLease.lease_id : ownWork?.work_id ?? null })]
-    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: counts.reasoning_sessions, heavy_test_workloads: Math.max(s.heavy ?? 0, counts.heavy_test_workloads) }, reservations, now, accel: s.accel })
+    const others = L.pendingReservations({ excludeTask: taskId })
+    const reservations = [...(s.reservations ?? []), ...others]
+    const otherMb = others.reduce((n, r) => n + r.mb, 0)
+    const guest = s.guest && Number.isFinite(s.guest.mem_available_mb) && otherMb ? { ...s.guest, mem_available_mb: s.guest.mem_available_mb - otherMb } : s.guest // review CR-5: a concurrently admitted workload's promise is subtracted in the worker too
+    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest, active: { reasoning_sessions: counts.reasoning_sessions, heavy_test_workloads: Math.max(s.heavy ?? 0, counts.heavy_test_workloads) }, reservations, now, accel: s.accel })
     if (res.decision !== 'admit') return { ok: false, kind: 'wait', state: 'waiting_resources', reason: res.lifecycle_reason, eligible_at: now + this.cfg.resourceRecheckMs + Math.round(this.rng() * 5000), codes: res.reason_codes }
     if (!need.ai) return { ok: true }
     const gov = A.subscription.load()
@@ -112,10 +115,14 @@ export class Engine {
   async reverifyBilling(gov, now) {
     const f = this.adapters.subscription?.reverifyExtraUsage
     if (typeof f !== 'function') return { ok: false, code: 'BILLING.NO_SUPPORTED_NONBILLABLE_SOURCE' }
+    // review CR-6: until a reviewed live source exists (gate G-UNATTENDED-LONG-WAIT) an adapter can never become the billing trust root: SIMULATED adapters and SIMULATED_* bases only, at most once per recheck interval
+    if (this.adapters.simulated !== true) return { ok: false, code: 'BILLING.LIVE_REVERIFICATION_NOT_AUTHORIZED' }
+    const last = Number(this.ledger.meta('billing_reverify_last') ?? 0); if (now - last < this.cfg.subscriptionRecheckMs && last) return { ok: false, code: 'BILLING.REVERIFICATION_RATE_LIMITED' }
+    this.ledger.setMeta('billing_reverify_last', now)
     let r = null; try { r = await f() } catch { r = null }
     if (r && r.supported === true && r.billable === false && r.enabled === true) { this.adapters.subscription.save({ ...gov, extra_usage: { enabled: true, basis: String(r.basis ?? 'reverification').slice(0, 80), verified_at: now } }); return { ok: false, code: 'AUTH.EXTRA_USAGE_ENABLED' } }
-    if (!r || r.supported !== true || r.billable !== false || r.enabled !== false || !Number.isFinite(r.verified_at) || r.verified_at > now || now - r.verified_at > 60_000 || typeof r.basis !== 'string' || !r.basis) return { ok: false, code: 'BILLING.REVERIFICATION_UNAVAILABLE' }
-    this.adapters.subscription.save({ ...gov, extra_usage: { enabled: false, basis: r.basis.slice(0, 80), verified_at: r.verified_at } })
+    if (!r || r.supported !== true || r.billable !== false || r.enabled !== false || !Number.isFinite(r.verified_at) || r.verified_at > now || now - r.verified_at > 60_000 || typeof r.basis !== 'string' || !/^SIMULATED_[A-Z_]{1,60}$/.test(r.basis)) return { ok: false, code: 'BILLING.REVERIFICATION_UNAVAILABLE' }
+    this.adapters.subscription.save({ ...gov, extra_usage: { enabled: false, basis: r.basis, source: 'adapter_reverification', verified_at: r.verified_at } })
     this.ledger.recordRecovery(null, 'billing_reverified', { basis: r.basis.slice(0, 80), verified_at: r.verified_at })
     return { ok: true }
   }
@@ -166,6 +173,11 @@ export class Engine {
 
   // ------------------------------------------------------------ the loop
   async tick() {
+    if (this.busy) return { progressed: false, busy: true } // single-flight (review CR-1): a tick never overlaps a tick or a scheduler round
+    this.busy = true
+    try { return await this.#tick() } finally { this.busy = false }
+  }
+  async #tick() {
     const L = this.ledger; const now = L.now()
     await this.deliverOutbox()
     // recovery of an unverified/orphaned slot comes first: no new session may start while the old one is not proven dead. Since D3.5 this is task-scoped (every live lease this

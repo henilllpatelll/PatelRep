@@ -52,7 +52,7 @@ export function classifyUnit(o, cfg = UNIT_DEFAULTS) {
   const finite = !!c && ['tests', 'pass', 'fail'].every((k) => Number.isFinite(c[k]))
   const complete = finite && c.tests > 0 && !o.signal && !o.timedOut && !o.lost && Number.isInteger(o.status) && !(c.cancelled > 0)
   if (complete && c.fail === 0 && c.pass === c.tests && !(c.skipped > 0) && o.status === 0) return { kind: 'passed' }
-  if (complete && (c.fail > 0 || c.skipped > 0)) return { kind: 'genuine_failure', evidence: { fail: c.fail, skipped: c.skipped ?? 0 } } // a complete run that reports failures (or forbidden skips) IS a result
+  if (complete && (c.fail > 0 || c.skipped > 0 || o.status !== 0)) return { kind: 'genuine_failure', evidence: { fail: c.fail, skipped: c.skipped ?? 0, status: o.status } } // complete output + failures, skips or a non-zero exit IS a result // a complete run that reports failures (or forbidden skips) IS a result
   const lo = o.startedAt - cfg.evidenceWindowMs; const hi = (o.endedAt ?? o.startedAt) + cfg.evidenceWindowMs
   const inWindow = (o.samples ?? []).filter((s) => s.at >= lo && s.at <= hi && Number.isFinite(s.free_mb))
   const minFree = inWindow.length ? Math.min(...inWindow.map((s) => s.free_mb)) : null
@@ -129,7 +129,9 @@ function waitFor(e, taskId, { groupId, unit, code }) {
 export async function runTestUnits(e, taskId, task, cand) {
   const L = e.ledger; const A = e.adapters; const cfg = { ...UNIT_DEFAULTS, ...(e.cfg.units ?? {}) }
   const units = await A.tests.units({ task, candidate: cand })
-  const groupId = groupIdFor({ task: taskId, candidate: cand.candidate_sha, tree: cand.tree_digest, token: task.fencing_token, units })
+  // review CR-2: a scheduled re-verification (P6 back-edge) is a NEW run epoch: units passed before it never count again
+  const runEpoch = Number(L.meta(`reverify_count:${taskId}:${cand.candidate_sha}`) ?? 0)
+  const groupId = groupIdFor({ task: taskId, candidate: cand.candidate_sha, tree: cand.tree_digest, token: task.fencing_token, units, run_epoch: runEpoch })
   openGroup(L, { groupId, taskId, units, candidate: cand })
   const lost = markLost(L, groupId, { samples: recentSamples(L, taskId, 'test_unit'), reaper: await A.tests.reaperRecord?.() ?? null }, cfg)
   for (const x of lost) L.recordRecovery(taskId, 'test_unit_interrupted', { group_id: groupId, unit: x.unit, kind: x.kind, lost: true, evidence: x.evidence })

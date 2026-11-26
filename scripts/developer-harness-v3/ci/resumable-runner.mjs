@@ -45,8 +45,8 @@ function runChild(root, rel, { onPid, sample, intervalMs }) {
     onPid(p.pid); let out = ''; const cap = 64 * 1024 * 1024
     p.stdout.on('data', (d) => { if (out.length < cap) out += d }); p.stderr.on('data', (d) => { if (out.length < cap) out += d })
     const tick = setInterval(sample, Math.max(200, Math.floor(intervalMs / 3))) // memory is sampled WHILE the unit runs: the classification needs in-window evidence
-    const kill = setTimeout(() => { p.kill() }, FILE_TIMEOUT_MS)
-    p.on('exit', (code, signal) => { clearInterval(tick); clearTimeout(kill); resolve({ status: code, signal, out, timedOut: false }) })
+    let timedOut = false; const kill = setTimeout(() => { timedOut = true; p.kill() }, FILE_TIMEOUT_MS)
+    p.on('exit', (code, signal) => { clearInterval(tick); clearTimeout(kill); resolve({ status: code, signal, out, timedOut }) })
   })
 }
 

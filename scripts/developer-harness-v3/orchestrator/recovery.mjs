@@ -7,6 +7,7 @@ import { captureWork, persistCheckpoint } from './preserve.mjs'
 import { isPidAlive } from '../runtime/launcher.mjs'
 import { recoveryDecision } from '../runtime/worker-lifecycle.mjs'
 import { markDispatchedAsUncertain, requeueClaimedOutbox } from './ledger/intents.mjs'
+import { checkNotRolledBack } from './ledger/disaster-recovery.mjs'
 
 /**
  * Resolve the reasoning slot if it is held. Fail closed: on any doubt the slot stays held and NO session starts. EVIDENCE MUST BE EXPLICIT: a liveness probe that throws or reports unknown,
@@ -55,8 +56,9 @@ export async function reconcileSlot(e, { reason = 'HOST_RESTARTED', taskId = nul
 }
 
 /** Controller start-up: single controller (OS-level lock), uncertain effects, unacknowledged outbox, orphaned reasoning slot. */
-export async function recoverOnStart(e, { lockFile, isHolderAlive = (rec) => isPidAlive(rec.pid) }) {
+export async function recoverOnStart(e, { lockFile, isHolderAlive = (rec) => isPidAlive(rec.pid), witness = null }) {
   const L = e.ledger
+  if (witness) { const g = checkNotRolledBack(L, witness); if (!g.ok) return { ok: false, code: g.code } } // D3.5 (review CR-9): a ledger behind a trusted witness never runs
   const lock = acquireLock(lockFile, { execution_id: 'controller', acquired_at: new Date(L.now()).toISOString() }, { isHolderAlive })
   if (!lock.ok) return { ok: false, code: lock.code }
   const uncertain = markDispatchedAsUncertain(L)

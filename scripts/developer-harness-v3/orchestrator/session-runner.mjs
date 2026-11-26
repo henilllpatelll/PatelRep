@@ -46,11 +46,17 @@ async function boundaryCheck(e, taskId, spec, lease) {
  * @param {{stage:string, role:string, route:object, mandatory:boolean, readonly?:boolean, instruction:string, onLeased?:(lease:object)=>void}} spec
  */
 export async function runSessionStage(e, taskId, spec) {
+  // D3.5 (review CR-1): every lease this session holds is IN FLIGHT for the controller, so a concurrent reconciliation never treats it as an orphan; removed when the stage ends
+  const mine = []; const track = (l) => { if (l?.lease_id) { mine.push(l.lease_id); e.inflight?.add(l.lease_id) } }
+  try { return await runSessionStageTracked(e, taskId, { ...spec, track }) } finally { for (const id of mine) e.inflight?.delete(id) }
+}
+async function runSessionStageTracked(e, taskId, spec) {
   const { ledger: L, adapters: A, cfg } = e
   const task = L.getTask(taskId)
   let acquired = L.acquireLease({ taskId, role: spec.role, stage: spec.stage, model: spec.route.model, effort: spec.route.effort, ttlMs: cfg.leaseTtlMs })
   if (!acquired.ok) return { status: 'busy', code: acquired.code }
   let lease = acquired.lease
+  spec.track?.(lease)
   e.hook('after_lease_acquired', { taskId })
   let tel = createTelemetry(); let lastUsageAt = null; let turns = 0; let startedAt = L.now(); let deliverable = null; const executions = [lease.execution_id]
   let outcome = null
@@ -211,6 +217,7 @@ async function renew(e, taskId, spec, lease, dec) {
   // 8. fresh lease and a fresh context (new context id), 9. restore and verify, 10. continue
   const next = L.acquireLease({ taskId, role: spec.role, stage: spec.stage, model: spec.route.model, effort: spec.route.effort, ttlMs: cfg.leaseTtlMs })
   if (!next.ok) return { status: 'failed', code: next.code, fingerprint: fingerprint('renew-lease', next.code) }
+  spec.track?.(next.lease)
   e.hook('after_renewal_new_lease', { taskId })
   const back = L.transition(taskId, resumeTo)
   if (!back.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_ABORTED' }); return { status: 'failed', code: back.problems[0], fingerprint: fingerprint('renew-resume', back.problems[0]) } }

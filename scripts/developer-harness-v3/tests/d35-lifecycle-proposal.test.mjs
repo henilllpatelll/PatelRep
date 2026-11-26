@@ -99,6 +99,7 @@ test('forged or absent owner-action evidence (proposal test configuration with a
   assert.ok(L.transition(id, 'implementing', { owner_action_id: 'owner-decision-REAL' }).ok)
   L.close()
   assert.throws(() => Ledger.open(path.join(ROOT, 'never-created.sqlite'), { proposalReducer: R }), /OUTSIDE_TEMP/, 'a proposal reducer is refused for any non-temporary ledger')
+  assert.equal(spawnSync('git', ['-C', ROOT, 'status', '--porcelain', '--', 'never-created.sqlite'], { encoding: 'utf8' }).stdout.trim(), '', 'and nothing was created (review CR-7)')
   assert.throws(() => Ledger.open(':memory:', { proposalReducer: { ...R, label: 'AUTHORITATIVE' } }), /PROPOSAL_REDUCER_INVALID/)
   const f = path.join(tmpDir(), 'p.sqlite'); Ledger.open(f, { proposalReducer: R }).close()
   assert.throws(() => Ledger.open(f), /REDUCER_MISMATCH/, 'a proposal ledger can never be reopened as an authoritative one')
@@ -134,5 +135,18 @@ test('PROPOSAL CONFIGURATION: a technical suspension is VISIBLE in the lifecycle
     const id2 = h.submit({ requirements: { text: 'to be cancelled' } })
     assert.equal(L.cancel(id2).problems[0], 'TASK.OWNER_ACTION_REQUIRED')
     assert.ok(L.cancel(id2, { ownerActionId: 'owner-cancel-7' }).ok); assert.equal(L.getTask(id2).state, 'cancelled')
+  } finally { h.close() }
+})
+
+test('CR-2 (review): a re-verification after expired approvals RE-RUNS the test units (a new run epoch) — units passed before it are never reused', async () => {
+  const R = await patchedReducer(); let h; let fired = false; const calls = []
+  h = H({ ledgerOptions: { proposalReducer: R }, hook: (name) => { if (name === 'after_evidence_accepted' && !fired && h.ledger.db.prepare("SELECT COUNT(*) c FROM evidence WHERE evidence_type='security_review'").get().c === 1) { fired = true; h.clock.advance(25 * 3600_000)
+    const g = h.adapters.subscription.load(); h.adapters.subscription.save({ ...g, extra_usage: { ...g.extra_usage, verified_at: h.clock.now() - 1000 } }) } } })
+  try {
+    h.adapters.tests.units = async () => ['u1', 'u2']
+    h.adapters.tests.runUnit = async ({ unit }) => { calls.push(unit); return { status: 0, counts: { tests: 3, pass: 3, fail: 0, skipped: 0, cancelled: 0 } } }
+    const id = h.submit(); await drive(h)
+    assert.equal(h.ledger.getTask(id).handoff_ready, 1)
+    assert.deepEqual(calls, ['u1', 'u2', 'u1', 'u2'], 'every unit ran again after the back-edge')
   } finally { h.close() }
 })

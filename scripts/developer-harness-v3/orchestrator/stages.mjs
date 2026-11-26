@@ -12,12 +12,13 @@ import { recordFailure, retryEligible, enqueueOutbox } from './ledger/intents.mj
 import { runSessionStage } from './session-runner.mjs'
 import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
-import { budgetExceeded, classifyBlocker, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
+import { budgetExceeded, classifyBlocker, recordsInEpoch, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
 import { runTestUnits } from './test-units.mjs'
-import { reportIncident } from './recovery-supervisor.mjs'
+import { INCIDENTS as INCIDENT_KINDS, reportIncident } from './recovery-supervisor.mjs'
 import { classifyFailure, detectTestWeakening, normalizeFingerprint, repeatedFailedPatch } from './engineering-recovery.mjs'
-import { recordsInEpoch } from './suspension.mjs'
+import { materializeWork } from './ledger/slots.mjs'
 
+const MAX_INCIDENTS_PER_EPOCH = 6
 const MAX_CLASSIFIED_WAITS_PER_EPOCH = 6 // a stage that keeps failing with a "resource" code stops being treated as a free wait and becomes a budgeted failure
 
 const NONE = Object.freeze({ progressed: false })
@@ -41,7 +42,11 @@ export function failStage(e, taskId, stageKey, out) {
   const L = e.ledger
   if (out.status === 'busy' || out.status === 'cancelled') return NONE
   if (out.status === 'suspend') return technicallySuspend(e, taskId, out.cause, stageKey, out.codes ?? [])
-  if (out.status === 'incident') { reportIncident(L, taskId, { kind: out.incident, code: out.code ? safeCode(out.code) : null, stage: stageKey, detail: out.detail ?? {} }); return PROGRESS('incident_reported') } // D3.5-C: handled by the recovery supervisor (bounded, persisted)
+  // D3.5-C: handled by the recovery supervisor (bounded, persisted). Review CR-10: incidents are themselves bounded per epoch (beyond it they are budgeted failures), and an unknown kind is a failure, never a crash
+  if (out.status === 'incident') {
+    if (INCIDENT_KINDS.includes(out.incident) && recordsInEpoch(L, taskId, 'incident_reported') < MAX_INCIDENTS_PER_EPOCH) { reportIncident(L, taskId, { kind: out.incident, code: out.code ? safeCode(out.code) : null, stage: stageKey, detail: out.detail ?? {} }); return PROGRESS('incident_reported') }
+    out = { status: 'failed', code: out.code ?? `INCIDENT:${safeCode(out.incident)}`, fingerprint: `incident:${safeCode(out.incident)}` }
+  }
   if (out.status === 'wait') {
     const w = out.wait; const codes = w.codes?.length ? w.codes : [w.code]
     if (w.state === 'blocked') e.applyWait(taskId, { kind: 'blocked', reason: w.reason, codes })
@@ -240,6 +245,7 @@ export async function testing(e, taskId) {
   if (!reuse) {
     const g = await e.gate(taskId, { stage: 'testing', ai: false, profile: 'heavy_test' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
+    const w = e.ownWork?.get(taskId); if (w) materializeWork(L, w.work_id) // the scheduler's reservation becomes "in use" only now that the run really starts
   }
   const task = L.getTask(taskId); const cand = L.currentCandidate(taskId)
   if (!cand) return failStage(e, taskId, 'testing', { status: 'failed', code: 'TEST.NO_CANDIDATE', fingerprint: 'test:no-candidate' })

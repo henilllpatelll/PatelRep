@@ -16,8 +16,9 @@ const RULES = [
   ['isolation', /^ISOLATION/],
   ['requirement_conflict', /^(UNRESOLVABLE_REQUIREMENT_CONFLICT|TASK\.REQUIREMENTS_TAMPERED)/],
   ['subscription_exhausted', /^(PROVIDER\.LIMIT|SUBSCRIPTION\.(NOT_YET_ELIGIBLE|SHARED_HEADROOM_RESERVED|LIMIT))/],
-  ['resource_pressure', /^RESOURCE\.|(^|[^A-Z])(ENOMEM|OUT_OF_MEMORY|OOM_KILLED)([^A-Z]|$)/],
-  ['network', /^(NETWORK\.|PROVIDER\.(HTTP_5\d\d|OVERLOADED|UNAVAILABLE))|(^|[^A-Z])(ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN)([^A-Z]|$)/],
+  // ANCHORED (review CR-10): only a code that STARTS with the token is a free wait; session-derived text that merely mentions one cannot steer a failure into the wait class
+  ['resource_pressure', /^(RESOURCE\.|ENOMEM\b|OUT_OF_MEMORY\b|OOM_KILLED\b)/],
+  ['network', /^(NETWORK\.|PROVIDER\.(HTTP_5\d\d|OVERLOADED|UNAVAILABLE)\b|ECONNRESET\b|ECONNREFUSED\b|ETIMEDOUT\b|ENOTFOUND\b|EAI_AGAIN\b)/],
   ['review_findings', /^(REVIEW_FINDINGS_OPEN|REVIEW\.FINDINGS|independent_review:|security_review:)/],
   ['implementation_defect', /^(TEST_FAILED|test:|CANDIDATE\.|IMPLEMENTATION\.|PLAN\.|candidate:|incomplete:|plan:)/],
 ]
@@ -46,7 +47,8 @@ const TEST_PATH = /(^|\/)(__tests__|tests?|e2e|spec)\/|\.(test|spec)\.[cm]?[jt]s
 const ASSERT = /\b(assert(\.\w+)?|expect)\s*\(/g
 const CASES = /\b(it|test)\s*\(/g
 const SKIPS = /\.(skip|only|todo)\s*\(|\b(xit|xdescribe|xtest)\s*\(|@pytest\.mark\.skip|\{\s*skip\s*:\s*(true|['"])|\btodo\s*:\s*true/g
-const count = (s, re) => (typeof s === 'string' ? (s.match(re) ?? []).length : 0)
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:"'`\\])\/\/.*$/gm, '$1').replace(/^\s*#.*$/gm, '') // a commented-out test or assertion is not a test (review CR-12)
+const count = (s, re) => (typeof s === 'string' ? (stripComments(s).match(re) ?? []).length : 0)
 /**
  * Test-weakening on the CONTROLLER-derived diff (never the model's description). `changes` = [{status, path}]; `contents` (optional) = [{path, before, after}] for changed test files.
  * @returns {{path:string, code:string}[]}

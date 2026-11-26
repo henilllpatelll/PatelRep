@@ -13,8 +13,8 @@ import { H, MAND, drive, owner } from './d34-rem-helpers.mjs'
 const ORCH = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'orchestrator')
 
 test('failure taxonomy: every class is distinguished; owner-only classes are exactly authentication/billing, isolation and requirement conflicts; unknown is a budgeted technical retry', () => {
-  const t = { 'RESOURCE.GUEST_MEMORY_LOW': 'resource_pressure', 'worker died: ENOMEM': 'resource_pressure', 'PROVIDER.LIMIT': 'subscription_exhausted', 'SUBSCRIPTION.NOT_YET_ELIGIBLE': 'subscription_exhausted',
-    'NETWORK.DNS': 'network', 'PROVIDER.HTTP_529': 'network', 'fetch failed ECONNRESET': 'network', 'TEST_FAILED': 'implementation_defect', 'test:units:x': 'implementation_defect', 'CANDIDATE.EMPTY': 'implementation_defect',
+  const t = { 'RESOURCE.GUEST_MEMORY_LOW': 'resource_pressure', 'ENOMEM: worker died': 'resource_pressure', 'worker died: ENOMEM': 'environment', 'PROVIDER.LIMIT': 'subscription_exhausted', 'SUBSCRIPTION.NOT_YET_ELIGIBLE': 'subscription_exhausted',
+    'NETWORK.DNS': 'network', 'PROVIDER.HTTP_529': 'network', 'ECONNRESET: fetch failed': 'network', 'fetch failed ECONNRESET': 'environment', 'TEST_FAILED': 'implementation_defect', 'test:units:x': 'implementation_defect', 'CANDIDATE.EMPTY': 'implementation_defect',
     'REVIEW_FINDINGS_OPEN': 'review_findings', 'IPC.UNAVAILABLE': 'environment', 'WORKER.NOT_AVAILABLE': 'environment', 'SOMETHING.NEW': 'environment', 'AUTH.EXTRA_USAGE_ENABLED': 'auth_billing',
     'SUBSCRIPTION.STATE:unauthorized_billing': 'auth_billing', 'ISOLATION.WORKER_TERMINATION_UNPROVABLE': 'isolation', 'UNRESOLVABLE_REQUIREMENT_CONFLICT:DEPENDENCY_CANCELLED:x': 'requirement_conflict' }
   for (const [code, cls] of Object.entries(t)) assert.equal(classifyFailure(code), cls, code)
