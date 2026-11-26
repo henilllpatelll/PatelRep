@@ -161,6 +161,7 @@ export class Engine {
     const done = (action) => ({ progressed: true, action })
     const none = { progressed: false }
     if (!suspensionAllowsRun(this, taskId)) return none // cooling down (a wake-up is scheduled) or terminal (an explicit disposition, one notification)
+    if (L.getTask(taskId).state !== s) return done('suspension_ended') // a lifecycle that SHOWS suspensions (P6) just left technical_suspension: that is progress
     if (pendingIncident(L, taskId)) return superviseIncident(this, taskId) // D3.5-C: a reported incident is handled (bounded, persisted back-off) before anything else of this task
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }

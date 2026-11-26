@@ -6,6 +6,8 @@
 import { DatabaseSync } from 'node:sqlite'
 import { existsSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import os from 'node:os'
+import path from 'node:path'
 import { canonicalize, digestOf, checkShape, isPlainObject, v } from '../../lib/canonical.mjs'
 import { applyEvent, createTask, loadLifecycle } from '../../lifecycle/lifecycle.mjs'
 import { LEDGER_APPLICATION_ID, MIGRATIONS, SCHEMA_VERSION } from './schema.mjs'
@@ -22,15 +24,29 @@ const json = (x) => { const s = canonicalize(x); if (Buffer.byteLength(s) > MAX_
 
 export class Ledger {
   #depth = 0
-  constructor(db, { clock = Date.now, file = null } = {}) { this.db = db; this.clock = clock; this.file = file; this.lc = loadLifecycle() }
+  /**
+   * `proposalReducer` (TEST CONFIGURATION ONLY — D3.5-H): a DISPOSABLE patched copy of the lifecycle reducer + contract ({label:'PROPOSAL_UNDER_TEST', applyEvent, createTask, lc}) used to
+   * demonstrate a protected lifecycle proposal end to end. It is refused for any ledger that is not in-memory or under the OS temp directory, and such a ledger is marked so it can
+   * never be reopened with the authoritative reducer (or vice versa). `ownerActionVerifier(taskId, ownerActionId)` (test configuration too) authenticates owner actions.
+   */
+  constructor(db, { clock = Date.now, file = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
+    this.db = db; this.clock = clock; this.file = file
+    if (proposalReducer && (proposalReducer.label !== 'PROPOSAL_UNDER_TEST' || typeof proposalReducer.applyEvent !== 'function' || typeof proposalReducer.createTask !== 'function' || !proposalReducer.lc)) throw new Error('LEDGER.PROPOSAL_REDUCER_INVALID')
+    if (proposalReducer && !(file === null || file === ':memory:' || path.resolve(file).toLowerCase().startsWith(path.resolve(os.tmpdir()).toLowerCase()))) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP')
+    this.reducer = proposalReducer ?? { applyEvent, createTask }; this.lc = proposalReducer?.lc ?? loadLifecycle(); this.proposal = !!proposalReducer; this.ownerActionVerifier = ownerActionVerifier
+  }
 
   /** `migrationHook(version)` runs INSIDE each migration's transaction after its SQL (fault-injection point for the interrupted-migration tests; never set in production). */
-  static open(file, { clock = Date.now, maxBytes = MAX_LEDGER_BYTES, migrationHook = null } = {}) {
+  static open(file, { clock = Date.now, maxBytes = MAX_LEDGER_BYTES, migrationHook = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
     if (file !== ':memory:' && existsSync(file) && statSync(file).size > maxBytes) throw new Error('LEDGER.TOO_LARGE')
     const db = new DatabaseSync(file)
     db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA trusted_schema = OFF;')
-    const ledger = new Ledger(db, { clock, file })
+    let ledger
+    try { ledger = new Ledger(db, { clock, file, proposalReducer, ownerActionVerifier }) } catch (e) { db.close(); throw e }
     try { ledger.#migrate(migrationHook) } catch (e) { db.close(); throw e }
+    const mark = ledger.meta('reducer'); const tasks = db.prepare('SELECT COUNT(*) c FROM tasks').get().c
+    if (proposalReducer ? (mark !== 'PROPOSAL_UNDER_TEST' && tasks > 0) : mark === 'PROPOSAL_UNDER_TEST') { db.close(); throw new Error('LEDGER.REDUCER_MISMATCH') }
+    if (proposalReducer && !mark) ledger.setMeta('reducer', 'PROPOSAL_UNDER_TEST')
     if (db.prepare('PRAGMA quick_check').get().quick_check !== 'ok') { db.close(); throw new Error('LEDGER.CORRUPT') }
     return ledger
   }
@@ -82,7 +98,7 @@ export class Ledger {
       if (existing) return input.task_id && input.task_id !== existing.task_id ? { ok: false, problems: ['TASK.SUBMIT_KEY_CONFLICT'] } : { ok: true, duplicate: true, task: this.getTask(existing.task_id) }
       const taskId = input.task_id ?? `task-${submitKey.slice(0, 20)}`
       if (this.db.prepare('SELECT 1 FROM tasks WHERE task_id=?').get(taskId)) return { ok: false, problems: ['TASK.ID_CONFLICT'] }
-      const lc = createTask({ task_id: taskId, production_required: input.acceptance.production_required !== false, security_review_required: input.security_review_required !== false, policy_revision: input.policy_revision ?? null })
+      const lc = this.reducer.createTask({ task_id: taskId, production_required: input.acceptance.production_required !== false, security_review_required: input.security_review_required !== false, policy_revision: input.policy_revision ?? null })
       const now = this.now()
       this.db.prepare(`INSERT INTO tasks(task_id,submit_key,repository,base_sha,requirements_json,requirements_digest,scope_json,acceptance_json,risk_class,priority,lifecycle_json,state,state_revision,fencing_token,head_sha,policy_revision,environment_id,created_at,updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(taskId, submitKey, input.repository, input.base_sha, json(input.requirements), digestOf(input.requirements), json(input.scope), json(input.acceptance), input.risk_class,
@@ -122,7 +138,8 @@ export class Ledger {
         let d; try { d = digestOf(event) } catch { return { ok: false, problems: ['EVENT.MALFORMED'], duplicate: false, invalidated: [] } }
         return d === prior.event_digest ? { ok: true, duplicate: true, problems: [], invalidated: [], task: this.getTask(taskId) } : { ok: false, problems: ['EVENT.IDEMPOTENCY_CONFLICT'], duplicate: false, invalidated: [] }
       }
-      const r = applyEvent(this.lc, task, event)
+      if (event?.owner_action_id && this.ownerActionVerifier && this.ownerActionVerifier(taskId, event.owner_action_id) !== true) return { ok: false, problems: ['EVENT.OWNER_ACTION_UNVERIFIED'], duplicate: false, invalidated: [], task: this.getTask(taskId) }
+      const r = this.reducer.applyEvent(this.lc, task, event)
       if (!r.ok || r.duplicate) return { ...r, task: this.getTask(taskId) }
       const n = this.db.prepare('SELECT COUNT(*) c FROM task_events WHERE task_id=?').get(taskId).c
       if (n >= MAX_EVENTS_PER_TASK) throw new Error('LEDGER.EVENT_LOG_FULL')
@@ -180,11 +197,17 @@ export class Ledger {
   resumeTarget(taskId) { const t = this.getTask(taskId); return t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to }
   resume(taskId) { const t = this.getTask(taskId); if (t.cancelled) return { ok: false, problems: ['TASK.CANCELLED'] }; return this.transition(taskId, this.resumeTarget(taskId)) }
   /** `cancelled` is a ledger flag + a pause: the D3.2 lifecycle has no terminal `cancelled` state (proposal in docs 21). A cancelled task is never scheduled, never completed. */
-  cancel(taskId) {
+  cancel(taskId, { ownerActionId = null } = {}) {
     return this.tx(() => {
       const t = this.getTask(taskId)
       if (!t) return { ok: false, problems: ['TASK.UNKNOWN'] }
       if (t.state === 'completed') return { ok: false, problems: ['TASK.ALREADY_COMPLETED'] }
+      if (this.lc.terminal_states?.includes('cancelled')) { // a lifecycle WITH explicit cancellation (proposal P6): a terminal, owner-only transition
+        if (!ownerActionId) return { ok: false, problems: ['TASK.OWNER_ACTION_REQUIRED'] }
+        const r = this.transition(taskId, 'cancelled', { owner_action_id: ownerActionId }); if (!r.ok) return r
+        this.db.prepare('UPDATE tasks SET cancelled=1, updated_at=? WHERE task_id=?').run(this.now(), taskId)
+        return { ok: true, task: this.getTask(taskId) }
+      }
       this.db.prepare('UPDATE tasks SET cancelled=1, updated_at=? WHERE task_id=?').run(this.now(), taskId)
       if (t.state !== 'paused') { const r = this.pause(taskId); if (!r.ok && !r.problems.includes('TRANSITION.ILLEGAL')) throw new Error(r.problems[0]) }
       return { ok: true, task: this.getTask(taskId) }

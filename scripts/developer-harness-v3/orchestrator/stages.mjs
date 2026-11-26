@@ -235,7 +235,8 @@ export async function testing(e, taskId) {
   const task0 = L.getTask(taskId); const cand0 = L.currentCandidate(taskId)
   // crash after a test run for THIS candidate and token was recorded: reuse it instead of re-running the suite
   const prev = L.latestTestRun(taskId)
-  const reuse = prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token
+  const reverify = !!cand0 && L.meta(`reverify:${taskId}`) === cand0.candidate_sha // a scheduled re-verification needs a NEW run: the old one is too old to vouch for anything
+  const reuse = !reverify && prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token
   if (!reuse) {
     const g = await e.gate(taskId, { stage: 'testing', ai: false, profile: 'heavy_test' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
@@ -256,6 +257,7 @@ export async function testing(e, taskId) {
     } else res = await A.tests.run({ task, candidate: cand })
     runId = `run-${createHash('sha256').update(`${taskId}:${cand.candidate_sha}:${L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(taskId).c}`).digest('hex').slice(0, 20)}`
     L.recordTestRun(taskId, { run_id: runId, candidate_sha: cand.candidate_sha, tree_digest: cand.tree_digest, results: res.results ?? {}, passed: res.passed === true, failure_fingerprint: res.fingerprint ?? null })
+    L.db.prepare('DELETE FROM meta WHERE key=?').run(`reverify:${taskId}`)
     e.hook('after_test_run_recorded', { taskId })
   }
   if (res.passed !== true) {
@@ -422,11 +424,24 @@ async function reattest(e, taskId, missing) {
 function handoffRetry(e, taskId, cause, fingerprint, problems = []) {
   const L = e.ledger
   // approvals that are too OLD to re-attest can never be obtained by waiting: stop at once, say why, and say what is actually needed (no wasted cool-downs)
+  if (problems.length && problems.every((p) => p === 'ISSUER.REATTESTATION_BOUND_EXCEEDED') && L.lc.reverification) return scheduleReverification(e, taskId)
   if (problems.length && problems.every((p) => p === 'ISSUER.REATTESTATION_BOUND_EXCEEDED')) return PROGRESS((suspendTechnically(e, taskId, { cause: 'HANDOFF_APPROVALS_TOO_OLD', stage: 'publishing', codes: ['ISSUER.REATTESTATION_BOUND_EXCEEDED'], terminal: true,
     howToResume: 'The approvals for this candidate expired and are older than the re-attestation bound (24 h from the review/run). Waiting cannot fix that and engine.resumeSuspended will not either: a NEW test run and NEW reviews of the candidate are required, which needs the lifecycle back-edge publishing -> testing (proposal P3(c)) or a resubmission of the task.' }), 'technically_suspended'))
   const r = recordFailure(L, { taskId, stage: 'handoff', fingerprint, rng: e.rng }, e.cfg.retry)
   if (r.exhausted || budgetExceeded(e, taskId)) return technicallySuspend(e, taskId, cause, 'publishing', [cause])
   return NONE
+}
+
+/**
+ * D3.5-H (active only with a lifecycle that declares the re-verification back-edge, proposal P6): approvals too old to re-attest are REPLACED by NEW verification work on the SAME
+ * candidate — a new test run and new reviews — never extended or re-dated. Bounded per candidate; beyond the bound the D3.4 terminal suspension applies.
+ */
+const MAX_REVERIFICATIONS_PER_CANDIDATE = 2
+function scheduleReverification(e, taskId) {
+  const L = e.ledger; const cand = L.currentCandidate(taskId); const key = `reverify_count:${taskId}:${cand.candidate_sha}`; const n = Number(L.meta(key) ?? 0)
+  if (n >= MAX_REVERIFICATIONS_PER_CANDIDATE) return PROGRESS((suspendTechnically(e, taskId, { cause: 'HANDOFF_APPROVALS_TOO_OLD', stage: 'publishing', codes: ['REVERIFICATION_BOUND_EXCEEDED'], terminal: true }), 'technically_suspended'))
+  const r = L.tx(() => { const x = L.transition(taskId, L.lc.reverification.to, { reason_code: L.lc.reverification.reason }); if (x.ok) { L.setMeta(key, n + 1); L.setMeta(`reverify:${taskId}`, cand.candidate_sha); L.recordRecovery(taskId, 'reverification_scheduled', { candidate_sha: cand.candidate_sha, attempt: n + 1, invalidated: x.invalidated }) } return x })
+  return r.ok ? PROGRESS('reverification_scheduled') : NONE
 }
 
 export async function handoff(e, taskId) {
