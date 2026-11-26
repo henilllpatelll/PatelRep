@@ -1,0 +1,131 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 78c7acf1..2593b4f3 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -386,11 +386,20 @@ jobs:
+           node-version: "22"
+       - name: Verify release workflow contracts
+         run: node --test scripts/feature-builder.test.mjs scripts/feature-builder-workflow.test.mjs scripts/feature-orchestrator-policy.test.mjs scripts/feature-orchestrator-workflow.test.mjs scripts/staging-candidate-workflow.test.mjs scripts/destructive-db-guard.test.mjs scripts/staging-migration-plan.test.mjs scripts/migration-security-classifier.test.mjs scripts/database-safety-contract.test.mjs scripts/staging-target-guard.test.mjs scripts/remote-migration-apply.test.mjs scripts/staging-railway-deploy.test.mjs scripts/claude-release-engineer-workflow.test.mjs scripts/resolve-release-engineer-context.test.mjs scripts/production-monitor-smoke.test.mjs scripts/recovery-lineage-resolver.test.mjs scripts/publish-release-engineer-repair.test.mjs scripts/release-engineer-auto-merge-policy.test.mjs scripts/release-engineer-auto-merge-workflow.test.mjs scripts/public-smoke.test.mjs scripts/production-release-request-policy.test.mjs scripts/production-release-request-workflow.test.mjs scripts/production-release-recorder.test.mjs scripts/production-release-recorder-workflow.test.mjs scripts/production-release-evidence.test.mjs scripts/production-release-stabilization.test.mjs scripts/production-release-stabilization-workflow.test.mjs scripts/production-auto-rollback-policy.test.mjs scripts/production-auto-rollback-workflow.test.mjs scripts/production-auto-rollback-circuit-breaker.test.mjs scripts/production-rollback-runtime-capture.test.mjs scripts/production-rollback-evidence.test.mjs scripts/production-rollback-evidence-workflow.test.mjs scripts/production-incident-reentry.test.mjs scripts/production-incident-reentry-workflow.test.mjs scripts/production-operations-notify.test.mjs scripts/production-operations-notify-workflow.test.mjs scripts/production-release-audit.test.mjs scripts/production-release-audit-workflow.test.mjs scripts/release-resilience-drill.test.mjs scripts/release-resilience-drill-workflow.test.mjs scripts/production-recovery-readiness.test.mjs scripts/production-recovery-readiness-workflow.test.mjs scripts/production-automation-watchdog.test.mjs scripts/production-automation-watchdog-notify.test.mjs scripts/production-automation-watchdog-workflow.test.mjs scripts/production-readiness-certification.test.mjs scripts/production-readiness-certification-workflow.test.mjs scripts/production-runtime-identity.test.mjs scripts/production-release-request-cli.test.mjs scripts/check-db-drift.test.mjs scripts/audit-production-migration-evidence.test.mjs scripts/production-migration-reconciliation.test.mjs scripts/production-migration-apply-workspace.test.mjs scripts/staging-migration-apply-workspace.test.mjs scripts/staging-trusted-control-plane.test.mjs scripts/staging-trusted-execution.test.mjs scripts/staging-reviewed-migration-preview.test.mjs scripts/staging-reviewed-migration-preview-workflow.test.mjs scripts/dependency-orchestrator-policy.test.mjs scripts/dependency-orchestrator-engine.test.mjs scripts/dependency-orchestrator-run.test.mjs scripts/dependency-orchestrator-workflow.test.mjs scripts/ci-gate-room-board.test.mjs scripts/github-actions-upgrade-contract.test.mjs scripts/actions-runtime-contract.test.mjs scripts/security-scan-contract.test.mjs scripts/developer-harness-v2-ci-workflow.test.mjs
++      # Trusted CI preparation. This is the ONLY network access of this job: it makes every reviewed commit pinned in docs/developer-harness-v2/bypass-scopes.json resolvable,
++      # so no test has to fetch. Pinned by scripts/developer-harness-v2-ci-workflow.test.mjs.
++      - name: Fetch pinned provenance commits
++        timeout-minutes: 5
++        run: node scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs
+       # Developer Harness V2 (Phase 8): every registered harness.* suite, one at a time, with exact expected-skip accounting.
+       # A failure here fails this job, and CI Gate requires this job. Pinned by scripts/developer-harness-v2-ci-workflow.test.mjs.
+       - name: Run Developer Harness V2 contract and security regression suites
+         timeout-minutes: 30
+         run: node scripts/developer-harness-v2/ci/run-ci-suites.mjs
++      # Developer Harness V3: every V3 test file, one process each, sequential, bounded heap, no skips allowed. Pinned by scripts/developer-harness-v2-ci-workflow.test.mjs.
++      - name: Run Developer Harness V3 regression suites
++        timeout-minutes: 45
++        run: node scripts/developer-harness-v3/ci/run-v3-suites.mjs
+ 
+   actions-runtime-contract-produce:
+     name: Actions Runtime Contract / produce
+diff --git a/scripts/developer-harness-v2-ci-workflow.test.mjs b/scripts/developer-harness-v2-ci-workflow.test.mjs
+index 7c5ae02d..9ac4cba5 100644
+--- a/scripts/developer-harness-v2-ci-workflow.test.mjs
++++ b/scripts/developer-harness-v2-ci-workflow.test.mjs
+@@ -31,6 +31,8 @@ const normalize = (t) => t.replace(/\r\n?/g, '\n') // CRLF and lone CR are both
+ const CI_TEXT = normalize(readFileSync('.github/workflows/ci.yml', 'utf8'))
+ const GUARD = 'scripts/developer-harness-v2-ci-workflow.test.mjs'
+ const RUNNER = 'scripts/developer-harness-v2/ci/run-ci-suites.mjs'
++const PREP_STEP = { name: 'Fetch pinned provenance commits', 'timeout-minutes': '5', run: 'node scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs' }
++const V3_STEP = { name: 'Run Developer Harness V3 regression suites', 'timeout-minutes': '45', run: 'node scripts/developer-harness-v3/ci/run-v3-suites.mjs' }
+ const HARNESS_STEP = { name: 'Run Developer Harness V2 contract and security regression suites', 'timeout-minutes': '30', run: `node ${RUNNER}` }
+ 
+ // ── Baselines from main eb597d55 (literal on purpose) ─────────────────────────────────────────────────────────────────────────
+@@ -45,14 +47,14 @@ const BASELINE_GATE_BLOCK_SHA256 = '49333cd7de5dbf7d6bce9a43437d4acbf46c1e9c9158
+  * head up to, not including, the next job head): eb597d55's checkout / Node 22 / contract step plus this phase's guard entry and
+  * harness step. A regression tripwire, NOT a security boundary — a PR that edits this guard and ci.yml together can re-pin it.
+  */
+-const BASELINE_RELEASE_BLOCK_SHA256 = '18ce2d137e477547611f1b96ea32004a620c2e2a89e53026afbc741644a2d282'
++const BASELINE_RELEASE_BLOCK_SHA256 = 'f235c68e82a359483c990be04cdd880a5c8be9b1a5f8ea0791d9bd95474703fe'
+ /**
+  * sha256 of the ENTIRE approved Phase 8 ci.yml (LF line endings) — the content reviewed at 3f9e9667, literal on purpose (never derived
+  * from the checkout). Any legitimate future change to ci.yml must come with a separately reviewed update of this pin. Like the block
+  * pins it is a regression tripwire, NOT a security boundary against a change authorized to edit both ci.yml and this guard; the
+  * structural checks below stay in force independently of it.
+  */
+-const BASELINE_WORKFLOW_SHA256 = 'ab4011f9e3ec0b14ad08452b8902f07beaaae1b3cc3a652589fd5e2550377018'
++const BASELINE_WORKFLOW_SHA256 = 'ad829248a3f58ab1627ae4e64380d7f3ecda8504c7db25541433168daae711a6'
+ /** Baseline counts of words that grant or identify authority (any case, any YAML spelling): `permissions`, and `CI Gate` / `ci-gate`. */
+ const BASELINE_PERMISSIONS_WORDS = 3
+ const BASELINE_CI_GATE_WORDS = 6
+@@ -236,7 +238,7 @@ function checkWorkflow(raw) {
+   // Exit-status masking, plus backgrounding (`& wait`, a lone `&`), `wait` and line continuations that could hide the runner's status.
+   if (/\|\||set \+e|;\s*true\b|\bexit 0\b|2>\s*\/dev\/null|(?<!&)&(?!&)|\bwait\b|\\$/m.test(uncomment(rel))) p.push('RELEASE_JOB_MASKING')
+   const st = steps(rel)
+-  if (st.length !== 4) p.push('RELEASE_STEP_COUNT')
++  if (st.length !== 6) p.push('RELEASE_STEP_COUNT')
+   if (st[0]?.keys.uses !== 'actions/checkout@v7' || Object.keys(st[0]?.keys ?? {}).join() !== 'uses') p.push('RELEASE_CHECKOUT')
+   if (st[1]?.keys.uses !== 'actions/setup-node@v7' || !/^ {10}node-version: "22"$/m.test(st[1]?.text ?? '')) p.push('RELEASE_NODE_VERSION')
+   const verify = st[2]
+@@ -246,8 +248,14 @@ function checkWorkflow(raw) {
+   if (tokens[0] !== 'node' || tokens[1] !== '--test' || !files.every((x) => /^scripts\/[a-z0-9-]+\.test\.mjs$/.test(x)) || new Set(files).size !== files.length) p.push('RELEASE_VERIFY_COMMAND')
+   if (files.length < BASELINE_RELEASE_COUNT || sha256(files.slice(0, BASELINE_RELEASE_COUNT).join(' ')) !== BASELINE_RELEASE_SHA256) p.push('RELEASE_LIST_BASELINE_CHANGED')
+   if (!files.includes(GUARD)) p.push('GUARD_NOT_IN_EXISTING_STEP')
+-  const h = st[3]
++  const prep = st[3]
++  if (!prep || JSON.stringify(Object.entries(prep.keys).sort()) !== JSON.stringify(Object.entries(PREP_STEP).sort())) p.push('PREP_STEP_NOT_EXACT')
++  if ((text.match(/fetch-pinned-provenance\.mjs/g) ?? []).length !== 1) p.push('PREP_STEP_NOT_UNIQUE')
++  const h = st[4]
+   if (!h || JSON.stringify(Object.entries(h.keys).sort()) !== JSON.stringify(Object.entries(HARNESS_STEP).sort())) p.push('HARNESS_STEP_NOT_EXACT')
++  const v3 = st[5]
++  if (!v3 || JSON.stringify(Object.entries(v3.keys).sort()) !== JSON.stringify(Object.entries(V3_STEP).sort())) p.push('V3_STEP_NOT_EXACT')
++  if ((text.match(/run-v3-suites\.mjs/g) ?? []).length !== 1) p.push('V3_STEP_NOT_UNIQUE')
+   if (st.filter((s) => (s.keys.run ?? '').includes('run-ci-suites')).length !== 1 || (text.match(/run-ci-suites\.mjs/g) ?? []).length !== 1) p.push('HARNESS_STEP_NOT_UNIQUE')
+ 
+   // CI Gate: always runs, needs and wires every baseline job, requires every baseline check, and actually fails on a bad result.
+diff --git a/scripts/developer-harness-v2/bypass-hook.test.mjs b/scripts/developer-harness-v2/bypass-hook.test.mjs
+index 087ec3b5..50c29e49 100644
+--- a/scripts/developer-harness-v2/bypass-hook.test.mjs
++++ b/scripts/developer-harness-v2/bypass-hook.test.mjs
+@@ -280,7 +280,7 @@ test('shipped pins: every trusted execution names a commit that resolves in this
+   const execs = doc.scopes.flatMap((s) => s.trusted_executions.map((e) => [s.id, e]))
+   assert.ok(execs.length > 0)
+   for (const [scope, e] of execs) {
+-    const r = verifyPinProvenance(REPO, e, { fetchIfShallow: true })
++    const r = verifyPinProvenance(REPO, e) // no network here: ci/fetch-pinned-provenance.mjs (a trusted CI preparation step) made the commit resolvable
+     assert.deepEqual(r.problems, [], `${scope}/${e.id} pinned at ${e.reviewed_source?.ref}`)
+     assert.equal(r.commit, e.reviewed_source.ref); assert.equal(r.files, Object.keys(e.digests).length)
+   }
+diff --git a/scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs b/scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs
+new file mode 100644
+index 00000000..6d718862
+--- /dev/null
++++ b/scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs
+@@ -0,0 +1,19 @@
++// Developer Harness V2 — trusted CI preparation: make every reviewed commit named by a pinned trusted execution resolvable BEFORE the tests run.
++// The shipped-pins provenance test used to fetch from `origin` itself (a network access inside a test whose tier declares none). The fetch now lives here, in an
++// explicit workflow step; the test only READS git objects. Fail-closed: a pin whose commit cannot be resolved (or whose closure digests do not match) fails this step.
++// It fetches exactly the pinned full sha (verifyPinProvenance validates the sha format and refuses option-like remotes) and verifies content by digest afterwards.
++import { readFileSync } from 'node:fs'
++import path from 'node:path'
++import { fileURLToPath } from 'node:url'
++import { verifyPinProvenance } from '../bypass-pins.mjs'
++
++const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
++const doc = JSON.parse(readFileSync(path.join(REPO, 'docs/developer-harness-v2/bypass-scopes.json'), 'utf8'))
++let failed = 0; let n = 0
++for (const s of doc.scopes) for (const e of s.trusted_executions) {
++  n += 1; const r = verifyPinProvenance(REPO, e, { fetchIfShallow: true })
++  process.stdout.write(`${r.ok ? 'ok  ' : 'FAIL'} ${s.id}/${e.id} ${e.reviewed_source?.ref ?? '(no ref)'} ${r.ok ? `files=${r.files}` : r.problems.join(',')}\n`)
++  if (!r.ok) failed += 1
++}
++if (n === 0) { process.stderr.write('no trusted executions found\n'); process.exit(1) }
++process.exit(failed ? 1 : 0)
+diff --git a/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs b/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
+index 42e650d8..0b8c816e 100644
+--- a/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
++++ b/scripts/developer-harness-v2/context/openwolf-hooks.test.mjs
+@@ -203,7 +203,7 @@ test('enforcement and hook source files are byte-identical to Phase 2; graphify
+     'scripts/developer-harness-v2/bypass-pins.mjs': '5bd3e965d0c9337856c36cc8fd4de08b49d06365f8ca232730a27568c1cc7419',
+     'scripts/developer-harness-v2/bypass-git-index.mjs': 'dd900befa6258c3cd23c050f98ae1d0f8f423776ba302edd257d831f18d22b99',
+     'scripts/developer-harness-v2/bypass-authorization.test.mjs': '97f82fc1ee6c06c54f4331eadb1e4138c10aac545b8a5827f17168d2106d81fd',
+-    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'db6027a28a34e5118936d97a94df7c74da797da9c32d4e2a014f5707d883274e',
++    'scripts/developer-harness-v2/bypass-hook.test.mjs': 'af49f37f8e7af80ee311a545989389cf11211b0de6db71e2c6f252991f2a5b63',
+   }
+   const TRANSITION_NEW = new Set(['scripts/developer-harness-v2/bypass-authorization.mjs', 'scripts/developer-harness-v2/bypass-digest.mjs', 'scripts/developer-harness-v2/bypass-pins.mjs', 'scripts/developer-harness-v2/bypass-git-index.mjs',
+     'scripts/developer-harness-v2/bypass-authorization.test.mjs', 'scripts/developer-harness-v2/bypass-hook.test.mjs'])

@@ -34,3 +34,8 @@ node --max-old-space-size=1024 --test --test-concurrency=1 scripts/developer-har
 | Authority contract, evaluator, evidence verifier, migration classifier from Git facts, promotion rules, lifecycle reducer, resource-admission function | **implemented and tested on fixtures** |
 | Issuer services, key custody, durable ledger, pinned trusted checkout, schedulers, Telegram, dashboard, automatic merge/release | **design only / not implemented** |
 | D3.3: QEMU worker VM + provisioning, egress proxy, samplers, Resource/Subscription Governors, trusted launcher (dry-run), lifecycle/recovery primitives, `bin/dh3.mjs` | **implemented; V3 still inactive** (see 12, 15, 17) |
+
+## D3.4 — persistent orchestration (implemented, INACTIVE)
+* [18 architecture and trust boundaries](18-d34-orchestration.md) · [19 issuers and key custody](19-d34-issuers-and-key-custody.md) · [20 provider eligibility](20-d34-provider-eligibility.md) · [21 protected-change proposals, owner procedure, gate register](21-d34-protected-changes.md) · [22 verification evidence](22-d34-verification-evidence.md) · [23 D3.5 handoff](23-d35-handoff.md)
+* Proposals: [proposals/](proposals/manifest.json). Retained simulation: [evidence/d34-e2e-simulation-SIMULATED.json](evidence/d34-e2e-simulation-SIMULATED.json). **Runtime activation: NO-GO.**
+

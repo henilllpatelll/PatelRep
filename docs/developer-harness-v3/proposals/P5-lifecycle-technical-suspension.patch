@@ -1,0 +1,12 @@
+diff --git a/docs/developer-harness-v3/task-lifecycle.json b/docs/developer-harness-v3/task-lifecycle.json
+index 1da2ee8d..3cc48761 100644
+--- a/docs/developer-harness-v3/task-lifecycle.json
++++ b/docs/developer-harness-v3/task-lifecycle.json
+@@ -11,6 +11,7 @@
+     "context_recovery": { "reasons": ["CONTEXT_LOST", "SESSION_ENDED_EARLY", "CONTEXT_RENEWAL"] },
+     "worker_recovery": { "reasons": ["WORKER_TERMINATED", "HOST_RESTARTED", "POWER_LOSS"] },
+     "dependency_waiting": { "reasons": ["DEPENDENCY_TASK_OPEN"] },
++    "technical_suspension": { "reasons": ["RETRY_BUDGET_EXHAUSTED", "SESSION_BUDGET_EXHAUSTED", "REVIEW_BUDGET_EXHAUSTED", "REMEDIATION_BUDGET_EXHAUSTED", "HANDOFF_EVIDENCE_UNOBTAINABLE"] },
+     "paused": { "reasons": ["OWNER_PAUSED"] },
+     "blocked": { "reasons": ["OWNER_AUTH_EXPIRED", "OWNER_ROOT_OF_TRUST_CEREMONY", "OWNER_DECISION_REQUIRED", "PROHIBITED_ACTION_REQUIRED", "ISOLATION_UNPROVEN", "UNRESOLVABLE_REQUIREMENT_CONFLICT"] },
+     "production_incident": { "reasons": ["PRODUCTION_HEALTH_FAILED", "WATCHDOG_ALERT"] }

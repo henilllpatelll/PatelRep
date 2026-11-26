@@ -1,0 +1,84 @@
+D3.4 verification round — FINAL full V3 run (node scripts/developer-harness-v3/ci/run-v3-suites.mjs; one process per file, sequential, 1 GB heap). SIMULATED.
+Host: Windows 11, 16 GB. Linux: NOT run (see doc 22 §4).
+
+=== Node v24.19.0 ===
+ok   d33-acceptance-review.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   d33-acceptance.test.mjs tests=22 pass=22 fail=0 skipped=0
+ok   d33-egress.test.mjs tests=10 pass=10 fail=0 skipped=0
+ok   d33-infra.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-launcher.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-lifecycle.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   d33-resource.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-sampler-retry.test.mjs tests=19 pass=19 fail=0 skipped=0
+ok   d33-state-readers.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-subscription.test.mjs tests=13 pass=13 fail=0 skipped=0
+ok   d34-ci-runner.test.mjs tests=4 pass=4 fail=0 skipped=0
+ok   d34-context.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   d34-crash.test.mjs tests=33 pass=33 fail=0 skipped=0
+ok   d34-engine.test.mjs tests=27 pass=27 fail=0 skipped=0
+ok   d34-evidence.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   d34-glue.test.mjs tests=4 pass=4 fail=0 skipped=0
+ok   d34-issuer.test.mjs tests=19 pass=19 fail=0 skipped=0
+ok   d34-ledger.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d34-proposals.test.mjs tests=5 pass=5 fail=0 skipped=0
+ok   d34-rem-f1-readmission.test.mjs tests=12 pass=12 fail=0 skipped=0
+ok   d34-rem-f2-crash.test.mjs tests=2 pass=2 fail=0 skipped=0
+ok   d34-rem-f2-preserve.test.mjs tests=9 pass=9 fail=0 skipped=0
+ok   d34-rem-f3-intents.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   d34-rem-f4-completeness.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   d34-rem-f5-autonomy.test.mjs tests=12 pass=12 fail=0 skipped=0
+ok   d34-rem-f6-review-persist.test.mjs tests=20 pass=20 fail=0 skipped=0
+ok   d34-rem-round2.test.mjs tests=10 pass=10 fail=0 skipped=0
+ok   d34-rem-round3.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   evaluator.test.mjs tests=28 pass=28 fail=0 skipped=0
+ok   final-review.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   foundation.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   git-facts.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   hardening.test.mjs tests=20 pass=20 fail=0 skipped=0
+ok   lifecycle.test.mjs tests=13 pass=13 fail=0 skipped=0
+ok   promotion.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   security.test.mjs tests=17 pass=17 fail=0 skipped=0
+ok   subscription.test.mjs tests=12 pass=12 fail=0 skipped=0
+{"ok":true,"total_tests":475,"files":37,"problems":[]}
+EXIT 0
+
+=== Node v22.23.2 (the repository CI's major version; Windows) ===
+ok   d33-acceptance-review.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   d33-acceptance.test.mjs tests=22 pass=22 fail=0 skipped=0
+ok   d33-egress.test.mjs tests=10 pass=10 fail=0 skipped=0
+ok   d33-infra.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-launcher.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-lifecycle.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   d33-resource.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-sampler-retry.test.mjs tests=19 pass=19 fail=0 skipped=0
+ok   d33-state-readers.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d33-subscription.test.mjs tests=13 pass=13 fail=0 skipped=0
+ok   d34-ci-runner.test.mjs tests=4 pass=4 fail=0 skipped=0
+ok   d34-context.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   d34-crash.test.mjs tests=33 pass=33 fail=0 skipped=0
+ok   d34-engine.test.mjs tests=27 pass=27 fail=0 skipped=0
+ok   d34-evidence.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   d34-glue.test.mjs tests=4 pass=4 fail=0 skipped=0
+ok   d34-issuer.test.mjs tests=19 pass=19 fail=0 skipped=0
+ok   d34-ledger.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   d34-proposals.test.mjs tests=5 pass=5 fail=0 skipped=0
+ok   d34-rem-f1-readmission.test.mjs tests=12 pass=12 fail=0 skipped=0
+ok   d34-rem-f2-crash.test.mjs tests=2 pass=2 fail=0 skipped=0
+ok   d34-rem-f2-preserve.test.mjs tests=9 pass=9 fail=0 skipped=0
+ok   d34-rem-f3-intents.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   d34-rem-f4-completeness.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   d34-rem-f5-autonomy.test.mjs tests=12 pass=12 fail=0 skipped=0
+ok   d34-rem-f6-review-persist.test.mjs tests=20 pass=20 fail=0 skipped=0
+ok   d34-rem-round2.test.mjs tests=10 pass=10 fail=0 skipped=0
+ok   d34-rem-round3.test.mjs tests=15 pass=15 fail=0 skipped=0
+ok   evaluator.test.mjs tests=28 pass=28 fail=0 skipped=0
+ok   final-review.test.mjs tests=7 pass=7 fail=0 skipped=0
+ok   foundation.test.mjs tests=11 pass=11 fail=0 skipped=0
+ok   git-facts.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   hardening.test.mjs tests=20 pass=20 fail=0 skipped=0
+ok   lifecycle.test.mjs tests=13 pass=13 fail=0 skipped=0
+ok   promotion.test.mjs tests=8 pass=8 fail=0 skipped=0
+ok   security.test.mjs tests=17 pass=17 fail=0 skipped=0
+ok   subscription.test.mjs tests=12 pass=12 fail=0 skipped=0
+{"ok":true,"total_tests":475,"files":37,"problems":[]}
+EXIT 0
