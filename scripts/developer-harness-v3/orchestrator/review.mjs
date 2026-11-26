@@ -26,6 +26,7 @@ export function normalizeSubmission(sub, { requireCoverage = false, stepIds = []
   const ids = new Set(); const findings = []
   for (const f of sub.findings) {
     if (!f || typeof f !== 'object') { problems.push('REVIEW.FINDING_MALFORMED'); continue }
+    if (typeof f.id === 'string' && /^cov-/i.test(f.id)) { problems.push('REVIEW.FINDING_ID_RESERVED'); continue } // `cov-*` ids are minted by the controller from coverage; a reviewer can never occupy them
     if (!ID.test(f.id ?? '') || ids.has(f.id)) { problems.push('REVIEW.FINDING_ID_INVALID_OR_DUPLICATE'); continue }
     ids.add(f.id)
     if (!SEVERITIES.includes(f.severity)) { problems.push(`REVIEW.SEVERITY_INVALID:${f.id}`); continue }
@@ -56,7 +57,6 @@ export function normalizeSubmission(sub, { requireCoverage = false, stepIds = []
     for (const row of coverage) {
       if (row.status === 'satisfied') continue
       const id = row.type === 'step' ? `cov-step-${row.ref}` : `cov-crit-${row.ref}`
-      if (ids.has(id)) continue
       ids.add(id)
       findings.push({ id, severity: 'high', mandatory: true, path: row.type === 'step' ? `plan:${row.ref}` : `criterion:${row.ref}`, evidence: row.evidence || `the independent reviewer found this ${row.type} ${row.status}`,
         reproduction: `Independent coverage review of the candidate: ${row.type} ${row.ref} is ${row.status}.`, remediation: row.type === 'step' ? `Complete plan step ${row.ref}: ${stepTitles[row.ref] ?? ''}`.trim() : `Satisfy acceptance criterion ${Number(row.ref) + 1}: ${criteria[Number(row.ref)] ?? ''}`.trim() })

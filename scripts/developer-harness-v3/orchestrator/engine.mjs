@@ -85,6 +85,7 @@ export class Engine {
     if (w.kind === 'blocked' && !(w.codes ?? []).some((c) => classifyBlocker(c) === 'owner') && !['OWNER_AUTH_EXPIRED', 'OWNER_ROOT_OF_TRUST_CEREMONY', 'PROHIBITED_ACTION_REQUIRED', 'ISOLATION_UNPROVEN', 'UNRESOLVABLE_REQUIREMENT_CONFLICT'].includes(w.reason)) {
       suspendTechnically(this, taskId, { cause: (w.codes ?? [])[0] ?? w.reason ?? 'UNKNOWN', stage: t.state, codes: w.codes ?? [] }); return
     }
+    if (w.kind !== 'blocked' && t.state === 'blocked') return // `blocked` is left ONLY through ownerResolve (an owner action), never by hopping to a waiting state
     if (w.kind === 'blocked') {
       if (t.state !== 'blocked') { const r = L.transition(taskId, 'blocked', { reason_code: w.reason }); if (!r.ok) throw new Error(`ENGINE.BLOCK_REFUSED:${r.problems[0]}`) }
       L.setWait(taskId, { kind: 'blocked', reason: w.reason, detail: { codes: w.codes } })

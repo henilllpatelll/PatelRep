@@ -17,7 +17,7 @@ export const FILE_TIMEOUT_MS = 15 * 60_000
 
 /** The pinned test-file list. Adding or removing a V3 test file is a deliberate edit here (so a test cannot silently drop out of CI). */
 export const EXPECTED_FILES = Object.freeze(['d33-acceptance-review', 'd33-acceptance', 'd33-egress', 'd33-infra', 'd33-launcher', 'd33-lifecycle', 'd33-resource', 'd33-sampler-retry', 'd33-state-readers', 'd33-subscription',
-  'd34-ci-runner', 'd34-context', 'd34-crash', 'd34-engine', 'd34-evidence', 'd34-glue', 'd34-issuer', 'd34-ledger', 'd34-proposals', 'd34-rem-f1-readmission', 'd34-rem-f2-crash', 'd34-rem-f2-preserve', 'd34-rem-f3-intents', 'd34-rem-f4-completeness', 'd34-rem-f5-autonomy', 'd34-rem-f6-review-persist', 'd34-rem-round2', 'evaluator', 'final-review', 'foundation', 'git-facts', 'hardening', 'lifecycle', 'promotion', 'security', 'subscription'].map((n) => `${n}.test.mjs`))
+  'd34-ci-runner', 'd34-context', 'd34-crash', 'd34-engine', 'd34-evidence', 'd34-glue', 'd34-issuer', 'd34-ledger', 'd34-proposals', 'd34-rem-f1-readmission', 'd34-rem-f2-crash', 'd34-rem-f2-preserve', 'd34-rem-f3-intents', 'd34-rem-f4-completeness', 'd34-rem-f5-autonomy', 'd34-rem-f6-review-persist', 'd34-rem-round2', 'd34-rem-round3', 'evaluator', 'final-review', 'foundation', 'git-facts', 'hardening', 'lifecycle', 'promotion', 'security', 'subscription'].map((n) => `${n}.test.mjs`))
 
 export const discover = (root = ROOT) => readdirSync(path.join(root, TEST_DIR)).filter((f) => f.endsWith('.test.mjs')).sort()
 

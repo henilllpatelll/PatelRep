@@ -173,7 +173,7 @@ CREATE TABLE findings (
   evidence TEXT NOT NULL,
   reproduction TEXT NOT NULL,
   remediation TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('open','remediated','accepted_optional','carried','confirmed')),
+  status TEXT NOT NULL CHECK (status IN ('open','remediated','accepted_optional')),
   PRIMARY KEY (review_id, finding_id)
 ) STRICT;
 
@@ -285,7 +285,7 @@ CREATE TABLE outbox (
 `
 
 
-// V2 (D3.4 remediation F3-F6). Additive: nothing here removes or weakens a V1 constraint. The outbox is rebuilt ONLY to widen its `kind` CHECK (SQLite cannot alter a CHECK in place).
+// V2 (D3.4 remediation F3-F6). Nothing here removes or weakens a V1 constraint. The outbox and findings tables are rebuilt ONLY to WIDEN a CHECK (SQLite cannot alter a CHECK in place); V1 above is unchanged since it was first released.
 const V2 = `
 -- F3: an intent is bound to the candidate TREE, the creating lease and (when re-authorized) the intent it supersedes.
 ALTER TABLE action_intents ADD COLUMN tree_digest TEXT;
@@ -330,6 +330,26 @@ CREATE TABLE coverage (
   PRIMARY KEY (review_id, subject_type, subject_ref)
 ) STRICT;
 CREATE INDEX coverage_task ON coverage(task_id, candidate_sha);
+
+-- the findings lifecycle needs carried and confirmed (an independent re-review confirms an earlier finding fixed): widen the CHECK by rebuild, V1 stays untouched
+CREATE TABLE findings_v2 (
+  finding_id TEXT NOT NULL,
+  review_id TEXT NOT NULL REFERENCES reviews(review_id),
+  task_id TEXT NOT NULL,
+  severity TEXT NOT NULL CHECK (severity IN ('critical','high','medium','low','info')),
+  mandatory INTEGER NOT NULL,
+  path TEXT NOT NULL,
+  evidence TEXT NOT NULL,
+  reproduction TEXT NOT NULL,
+  remediation TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open','remediated','accepted_optional','carried','confirmed')),
+  PRIMARY KEY (review_id, finding_id)
+) STRICT;
+INSERT INTO findings_v2 SELECT * FROM findings;
+DROP TABLE findings;
+ALTER TABLE findings_v2 RENAME TO findings;
+-- at most ONE effect in flight per task and action: a second dispatch of the same effect is a database error, not a convention
+CREATE UNIQUE INDEX one_inflight_effect ON action_intents(task_id, action) WHERE status IN ('dispatched','uncertain');
 
 CREATE TABLE outbox_v2 (
   outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,

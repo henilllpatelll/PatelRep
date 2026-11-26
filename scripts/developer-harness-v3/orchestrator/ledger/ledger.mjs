@@ -137,6 +137,9 @@ export class Ledger {
     })
   }
 
+  /** Withdraw ONE accepted approval (e.g. a completeness gate refused the candidate the approval was issued for). */
+  invalidateEvidence(evidenceId) { this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE evidence_id=? AND invalidated_at IS NULL').run(this.now(), evidenceId) }
+
   #invalidateEvidence(taskId, types, now) {
     if (types.includes('*')) this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE task_id=? AND invalidated_at IS NULL').run(now, taskId)
     else for (const t of types) this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE task_id=? AND evidence_type=? AND invalidated_at IS NULL').run(now, taskId, t)

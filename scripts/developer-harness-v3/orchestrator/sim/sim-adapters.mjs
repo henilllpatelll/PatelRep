@@ -25,7 +25,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
 
   /** Accumulates UNCOMMITTED work in the real worktree files across units (what a renewal must not lose). */
   function writeWork(task, unit, spec, stage) {
-    if (stage !== 'implementing') return
+    if (stage !== 'implementing') { if (spec.plant) writeFileTree(wtDir(dir, task.task_id), [{ path: spec.plant.path, content: enc(spec.plant.content ?? 'planted by a read-only session\n') }]); return }
     const root = wtDir(dir, task.task_id); const w = loadWorld(dir); const cur = w.versions[task.task_id] ?? 0
     const file = path.join(root, 'apps', 'mobile', 'feature.txt')
     mkdirSync(path.dirname(file), { recursive: true })
@@ -107,7 +107,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         const model = MODEL_IDS[spec.actualModel ?? route.model]
         const now = clock()
         const q = (sc.quota ?? []).find((x) => now >= x.from && now < x.to)
-        const lines = (extra = {}) => streamLines({ model, turns: sc.turnsPerUnit, contextTokens: mem.ctx, contextWindow: sc.contextWindow, version: spec.version, omitUsage: spec.omitUsage, ...extra })
+        const lines = (extra = {}) => streamLines({ model, turns: sc.turnsPerUnit, contextTokens: mem.ctx, contextWindow: sc.contextWindow, version: spec.version, apiKeySource: spec.apiKeySource, permissionMode: spec.permissionMode, omitUsage: spec.omitUsage, ...extra })
         if (q) return { status: 'failed', code: 'PROVIDER.LIMIT', lines: lines({ rate: 'rejected', resetsAtSec: Math.ceil(q.to / 1000) }), exit: { code: 1 }, turns: 0 }
         if (spec.fail && mem.unit === 1) {
           const key = `fail:${task.task_id}:${stage}:${idx}`

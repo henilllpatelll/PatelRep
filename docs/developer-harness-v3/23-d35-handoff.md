@@ -31,4 +31,6 @@ All activation gates (21 §5), provider eligibility (20), P1–P4 (21), the Linu
 9. **Sessions per task are capped (150) and epochs are capped (3)**: a task that exhausts them is *terminally suspended* until `resumeSuspended`; D3.5 parallelism must keep the caps per task, not global.
 10. **Completeness depends on an independent reviewer's coverage report**; the deterministic part is only the plan's declared `touches`. A planner that declares none gives the controller nothing deterministic to check beyond "every step claimed".
 11. **Review-deliverable consumption** trusts the controller-written execution/lease rows (gate G-ISSUER-INDEPENDENT-FACTS is unchanged).
+13. **Adapter contract for the live read-only proof (G-LIVE-ADAPTER)**: `treeDigestAfterReview` and `captureSnapshot` must cover untracked and ignored-but-present files; the simulator's "clean worktree" check is only as strong as the live adapter's.
+14. **Re-attestation is bounded** (24 h from first issue, 6 re-issues): a controller outage longer than that needs a NEW review, by design.
 12. **P5** must be applied (owner, root of trust) before D3.5 relies on the lifecycle showing suspensions; until then the ledger `suspensions` table is authoritative.

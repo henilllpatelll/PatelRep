@@ -73,16 +73,18 @@ export async function runSessionStage(e, taskId, spec) {
       L.recordTelemetry(lease.execution_id, { model_actual: actual, cli_version: tel.init?.claude_code_version ?? null, context_window: tel.context_window?.tokens ?? null, turns, telemetry: summarize(tel) })
       if (tel.context_window && tel.init?.claude_code_version) L.setMeta(`window:${tel.init.claude_code_version}:${tel.context_window.model}`, tel.context_window.tokens)
 
+      // the provider/billing classification comes FIRST: an API-key source or an extra-usage signal must reach the governor (and the owner) before any other complaint can turn it into a retry
+      const obs = classifyObservation({ telemetry: tel, exit: unit.exit ?? null, killedReason: unit.killedReason ?? null }, { now: L.now() })
+      const prevGov = A.subscription.load()
+      const gov = nextGovernorState(prevGov, obs, { now: L.now(), rng: e.rng })
+      if (gov) A.subscription.save(gov)
+      if (['unauthorized_billing', 'auth_expired', 'auth_unverified'].includes(obs.state)) { const lf = lifecycleFor(obs.state); outcome = { status: 'wait', wait: { state: lf.state, reason: lf.reason, eligible_at: null, code: obs.reason_codes[0], codes: obs.reason_codes } }; throw outcome }
       const initProblems = verifyInit(tel.init, { permissionMode: 'dontAsk', version: cfg.cliVersion })
       if (initProblems.length) { outcome = { status: 'failed', code: initProblems[0], fingerprint: fingerprint('init', initProblems[0]) }; throw outcome }
       const foreign = [...tel.models].filter((m) => !MODEL_FAMILIES[spec.route.model]?.test(m))
       const mv = spec.mandatory && foreign.length ? { ok: false, code: 'ROUTE.MODEL_SUBSTITUTED' } : verifyActualModel({ requested: spec.route.model, actual, mandatory: spec.mandatory })
       if (!mv.ok) { outcome = { status: 'failed', code: mv.code, fingerprint: fingerprint('model', mv.code, actual) }; throw outcome }
 
-      const obs = classifyObservation({ telemetry: tel, exit: unit.exit ?? null, killedReason: unit.killedReason ?? null }, { now: L.now() })
-      const prevGov = A.subscription.load()
-      const gov = nextGovernorState(prevGov, obs, { now: L.now(), rng: e.rng })
-      if (gov) A.subscription.save(gov)
       if (obs.state && !['available', 'approaching'].includes(obs.state)) {
         const lf = lifecycleFor(obs.state)
         outcome = { status: 'wait', wait: { state: lf.state, reason: lf.reason, eligible_at: gov?.next_eligible_at ?? null, code: obs.reason_codes[0] } }; throw outcome
@@ -156,7 +158,9 @@ async function buildPrompt(e, taskId, spec) {
       if (v.ok) checkpoint = newest
       else if (!L.meta(`cp_unusable:${newest.checkpoint_id}`)) { L.setMeta(`cp_unusable:${newest.checkpoint_id}`, '1'); L.recordRecovery(taskId, 'checkpoint_unusable', { checkpoint_id: newest.checkpoint_id, problems: v.problems, held_snapshot: !!newest.snapshot_ref }) }
     }
-    if (!checkpoint) { // nothing usable: whatever the worktree still holds is preserved before prepareWorktree resets it
+    const lastRole = L.db.prepare('SELECT role FROM executions WHERE task_id=? ORDER BY ordinal DESC LIMIT 1 OFFSET 1').get(taskId)?.role ?? '' // OFFSET 1: row 0 is THIS session's own execution
+    if (!checkpoint && /reviewer/.test(lastRole)) L.recordRecovery(taskId, 'reviewer_residue_discarded', { last_role: lastRole }) // files left by a READ-ONLY session are never work to preserve (they would be committed by the next writer)
+    else if (!checkpoint) { // nothing usable: whatever the worktree still holds is preserved before prepareWorktree resets it
       const cap = await captureWork(e, taskId, null)
       if (cap.error) return { ok: false, code: cap.error.split(':').slice(0, 2).join(':') } // work that cannot be preserved is never reset: the stage fails (bounded, budgeted) with the worktree untouched
       const p = persistCheckpoint(e, taskId, cap, { reason: 'PRE_RESET_PRESERVATION', stage: spec.stage })

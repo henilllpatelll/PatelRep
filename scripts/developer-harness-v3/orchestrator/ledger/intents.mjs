@@ -36,6 +36,10 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
   if (!spec) return 'INTENT.UNKNOWN_ACTION'
   if (spec.class === 'prohibited') return 'INTENT.ACTION_PROHIBITED'
   if (!atCreation && spec.requires_activation === true && !(policy.contract.activation?.active_actions ?? []).includes(intent.action)) return 'INTENT.ACTION_NOT_ACTIVE'
+  if (!atCreation) { // the EFFECT must be unique too, not only its authorization
+    const dup = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND intent_id<>? AND (status IN ('dispatched','uncertain') OR (status IN ('succeeded','reconciled_succeeded') AND params_digest=? AND candidate_sha IS ?))").get(intent.task_id, intent.action, intent.intent_id, intent.params_digest, intent.candidate_sha)
+    if (dup) return 'INTENT.EFFECT_NOT_UNIQUE'
+  }
   const have = new Set(); const now = ledger.now()
   for (const id of JSON.parse(intent.evidence_ids_json)) {
     const e = ledger.db.prepare('SELECT * FROM evidence WHERE evidence_id=? AND task_id=?').get(id, intent.task_id)
@@ -81,6 +85,8 @@ export function beginIntent(ledger, { taskId, action, idempotencyKey, params, ev
       if (old.superseded_by) return { ok: false, code: 'INTENT.ALREADY_SUPERSEDED' }
       if (!RETRYABLE.has(old.status)) return { ok: false, code: 'INTENT.UNRECONCILED_PRIOR', intent_id: old.intent_id } // only a PROVEN-absent or failed effect may be superseded
     }
+    const sibling = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND params_digest=? AND candidate_sha IS ? AND status IN ('failed','reconciled_absent') AND superseded_by IS NULL").get(taskId, action, params_digest, candidateSha)
+    if (sibling && sibling.intent_id !== old?.intent_id) return { ok: false, code: 'INTENT.SIBLING_NOT_SUPERSEDED', intent_id: sibling.intent_id } // a proven-absent sibling must be superseded explicitly, or two live intents could both fire
     const applied = ledger.db.prepare("SELECT intent_id FROM action_intents WHERE task_id=? AND action=? AND params_digest=? AND candidate_sha IS ? AND status IN ('succeeded','reconciled_succeeded')").get(taskId, action, params_digest, candidateSha)
     if (applied) return { ok: false, code: 'INTENT.EFFECT_ALREADY_APPLIED', intent_id: applied.intent_id }
     const now = ledger.now(); const intentId = `in-${digestOf({ idempotencyKey }).slice(0, 24)}`

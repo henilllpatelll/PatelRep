@@ -22,6 +22,9 @@ export const OPS = Object.freeze({
 const REVIEW_KIND = { independent_reviewer: 'independent_review', security_reviewer: 'security_review' }
 const REVIEW_FAMILY = { independent_review: 'sonnet', security_review: 'opus' } // the routing table's mandatory models for each review kind
 const TTL_MS = { test_results: 6 * 3600_000, independent_review: 4 * 3600_000, security_review: 4 * 3600_000, isolation_attestation: 3600_000 }
+/** An expired approval may be re-issued only for a bounded time after its FIRST issue, a bounded number of times: TTL stays a real bound on how stale a verdict can be made to look. */
+export const MAX_REATTEST_AGE_MS = 24 * 3600_000
+export const MAX_REISSUES = 6
 const refuse = (code, ...more) => ({ ok: false, code, more })
 const idOf = (x) => typeof x === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(x)
 const h = (s) => createHash('sha256').update(s).digest('hex')
@@ -77,12 +80,14 @@ export class IssuerCore {
    * An unexpired approval is returned unchanged (replay protection); the controller separately accepts each nonce once.
    */
   #emit(type, baseKey, payloadFields, t) {
-    let subjectKey = baseKey
+    let subjectKey = baseKey; let firstIssuedAt = null
     for (let i = 1; ; i += 1) {
-      const prior = this.store.prepare('SELECT envelope_json FROM issued WHERE subject_key=?').get(subjectKey)
+      const prior = this.store.prepare('SELECT envelope_json, issued_at FROM issued WHERE subject_key=?').get(subjectKey)
       if (!prior) break
+      firstIssuedAt ??= prior.issued_at
       const env = JSON.parse(prior.envelope_json)
       if (Date.parse(env.payload.expires_at) > this.clock()) return { ok: true, duplicate: true, envelope: env }
+      if (this.clock() - firstIssuedAt > MAX_REATTEST_AGE_MS || i > MAX_REISSUES) return refuse('ISSUER.REATTESTATION_BOUND_EXCEEDED')
       subjectKey = `${baseKey}#r${i}`
     }
     const k = loadSigningKey(this.keyDir, this.keyId) // checked on EVERY issuance: emergency deactivation takes effect immediately
@@ -159,7 +164,15 @@ export class IssuerCore {
     const seen = new Set(rows.map((f) => f.finding_id))
     const findings = [...rows.map((f) => ({ id: f.finding_id, severity: f.severity, resolved: f.status !== 'open' })), ...carried.filter((f) => !seen.has(f.finding_id)).map((f) => ({ id: f.finding_id, severity: f.severity, resolved: false }))]
     return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
-      findings, verdict: blocking.length ? 'findings_open' : 'pass' }, t)
+      findings, verdict: blocking.length || this.#coverageOpen(kind, t, review_id) ? 'findings_open' : 'pass' }, t)
+  }
+
+  /** The independent review's verdict also needs SATISFIED coverage of every plan step and acceptance criterion (read from the ledger, never from the reviewer's findings alone). */
+  #coverageOpen(kind, t, reviewId) {
+    if (kind !== 'independent_review') return false
+    const plan = this.ledger.currentPlan(t.task_id); if (!plan) return true
+    const rows = new Map(this.ledger.coverageOf(reviewId).map((r) => [`${r.subject_type}:${r.subject_ref}`, r.status]))
+    return plan.steps.some((s) => rows.get(`step:${s.id}`) !== 'satisfied') || (t.acceptance.criteria ?? []).some((_, i) => rows.get(`criterion:${i}`) !== 'satisfied')
   }
 
   issueIsolationAttestation({ task_id, environment_id }) {

@@ -10,14 +10,19 @@
 //   * after `maxEpochs` cool-downs, or when the lifetime session budget is spent, the disposition is TERMINAL: nothing runs by itself, ever (no unlimited subscription consumption), and exactly
 //     one notification says so. `resumeSuspended` starts a fresh budget (an operator convenience, not a permission);
 //   * every suspension is one deduplicated outbox notification with actionable diagnostics.
+import { createHash } from 'node:crypto'
 import { enqueueOutbox } from './ledger/intents.mjs'
+import { scanContent } from './snapshot.mjs'
 import { GOVERNOR_DEFAULTS } from '../runtime/subscription-governor.mjs'
 
 // Every cool-down is SHORTER than the extra-usage fact lifetime (GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms = 6 h): a resume after a cool-down must not need the owner to re-verify billing safety, because the
 // fact is refreshed only by a session's own provider stream (doc 07). A test pins this invariant.
 export const TECH_DEFAULTS = Object.freeze({ maxRemediationCyclesPerEpoch: 6, maxStageFailuresPerEpoch: 8, maxReviewRoundsPerEpoch: 4, cooldownsMs: Object.freeze([30 * 60_000, 2 * 3600_000, 5 * 3600_000]), maxEpochs: 3, maxSessionsPerTask: 150 })
 
-const OWNER_ONLY = [/^TASK\.REQUIREMENTS_TAMPERED$/, /^AUTH\./, /^SUBSCRIPTION\.STATE(_UNKNOWN$|:)/, /^ISOLATION/, /^PROHIBITED_ACTION/, /^OWNER_/, /^UNRESOLVABLE_REQUIREMENT_CONFLICT/]
+/** Failure text originates in adapters/workers (UNTRUSTED). Only short code-shaped strings that carry no credential pattern are stored or notified; anything else becomes a stable hash. */
+export const safeCode = (c) => { const s = String(c ?? ''); return /^[A-Za-z0-9_.:|+#=/\-]{1,120}$/.test(s) && !scanContent(Buffer.from(s)).length ? s : `REDACTED:${createHash('sha256').update(s).digest('hex').slice(0, 12)}` }
+
+const OWNER_ONLY = [/^SESSION\.PERMISSION_MODE_MISMATCH/, /^TASK\.REQUIREMENTS_TAMPERED$/, /^AUTH\./, /^SUBSCRIPTION\.STATE(_UNKNOWN$|:)/, /^ISOLATION/, /^PROHIBITED_ACTION/, /^OWNER_/, /^UNRESOLVABLE_REQUIREMENT_CONFLICT/]
 /** 'owner' only for the genuine owner-only conditions; EVERYTHING else — including unknown codes — is 'technical' (the safe default is not to interrupt the owner). */
 export const classifyBlocker = (code) => (OWNER_ONLY.some((re) => re.test(String(code ?? ''))) ? 'owner' : 'technical')
 
@@ -48,6 +53,9 @@ export function budgetExceeded(e, taskId, { reviewKind = null } = {}) {
 export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] }) {
   const L = e.ledger; const c = e.cfg.technical
   const active = L.getSuspension(taskId); if (active) return active
+  // an owner-only cause is NEVER cooled down and retried (defence in depth: every caller already routes these, this makes the invariant local)
+  const ownerCodes = [cause, ...codes].filter((x) => classifyBlocker(x) === 'owner')
+  if (ownerCodes.length) { e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ownerCodes.map(safeCode) }); return null }
   return L.tx(() => {
     const now = L.now(); const epoch = epochOf(L, taskId) + 1
     const terminal = epoch > c.maxEpochs || cause === 'SESSION_BUDGET_EXHAUSTED'
@@ -65,11 +73,13 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [] 
       escalated_model: L.meta(`escalated:${taskId}`) === '1', open_mandatory_findings: L.openMandatoryFindings(taskId).map((f) => ({ id: f.finding_id, severity: f.severity, path: f.path })).slice(0, 20) }
     L.setMeta(`epoch:${taskId}`, epoch)
     L.setSuspension(taskId, { epoch, disposition: terminal ? 'terminal' : 'cooling_down', cause, stage, retryAt, diagnostics })
-    L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) // the next epoch starts with fresh per-fingerprint budgets (the lifetime caps above do NOT reset)
+    L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) // the next epoch starts with fresh per-fingerprint budgets (the per-generation session cap resets only through an explicit resumeSuspended)
     L.recordRecovery(taskId, 'technical_suspension', { epoch, cause, stage, disposition: terminal ? 'terminal' : 'cooling_down', retry_at: retryAt })
-    enqueueOutbox(L, { taskId, kind: 'technical_suspension', dedupeKey: `suspension:${taskId}:g${generationOf(L, taskId)}:${epoch}`, payload: { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
+    const payload = { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
       automatic_resume_at: retryAt, diagnostics, how_to_resume: terminal ? 'Automatic engineering has stopped for this task (its retry and session budgets are spent). Inspect the diagnostics, then resume with a fresh budget (engine.resumeSuspended) — this is not a permission decision.'
-        : 'No action needed: the task resumes automatically at automatic_resume_at with a stronger/different strategy. It can be resumed earlier with engine.resumeSuspended.' } })
+        : 'No action needed: the task resumes automatically at automatic_resume_at with a stronger/different strategy. It can be resumed earlier with engine.resumeSuspended.' }
+    if (scanContent(Buffer.from(JSON.stringify(payload))).length) payload.diagnostics = { redacted: true, cause: safeCode(cause) } // a notification never carries a credential-shaped string
+    enqueueOutbox(L, { taskId, kind: 'technical_suspension', dedupeKey: `suspension:${taskId}:g${generationOf(L, taskId)}:${epoch}`, payload })
     return L.getSuspension(taskId)
   })
 }

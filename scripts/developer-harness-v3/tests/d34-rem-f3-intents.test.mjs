@@ -128,3 +128,13 @@ test('F3/F5/F6/F4 schema: a V1 ledger migrates to V2 in place (data kept, constr
 test('F3: duplicate evidence ids in one intent are ONE authorization, not a consumption race', () => {
   const S = setup(); const ids = S.fresh(); const i = begin(S, [...ids, ...ids]); assert.ok(i.ok, JSON.stringify(i)); assert.equal(JSON.parse(i.intent.evidence_ids_json).length, 2); assert.ok(dispatch(S, i.intent.intent_id).ok); S.L.close()
 })
+
+test('R3-5: the EFFECT is unique, not only its authorization: two intents of one effect cannot both be in flight, a failed sibling must be superseded explicitly, and a succeeded effect is never fired again via a retry', () => {
+  const S = setup(); const a = begin(S, S.fresh(), { idempotencyKey: 'A' }); const b = begin(S, S.fresh(), { idempotencyKey: 'B' }); assert.ok(a.ok && b.ok, 'both may be RECORDED')
+  assert.ok(dispatch(S, a.intent.intent_id).ok); assert.equal(dispatch(S, b.intent.intent_id).code, 'INTENT.EFFECT_NOT_UNIQUE', 'the second is refused while the first is in flight')
+  assert.ok(recordOutcome(S.L, a.intent.intent_id, { success: false, outcome: { error: 'timeout' } }).ok); assert.ok(dispatch(S, b.intent.intent_id).ok); assert.ok(recordOutcome(S.L, b.intent.intent_id, { success: true, outcome: { pr: 1 } }).ok)
+  assert.equal(retryIntent(S.L, a.intent.intent_id, { policy: S.policy }).code, 'INTENT.EFFECT_NOT_UNIQUE', 'A (failed) can no longer re-fire an effect B already achieved')
+  assert.throws(() => S.L.db.exec("UPDATE action_intents SET status='dispatched'"), /UNIQUE|constraint/i, 'and the database itself refuses two in-flight effects'); S.L.close()
+  const T = setup(); const c = begin(T, T.fresh(), { idempotencyKey: 'C' }); assert.ok(dispatch(T, c.intent.intent_id).ok); assert.ok(recordOutcome(T.L, c.intent.intent_id, { success: false, outcome: {} }).ok)
+  assert.equal(begin(T, T.fresh(), { idempotencyKey: 'D' }).code, 'INTENT.SIBLING_NOT_SUPERSEDED'); assert.ok(begin(T, T.fresh(), { idempotencyKey: 'D', supersedes: c.intent.intent_id }).ok); T.L.close()
+})

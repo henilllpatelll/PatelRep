@@ -65,7 +65,9 @@ export function checkInvocationSafety({ argv, envNames = [] }) {
     const name = String(a).split('=')[0].toLowerCase()
     if (FORBIDDEN_ARGV.some((f) => f === name || String(a).startsWith(`${f}=`))) codes.push(`ROUTE.FORBIDDEN_ARGUMENT:${name}`)
   }
-  const pm = argv.indexOf('--permission-mode'); if (pm >= 0 && argv[pm + 1] !== 'dontAsk') codes.push('ROUTE.FORBIDDEN_PERMISSION_MODE')
+  const values = (flag) => argv.flatMap((a, i) => (a === flag ? [String(argv[i + 1] ?? '')] : String(a).startsWith(`${flag}=`) ? [String(a).slice(flag.length + 1)] : [])) // BOTH `flag v` and `flag=v`, EVERY occurrence
+  const modes = values('--permission-mode'); if (modes.length > 1 || modes.some((m) => m !== 'dontAsk')) codes.push('ROUTE.FORBIDDEN_PERMISSION_MODE')
+  if (values('--setting-sources').some((v) => v !== '')) codes.push('ROUTE.FORBIDDEN_SETTING_SOURCES')
   for (const e of envNames) if (FORBIDDEN_ENV.includes(e) || /API_KEY|AUTH_TOKEN|OAUTH_TOKEN|^ANTHROPIC_|^CLAUDE_CODE_USE_|^CLAUDE_CONFIG_DIR$/.test(e)) codes.push(`ROUTE.FORBIDDEN_ENV:${e}`)
   return codes
 }
