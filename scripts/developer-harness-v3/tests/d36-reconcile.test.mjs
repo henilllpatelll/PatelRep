@@ -143,3 +143,17 @@ test('review M2: an effect key always resumes the LIVE head of its supersession 
   const r = await h.delivery.resume(getIntent(h.ledger, A.intent.intent_id), params)
   assert.equal(r.status, 'succeeded'); assert.equal(r.intent_id, B.intent.intent_id); assert.equal(ops(h, 'push_ref').length, 0, 'nothing re-sent'); h.close()
 })
+
+test('security review MAND-1: absence is NEVER concluded while this process\'s own timed-out request for the effect has not settled; once it settles, the reads decide', async () => {
+  const h = await harness(); const id = h.submit(); h.github.inject('push_ref', 'lose_response')
+  await h.drive({ until: () => intents(h, id).some((i) => i.action === 'publish_candidate_branch' && i.status === 'uncertain'), maxRounds: 100 })
+  const i = intents(h, id).find((x) => x.action === 'publish_candidate_branch')
+  h.ledger.db.prepare("INSERT INTO operation_deadlines(op_id,task_id,kind,started_at,deadline_at,state,holds_json) VALUES (?,?,?,?,?,'unresolved','[]')").run(`effect:${i.intent_id}:x`, id, 'effect:publish_candidate_branch', 1, 2) // the call outlived its deadline and never settled
+  const { key_id: _k, ...base } = (await observe(h, 'observe_intent', { intent_id: i.intent_id })).observation; void _k
+  let last = null
+  for (const k of [0, 1]) { h.clock.advance(61_000 + k * 31_000); const o = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: `obs-m1-${k}`, read_id: `read-m1-${k}`, state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() }); assert.ok(o.ok); last = reconcileIntent(h.ledger, i.intent_id, { observation: o.observation }) }
+  assert.equal(last.code, 'INTENT.RECONCILIATION_PENDING'); assert.deepEqual(last.problems, ['OBSERVATION.EFFECT_STILL_IN_FLIGHT']); assert.equal(getIntent(h.ledger, i.intent_id).status, 'uncertain')
+  h.ledger.db.prepare("UPDATE operation_deadlines SET state='settled_late' WHERE op_id=?").run(`effect:${i.intent_id}:x`)
+  h.clock.advance(31_000); const o3 = verifyRemoteObservation(signObservation(h, 'delivery_verifier', { ...base, observation_id: 'obs-m1-2', read_id: 'read-m1-2', state: 'absent', observed_at: h.ledger.now(), details: {} }), { policy: h.policy, now: h.ledger.now() })
+  assert.ok(reconcileIntent(h.ledger, i.intent_id, { observation: o3.observation }).ok, 'after its own settlement the authenticated reads decide'); h.close()
+})

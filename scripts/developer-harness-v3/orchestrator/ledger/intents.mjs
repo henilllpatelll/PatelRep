@@ -208,6 +208,9 @@ export function reconcileIntent(ledger, id, { observation, outcome = null } = {}
     if (observation.state === 'conflict') return { ok: false, code: 'INTENT.RECONCILIATION_CONFLICT', problems: ['OBSERVATION.REMOTE_INCONSISTENT'] }
     const rows = ledger.db.prepare('SELECT state, read_id, observed_at FROM remote_observations WHERE intent_id=?').all(i.intent_id)
     if (rows.some((r) => r.state === 'present')) return setStatus(ledger, id, ['uncertain'], 'reconciled_succeeded', outcome)
+    // security review MAND-1: no read can prove absence while THIS process's own request for the effect may still land (its deadline passed but the call never settled)
+    const live = ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)
+    if (live) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: ['OBSERVATION.EFFECT_STILL_IN_FLIGHT'] }
     const a = absenceProven(rows, i.dispatched_at ?? i.updated_at)
     if (!a.proven) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: [a.code] }
     return setStatus(ledger, id, ['uncertain'], 'reconciled_absent', outcome)

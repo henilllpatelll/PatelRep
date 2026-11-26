@@ -77,6 +77,8 @@ function policyMaker({ authority, activate }) {
  * @param {{root:string, proposal?:boolean, lifecycle?:'authoritative'|'P6v2', activate?:string[], scenario?:object, gh?:object, facts?:object, cfg?:object, dcfg?:object, clock?:FixtureClock, authority?:object, reducer?:object}} o
  */
 export async function createDeliveryHarness({ root, proposal = false, lifecycle = 'authoritative', activate = proposal ? DELIVERY_ACTIONS : [], scenario = {}, gh = {}, facts = {}, cfg = {}, dcfg = {}, clock = new FixtureClock(), authority = null, reducer = null }) {
+  // security review OPT-3: an ACTIVATED test policy (proposal or explicit activation) and its ledger may live ONLY under the OS temp directory
+  if ((proposal || activate.length) && !Ledger.isTempLedgerPath(path.join(root, 'ledger.sqlite'))) throw new Error('DELIVERY_HARNESS.ACTIVATED_POLICY_OUTSIDE_TEMP')
   const auth = proposal ? (authority ?? await proposalAuthority()) : null
   const red = lifecycle === 'P6v2' ? (reducer ?? await proposalReducer()) : null
   const h = createHarness({ root, scenario, clock, cfg, makePolicy: policyMaker({ authority: auth, activate }), ledgerOptions: red ? { proposalReducer: red } : {} })

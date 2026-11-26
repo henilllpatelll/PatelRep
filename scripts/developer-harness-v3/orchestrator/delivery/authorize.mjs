@@ -85,7 +85,7 @@ export async function authorizeIntent(ctx, { taskId, action, idempotencyKey, par
   const tf = await trustedFacts(L, taskId, ACTION_IDENTITY[action], facts); if (!tf.ok) return tf
   return atomically(L, () => {
     const t = L.getTask(taskId)
-    if (t.fencing_token !== tf.trusted.task.fencing_token || t.state_revision !== tf.trusted.task.state_revision) return { ok: false, code: 'AUTHORITY.FACTS_STALE' } // the task moved while facts were derived
+    if (t.fencing_token !== tf.trusted.task.fencing_token || t.state_revision !== tf.trusted.task.state_revision || t.fencing_token !== t0.fencing_token || t.state_revision !== t0.state_revision || t.head_sha !== t0.head_sha) return { ok: false, code: 'AUTHORITY.FACTS_STALE' } // the task moved while params were validated or facts derived (security review OPT-4)
     const pool = usableEvidence(L, taskId, policy).filter((r) => isSatisfying(r.envelope.payload)).slice(0, 64)
     const request = requestOf(action, taskId, evaluatorParams)
     const decision = evaluateFn({ policy, request, trusted: tf.trusted, evidence: pool.map((r) => r.envelope), now: L.now(), ledger: new View(L, consumerOf(idempotencyKey)) })

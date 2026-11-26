@@ -111,6 +111,8 @@ export class DeliveryIssuer {
   op_observe_intent({ intent_id }) {
     if (!idOf(intent_id)) return refuse('ISSUER.BAD_REQUEST')
     const i = this.ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(intent_id); if (!i || !i.params_json) return refuse('ISSUER.UNKNOWN_INTENT')
+    let pd = null; try { pd = digestOf(JSON.parse(i.params_json)) } catch { pd = null }
+    if (pd !== i.params_digest) return refuse('ISSUER.INTENT_PARAMS_INCONSISTENT') // security review OPT-6: the reader never signs a digest it did not recompute
     const t = this.ledger.getTask(i.task_id); const view = this.reader.view()
     const o = observeEffect(i.action, JSON.parse(i.params_json), view, { dispatchedAt: i.dispatched_at })
     return this.#observation({ repository: t.repository, task_id: i.task_id, intent_id, params_digest: i.params_digest, candidate_sha: i.candidate_sha, ...o })

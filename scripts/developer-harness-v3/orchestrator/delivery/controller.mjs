@@ -139,7 +139,8 @@ export class DeliveryController {
     let out
     try {
       const w = await withDeadline(L, { opId: `effect:${i.intent_id}:${L.now()}`, taskId: i.task_id, kind: `effect:${i.action}`, ms: this.cfg.networkDeadlineMs }, (signal) => this.publisher.call(API[i.action], apiArgs(i.action, params), { signal, credential: this.credential }))
-      out = w.timedOut ? { ok: false, code: 'WATCHDOG.NETWORK_TIMEOUT' } : { ok: true, value: w.value }
+      // security review OPT-2: success needs a POSITIVE, well-formed response; anything else is uncertain
+      out = w.timedOut ? { ok: false, code: 'WATCHDOG.NETWORK_TIMEOUT' } : (w.value && typeof w.value === 'object' && !Array.isArray(w.value) && w.value.ok !== false && !w.value.error) ? { ok: true, value: w.value } : { ok: false, code: 'PUBLISHER.UNRECOGNIZED_RESPONSE' }
       if (w.timedOut && i.action === 'dispatch_staging_candidate') markStagingUnresolved(L, i.task_id) // review O3: hold shared staging as UNRESOLVED until proof
     } catch (e) { if (e?.code === 'SIM_CRASH') throw e; out = { ok: false, code: codeOf(e), reset_at: e?.reset_at ?? null } }
     const rec = recordOutcome(L, i.intent_id, { success: out.ok, outcome: out.ok ? { simulated: true } : { code: out.code } })
