@@ -78,6 +78,8 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [],
       escalated_model: L.meta(`escalated:${taskId}`) === '1', open_mandatory_findings: L.openMandatoryFindings(taskId).map((f) => ({ id: f.finding_id, severity: f.severity, path: f.path })).slice(0, 20) }
     L.setMeta(`epoch:${taskId}`, epoch)
     L.setSuspension(taskId, { epoch, disposition: terminal ? 'terminal' : 'cooling_down', cause, stage, retryAt, diagnostics })
+    // a lifecycle that declares the technical_suspension state (proposal P6/P5) also SHOWS it; the ledger row stays the scheduling source of truth. Inactive with the authoritative contract.
+    if (L.lc.recoverable_states?.technical_suspension && t.state !== 'technical_suspension' && t.state !== 'blocked' && t.lifecycle.owner_hold !== true) { const r = L.transition(taskId, 'technical_suspension', { reason_code: suspensionReason(cause) }); if (!r.ok) L.recordRecovery(taskId, 'suspension_state_refused', { problems: r.problems }) }
     L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId) // the next epoch starts with fresh per-fingerprint budgets (the per-generation session cap resets only through an explicit resumeSuspended)
     L.recordRecovery(taskId, 'technical_suspension', { epoch, cause, stage, disposition: terminal ? 'terminal' : 'cooling_down', retry_at: retryAt })
     const payload = { task_id: taskId, epoch, disposition: terminal ? 'terminal' : 'cooling_down', owner_permission_required: false,
@@ -89,12 +91,17 @@ export function suspendTechnically(e, taskId, { cause, stage = null, codes = [],
   })
 }
 
+const SUSPENSION_REASONS = [['SESSION_BUDGET_EXHAUSTED', 'SESSION_BUDGET_EXHAUSTED'], ['REVIEW_ROUNDS_EXCEEDED', 'REVIEW_BUDGET_EXHAUSTED'], ['REMEDIATION_CYCLES_EXCEEDED', 'REMEDIATION_BUDGET_EXHAUSTED'], ['HANDOFF_', 'HANDOFF_EVIDENCE_UNOBTAINABLE'], ['RECOVERY_EXHAUSTED', 'RECOVERY_EXHAUSTED'], ['RESOURCE_WAIT_EXCEEDED', 'RESOURCE_WAIT_EXCEEDED']]
+/** The P6 lifecycle reason for a suspension cause (only used when the lifecycle declares the state). */
+export const suspensionReason = (cause) => { const c = String(cause ?? ''); const m = SUSPENSION_REASONS.find(([p]) => c.startsWith(p)); const r = m ? m[1] : 'RETRY_BUDGET_EXHAUSTED'; return r }
+function leaveSuspensionState(L, taskId) { const t = L.getTask(taskId); if (t.state === 'technical_suspension') { const r = L.transition(taskId, L.resumeTarget(taskId)); if (!r.ok) throw new Error(`SUSPENSION.RESUME_REFUSED:${r.problems[0]}`) } }
+
 /** Called by the scheduler: has a cool-down finished? If so the suspension is cleared, the strategy escalated and a fresh epoch budget begins. @returns {boolean} true when the task may run now. */
 export function suspensionAllowsRun(e, taskId) {
   const L = e.ledger; const s = L.getSuspension(taskId)
   if (!s) return true
   if (s.disposition === 'terminal' || L.now() < s.retry_at) return false
-  L.tx(() => { L.clearSuspension(taskId); setFloor(L, taskId); L.setMeta(`escalated:${taskId}`, '1'); if (s.epoch >= 2) L.setMeta(`strategy_hint:${taskId}`, '1'); L.recordRecovery(taskId, 'technical_suspension_ended', { epoch: s.epoch, strategy: s.epoch >= 2 ? 'different_approach' : 'stronger_model' }) })
+  L.tx(() => { leaveSuspensionState(L, taskId); L.clearSuspension(taskId); setFloor(L, taskId); L.setMeta(`escalated:${taskId}`, '1'); if (s.epoch >= 2) L.setMeta(`strategy_hint:${taskId}`, '1'); L.recordRecovery(taskId, 'technical_suspension_ended', { epoch: s.epoch, strategy: s.epoch >= 2 ? 'different_approach' : 'stronger_model' }) })
   return true
 }
 
@@ -102,6 +109,6 @@ export function suspensionAllowsRun(e, taskId) {
 export function resumeSuspended(e, taskId) {
   const L = e.ledger; const s = L.getSuspension(taskId)
   if (!s) return { ok: false, problems: ['SUSPENSION.NONE'] }
-  L.tx(() => { L.clearSuspension(taskId); L.setMeta(`epoch:${taskId}`, 0); L.setMeta(`suspension_gen:${taskId}`, generationOf(L, taskId) + 1); L.setMeta(`session_offset:${taskId}`, L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
+  L.tx(() => { leaveSuspensionState(L, taskId); L.clearSuspension(taskId); L.db.prepare('DELETE FROM meta WHERE key=?').run(`step_exc:${taskId}`); L.setMeta(`epoch:${taskId}`, 0); L.setMeta(`suspension_gen:${taskId}`, generationOf(L, taskId) + 1); L.setMeta(`session_offset:${taskId}`, L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(taskId).c); setFloor(L, taskId); L.db.prepare('DELETE FROM retry_budgets WHERE task_id=?').run(taskId); L.db.prepare('DELETE FROM recovery_attempts WHERE scope=?').run(taskId); L.recordRecovery(taskId, 'technical_suspension_resumed', { epoch: s.epoch }) })
   return { ok: true }
 }

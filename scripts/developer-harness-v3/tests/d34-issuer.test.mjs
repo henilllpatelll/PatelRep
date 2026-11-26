@@ -10,7 +10,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { randomBytes } from 'node:crypto'
-import { createHarness } from '../orchestrator/sim/harness.mjs'
+import { createHarness, FixtureClock } from '../orchestrator/sim/harness.mjs'
 import { startIssuers } from './d34-helpers.mjs'
 import { OPS } from '../orchestrator/issuer/issuer-core.mjs'
 import { aclPlan, assertOutside, emergencyDeactivate, generateIssuerKey, loadSigningKey, proposeKeyRegistration, proposeKeyRevocation, proposeKeyRotation } from '../orchestrator/issuer/key-custody.mjs'
@@ -168,7 +168,8 @@ test('STATIC: the controller/orchestrator code cannot reach key material — it 
 // ------------------------------------------------------------------ IPC against real issuer subprocesses
 
 test('authenticated IPC with REAL issuer processes: wrong secret, replayed MAC, malformed/oversized frames and unknown operations are refused; the right secret works end to end', async () => {
-  const { h, id } = await runUntil('after_test_run_recorded'); const run = h.ledger.latestTestRun(id); const iss = await startIssuers(h)
+  // fixture only (no assertion changed): REAL issuer processes read the WALL clock, so the ledger's fixture clock starts at the wall clock — with the fixed 2026-11-25 default the run would be > 24 h old and the issuer's re-attestation bound would refuse it once a day had passed (a time bomb found 2026-11-26 on the unchanged D3.5 code)
+  const { h, id } = await runUntil('after_test_run_recorded', {}, { clock: new FixtureClock(Date.now()) }); const run = h.ledger.latestTestRun(id); const iss = await startIssuers(h)
   try {
     const ep = iss.endpoints.orchestrator
     const ok = await callIssuer({ listenPath: ep.listenPath, secret: iss.secrets.orchestrator, op: 'issue_test_results', params: { task_id: id, run_id: run.run_id } }); assert.ok(ok.ok); assert.equal(ok.envelope.payload.evidence_type, 'test_results')

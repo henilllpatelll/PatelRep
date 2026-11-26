@@ -6,7 +6,7 @@
 //
 // MODE: only `simulated` exists in D3.4. `live` refuses to construct until every activation gate in activation-gates.mjs is closed.
 import { admit } from '../runtime/resource-governor.mjs'
-import { admitAiWork, lifecycleFor } from '../runtime/subscription-governor.mjs'
+import { GOVERNOR_DEFAULTS, admitAiWork, lifecycleFor } from '../runtime/subscription-governor.mjs'
 import { enqueueOutbox, claimOutbox, ackOutbox, retryEligible } from './ledger/intents.mjs'
 import { routeStage } from './routing.mjs'
 import { RENEWAL_DEFAULTS } from './context-renewal.mjs'
@@ -14,6 +14,9 @@ import { RETRY_DEFAULTS } from './ledger/intents.mjs'
 import { liveExecutionAllowed } from './activation-gates.mjs'
 import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
+import { unitFloorReady } from './test-units.mjs'
+import { pendingIncident, superviseIncident } from './recovery-supervisor.mjs'
+import { dependencyStep, sweepDependencyBasis } from './dependency-basis.mjs'
 import { TECH_DEFAULTS, budgetExceeded, classifyBlocker, resumeSuspended, sessionsUsed, suspendTechnically, suspensionAllowsRun } from './suspension.mjs'
 
 export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, technical: TECH_DEFAULTS,
@@ -22,6 +25,12 @@ export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs
 /** state → what admission it needs before work may start in it */
 const NEEDS = { planning: { stage: 'planning', ai: true, profile: 'reasoning' }, implementing: { stage: 'implementing', ai: true, profile: 'reasoning' }, testing: { stage: 'testing', ai: false, profile: 'heavy_test' },
   independent_review: { stage: 'independent_review', ai: true, profile: 'reasoning' }, security_review: { stage: 'security_review', ai: true, profile: 'reasoning' } }
+
+/** The extra-usage fact says OFF, is well-formed and not future-dated, but is older than its lifetime: re-verification is due (nothing else about it is wrong). */
+export function extraUsageStaleButOff(gov, now, ttl = GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms) {
+  const x = gov?.extra_usage
+  return !!x && x.enabled === false && Number.isFinite(x.verified_at) && x.verified_at <= now && now - x.verified_at >= ttl
+}
 
 export class Engine {
   constructor({ ledger, policy, adapters, cfg = {}, rng = Math.random, hook = null, snapshotRoot, mode = 'simulated' }) {
@@ -33,6 +42,23 @@ export class Engine {
     Object.assign(this, { ledger, policy, adapters, rng, hookFn: hook, snapshotRoot, mode, cfg: { ...ENGINE_DEFAULTS, ...cfg, renewal: { ...RENEWAL_DEFAULTS, ...(cfg.renewal ?? {}) }, retry: { ...RETRY_DEFAULTS, ...(cfg.retry ?? {}) }, technical: { ...TECH_DEFAULTS, ...(cfg.technical ?? {}) } } })
   }
   hook(name, ctx = {}) { this.hookFn?.(name, ctx) }
+  /** Leases this controller process is running right now (the parallel scheduler); every OTHER live lease is an orphan of a dead controller or a crashed session. */
+  inflight = new Set()
+  /** Work slots (heavy tests) the scheduler holds for a task while its step runs: the task's own work is not counted against itself at admission. */
+  ownWork = new Map()
+  /** Work-lease ids and pre-launch reservation holders of the scheduling round that is running RIGHT NOW: never an orphan, whatever a later reconciliation concludes (D3.5 independent verification F1). */
+  inflightWork = new Set()
+  inflightHolders = new Set()
+  /** Reconcile every orphaned live lease, each on its own (task-scoped). @returns {Promise<object[]>} the ones that could NOT be cleared (they keep their slot). */
+  async reconcileOrphans({ reason = 'WORKER_TERMINATED' } = {}) {
+    const stuck = []
+    for (const l of this.ledger.liveLeases()) {
+      if (this.inflight.has(l.lease_id)) continue
+      const r = await reconcileSlot(this, { reason, lease: l })
+      if (!r.cleared) stuck.push({ task_id: l.task_id, lease_id: l.lease_id, code: r.code })
+    }
+    return stuck
+  }
   /** The admission a stage needs (also used by the session runner to RE-admit at every unit boundary and before every fresh session). */
   needFor(stage) { return NEEDS[stage] ?? null }
   /** Start a fresh budget for a technically suspended task (operator/test convenience — NOT a permission decision). */
@@ -43,21 +69,37 @@ export class Engine {
    * Pure with respect to the ledger's task state: decides whether `stage` may start (or, with `ownLease`, may CONTINUE) now. Never starts anything.
    * `ownLease` = the lease of the session that is asking to continue: the slot it holds is its OWN, not an unrelated occupied reasoning slot; any other holder is still `busy`.
    */
-  async checkAdmission(taskId, need, { ownLease = null } = {}) {
+  async checkAdmission(taskId, need, { ownLease = null, ownWork = this.ownWork.get(taskId) ?? null, reverified = false } = {}) {
     const L = this.ledger; const A = this.adapters; const now = L.now(); const t = L.getTask(taskId)
     if (t.cancelled) return { ok: false, kind: 'cancelled', codes: ['TASK.CANCELLED'] }
     if (!L.requirementsIntact(taskId)) return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['TASK.REQUIREMENTS_TAMPERED'] }
-    const holder = L.slotHolder(); const own = !!ownLease && !!holder && holder.lease_id === ownLease.lease_id && holder.task_id === taskId && holder.state === 'active'
-    if (need.ai && holder && !own) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
+    // D3.5: slots are per task. `own` = the asker's OWN live lease (continuing a session it holds); any other occupancy counts against the slot capacity (default 1 = the D3.4 single slot).
+    const mine = L.leaseOfTask(taskId); const own = !!ownLease && !!mine && mine.lease_id === ownLease.lease_id && mine.state === 'active'
+    if (need.ai && !own && (mine || L.freeSlots('reasoning') === 0)) return { ok: false, kind: 'busy', codes: ['LEASE.SLOT_HELD'] }
     if (need.ai && !own && sessionsUsed(L, taskId) >= this.cfg.technical.maxSessionsPerTask) return { ok: false, kind: 'suspend', cause: 'SESSION_BUDGET_EXHAUSTED', codes: ['SESSION_BUDGET_EXHAUSTED'] } // a NEW session only: continuing the paid one is not a new purchase
     const s = await A.resources.sample()
-    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest: s.guest, active: { reasoning_sessions: holder && !own ? 1 : 0, heavy_test_workloads: s.heavy ?? 0 }, reservations: s.reservations ?? [], now, accel: s.accel })
+    // active counts come from DURABLE leases (never an in-memory guess), and durable not-yet-materialized reservations are subtracted from what is available
+    const counts = L.activeCounts({ excludeLeaseId: own ? ownLease.lease_id : null, excludeWorkId: ownWork?.work_id ?? null })
+    const others = L.pendingReservations({ excludeTask: taskId })
+    const reservations = [...(s.reservations ?? []), ...others]
+    const otherMb = others.reduce((n, r) => n + r.mb, 0)
+    const guest = s.guest && Number.isFinite(s.guest.mem_available_mb) && otherMb ? { ...s.guest, mem_available_mb: s.guest.mem_available_mb - otherMb } : s.guest // review CR-5: a concurrently admitted workload's promise is subtracted in the worker too
+    const res = admit(need.profile, { host: s.host, history: s.history ?? [], prevPressure: s.prevPressure ?? 'clear', guest, active: { reasoning_sessions: counts.reasoning_sessions, heavy_test_workloads: Math.max(s.heavy ?? 0, counts.heavy_test_workloads) }, reservations, now, accel: s.accel })
     if (res.decision !== 'admit') return { ok: false, kind: 'wait', state: 'waiting_resources', reason: res.lifecycle_reason, eligible_at: now + this.cfg.resourceRecheckMs + Math.round(this.rng() * 5000), codes: res.reason_codes }
     if (!need.ai) return { ok: true }
     const gov = A.subscription.load()
     const a = admitAiWork(gov, { now, priority: need.stage === 'security_review' ? 'security' : 'owner' })
     if (!a.admit) {
       const state = gov?.state
+      // D3.5-I: a verified-OFF extra-usage fact that is merely STALE (older than its lifetime) is a billing RE-VERIFICATION wait for ALL AI work — not a per-task owner block. No AI work
+      // starts until the fact is fresh again; when it is, every waiting task resumes by itself. Enabled, unknown, future-dated or malformed facts stay owner blockers (fail closed).
+      if (a.codes.includes('AUTH.EXTRA_USAGE_UNVERIFIED') && extraUsageStaleButOff(gov, now) && !['auth_expired', 'auth_unverified', 'unauthorized_billing'].includes(state)) {
+        const re = reverified ? { ok: false } : await this.reverifyBilling(gov, now)
+        if (re.ok) return this.checkAdmission(taskId, need, { ownLease, ownWork, reverified: true })
+        if (re.code === 'AUTH.EXTRA_USAGE_ENABLED') return { ok: false, kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: ['AUTH.EXTRA_USAGE_ENABLED'] }
+        const reason = L.lc.recoverable_states.waiting_subscription.reasons.includes('BILLING_REVERIFICATION_REQUIRED') ? 'BILLING_REVERIFICATION_REQUIRED' : 'SUBSCRIPTION_LIMIT'
+        return { ok: false, kind: 'wait', state: 'waiting_subscription', reason, eligible_at: now + this.cfg.subscriptionRecheckMs, codes: ['AUTH.EXTRA_USAGE_UNVERIFIED', 'BILLING.REVERIFICATION_REQUIRED'] }
+      }
       if (!gov || a.codes.some((c) => /^AUTH\./.test(c)) || ['auth_expired', 'auth_unverified', 'unauthorized_billing'].includes(state)) {
         return { ok: false, kind: 'blocked', reason: state === 'auth_expired' ? 'OWNER_AUTH_EXPIRED' : 'OWNER_DECISION_REQUIRED', codes: a.codes }
       }
@@ -67,6 +109,28 @@ export class Engine {
     }
     const route = routeStage({ stage: need.stage, task: t, escalated: L.meta(`escalated:${taskId}`) === '1', subscription: { admit: true } })
     return route.wait ? { ok: false, kind: 'wait', state: 'waiting_subscription', reason: 'SUBSCRIPTION_LIMIT', eligible_at: now + this.cfg.subscriptionRecheckMs, codes: [route.code] } : { ok: true, route }
+  }
+
+  /**
+   * A SUPPORTED, NON-BILLABLE, authenticated re-verification of the extra-usage setting, if the subscription adapter offers one. The pinned CLI and the official documentation offer
+   * none today (doc 28): the live adapter has no such method, so this returns BILLING.NO_SUPPORTED_NONBILLABLE_SOURCE and the owner re-verifies. A response is accepted only if it
+   * says supported, non-billable, OFF, recent (≤ 60 s) and names its basis; anything else changes nothing. It never launches a session.
+   */
+  async reverifyBilling(gov, now) {
+    const f = this.adapters.subscription?.reverifyExtraUsage
+    if (typeof f !== 'function') return { ok: false, code: 'BILLING.NO_SUPPORTED_NONBILLABLE_SOURCE' }
+    // review CR-6: until a reviewed live source exists (gate G-UNATTENDED-LONG-WAIT) an adapter can never become the billing trust root: SIMULATED adapters and SIMULATED_* bases only, at most once per recheck interval
+    if (this.adapters.simulated !== true) return { ok: false, code: 'BILLING.LIVE_REVERIFICATION_NOT_AUTHORIZED' }
+    const last = Number(this.ledger.meta('billing_reverify_last') ?? 0); if (now - last < this.cfg.subscriptionRecheckMs && last) return { ok: false, code: 'BILLING.REVERIFICATION_RATE_LIMITED' }
+    this.ledger.setMeta('billing_reverify_last', now)
+    let r = null; try { r = await f() } catch { r = null }
+    if (r && r.supported === true && r.billable === false && r.enabled === true) { this.adapters.subscription.save({ ...(this.adapters.subscription.load() ?? gov), extra_usage: { enabled: true, basis: String(r.basis ?? 'reverification').slice(0, 80), verified_at: now } }); return { ok: false, code: 'AUTH.EXTRA_USAGE_ENABLED' } }
+    if (!r || r.supported !== true || r.billable !== false || r.enabled !== false || !Number.isFinite(r.verified_at) || r.verified_at > now || now - r.verified_at > 60_000 || typeof r.basis !== 'string' || !/^SIMULATED_[A-Z_]{1,60}$/.test(r.basis)) return { ok: false, code: 'BILLING.REVERIFICATION_UNAVAILABLE' }
+    const cur = this.adapters.subscription.load() // review S-9: the state may have changed during the await (an owner attestation wins)
+    if (!cur || cur.extra_usage?.enabled !== false || (cur.extra_usage?.verified_at ?? 0) > r.verified_at) return { ok: false, code: 'BILLING.REVERIFICATION_SUPERSEDED' }
+    this.adapters.subscription.save({ ...cur, extra_usage: { enabled: false, basis: r.basis, source: 'adapter_reverification', verified_at: r.verified_at } })
+    this.ledger.recordRecovery(null, 'billing_reverified', { basis: r.basis.slice(0, 80), verified_at: r.verified_at })
+    return { ok: true }
   }
 
   /** Check + side effects: moves the task to the right waiting/blocked state. @returns {{go:true, route?:object}|{go:false, outcome:string}} */
@@ -93,7 +157,17 @@ export class Engine {
       return
     }
     if (t.state !== w.state || t.lifecycle.blocker_reason) { const r = L.transition(taskId, w.state, { reason_code: w.reason }); if (!r.ok) throw new Error(`ENGINE.WAIT_REFUSED:${r.problems[0]}`) }
-    L.setWait(taskId, { kind: w.state, reason: w.reason, eligibleAt: w.eligible_at ?? null, detail: { codes: w.codes } })
+    L.setWait(taskId, { kind: w.state, reason: w.reason, eligibleAt: w.eligible_at ?? null, detail: { codes: w.codes, ...(w.detail ?? {}) } })
+    if ((w.codes ?? []).includes('BILLING.REVERIFICATION_REQUIRED')) this.billingPackage()
+  }
+
+  /** ONE owner package per stale extra-usage fact for the WHOLE controller (deduplicated by the fact's timestamp), never one per task; every task keeps waiting and resumes by itself. */
+  billingPackage() {
+    const L = this.ledger; const g = this.adapters.subscription.load(); const at = g?.extra_usage?.verified_at ?? null
+    enqueueOutbox(L, { taskId: null, kind: 'genuine_blocker', dedupeKey: `billing-reverification:${at}`, payload: { scope: 'all AI work (tasks WAIT; none is blocked; nothing needs a per-task action)', reason: 'BILLING_REVERIFICATION_REQUIRED', codes: ['AUTH.EXTRA_USAGE_UNVERIFIED'],
+      fact_verified_at: at, fact_lifetime_ms: GOVERNOR_DEFAULTS.extra_usage_fact_ttl_ms, waiting_tasks: L.db.prepare("SELECT COUNT(*) c FROM waits WHERE detail_json LIKE '%BILLING.REVERIFICATION_REQUIRED%'").get().c,
+      owner_step: 'Re-verify that extra usage (usage credits) is OFF for this account: `dh3 attest-extra-usage-off`, then `dh3 probe-subscription` (doc 07). Every waiting task resumes automatically once the fact is fresh.',
+      why_not_automatic: 'No supported non-billable, unattended, machine-readable source of the extra-usage setting exists in the pinned CLI or the official documentation (doc 28); launching a session to find out would itself risk billing.' } })
   }
 
   /** ONE actionable package per genuine blocker (and only for genuine blockers): what is blocked, why, the exact owner action, and what is preserved. */
@@ -105,16 +179,27 @@ export class Engine {
 
   // ------------------------------------------------------------ the loop
   async tick() {
+    if (this.busy) return { progressed: false, busy: true } // single-flight (review CR-1): a tick never overlaps a tick or a scheduler round
+    this.busy = true
+    try { return await this.#tick() } finally { this.busy = false }
+  }
+  async #tick() {
     const L = this.ledger; const now = L.now()
     await this.deliverOutbox()
-    // recovery of an unverified/orphaned slot comes first: no new session may start while the old one is not proven dead
-    if (L.slotHolder()) { const r = await reconcileSlot(this, { reason: 'WORKER_TERMINATED' }); if (!r.cleared) return { progressed: false, held: true, code: r.code, next_wakeup: now + 5000 } }
+    // recovery of an unverified/orphaned slot comes first: no new session may start while the old one is not proven dead. Since D3.5 this is task-scoped (every live lease this
+    // controller is not itself running is an orphan, reconciled on its own); the sequential engine keeps the D3.4 rule that nothing else advances while any slot is stuck.
+    const stuck = await this.reconcileOrphans({ reason: 'WORKER_TERMINATED' })
+    if (stuck.length) return { progressed: false, held: true, code: stuck[0].code, next_wakeup: now + 5000 }
+    this.checkDependencyBasis()
     for (const row of L.listTasks("cancelled=0 AND handoff_ready=0 AND state<>'completed'")) {
       const r = await this.advance(row.task_id)
       if (r.progressed) return { progressed: true, task_id: row.task_id, action: r.action }
     }
     return { progressed: false, next_wakeup: this.nextWakeup() }
   }
+
+  /** D3.5 F2: withdraw what a changed dependency basis invalidated (all tasks, to a fixed point). @returns {string[]} the tasks newly withdrawn. */
+  checkDependencyBasis() { return sweepDependencyBasis(this) }
 
   /** Run until nothing can progress. `maxTicks` bounds runaway loops in tests; time-based waits are skipped by the caller advancing the fixture clock. */
   async runUntilIdle({ maxTicks = 500 } = {}) {
@@ -129,7 +214,8 @@ export class Engine {
     const r = L.db.prepare('SELECT MIN(next_eligible_at) m FROM retry_budgets WHERE exhausted=0 AND next_eligible_at>?').get(L.now()).m
     const sus = L.db.prepare("SELECT MIN(s.retry_at) m FROM suspensions s JOIN tasks t ON t.task_id=s.task_id WHERE t.cancelled=0 AND t.handoff_ready=0 AND s.disposition='cooling_down'").get().m
     const ob = L.db.prepare("SELECT MIN(next_attempt_at) m FROM outbox WHERE status='pending' AND next_attempt_at>?").get(L.now()).m // an undelivered notification is never forgotten
-    const xs = [w, r, sus, ob].filter((x) => Number.isFinite(x))
+    const ra = L.db.prepare("SELECT MIN(next_at) m FROM recovery_attempts WHERE next_at>? AND scope IN (SELECT substr(key,10) FROM meta WHERE key LIKE 'incident:%')").get(L.now()).m // a pending incident's back-off
+    const xs = [w, r, sus, ob, ra].filter((x) => Number.isFinite(x))
     return xs.length ? Math.min(...xs) : null
   }
 
@@ -138,6 +224,9 @@ export class Engine {
     const done = (action) => ({ progressed: true, action })
     const none = { progressed: false }
     if (!suspensionAllowsRun(this, taskId)) return none // cooling down (a wake-up is scheduled) or terminal (an explicit disposition, one notification)
+    if (L.getTask(taskId).state !== s) return done('suspension_ended') // a lifecycle that SHOWS suspensions (P6) just left technical_suspension: that is progress
+    { const d = await dependencyStep(this, taskId); if (d) return d } // D3.5 F2: a changed/unready dependency basis is dealt with before any stage can build, verify or hand off on it
+    if (pendingIncident(L, taskId)) return superviseIncident(this, taskId) // D3.5-C: a reported incident is handled (bounded, persisted back-off) before anything else of this task
     switch (s) {
       case 'submitted': { const r = L.transition(taskId, 'queued'); return r.ok ? done('queued') : none }
       case 'queued': {
@@ -152,7 +241,7 @@ export class Engine {
       }
       case 'waiting_resources': case 'waiting_subscription': case 'waiting_external': return this.tryResume(t)
       case 'worker_recovery': case 'context_recovery': {
-        const r = await reconcileSlot(this, { reason: 'HOST_RESTARTED' })
+        const r = await reconcileSlot(this, { reason: 'HOST_RESTARTED', taskId }) // task-scoped: only THIS task's lease, never another task's
         if (!r.cleared) return none
         const back = L.transition(taskId, L.resumeTarget(taskId)); return back.ok ? done('recovered') : none
       }
@@ -180,6 +269,11 @@ export class Engine {
   async tryResume(t) {
     const L = this.ledger; const now = L.now(); const w = L.getWait(t.task_id)
     if (w?.eligible_at && now < w.eligible_at) return { progressed: false }
+    if (w?.detail?.resume_check === 'unit_floor') { // D3.5-D: a test-unit floor wait is re-admitted against the runner floor WITHOUT a lifecycle transition until it holds
+      const u = await unitFloorReady(this, t.task_id, w)
+      if (u.suspend) { suspendTechnically(this, t.task_id, { cause: 'RESOURCE_WAIT_EXCEEDED', stage: 'testing', codes: ['RESOURCE.BELOW_UNIT_FLOOR'] }); return { progressed: true, action: 'technically_suspended' } }
+      if (!u.ready) { L.setWait(t.task_id, { kind: w.kind, reason: w.reason, eligibleAt: u.eligible_at, detail: w.detail }); return { progressed: false } }
+    }
     const target = t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to
     const need = NEEDS[target] ?? { stage: 'deterministic', ai: false, profile: 'deterministic' }
     const r = await this.checkAdmission(t.task_id, need)

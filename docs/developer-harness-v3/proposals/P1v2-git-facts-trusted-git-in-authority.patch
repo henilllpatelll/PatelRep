@@ -1,0 +1,73 @@
+diff --git a/scripts/developer-harness-v3/authority/git-facts.mjs b/scripts/developer-harness-v3/authority/git-facts.mjs
+index 67b2d08..e189f82 100644
+--- a/scripts/developer-harness-v3/authority/git-facts.mjs
++++ b/scripts/developer-harness-v3/authority/git-facts.mjs
+@@ -3,29 +3,23 @@
+ // MUST run in the TRUSTED VERIFIER against a verifier-controlled clone, never inside the candidate's writable environment: the
+ // facts are only as trustworthy as the clone they came from. `expectedRepository` is supplied by the verifier's own configuration;
+ // the clone's remote URL is only cross-checked against it. No network, no write, no hook, no external diff or textconv driver.
+-import { execFileSync } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+-import { mkdtempSync, writeFileSync } from 'node:fs'
+-import os from 'node:os'
+-import path from 'node:path'
+ import { v } from '../lib/canonical.mjs'
+ import { matchesAny, normalizeRepoPath } from '../lib/paths.mjs'
++import { resolveGit, trustedGit } from './trusted-git.mjs'
+ 
+ const MAX_PATCH_BYTES = 128 * 1024 * 1024
+ const MAX_ADDED_LINES = 5000
+ const MAX_TRIPWIRE_PATHS = 200
+ 
+-// An EMPTY config file stands in for the user's global git config (os.devNull is not accepted by Git for Windows as a config path).
+-const EMPTY_CONFIG = (() => { const d = mkdtempSync(path.join(os.tmpdir(), 'd32-gitcfg-')); const f = path.join(d, 'empty.gitconfig'); writeFileSync(f, ''); return f })()
+-
+-function cleanEnv() {
+-  const env = {}
+-  for (const [k, val] of Object.entries(process.env)) if (!/^GIT_/i.test(k) && val !== undefined) env[k] = val
+-  return { ...env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: EMPTY_CONFIG, GIT_EXTERNAL_DIFF: '' }
+-}
+-const git = (repoDir, args, { maxBuffer = 64 * 1024 * 1024 } = {}) =>
+-  execFileSync('git', ['--literal-pathspecs', '-C', repoDir, '-c', 'core.hooksPath=', '-c', 'diff.external=', '-c', 'core.fsmonitor=false', '-c', 'color.ui=false', '-c', 'diff.ignoreSubmodules=none',
+-    '-c', 'diff.renames=false', '-c', 'core.attributesFile=', '-c', 'diff.context=3', '-c', 'diff.interHunkContext=0', '-c', 'diff.algorithm=default', '-c', 'diff.noprefix=false', '-c', 'diff.mnemonicPrefix=false', ...args], { env: cleanEnv(), maxBuffer, stdio: ['ignore', 'pipe', 'ignore'] })
++// D3.4 (proposal): NEVER a bare `git`. The executable is resolved from an explicit absolute allow-list that excludes the repository under inspection and the
++// process cwd (Windows searches the cwd first for a bare name), optionally digest-pinned; the child runs with a rebuilt minimal environment (no inherited PATH,
++// HOME, GIT_* or credential variables) and every command-executing configuration key neutralised on the command line, so hostile REPOSITORY configuration cannot
++// run code. See orchestrator/trusted-git.mjs. The extra -c options below are the ones this module has always used.
++const TRUSTED = new Map()
++const gitFor = (repoDir) => { let g = TRUSTED.get(repoDir); if (!g) { g = resolveGit({ forbiddenRoots: [repoDir] }); TRUSTED.set(repoDir, g) } if (!g.ok) throw new Error(g.code); return g.exe }
++const EXTRA = ['-c', 'diff.context=3', '-c', 'diff.interHunkContext=0', '-c', 'diff.algorithm=default', '-c', 'diff.noprefix=false', '-c', 'diff.mnemonicPrefix=false']
++const git = (repoDir, args, { maxBuffer = 64 * 1024 * 1024 } = {}) => trustedGit(gitFor(repoDir), repoDir, [...EXTRA, ...args], { maxBuffer })
+ 
+ /** `git diff --raw -z --no-abbrev`: ":oldmode newmode oldsha newsha STATUS\0path\0". Modes 120000 (symlink) and 160000 (gitlink) are reported separately. */
+ function parseRaw(buf) {
+diff --git a/scripts/developer-harness-v3/orchestrator/trusted-git.mjs b/scripts/developer-harness-v3/authority/trusted-git.mjs
+similarity index 100%
+rename from scripts/developer-harness-v3/orchestrator/trusted-git.mjs
+rename to scripts/developer-harness-v3/authority/trusted-git.mjs
+diff --git a/scripts/developer-harness-v3/orchestrator/issuer/facts-git.mjs b/scripts/developer-harness-v3/orchestrator/issuer/facts-git.mjs
+index c249f1d..38404e0 100644
+--- a/scripts/developer-harness-v3/orchestrator/issuer/facts-git.mjs
++++ b/scripts/developer-harness-v3/orchestrator/issuer/facts-git.mjs
+@@ -3,7 +3,7 @@
+ // by the issuer. Isolation facts come from a record the OWNER's attestation ceremony maintains, never from the controller's request.
+ import { createHash } from 'node:crypto'
+ import { v } from '../../lib/canonical.mjs'
+-import { resolveGit, trustedGit } from '../trusted-git.mjs'
++import { resolveGit, trustedGit } from '../../authority/trusted-git.mjs'
+ 
+ export function createFacts({ verifier_repo_dir, git_candidates, git_sha256 = null, isolation_record_file = null }) {
+   const g = resolveGit({ candidates: git_candidates, pinSha256: git_sha256, forbiddenRoots: [verifier_repo_dir] })
+diff --git a/scripts/developer-harness-v3/tests/d34-issuer.test.mjs b/scripts/developer-harness-v3/tests/d34-issuer.test.mjs
+index 075f75b..bb40328 100644
+--- a/scripts/developer-harness-v3/tests/d34-issuer.test.mjs
++++ b/scripts/developer-harness-v3/tests/d34-issuer.test.mjs
+@@ -16,7 +16,7 @@ import { OPS } from '../orchestrator/issuer/issuer-core.mjs'
+ import { aclPlan, assertOutside, emergencyDeactivate, generateIssuerKey, loadSigningKey, proposeKeyRegistration, proposeKeyRevocation, proposeKeyRotation } from '../orchestrator/issuer/key-custody.mjs'
+ import { callIssuer, ipcPath, startIssuerServer } from '../orchestrator/issuer/ipc.mjs'
+ import { createIssuerClient } from '../orchestrator/issuer/issuer-client.mjs'
+-import { DEFAULT_GIT_CANDIDATES, minimalEnv, resolveGit, trustedGit } from '../orchestrator/trusted-git.mjs'
++import { DEFAULT_GIT_CANDIDATES, minimalEnv, resolveGit, trustedGit } from '../authority/trusted-git.mjs'
+ import { createFacts as createGitFacts } from '../orchestrator/issuer/facts-git.mjs'
+ import { gatherCandidateFacts } from '../authority/git-facts.mjs'
+ import { loadContractFile, loadPolicy, policyRevision } from '../authority/contract.mjs'

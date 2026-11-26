@@ -16,8 +16,10 @@ import { renewalDecision, verifyCheckpoint, composeRestorePrompt, verifyRestored
 import { captureWork, persistCheckpoint, preserveOnExit } from './preserve.mjs'
 import { safeCode } from './suspension.mjs'
 import { MODEL_FAMILIES, verifyActualModel } from './routing.mjs'
+import { normalizeFingerprint } from './engineering-recovery.mjs'
 
-const fingerprint = (...parts) => parts.join('|').slice(0, 120)
+// D3.5-G: volatile tokens in UNTRUSTED failure text (hashes, uuids, line numbers, temp paths) are normalized so a failure cannot evade its budget by changing shape
+const fingerprint = (...parts) => parts.map((p) => normalizeFingerprint(p ?? '')).join('|').slice(0, 120)
 const isCount = (x) => Number.isSafeInteger(x) && x >= 0
 
 /** Map a denied admission onto a session outcome (the stage handler's failStage turns it into the right waiting/blocked/suspended state). */
@@ -44,20 +46,27 @@ async function boundaryCheck(e, taskId, spec, lease) {
  * @param {{stage:string, role:string, route:object, mandatory:boolean, readonly?:boolean, instruction:string, onLeased?:(lease:object)=>void}} spec
  */
 export async function runSessionStage(e, taskId, spec) {
+  // D3.5 (review CR-1): every lease this session holds is IN FLIGHT for the controller, so a concurrent reconciliation never treats it as an orphan; removed when the stage ends
+  const mine = []; const track = (l) => { if (l?.lease_id) { mine.push(l.lease_id); e.inflight?.add(l.lease_id) } }
+  try { return await runSessionStageTracked(e, taskId, { ...spec, track }) } finally { for (const id of mine) e.inflight?.delete(id) }
+}
+async function runSessionStageTracked(e, taskId, spec) {
   const { ledger: L, adapters: A, cfg } = e
   const task = L.getTask(taskId)
   let acquired = L.acquireLease({ taskId, role: spec.role, stage: spec.stage, model: spec.route.model, effort: spec.route.effort, ttlMs: cfg.leaseTtlMs })
   if (!acquired.ok) return { status: 'busy', code: acquired.code }
   let lease = acquired.lease
+  spec.track?.(lease)
   e.hook('after_lease_acquired', { taskId })
   let tel = createTelemetry(); let lastUsageAt = null; let turns = 0; let startedAt = L.now(); let deliverable = null; const executions = [lease.execution_id]
   let outcome = null
   try {
     const prep = await A.worker.ensure(task)
-    if (!prep?.ok) { outcome = { status: 'failed', code: prep?.code ?? 'WORKER.NOT_AVAILABLE', fingerprint: fingerprint('worker', prep?.code) }; throw outcome }
+    // D3.5-C: a worker INCIDENT (failed sanitizer, contaminated worker, broken/missing overlay, golden mismatch) goes to the recovery supervisor, not to a blind retry
+    if (!prep?.ok) { outcome = prep?.incident ? { status: 'incident', incident: prep.incident, code: prep.code ?? null, detail: prep.detail ?? {} } : { status: 'failed', code: prep?.code ?? 'WORKER.NOT_AVAILABLE', fingerprint: fingerprint('worker', prep?.code) }; throw outcome }
     spec.onLeased?.(lease)
     let prompt = await buildPrompt(e, taskId, spec, null)
-    if (!prompt.ok) { outcome = { status: 'failed', code: prompt.code, fingerprint: fingerprint('prompt', prompt.code) }; throw outcome }
+    if (!prompt.ok) { outcome = prompt.incident ? { status: 'incident', incident: prompt.incident.kind, code: prompt.code, detail: prompt.incident } : { status: 'failed', code: prompt.code, fingerprint: fingerprint('prompt', prompt.code) }; throw outcome }
     prompt = prompt.prompt
     let resume = false
     L.markExecutionRunning(lease.execution_id)
@@ -170,7 +179,8 @@ async function buildPrompt(e, taskId, spec) {
   }
   const task = L.getTask(taskId)
   const observed = await e.adapters.git.prepareWorktree(task, { snapshotDir: checkpoint?.snapshot_ref ? resolve(checkpoint.snapshot_ref) : null, readonly: spec.readonly === true })
-  if (!observed?.ok) return { ok: false, code: observed?.code ?? 'WORKTREE.PREPARE_FAILED' }
+  // a checkpoint whose snapshot cannot be restored is a RESTORE incident (the supervisor de-verifies it and falls back to an older one), not a retry of the same failing restore
+  if (!observed?.ok) return { ok: false, code: observed?.code ?? 'WORKTREE.PREPARE_FAILED', incident: checkpoint && /^(SNAPSHOT|CHECKPOINT)\./.test(observed?.code ?? '') ? { kind: 'restore_failed', checkpoint_id: checkpoint.checkpoint_id } : null }
   if (checkpoint) {
     const rs = verifyRestoredState({ ledger: L, taskId, checkpointId: checkpoint.checkpoint_id, observed })
     if (!rs.ok) return { ok: false, code: rs.problems[0] }
@@ -207,6 +217,7 @@ async function renew(e, taskId, spec, lease, dec) {
   // 8. fresh lease and a fresh context (new context id), 9. restore and verify, 10. continue
   const next = L.acquireLease({ taskId, role: spec.role, stage: spec.stage, model: spec.route.model, effort: spec.route.effort, ttlMs: cfg.leaseTtlMs })
   if (!next.ok) return { status: 'failed', code: next.code, fingerprint: fingerprint('renew-lease', next.code) }
+  spec.track?.(next.lease)
   e.hook('after_renewal_new_lease', { taskId })
   const back = L.transition(taskId, resumeTo)
   if (!back.ok) { L.closeLease(next.lease, { terminationVerified: (await safeTerminate(A, next.lease)).verified, endReason: 'RENEWAL_ABORTED' }); return { status: 'failed', code: back.problems[0], fingerprint: fingerprint('renew-resume', back.problems[0]) } }
