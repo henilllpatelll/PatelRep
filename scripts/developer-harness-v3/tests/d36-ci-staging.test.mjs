@@ -90,10 +90,11 @@ test('a spoofed passing CI Gate (another app) never turns a failing CI into succ
 test('CI that never reports is waited for (bounded), then a technical suspension; GitHub rate limits are waited out to their reset, with no extra effect', async () => {
   const h = await harness({ gh: { ciDisabled: true } }); const id = h.submit()
   await h.drive({ until: () => !!h.ledger.getSuspension(id), maxRounds: 400 }); assert.equal(h.ledger.getSuspension(id).cause, 'CI_RESULT_MISSING'); h.close()
-  const r = await harness({ gh: { rate: { limit: 6, windowMs: 3600_000 } } }); const id2 = r.submit()
-  assert.ok((await eligible(r, id2, 600)).done, 'delivered after the rate-limit windows')
+  // (a window smaller than one step's reads would livelock: residual R-29)
+  const r = await harness({ gh: { rate: { limit: 10, windowMs: 3600_000 } } }); const id2 = r.submit(); const w0 = r.github.s.rate.window_start
+  assert.ok((await eligible(r, id2, 2000)).done, 'delivered after the rate-limit windows (fresh pre-dispatch reads cost requests too)')
   assert.equal(ops(r, 'push_ref').length, 1); assert.equal(ops(r, 'create_pull').length, 1)
-  assert.ok(r.ledger.db.prepare("SELECT 1 FROM recovery_history WHERE 1").get() !== undefined); r.close()
+  assert.ok(r.github.s.rate.window_start > w0, 'the limit was really hit: the controller waited for a window reset'); r.close()
 })
 
 test('shared staging: ONE V3 owner at a time (held or unresolved), re-bound to the owner\'s current candidate, released only with proof, never stolen', async () => {
@@ -144,4 +145,20 @@ test('controller offline while staging completes: the restarted controller picks
   await h.drive({ until: () => state(h, id) === 'staging_verification', maxRounds: 300 }); const clock = h.clock; h.close()
   clock.advance(45 * 60_000) // staging finished while nothing was watching
   const h2 = await harness({ root, clock }); assert.ok((await eligible(h2, id, 50)).done); assert.equal(ops(h2, 'dispatch_staging').length, 0); h2.close()
+})
+
+test('review M1: a technically suspended (or blocked/cancelled) owner releases shared staging once observation proves it idle — under the AUTHORITATIVE policy every task reaches its own terminal DELIVERY_NOT_ACTIVATED', async () => {
+  const h = await harness({ proposal: false }); const a = h.submit({ requirements: { text: 'a', sim_path: 'apps/mobile/a.txt' } }); const b = h.submit({ requirements: { text: 'b', sim_path: 'apps/mobile/b.txt' } })
+  await h.drive({ until: () => !!h.ledger.getSuspension(a) && !!h.ledger.getSuspension(b), maxRounds: 400 })
+  for (const id of [a, b]) assert.equal(h.ledger.getSuspension(id)?.cause, 'DELIVERY_NOT_ACTIVATED', id)
+  assert.equal(stagingOwner(h.ledger), null, 'no suspended task keeps shared staging'); assert.equal(ops(h).length, 0); h.close()
+})
+
+test('review M3: remote-state preconditions of a staging dispatch are re-read FRESH: staging that became busy after the last observation refuses the dispatch', async () => {
+  const h = await harness(); const id = h.submit(); assert.ok((await eligible(h, id)).done)
+  await h.delivery.observeDelivery(id); assert.equal(h.delivery.obsCache.get(id).details.staging_busy, false, 'the cached view says idle')
+  h.github.foreignStaging(10 * 60_000) // another PR starts using shared staging
+  const t = h.ledger.getTask(id); const dl = h.ledger.delivery(id)
+  const v = await h.delivery.validator('dispatch_staging_candidate')({ repository: t.repository, branch: dl.branch, pr_number: dl.pr_number, head_sha: t.head_sha }, t)
+  assert.equal(v.code, 'DELIVERY.STAGING_DISPATCH_UNSAFE'); h.close()
 })

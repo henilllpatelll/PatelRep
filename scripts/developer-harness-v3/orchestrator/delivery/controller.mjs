@@ -14,7 +14,7 @@ import { basisOf, dependencyCurrent, promoteBasis } from '../dependency-basis.mj
 import { ACTION_IDENTITY, DurableEvidenceView, authorizeIntent, reauthorize, riskRequiredEvidence, trustedFacts } from './authorize.mjs'
 import { verifyRemoteObservation } from './observation.mjs'
 import { recordDiagnosis, remediationText } from './diagnostics.mjs'
-import { acquireStaging, advanceBase, branchFor, ensureDelivery, invalidateStaleMilestones, nextPoll, pollDue, reach, recordPr, releaseStaging, schedulePoll, stagingOwner } from './state.mjs'
+import { acquireStaging, advanceBase, branchFor, ensureDelivery, invalidateStaleMilestones, markStagingUnresolved, nextPoll, pollDue, reach, recordPr, releaseStaging, resolveStaging, schedulePoll, stagingOwner } from './state.mjs'
 import { withDeadline } from './watchdog.mjs'
 import { PUBLISHER_AUTHOR } from '../issuer/delivery-issuer.mjs'
 
@@ -88,6 +88,7 @@ export class DeliveryController {
       }
       if (action === 'open_draft_pull_request' && (p.head !== d.branch || p.base !== 'main' || p.head_sha !== t.head_sha || d.pr_number !== null || p.author !== PUBLISHER_AUTHOR)) return { ok: false, code: 'DELIVERY.PR_TARGET_INVALID' }
       if (['update_pull_request_metadata', 'mark_pull_request_ready'].includes(action) && (p.number !== d.pr_number || d.pr_number === null)) return { ok: false, code: 'DELIVERY.PR_NOT_OWNED' }
+      if (['rerun_ci_jobs', 'dispatch_staging_candidate'].includes(action)) { const f = await this.observeDelivery(t.task_id); if (!f.ok) return { ok: false, code: f.code } } // review M3: remote-state preconditions from a FRESH read, at creation and again right before dispatch
       if (action === 'rerun_ci_jobs') { const o = this.obsCache?.get(t.task_id); const ours = o?.details?.ci?.checks?.some((c) => c.run_id === p.run_id && c.attempt === p.attempt); if (!ours || p.head_sha !== t.head_sha) return { ok: false, code: 'DELIVERY.RUN_NOT_OWNED' } }
       if (action === 'dispatch_staging_candidate') { const o = this.obsCache?.get(t.task_id); if (p.pr_number !== d.pr_number || p.head_sha !== t.head_sha || o?.details?.staging_busy !== false) return { ok: false, code: 'DELIVERY.STAGING_DISPATCH_UNSAFE' } } // never displace anyone's pending run
       return { ok: true }
@@ -115,6 +116,8 @@ export class DeliveryController {
     return this.dispatch(a.intent, 'dispatch')
   }
   async resume(i, params) {
+    for (let k = 0; i.superseded_by && k < 20; k += 1) i = getIntent(this.L, i.superseded_by) // review M2: always resume the LIVE head of a supersession chain
+    params = JSON.parse(i.params_json ?? 'null') ?? params
     if (['succeeded', 'reconciled_succeeded'].includes(i.status)) return { status: 'succeeded', intent_id: i.intent_id }
     if (i.status === 'uncertain') return this.reconcile(i)
     if (i.status === 'dispatched') return { status: 'in_flight', intent_id: i.intent_id } // only after a crash; markDispatchedAsUncertain turns it uncertain at start
@@ -137,6 +140,7 @@ export class DeliveryController {
     try {
       const w = await withDeadline(L, { opId: `effect:${i.intent_id}:${L.now()}`, taskId: i.task_id, kind: `effect:${i.action}`, ms: this.cfg.networkDeadlineMs }, (signal) => this.publisher.call(API[i.action], apiArgs(i.action, params), { signal, credential: this.credential }))
       out = w.timedOut ? { ok: false, code: 'WATCHDOG.NETWORK_TIMEOUT' } : { ok: true, value: w.value }
+      if (w.timedOut && i.action === 'dispatch_staging_candidate') markStagingUnresolved(L, i.task_id) // review O3: hold shared staging as UNRESOLVED until proof
     } catch (e) { if (e?.code === 'SIM_CRASH') throw e; out = { ok: false, code: codeOf(e), reset_at: e?.reset_at ?? null } }
     const rec = recordOutcome(L, i.intent_id, { success: out.ok, outcome: out.ok ? { simulated: true } : { code: out.code } })
     if (!out.ok && out.reset_at) schedulePoll(L, i.task_id, 'delivery', { baseMs: this.cfg.pollBaseMs, maxMs: this.cfg.pollMaxMs, at: out.reset_at, code: 'GITHUB.RATE_LIMITED' })
@@ -176,7 +180,8 @@ export class DeliveryController {
       out.push({ task_id: t.task_id, ...r })
     }
     // cancelled tasks: no new effect, ever; their shared-staging hold is released only once observation proves nothing of theirs is queued or running
-    for (const o of [stagingOwner(L)].filter((x) => x && L.getTask(x.task_id)?.cancelled)) await this.maybeReleaseStaging(o.task_id, 'TASK_CANCELLED')
+    // review M1: an owner that can no longer use staging (cancelled, technically suspended, blocked) releases it once observation proves nothing of its own is queued or running
+    for (const o of [stagingOwner(L)].filter(Boolean)) { const t = L.getTask(o.task_id); if (t?.cancelled || L.getSuspension(o.task_id) || t?.state === 'blocked') await this.maybeReleaseStaging(o.task_id, t?.cancelled ? 'TASK_CANCELLED' : L.getSuspension(o.task_id) ? 'TASK_SUSPENDED' : 'TASK_BLOCKED') }
     return { progressed: out.some((x) => x.progressed), steps: out, next_wakeup: this.nextWakeup() }
   }
   nextWakeup() { return nextPoll(this.L) }
@@ -316,14 +321,14 @@ export class DeliveryController {
     if (!ev.ok) return this.afterEffect(id, 'delivery_verification', { status: 'refused', code: ev.code, decision: ev.decision })
     const a = await this.accept(this.verifier, 'issue_delivery_verification', { task_id: id }); if (!a.ok) return this.wait(id, a.code)
     const pkg = a.issued.package
-    const ready = await this.effect(id, 'mark_pull_request_ready', `ready:${id}:${t.head_sha}`, { repository: t.repository, branch: L.delivery(id).branch, number: L.delivery(id).pr_number })
-    if (ready.status !== 'succeeded') return this.afterEffect(id, 'mark_ready', ready)
     const x = L.tx(() => { const r = L.transition(id, 'merge_eligible'); if (r.ok) { reach(L, id, 'merge_eligible', { evidenceRef: a.evidence_id }); L.setMeta(`delivery_package:${id}:${t.head_sha}`, JSON.stringify({ package: pkg, package_digest: a.issued.package_digest, signature: a.issued.package_signature })) } return r })
     if (!x.ok) return this.wait(id, x.problems[0])
     await this.maybeReleaseStaging(id, 'STAGING_VERIFIED')
+    await this.ensureReady(t) // review O5: marked ready AFTER the eligibility transition; re-ensured on every merge_eligible step
     this.status(id, 'merge_eligible', { pr_number: L.delivery(id).pr_number, package_digest: a.issued.package_digest, merge: 'NOT PERFORMED (D3.6 has no merge authority)' })
     return P('merge_eligible')
   }
+  async ensureReady(t) { const L = this.L; const dl = L.delivery(t.task_id); return this.effect(t.task_id, 'mark_pull_request_ready', `ready:${t.task_id}:${t.head_sha}`, { repository: t.repository, branch: dl.branch, number: dl.pr_number }) }
   /** An action with no remote effect (it authorizes ISSUING a delivery verification): the evaluator alone, nothing consumed (`verify_delivery_eligibility` requires no single-use evidence). */
   async evaluateOnly(taskId, action) {
     const tf = await trustedFacts(this.L, taskId, ACTION_IDENTITY[action], this.evalFacts()); if (!tf.ok) return tf
@@ -337,6 +342,7 @@ export class DeliveryController {
   async mergeEligible(t, d) {
     const L = this.L; const id = t.task_id
     if (d.main && d.main !== L.currentBase(id)) return this.baseUpdate(t, d, 'MAIN_ADVANCED') // the main ruleset is STRICT (up to date before merge): a newer main needs a new, re-verified candidate
+    const pr = d.pr; if (pr?.draft) { const r = await this.ensureReady(t); if (r && r.status !== 'succeeded') return this.afterEffect(id, 'mark_ready', r) }
     if (!this.have(id, 'delivery_verification')) { const a = await this.accept(this.verifier, 'issue_delivery_verification', { task_id: id }); if (!a.ok) return this.wait(id, a.code) } // re-verified (same head) when the 1 h package expires
     return this.wait(id, 'MERGE_ELIGIBLE_AWAITING_D37', { at: L.now() + this.cfg.mergeEligibleRecheckMs })
   }
@@ -388,6 +394,8 @@ export class DeliveryController {
     const o = stagingOwner(this.L); if (!o || o.task_id !== taskId) return
     const v = await this.observeDelivery(taskId); if (!v.ok) return
     const own = (v.observation.details.staging_runs ?? []).filter((r) => ['pending', 'in_progress'].includes(r.status) && !r.ineligible)
+    const unresolvedIntent = this.L.db.prepare("SELECT 1 FROM action_intents WHERE task_id=? AND action='dispatch_staging_candidate' AND status IN ('intended','dispatched','uncertain')").get(taskId)
+    if (o.state === 'unresolved' && !unresolvedIntent && own.length === 0) resolveStaging(this.L, taskId, { observedIdle: true }) // review O3: an unresolved hold becomes releasable only with proof
     releaseStaging(this.L, taskId, { observedIdle: own.length === 0, basis })
   }
   suspend(taskId, cause, codes = [], extra = {}) { suspendTechnically(this.e, taskId, { cause, stage: this.L.getTask(taskId).state, codes, ...extra }); return P('technically_suspended') }

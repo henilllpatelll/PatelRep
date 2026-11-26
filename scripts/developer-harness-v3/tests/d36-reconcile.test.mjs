@@ -6,7 +6,7 @@ import { verifyRemoteObservation, OBSERVATION_DOMAIN, ABSENCE_RULE } from '../or
 import { getIntent, reconcileIntent, recordOutcome } from '../orchestrator/ledger/intents.mjs'
 import { sealAfterRestore } from '../orchestrator/ledger/disaster-recovery.mjs'
 import { SIGNING_DOMAIN } from '../authority/evidence.mjs'
-import { harness, intents, observe, ops, signObservation, state, tmp, untilState } from './d36-helpers.mjs'
+import { harness, intents, observe, ops, signObservation, state, tmp, toHandoff, untilState } from './d36-helpers.mjs'
 
 const toEligible = (h, id, max = 300) => h.drive({ until: untilState(h, id, 'merge_eligible'), maxRounds: max })
 const pushIntent = (h, id) => intents(h, id).find((i) => i.action === 'publish_candidate_branch')
@@ -129,4 +129,17 @@ test('recordOutcome: only an AUTHENTICATED rejection-before-effect makes a failu
   assert.ok(signed.ok, JSON.stringify(signed.problems))
   assert.equal(recordOutcome(h.ledger, i.intent_id, { success: false, rejection: signed.observation }).status, 'failed', 'a signed, bound rejection-before-effect is the ONLY way to `failed`')
   assert.equal(getIntent(h.ledger, i.intent_id).status, 'failed'); h.close()
+})
+
+test('review M2: an effect key always resumes the LIVE head of its supersession chain (a superseded intent never hides its successor\'s outcome)', async () => {
+  const h = await harness(); const id = h.submit()
+  const { authorizeIntent } = await import('../orchestrator/delivery/authorize.mjs'); const { ensureDelivery } = await import('../orchestrator/delivery/state.mjs')
+  await toHandoff(h, id); const d = ensureDelivery(h.ledger, id) // engine only: nothing published yet
+  assert.ok((await h.delivery.accept(h.issuers.task_ingress, 'issue_task_authority', { task_id: id })).ok)
+  const t = h.ledger.getTask(id); const params = { repository: t.repository, branch: d.branch, sha: t.head_sha, expected_old: null }
+  const mk = (key, supersedes = null) => authorizeIntent(h.delivery.ctx(), { taskId: id, action: 'publish_candidate_branch', idempotencyKey: key, params, evaluatorParams: h.delivery.evaluatorParams('publish_candidate_branch', params), supersedes })
+  const A = await mk('chain-A'); assert.ok(A.ok); h.ledger.db.prepare("UPDATE action_intents SET status='reconciled_absent' WHERE intent_id=?").run(A.intent.intent_id) // fixture: A proven absent
+  const B = await mk('chain-A#s1', A.intent.intent_id); assert.ok(B.ok, JSON.stringify(B)); h.ledger.db.prepare("UPDATE action_intents SET status='succeeded' WHERE intent_id=?").run(B.intent.intent_id) // fixture: its successor succeeded
+  const r = await h.delivery.resume(getIntent(h.ledger, A.intent.intent_id), params)
+  assert.equal(r.status, 'succeeded'); assert.equal(r.intent_id, B.intent.intent_id); assert.equal(ops(h, 'push_ref').length, 0, 'nothing re-sent'); h.close()
 })

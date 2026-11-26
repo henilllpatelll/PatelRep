@@ -42,3 +42,6 @@ node --max-old-space-size=1024 --test --test-concurrency=1 scripts/developer-har
 ## D3.5 - self-healing recovery and resource-aware parallel development (implemented, SIMULATED, INACTIVE)
 * [24 multi-slot execution and scheduler](24-d35-scheduler-and-concurrency.md) - [25 self-healing recovery, resource interruption, cleanup, engineering recovery](25-d35-self-healing-recovery.md) - [26 ledger disaster recovery](26-d35-ledger-disaster-recovery.md) - [27 lifecycle security and proposal P6](27-d35-lifecycle-proposal.md) - [28 long unattended waits](28-d35-long-unattended-waits.md) - [29 verification evidence and review](29-d35-verification-evidence.md) - [30 D3.6 handoff](30-d36-handoff.md)
 * Proposals added: P6 (supersedes P5) and P1v2 (supersedes P1) in [proposals/](proposals/manifest.json). 28 activation gates, none closed. **Runtime activation: NO-GO.**
+
+## D3.6 — delivery (SIMULATED, INACTIVE)
+31 infrastructure audit · 32 authority at every effect boundary + authenticated reconciliation · 33 publication, exact-candidate CI, staging, base advancement · 34 lifecycle, milestones, dependencies, watchdog, monitoring, issuers · 39 consolidated protected integration (owner action package) · 40 verification evidence, reviews, residuals · 41 D3.7 handoff. Proposals: P6v2 (supersedes P6), P7 (delivery authority).

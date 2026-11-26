@@ -168,7 +168,7 @@ function observationProblems(ledger, i, o) {
   if ((o.candidate_sha ?? null) !== (i.candidate_sha ?? null)) p.push('OBSERVATION.WRONG_CANDIDATE')
   if (o.policy_revision !== i.policy_revision) p.push('OBSERVATION.WRONG_POLICY_REVISION')
   const since = i.dispatched_at ?? i.updated_at
-  if (o.observed_at > ledger.now() || o.observed_at < since) p.push('OBSERVATION.TIME_INVALID') // a read made BEFORE the dispatch says nothing about its effect
+  if (o.observed_at > ledger.now() + 60_000 || o.observed_at < since) p.push('OBSERVATION.TIME_INVALID') // review O2: the same 60 s skew the observation verifier allows // a read made BEFORE the dispatch says nothing about its effect
   return p
 }
 const recordObservation = (ledger, i, o) => ledger.db.prepare('INSERT OR IGNORE INTO remote_observations(observation_id,intent_id,task_id,subject,state,read_id,observed_at,remote_version,digest,recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?)')

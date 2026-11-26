@@ -30,3 +30,9 @@ D3.6 scope (09): automatic PR, CI and staging management, reusing the existing t
 * Long quota waits still need ONE owner billing re-verification per stale fact (28).
 * The scheduler's footprint is the submitted scope; a task with a broad scope serializes against everything (safe, slow).
 * All D3.4 carry-forwards in 23 that D3.5 did not address: context-renewal ceilings unvalidated (4), issuer trust in controller-written rows (6, G-ISSUER-INDEPENDENT-FACTS), live adapter coverage of untracked files (13), the unreproduced H7 P3 failure (01 R-08).
+
+## Reconciled by D3.6 (2026-11-26; the text above is kept as the D3.5 record)
+* §1 consumed-evidence: implemented as `DurableEvidenceView` over `consumed_by = intent:<idempotency_key>` (doc 32 §1); multi-use approvals are now cited, not consumed.
+* §1 "the pinned list has 55 files; 617 tests": D3.6 adds 7 files (doc 40 has the current counts).
+* §5 handoff-ready as the dependency boundary: replaced by explicit milestones and dependency requirements (doc 34 §2); `locally_verified` keeps the old meaning (ordering only), `merged` waits for D3.7.
+* §3/§4 protected CI and Linux: still NOT done — the V2 hook forbids this session from editing `.github/**` and V3 authority; see doc 39 for the owner package.
