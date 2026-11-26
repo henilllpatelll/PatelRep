@@ -1,0 +1,34 @@
+# Developer Harness V3 — 25 D3.5 self-healing recovery, resource-interruption handling, task-owned cleanup and bounded engineering recovery
+
+Status: **implemented, SIMULATED, INACTIVE.** All worker, VM, process and cleanup adapters are simulated (gate **G-LIVE-RECOVERY-ADAPTERS**); the only real execution added is the host-side resumable test runner.
+
+## 1. Recovery supervisor (`orchestrator/recovery-supervisor.mjs`)
+Incidents are reported by the session runner (worker `ensure` failure with an incident kind; a checkpoint whose snapshot cannot be restored) or by stages (network failures), stored per task, and handled by the engine **before any other step of that task**.
+
+| Incident | Handling |
+|---|---|
+| controller crash / laptop restart | `recoverOnStart`: single-controller lock, dispatched intents → uncertain, outbox requeued, EVERY live lease reconciled on its own; `reconcileCleanup` re-verifies interrupted cleanups |
+| worker crash, lost process, expired lease | `reconcileSlot` (D3.3 `recoveryDecision`: host facts, PID-reuse and unknown-liveness fail closed; verified cleanup before supersession; work captured atomically with the supersession) |
+| unverified termination | re-verified with persisted back-off; the slot stays HELD; after the bound → `blocked ISOLATION_UNPROVEN` (one package) — never a second session |
+| failed sanitizer, contaminated worker, broken/missing overlay | (1) verified termination; (2) **preserve** uncommitted work as a VERIFIED checkpoint — if that fails the worker is quarantined **intact** and the task technically suspended (`WORK_PRESERVATION_UNVERIFIED`); (3) quarantine the overlay; (4) verify the golden; (5) reprovision the overlay from it |
+| golden-image mismatch / writable golden | quarantined, **never re-blessed**; a candidate may be rebuilt from the pinned inputs, but promotion is `blocked OWNER_ROOT_OF_TRUST_CEREMONY` |
+| checkpoint corruption / failed restore | the bad checkpoint is quarantined and de-verified (never deleted); fall back to the newest one that verifies; none → resume from the committed branch (recorded) |
+| disk pressure | cleanup (§3) of cleanable resources of finished or cancelled tasks only; otherwise `waiting_resources DISK_PRESSURE` |
+| provider / network outage | bounded `waiting_external` with back-off, then a technical suspension; never an owner blocker |
+
+Storm prevention: `recovery_attempts` holds attempts, exponential back-off (30 s, 2 min, 10 min, 30 min) and a circuit breaker (2 h) per (task, incident), so a restart does not reset them (tested across a real controller restart). Unknown evidence is never success. `verifyCheckpoint` no longer throws on a malformed payload (found by these tests; it now reports `CHECKPOINT.MALFORMED`).
+
+## 2. Resource-exhaustion recovery (`orchestrator/test-units.mjs`, `ci/resumable-runner.mjs`)
+The REAL 2026-11-26 interruption (doc 23) is an automated acceptance test (`d35-resource-interruption.test.mjs`) — **zero owner interventions**:
+* classification from evidence: `passed`; `genuine_failure` (a COMPLETE run reporting failures or skips); `verified_resource_kill` (an interruption signature AND a low-memory reaper record in the unit window, or an external kill while free memory was below the floor); otherwise `ambiguous_interruption`. Incomplete runs never record a failure fingerprint or spend a remediation budget; the partial 29/30 is evidence, not a result;
+* completed units are FINAL (database trigger); the interrupted unit runs FIRST, then only never-completed units (the scenario's call order is pinned: 11 units, the killed `d34-crash`, `d34-crash` again, the remaining 26);
+* before waiting, only idle resources the task owns (the idle reviewer) are released through the cleanup authority; the owner's dev servers are never registered, never touched;
+* the wait is a persisted `waiting_resources` state with a next-eligible time, re-admitted against the **host-runner floor: 3072 MB free for the 1 GB-heap sequential runner** with hysteresis (3 consecutive samples) and **without lifecycle flapping** (one transition into the wait). This is NOT the D3.3 VM provisioning threshold (3.4 GB free re-admits the runner but would not admit a full worker VM — asserted);
+* bounds: ambiguous reruns 2, resource interruptions 6 per unit, total wait 4 h → technical suspension.
+The **host runner** (`node scripts/developer-harness-v3/ci/resumable-runner.mjs`) applies the same rules to the real V3 files with real subprocesses: state in SQLite, group = digest of every V3 file + Node version + file list (no reuse across code changes), bounded timer waits (exit 75 with state kept when exceeded), never kills anything. Real-process tests: a "reaped" child, a reaped runner (whole tree killed) resumed by a second invocation, and a genuine failure. **This runner produced the D3.5 Node 22/24 results in 29.**
+
+## 3. Task-owned cleanup (`orchestrator/cleanup.mjs`)
+Resources carry identity and provenance (task, execution, fencing token, canonical path or pid + creation time, creation id, lifecycle, protected class); identity is immutable and rows are never deleted. A dry-run plan applies a strict local pre-filter and then the ONE policy, the D3.2 evaluator (`cleanup_task_owned_resources` + `resource_ownership`, via the D3.3 `cleanupPlan`). Refused: another task's resource, unregistered identity, live-lease executions, migrations, the primary worktree, shared resources, the task's last recoverable checkpoint, symlinks and NTFS junctions (also any linked ancestor), traversal, paths outside the task workspace or whose canonical path changed, PID reuse, running processes, unknown process facts. Execution is a durable intent (planned → executing → verified | failed | unknown); an interrupted one is re-verified on start, never re-run blind. **Real destructive cleanup is refused unless adapters are simulated.** Tested with real files and a real junction in a temp fixture.
+
+## 4. Bounded engineering recovery (`orchestrator/engineering-recovery.mjs`)
+D3.4 budgets are unchanged and still per task (150 sessions per generation is a ceiling, never a target; 6 remediation cycles, 8 stage failures, 4 review rounds per kind per epoch; cool-downs 30 min / 2 h / 5 h; 3 epochs; terminal suspension; `resumeSuspended` is called by no automatic path — a source scan pins it). Added: a failure taxonomy (resource pressure and network waits spend no remediation budget but are capped at 6 per epoch; authentication/billing, isolation and requirement conflicts stay owner-only), fingerprint normalization (hashes, uuids, line numbers, temp paths), refusal of a byte-identical previously-failed patch (with strategy escalation), refusal of test weakening on the controller-derived diff (deleted test files, fewer assertions/cases, added skips), immutable requirements/acceptance (database trigger), and `taskAccounting`.

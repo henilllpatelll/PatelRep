@@ -12,7 +12,15 @@ import { recordFailure, retryEligible, enqueueOutbox } from './ledger/intents.mj
 import { runSessionStage } from './session-runner.mjs'
 import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
-import { budgetExceeded, classifyBlocker, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
+import { budgetExceeded, classifyBlocker, recordsInEpoch, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
+import { runTestUnits, staleRun } from './test-units.mjs'
+import { INCIDENTS as INCIDENT_KINDS, reportIncident } from './recovery-supervisor.mjs'
+import { classifyFailure, detectTestWeakening, normalizeFingerprint, repeatedFailedPatch } from './engineering-recovery.mjs'
+import { materializeWork } from './ledger/slots.mjs'
+import { buildBasisForRecord, captureBuildBasis, dependencyCurrent, discardBuild, noteOnce, promoteBasis } from './dependency-basis.mjs'
+
+const MAX_INCIDENTS_PER_EPOCH = 6
+const MAX_CLASSIFIED_WAITS_PER_EPOCH = 6 // a stage that keeps failing with a "resource" code stops being treated as a free wait and becomes a budgeted failure
 
 const NONE = Object.freeze({ progressed: false })
 const PROGRESS = (action) => ({ progressed: true, action })
@@ -35,6 +43,11 @@ export function failStage(e, taskId, stageKey, out) {
   const L = e.ledger
   if (out.status === 'busy' || out.status === 'cancelled') return NONE
   if (out.status === 'suspend') return technicallySuspend(e, taskId, out.cause, stageKey, out.codes ?? [])
+  // D3.5-C: handled by the recovery supervisor (bounded, persisted). Review CR-10: incidents are themselves bounded per epoch (beyond it they are budgeted failures), and an unknown kind is a failure, never a crash
+  if (out.status === 'incident') {
+    if (INCIDENT_KINDS.includes(out.incident) && recordsInEpoch(L, taskId, 'incident_reported') < MAX_INCIDENTS_PER_EPOCH) { reportIncident(L, taskId, { kind: out.incident, code: out.code ? safeCode(out.code) : null, stage: stageKey, detail: out.detail ?? {} }); return PROGRESS('incident_reported') }
+    out = { status: 'failed', code: out.code ?? `INCIDENT:${safeCode(out.incident)}`, fingerprint: `incident:${safeCode(out.incident)}` }
+  }
   if (out.status === 'wait') {
     const w = out.wait; const codes = w.codes?.length ? w.codes : [w.code]
     if (w.state === 'blocked') e.applyWait(taskId, { kind: 'blocked', reason: w.reason, codes })
@@ -45,6 +58,14 @@ export function failStage(e, taskId, stageKey, out) {
   const ownerCode = [out.code, ...(out.codes ?? [])].find((c) => c && classifyBlocker(c) === 'owner')
   if (ownerCode) { L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: safeCode(ownerCode), fingerprint: `owner:${safeCode(ownerCode)}`.slice(0, 120), owner_condition: true }); e.applyWait(taskId, { kind: 'blocked', reason: 'OWNER_DECISION_REQUIRED', codes: [safeCode(ownerCode)] }); return PROGRESS('blocked_owner_condition') }
   const unverified = out.status === 'termination_unverified' // the slot stays held until recovery proves the session dead; the attempt is BUDGETED so a stuck stop cannot buy sessions forever
+  // D3.5-G: resource pressure and network/provider outages are WAITS, not engineering failures (no remediation budget) — bounded per epoch so a recurring one cannot buy sessions forever
+  const kind = unverified ? 'environment' : classifyFailure(out.code)
+  if ((kind === 'resource_pressure' || kind === 'network') && recordsInEpoch(L, taskId, 'failure_classified_wait') < MAX_CLASSIFIED_WAITS_PER_EPOCH) {
+    L.recordRecovery(taskId, 'failure_classified_wait', { stage: stageKey, kind, code: safeCode(out.code) })
+    if (kind === 'network') { reportIncident(L, taskId, { kind: 'network_unavailable', code: safeCode(out.code), stage: stageKey }); return PROGRESS('incident_reported') }
+    e.applyWait(taskId, { kind: 'wait', state: 'waiting_resources', reason: /DISK/.test(String(out.code)) ? 'DISK_PRESSURE' : 'MEMORY_PRESSURE', eligible_at: L.now() + e.cfg.resourceRecheckMs, codes: [safeCode(out.code)] })
+    return PROGRESS('waiting')
+  }
   const fp = safeCode(unverified ? `termination-unverified:${stageKey}` : (out.fingerprint ?? `${stageKey}:${out.code ?? 'unknown'}`)); const code = unverified ? 'TERMINATION_UNVERIFIED' : safeCode(out.code)
   const r = recordFailure(L, { taskId, stage: stageKey, fingerprint: fp, rng: e.rng }, e.cfg.retry)
   L.recordRecovery(taskId, 'stage_failure', { stage: stageKey, code: code ?? null, fingerprint: fp, attempts: r.attempts, repeated_identical: r.repeated_identical })
@@ -144,7 +165,9 @@ export async function implementing(e, taskId) {
   if (!retryEligible(L, taskId, 'implementing')) return NONE
   const remediation = L.meta(`remediation:${taskId}`)
   const hint = L.meta(`strategy_hint:${taskId}`) === '1' ? `${STRATEGY_HINT}\n\n` : ''
-  let deliverable = JSON.parse(L.meta(`stage_done:${taskId}:implementing`) ?? 'null') // crash after the session finished: derive and validate its result, do not redo it
+  let deliverable = JSON.parse(L.meta(`stage_done:${taskId}:implementing`) ?? 'null')
+  if (!deliverable) L.db.prepare('DELETE FROM meta WHERE key=?').run(`dep_build:${taskId}`) // D3.5 F2: a NEW attempt (no finished session to consume) is built on the dependency state as it is NOW; a finished one keeps the basis it was built on
+  captureBuildBasis(L, taskId) // crash after the session finished: derive and validate its result, do not redo it
   if (!deliverable) {
     const g = await e.gate(taskId, { stage: 'implementing', ai: true, profile: 'reasoning' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
@@ -152,6 +175,8 @@ export async function implementing(e, taskId) {
     if (out.status !== 'done') return failStage(e, taskId, 'implementing', out)
     deliverable = out.deliverable
   }
+  const bb = buildBasisForRecord(L, taskId)
+  if (!bb.ok) { discardBuild(L, taskId); L.recordRecovery(taskId, 'dependency_basis_changed_during_build', { code: bb.code }); return PROGRESS('dependency_basis_moved') } // the result was built on a basis that is no longer current: discarded, never stamped
   const task = L.getTask(taskId)
   // The candidate is RE-DERIVED by the controller (its own git adapter); the session's claim about it is never used.
   const f = await A.git.deriveCandidate(task)
@@ -159,7 +184,23 @@ export async function implementing(e, taskId) {
   const discard = () => L.db.prepare('DELETE FROM meta WHERE key=?').run(`stage_done:${taskId}:implementing`) // a refused result must not be re-used forever
   if (bad) { discard(); return failStage(e, taskId, 'implementing', { status: 'failed', code: bad, fingerprint: `candidate:${bad}` }) }
   const cur = L.currentCandidate(taskId)
-  if (cur && cur.candidate_sha === f.candidate_sha && cur.tree_digest === f.tree_digest && remediation) { discard(); return failStage(e, taskId, 'implementing', { status: 'failed', code: 'CANDIDATE.UNCHANGED_AFTER_REMEDIATION', fingerprint: 'candidate:unchanged' }) }
+  if (cur && cur.candidate_sha === f.candidate_sha && cur.tree_digest === f.tree_digest && remediation && L.meta(`dep_rebuild:${taskId}`) !== '1') { discard(); return failStage(e, taskId, 'implementing', { status: 'failed', code: 'CANDIDATE.UNCHANGED_AFTER_REMEDIATION', fingerprint: 'candidate:unchanged' }) }
+  // D3.5-G: a patch byte-identical to one that already FAILED is not re-tested (it cannot pass); the strategy must change
+  const repeated = remediation ? repeatedFailedPatch(L, taskId, f.patch_digest) : null
+  if (repeated) {
+    discard(); L.setMeta(`strategy_hint:${taskId}`, '1')
+    L.setMeta(`remediation:${taskId}`, [remediation, `The new candidate is byte-identical to candidate ${repeated.slice(0, 12)}, which already FAILED. Repeating a failed fix is refused: take a materially different approach.`].join('\n\n'))
+    return failStage(e, taskId, 'implementing', { status: 'failed', code: 'CANDIDATE.REPEATED_FAILED_FIX', fingerprint: 'candidate:repeated-failed-fix' })
+  }
+  // D3.5-G: a pass must never be bought by weakening the tests (judged on the controller-derived diff)
+  let contents = null; try { contents = (await A.git.diffContents?.(task)) ?? null } catch { contents = null }
+  const weak = detectTestWeakening(f.changes ?? [], contents)
+  if (weak.length) {
+    discard()
+    L.setMeta(`remediation:${taskId}`, [remediation, `The candidate WEAKENS the tests (${weak.map((w) => `${w.code} ${w.path}`).join('; ')}). Restore every removed test, assertion and un-skip; fix the code instead.`].filter(Boolean).join('\n\n'))
+    L.recordRecovery(taskId, 'test_weakening_refused', { findings: weak.slice(0, 20) })
+    return failStage(e, taskId, 'implementing', { status: 'failed', code: 'CANDIDATE.TEST_WEAKENING', fingerprint: `candidate:test-weakening:${weak.map((w) => w.path).sort().join('+')}`.slice(0, 120) })
+  }
   // COMPLETENESS: claims are verified against the plan's own expectations; unfinished mandatory steps send the task BACK to implementation before anything is tested, reviewed or approved.
   const plan = L.currentPlan(taskId)
   const { unfinished, rejected } = plan ? applyClaims(L, taskId, new Set((Array.isArray(deliverable.completed_steps) ? deliverable.completed_steps : []).filter((id) => typeof id === 'string')), f.changed_paths) : { unfinished: [], rejected: [] }
@@ -171,7 +212,7 @@ export async function implementing(e, taskId) {
   }
   // candidate + its path list + the "pending" marker are ONE transaction: a crash leaves either nothing or all of it
   const sub = L.tx(() => { const r = L.submitCandidate(taskId, { base_sha: f.base_sha, candidate_sha: f.candidate_sha, tree_digest: f.tree_digest, patch_digest: f.patch_digest })
-    if (r.ok) { L.setMeta(`paths:${taskId}:${f.candidate_sha}`, JSON.stringify(f.changed_paths.slice(0, 2000))); L.setMeta(`candidate_pending:${taskId}`, f.candidate_sha) } return r })
+    if (r.ok) { L.setMeta(`paths:${taskId}:${f.candidate_sha}`, JSON.stringify(f.changed_paths.slice(0, 2000))); L.setMeta(`candidate_pending:${taskId}`, f.candidate_sha); promoteBasis(L, taskId, f.candidate_sha, bb.basis) } return r })
   if (!sub.ok) return failStage(e, taskId, 'implementing', { status: 'failed', code: sub.problems[0], fingerprint: `candidate:${sub.problems[0]}` })
   e.hook('after_candidate_recorded', { taskId })
   return finishImplementing(e, taskId)
@@ -204,10 +245,12 @@ export async function testing(e, taskId) {
   const task0 = L.getTask(taskId); const cand0 = L.currentCandidate(taskId)
   // crash after a test run for THIS candidate and token was recorded: reuse it instead of re-running the suite
   const prev = L.latestTestRun(taskId)
-  const reuse = prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token
+  const reverify = !!cand0 && L.meta(`reverify:${taskId}`) === cand0.candidate_sha // a scheduled re-verification needs a NEW run: the old one is too old to vouch for anything
+  const reuse = !reverify && prev && cand0 && prev.candidate_sha === cand0.candidate_sha && prev.tree_digest === cand0.tree_digest && prev.fencing_token === task0.fencing_token
   if (!reuse) {
     const g = await e.gate(taskId, { stage: 'testing', ai: false, profile: 'heavy_test' })
     if (!g.go) return g.outcome === 'busy' ? NONE : PROGRESS('waiting')
+    const w = e.ownWork?.get(taskId); if (w) materializeWork(L, w.work_id) // the scheduler's reservation becomes "in use" only now that the run really starts
   }
   const task = L.getTask(taskId); const cand = L.currentCandidate(taskId)
   if (!cand) return failStage(e, taskId, 'testing', { status: 'failed', code: 'TEST.NO_CANDIDATE', fingerprint: 'test:no-candidate' })
@@ -216,15 +259,27 @@ export async function testing(e, taskId) {
     runId = prev.run_id; const r = JSON.parse(prev.results_json)
     res = { passed: prev.passed === 1, results: r, fingerprint: prev.failure_fingerprint, summary: '(previous run reused after a restart)' }
   } else {
-    res = await A.tests.run({ task, candidate: cand })
+    if (typeof A.tests.units === 'function') {
+      // D3.5-D: resumable unit-granular run. A resource interruption is a WAIT (no failure fingerprint, no remediation budget), completed units are never repeated.
+      const u = await runTestUnits(e, taskId, task, cand)
+      if (u.stale) return NONE // F1: cancelled or superseded work yields no test run and no evidence
+      if (u.wait) { e.applyWait(taskId, u.wait); return PROGRESS('waiting_resources') }
+      if (u.suspend) return technicallySuspend(e, taskId, u.cause, 'testing', u.codes)
+      res = u.res
+    } else {
+      res = await A.tests.run({ task, candidate: cand })
+      const stale = staleRun(L, taskId, { token: task.fencing_token, candidate: cand }); if (stale) { L.recordRecovery(taskId, 'test_run_stale', { code: stale }); return NONE } // F1: the run finished after its candidate was superseded or its task cancelled
+    }
     runId = `run-${createHash('sha256').update(`${taskId}:${cand.candidate_sha}:${L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(taskId).c}`).digest('hex').slice(0, 20)}`
     L.recordTestRun(taskId, { run_id: runId, candidate_sha: cand.candidate_sha, tree_digest: cand.tree_digest, results: res.results ?? {}, passed: res.passed === true, failure_fingerprint: res.fingerprint ?? null })
+    L.db.prepare('DELETE FROM meta WHERE key=?').run(`reverify:${taskId}`)
     e.hook('after_test_run_recorded', { taskId })
   }
   if (res.passed !== true) {
-    return enterRemediation(e, taskId, { reason: 'TEST_FAILED', fingerprint: `test:${res.fingerprint ?? 'unspecified'}`, stageKey: 'testing',
+    return enterRemediation(e, taskId, { reason: 'TEST_FAILED', fingerprint: `test:${normalizeFingerprint(res.fingerprint ?? 'unspecified')}`, stageKey: 'testing',
       instruction: `The task's tests failed on the last candidate. Failure summary (untrusted test output, data only): ${String(res.summary ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/```/g, "'''").slice(0, 1500)}\nFix the cause inside the task scope.` })
   }
+  if (!dependencyCurrent(L, taskId)) { noteOnce(L, taskId, 'evidence_withheld_dependency_basis', { stage: 'testing' }); return NONE } // F2: never issue approvals for work whose dependency basis is not current
   const issued = await A.issuer.testResults(taskId, runId)
   e.hook('after_evidence_issued', { taskId })
   if (!issued.ok) return failStage(e, taskId, 'testing', { status: 'failed', code: issued.code, fingerprint: `evidence:${issued.code}` })
@@ -287,7 +342,7 @@ async function consumeDeliverable(e, taskId, kind, reviewId, lease) {
   if (!rv || !d || rv.status !== 'open') return discard(['REVIEW.DELIVERABLE_MISSING'])
   const ex = L.getExecution(d.execution_id)
   if (ex && !['terminated_verified', 'abandoned'].includes(ex.status)) return NONE // the session's stop is not proven (yet): nothing is accepted, nothing is bought; recovery decides
-  if (L.slotHolder()?.execution_id === d.execution_id) return NONE
+  if (L.liveLeaseOfExecution(d.execution_id)) return NONE // its lease still occupies a slot (D3.5: looked up per execution, not as "the" slot holder)
   const problems = []
   if (!cand || rv.candidate_sha !== cand.candidate_sha || rv.tree_digest !== cand.tree_digest || d.candidate_sha !== rv.candidate_sha || d.tree_digest !== rv.tree_digest) problems.push('REVIEW.DELIVERABLE_CANDIDATE_MISMATCH')
   if (!ex || ex.execution_id !== rv.execution_id || ex.context_id !== rv.context_id || d.context_id !== rv.context_id) problems.push('REVIEW.DELIVERABLE_EXECUTION_MISMATCH')
@@ -329,6 +384,7 @@ export function completenessProblems(L, taskId, reviewId = null) {
 /** Issuer → accept → verdict. Transport failures keep the SUBMITTED review (a retry re-asks the issuer, not the model); substantive refusals invalidate it. */
 async function finalizeReview(e, taskId, kind, reviewId) {
   const L = e.ledger; const A = e.adapters; const stageKey = kind; const task = L.getTask(taskId)
+  if (!dependencyCurrent(L, taskId)) { noteOnce(L, taskId, 'evidence_withheld_dependency_basis', { stage: kind }); return NONE }
   const issued = await A.issuer.review(kind, taskId, reviewId)
   e.hook('after_evidence_issued', { taskId })
   if (!issued.ok) { if (!/^(CLIENT|IPC)\./.test(issued.code ?? '')) L.setReviewStatus(reviewId, 'invalidated'); return failStage(e, taskId, stageKey, { status: 'failed', code: issued.code, fingerprint: `evidence:${issued.code}` }) }
@@ -385,6 +441,7 @@ async function reattest(e, taskId, missing) {
 function handoffRetry(e, taskId, cause, fingerprint, problems = []) {
   const L = e.ledger
   // approvals that are too OLD to re-attest can never be obtained by waiting: stop at once, say why, and say what is actually needed (no wasted cool-downs)
+  if (problems.length && problems.every((p) => p === 'ISSUER.REATTESTATION_BOUND_EXCEEDED') && L.lc.reverification) return scheduleReverification(e, taskId)
   if (problems.length && problems.every((p) => p === 'ISSUER.REATTESTATION_BOUND_EXCEEDED')) return PROGRESS((suspendTechnically(e, taskId, { cause: 'HANDOFF_APPROVALS_TOO_OLD', stage: 'publishing', codes: ['ISSUER.REATTESTATION_BOUND_EXCEEDED'], terminal: true,
     howToResume: 'The approvals for this candidate expired and are older than the re-attestation bound (24 h from the review/run). Waiting cannot fix that and engine.resumeSuspended will not either: a NEW test run and NEW reviews of the candidate are required, which needs the lifecycle back-edge publishing -> testing (proposal P3(c)) or a resubmission of the task.' }), 'technically_suspended'))
   const r = recordFailure(L, { taskId, stage: 'handoff', fingerprint, rng: e.rng }, e.cfg.retry)
@@ -392,9 +449,22 @@ function handoffRetry(e, taskId, cause, fingerprint, problems = []) {
   return NONE
 }
 
+/**
+ * D3.5-H (active only with a lifecycle that declares the re-verification back-edge, proposal P6): approvals too old to re-attest are REPLACED by NEW verification work on the SAME
+ * candidate — a new test run and new reviews — never extended or re-dated. Bounded per candidate; beyond the bound the D3.4 terminal suspension applies.
+ */
+const MAX_REVERIFICATIONS_PER_CANDIDATE = 2
+function scheduleReverification(e, taskId) {
+  const L = e.ledger; const cand = L.currentCandidate(taskId); const key = `reverify_count:${taskId}:${cand.candidate_sha}`; const n = Number(L.meta(key) ?? 0)
+  if (n >= MAX_REVERIFICATIONS_PER_CANDIDATE) return PROGRESS((suspendTechnically(e, taskId, { cause: 'HANDOFF_APPROVALS_TOO_OLD', stage: 'publishing', codes: ['REVERIFICATION_BOUND_EXCEEDED'], terminal: true }), 'technically_suspended'))
+  const r = L.tx(() => { const x = L.transition(taskId, L.lc.reverification.to, { reason_code: L.lc.reverification.reason }); if (x.ok) { L.setMeta(key, n + 1); L.setMeta(`reverify:${taskId}`, cand.candidate_sha); L.recordRecovery(taskId, 'reverification_scheduled', { candidate_sha: cand.candidate_sha, attempt: n + 1, invalidated: x.invalidated }) } return x })
+  return r.ok ? PROGRESS('reverification_scheduled') : NONE
+}
+
 export async function handoff(e, taskId) {
   const L = e.ledger; const t = L.getTask(taskId)
   if (!retryEligible(L, taskId, 'handoff')) return NONE
+  if (!dependencyCurrent(L, taskId)) { noteOnce(L, taskId, 'handoff_refused_dependency_basis', {}); return NONE } // F2: no handoff while a dependency is changed, unready or cancelled
   const need = ['test_results', 'independent_review', ...(t.lifecycle.security_review_required ? ['security_review'] : [])]
   const collect = () => need.map((type) => ({ type, ev: satisfyingEvidence(L, taskId, e.policy, type) }))
   let have = collect()

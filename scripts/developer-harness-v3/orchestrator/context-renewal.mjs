@@ -94,7 +94,11 @@ export function buildCheckpoint(ledger, taskId, { reason, snapshot = null, notes
  * Completeness + integrity verification. A checkpoint is usable only after this returns ok; `markCheckpointVerified` is the caller's next step.
  * `snapshotDir(ref)` maps a snapshot ref to its directory INSIDE the controller's snapshot store (refs are never paths from the model).
  */
-export function verifyCheckpoint(ledger, checkpointId, { snapshotDir, stage = null }) {
+export function verifyCheckpoint(ledger, checkpointId, opts) {
+  // D3.5: a corrupt payload of ANY shape is reported as a problem, never thrown (a recovery path must be able to judge every checkpoint it finds)
+  try { return verifyCheckpointUnsafe(ledger, checkpointId, opts) } catch { return { ok: false, problems: ['CHECKPOINT.MALFORMED'] } }
+}
+function verifyCheckpointUnsafe(ledger, checkpointId, { snapshotDir, stage = null }) {
   const problems = []
   const cp = ledger.getCheckpoint(checkpointId)
   if (!cp) return { ok: false, problems: ['CHECKPOINT.UNKNOWN'] }

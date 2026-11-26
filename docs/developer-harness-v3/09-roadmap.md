@@ -8,7 +8,7 @@ D3.2 does not implement any later phase. Boundaries below are those in the brief
 | **D3.2** | Autonomous authority, deterministic safety and trust bootstrap | **this PR** |
 | **D3.3** | Local infrastructure, secure isolation, Resource Governor and Subscription Governor (provisioning, measurement, the isolation suite, calibration, empirical CLI behavior tests) | next, only on owner instruction |
 | **D3.4** | Persistent orchestration, model routing, independent reviews, **context management with automatic session renewal at a configurable 70 % default threshold** (durable checkpoint first, graceful stop at a safe boundary, fresh session from optimized context packs, original requirements and remaining work restored, automatic continuation, official telemetry only with a conservative supported fallback, no blind `/clear`; see 08 §2a), issuer processes and key custody, durable ledger | |
-| **D3.5** | Self-healing recovery and resource-aware parallel development | |
+| **D3.5** | Self-healing recovery and resource-aware parallel development | implemented, SIMULATED, INACTIVE (24-30); operational default stays one reasoning session |
 | **D3.6** | Automatic PR, CI and staging management (reusing the existing publisher, CI Gate, Staging Gate) | |
 | **D3.7** | Automatic merging, production releases and recovery (reusing Release Engineer and production workflows; activation is an owner ceremony) | |
 | **D3.8** | Telegram bot, local dashboard, autonomous maintenance | |

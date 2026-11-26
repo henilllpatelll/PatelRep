@@ -4,8 +4,10 @@
 // compare-and-swap and an append-only event log, never different semantics. All time comes from an injected clock (fixture clocks in tests).
 // The database is controller-owned state. Nothing read back from it (including checkpoints and model summaries) is authority.
 import { DatabaseSync } from 'node:sqlite'
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, realpathSync, statSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import os from 'node:os'
+import path from 'node:path'
 import { canonicalize, digestOf, checkShape, isPlainObject, v } from '../../lib/canonical.mjs'
 import { applyEvent, createTask, loadLifecycle } from '../../lifecycle/lifecycle.mjs'
 import { LEDGER_APPLICATION_ID, MIGRATIONS, SCHEMA_VERSION } from './schema.mjs'
@@ -22,14 +24,30 @@ const json = (x) => { const s = canonicalize(x); if (Buffer.byteLength(s) > MAX_
 
 export class Ledger {
   #depth = 0
-  constructor(db, { clock = Date.now, file = null } = {}) { this.db = db; this.clock = clock; this.file = file; this.lc = loadLifecycle() }
+  /**
+   * `proposalReducer` (TEST CONFIGURATION ONLY — D3.5-H): a DISPOSABLE patched copy of the lifecycle reducer + contract ({label:'PROPOSAL_UNDER_TEST', applyEvent, createTask, lc}) used to
+   * demonstrate a protected lifecycle proposal end to end. It is refused for any ledger that is not in-memory or under the OS temp directory, and such a ledger is marked so it can
+   * never be reopened with the authoritative reducer (or vice versa). `ownerActionVerifier(taskId, ownerActionId)` (test configuration too) authenticates owner actions.
+   */
+  constructor(db, { clock = Date.now, file = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
+    this.db = db; this.clock = clock; this.file = file
+    if (proposalReducer && (proposalReducer.label !== 'PROPOSAL_UNDER_TEST' || typeof proposalReducer.applyEvent !== 'function' || typeof proposalReducer.createTask !== 'function' || !proposalReducer.lc)) throw new Error('LEDGER.PROPOSAL_REDUCER_INVALID')
+    if (proposalReducer && !Ledger.isTempLedgerPath(file)) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP')
+    this.reducer = proposalReducer ?? { applyEvent, createTask }; this.lc = proposalReducer?.lc ?? loadLifecycle(); this.proposal = !!proposalReducer; this.ownerActionVerifier = ownerActionVerifier
+  }
 
-  static open(file, { clock = Date.now, maxBytes = MAX_LEDGER_BYTES } = {}) {
+  /** `migrationHook(version)` runs INSIDE each migration's transaction after its SQL (fault-injection point for the interrupted-migration tests; never set in production). */
+  static open(file, { clock = Date.now, maxBytes = MAX_LEDGER_BYTES, migrationHook = null, proposalReducer = null, ownerActionVerifier = null } = {}) {
+    if (proposalReducer && !Ledger.isTempLedgerPath(file)) throw new Error('LEDGER.PROPOSAL_REDUCER_OUTSIDE_TEMP') // refused BEFORE anything is created (review CR-7)
     if (file !== ':memory:' && existsSync(file) && statSync(file).size > maxBytes) throw new Error('LEDGER.TOO_LARGE')
     const db = new DatabaseSync(file)
     db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA trusted_schema = OFF;')
-    const ledger = new Ledger(db, { clock, file })
-    ledger.#migrate()
+    let ledger
+    try { ledger = new Ledger(db, { clock, file, proposalReducer, ownerActionVerifier }) } catch (e) { db.close(); throw e }
+    try { ledger.#migrate(migrationHook) } catch (e) { db.close(); throw e }
+    const mark = ledger.meta('reducer'); const tasks = db.prepare('SELECT COUNT(*) c FROM tasks').get().c
+    if (proposalReducer ? (mark !== 'PROPOSAL_UNDER_TEST' && tasks > 0) : mark === 'PROPOSAL_UNDER_TEST') { db.close(); throw new Error('LEDGER.REDUCER_MISMATCH') }
+    if (proposalReducer && !mark) ledger.setMeta('reducer', 'PROPOSAL_UNDER_TEST')
     if (db.prepare('PRAGMA quick_check').get().quick_check !== 'ok') { db.close(); throw new Error('LEDGER.CORRUPT') }
     return ledger
   }
@@ -41,15 +59,21 @@ export class Ledger {
     return new Ledger(db, { clock, file })
   }
   close() { this.db.close() }
+  /** In-memory, or a file whose (resolved) parent directory is the OS temp directory or inside it (path boundary respected; junctions resolved). */
+  static isTempLedgerPath(file) {
+    if (file === ':memory:') return true
+    if (typeof file !== 'string' || !file) return false // review S-8: no file = unknown = refused
+    try { const tmp = realpathSync.native(os.tmpdir()); const dir = realpathSync.native(path.dirname(path.resolve(file))); const rel = path.relative(tmp.toLowerCase(), dir.toLowerCase()); return !rel.startsWith('..') && !path.isAbsolute(rel) } catch { return false }
+  }
 
-  #migrate() {
+  #migrate(hook = null) {
     const appId = this.db.prepare('PRAGMA application_id').get().application_id
     const ver = this.db.prepare('PRAGMA user_version').get().user_version
     if (ver > SCHEMA_VERSION) throw new Error('LEDGER.SCHEMA_TOO_NEW')
     if (ver > 0 && appId !== LEDGER_APPLICATION_ID) throw new Error('LEDGER.FOREIGN_DATABASE')
     for (const m of MIGRATIONS) {
       if (m.version <= ver) continue
-      this.tx(() => { this.db.exec(m.sql); this.db.exec(`PRAGMA application_id = ${LEDGER_APPLICATION_ID}; PRAGMA user_version = ${m.version}`)
+      this.tx(() => { this.db.exec(m.sql); hook?.(m.version); this.db.exec(`PRAGMA application_id = ${LEDGER_APPLICATION_ID}; PRAGMA user_version = ${m.version}`)
         this.db.prepare('INSERT OR REPLACE INTO meta(key,value) VALUES (?,?)').run(`migrated_${m.version}`, new Date(this.clock()).toISOString()) })
     }
     this.db.prepare('INSERT OR IGNORE INTO meta(key,value) VALUES (?,?)').run('ledger_id', randomUUID())
@@ -81,7 +105,7 @@ export class Ledger {
       if (existing) return input.task_id && input.task_id !== existing.task_id ? { ok: false, problems: ['TASK.SUBMIT_KEY_CONFLICT'] } : { ok: true, duplicate: true, task: this.getTask(existing.task_id) }
       const taskId = input.task_id ?? `task-${submitKey.slice(0, 20)}`
       if (this.db.prepare('SELECT 1 FROM tasks WHERE task_id=?').get(taskId)) return { ok: false, problems: ['TASK.ID_CONFLICT'] }
-      const lc = createTask({ task_id: taskId, production_required: input.acceptance.production_required !== false, security_review_required: input.security_review_required !== false, policy_revision: input.policy_revision ?? null })
+      const lc = this.reducer.createTask({ task_id: taskId, production_required: input.acceptance.production_required !== false, security_review_required: input.security_review_required !== false, policy_revision: input.policy_revision ?? null })
       const now = this.now()
       this.db.prepare(`INSERT INTO tasks(task_id,submit_key,repository,base_sha,requirements_json,requirements_digest,scope_json,acceptance_json,risk_class,priority,lifecycle_json,state,state_revision,fencing_token,head_sha,policy_revision,environment_id,created_at,updated_at)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(taskId, submitKey, input.repository, input.base_sha, json(input.requirements), digestOf(input.requirements), json(input.scope), json(input.acceptance), input.risk_class,
@@ -121,7 +145,8 @@ export class Ledger {
         let d; try { d = digestOf(event) } catch { return { ok: false, problems: ['EVENT.MALFORMED'], duplicate: false, invalidated: [] } }
         return d === prior.event_digest ? { ok: true, duplicate: true, problems: [], invalidated: [], task: this.getTask(taskId) } : { ok: false, problems: ['EVENT.IDEMPOTENCY_CONFLICT'], duplicate: false, invalidated: [] }
       }
-      const r = applyEvent(this.lc, task, event)
+      if (event?.owner_action_id && this.ownerActionVerifier && this.ownerActionVerifier(taskId, event.owner_action_id) !== true) return { ok: false, problems: ['EVENT.OWNER_ACTION_UNVERIFIED'], duplicate: false, invalidated: [], task: this.getTask(taskId) }
+      const r = this.reducer.applyEvent(this.lc, task, event)
       if (!r.ok || r.duplicate) return { ...r, task: this.getTask(taskId) }
       const n = this.db.prepare('SELECT COUNT(*) c FROM task_events WHERE task_id=?').get(taskId).c
       if (n >= MAX_EVENTS_PER_TASK) throw new Error('LEDGER.EVENT_LOG_FULL')
@@ -136,6 +161,9 @@ export class Ledger {
       return { ...r, task: this.getTask(taskId) }
     })
   }
+
+  /** Withdraw EVERY accepted approval of a task and the review rows they rest on (a changed dependency basis: nothing obtained under the old basis may be re-attested). */
+  withdrawApprovals(taskId) { this.tx(() => { this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE task_id=? AND invalidated_at IS NULL').run(this.now(), taskId); this.db.prepare("UPDATE reviews SET status='invalidated' WHERE task_id=? AND status IN ('open','submitted','verified_pass')").run(taskId) }) }
 
   /** Withdraw ONE accepted approval (e.g. a completeness gate refused the candidate the approval was issued for). */
   invalidateEvidence(evidenceId) { this.db.prepare('UPDATE evidence SET invalidated_at=? WHERE evidence_id=? AND invalidated_at IS NULL').run(this.now(), evidenceId) }
@@ -179,11 +207,17 @@ export class Ledger {
   resumeTarget(taskId) { const t = this.getTask(taskId); return t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to }
   resume(taskId) { const t = this.getTask(taskId); if (t.cancelled) return { ok: false, problems: ['TASK.CANCELLED'] }; return this.transition(taskId, this.resumeTarget(taskId)) }
   /** `cancelled` is a ledger flag + a pause: the D3.2 lifecycle has no terminal `cancelled` state (proposal in docs 21). A cancelled task is never scheduled, never completed. */
-  cancel(taskId) {
+  cancel(taskId, { ownerActionId = null } = {}) {
     return this.tx(() => {
       const t = this.getTask(taskId)
       if (!t) return { ok: false, problems: ['TASK.UNKNOWN'] }
       if (t.state === 'completed') return { ok: false, problems: ['TASK.ALREADY_COMPLETED'] }
+      if (this.lc.terminal_states?.includes('cancelled')) { // a lifecycle WITH explicit cancellation (proposal P6): a terminal, owner-only transition
+        if (!ownerActionId) return { ok: false, problems: ['TASK.OWNER_ACTION_REQUIRED'] }
+        const r = this.transition(taskId, 'cancelled', { owner_action_id: ownerActionId }); if (!r.ok) return r
+        this.db.prepare('UPDATE tasks SET cancelled=1, updated_at=? WHERE task_id=?').run(this.now(), taskId)
+        return { ok: true, task: this.getTask(taskId) }
+      }
       this.db.prepare('UPDATE tasks SET cancelled=1, updated_at=? WHERE task_id=?').run(this.now(), taskId)
       if (t.state !== 'paused') { const r = this.pause(taskId); if (!r.ok && !r.problems.includes('TRANSITION.ILLEGAL')) throw new Error(r.problems[0]) }
       return { ok: true, task: this.getTask(taskId) }
@@ -206,25 +240,64 @@ export class Ledger {
 
   // ---------------------------------------------------------------- executions and leases
   /**
-   * Admit ONE reasoning session: creates the execution record and the lease together. The partial unique index is the arbiter, so two controllers (or a
-   * bug) cannot both hold the slot. A lease whose session could not be proven dead (`termination_unverified`) keeps the slot until recovery verifies cleanup.
+   * Admit ONE reasoning session into a free SLOT: creates the execution record, the lease and (optionally) its resource reservation in one IMMEDIATE transaction.
+   * The database is the arbiter: one live lease per slot (V1 `one_reasoning_slot`), one live lease per task and the slot range (V3). With the default capacity of 1 this is
+   * exactly the D3.4 global single slot (same refusal codes). A lease whose session could not be proven dead (`termination_unverified`) keeps its slot until recovery verifies cleanup.
    */
-  acquireLease({ taskId, role, stage, model, effort, ttlMs = 10 * 60000, contextId = `ctx-${randomUUID()}` }) {
+  acquireLease({ taskId, role, stage, model, effort, ttlMs = 10 * 60000, contextId = `ctx-${randomUUID()}`, reservation = null }) {
     return this.tx(() => {
       const t = this.getTask(taskId)
       if (!t) return { ok: false, code: 'TASK.UNKNOWN' }
       if (t.cancelled) return { ok: false, code: 'TASK.CANCELLED' }
-      const busy = this.db.prepare("SELECT lease_id, task_id, state FROM leases WHERE state IN ('active','termination_unverified')").get()
-      if (busy) return { ok: false, code: busy.state === 'termination_unverified' ? 'LEASE.SLOT_HELD_TERMINATION_UNVERIFIED' : 'LEASE.SLOT_BUSY', holder: plain(busy) }
+      const live = this.liveLeases(); const used = new Set(live.map((l) => l.reasoning_slot)); const cap = this.slotCapacity('reasoning')
+      let slot = null
+      for (let s = 1; s <= cap; s += 1) if (!used.has(s)) { slot = s; break }
+      if (slot === null) { const h = live.find((l) => l.state === 'termination_unverified') ?? live[0]; return { ok: false, code: h.state === 'termination_unverified' ? 'LEASE.SLOT_HELD_TERMINATION_UNVERIFIED' : 'LEASE.SLOT_BUSY', holder: plain(h) } }
+      const mine = live.find((l) => l.task_id === taskId)
+      if (mine) return { ok: false, code: mine.state === 'termination_unverified' ? 'LEASE.TASK_TERMINATION_UNVERIFIED' : 'LEASE.TASK_ALREADY_LEASED', holder: plain(mine) }
       const now = this.now()
       const ordinal = this.db.prepare('SELECT COALESCE(MAX(ordinal),0)+1 n FROM executions WHERE task_id=?').get(taskId).n
       const executionId = `x-${randomUUID()}`; const leaseId = `l-${randomUUID()}`
       this.db.prepare('INSERT INTO executions(execution_id,task_id,role,stage,context_id,ordinal,model_requested,effort_requested,status,fencing_token,started_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
         .run(executionId, taskId, role, stage, contextId, ordinal, model, effort, 'starting', t.fencing_token, now)
-      this.db.prepare('INSERT INTO leases(lease_id,task_id,execution_id,fencing_token,state,issued_at,expires_at) VALUES (?,?,?,?,?,?,?)').run(leaseId, taskId, executionId, t.fencing_token, 'active', now, now + ttlMs)
-      return { ok: true, lease: { lease_id: leaseId, task_id: taskId, execution_id: executionId, context_id: contextId, fencing_token: t.fencing_token, expires_at: now + ttlMs } }
+      this.db.prepare('INSERT INTO leases(lease_id,task_id,execution_id,fencing_token,state,reasoning_slot,issued_at,expires_at) VALUES (?,?,?,?,?,?,?,?)').run(leaseId, taskId, executionId, t.fencing_token, 'active', slot, now, now + ttlMs)
+      if (reservation) this.#reserve(taskId, leaseId, 'reasoning', reservation, t.fencing_token, now)
+      return { ok: true, lease: { lease_id: leaseId, task_id: taskId, execution_id: executionId, context_id: contextId, fencing_token: t.fencing_token, expires_at: now + ttlMs, slot } }
     })
   }
+
+  // ---------------------------------------------------------------- slots, live leases, reservations (D3.5-A)
+  slotCapacity(kind = 'reasoning') { return this.db.prepare('SELECT capacity FROM slot_config WHERE kind=?').get(kind)?.capacity ?? 1 }
+  /** Change a slot capacity. WHAT capacity is permitted is the engine's decision (the contract default is 1); the database only refuses to shrink under a live lease. */
+  setSlotCapacity(kind, capacity, basis) { this.db.prepare('UPDATE slot_config SET capacity=?, basis=?, updated_at=? WHERE kind=?').run(capacity, String(basis).slice(0, 200), this.now(), kind) }
+  /** Every lease occupying a reasoning slot (active or termination-unverified), in slot order. */
+  liveLeases() { return this.db.prepare("SELECT * FROM leases WHERE state IN ('active','termination_unverified') ORDER BY reasoning_slot, issued_at").all().map(plain) }
+  leaseOfTask(taskId) { return plain(this.db.prepare("SELECT * FROM leases WHERE task_id=? AND state IN ('active','termination_unverified')").get(taskId)) }
+  liveLeaseOfExecution(executionId) { return plain(this.db.prepare("SELECT * FROM leases WHERE execution_id=? AND state IN ('active','termination_unverified')").get(executionId)) }
+  freeSlots(kind = 'reasoning') {
+    const live = kind === 'reasoning' ? this.liveLeases().length : this.db.prepare("SELECT COUNT(*) c FROM work_leases WHERE kind=? AND state IN ('active','termination_unverified')").get(kind).c
+    return Math.max(0, this.slotCapacity(kind) - live)
+  }
+  /** Active counts for the Resource Governor, DERIVED FROM DURABLE LEASES (a lease that is termination-unverified still counts: its workload may still be running). */
+  activeCounts({ excludeLeaseId = null, excludeWorkId = null } = {}) {
+    return { reasoning_sessions: this.db.prepare("SELECT COUNT(*) c FROM leases WHERE state IN ('active','termination_unverified') AND lease_id IS NOT ?").get(excludeLeaseId).c,
+      heavy_test_workloads: this.db.prepare("SELECT COUNT(*) c FROM work_leases WHERE kind='heavy_test' AND state IN ('active','termination_unverified') AND work_id IS NOT ?").get(excludeWorkId).c }
+  }
+  #reserve(taskId, holderRef, profile, r, token, now, expiresAt = null) {
+    const mem = r.mem_mb ?? 0; const disk = r.disk_mb ?? 0
+    if (!Number.isSafeInteger(mem) || !Number.isSafeInteger(disk)) throw new Error('LEDGER.RESERVATION_MALFORMED')
+    this.db.prepare('INSERT INTO reservations(reservation_id,task_id,holder_ref,profile,mem_mb,disk_mb,fencing_token,state,expires_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)').run(`rs-${randomUUID()}`, taskId, holderRef, profile, mem, disk, token, 'held', expiresAt, now)
+  }
+  /** A reservation not tied to a lease/work slot (the scheduler's pre-launch promise) must carry its own expiry, or it never counts (review S-1). */
+  reserveFor(taskId, holderRef, profile, r, { expiresAt = null } = {}) { const t = this.getTask(taskId); this.#reserve(taskId, holderRef, profile, r, t.fencing_token, this.now(), expiresAt) }
+  releaseReservation(holderRef) { this.db.prepare("UPDATE reservations SET state='released', released_at=? WHERE holder_ref=? AND state<>'released'").run(this.now(), holderRef) }
+  /** Memory promised to workloads that have NOT materialized yet, in the governor's reservation shape (it expires with its slot). `excludeHolder` = the asker's own reservation. */
+  pendingReservations({ excludeHolder = null, excludeTask = null } = {}) {
+    // expiry: the reservation's own, else its slot's — and a slot whose termination is UNVERIFIED keeps counting whatever its lease expiry says (review S-1)
+    return this.db.prepare(`SELECT r.holder_ref, r.task_id, r.mem_mb, CASE WHEN l.state='termination_unverified' OR w.state='termination_unverified' THEN 8640000000000000 ELSE COALESCE(r.expires_at, l.expires_at, w.expires_at, 0) END exp FROM reservations r LEFT JOIN leases l ON l.lease_id=r.holder_ref LEFT JOIN work_leases w ON w.work_id=r.holder_ref
+      WHERE r.state='held' AND r.holder_ref IS NOT ? AND r.task_id IS NOT ?`).all(excludeHolder, excludeTask).map((r) => ({ id: r.holder_ref, task_id: r.task_id, mb: r.mem_mb, materialized: false, expires_at: new Date(r.exp).toISOString() }))
+  }
+  reservationOf(holderRef) { return plain(this.db.prepare('SELECT * FROM reservations WHERE holder_ref=?').get(holderRef)) }
   /** @returns {string|null} a LEASE.* code when the presented lease is not the CURRENT, unexpired, same-token lease; null when valid. */
   checkLease(presented) {
     const l = this.db.prepare("SELECT l.*, t.fencing_token task_token FROM leases l JOIN tasks t ON t.task_id=l.task_id WHERE l.lease_id=?").get(presented?.lease_id ?? '')
@@ -243,7 +316,10 @@ export class Ledger {
       return { ok: true }
     })
   }
-  markExecutionRunning(executionId) { this.db.prepare("UPDATE executions SET status='running' WHERE execution_id=? AND status='starting'").run(executionId) }
+  markExecutionRunning(executionId) {
+    this.db.prepare("UPDATE executions SET status='running' WHERE execution_id=? AND status='starting'").run(executionId)
+    this.db.prepare("UPDATE reservations SET state='materialized' WHERE state='held' AND holder_ref=(SELECT lease_id FROM leases WHERE execution_id=?)").run(executionId) // now visible in the host measurements: no longer subtracted twice
+  }
   recordTelemetry(executionId, { model_actual = null, cli_version = null, context_window = null, turns = 0, telemetry = {} }) {
     this.db.prepare('UPDATE executions SET model_actual=?, cli_version=?, context_window=?, turns=?, telemetry_json=? WHERE execution_id=?').run(model_actual, cli_version, context_window, turns, json(telemetry), executionId)
   }
@@ -257,6 +333,7 @@ export class Ledger {
       const now = this.now()
       if (terminationVerified === true) {
         this.db.prepare("UPDATE leases SET state='released', closed_at=? WHERE lease_id=?").run(now, l.lease_id)
+        this.releaseReservation(l.lease_id) // only a VERIFIED stop frees the memory it was promised; an unverified one keeps it reserved with the slot
         this.db.prepare("UPDATE executions SET status='terminated_verified', end_reason=?, ended_at=? WHERE execution_id=?").run(endReason, now, l.execution_id)
         if (alsoOnVerified) alsoOnVerified() // same transaction: the release and whatever must be durable WITH it either both happen or neither does
       } else {
@@ -266,20 +343,24 @@ export class Ledger {
       return { ok: true, released: terminationVerified === true }
     })
   }
-  /** The lease currently occupying the reasoning slot, if any. */
-  slotHolder() { return plain(this.db.prepare("SELECT * FROM leases WHERE state IN ('active','termination_unverified')").get()) }
+  /** The FIRST lease (lowest slot) occupying a reasoning slot, if any. With the default capacity of 1 this is "the" slot holder of D3.4; multi-slot callers use liveLeases/leaseOfTask. */
+  slotHolder() { return this.liveLeases()[0] ?? null }
 
   /**
    * Recovery: supersede a lease that is expired, orphaned (controller restarted) or termination-unverified. Requires VERIFIED guest cleanup; otherwise nothing
    * changes and the slot stays held. On success the task's fencing token advances by exactly one via the reducer's `worker_recovered`.
+   * `leaseId` names the lease (task-scoped recovery). Without it the single live lease is meant; with several live leases an unnamed supersession is REFUSED (never guess whose).
    */
-  supersedeLease({ guestCleanupVerified, reason = 'HOST_RESTARTED', alsoOnSuperseded = null }) {
+  supersedeLease({ guestCleanupVerified, reason = 'HOST_RESTARTED', alsoOnSuperseded = null, leaseId = null }) {
     return this.tx(() => {
-      const l = this.db.prepare("SELECT * FROM leases WHERE state IN ('active','termination_unverified')").get()
+      const live = this.liveLeases()
+      if (!leaseId && live.length > 1) return { ok: false, code: 'RECOVERY.LEASE_REQUIRED' }
+      const l = leaseId ? live.find((x) => x.lease_id === leaseId) : live[0]
       if (!l) return { ok: true, none: true }
       if (guestCleanupVerified !== true) return { ok: false, code: 'RECOVERY.CLEANUP_UNVERIFIED', lease_id: l.lease_id }
       const t = this.getTask(l.task_id); const now = this.now()
       this.db.prepare("UPDATE leases SET state='superseded', closed_at=? WHERE lease_id=?").run(now, l.lease_id)
+      this.releaseReservation(l.lease_id)
       this.db.prepare("UPDATE executions SET status='abandoned', ended_at=COALESCE(ended_at,?), end_reason=COALESCE(end_reason,?) WHERE execution_id=?").run(now, reason, l.execution_id)
       const r = this.applyLifecycleEvent(l.task_id, this.eventFor(l.task_id, 'worker_recovered', { idempotency_id: `recover-${l.lease_id}`, reason_code: reason, new_fencing_token: t.fencing_token + 1 }))
       if (!r.ok) throw new Error(r.problems[0])

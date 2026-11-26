@@ -16,7 +16,9 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TRUSTED-GIT",
       "verified": "applied in a scratch worktree: scripts/developer-harness-v3/tests git-facts.test.mjs + security.test.mjs + d34-issuer.test.mjs = 41/41; `git apply --check` clean on the branch; the new orchestrator/trusted-git.mjs it imports is part of THIS PR.",
-      "effects": "authority/** changes the dh3 closure digests; the owner re-pins from the reviewed commit (14-v2 §4)."
+      "effects": "authority/** changes the dh3 closure digests; the owner re-pins from the reviewed commit (14-v2 §4).",
+      "superseded_by": "P1v2",
+      "superseded_note": "D3.5: kept byte-for-byte as reviewed in D3.4. P1v2 = P1 PLUS moving orchestrator/trusted-git.mjs into authority/ (21 §6 amendment, review F12), so development scopes can never edit the git hardening that authority code imports. Apply P1v2 INSTEAD of P1."
     },
     {
       "id": "P2",
@@ -48,7 +50,41 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TECH-SUSPENSION-STATE",
       "verified": "tests/d34-proposals.test.mjs applies the patch to a COPY of the lifecycle contract and drives the REAL reducer: entry from implementing, testing, independent_review, remediation and publishing; the only exit is the recorded resume target (remediation resumes to implementing); an owner_action_id is not required; it is not a blocked state; a wrong resume target and an unknown reason are refused. `git apply --check` is clean on the branch. NOT applied here: task-lifecycle.json is root of trust.",
-      "effects": "changes the lifecycle contract digest the policy bootstrap pins; after the owner applies and re-pins it, `suspendTechnically` (orchestrator/suspension.mjs) gains one extra line — a reducer transition into technical_suspension with the same reason code — and the ledger `suspensions` row stays the scheduling source of truth. Until then the ledger-level suspension is the INACTIVE conservative solution and the reducer is untouched."
+      "effects": "changes the lifecycle contract digest the policy bootstrap pins; after the owner applies and re-pins it, `suspendTechnically` (orchestrator/suspension.mjs) gains one extra line — a reducer transition into technical_suspension with the same reason code — and the ledger `suspensions` row stays the scheduling source of truth. Until then the ledger-level suspension is the INACTIVE conservative solution and the reducer is untouched.",
+      "superseded_by": "P6",
+      "superseded_note": "D3.5: P6 contains P5 unchanged in substance (plus two reasons) together with the other lifecycle changes. Apply P6 INSTEAD of P5, never both (they touch the same lines)."
+    },
+    {
+      "id": "P1v2",
+      "file": "P1v2-git-facts-trusted-git-in-authority.patch",
+      "sha256": "d12edfdd6fc56bbaafa920870ae2be718a53dd2026e6090508fdd0ca2c20bac2",
+      "touches": [
+        "scripts/developer-harness-v3/authority/git-facts.mjs",
+        "scripts/developer-harness-v3/orchestrator/issuer/facts-git.mjs",
+        "scripts/developer-harness-v3/orchestrator/trusted-git.mjs",
+        "scripts/developer-harness-v3/tests/d34-issuer.test.mjs"
+      ],
+      "protected_class": "V3 authority code (owner-only): moves the hardened git runner INTO authority/**",
+      "purpose": "P1 (git-facts.mjs stops spawning a bare git) + the 21 §6 amendment: orchestrator/trusted-git.mjs becomes authority/trusted-git.mjs (pure rename, content unchanged) and its two importers are updated, so the git hardening sits inside the owner-only authority boundary.",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TRUSTED-GIT",
+      "verified": "D3.5: applied in a throwaway worktree of the branch (removed afterwards): git-facts.test.mjs + security.test.mjs + d34-issuer.test.mjs = 44/44. `git apply --check` clean on the branch.",
+      "effects": "authority/** changes the dh3 closure digests; re-pin once from the reviewed commit (21 §2 step 5)."
+    },
+    {
+      "id": "P6",
+      "file": "P6-lifecycle-consolidated.patch",
+      "sha256": "705290e04eba88367d680b1b5ea3716e4325d9f044ceaeec19c607a97581bb79",
+      "touches": [
+        "docs/developer-harness-v3/task-lifecycle.json",
+        "scripts/developer-harness-v3/lifecycle/lifecycle.mjs"
+      ],
+      "protected_class": "V3 lifecycle contract + reducer (root of trust; owner-only)",
+      "purpose": "ONE consolidated lifecycle change (21 §3 P3(a)(b)(c)(e)(g) + D3.5): (1) recoverable `technical_suspension` (P5 reasons + RECOVERY_EXHAUSTED, RESOURCE_WAIT_EXCEEDED); (2) re-verification back-edge publishing -> testing (reason APPROVALS_EXPIRED) that invalidates the approvals it replaces; (3) terminal, owner-only `cancelled` (never after merge); (4) waiting_external PROVIDER_UNAVAILABLE and waiting_subscription BILLING_REVERIFICATION_REQUIRED (never blockers); (5) the blocked-state escape fix: a STICKY owner hold set on entering blocked, kept across every recoverable hop (waiting, paused, recovery, suspension) and fencing/head events, cleared only by an owner action or an owner cancellation; (6) D3.5 independent-verification F2: a `dependency_rebuild` back-edge (testing | independent_review | security_review | publishing -> implementing, reason DEPENDENCY_CHANGED) that invalidates the approvals a task obtained on a dependency basis that later CHANGED — the task is rebuilt and re-verified, never re-attested. Without it the authoritative lifecycle fails closed.",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
+      "verified": "tests/d35-lifecycle-proposal.test.mjs applies P6 to a DISPOSABLE copy of the real reducer + contract and drives it: every direct/indirect/paused/recovery/suspension/fenced hop out of blocked is refused without an owner action; cancellation, re-verification and the new reasons; and the ENGINE end to end in a labelled proposal configuration (proposalReducer, temp ledgers only). The authoritative reducer is unchanged (a test proves the old loophole is still there and that the controller never uses it).",
+      "effects": "changes the lifecycle contract digest the policy bootstrap pins AND the reducer code (authority-adjacent, pinned in the dh3 closure); after the owner applies it and re-pins, the D3.5 engine paths that are gated on the contract (technical_suspension state, reverification, explicit cancellation) activate with no further code change. Owner-action AUTHENTICITY is a separate gate (G-OWNER-ACTION-EVIDENCE): the reducer can only require that an owner_action_id is present."
     }
   ],
   "not_patches": [
@@ -66,5 +102,6 @@
       "status": "NOT FOUND in the baseline; this PR was built without one (see 21 §4)",
       "detail": "owner-controlled"
     }
-  ]
+  ],
+  "d35_note": "D3.5 added P1v2 and P6 (each supersedes an earlier proposal that is kept byte-for-byte). base_main_sha stays the D3.4 baseline the original patches were cut from; every patch is re-checked to apply cleanly against the current tree by d34-proposals.test.mjs."
 }
