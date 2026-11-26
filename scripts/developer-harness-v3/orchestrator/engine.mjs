@@ -14,6 +14,7 @@ import { RETRY_DEFAULTS } from './ledger/intents.mjs'
 import { liveExecutionAllowed } from './activation-gates.mjs'
 import * as stages from './stages.mjs'
 import { reconcileSlot } from './recovery.mjs'
+import { unitFloorReady } from './test-units.mjs'
 import { TECH_DEFAULTS, budgetExceeded, classifyBlocker, resumeSuspended, sessionsUsed, suspendTechnically, suspensionAllowsRun } from './suspension.mjs'
 
 export const ENGINE_DEFAULTS = Object.freeze({ cliVersion: '2.1.331', leaseTtlMs: 35 * 60_000, /* >= the 30-minute work-unit ceiling + margin: a unit must never outlive its lease */ maxUnitsPerStage: 40, renewal: RENEWAL_DEFAULTS, retry: RETRY_DEFAULTS, technical: TECH_DEFAULTS,
@@ -111,7 +112,7 @@ export class Engine {
       return
     }
     if (t.state !== w.state || t.lifecycle.blocker_reason) { const r = L.transition(taskId, w.state, { reason_code: w.reason }); if (!r.ok) throw new Error(`ENGINE.WAIT_REFUSED:${r.problems[0]}`) }
-    L.setWait(taskId, { kind: w.state, reason: w.reason, eligibleAt: w.eligible_at ?? null, detail: { codes: w.codes } })
+    L.setWait(taskId, { kind: w.state, reason: w.reason, eligibleAt: w.eligible_at ?? null, detail: { codes: w.codes, ...(w.detail ?? {}) } })
   }
 
   /** ONE actionable package per genuine blocker (and only for genuine blockers): what is blocked, why, the exact owner action, and what is preserved. */
@@ -200,6 +201,11 @@ export class Engine {
   async tryResume(t) {
     const L = this.ledger; const now = L.now(); const w = L.getWait(t.task_id)
     if (w?.eligible_at && now < w.eligible_at) return { progressed: false }
+    if (w?.detail?.resume_check === 'unit_floor') { // D3.5-D: a test-unit floor wait is re-admitted against the runner floor WITHOUT a lifecycle transition until it holds
+      const u = await unitFloorReady(this, t.task_id, w)
+      if (u.suspend) { suspendTechnically(this, t.task_id, { cause: 'RESOURCE_WAIT_EXCEEDED', stage: 'testing', codes: ['RESOURCE.BELOW_UNIT_FLOOR'] }); return { progressed: true, action: 'technically_suspended' } }
+      if (!u.ready) { L.setWait(t.task_id, { kind: w.kind, reason: w.reason, eligibleAt: u.eligible_at, detail: w.detail }); return { progressed: false } }
+    }
     const target = t.lifecycle.via_remediation ? 'implementing' : t.lifecycle.resume_to
     const need = NEEDS[target] ?? { stage: 'deterministic', ai: false, profile: 'deterministic' }
     const r = await this.checkAdmission(t.task_id, need)

@@ -13,6 +13,7 @@ import { runSessionStage } from './session-runner.mjs'
 import { checkEntry } from './snapshot.mjs'
 import { normalizeSubmission, remediationInstruction } from './review.mjs'
 import { budgetExceeded, classifyBlocker, reviewRoundsInEpoch, safeCode, suspendTechnically } from './suspension.mjs'
+import { runTestUnits } from './test-units.mjs'
 
 const NONE = Object.freeze({ progressed: false })
 const PROGRESS = (action) => ({ progressed: true, action })
@@ -216,7 +217,13 @@ export async function testing(e, taskId) {
     runId = prev.run_id; const r = JSON.parse(prev.results_json)
     res = { passed: prev.passed === 1, results: r, fingerprint: prev.failure_fingerprint, summary: '(previous run reused after a restart)' }
   } else {
-    res = await A.tests.run({ task, candidate: cand })
+    if (typeof A.tests.units === 'function') {
+      // D3.5-D: resumable unit-granular run. A resource interruption is a WAIT (no failure fingerprint, no remediation budget), completed units are never repeated.
+      const u = await runTestUnits(e, taskId, task, cand)
+      if (u.wait) { e.applyWait(taskId, u.wait); return PROGRESS('waiting_resources') }
+      if (u.suspend) return technicallySuspend(e, taskId, u.cause, 'testing', u.codes)
+      res = u.res
+    } else res = await A.tests.run({ task, candidate: cand })
     runId = `run-${createHash('sha256').update(`${taskId}:${cand.candidate_sha}:${L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(taskId).c}`).digest('hex').slice(0, 20)}`
     L.recordTestRun(taskId, { run_id: runId, candidate_sha: cand.candidate_sha, tree_digest: cand.tree_digest, results: res.results ?? {}, passed: res.passed === true, failure_fingerprint: res.fingerprint ?? null })
     e.hook('after_test_run_recorded', { taskId })
