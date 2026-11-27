@@ -33,8 +33,19 @@ const readManifest = () => JSON.parse(readFileSync(path.join(PROPOSALS, 'manifes
 /** The patches the D3.6 integration applied to the repository, in application order: the integrated proposals, then the separately reviewed integration corrections. */
 export function integratedChain(manifest = readManifest()) {
   const by = Object.fromEntries(manifest.proposals.map((p) => [p.id, p]))
-  return [...manifest.integration.integrated_chain.map((id) => by[id]), ...manifest.integration.corrections].map((p) => ({ id: p.id, file: p.file, touches: p.touches.map((t) => t.replace(/ \(new\)$/, '')) }))
+  return [...manifest.integration.integrated_chain.map((id) => by[id]), ...manifest.integration.corrections].map((p) => {
+    const renamedTo = [...readFileSync(path.join(PROPOSALS, p.file), 'utf8').matchAll(/^rename to (\S+)$/gm)].map((m) => m[1]) // a rename's destination (touches lists the source)
+    return { id: p.id, file: p.file, touches: [...new Set([...p.touches.map((t) => t.replace(/ \(new\)$/, '')), ...renamedTo])] }
+  })
 }
+/**
+ * Review M1: the reconstruction reverses ONLY the V3 root-of-trust files — authority/**, the lifecycle reducer, the two V3 contracts (and the old location of the moved
+ * trusted-git.mjs). Those change only through an owner proposal APPENDED to the chain, so ordinary later edits of ci.yml, the staging workflow, V2 tests or non-authority V3 code
+ * can never break it. The control-plane files of P2/C2 are protected by their own pins (the V2 workflow guard, the staging workflow tests), not by this reconstruction.
+ */
+export const RECONSTRUCTION_SCOPE = Object.freeze([/^scripts\/developer-harness-v3\/authority\/[^/]+$/, /^scripts\/developer-harness-v3\/lifecycle\/lifecycle\.mjs$/,
+  /^docs\/developer-harness-v3\/(authority-contract|task-lifecycle)\.json$/, /^scripts\/developer-harness-v3\/orchestrator\/trusted-git\.mjs$/])
+export const inReconstructionScope = (f) => RECONSTRUCTION_SCOPE.some((r) => r.test(f))
 
 /**
  * A DISPOSABLE copy of `files` (LF-exact: `core.autocrlf=false`), optionally first REVERSED to the pre-integration base (`preIntegration`: every patch of the integrated chain
@@ -42,11 +53,11 @@ export function integratedChain(manifest = readManifest()) {
  */
 export function disposableCopy(patches, files, prefix = 'dh36-proposal-', { preIntegration = false } = {}) {
   const t = mkdtempSync(path.join(os.tmpdir(), prefix))
-  const chain = preIntegration ? integratedChain() : []
-  const all = new Set(files); for (const c of chain) for (const f of c.touches) all.add(f)
+  const chain = preIntegration ? integratedChain().map((c) => ({ ...c, scoped: c.touches.filter(inReconstructionScope) })).filter((c) => c.scoped.length) : []
+  const all = new Set(files); for (const c of chain) for (const f of c.scoped) all.add(f)
   for (const rel of all) { if (!existsSync(path.join(ROOT, rel))) continue; mkdirSync(path.dirname(path.join(t, rel)), { recursive: true }); copyFileSync(path.join(ROOT, rel), path.join(t, rel)) }
   const g = resolveGit(); if (!g.ok) throw new Error(`proposal copy: ${g.code}`) // the hardened, absolute, allow-listed git (never a bare `git` from PATH)
-  for (const c of [...chain].reverse()) { try { trustedGit(g.exe, t, ['-c', 'core.autocrlf=false', 'apply', '--reverse', '-p1', path.join(PROPOSALS, c.file)]) } catch (e) { throw new Error(`integrated ${c.id} does not reverse-apply: ${e.message}`) } }
+  for (const c of [...chain].reverse()) { try { trustedGit(g.exe, t, ['-c', 'core.autocrlf=false', 'apply', '--reverse', '-p1', ...c.scoped.map((f) => `--include=${f}`), path.join(PROPOSALS, c.file)]) } catch (e) { throw new Error(`integrated ${c.id} does not reverse-apply: ${e.message}`) } }
   for (const p of patches) { try { trustedGit(g.exe, t, ['-c', 'core.autocrlf=false', 'apply', '-p1', path.join(PROPOSALS, p)]) } catch (e) { throw new Error(`proposal ${p} does not apply: ${e.message}`) } }
   writeFileSync(path.join(t, 'PROPOSAL_UNDER_TEST.txt'), `Disposable copy${preIntegration ? ' (pre-integration base)' : ''} with ${patches.join(', ') || 'no patch'} applied for tests. NOT the repository's authority.\n`)
   return t

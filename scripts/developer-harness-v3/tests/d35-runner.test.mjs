@@ -49,7 +49,9 @@ async function reaperFailsClosedWithoutProcessFacts({ runnerDies }) {
   if (runnerDies) { killTree(r1.p.pid); killTree(running.pid); await r1.done } else killTree(running.pid)
   rmSync(f.marker); writeFileSync(f.mem, JSON.stringify({ free_mb: 4000 }))
   const res = runnerDies ? await startRunner(f, 'a,b,c', ['--workload-wait-min', '0.02']).done : await r1.done
-  assert.equal(res.code, 75, res.out); assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.doesNotMatch(res.out, /verified_resource_kill|observed_stopped|\(rerun\)/, 'no recovery is ever claimed without process facts')
+  assert.equal(res.code, 75, res.out); assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.doesNotMatch(res.out, /observed_stopped|\(rerun\)/, 'no recovery is ever claimed without process facts')
+  // (`verified_resource_kill` may still appear: it classifies the CAUSE of the interruption — reaper record + low memory — and is never a proof that the workload stopped)
+  assert.match(res.out, /"why":"(RECORDED_RUNNER_NOT_DEAD|WORKLOAD_IDENTITY_UNKNOWN)"/, 'held because ownership/stop cannot be proven')
   assert.equal(unitRow(f, 'b.test.mjs').attempts, 1, 'the interrupted unit was NOT re-run'); assert.equal(unitRow(f, 'c.test.mjs')?.status ?? 'pending', 'pending', 'and nothing after it ran')
   rmSync(f.root, { recursive: true, force: true })
 }

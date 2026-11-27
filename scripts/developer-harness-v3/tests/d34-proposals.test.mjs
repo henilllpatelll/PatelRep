@@ -9,13 +9,14 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GATES } from '../orchestrator/activation-gates.mjs'
-import { disposableCopy, integratedChain } from '../orchestrator/sim/delivery-harness.mjs'
+import { disposableCopy, inReconstructionScope, integratedChain } from '../orchestrator/sim/delivery-harness.mjs'
 import { applyEvent, createTask, loadLifecycle } from '../lifecycle/lifecycle.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'); const DIR = path.join(ROOT, 'docs/developer-harness-v3/proposals')
 const manifest = JSON.parse(readFileSync(path.join(DIR, 'manifest.json'), 'utf8'))
 const sha = (b) => createHash('sha256').update(b).digest('hex')
-const PROTECTED_SUFFIX = /^(?!scripts\/developer-harness-v3\/tests\/)/ // test files may legitimately evolve after a patch that touched them (their own regression edits)
+// Review M1: exactness is asserted for the V3 ROOT-OF-TRUST files (authority, lifecycle reducer, V3 contracts), which change only through owner proposals appended to the chain;
+// the control-plane files of P2/C2 are pinned by the V2 workflow guard and the staging workflow tests, so later ordinary edits there never break this test.
 const SUPERSEDED = { P1: 'P1v2', P5: 'P6', P6: 'P6v2', P6v2: 'P6v3' }
 
 test('every proposal and correction patch matches its pinned digest, has LF endings and no BOM, and names only its declared files', () => {
@@ -36,12 +37,14 @@ test('D3.6 integration status is exact: four proposals integrated in order, the 
   assert.deepEqual(manifest.integration.corrections.map((c) => c.id), ['C1', 'C2']); for (const c of manifest.integration.corrections) { assert.equal(c.status, 'integrated_correction'); assert.equal(c.applies_after, 'P2') }
 })
 
-test('the integrated chain is applied EXACTLY: reversed on a disposable copy it yields the pre-integration base; replayed on that base it reproduces every protected file byte-for-byte', () => {
-  const chain = integratedChain(); const files = [...new Set(chain.flatMap((c) => c.touches))]
+test('the integrated chain is applied EXACTLY to the V3 root of trust: reversed on a disposable copy it yields the pre-integration base; replayed on that base it reproduces every such file byte-for-byte', () => {
+  const chain = integratedChain(); const files = [...new Set(chain.flatMap((c) => c.touches))].filter(inReconstructionScope)
+  assert.ok(files.includes('scripts/developer-harness-v3/authority/evaluator.mjs') && files.includes('docs/developer-harness-v3/task-lifecycle.json') && files.includes('scripts/developer-harness-v3/authority/trusted-git.mjs'), 'the scope covers the root of trust')
+  assert.ok(!files.some((f) => /^\.github\/|developer-harness-v2|\/tests\/|\/orchestrator\/issuer\//.test(f)), 'review M1: no control-plane, V2, test or development-scope file is ever reverse-applied (later ordinary edits there cannot break the reconstruction)')
   const base = disposableCopy([], [], 'dh34-integration-base-', { preIntegration: true }) // throws unless EVERY reverse step applies
   const replay = disposableCopy([], [], 'dh34-integration-replay-', { preIntegration: true })
-  for (const c of chain) { const r = spawnSync('git', ['-c', 'core.autocrlf=false', 'apply', '-p1', path.join(DIR, c.file)], { cwd: replay, encoding: 'utf8' }); assert.equal(r.status, 0, `${c.id} replays on the base: ${r.stderr}`) }
-  for (const f of files.filter((x) => PROTECTED_SUFFIX.test(x))) {
+  for (const c of chain) { const inc = c.touches.filter(inReconstructionScope); if (!inc.length) continue; const r = spawnSync('git', ['-c', 'core.autocrlf=false', 'apply', '-p1', ...inc.map((f) => `--include=${f}`), path.join(DIR, c.file)], { cwd: replay, encoding: 'utf8' }); assert.equal(r.status, 0, `${c.id} replays on the base: ${r.stderr}`) }
+  for (const f of files) {
     const here = existsSync(path.join(ROOT, f)) ? sha(readFileSync(path.join(ROOT, f))) : null; const again = existsSync(path.join(replay, f)) ? sha(readFileSync(path.join(replay, f))) : null
     assert.equal(again, here, `${f}: base + chain == repository`)
   }
@@ -54,7 +57,7 @@ test('superseded proposals are HISTORICAL: byte-for-byte as reviewed, coherent w
   const by = Object.fromEntries(manifest.proposals.map((p) => [p.id, p]))
   for (const id of Object.keys(SUPERSEDED)) {
     const p = by[id]; const t = disposableCopy([p.file], p.touches.map((x) => x.replace(/ \(new\)$/, '')), `dh34-hist-${id}-`, { preIntegration: true }) // throws unless it applies to the base
-    const differs = p.touches.map((x) => x.replace(/ \(new\)$/, '')).filter((f) => PROTECTED_SUFFIX.test(f)).some((f) => !existsSync(path.join(ROOT, f)) || sha(readFileSync(path.join(t, f))) !== sha(readFileSync(path.join(ROOT, f))))
+    const differs = p.touches.map((x) => x.replace(/ \(new\)$/, '')).filter(inReconstructionScope).some((f) => !existsSync(path.join(ROOT, f)) || sha(readFileSync(path.join(t, f))) !== sha(readFileSync(path.join(ROOT, f))))
     assert.ok(differs, `${id} is not the applied state (its replacement ${SUPERSEDED[id]} is)`)
   }
 })
