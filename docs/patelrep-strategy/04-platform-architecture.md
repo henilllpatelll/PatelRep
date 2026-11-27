@@ -3,7 +3,8 @@
 > **Status:** The platform foundations are founder-approved as **logical responsibilities**
 > ([FD-25, FD-26](15-strategic-decision-register.md#1-founder-approved-decisions)). The layer model is **proposed
 > architecture** (PA-01). The mapping to existing code is verified at the baseline below.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): the
+> Developer Harness V3 row in §3 only. **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Architectural principles
 
@@ -72,7 +73,7 @@ Release Engineer) changes the repository. It never holds customer authority (§7
 
 | Foundation | Responsibility | Existing implementation | Status at baseline | Home document |
 |---|---|---|---|---|
-| Developer Harness V3 | Autonomous development, testing, review, recovery, CI and authorized releases | `scripts/developer-harness-v3/`, [developer-harness-v3/](../developer-harness-v3/README.md); D3.2–D3.5 merged (D3.5 as #255 on 2026-11-26) | Inactive (28 activation gates, none closed); V2 authoritative | [developer-harness-v3/09-roadmap.md](../developer-harness-v3/09-roadmap.md) |
+| Developer Harness V3 | Autonomous development, testing, review, recovery, CI and authorized releases | `scripts/developer-harness-v3/`, [developer-harness-v3/](../developer-harness-v3/README.md); D3.2–D3.6 merged (D3.5 as #255, D3.6 as #257 and #258, all on 2026-11-26) | Inactive (31 activation gates at `839144cd`, none closed); V2 authoritative | [developer-harness-v3/09-roadmap.md](../developer-harness-v3/09-roadmap.md) |
 | Customer Agent Harness | Secure customer-facing AI execution, specialists, tool governance, approvals, budgets, audit, recovery | `apps/api/services/agent_harness`, `agent_execution`, `agent_gateway`, `agent_orchestrator`, `agent_handoff`, `agent_billing`, `agent_control_center` | H0–H6 merged and default-disabled; H7 P1–P2 merged; no worker deployed | [agent-harness/roadmap.md](../agent-harness/roadmap.md) |
 | PatelRep Connect | Integration framework, registries, sync, health, credentials, metering | Provider-specific code only: `services/opera` (OHIP sync, webhooks, SFTP report ingestion), `routers/integrations.py`, OPERA PDF import (`services/opera_pdf.py`), `services/sms` (Twilio), `services/email_delivery` (Resend), Stripe in `routers/billing.py` and `routers/webhooks.py`, Expo push in `services/notify.py` | No shared framework; OPERA paths behind `opera_pilot_enabled` (default false) | [05](05-integration-strategy.md) |
 | Data Intelligence | Ingestion, history, knowledge retrieval, provenance, quality, analytics, prediction | Postgres history tables, SOP retrieval (`match_sop_chunks`, `services/ai/sop_rag.py`), `services/cleaning_estimates.py`, `services/staffing_forecast.py`, `services/engineering_insights.py`, `services/asset_reliability.py`, rule-based room-readiness predictions (`services/ai/predictions.py`), asset failure predictions (`services/ai/failure_predictions.py`) | Capability-specific; no shared provenance or quality layer | [08](08-data-intelligence-strategy.md) |

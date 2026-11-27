@@ -2,7 +2,9 @@
 
 > **Status:** The register of record for PatelRep's strategic decisions. Entries in §1 are founder-approved; every other
 > section records proposals, open decisions, dependencies, implementation status or conflicts, as labeled.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1 adoption,
+> #259): FD-43 and FD-44, PA-14 and PA-18 status, D3.6 status (TD-17, IN-11, FF-01) and conflict status notes (§9).
+> **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 Identifier prefixes: **FD** founder-approved decision · **PA** proposed architecture · **OC** open commercial decision
 · **TD** technical decision deferred to implementation · **ED** external dependency · **IF** existing implemented
@@ -11,7 +13,8 @@ reused; a superseded entry is marked, not deleted.
 
 ## 1. Founder-approved decisions
 
-Recorded 2026-11-26 from the founder's Phase 0 brief.
+FD-01 to FD-42 were recorded 2026-11-26 from the founder's Phase 0 brief. FD-43 and FD-44 were recorded 2026-11-26
+from the founder's Phase 0.1 authorization, which approved PA-18 and directed adoption steps A1–A3.
 
 | Id | Decision | Home |
 |---|---|---|
@@ -57,6 +60,8 @@ Recorded 2026-11-26 from the founder's Phase 0 brief.
 | FD-40 | PatelRep Connect's responsibilities: connector SDK, official APIs and business events, unified integration providers, scheduled reports, secure file transfer and document imports, credential management, provider and capability registries, canonical models and provider extensions, identity mapping, synchronization and conflict resolution, source-of-truth selection, health monitoring, external action authorization, usage metering and cost governance, self-service onboarding, lifecycle and compatibility testing | [05 §4](05-integration-strategy.md#4-connect-core-components) |
 | FD-41 | Data Intelligence's responsibilities: authorized ingestion, normalization, operational history, knowledge retrieval, provenance, data quality, analytics, predictive modeling, benchmarking and evidence-based improvement | [08](08-data-intelligence-strategy.md) |
 | FD-42 | Every future product implementation should identify its customer problem, roles, expected outcomes, required data and capabilities, fallback, permission and risk boundaries, AI-ready domain operations, integration compatibility, employee protection implications, testing and evaluation, measurement instrumentation, cost, and rollout and rollback; adoption into instructions and automated governance is a separate reviewed follow-up | [14](14-development-and-acceptance-standards.md) |
+| FD-43 | The test every feature must pass: "Does this measurably give someone in hospitality time back, or measurably improve guest experience, quality, safety, profitability or employee well-being — without adding needless complexity, and without costing safety, quality, privacy, employee well-being or the truth?" Also the article interpretations ("Not:"), experience principle 6 and the truthfulness principles' wording in 02. Formerly PA-18, approved 2026-11-26 | [02 §1](02-product-constitution.md#1-the-test-every-feature-must-pass) |
+| FD-44 | Phase 0.1 adoption rules: `CLAUDE.md` stays the canonical development entry point and carries a concise strategy summary, the FD-43 filter and task-specific strategy routing instead of loading the whole strategy; `AGENTS.md` is to reference the same context without duplicating it (A3, blocked by the Developer Harness V2 enforcement set, see 14 §10); product PRs record a proportionate Strategy Fit Record in the PR template (customer problem, benefiting roles, roadmap workstream, intended measurable outcome, data and integration dependencies, missing-data and fallback behavior, employee protection and quality, security and authorization, cost, validation, rollout and rollback); bug fixes, security patches, dependency updates, documentation and infrastructure maintenance give an abbreviated justification; measurements and outcomes are never invented; no automated CI enforcement is introduced; security, reliability, accessibility, compliance, correctness and maintenance work remains valid without an immediate measurable time saving | [14 §3.2](14-development-and-acceptance-standards.md#32-pr-template-form), [14 §10](14-development-and-acceptance-standards.md#10-adoption-plan) |
 
 ## 2. Proposed architecture
 
@@ -75,11 +80,11 @@ Recorded 2026-11-26 from the founder's Phase 0 brief.
 | PA-11 | Organization and portfolio tenancy above `hotel_id` | [04 §6](04-platform-architecture.md#6-patelrep-workspace-and-roles) |
 | PA-12 | Role expansion through explicit capability grants | [04 §6](04-platform-architecture.md#6-patelrep-workspace-and-roles) |
 | PA-13 | Integration usage and cost metering per property | [05 §7](05-integration-strategy.md#7-usage-metering-and-cost-governance) |
-| PA-14 | Strategy Fit Record as the vehicle for FD-42's thirteen items, with the acceptance, evaluation and rollout standards | [14 §3](14-development-and-acceptance-standards.md#3-the-strategy-fit-record) |
+| PA-14 | Strategy Fit Record as the vehicle for FD-42's thirteen items, with the acceptance, evaluation and rollout standards. Still proposed as a whole: the founder directed only its proportionate PR-template form (FD-44, A2, #259), which approves neither the acceptance, evaluation and rollout standards nor any enforcement | [14 §3](14-development-and-acceptance-standards.md#3-the-strategy-fit-record) |
 | PA-15 | Authorized benchmarking: opt-in, aggregated, minimum cohorts | [08 §7](08-data-intelligence-strategy.md#7-customer-data-use-boundaries) |
 | PA-16 | Planning risk floors per capability domain | [06 §4.3](06-ai-and-autonomy-strategy.md#43-proposed-risk-floors-for-the-capability-domains-pa-16) |
 | PA-17 | Roadmap waves, milestone identifiers and dependency map | [03](03-master-product-roadmap.md) |
-| PA-18 | The product test, article interpretations and experience principle 6 of the constitution (pending founder confirmation) | [02 §1](02-product-constitution.md#1-the-test-every-feature-must-pass) |
+| PA-18 | **Approved by the founder 2026-11-26; recorded as FD-43.** As proposed: the product test, article interpretations and experience principle 6 of the constitution (pending founder confirmation); its home document also placed the truthfulness principles' wording under PA-18 | [02 §1](02-product-constitution.md#1-the-test-every-feature-must-pass) |
 | PA-19 | Product interpretations of the employee protection requirements: analytics rules, minimum group size, review checklist, review items | [10](10-employee-protection-policy.md) |
 | PA-20 | Pilot phases, measurement methods and draft expansion and rollback thresholds | [12](12-customer-pilot-strategy.md) |
 
@@ -111,7 +116,7 @@ billing frequency and service commitments. Details: [11 §10](11-commercial-stra
 | TD-14 | Delegation beyond depth 0 (H8) |
 | TD-15 | Step-up authentication (deferred by H7) |
 | TD-16 | Mobile AI Control Center surface (H6 product decision) |
-| TD-17 | V3 suite in protected CI (G-V3-CI control-plane PR) |
+| TD-17 | V3 suite in protected CI (G-V3-CI control-plane PR). Wired by #258 (merged 2026-11-26); G-V3-CI stays `prepared` until its post-merge verification is recorded ([developer-harness-v3/40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)) |
 | TD-18 | Moving legacy AI action paths onto the harness (one operation, two callers) |
 | TD-19 | Canonical model storage (views, tables or a separate schema) |
 | TD-20 | Event taxonomy and event storage |
@@ -167,14 +172,14 @@ Active on `main` where deployed; scheduled jobs run only in production.
 | IN-08 | AI flags `hk_ai_assistant`, `hk_ai_photo_analysis`, `hk_ai_task_translation`, `eng_ai_repair_assist`, `ai_agents` | Default off |
 | IN-09 | OPERA OHIP sync, webhooks and SFTP ingestion; room-status write-back | `opera_pilot_enabled` false; write-back uncalled |
 | IN-10 | Guest SMS, Stripe and Resend paths without credentials | Environment-dependent |
-| IN-11 | Developer Harness V3 D3.2–D3.5 | 28 activation gates, none closed; D3.4–D3.5 simulated |
+| IN-11 | Developer Harness V3 D3.2–D3.6 (D3.6 as #257 and #258, merged 2026-11-26; this row read D3.2–D3.5 at the Phase 0 baseline) | 31 activation gates at `839144cd` (28 at the Phase 0 baseline; D3.6 added three), none closed; D3.4–D3.6 simulated; D3.6 completes as a phase only once its post-merge verification is recorded ([developer-harness-v3/09-roadmap.md](../developer-harness-v3/09-roadmap.md)) |
 | IN-12 | Dependency Orchestrator | Paused (per the V3 verification register) |
 | IN-13 | Autonomous Feature Builder and Feature Orchestrator | Optional, dispatch-only path |
 | IN-14 | `tenant_groups` schema | Not read by application code |
 
 ## 8. Future functionality
 
-FF-01 V3 D3.6–D3.9 (W1) · FF-02 H7 P3–P8 (W2) · FF-03 H8 (W3) · FF-04 Connect Core (W4) · FF-05 Data Intelligence
+FF-01 V3 D3.7–D3.9 (W1; read D3.6–D3.9 until D3.6 merged on 2026-11-26, now IN-11) · FF-02 H7 P3–P8 (W2) · FF-03 H8 (W3) · FF-04 Connect Core (W4) · FF-05 Data Intelligence
 foundation (W5) · FF-06 capability readiness layer (W6) · FF-07 Hours Returned and impact views (W7) · FF-08 universal
 Ask PatelRep (W8) · FF-09 room-ready notification and handover improvements (W9) · FF-10 payroll and timekeeping
 integration, forward staffing forecast (W10) · FF-11 department-head views and exception queue (W11) · FF-12 owner,
@@ -184,20 +189,22 @@ coordinated autonomy (W15) · FF-16 all-inclusive pricing and scaling (W16).
 
 ## 9. Conflicts and recommended resolutions
 
-None of these is changed by this PR. "Docs PR", "instruction PR" and "fix PR" mean separate reviewed work.
+Phase 0 (#256) changed none of these. Rows that Phase 0.1 (#259) touched carry a **Status (#259)** note after the
+original recommendation; every other row is unchanged and open. "Docs PR", "instruction PR" and "fix PR" mean separate
+reviewed work.
 
 | Id | Conflict | Evidence | Recommended resolution |
 |---|---|---|---|
-| CF-01 | AI-first positioning ("AI Staff Copilot", "Quore-style simplicity with AI-powered predictions") versus FD-16, FD-18, FD-21 | `CLAUDE.md`, `README.md`, `.planning/PROJECT.md`, `apps/web/app/page.tsx` and its e2e assertion | Instruction and docs PRs to adopt the mission framing; public-site copy and its test change together |
+| CF-01 | AI-first positioning ("AI Staff Copilot", "Quore-style simplicity with AI-powered predictions") versus FD-16, FD-18, FD-21 | `CLAUDE.md`, `README.md`, `.planning/PROJECT.md`, `apps/web/app/page.tsx` and its e2e assertion | Instruction and docs PRs to adopt the mission framing; public-site copy and its test change together. **Status (#259): partly resolved** — `CLAUDE.md` and `README.md` adopt the mission framing. Open: `.planning/PROJECT.md` (docs PR) and the public-site copy with its e2e assertion (application PR, only on explicit request) |
 | CF-02 | Usage-priced AI and inconsistent pricing statements versus FD-03 | [11 §4](11-commercial-strategy.md#4-conflicts-with-the-all-inclusive-direction) | No change to live billing until OC-01–OC-05 are decided; then one reviewed change set. The onboarding-prompt credit wording is a copy fix. The small-property cap is a defect in an existing billing safeguard: FD-36 keeps its behavior unchanged until it is decided in the OC-01/OC-02 package. Onboarding 1–39-room hotels is possible today, so until then do not onboard properties under 40 rooms for AI features |
-| CF-03 | Code decision filter limited to housekeepers and engineers | `CLAUDE.md`, `ai-ready-feature-standard.md`, `.planning/PROJECT.md` | After the founder confirms PA-18, generalize per [02 §1](02-product-constitution.md#1-the-test-every-feature-must-pass) ([14 §10](14-development-and-acceptance-standards.md#10-adoption-plan-recommended-follow-up-not-performed-in-this-pr) A1) |
+| CF-03 | Code decision filter limited to housekeepers and engineers | `CLAUDE.md`, `ai-ready-feature-standard.md`, `.planning/PROJECT.md` | After the founder confirms PA-18, generalize per [02 §1](02-product-constitution.md#1-the-test-every-feature-must-pass) ([14 §10](14-development-and-acceptance-standards.md#10-adoption-plan) A1). **Status (#259): resolved at instruction level** — PA-18 approved (FD-43); `CLAUDE.md` carries the FD-43 feature decision filter (A1). Open: `docs/agent-harness/ai-ready-feature-standard.md` (a Customer Agent Harness standard, changed only in its own reviewed docs PR) and `.planning/PROJECT.md` (docs PR) |
 | CF-04 | `ProductFamily` has no People family | `services/agent_harness/vocabulary.py` | PA-10 in H8 design (W3-M1) |
-| CF-05 | Segment narrowing ("Texas", "independent", "limited/select-service"); Texas-framed safety content | `CLAUDE.md`, `README.md`, planning and audit docs, `routers/safety.py` | Treat as initial go-to-market context; make jurisdiction-specific content configurable before expansion (W16-S5) |
-| CF-06 | README is outdated: "14 spec files" (one exists), missing `spec/07_deployment.md`, Next.js 14 (actual 16.x), no `apps/mobile` | `README.md`, `spec/`, `apps/web/package.json` | Docs PR |
-| CF-07 | `CLAUDE.md` factual drift: Python 3.13 (image is 3.12); JWT claims `hotel_id` + `role` (the app role moved to `user_role` in migration 053); migrations "001–041" (192 files to 262, more prefix collisions); "21 domain files" (57 routers); retired web `/ai`; `middleware.ts` (now `proxy.ts`); true-up schedule; cron table missing jobs; logbook "hard-delete" (the job archives); Vercel's role; stale `.planning` pointers | `CLAUDE.md` versus code | Instruction PR with human approval |
-| CF-08 | AI routing statements name `claude-sonnet-3.5` and model-based readiness predictions, and describe per-hotel routing as general | `CLAUDE.md`, `MOBILE_HOUSEKEEPER_AI.md` §5; code uses `claude-sonnet-4-6`, a rule-based readiness heuristic, and hard-coded model IDs except for two purposes | Include in the CF-07 instruction PR and a docs PR |
+| CF-05 | Segment narrowing ("Texas", "independent", "limited/select-service"); Texas-framed safety content | `CLAUDE.md`, `README.md`, planning and audit docs, `routers/safety.py` | Treat as initial go-to-market context; make jurisdiction-specific content configurable before expansion (W16-S5). **Status (#259):** `CLAUDE.md` and `README.md` state the initial market per FD-22 without the narrower terms. Open: planning and audit docs and the Texas-framed safety content |
+| CF-06 | README is outdated: "14 spec files" (one exists), missing `spec/07_deployment.md`, Next.js 14 (actual 16.x), no `apps/mobile` | `README.md`, `spec/`, `apps/web/package.json` | Docs PR. **Status (#259): resolved** — re-verified at `839144cd`; `README.md` names the one spec file, drops the missing link, states Next.js 16 and lists `apps/mobile` |
+| CF-07 | `CLAUDE.md` factual drift: Python 3.13 (image is 3.12); JWT claims `hotel_id` + `role` (the app role moved to `user_role` in migration 053); migrations "001–041" (192 files to 262, more prefix collisions); "21 domain files" (57 routers); retired web `/ai`; `middleware.ts` (now `proxy.ts`); true-up schedule; cron table missing jobs; logbook "hard-delete" (the job archives); Vercel's role; stale `.planning` pointers | `CLAUDE.md` versus code | Instruction PR with human approval. **Status (#259): resolved** with the founder's approval — every listed item was re-verified at `839144cd` and corrected in `CLAUDE.md`. Also corrected: the build command that used a root `--workspace` flag (the root `package.json` has no workspaces), the `railway.toml` description and the API URL fallback's file (`apps/web/lib/api/apiUrl.ts`) |
+| CF-08 | AI routing statements name `claude-sonnet-3.5` and model-based readiness predictions, and describe per-hotel routing as general | `CLAUDE.md`, `MOBILE_HOUSEKEEPER_AI.md` §5; code uses `claude-sonnet-4-6`, a rule-based readiness heuristic, and hard-coded model IDs except for two purposes | Include in the CF-07 instruction PR and a docs PR. **Status (#259): `CLAUDE.md` part resolved** (`claude-sonnet-4-6`, rule-based readiness, per-hotel overrides only for failure prediction and repair assist). Open: `MOBILE_HOUSEKEEPER_AI.md` §5 (docs PR) |
 | CF-09 | "Connect" means both the integration foundation and an H8 agent family | `vocabulary.py`, `agent-harness/roadmap.md` | Use the [README glossary](README.md#glossary); H8 says "Connect agents" |
-| CF-10 | Overlapping, stale planning and status: `.planning` roadmap and milestones stop in August 2026 (`STATE.md` was last edited 2026-09-16); plans marked unexecuted were executed; an unevidenced "two pilot hotels" gate; H7 P2 shown pending though merged; V3 docs call D3.2 "this PR"; pre-H6 doc says "not merged"; migration inventory stale; at least nine "phase" numbering schemes | `.planning/`, root plans, component docs | Master roadmap sequences workstreams; component docs get status refreshes in their own PRs; superseded plans marked historical in a docs PR |
+| CF-10 | Overlapping, stale planning and status: `.planning` roadmap and milestones stop in August 2026 (`STATE.md` was last edited 2026-09-16); plans marked unexecuted were executed; an unevidenced "two pilot hotels" gate; H7 P2 shown pending though merged; V3 docs call D3.2 "this PR"; pre-H6 doc says "not merged"; migration inventory stale; at least nine "phase" numbering schemes | `.planning/`, root plans, component docs | Master roadmap sequences workstreams; component docs get status refreshes in their own PRs; superseded plans marked historical in a docs PR. **Status (#259):** `CLAUDE.md` now treats `.planning/` as historical context. Open: everything else in this row |
 | CF-11 | FD-23 restrictions are not encoded in any contract | `risk-model-h7.md`, `specialists-engineering.md` | Explicit prohibited rows plus a contract test in the next reviewed risk-model revision |
 | CF-12 | Two AI action paths: legacy copilot confirm routes and the Customer Agent Harness | `routers/ai_copilot.py`, `services/agent_*` | TD-18; new agent-accessible writes use the harness |
 | CF-13 | Native staff-initiated guest SMS versus FD-06 | `services/sms/`, `routers/guest_requests.py` | Keep as a minimal fallback for hotels without a messaging platform (FD-08); never grow it into a guest platform; prefer integration (W13-G1) |
@@ -213,7 +220,7 @@ None of these is changed by this PR. "Docs PR", "instruction PR" and "fix PR" me
 | CF-23 | Several AI calls are not metered through the credit path | `services/ai/`, `routers/` | Fix PR metering them for internal cost tracking ([11 §6](11-commercial-strategy.md#6-cost-tracking-per-property)) without debiting customer credits; any customer charge for them is decided in OC-02, with notice ([11 §5](11-commercial-strategy.md#5-transition-principles)) |
 | CF-24 | `hk_ai_assistant` is registered as UI-only but one route enforces it | `core/feature_registry.py`, `routers/ai_copilot.py` | Fix PR aligning registry metadata and behavior |
 | CF-25 | Diverging PMS direction: harden two-way sync, defer it, or automate the UI | `HOTEL_STANDARDS_EXECUTION_PLAN.md`, `CLAUDE.md` A4, `risk-model-h7.md`, pivot branch | [05](05-integration-strategy.md): read first; writes only through reviewed, authorized operations; never by agents under H7 |
-| CF-26 | Retention gaps and descriptions that overstate deletion | [13 §5](13-security-privacy-and-governance.md#5-privacy-principles) | Retention catalog (W5-D5); correct descriptions in the CF-07 instruction PR |
+| CF-26 | Retention gaps and descriptions that overstate deletion | [13 §5](13-security-privacy-and-governance.md#5-privacy-principles) | Retention catalog (W5-D5); correct descriptions in the CF-07 instruction PR. **Status (#259):** `CLAUDE.md` now says the logbook job archives. Open: the retention catalog; migration `0201`'s comment stays as history |
 | CF-27 | Registry definitions and calculators disagree (PM compliance, cleaning-minutes denominator); several ROI rates return `0.0` on an empty denominator; no measured baseline exists | `services/reporting/definitions.py`, `services/guest_recovery/contracts.py` | Registry-to-calculator tests in W7-I1; fix PRs for the disagreements |
 | CF-28 | The reservation-sync job records success when every hotel was skipped, and health reports it as the PMS last sync | `routers/internal.py`, `main.py` | Fix PR recording skipped runs honestly (readiness rule, [07](07-adaptive-intelligence.md)) |
 | CF-29 | Schema comments and code docstrings describe data as inputs to AI training or cold-start | migration 004, `services/opera/sync.py` | No training without an explicit decision (FD-29); update comments only through new forward-only work, never by editing history |

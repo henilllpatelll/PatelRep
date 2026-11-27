@@ -3,7 +3,8 @@
 > **Status:** The mission, brand promise, platform definition, balance, staffing stance, sales principle and markets
 > are founder-approved (FD-16 to FD-22 in the [decision register](15-strategic-decision-register.md#1-founder-approved-decisions)).
 > The mechanisms table in §5 is a proposed framing; §11 records repository history.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): the §11
+> adoption note only. **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Mission
 
@@ -133,7 +134,7 @@ Those remain go-to-market context for the first customers, not product boundarie
 The repository has described PatelRep in narrower terms. These statements are consistent with the mission's focus on
 the floor but narrower in audience and framed around AI:
 
-| Statement | Source |
+| Statement | Source (at the Phase 0 baseline) |
 |---|---|
 | "AI Staff Copilot SaaS for 50–150 room Texas hotels" | `CLAUDE.md` (line 3) |
 | "AI Staff Copilot SaaS for independent Texas hotels. Quore-style simplicity with AI-powered predictions — built for housekeepers and engineers on the floor." | `README.md` (line 3) |
@@ -143,7 +144,8 @@ the floor but narrower in audience and framed around AI:
 This strategy keeps their strengths — floor-first design, simplicity, defensible operational evidence — and changes
 the frame: from an AI copilot for two departments to a platform that returns time to everyone in hospitality. Updating
 those texts (and the public-site test that asserts one of them) is a reviewed follow-up recorded as
-[CF-01](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions).
+[CF-01](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions). Phase 0.1 (#259) updated
+`CLAUDE.md` and `README.md`; `.planning/PROJECT.md` and the public site remain open.
 
 ## 12. The principle behind every document
 

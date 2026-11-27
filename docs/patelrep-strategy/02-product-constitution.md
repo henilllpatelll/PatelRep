@@ -3,14 +3,16 @@
 > **Status:** The bold decision statement of each article (FD-01 to FD-15), the capability domains in §3 (FD-34) and
 > experience principles 1–5 and 7 in §4 (FD-33, FD-14) are founder-approved
 > ([decision register](15-strategic-decision-register.md#1-founder-approved-decisions)). The feature test in §1, each
-> article's "Not:" interpretation, experience principle 6 and the truthfulness principles' wording in §5 are
-> **proposed** (PA-18) pending founder confirmation. "Today:" notes record repository facts. Changing a founder-approved
-> item requires a reviewed decision-register change approved by the founder.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> article's "Not:" interpretation, experience principle 6 and the truthfulness principles' wording in §5 were proposed
+> as PA-18 and are **founder-approved** since 2026-11-26 (FD-43). "Today:" notes record repository facts at the baseline.
+> Changing a founder-approved item requires a reviewed decision-register change approved by the founder.
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): FD-43
+> status and the §1 adoption note only; "Today:" notes were not re-verified.
+> **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. The test every feature must pass
 
-Proposed (PA-18), pending founder confirmation:
+Founder-approved (FD-43, formerly PA-18; approved 2026-11-26):
 
 > **Does this measurably give someone in hospitality time back, or measurably improve guest experience, quality,
 > safety, profitability or employee well-being — without adding needless complexity, and without costing safety,
@@ -18,10 +20,12 @@ Proposed (PA-18), pending founder confirmation:
 
 The test covers all six balanced outcomes (FD-19), so features whose value is safety or quality — such as surfacing
 a staffing shortage or one-step safety reporting — pass even when they add a step. It generalizes the repository's
-existing code decision filter ("Every feature must save a housekeeper or engineer time on the floor — not add
-complexity to their phone", `CLAUDE.md`) from two roles to everyone PatelRep serves. The existing wording stays in
-`CLAUDE.md` until the founder confirms PA-18 and a reviewed follow-up updates it
-([CF-03](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions)).
+former code decision filter ("Every feature must save a housekeeper or engineer time on the floor — not add
+complexity to their phone") from two roles to everyone PatelRep serves. `CLAUDE.md` adopted it as its feature decision
+filter in Phase 0.1 (#259, adoption step A1), resolving the instruction-level part of
+[CF-03](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions). Security, reliability,
+accessibility, compliance, correctness and maintenance work remains valid without an immediate measurable time saving
+(FD-44).
 
 ## 2. The permanent product decisions
 
@@ -127,7 +131,7 @@ People becomes its own agent family is a proposal for the H8 design (PA-10).
 4. **Exception-driven management.** Managers see what is off-track, not everything that is on-track.
 5. **Ordinary interfaces first (FD-33).** Do not force users into an AI conversation when an ordinary interface
    is faster. Conversation is an option on every screen, never a toll gate in front of it.
-6. **Built for the floor (proposed, PA-18).** Phone-first for floor roles, one-handed, English and Spanish at parity,
+6. **Built for the floor (FD-43).** Phone-first for floor roles, one-handed, English and Spanish at parity,
    tolerant of poor connectivity, and never slower than the paper or radio it replaces.
 7. **Consistent everywhere (FD-14).** The same product at every property; differences come from readiness states, not
    from different apps ([07](07-adaptive-intelligence.md)).
