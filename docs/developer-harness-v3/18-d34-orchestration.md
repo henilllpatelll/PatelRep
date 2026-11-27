@@ -14,7 +14,7 @@ It adds only `scripts/developer-harness-v3/{orchestrator,ci}/**`, `scripts/devel
 | Context | `context-renewal.mjs`, `snapshot.mjs`, `preserve.mjs` | renewal decision (validated telemetry, hard ceilings), checkpoints, restore prompt, worktree snapshots, safe/unsafe partition, work preservation on every interruption |
 | Suspension | `suspension.mjs` | technical (non-owner) suspension: per-epoch budgets, cool-downs, strategy escalation, terminal disposition, owner-vs-technical classification |
 | Reviews | `review.mjs` | structured-findings normalization; severity decides what is mandatory |
-| Issuers | `issuer/{issuer-core,ipc,issuer-client,issuer-main,key-custody,facts-git}.mjs`, `trusted-git.mjs` | separate processes, narrow operations, authenticated IPC |
+| Issuers | `issuer/{issuer-core,ipc,issuer-client,issuer-main,key-custody,facts-git}.mjs`, `trusted-git.mjs` (D3.6: moved to `authority/trusted-git.mjs` by P1v2) | separate processes, narrow operations, authenticated IPC |
 | D3.3 wiring | `d33-adapters.mjs` | real governors / liveness / launcher plan; live session adapters deliberately absent |
 | Gates | `activation-gates.mjs` | the register; `liveExecutionAllowed()` is false |
 | Simulation | `sim/*` | harness, world, adapters, stream shapes; every output labelled simulated |
