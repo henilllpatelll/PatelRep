@@ -1,10 +1,11 @@
 # 14 — Development and Acceptance Standards
 
-> **Status:** The thirteen items every future implementation should identify are founder-specified for future
-> adoption (FD-42). The Strategy Fit Record format, acceptance and evaluation standards and the rollout ladder are
-> **proposed** (PA-14). Documentation only: this file changes no instruction file, workflow, gate, ruleset or
-> enforcement mechanism.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Status:** The thirteen items every future implementation should identify are founder-specified (FD-42). The
+> proportionate PR-template form of the Strategy Fit Record (§3.2) and adoption steps A1 and A2 (§10) were adopted on
+> founder direction in Phase 0.1 (FD-44, #259); A3 is blocked (§10). The full record format, acceptance and evaluation standards and the
+> rollout ladder remain **proposed** (PA-14). No CI check, workflow, gate, ruleset or other mechanism enforces any of it.
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): status,
+> §1, §2, §3.2 and §10. **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 
@@ -13,8 +14,10 @@ answer before it is released: **whose time does this give back, by how much, and
 that question into a repeatable record (the Strategy Fit Record), acceptance standards, evaluation rules and a rollout
 ladder that sit *on top of* the repository's existing, authoritative delivery controls.
 
-These standards are written for future adoption. Integrating them into `CLAUDE.md`, `AGENTS.md`, the PR template or
-automated governance is a separate, reviewed follow-up (§10). Nothing here is enforced today.
+Phase 0.1 (#259) adopted A1 and A2 (§10): `CLAUDE.md` carries the feature decision filter (FD-43) and task-specific
+strategy routing, and the PR template carries the Strategy Fit Record in proportionate form (§3.2). A3 is blocked
+(§10); `AGENTS.md` already sends Codex and other agents to `CLAUDE.md`, so they reach the same context. Automated
+governance is not adopted: nothing here is enforced by CI.
 
 ## 2. Existing controls these standards build on (unchanged)
 
@@ -29,7 +32,8 @@ automated governance is a separate, reviewed follow-up (§10). Nothing here is e
 | Developer Harness V2 | [developer-harness-v2/02-architecture-contract.md](../developer-harness-v2/02-architecture-contract.md) | Local policy, roles, smart test selection, CI suites; authoritative developer tooling | Active |
 | Developer Harness V3 | [developer-harness-v3/README.md](../developer-harness-v3/README.md) | Future autonomous developer harness | Inactive until D3.9 activation |
 | Release Engineer | [AUTONOMOUS_RELEASE_ENGINEER.md](../AUTONOMOUS_RELEASE_ENGINEER.md) | The only repair system for eligible CI/Staging failures | Active |
-| Project instructions | [`CLAUDE.md`](../../CLAUDE.md), [`AGENTS.md`](../../AGENTS.md) | Development routing, authority boundaries, non-regression and self-verification policies | Active guidance |
+| Project instructions | [`CLAUDE.md`](../../CLAUDE.md), [`AGENTS.md`](../../AGENTS.md) | Development routing, authority boundaries, non-regression and self-verification policies; feature decision filter (FD-43) and strategy routing | Active guidance |
+| PR template | [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) | PR description sections, the migration safety checklist and the Strategy Fit Record (§3.2) | Active guidance, not enforced |
 
 The strategy adds product-fit requirements. It never relaxes, replaces or reinterprets any row above.
 
@@ -75,6 +79,34 @@ Strategy Fit Record
 12. Cost implications and metering:
 13. Rollout, kill switch and rollback:
 ```
+
+### 3.2 PR-template form
+
+Adopted on founder direction in Phase 0.1 (FD-44, A2). The PR template's ten fields cover all thirteen items:
+
+| PR-template field | Items |
+|---|---|
+| Customer problem | 1 |
+| Roles that benefit | 2 |
+| Roadmap workstream (W1–W16 in [03](03-master-product-roadmap.md)) | Traceability |
+| Intended measurable outcome (metric, evidence class or `NOT MEASURED`) | 3 |
+| Data and integration dependencies | 4, 8 |
+| Missing-data and fallback behavior | 5 |
+| Employee protection and quality ([10 §5](10-employee-protection-policy.md#5-feature-review-checklist)) | 9 |
+| Security and authorization, including any agent-accessible operation | 6, 7 |
+| Cost implications | 12 |
+| Validation, rollout and rollback | 10, 11, 13 |
+
+* **Proportionate.** One line per field is enough for a small product change; "n/a, because …" is an answer, a blank
+  is not. A larger feature keeps the full record (§3.1) in its design document and links it.
+* **Abbreviated justification.** Bug fixes, security patches, dependency updates, documentation and infrastructure
+  maintenance give one line on what is fixed or maintained and why, instead of the fields. Such work is valid without
+  an immediate measurable time saving (FD-44).
+* **Never invented.** An outcome not yet measured is stated as expected, with its evidence class, or as
+  `NOT MEASURED` (§4); no figure appears without a source.
+* **Public repository.** For security patches and the security field, state the class of change only (no exploit
+  details, affected endpoints or unfixed weaknesses) and reference a private advisory.
+* **Not enforced by CI.** Reviewers check the record; A5 (§10) is not adopted.
 
 ## 4. Status vocabulary for every claim
 
@@ -162,14 +194,16 @@ register reflects any changed decision. Released, enabled and production-verifie
 * Files stay under 500 lines; one home document per concept, others link to it.
 * A strategic decision changes only through the [decision register](15-strategic-decision-register.md) in a reviewed PR.
 
-## 10. Adoption plan (recommended follow-up; not performed in this PR)
+## 10. Adoption plan
 
-| Step | Change | Classification |
-|---|---|---|
-| A1 | Generalize the `CLAUDE.md` "code decision filter" from housekeepers and engineers to everyone in hospitality, and point to this strategy (resolves [CF-03](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions)) | Instruction change, reviewed PR |
-| A2 | Add a short "Strategy fit" section to [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) | Repository process, reviewed PR |
-| A3 | Point `AGENTS.md` at the strategy README (it intentionally holds no facts of its own) | Instruction change, reviewed PR |
-| A4 | Teach the V2 risk router and testing rules about SFR-relevant paths if useful | Developer-harness change, reviewed PR |
-| A5 | Optional automated check that a PR touching product code carries an SFR | Control-plane work (`.github/workflows/**`), human-approved PR |
+| Step | Change | Classification | Status |
+|---|---|---|---|
+| A1 | Generalize the `CLAUDE.md` "code decision filter" from housekeepers and engineers to everyone in hospitality, and point to this strategy (resolves [CF-03](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions)) | Instruction change, reviewed PR | Adopted (#259) |
+| A2 | Add a short "Strategy fit" section to [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) | Repository process, reviewed PR | Adopted (#259, §3.2) |
+| A3 | Point `AGENTS.md` at the strategy README (it intentionally holds no facts of its own) | Instruction change, reviewed PR | Blocked: `AGENTS.md` is pinned byte-identical in the Developer Harness V2 enforcement set (`scripts/developer-harness-v2/context/openwolf-hooks.test.mjs`) and changes only after a reviewed V2 change to that pin. Its existing redirect to `CLAUDE.md` already leads agents to the strategy routing |
+| A4 | Teach the V2 risk router and testing rules about SFR-relevant paths if useful | Developer-harness change, reviewed PR | Not performed. Also decide whether `docs/patelrep-strategy/**` needs V2 escalation or protection now that `CLAUDE.md` routes agents to it |
+| A5 | Optional automated check that a PR touching product code carries an SFR | Control-plane work (`.github/workflows/**`), human-approved PR | Not performed |
 
-Each step is separate, reviewed work. This PR performs none of them.
+Each step is separate, reviewed work. Phase 0 (#256) performed none of them; Phase 0.1 (#259) performed A1 and A2 on
+founder direction (FD-44) and left A3 blocked as recorded above. A3's V2 prerequisite, A4 and A5 remain separate
+follow-ups, each only on explicit request.

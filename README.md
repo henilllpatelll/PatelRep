@@ -1,8 +1,11 @@
 # PatelRep
 
-AI Staff Copilot SaaS for independent Texas hotels. Quore-style simplicity with AI-powered predictions — built for housekeepers and engineers on the floor.
+**More time for hospitality.** PatelRep is an intelligent hospitality operations and coordination platform connecting
+hotel employees, managers, owners and their existing software. Its mission is to give everyone in hospitality their
+time back. Product direction is set by the [Master Strategy](./docs/patelrep-strategy/README.md).
 
-**Pricing:** $99/mo base + $0.02/AI credit, cap $2.50/room/month
+**Billing today:** $99/mo base + $0.02/AI credit, cap $2.50/room/month. One all-inclusive subscription is the intended
+direction; its prices are not decided ([commercial strategy](./docs/patelrep-strategy/11-commercial-strategy.md)).
 
 ---
 
@@ -12,11 +15,12 @@ AI Staff Copilot SaaS for independent Texas hotels. Quore-style simplicity with 
 PatelRep/
 ├── apps/
 │   ├── api/        FastAPI Python 3.12 — backend (Railway)
-│   └── web/        Next.js 14 App Router — web dashboard (Railway)
+│   ├── web/        Next.js 16 App Router — web dashboard (Railway)
+│   └── mobile/     Expo React Native — iOS and Android app (EAS builds)
 ├── supabase/
 │   └── migrations/ — full schema history (including documented historical prefix collisions)
-├── spec/           14 spec files (source of truth)
-└── docs/           Design specs and implementation plans
+├── spec/           One historical feature spec (housekeeping phase 1 foundation)
+└── docs/           Process, release, harness and strategy docs (Master Strategy: docs/patelrep-strategy/)
 ```
 
 ---
@@ -76,6 +80,7 @@ deployment, not a warning.
 ## Further Reading
 
 - [`CLAUDE.md`](./CLAUDE.md) — full project context, conventions, and AI session instructions
-- [`spec/`](./spec/) — product requirements (source of truth)
-- [`spec/07_deployment.md`](./spec/07_deployment.md) — infrastructure and deployment details
+- [`docs/patelrep-strategy/`](./docs/patelrep-strategy/README.md) — Master Strategy: mission, product constitution, roadmap and standards
+- [`spec/`](./spec/) — historical feature spec
+- [`docs/RELEASE_PROCESS.md`](./docs/RELEASE_PROCESS.md) — release and deployment process
 - [`docs/ENVIRONMENTS.md`](./docs/ENVIRONMENTS.md) — isolated development, staging, and production configuration

@@ -4,7 +4,8 @@
 > founder-approved ([FD-37](15-strategic-decision-register.md#1-founder-approved-decisions)).
 > Dependencies, waves, milestones and gates are **proposed** (PA-17). This is a dependency-aware plan, not a commitment
 > to strictly sequential delivery, and it does not redesign the H7, H8 or V3 contracts it references.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): D3.6
+> status in §1, §3 and W1 only. **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. How to read this roadmap
 
@@ -14,8 +15,11 @@
   it, not before.
 * **No premature intelligence.** An agent or prediction whose required data is unavailable, or whose usefulness cannot
   be validated, is not built ([07](07-adaptive-intelligence.md), [14 §6](14-development-and-acceptance-standards.md#6-evaluation-requirements-for-ai-features)).
-* Nothing here starts work. D3.6, H7 implementation, H8 implementation and every product milestone begin only on an
-  explicit request, through the normal development routing in `CLAUDE.md`.
+* Nothing here starts work. Recording D3.6's post-merge verification (its owner steps are in
+  [developer-harness-v3/40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)),
+  D3.7–D3.9, H7 implementation, H8 implementation and every product milestone begin only on an explicit request,
+  through the normal development routing in `CLAUDE.md`. D3.6 itself merged on 2026-11-26 but is not complete until
+  that verification is recorded.
 
 ## 2. Dependency map
 
@@ -70,7 +74,7 @@ it blocks none of them because Developer Harness V2 stays authoritative until V3
 | Wave | Content | Why now |
 |---|---|---|
 | 0 — Preparation | This strategy; pilot authorization request to the property; baseline design; partner and developer-account applications by the founder; authorized hotel research | Needs no code; baseline *measurement* waits for the pilot's P0 approvals |
-| 1 — Foundations beside value | W1 D3.6; W2 H7 P3–P5; W4-C1–C2; W5-D1–D2; W6-R1–R2; W7-I1–I3 (I2 owns all instrumentation); W9-F1–F4; W10-L1; W11-M1 | Each foundation milestone serves a pilot workflow |
+| 1 — Foundations beside value | W1 D3.6 (merged 2026-11-26, inactive); W2 H7 P3–P5; W4-C1–C2; W5-D1–D2; W6-R1–R2; W7-I1–I3 (I2 owns all instrumentation); W9-F1–F4; W10-L1; W11-M1 | Each foundation milestone serves a pilot workflow |
 | 2 — Pilot and proof | Pilot P1–P4 ([12](12-customer-pilot-strategy.md)); W2 H7 P6–P8; W4-C3; W5-D3; W7-I4–I6; W8-A1–A2 | Evidence before expansion; completes the foundations H8 needs (§4) |
 | 3 — Expansion | W3-N1–N4; W8-A3–A4; W10-L3–L4; W12-O1–O3; W13-G1–G3; W14-X1–X2 | Built on measured results and proven foundations |
 | 4 — Scale | W15; W16; W14-X3–X4; W3-N5–N6 | Requires customers, consent and validated autonomy |
@@ -114,16 +118,16 @@ W11-M2–M4, W12-O4–O5, W13-G4) are unscheduled; each is placed when a custome
 
 | Field | Content |
 |---|---|
-| Objective | Finish D3.6–D3.9 so autonomous development can be activated inside proven isolation; V2 stays authoritative until then |
+| Objective | Record D3.6's post-merge verification, then finish D3.7–D3.9, so autonomous development can be activated inside proven isolation; V2 stays authoritative until then |
 | Customer value | Indirect: faster, safer delivery and maintenance of every other workstream |
 | Intended users | The founder as repository owner, and developer agents |
-| Existing foundation | D3.2 (#251), D3.3 (#252), D3.4 (#254) and D3.5 (#255, merged 2026-11-26) on `main` — implemented, D3.4–D3.5 simulated, all inactive; V2 core, CI integration and permission transition merged (#247, #250, #253) |
-| Missing capabilities | D3.6 PR/CI/staging management ([30-d36-handoff.md](../developer-harness-v3/30-d36-handoff.md)); D3.7 merging, releases, recovery; D3.8 bot, dashboard, maintenance; D3.9 validation, audit, activation ([09-roadmap.md](../developer-harness-v3/09-roadmap.md)) |
-| Dependencies | Owner decisions on provider eligibility, worker account and egress rule; control-plane PR wiring V3 into protected CI (G-V3-CI) |
+| Existing foundation | D3.2 (#251), D3.3 (#252), D3.4 (#254), D3.5 (#255) and D3.6 (#257 delivery and #258 protected control-plane integration, both merged 2026-11-26) on `main` — implemented, D3.4–D3.6 simulated, all inactive; V2 core, CI integration and permission transition merged (#247, #250, #253) |
+| Missing capabilities | D3.6 post-merge verification ([40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)); D3.7 merging, releases, recovery ([41-d37-handoff.md](../developer-harness-v3/41-d37-handoff.md)); D3.8 bot, dashboard, maintenance; D3.9 validation, audit, activation ([09-roadmap.md](../developer-harness-v3/09-roadmap.md)) |
+| Dependencies | Owner decisions on provider eligibility, worker account and egress rule, publisher credentials, the live remote-state reader and owner-action evidence ([39 §3](../developer-harness-v3/39-d36-protected-integration.md#3-owner-decisions-that-remain-not-routine-engineering)); recorded post-merge verification of the protected CI wiring (#258, G-V3-CI) |
 | Required data and integrations | Developer subscription and CLI, GitHub; host resources (a real low-memory interruption is recorded in [23-d35-handoff.md](../developer-harness-v3/23-d35-handoff.md)) |
 | Security and authorization | V3 authority contract; developer agents never activate customer execution; bypass only inside proven isolation (G-BYPASS-ACTIVATION) |
-| Implementation milestones | D3.6 → D3.7 → D3.8 → D3.9, each only on owner instruction |
-| Acceptance criteria | Every gate in the code-rendered activation register closed (`scripts/developer-harness-v3/orchestrator/activation-gates.mjs`: 28 gates, none closed at the baseline; described in [21 §5](../developer-harness-v3/21-d34-protected-changes.md)); D3.9 end-to-end validation and security audit |
+| Implementation milestones | D3.6 (merged) → D3.7 → D3.8 → D3.9, each only on owner instruction |
+| Acceptance criteria | Every gate in the code-rendered activation register closed (`scripts/developer-harness-v3/orchestrator/activation-gates.mjs`: 28 gates at the Phase 0 baseline and 31 at `839144cd`, none closed; described in [21 §5](../developer-harness-v3/21-d34-protected-changes.md)); D3.9 end-to-end validation and security audit |
 | Evaluation requirements | V3 suites in protected CI; live-adapter proof; recovery acceptance scenarios |
 | Rollout and activation gates | D3.9 owner activation ceremony |
 | Key risks | Isolation on the available host; resource exhaustion; provider-terms eligibility; review capacity |

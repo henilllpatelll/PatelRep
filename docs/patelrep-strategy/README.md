@@ -13,6 +13,11 @@ below until reviewed work adopts them.
 > **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). Repository facts were checked against `90204d83` and
 > re-checked at `41995dcb`, whose only change was the Developer Harness V3 D3.5 merge (V3 paths only). Statements about
 > live production state are limited to what the repository records.
+> **Phase 0.1 — Adoption (2026-11-26, #259).** The founder approved PA-18 (now FD-43). Adoption steps A1 and A2 put
+> the feature decision filter, a strategy summary and task routing into `CLAUDE.md` and a Strategy Fit Record into the
+> PR template; A3 (`AGENTS.md`) is blocked by the Developer Harness V2 enforcement set
+> ([14 §10](14-development-and-acceptance-standards.md#10-adoption-plan)). Documents revised at `839144cd` say what
+> changed in their baseline line.
 
 ## Authority and precedence
 
@@ -72,7 +77,8 @@ production-verified ([14 §4](14-development-and-acceptance-standards.md#4-statu
 | 15 | [Strategic decision register](15-strategic-decision-register.md) | Every decision, dependency, status and conflict, with identifiers |
 
 **Reading order.** Leaders: 01 → 02 → 03 → 11 → 12. Engineers: 02 → 04 → 07 → 06 → 13 → 14. Everyone working on
-workforce features also reads 10.
+workforce features also reads 10. For a single development task, use the task routing table in
+[`CLAUDE.md`](../../CLAUDE.md) (Strategy routing) instead.
 
 ## Glossary
 
@@ -88,7 +94,7 @@ workforce features also reads 10.
 | **Developer Harness (V2, V3)** | Tooling for changing the repository; V2 authoritative, V3 inactive until activated ([developer-harness-v3/09-roadmap.md](../developer-harness-v3/09-roadmap.md)) |
 | **Autonomy levels 1–4** | Observe, human-approved, bounded, coordinated (`apps/api/services/agent_harness/vocabulary.py`) |
 | **Evidence class** | Measured, estimated, financially realized or potential opportunity; a figure whose inputs are missing is `unavailable`, a readiness state rather than a class ([09 §3](09-performance-and-impact-engine.md#3-evidence-classes)) |
-| **Strategy Fit Record** | The thirteen-item record proposed for every implementation (PA-14, [14 §3](14-development-and-acceptance-standards.md#3-the-strategy-fit-record)) |
+| **Strategy Fit Record** | The thirteen-item record for every product implementation (FD-42; format PA-14, [14 §3](14-development-and-acceptance-standards.md#3-the-strategy-fit-record)), recorded in proportionate form in the PR template (FD-44, [14 §3.2](14-development-and-acceptance-standards.md#32-pr-template-form)) |
 | **Founder / repository owner** | The founder, who owns the repository and makes control-plane, activation and commercial decisions |
 | **Hotel owner** | A customer: the owner of a property or portfolio, served by the Owner capability domain |
 
@@ -107,5 +113,7 @@ the repository root is historical context; overlaps are listed in the
 * Verify facts against `main` and update the baseline line when a document is revised.
 * Keep one home document per concept; link instead of copying.
 * Keep every file under 500 lines with repository-relative links.
-* Adoption into instructions and automated governance is a separate reviewed follow-up
-  ([14 §10](14-development-and-acceptance-standards.md#10-adoption-plan-recommended-follow-up-not-performed-in-this-pr)).
+* A1 and A2 were adopted in Phase 0.1 (#259); A3 waits for a reviewed V2 change, and A4 and A5 remain separate
+  reviewed follow-ups ([14 §10](14-development-and-acceptance-standards.md#10-adoption-plan)).
+* Task-based reading for development work is routed from [`CLAUDE.md`](../../CLAUDE.md) (Strategy routing). Keep that
+  table there and link to it rather than copying it.

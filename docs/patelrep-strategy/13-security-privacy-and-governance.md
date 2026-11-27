@@ -3,7 +3,8 @@
 > **Status:** Preservation of every existing boundary is founder-approved (FD-24, FD-26, FD-39 in the
 > [decision register](15-strategic-decision-register.md#1-founder-approved-decisions)). Principles for new foundations
 > are **proposed**. This document changes no policy, contract, workflow, ruleset, permission or credential.
-> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
+> **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): the
+> Developer Harness V3 row in §3 and privacy principle 6 only. **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. Purpose
 
@@ -47,7 +48,7 @@ the disagreement is recorded in the [conflicts register](15-strategic-decision-r
 | Agent spend and billing | Atomic provider-spend reservations (H3); customer billing default `disabled`, Stripe test mode only (H4) | [agent-harness/orchestrator.md](../agent-harness/orchestrator.md), [agent-harness/customer-billing.md](../agent-harness/customer-billing.md) |
 | Emergency stops | Platform pause, cost stop, hotel/agent/tool pause, credential revocation, kill switches | [agent-harness/security.md](../agent-harness/security.md), [agent-harness/adr-0006-h7-bounded-autonomy.md](../agent-harness/adr-0006-h7-bounded-autonomy.md) |
 | Developer vs customer agents | Developer agents may never activate customer execution, grants, decide-v2 or billing | [developer-harness-v2/02-architecture-contract.md §6](../developer-harness-v2/02-architecture-contract.md) |
-| Developer Harness V3 | Inactive; activation only after every gate in the code-rendered register (`scripts/developer-harness-v3/orchestrator/activation-gates.mjs`, 28 gates, none closed) is closed, at the D3.9 owner ceremony; V2 authoritative until then | [developer-harness-v3/21-d34-protected-changes.md §5](../developer-harness-v3/21-d34-protected-changes.md), [developer-harness-v3/README.md](../developer-harness-v3/README.md) |
+| Developer Harness V3 | Inactive; activation only after every gate in the code-rendered register (`scripts/developer-harness-v3/orchestrator/activation-gates.mjs`, 31 gates at `839144cd`, none closed) is closed, at the D3.9 owner ceremony; V2 authoritative until then | [developer-harness-v3/21-d34-protected-changes.md §5](../developer-harness-v3/21-d34-protected-changes.md), [developer-harness-v3/README.md](../developer-harness-v3/README.md) |
 | Delivery | CI Gate and Staging Gate on the exact head; human merge; Production Release as a separate decision; Release Engineer as the only repair path. The one narrow exception is the Release Engineer recovery path (auto-merge of eligible recovery PRs, an automatically requested release when the owner has enabled it, automatic rollback under its policy) | [RELEASE_PROCESS.md](../RELEASE_PROCESS.md), [AUTONOMOUS_RELEASE_ENGINEER.md](../AUTONOMOUS_RELEASE_ENGINEER.md) |
 | Migrations | Forward-only; never edit history; destructive-SQL guard; security-sensitive migrations need a reviewed staging preview | [DATABASE_MIGRATIONS.md](../DATABASE_MIGRATIONS.md), [STAGING_REVIEWED_MIGRATION_PREVIEW.md](../STAGING_REVIEWED_MIGRATION_PREVIEW.md) |
 | Credentials | Adapters own provider credentials; credentials never enter model context, tool arguments, traces or audit metadata; production and publisher credentials are never exposed to coding agents | [agent-harness/architecture.md §7](../agent-harness/architecture.md), [`CLAUDE.md`](../../CLAUDE.md) |
@@ -78,8 +79,8 @@ the disagreement is recorded in the [conflicts register](15-strategic-decision-r
 5. **Guest data is minimal.** PatelRep does not build guest-facing platforms (FD-06); guest information arriving
    through integrations is limited to what operations need and is treated as untrusted input.
 6. **Retention and deletion are explicit.** Today: the `logbook.cleanup-expired` job **archives** expired logbook
-   entries (it does not hard-delete them, although `CLAUDE.md` and migration `0201_logbook_expires.sql` describe
-   deletion); lost-and-found items are flagged for manager review after 90 days and never disposed automatically;
+   entries (it does not hard-delete them, although migration `0201_logbook_expires.sql` describes deletion, as
+   `CLAUDE.md` did until Phase 0.1, #259); lost-and-found items are flagged for manager review after 90 days and never disposed automatically;
    controlled documents carry retention classes and legal-hold metadata without a purge job; AI logs, guest messages,
    PMS reservations and status history have no retention rule; no tenant offboarding, erasure or data-export path
    was found. New data classes declare a retention rule before release, and the gaps are recorded in
