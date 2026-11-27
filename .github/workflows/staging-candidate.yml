@@ -60,6 +60,8 @@ jobs:
             const sameRepository = context.repo.owner + '/' + context.repo.repo
             const CI_WORKFLOW_PATH = '.github/workflows/ci.yml'
             const ACTIONS_APP = 'github-actions'
+            // The workflow file of a run, without any '@<ref>' suffix GitHub may append (the live pull_request CI run reports the plain path).
+            const workflowFile = (run) => String(run?.path ?? '').split('@')[0]
             const refuse = (why) => { core.notice(`Staging candidate not eligible: ${why}`); return core.setOutput('eligible', 'false') }
             let pr
             let ciRun
@@ -87,14 +89,14 @@ jobs:
               const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
                 ...context.repo, workflow_id: 'ci.yml', event: 'pull_request', head_sha: candidateSha, per_page: 100,
               })
-              const own = runs.filter((run) => run.head_sha === candidateSha && run.path === CI_WORKFLOW_PATH && run.head_repository?.full_name === sameRepository)
+              const own = runs.filter((run) => run.head_sha === candidateSha && workflowFile(run) === CI_WORKFLOW_PATH && run.head_repository?.full_name === sameRepository)
               const latest = own.reduce((a, b) => (a && a.run_number > b.run_number ? a : b), null)
               if (!latest || latest.status !== 'completed' || latest.conclusion !== 'success') return refuse('the latest CI run for this head has not succeeded')
               ciRun = latest
             }
 
             if (!pr?.number || !candidateSha) return core.setOutput('eligible', 'false')
-            if (ciRun.path !== CI_WORKFLOW_PATH || ciRun.head_sha !== candidateSha || ciRun.head_repository?.full_name !== sameRepository) return refuse('the CI run is not the repository CI workflow for this head')
+            if (workflowFile(ciRun) !== CI_WORKFLOW_PATH || ciRun.head_sha !== candidateSha || ciRun.head_repository?.full_name !== sameRepository) return refuse('the CI run is not the repository CI workflow for this head')
             const fresh = await github.rest.pulls.get({ ...context.repo, pull_number: pr.number })
             const current = fresh.data
             if (

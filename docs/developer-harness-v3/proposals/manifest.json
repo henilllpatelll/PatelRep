@@ -195,7 +195,7 @@
       {
         "id": "C2",
         "file": "C2-staging-exact-head-dispatch.patch",
-        "sha256": "617a3102a98cbd69f0280006973c70ba246998fb483ce0a5a70bdb8c40863cf4",
+        "sha256": "3b85d52235a0cac782ef5b021e546b8a8a04617a9bd86cbf6887ae8189f76fdd",
         "touches": [
           ".github/workflows/staging-candidate.yml"
         ],
@@ -204,6 +204,19 @@
         "protected_class": "control plane (.github/**): integration correction, separately reviewed; runs from main only after merge",
         "purpose": "R-25: optional workflow_dispatch input head_sha (full lowercase 40-hex), refused before any staging work unless it equals the PR head; existing manual callers without it keep their behaviour. Exact-source check selection: the dispatch path uses the LATEST run of .github/workflows/ci.yml for the exact head and repository (an older success never masks a newer failure; another workflow named CI never counts); both paths require the CI run to be the repository CI workflow for that head and bind CI Gate to the github-actions check in THAT run's check suite (newest attempt). The Staging Gate check reused is the newest github-actions one."
       }
-    ]
+    ],
+    "post_chain_sha256": {
+      "docs/developer-harness-v3/authority-contract.json": "a21b25fb18361fc5ee3161d8081b7d43d2c7a50619e0caaa5549fd52f38d3767",
+      "docs/developer-harness-v3/task-lifecycle.json": "5e6b82a04b9753a7187aea65a5483c7fb28e77f5bdf727b31ca2c5d8dd02e549",
+      "scripts/developer-harness-v3/authority/contract.mjs": "9c461d4aef50ee45591b07d92e498655dbc1a237aefaf33204dd8e7d88e8b70f",
+      "scripts/developer-harness-v3/authority/evaluator.mjs": "162edb62bea6c2813f2b299d583b75a76297091af53a2089de07412120032766",
+      "scripts/developer-harness-v3/authority/evidence.mjs": "2b2fb59e00d7474fa32c4be5f8ce220cb5df625136a4d37e32ff39553fa7663d",
+      "scripts/developer-harness-v3/authority/git-facts.mjs": "af64c854d28597cb77b5d552f8339d927c57535373df755c0490efadc342d9a4",
+      "scripts/developer-harness-v3/authority/migration-facts.mjs": "f7e5cadf4e3ab738884d872e96fe912e3ad47a80865e110b2f3eb6a5040e1139",
+      "scripts/developer-harness-v3/authority/policy-version.mjs": "61b7a9f2bd4c9eca3d130892e79b8862f3afda97cbd8cf5c045cf7bb602a4805",
+      "scripts/developer-harness-v3/authority/spend.mjs": "b5f08d1cda91458409839ba31d193c5bf99b410d85b9bdb6b62ed204c059a647",
+      "scripts/developer-harness-v3/authority/trusted-git.mjs": "6de1eac874aadb3c455e56bceb3af2184497fd7e6f11969a1dc4fd07b273ad1c",
+      "scripts/developer-harness-v3/lifecycle/lifecycle.mjs": "efff03ad26a2e02de1a0da9262db27768e7ce56b4560d27305463e5d52e431d3"
+    }
   }
 }
