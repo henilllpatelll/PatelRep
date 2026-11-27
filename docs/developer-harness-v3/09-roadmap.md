@@ -32,3 +32,9 @@ Wiring the V3 test suite into CI is a **mandatory protected control-plane follow
 Each phase ends with an owner review. No phase activates a safeguarded action until D3.9 proves the system end to end; until then V2 plus the existing gates and rulesets remain in force.
 
 **D3.6 status (2026-11-26):** delivery architecture implemented and tested in SIMULATION to `merge_eligible` (docs 31-34, 40); protected integration prepared as ONE owner package (doc 39: P1v2, P6v2, P7, P2). V3 is NOT yet in protected CI and the Linux run has NOT happened, so D3.6 is not complete as a phase. Nothing is active; no merge or release path exists.
+
+**D3.6 Workstream B (2026-11-26):** the owner-controlled integration is PR #258 (`control-plane/dh3-d36-integration`): P1v2, P6v3, P7, P2 applied byte-for-byte, corrections
+C1 (exact delivery-target bindings) and C2 (exact-head staging dispatch, R-25), V3 wired into the Release Workflow Contract job (its PR CI is the first Linux execution), Linux
+fail-closed handling of the Windows-only recovery paths; the `dh3-d33` pins are refreshed by the OWNER from the independently reviewed commit (doc 40 §7 records whether and
+from which sha). Evidence: doc 40 §7. D3.6 completes only when #258 is merged
+by the owner and the post-merge verification in doc 40 §7 is recorded; the activation gates it advances stay `prepared` until then. D3.7 has not started.
