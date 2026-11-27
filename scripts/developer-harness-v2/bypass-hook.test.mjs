@@ -280,7 +280,7 @@ test('shipped pins: every trusted execution names a commit that resolves in this
   const execs = doc.scopes.flatMap((s) => s.trusted_executions.map((e) => [s.id, e]))
   assert.ok(execs.length > 0)
   for (const [scope, e] of execs) {
-    const r = verifyPinProvenance(REPO, e, { fetchIfShallow: true })
+    const r = verifyPinProvenance(REPO, e) // no network here: ci/fetch-pinned-provenance.mjs (a trusted CI preparation step) made the commit resolvable
     assert.deepEqual(r.problems, [], `${scope}/${e.id} pinned at ${e.reviewed_source?.ref}`)
     assert.equal(r.commit, e.reviewed_source.ref); assert.equal(r.files, Object.keys(e.digests).length)
   }

@@ -31,6 +31,8 @@ const normalize = (t) => t.replace(/\r\n?/g, '\n') // CRLF and lone CR are both 
 const CI_TEXT = normalize(readFileSync('.github/workflows/ci.yml', 'utf8'))
 const GUARD = 'scripts/developer-harness-v2-ci-workflow.test.mjs'
 const RUNNER = 'scripts/developer-harness-v2/ci/run-ci-suites.mjs'
+const PREP_STEP = { name: 'Fetch pinned provenance commits', 'timeout-minutes': '5', run: 'node scripts/developer-harness-v2/ci/fetch-pinned-provenance.mjs' }
+const V3_STEP = { name: 'Run Developer Harness V3 regression suites', 'timeout-minutes': '45', run: 'node scripts/developer-harness-v3/ci/run-v3-suites.mjs' }
 const HARNESS_STEP = { name: 'Run Developer Harness V2 contract and security regression suites', 'timeout-minutes': '30', run: `node ${RUNNER}` }
 
 // ── Baselines from main eb597d55 (literal on purpose) ─────────────────────────────────────────────────────────────────────────
@@ -45,14 +47,14 @@ const BASELINE_GATE_BLOCK_SHA256 = '49333cd7de5dbf7d6bce9a43437d4acbf46c1e9c9158
  * head up to, not including, the next job head): eb597d55's checkout / Node 22 / contract step plus this phase's guard entry and
  * harness step. A regression tripwire, NOT a security boundary — a PR that edits this guard and ci.yml together can re-pin it.
  */
-const BASELINE_RELEASE_BLOCK_SHA256 = '18ce2d137e477547611f1b96ea32004a620c2e2a89e53026afbc741644a2d282'
+const BASELINE_RELEASE_BLOCK_SHA256 = 'f235c68e82a359483c990be04cdd880a5c8be9b1a5f8ea0791d9bd95474703fe'
 /**
  * sha256 of the ENTIRE approved Phase 8 ci.yml (LF line endings) — the content reviewed at 3f9e9667, literal on purpose (never derived
  * from the checkout). Any legitimate future change to ci.yml must come with a separately reviewed update of this pin. Like the block
  * pins it is a regression tripwire, NOT a security boundary against a change authorized to edit both ci.yml and this guard; the
  * structural checks below stay in force independently of it.
  */
-const BASELINE_WORKFLOW_SHA256 = 'ab4011f9e3ec0b14ad08452b8902f07beaaae1b3cc3a652589fd5e2550377018'
+const BASELINE_WORKFLOW_SHA256 = 'ad829248a3f58ab1627ae4e64380d7f3ecda8504c7db25541433168daae711a6'
 /** Baseline counts of words that grant or identify authority (any case, any YAML spelling): `permissions`, and `CI Gate` / `ci-gate`. */
 const BASELINE_PERMISSIONS_WORDS = 3
 const BASELINE_CI_GATE_WORDS = 6
@@ -236,7 +238,7 @@ function checkWorkflow(raw) {
   // Exit-status masking, plus backgrounding (`& wait`, a lone `&`), `wait` and line continuations that could hide the runner's status.
   if (/\|\||set \+e|;\s*true\b|\bexit 0\b|2>\s*\/dev\/null|(?<!&)&(?!&)|\bwait\b|\\$/m.test(uncomment(rel))) p.push('RELEASE_JOB_MASKING')
   const st = steps(rel)
-  if (st.length !== 4) p.push('RELEASE_STEP_COUNT')
+  if (st.length !== 6) p.push('RELEASE_STEP_COUNT')
   if (st[0]?.keys.uses !== 'actions/checkout@v7' || Object.keys(st[0]?.keys ?? {}).join() !== 'uses') p.push('RELEASE_CHECKOUT')
   if (st[1]?.keys.uses !== 'actions/setup-node@v7' || !/^ {10}node-version: "22"$/m.test(st[1]?.text ?? '')) p.push('RELEASE_NODE_VERSION')
   const verify = st[2]
@@ -246,8 +248,14 @@ function checkWorkflow(raw) {
   if (tokens[0] !== 'node' || tokens[1] !== '--test' || !files.every((x) => /^scripts\/[a-z0-9-]+\.test\.mjs$/.test(x)) || new Set(files).size !== files.length) p.push('RELEASE_VERIFY_COMMAND')
   if (files.length < BASELINE_RELEASE_COUNT || sha256(files.slice(0, BASELINE_RELEASE_COUNT).join(' ')) !== BASELINE_RELEASE_SHA256) p.push('RELEASE_LIST_BASELINE_CHANGED')
   if (!files.includes(GUARD)) p.push('GUARD_NOT_IN_EXISTING_STEP')
-  const h = st[3]
+  const prep = st[3]
+  if (!prep || JSON.stringify(Object.entries(prep.keys).sort()) !== JSON.stringify(Object.entries(PREP_STEP).sort())) p.push('PREP_STEP_NOT_EXACT')
+  if ((text.match(/fetch-pinned-provenance\.mjs/g) ?? []).length !== 1) p.push('PREP_STEP_NOT_UNIQUE')
+  const h = st[4]
   if (!h || JSON.stringify(Object.entries(h.keys).sort()) !== JSON.stringify(Object.entries(HARNESS_STEP).sort())) p.push('HARNESS_STEP_NOT_EXACT')
+  const v3 = st[5]
+  if (!v3 || JSON.stringify(Object.entries(v3.keys).sort()) !== JSON.stringify(Object.entries(V3_STEP).sort())) p.push('V3_STEP_NOT_EXACT')
+  if ((text.match(/run-v3-suites\.mjs/g) ?? []).length !== 1) p.push('V3_STEP_NOT_UNIQUE')
   if (st.filter((s) => (s.keys.run ?? '').includes('run-ci-suites')).length !== 1 || (text.match(/run-ci-suites\.mjs/g) ?? []).length !== 1) p.push('HARNESS_STEP_NOT_UNIQUE')
 
   // CI Gate: always runs, needs and wires every baseline job, requires every baseline check, and actually fails on a bad result.
