@@ -9,6 +9,7 @@ import { buildQemuArgs, quoteWindowsArg, validateQemuArgs } from '../runtime/qem
 import { buildProvisionScript, buildUserData, SANITIZER_PY, SSH_REQUIRES_SANITIZER, SSHD_CONFIG } from '../infra/cloud-init.mjs'
 import { loginOutputProblems, sanitizeTerminal } from '../runtime/login-relay.mjs'
 import { checkBundleBytes, importBundle } from '../runtime/artifact-transfer.mjs'
+import { resolveGit } from '../authority/trusted-git.mjs'
 import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fetchVerified, loadArtifacts, parseDigest, parseGpgStatus, rollback } from '../infra/setup.mjs'
@@ -131,14 +132,17 @@ test('security S2: bundle import refuses gitdir redirects and bad headers, and r
   assert.equal(importBundle(Buffer.from('gitdir: ../../.git\n')).code, 'BUNDLE.BAD_HEADER')
   const d = mkdtempSync(path.join(os.tmpdir(), 'dh3-git-'))
   try {
-    const env = { SYSTEMROOT: process.env.SYSTEMROOT, PATH: `C:\\Program Files\\Git\\cmd;${process.env.SYSTEMROOT}\\System32`, HOME: d, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(d, 'none') }
-    const g = (...a) => spawnSync('C:\\Program Files\\Git\\cmd\\git.exe', a, { cwd: path.join(d, 'w'), env, encoding: 'utf8' })
+    // D3.6 Linux compatibility: the fixture's git is the platform's trusted absolute git (it was hard-coded to the Windows path, so this test could not run elsewhere)
+    const tg = resolveGit(); assert.ok(tg.ok, tg.code)
+    const env = { ...(process.env.SYSTEMROOT ? { SYSTEMROOT: process.env.SYSTEMROOT } : {}), PATH: [path.dirname(tg.exe), ...(process.platform === 'win32' ? [`${process.env.SYSTEMROOT}\\System32`] : [])].join(path.delimiter), HOME: d, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(d, 'none') }
+    const g = (...a) => spawnSync(tg.exe, a, { cwd: path.join(d, 'w'), env, encoding: 'utf8' })
     mkdirSync(path.join(d, 'w')); g('init', '-q'); writeFileSync(path.join(d, 'w', 'a.txt'), 'hello\n'); g('add', 'a.txt'); g('-c', 'user.email=t@x', '-c', 'user.name=t', 'commit', '-q', '-m', 'a')
     const tree = g('rev-parse', 'HEAD^{tree}').stdout.trim(); g('bundle', 'create', '-q', path.join(d, 'b.bundle'), 'HEAD')
     const r = importBundle(readFileSync(path.join(d, 'b.bundle')))
     assert.equal(r.ok, true, r.code); assert.equal(r.tree, tree)
     const corrupt = readFileSync(path.join(d, 'b.bundle')); corrupt[corrupt.length - 30] ^= 0xff
     assert.equal(importBundle(corrupt).ok, false, 'a corrupted pack is refused')
+    for (const git of [null, 'git', 'relative/git']) assert.equal(importBundle(readFileSync(path.join(d, 'b.bundle')), { git }).code, 'BUNDLE.NO_TRUSTED_GIT', `no trusted absolute git (${git}) = a refusal, never a bare git`)
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
