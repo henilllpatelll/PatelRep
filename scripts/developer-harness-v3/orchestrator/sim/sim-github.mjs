@@ -83,7 +83,12 @@ export class SimGitHub {
       run.attempt += 1; run.status = 'in_progress'; run.conclusion = null; run.started_at = this.clock(); run.completes_at = this.clock() + this.sc.ciMs; return { run_id: run.id, attempt: run.attempt }
     }
     if (op === 'dispatch_staging') {
-      const pr = this.#pr(a.pr_number); this.#queueStaging({ pr_number: pr.number, head_sha: pr.head_sha, dispatched: true }); return { accepted: true }
+      // R-25 (staging-candidate.yml `head_sha` input): the run is bound to the REQUESTED head, never to whatever the PR head is now; a malformed head is refused by the workflow
+      // before any staging work (modelled as a refused dispatch), and a head that differs from the PR head at resolution is ineligible (see the resolve step below).
+      // A dispatch WITHOUT the input is the legacy manual-caller behaviour (current PR head); the V3 adapter never sends one.
+      const pr = this.#pr(a.pr_number)
+      if (a.head_sha !== undefined && (typeof a.head_sha !== 'string' || !/^[0-9a-f]{40}$/.test(a.head_sha))) throw err(422, 'GITHUB.DISPATCH_INPUT_INVALID')
+      this.#queueStaging({ pr_number: pr.number, head_sha: a.head_sha ?? pr.head_sha, dispatched: true, requested_head: a.head_sha ?? null }); return { accepted: true }
     }
     throw err(404, 'GITHUB.UNKNOWN_OPERATION')
   }
@@ -101,9 +106,9 @@ export class SimGitHub {
       this.s.runs.push(run)
     }
   }
-  #queueStaging({ pr_number, head_sha, foreign = false, dispatched = false, duration = this.sc.stagingMs }) {
+  #queueStaging({ pr_number, head_sha, foreign = false, dispatched = false, requested_head = null, duration = this.sc.stagingMs }) {
     for (const r of this.s.runs) if (r.workflow === STAGING_WORKFLOW && r.status === 'pending') { r.status = 'completed'; r.conclusion = 'cancelled'; r.completed_at = this.clock(); r.displaced = true } // one pending per group: the newer replaces it
-    this.s.runs.push({ id: (this.s.n.run += 1), workflow: STAGING_WORKFLOW, event: dispatched ? 'workflow_dispatch' : 'workflow_run', head_sha, pr_number, attempt: 1, status: 'pending', conclusion: null, created_at: this.clock(), foreign, duration })
+    this.s.runs.push({ id: (this.s.n.run += 1), workflow: STAGING_WORKFLOW, event: dispatched ? 'workflow_dispatch' : 'workflow_run', head_sha, pr_number, attempt: 1, status: 'pending', conclusion: null, created_at: this.clock(), foreign, duration, ...(dispatched ? { requested_head } : {}) })
   }
   #checksFor(run) {
     const names = run.workflow === CI_WORKFLOW ? ['CI Gate'] : run.workflow === MOBILE_WORKFLOW ? [...MOBILE_CHECKS] : ['Staging Gate']

@@ -369,6 +369,34 @@ test('every weakening of the harness step, the existing contract step or CI Gate
   assert.ok(checkWorkflow(`${CI_TEXT}\nenv:\n  NODE_OPTIONS: --import=./x.mjs\n`).includes('TOP_LEVEL_KEYS_CHANGED'))
 })
 
+// D3.6 integration (P2 applied): the two NEW steps of Release Workflow Contract — the trusted provenance preparation and the V3 suites — are guarded like the V2 harness step.
+// Every weakening is a disposable in-memory mutation that must be rejected by its structural rule AND by the release-block pin (the pin is a tripwire, never the only rule).
+const V3S = `      - name: ${V3_STEP.name}\n        timeout-minutes: 45\n        run: ${V3_STEP.run}\n`
+const PREPS = `      - name: ${PREP_STEP.name}\n        timeout-minutes: 5\n        run: ${PREP_STEP.run}\n`
+const NEW_STEP_MUTATIONS = {
+  'V3 step removed': [V3S, '', 'V3_STEP_NOT_EXACT'],
+  'continue-on-error on the V3 step': [V3S, V3S.replace('        timeout-minutes', '        continue-on-error: true\n        timeout-minutes'), 'CONTINUE_ON_ERROR_CHANGED'],
+  'if: false on the V3 step': [V3S, V3S.replace('        timeout-minutes', '        if: false\n        timeout-minutes'), 'V3_STEP_NOT_EXACT'],
+  'if: always() on the V3 step': [V3S, V3S.replace('        timeout-minutes', "        if: ${{ always() }}\n        timeout-minutes"), 'V3_STEP_NOT_EXACT'],
+  'V3 exit status suppressed with || true': [`run: ${V3_STEP.run}\n`, `run: ${V3_STEP.run} || true\n`, 'RELEASE_JOB_MASKING'],
+  'V3 runner given a narrowing argument': [`run: ${V3_STEP.run}\n`, `run: ${V3_STEP.run} --files lifecycle.test.mjs\n`, 'V3_STEP_NOT_EXACT'],
+  'V3 runner swapped for one test file': [`run: ${V3_STEP.run}\n`, 'run: node --test scripts/developer-harness-v3/tests/lifecycle.test.mjs\n', 'V3_STEP_NOT_EXACT'],
+  'V3 step timeout removed': ['        timeout-minutes: 45\n', '', 'V3_STEP_NOT_EXACT'],
+  'V3 step given an env override': [V3S, V3S.replace('        run:', '        env:\n          NODE_OPTIONS: --max-old-space-size=64\n        run:'), 'V3_STEP_NOT_EXACT'],
+  'V3 step duplicated': [V3S, `${V3S}${V3S}`, 'V3_STEP_NOT_UNIQUE'],
+  'provenance preparation removed': [PREPS, '', 'PREP_STEP_NOT_EXACT'],
+  'provenance preparation made non-fatal': [PREPS, PREPS.replace('        timeout-minutes', '        continue-on-error: true\n        timeout-minutes'), 'CONTINUE_ON_ERROR_CHANGED'],
+  'provenance preparation masked with || true': [`run: ${PREP_STEP.run}\n`, `run: ${PREP_STEP.run} || true\n`, 'RELEASE_JOB_MASKING'],
+}
+test('D3.6 integration: every weakening of the provenance preparation or the V3 suite step is rejected (disposable in-memory mutations), and the shipped job runs them in order: prep, V2, V3', () => {
+  for (const [label, [from, to, code]] of Object.entries(NEW_STEP_MUTATIONS)) {
+    const problems = checkWorkflow(mutate(from, to))
+    assert.ok(problems.includes(code), `${label}: expected ${code}, got [${problems.join(', ')}]`); assert.ok(problems.includes('RELEASE_BLOCK_CHANGED'), `${label}: the release-block pin trips too`)
+  }
+  const at = (s) => CI_TEXT.indexOf(s); assert.ok(at(PREPS) > 0 && at(PREPS) < at(STEP) && at(STEP) < at(V3S), 'prep -> V2 suites -> V3 suites, all in Release Workflow Contract')
+  const swapped = CI_TEXT.replace(V3S, '').replace(STEP, `${V3S}${STEP}`); assert.ok(checkWorkflow(swapped).some((c) => c === 'V3_STEP_NOT_EXACT' || c === 'HARNESS_STEP_NOT_EXACT'), 'reordering the suites is rejected')
+})
+
 // Final review MEDIUM + both LOWs: alternate YAML spellings, backgrounding, JSON-style flow pairs. [label, mutated text, codes, oldBypass]
 // `oldBypass` marks the reproduced original bypasses: with only the pre-hardening rules they produced no problem at all.
 const NEW_CODES = new Set(['RELEASE_BLOCK_CHANGED', 'RELEASE_BLOCK_NOT_UNIQUE', 'YAML_NONCANONICAL_KEY', 'STRUCTURE_UNINTERPRETABLE', 'WORKFLOW_CHANGED'])

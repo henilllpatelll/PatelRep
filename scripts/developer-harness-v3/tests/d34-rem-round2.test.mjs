@@ -73,7 +73,7 @@ test('R2-5: a cool-down never outlives the extra-usage fact: clamped to the rema
 })
 
 test('R2-6: a task whose DEPENDENCY was cancelled ends in an explicit owner-level conflict with one package — never a silent stall', async () => {
-  const h = H({ scenario: {} }); const a = h.submit(); const b = h.submit({ requirements: { text: 'a second, dependent task' }, depends_on: [a] }); assert.ok(h.ledger.cancel(a).ok)
+  const h = H({ scenario: {} }); const a = h.submit(); const b = h.submit({ requirements: { text: 'a second, dependent task' }, depends_on: [a] }); assert.ok(h.ledger.cancel(a, { ownerActionId: 'owner-cancel-round2-a' }).ok) /* D3.6 integration (P6v3): cancellation is owner-only */
   await settle(h); const t = h.ledger.getTask(b); assert.equal(t.state, 'blocked'); assert.equal(t.lifecycle.blocker_reason, 'UNRESOLVABLE_REQUIREMENT_CONFLICT'); assert.equal(owner(h).blockerRows, 1)
   const pkg = JSON.parse(h.ledger.db.prepare("SELECT payload_json FROM outbox WHERE kind='genuine_blocker'").get().payload_json); assert.ok(pkg.codes.some((c) => c.includes('DEPENDENCY_CANCELLED'))); h.close()
 })

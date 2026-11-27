@@ -60,9 +60,9 @@ export async function trustedFacts(L, taskId, identity, facts) {
   if (!candidate?.ok) return { ok: false, code: candidate?.code ?? 'FACTS.CANDIDATE_UNAVAILABLE' }
   if (tip && !tip.ok) return { ok: false, code: tip.code ?? 'FACTS.TARGET_TIP_UNAVAILABLE' }
   const ctx = L.implementerContextIds(taskId).at(-1)
-  // `security_review_required` is read ONLY by an evaluator that declares it (proposal P7); the authoritative D3.2 evaluator's task shape does not include it, so it is passed only then
+  // `security_review_required` (P7, integrated in D3.6): ALWAYS passed — the authoritative evaluator then requires a security review for every candidate-bound safeguarded action
   const task = { task_id: t.task_id, fencing_token: t.fencing_token, state_revision: t.state_revision, authority: authorityOf(t), ...(ctx ? { author_context_id: ctx } : {}),
-    ...(facts.evaluatorKnowsRisk ? { security_review_required: riskRequiredEvidence(t).length > 0 } : {}) }
+    security_review_required: riskRequiredEvidence(t).length > 0 }
   return { ok: true, trusted: { identity, task, candidate: candidate.facts, environment, target_tip_sha: tip?.sha ?? null, ...(delivery ? { delivery } : {}) } }
 }
 

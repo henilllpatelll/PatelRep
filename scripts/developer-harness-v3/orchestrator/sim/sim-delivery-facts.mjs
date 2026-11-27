@@ -9,12 +9,11 @@ import { candidateShaFor, commitDir, loadWorld, patchOf, readTree, saveWorld, tr
 export const SIM_BASE_MIGRATIONS = Object.freeze(['supabase/migrations/001_init.sql', 'supabase/migrations/262_agent_verified_human_identity.sql'])
 export const ISOLATED_ENV = Object.freeze({ kind: 'isolated_vm', worker_env_names: ['PATH', 'HOME', 'LANG'], egress_restricted: true, host_mounts: false, docker_socket_exposed: false, windows_interop: false, controller_reachable: false, other_credentials_present: false })
 
-export function createDeliveryFacts({ dir, ledger, contract, scenario = {}, evaluatorKnowsRisk = false }) {
+export function createDeliveryFacts({ dir, ledger, contract, scenario = {} }) {
   const L = ledger
   const versionOf = (taskId, sha) => { const w = loadWorld(dir); for (let v = w.versions[taskId] ?? 0; v >= 1; v -= 1) if (candidateShaFor(taskId, v) === sha && existsSync(commitDir(dir, taskId, v))) return v; return 0 }
   const filesOf = (taskId, sha) => { const v = versionOf(taskId, sha); return v ? readTree(commitDir(dir, taskId, v)) : null }
   return {
-    evaluatorKnowsRisk,
     async candidate(t) {
       const files = filesOf(t.task_id, t.head_sha); if (!files) return { ok: false, code: 'FACTS.UNKNOWN_CANDIDATE' }
       const added = {}

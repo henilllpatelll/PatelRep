@@ -131,7 +131,7 @@ async function unitHarness() {
 test('F1 unit boundary: a task CANCELLED while a test unit runs produces no accepted evidence and no further units', async () => {
   const { h, L, s, Y, calls } = await unitHarness()
   try {
-    h.adapters.tests.runUnit = async ({ unit }) => { calls.push(unit); if (unit === 'u2.test.mjs') L.cancel(Y); return OK }
+    h.adapters.tests.runUnit = async ({ unit }) => { calls.push(unit); if (unit === 'u2.test.mjs') L.cancel(Y, { ownerActionId: 'owner-cancel-y' }); return OK }
     for (let i = 0; i < 6; i += 1) await s.round()
     assert.deepEqual(calls, ['u1.test.mjs', 'u2.test.mjs'], 'u3 never started for a cancelled task')
     assert.equal(L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(Y).c, 0, 'no test run recorded for cancelled work')

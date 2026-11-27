@@ -52,7 +52,7 @@ test('F2: a CORRUPT or MISSING checkpoint snapshot never silently discards safe 
 })
 
 test('F2: cancellation preserves the work in a verified checkpoint (nothing is discarded because a task was cancelled)', async () => {
-  const h = H({ scenario: impl() }); afterImplementingUnit(h, 2, () => h.ledger.cancel(h.ledger.listTasks()[0].task_id)); const id = h.submit(); await settle(h)
+  const h = H({ scenario: impl() }); afterImplementingUnit(h, 2, () => h.ledger.cancel(h.ledger.listTasks()[0].task_id, { ownerActionId: 'owner-cancel-f2' })); const id = h.submit(); await settle(h)
   const cp = h.ledger.latestCheckpoint(id); assert.ok(cp?.verified === 1 && cp.snapshot_ref); const files = readFileSync(path.join(h.dirs.snapshots, cp.snapshot_ref, 'manifest.json'), 'utf8'); assert.ok(files.includes('apps/mobile/feature.txt'))
   assert.equal(h.ledger.slotHolder(), null); h.close()
 })

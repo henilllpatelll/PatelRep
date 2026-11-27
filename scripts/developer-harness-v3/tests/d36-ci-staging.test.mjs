@@ -84,7 +84,9 @@ test('a spoofed passing CI Gate (another app) never turns a failing CI into succ
   await h.drive({ until: () => state(h, id) === 'ci_running', maxRounds: 200 })
   h.github.spoofCheck({ name: 'CI Gate', head_sha: h.ledger.getTask(id).head_sha, app_id: 4242, run_id: 1, attempt: 1, conclusion: 'success' })
   await h.drive({ until: () => !!h.ledger.getSuspension(id), maxRounds: 200 })
-  const s = h.ledger.getSuspension(id); assert.equal(s.cause, 'PROTECTED_CONTROL_PLANE_FAILURE'); assert.equal(s.disposition, 'terminal'); assert.equal(state(h, id), 'ci_running', 'not remediation'); h.close()
+  // D3.6 integration (P6v3): the suspension is VISIBLE in the lifecycle — technical_suspension, resuming only to ci_running — and it is never remediation
+  const s = h.ledger.getSuspension(id); assert.equal(s.cause, 'PROTECTED_CONTROL_PLANE_FAILURE'); assert.equal(s.disposition, 'terminal')
+  assert.equal(state(h, id), 'technical_suspension', 'a first-class lifecycle state, not remediation'); assert.equal(h.ledger.getTask(id).lifecycle.resume_to, 'ci_running'); h.close()
 })
 
 test('CI that never reports is waited for (bounded), then a technical suspension; GitHub rate limits are waited out to their reset, with no extra effect', async () => {
@@ -140,6 +142,35 @@ test('staging failures: a migration or smoke failure returns to the implementer;
   assert.equal(checkState({ runs: h.github.s.runs, checks: h.github.s.checks }, { name: 'Staging Gate', workflow: WORKFLOWS.staging, head_sha: head1, events: ['workflow_run', 'workflow_dispatch'] }).state, 'failed', 'the old head keeps its own (failed) result'); h.close()
 })
 
+test('R-25 exact-head dispatch (adapter + simulated workflow): every V3 staging dispatch names the exact candidate head; a missing or malformed head is refused before any effect; a head that moved is never staged', async () => {
+  const h = await harness({ gh: { logs: { fail_deploy: 'Railway deployment timed out' } } }); const id = h.submit()
+  await h.drive({ until: () => state(h, id) === 'ci_running', maxRounds: 200 }); h.github.sc.staging = { default: ['fail_deploy', 'pass'] }
+  assert.ok((await eligible(h, id, 800)).done)
+  const t = h.ledger.getTask(id); const dl = h.ledger.delivery(id)
+  const sent = ops(h, 'dispatch_staging'); assert.equal(sent.length, 1, 'the transient failure was re-dispatched once, by V3')
+  assert.deepEqual({ pr_number: sent[0].args.pr_number, head_sha: sent[0].args.head_sha }, { pr_number: dl.pr_number, head_sha: t.head_sha }, 'the workflow_dispatch carries the exact full candidate head')
+  assert.deepEqual(Object.keys(sent[0].args).filter((k) => sent[0].args[k] !== undefined).sort(), ['head_sha', 'pr_number'], 'and nothing else')
+  const run = h.github.s.runs.find((r) => r.workflow === WORKFLOWS.staging && r.event === 'workflow_dispatch'); assert.equal(run.requested_head, t.head_sha); assert.equal(run.head_sha, t.head_sha)
+  assert.equal(intents(h, id).find((i) => i.action === 'dispatch_staging_candidate').params_json.includes(t.head_sha), true, 'the durable intent records the intended head')
+  // the adapter boundary: no head, a short head, an upper-case head or a 41-char head never reaches the publisher
+  const v = h.delivery.validator('dispatch_staging_candidate'); const before = ops(h).length
+  for (const bad of [undefined, null, t.head_sha.slice(0, 12), t.head_sha.toUpperCase(), `${t.head_sha}0`]) {
+    const r = await v({ repository: t.repository, branch: dl.branch, pr_number: dl.pr_number, ...(bad === undefined ? {} : { head_sha: bad }) }, t); assert.equal(r.code, 'DELIVERY.STAGING_HEAD_REQUIRED', String(bad))
+  }
+  assert.equal(ops(h).length, before, 'nothing was sent')
+  // the simulated workflow (staging-candidate.yml): a malformed input is refused before any staging work; a requested head that is no longer the PR head is INELIGIBLE (no Staging Gate)
+  const runsBefore = h.github.s.runs.length
+  await assert.rejects(h.github.call('dispatch_staging', { pr_number: dl.pr_number, head_sha: 'xyz' }, { credential: h.credential }), /DISPATCH_INPUT_INVALID/); assert.equal(h.github.s.runs.length, runsBefore, 'no run was queued')
+  await h.github.call('dispatch_staging', { pr_number: dl.pr_number, head_sha: t.head_sha }, { credential: h.credential })
+  const moved = 'c'.repeat(40); h.github.foreignPush(dl.branch, moved) // the PR head moves after the dispatch, before the run resolves
+  const gates = () => h.github.s.checks.filter((c) => c.name === 'Staging Gate' && (c.head_sha === moved || c.head_sha === t.head_sha)).length; const gatesBefore = gates()
+  h.clock.advance(1000); h.github.view() // the dispatched run reaches resolution while the PR head is the moved one (the moved head's own CI has not finished yet)
+  const last = h.github.s.runs.filter((r) => r.workflow === WORKFLOWS.staging && r.event === 'workflow_dispatch').at(-1)
+  assert.equal(last.requested_head, t.head_sha); assert.equal(last.head_sha, t.head_sha, 'the run stays bound to the REQUESTED head — the newer head is never substituted'); assert.equal(last.ineligible, true, 'and is refused at resolution: the PR head moved')
+  assert.equal(gates(), gatesBefore, 'the refused run produced no Staging Gate for either head')
+  h.close()
+})
+
 test('controller offline while staging completes: the restarted controller picks the completed result up from authenticated reads', async () => {
   const root = (await import('./d36-helpers.mjs')).tmp(); const h = await harness({ root }); const id = h.submit()
   await h.drive({ until: () => state(h, id) === 'staging_verification', maxRounds: 300 }); const clock = h.clock; h.close()
@@ -148,7 +179,7 @@ test('controller offline while staging completes: the restarted controller picks
 })
 
 test('review M1: a technically suspended (or blocked/cancelled) owner releases shared staging once observation proves it idle — under the AUTHORITATIVE policy every task reaches its own terminal DELIVERY_NOT_ACTIVATED', async () => {
-  const h = await harness({ proposal: false }); const a = h.submit({ requirements: { text: 'a', sim_path: 'apps/mobile/a.txt' } }); const b = h.submit({ requirements: { text: 'b', sim_path: 'apps/mobile/b.txt' } })
+  const h = await harness({ testActivation: false }); const a = h.submit({ requirements: { text: 'a', sim_path: 'apps/mobile/a.txt' } }); const b = h.submit({ requirements: { text: 'b', sim_path: 'apps/mobile/b.txt' } })
   await h.drive({ until: () => !!h.ledger.getSuspension(a) && !!h.ledger.getSuspension(b), maxRounds: 400 })
   for (const id of [a, b]) assert.equal(h.ledger.getSuspension(id)?.cause, 'DELIVERY_NOT_ACTIVATED', id)
   assert.equal(stagingOwner(h.ledger), null, 'no suspended task keeps shared staging'); assert.equal(ops(h).length, 0); h.close()
