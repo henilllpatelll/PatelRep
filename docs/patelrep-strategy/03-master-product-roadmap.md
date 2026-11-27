@@ -15,8 +15,8 @@
   it, not before.
 * **No premature intelligence.** An agent or prediction whose required data is unavailable, or whose usefulness cannot
   be validated, is not built ([07](07-adaptive-intelligence.md), [14 §6](14-development-and-acceptance-standards.md#6-evaluation-requirements-for-ai-features)).
-* Nothing here starts work. D3.6's owner-run post-merge verification
-  ([developer-harness-v3/40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)),
+* Nothing here starts work. Recording D3.6's post-merge verification (its owner steps are in
+  [developer-harness-v3/40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)),
   D3.7–D3.9, H7 implementation, H8 implementation and every product milestone begin only on an explicit request,
   through the normal development routing in `CLAUDE.md`. D3.6 itself merged on 2026-11-26 but is not complete until
   that verification is recorded.
