@@ -29,8 +29,11 @@ const REQUEST_SPEC = {
 const PARAMS_SPEC = {
   optional: { paths: v.arrayOf(v.str, 2000), permission_mode: v.oneOf('default', 'bypass'), incremental_usd: (x) => Number.isFinite(x), purchase: v.bool,
     credential_scope: v.str, customer_agent_effect: v.bool,
-    resource_id: v.id },
+    resource_id: v.id,
+    // the exact remote target of a delivery effect (a NAME of a target; ownership is judged from trusted.delivery by the delivery_target check)
+    delivery: (d) => isPlainObject(d) && checkShape(d, { required: { repository: v.repo, branch: v.str }, optional: { base: v.str, pr_number: v.int, run_id: v.int, attempt: v.int, head_sha: v.sha40 } }, 'delivery').length === 0 },
 }
+const TRUSTED_DELIVERY_SPEC = { required: { repository: v.repo, task_branch: v.str }, optional: { owned_pr_number: (x) => x === null || v.int(x), owned_run_ids: v.arrayOf(v.int, 200) } }
 const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
   optional: { env_value_origins: isPlainObject, ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
 const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
@@ -39,7 +42,7 @@ const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo,
 const TRUSTED_LAUNCH_SPEC = { required: { env_names: v.arrayOf((x) => typeof x === 'string', 2000), settings: isPlainObject },
   optional: { auth: (x) => x === null || isPlainObject(x), env_value_origins: (x) => isPlainObject(x) && Object.values(x).every((o) => typeof o === 'string') } }
 const RESOURCE_SPEC = (r) => isPlainObject(r) && v.id(r.owner_task_id) && v.oneOf('process', 'container', 'cache', 'migration')(r.kind) && v.oneOf('idle', 'stale', 'exited', 'running')(r.lifecycle)
-const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id } }
+const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id, security_review_required: v.bool } }
 
 const deny = (codes, extra = {}) => decision('deny', codes, extra)
 function decision(kind, codes, extra = {}) {
@@ -68,6 +71,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
   if (trusted.candidate != null && checkShape(trusted.candidate, CANDIDATE_SPEC, 'candidate').length) return bad(['INPUT.MALFORMED:candidate'])
   if (trusted.launch !== undefined && (checkShape(trusted.launch, TRUSTED_LAUNCH_SPEC, 'launch').length || (trusted.launch.settings.env !== undefined && !isPlainObject(trusted.launch.settings.env)))) return bad(['INPUT.MALFORMED:launch'])
   if (trusted.resources !== undefined && !(isPlainObject(trusted.resources) && Object.values(trusted.resources).every(RESOURCE_SPEC))) return bad(['INPUT.MALFORMED:resources'])
+  if (trusted.delivery !== undefined && checkShape(trusted.delivery, TRUSTED_DELIVERY_SPEC, 'delivery').length) return bad(['INPUT.MALFORMED:delivery'])
   if (!Array.isArray(evidence) || evidence.length > 64) return bad(['INPUT.MALFORMED:evidence'])
   const codes = []
   const requestDigest = digestOf(request)
@@ -233,10 +237,24 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         if (!candidate || trusted.proposed_policy_source_tree !== candidate.tree_digest) codes.push('PROMOTION.PROPOSAL_NOT_FROM_CANDIDATE')
         break
       }
+      case 'delivery_target': {
+        // The requester can only NAME the remote target; ownership comes from the controller's trusted delivery record and the trusted candidate facts.
+        const want = trusted.delivery; const got = params.delivery
+        if (!want || !got) { codes.push('DELIVERY.TARGET_FACTS_MISSING'); break }
+        if (got.repository !== want.repository || (candidate && got.repository !== candidate.repository)) codes.push('DELIVERY.WRONG_REPOSITORY')
+        if (got.branch !== want.task_branch || !/^dh3\/[a-z0-9-]{1,80}$/.test(got.branch)) codes.push('DELIVERY.BRANCH_NOT_TASK_OWNED')
+        if (got.base !== undefined && got.base !== 'main') codes.push('DELIVERY.BASE_NOT_MAIN')
+        if (got.pr_number !== undefined && got.pr_number !== want.owned_pr_number) codes.push('DELIVERY.PR_NOT_OWNED')
+        if (got.run_id !== undefined && !(want.owned_run_ids ?? []).includes(got.run_id)) codes.push('DELIVERY.RUN_NOT_OWNED')
+        if (got.head_sha !== undefined && got.head_sha !== candidate?.candidate_sha) codes.push('DELIVERY.HEAD_NOT_CANDIDATE')
+        break
+      }
       case 'evidence_validity': break
       default: codes.push('CHECK.UNKNOWN')
     }
   }
+  // A task whose risk class requires a security review never has a candidate-bound safeguarded action authorized without one (in addition to the per-check rules above).
+  if (trusted.task.security_review_required === true && action.class === 'safeguarded' && (action.checks ?? []).includes('candidate_binding')) extraEvidence.add('security_review')
 
   // ── evidence ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const required = [...new Set([...(action.required_evidence ?? []), ...extraEvidence])]

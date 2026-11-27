@@ -18,7 +18,7 @@ export const IDENTITIES = Object.freeze(['task_ingress', 'orchestrator', 'implem
   'delivery_verifier', 'merger', 'production_releaser', 'recovery', 'notifier', 'policy_promoter'])
 export const CLASSES = Object.freeze(['allowed', 'safeguarded', 'prohibited'])
 export const CHECKS = Object.freeze(['path_validity', 'scope', 'resource_ownership', 'evidence_validity', 'spend', 'launch_environment', 'environment_isolation',
-  'candidate_binding', 'protected_paths', 'migrations', 'customer_agent', 'control_plane_self_change', 'credentials_env', 'credential_scope', 'promotion'])
+  'candidate_binding', 'protected_paths', 'migrations', 'customer_agent', 'control_plane_self_change', 'credentials_env', 'credential_scope', 'promotion', 'delivery_target'])
 export const BINDINGS = Object.freeze(['repository', 'base_sha', 'candidate_sha', 'tree_digest', 'policy_revision', 'environment_id', 'subject_policy_revision', 'authority_digest'])
 /** Actions that MUST stay prohibited in every contract version; a contract that downgrades one is invalid, not merely "weaker". */
 export const REQUIRED_PROHIBITED = Object.freeze(['push_to_main_directly', 'force_push_protected_branch', 'modify_historical_migration', 'supabase_migration_repair',
