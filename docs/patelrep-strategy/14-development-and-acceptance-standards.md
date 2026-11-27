@@ -104,6 +104,8 @@ Adopted on founder direction in Phase 0.1 (FD-44, A2). The PR template's ten fie
   an immediate measurable time saving (FD-44).
 * **Never invented.** An outcome not yet measured is stated as expected, with its evidence class, or as
   `NOT MEASURED` (§4); no figure appears without a source.
+* **Public repository.** For security patches and the security field, state the class of change only (no exploit
+  details, affected endpoints or unfixed weaknesses) and reference a private advisory.
 * **Not enforced by CI.** Reviewers check the record; A5 (§10) is not adopted.
 
 ## 4. Status vocabulary for every claim
@@ -199,7 +201,7 @@ register reflects any changed decision. Released, enabled and production-verifie
 | A1 | Generalize the `CLAUDE.md` "code decision filter" from housekeepers and engineers to everyone in hospitality, and point to this strategy (resolves [CF-03](15-strategic-decision-register.md#9-conflicts-and-recommended-resolutions)) | Instruction change, reviewed PR | Adopted (#259) |
 | A2 | Add a short "Strategy fit" section to [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) | Repository process, reviewed PR | Adopted (#259, §3.2) |
 | A3 | Point `AGENTS.md` at the strategy README (it intentionally holds no facts of its own) | Instruction change, reviewed PR | Blocked: `AGENTS.md` is pinned byte-identical in the Developer Harness V2 enforcement set (`scripts/developer-harness-v2/context/openwolf-hooks.test.mjs`) and changes only after a reviewed V2 change to that pin. Its existing redirect to `CLAUDE.md` already leads agents to the strategy routing |
-| A4 | Teach the V2 risk router and testing rules about SFR-relevant paths if useful | Developer-harness change, reviewed PR | Not performed |
+| A4 | Teach the V2 risk router and testing rules about SFR-relevant paths if useful | Developer-harness change, reviewed PR | Not performed. Also decide whether `docs/patelrep-strategy/**` needs V2 escalation or protection now that `CLAUDE.md` routes agents to it |
 | A5 | Optional automated check that a PR touching product code carries an SFR | Control-plane work (`.github/workflows/**`), human-approved PR | Not performed |
 
 Each step is separate, reviewed work. Phase 0 (#256) performed none of them; Phase 0.1 (#259) performed A1 and A2 on

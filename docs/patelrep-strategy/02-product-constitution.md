@@ -7,7 +7,8 @@
 > as PA-18 and are **founder-approved** since 2026-11-26 (FD-43). "Today:" notes record repository facts at the baseline.
 > Changing a founder-approved item requires a reviewed decision-register change approved by the founder.
 > **Baseline:** `origin/main` @ `41995dcb` (2026-11-26). **Revised** at `839144cd` (2026-11-26, Phase 0.1, #259): FD-43
-> status and the §1 adoption note only; "Today:" notes were not re-verified.
+> status (this header, §1 and experience principle 6) and the §1 adoption note only; "Today:" notes were not
+> re-verified.
 > **Authority:** [README § Authority and precedence](README.md#authority-and-precedence).
 
 ## 1. The test every feature must pass

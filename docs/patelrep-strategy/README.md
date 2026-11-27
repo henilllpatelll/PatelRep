@@ -77,7 +77,8 @@ production-verified ([14 §4](14-development-and-acceptance-standards.md#4-statu
 | 15 | [Strategic decision register](15-strategic-decision-register.md) | Every decision, dependency, status and conflict, with identifiers |
 
 **Reading order.** Leaders: 01 → 02 → 03 → 11 → 12. Engineers: 02 → 04 → 07 → 06 → 13 → 14. Everyone working on
-workforce features also reads 10.
+workforce features also reads 10. For a single development task, use the task routing table in
+[`CLAUDE.md`](../../CLAUDE.md) (Strategy routing) instead.
 
 ## Glossary
 

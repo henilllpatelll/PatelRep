@@ -15,9 +15,11 @@
   it, not before.
 * **No premature intelligence.** An agent or prediction whose required data is unavailable, or whose usefulness cannot
   be validated, is not built ([07](07-adaptive-intelligence.md), [14 §6](14-development-and-acceptance-standards.md#6-evaluation-requirements-for-ai-features)).
-* Nothing here starts work. D3.7–D3.9, H7 implementation, H8 implementation and every product milestone begin only on
-  an explicit request, through the normal development routing in `CLAUDE.md`. (D3.6 was such a request; it merged on
-  2026-11-26.)
+* Nothing here starts work. D3.6's owner-run post-merge verification
+  ([developer-harness-v3/40 §7.8](../developer-harness-v3/40-d36-verification-evidence.md#78-post-merge-verification-cannot-be-shown-before-merge)),
+  D3.7–D3.9, H7 implementation, H8 implementation and every product milestone begin only on an explicit request,
+  through the normal development routing in `CLAUDE.md`. D3.6 itself merged on 2026-11-26 but is not complete until
+  that verification is recorded.
 
 ## 2. Dependency map
 
@@ -116,7 +118,7 @@ W11-M2–M4, W12-O4–O5, W13-G4) are unscheduled; each is placed when a custome
 
 | Field | Content |
 |---|---|
-| Objective | Finish D3.7–D3.9 (D3.6 merged 2026-11-26) so autonomous development can be activated inside proven isolation; V2 stays authoritative until then |
+| Objective | Record D3.6's post-merge verification, then finish D3.7–D3.9, so autonomous development can be activated inside proven isolation; V2 stays authoritative until then |
 | Customer value | Indirect: faster, safer delivery and maintenance of every other workstream |
 | Intended users | The founder as repository owner, and developer agents |
 | Existing foundation | D3.2 (#251), D3.3 (#252), D3.4 (#254), D3.5 (#255) and D3.6 (#257 delivery and #258 protected control-plane integration, both merged 2026-11-26) on `main` — implemented, D3.4–D3.6 simulated, all inactive; V2 core, CI integration and permission transition merged (#247, #250, #253) |

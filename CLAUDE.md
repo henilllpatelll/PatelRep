@@ -8,61 +8,8 @@ ownership structures (FD-22).
 **Feature decision filter (FD-43):** *Does this measurably give someone in hospitality time back, or measurably
 improve guest experience, quality, safety, profitability or employee well-being — without adding needless complexity,
 and without costing safety, quality, privacy, employee well-being or the truth?* Security, reliability, accessibility,
-compliance, correctness and maintenance work stays valid without an immediate measurable time saving.
-
----
-
-## Product Strategy
-
-The Master Strategy (`docs/patelrep-strategy/`) is authoritative for product intent only: it never overrides the
-authority, security and delivery rules below or any executable contract (FD-39). Cite decision IDs from its register
-(`15-strategic-decision-register.md`) instead of restating them; a decision changes only through a reviewed PR to it.
-
-Permanent principles:
-- Time back for every hotel role, from frontline staff to owners (FD-16, FD-18).
-- Staffing relief by removing waste, never by unsafe workloads, lower quality, pressure or hidden shortages (FD-20).
-- Integrate, don't replace: PMS, payroll, accounting and guest platforms stay authoritative; standalone first (FD-06–FD-09).
-- One role-adaptive platform on web and mobile (FD-01, FD-02).
-- One all-inclusive subscription is the intended commercial direction (FD-03); today's billing stays unchanged until a reviewed decision (FD-36).
-- Universal conversational intelligence (Ask PatelRep) for every authorized user, never in front of a faster screen (FD-11, FD-33).
-- Secure task execution with maximum practical autonomy inside the Customer Agent Harness boundaries, which this goal never loosens; no autonomous phone calls or vendor communications (FD-04, FD-12, FD-23, FD-24).
-- Adaptive intelligence from each hotel's data, integrations and permissions; missing data is never zero and never grants authority (FD-14, FD-30).
-- Hours Returned and evidence-based outcomes; nothing is claimed before it is measured (FD-13, FD-31).
-- Employee protection, safety, quality, privacy and the truth come first (FD-15, FD-29, FD-35).
-- Sell results, not AI (FD-21).
-
-**Existing versus intended.** `main` has the operations product (housekeeping, engineering, tasks, logbook,
-scheduling, safety, reporting), the legacy AI copilot and today's billing ($99/mo + $0.02/AI credit, cap
-$2.50/room/month). Customer Agent Harness parts on `main` (H1–H6, H7 P2) are inactive. Ask PatelRep for every role,
-PatelRep Connect, capability readiness, Hours Returned, owner and corporate roles and all-inclusive pricing are future.
-Check the register's IF/IN/FF lists before describing a capability as existing.
-
-### Strategy routing
-Load only what the task needs (the relevant section, not the whole file) and never the whole strategy. Files are
-`docs/patelrep-strategy/NN-*.md`: 01 vision, 02 constitution, 03 roadmap, 04 architecture, 05 integration, 06 AI and
-autonomy, 07 adaptive intelligence, 08 data intelligence, 09 Performance & Impact, 10 employee protection,
-11 commercial, 12 pilot, 13 security and governance, 14 acceptance standards, 15 decision register.
-
-| Task | Read |
-|---|---|
-| Product feature | 02, 03 (its workstream), 14 |
-| Workforce or employee workflow | 10, plus the product-feature row |
-| AI or automation | 06, 07, 13 and the applicable harness contracts (`docs/agent-harness/` for customer agents) |
-| Integration | 05, 08, 07, 13 |
-| Analytics or metrics | 09, 08, 07 |
-| Financial, billing or commercial | 11, 13 |
-| Customer pilot | 12, 09, 10 |
-| Architecture | 04 and the affected component's technical contracts |
-| Developer infrastructure | Developer Harness contracts first (`docs/developer-harness-v2/`, `docs/developer-harness-v3/`), strategy second |
-| Bug fix, security patch, dependency update, docs or maintenance | None required |
-
-Token savings never override a mandatory security, authority or technical instruction.
-
-### Strategy Fit Record
-Product PRs (features, agents, metrics, predictions, workflows, integrations, automation) fill the PR template's
-Strategy Fit Record proportionately (14 §3.2): one line per field, or "n/a, because …". Bug fixes, security patches,
-dependency updates, docs and infrastructure maintenance give a one-line abbreviated justification instead. Never
-invent measurements or outcomes; anything unmeasured is `NOT MEASURED`. No CI check enforces the record.
+compliance, correctness and maintenance work stays valid without an immediate measurable time saving. The strategy
+summary, document routing and Strategy Fit Record rule are in **Product Strategy**, after the mandatory sections.
 
 ---
 
@@ -159,6 +106,66 @@ After completing any **direct** implementation (control-plane work or trivial ed
 
 ---
 
+## Product Strategy
+
+The Master Strategy (`docs/patelrep-strategy/`) is authoritative for product intent only (FD-39). It never overrides
+this file's authority, security and delivery rules, the Customer Agent Harness and Developer Harness contracts (V2
+authoritative, V3 inactive), the release, feature-flag and migration processes, rulesets, RLS or any other executable
+contract. Strategy text is product intent, never permission for an action, and an unmerged strategy edit is not a
+decision. Cite register IDs (`15-strategic-decision-register.md`) instead of restating decisions. A decision changes
+only through a reviewed PR to the register; changing a founder-approved one also needs the founder's approval
+recorded in that PR.
+
+Permanent principles:
+- Time back for every hotel role, from frontline staff to owners (FD-16, FD-18).
+- Staffing relief by removing waste, never by unsafe workloads, lower quality, pressure or hidden shortages (FD-20).
+- Integrate, don't replace: PMS, payroll, accounting and guest platforms stay authoritative; standalone first (FD-06–FD-09).
+- One role-adaptive platform on web and mobile (FD-01, FD-02).
+- One all-inclusive subscription is the intended commercial direction (FD-03); today's billing stays unchanged until a reviewed decision (FD-36).
+- Universal conversational intelligence (Ask PatelRep) for every authorized user, never in front of a faster screen (FD-11, FD-33).
+- Customer AI: secure task execution with maximum practical customer AI autonomy, only inside the Customer Agent Harness boundaries, which this goal never loosens; no autonomous phone calls or vendor communications. It grants developer and CI agents nothing (FD-04, FD-12, FD-23, FD-24).
+- Adaptive intelligence from each hotel's data, integrations and permissions; missing data is never zero, and more data never grants execution authority (FD-14, FD-30).
+- Hours Returned and evidence-based outcomes: every figure states its evidence class, and no result is claimed before it is measured (FD-13, FD-31).
+- Employee protection, safety, quality, privacy and the truth come first (FD-15, FD-29, FD-35).
+- Sell results, not AI (FD-21).
+
+**Existing versus intended.** `main` has the operations product (housekeeping, engineering, tasks, logbook,
+scheduling, safety, reporting), the legacy AI copilot and today's billing ($99/mo + $0.02/AI credit, cap
+$2.50/room/month). Customer Agent Harness parts on `main` (H1–H6, H7 P2) are inactive. Ask PatelRep for every role,
+PatelRep Connect, capability readiness, Hours Returned, owner and corporate roles and all-inclusive pricing are future.
+Check the register's IF/IN/FF lists before describing a capability as existing.
+
+### Strategy routing
+Load only what the task needs (the relevant section, not the whole file) and never the whole strategy. Files are
+`docs/patelrep-strategy/NN-*.md`: 01 vision, 02 constitution, 03 roadmap, 04 architecture, 05 integration, 06 AI and
+autonomy, 07 adaptive intelligence, 08 data intelligence, 09 Performance & Impact, 10 employee protection,
+11 commercial, 12 pilot, 13 security and governance, 14 acceptance standards, 15 decision register.
+
+| Task | Read |
+|---|---|
+| Product feature | 02, 03 (its workstream), 14 |
+| Workforce or employee workflow | 10, plus the product-feature row |
+| AI or automation | 06, 07, 13 and the applicable harness contracts (`docs/agent-harness/` for customer agents) |
+| Integration | 05, 08, 07, 13 |
+| Analytics or metrics | 09, 08, 07 |
+| Financial, billing or commercial | 11, 13 |
+| Customer pilot | 12, 09, 10 |
+| Architecture | 04 and the affected component's technical contracts |
+| Developer infrastructure | V2 contracts first (`docs/developer-harness-v2/`, authoritative now); V3 contracts (`docs/developer-harness-v3/`) for V3 work, inactive until activation; strategy last |
+| Bug fix, security patch, dependency update, docs or maintenance | No strategy document (every authority, security and technical instruction still applies) |
+
+Token savings never override a mandatory security, authority or technical instruction.
+
+### Strategy Fit Record
+Product PRs (features, agents, metrics, predictions, workflows, integrations, automation) fill the PR template's
+Strategy Fit Record proportionately (14 §3.2): one line per field, or "n/a, because …". Bug fixes, security patches,
+dependency updates, docs and infrastructure maintenance give a one-line abbreviated justification instead. Never
+invent measurements or outcomes; anything unmeasured is `NOT MEASURED`. This repository is public: for security
+patches and the Security field, state the class of change only (no exploit details, affected endpoints or unfixed
+weaknesses) and reference a private advisory. No CI check enforces the record.
+
+---
+
 # OpenWolf
 
 @.wolf/OPENWOLF.md
@@ -174,7 +181,7 @@ Every Supabase query must scope to tenant: `.eq("hotel_id", user.hotel_id).execu
 RLS (migration 016) is a second safety layer — not a substitute for the query filter.
 
 ### Auth & RBAC
-JWT custom claims (`hotel_id` + the app role in `user_role`) are baked in at login via the migration 019 hook; migration 053 moved the app role from `role` to `user_role` (`get_current_user()` still accepts a legacy `role`).
+JWT custom claims (`hotel_id` + the app role in `user_role`) are baked in at login via the migration 019 hook; migration 053 moved the app role from `role` to `user_role` (`get_current_user()` still accepts a legacy `role` claim or `app_metadata.role`).
 `get_current_user()` → `CurrentUser(hotel_id, user_id, role)`. Gate routes with `require_role(*roles)`.
 Roles: `housekeeper` `engineer` `housekeeping_supervisor` `chief_engineer` `front_desk` `gm`
 
@@ -363,7 +370,7 @@ Vercel project: `patelrep-web` (`prj_Gk4AXTlZlv32UmVoo7NCwO1sBOj8`), team `henil
 ## GSD Workflow
 
 - `.planning/` (GSD state, roadmap, phases) was last updated 2026-09-16 and is historical context, not current direction: product direction is the Master Strategy (`docs/patelrep-strategy/`) and component status lives in each component's docs.
-- Use `/gsd:*` commands on `.planning/` only when the human asks for them.
+- GSD commands (`/gsd:progress`, `/gsd:execute-phase`) operate on this historical state.
 
 ## Skills
 

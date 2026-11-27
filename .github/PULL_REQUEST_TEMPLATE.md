@@ -6,7 +6,9 @@
 
 <!-- Strategy Fit Record: docs/patelrep-strategy/14-development-and-acceptance-standards.md §3.2.
      Keep it proportionate: one line per field, or "n/a, because ...". Never invent measurements or customer
-     outcomes; write NOT MEASURED when there is no measurement. Not checked by CI. -->
+     outcomes; write NOT MEASURED when there is no measurement. Not checked by CI.
+     This repository is public: for security patches and the Security field, state the class of change only
+     (no exploit details, affected endpoints or unfixed weaknesses) and reference a private advisory. -->
 
 - Change type (product / bug fix / security patch / dependency update / documentation / infrastructure maintenance):
 - Abbreviated justification (non-product changes only; then skip the product fields):
@@ -19,10 +21,10 @@ Product changes (features, agents, metrics, predictions, workflows, integrations
 - Intended measurable outcome (metric and evidence class, or NOT MEASURED):
 - Data and integration dependencies:
 - Missing-data and fallback behavior:
-- Employee protection and quality:
-- Security and authorization:
+- Employee protection and quality (10 §5 checklist):
+- Security and authorization (including any agent-accessible operation):
 - Cost implications:
-- Validation, rollout and rollback:
+- Validation, rollout and rollback (tests or evaluation, measurement baseline, flag, kill switch, rollback):
 
 ## Affected areas
 
