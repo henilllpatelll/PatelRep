@@ -1,0 +1,49 @@
+diff --git a/scripts/developer-harness-v3/authority/evaluator.mjs b/scripts/developer-harness-v3/authority/evaluator.mjs
+index 1acfa961..c71bcda6 100644
+--- a/scripts/developer-harness-v3/authority/evaluator.mjs
++++ b/scripts/developer-harness-v3/authority/evaluator.mjs
+@@ -34,6 +34,10 @@ const PARAMS_SPEC = {
+     delivery: (d) => isPlainObject(d) && checkShape(d, { required: { repository: v.repo, branch: v.str }, optional: { base: v.str, pr_number: v.int, run_id: v.int, attempt: v.int, head_sha: v.sha40 } }, 'delivery').length === 0 },
+ }
+ const TRUSTED_DELIVERY_SPEC = { required: { repository: v.repo, task_branch: v.str }, optional: { owned_pr_number: (x) => x === null || v.int(x), owned_run_ids: v.arrayOf(v.int, 200) } }
++// D3.6 integration (R-25, exact delivery bindings): the target fields each delivery effect MUST name at the authorization boundary. An omitted field is a refusal, never a
++// wildcard — in particular a staging dispatch is always bound to the exact candidate head and PR it intends (the workflow re-checks that head before any staging work).
++const DELIVERY_TARGET_REQUIRES = Object.freeze({ open_draft_pull_request: Object.freeze(['base', 'head_sha']), update_pull_request_metadata: Object.freeze(['pr_number']),
++  rerun_ci_jobs: Object.freeze(['run_id', 'attempt', 'head_sha']), dispatch_staging_candidate: Object.freeze(['pr_number', 'head_sha']) })
+ const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
+   optional: { env_value_origins: isPlainObject, ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
+ const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
+@@ -241,6 +245,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger =
+         // The requester can only NAME the remote target; ownership comes from the controller's trusted delivery record and the trusted candidate facts.
+         const want = trusted.delivery; const got = params.delivery
+         if (!want || !got) { codes.push('DELIVERY.TARGET_FACTS_MISSING'); break }
++        for (const k of (Object.hasOwn(DELIVERY_TARGET_REQUIRES, request.action) ? DELIVERY_TARGET_REQUIRES[request.action] : [])) if (got[k] === undefined) codes.push(`DELIVERY.TARGET_FIELD_MISSING:${k}`)
+         if (got.repository !== want.repository || (candidate && got.repository !== candidate.repository)) codes.push('DELIVERY.WRONG_REPOSITORY')
+         if (got.branch !== want.task_branch || !/^dh3\/[a-z0-9-]{1,80}$/.test(got.branch)) codes.push('DELIVERY.BRANCH_NOT_TASK_OWNED')
+         if (got.base !== undefined && got.base !== 'main') codes.push('DELIVERY.BASE_NOT_MAIN')
+diff --git a/scripts/developer-harness-v3/authority/git-facts.mjs b/scripts/developer-harness-v3/authority/git-facts.mjs
+index e189f827..290de0b9 100644
+--- a/scripts/developer-harness-v3/authority/git-facts.mjs
++++ b/scripts/developer-harness-v3/authority/git-facts.mjs
+@@ -15,7 +15,7 @@ const MAX_TRIPWIRE_PATHS = 200
+ // D3.4 (proposal): NEVER a bare `git`. The executable is resolved from an explicit absolute allow-list that excludes the repository under inspection and the
+ // process cwd (Windows searches the cwd first for a bare name), optionally digest-pinned; the child runs with a rebuilt minimal environment (no inherited PATH,
+ // HOME, GIT_* or credential variables) and every command-executing configuration key neutralised on the command line, so hostile REPOSITORY configuration cannot
+-// run code. See orchestrator/trusted-git.mjs. The extra -c options below are the ones this module has always used.
++// run code. See authority/trusted-git.mjs (moved inside the owner-only authority boundary by P1v2). The extra -c options below are the ones this module has always used.
+ const TRUSTED = new Map()
+ const gitFor = (repoDir) => { let g = TRUSTED.get(repoDir); if (!g) { g = resolveGit({ forbiddenRoots: [repoDir] }); TRUSTED.set(repoDir, g) } if (!g.ok) throw new Error(g.code); return g.exe }
+ const EXTRA = ['-c', 'diff.context=3', '-c', 'diff.interHunkContext=0', '-c', 'diff.algorithm=default', '-c', 'diff.noprefix=false', '-c', 'diff.mnemonicPrefix=false']
+diff --git a/scripts/developer-harness-v3/authority/trusted-git.mjs b/scripts/developer-harness-v3/authority/trusted-git.mjs
+index c26c0bb9..3221717e 100644
+--- a/scripts/developer-harness-v3/authority/trusted-git.mjs
++++ b/scripts/developer-harness-v3/authority/trusted-git.mjs
+@@ -8,7 +8,7 @@
+ //   * hostile REPOSITORY configuration cannot run code: `-c` overrides outrank repo config, and every command-executing config key Git documents for read-only
+ //     plumbing is neutralised (hooks, fsmonitor, external diff, textconv, pager, ssh/proxy/askpass/credential helpers, filters via --no-ext-diff/--no-textconv);
+ //   * output is bounded; stderr is never echoed (it would carry local paths).
+-// The same helper is what the PROPOSED patch to authority/git-facts.mjs imports (docs/developer-harness-v3/proposals/).
++// authority/git-facts.mjs imports this helper (P1v2, integrated in D3.6): it lives inside the owner-only authority boundary, so no development scope can edit the git hardening.
+ import { execFileSync } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+ import { existsSync, mkdtempSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'

@@ -15,7 +15,7 @@ const MAX_TRIPWIRE_PATHS = 200
 // D3.4 (proposal): NEVER a bare `git`. The executable is resolved from an explicit absolute allow-list that excludes the repository under inspection and the
 // process cwd (Windows searches the cwd first for a bare name), optionally digest-pinned; the child runs with a rebuilt minimal environment (no inherited PATH,
 // HOME, GIT_* or credential variables) and every command-executing configuration key neutralised on the command line, so hostile REPOSITORY configuration cannot
-// run code. See orchestrator/trusted-git.mjs. The extra -c options below are the ones this module has always used.
+// run code. See authority/trusted-git.mjs (moved inside the owner-only authority boundary by P1v2). The extra -c options below are the ones this module has always used.
 const TRUSTED = new Map()
 const gitFor = (repoDir) => { let g = TRUSTED.get(repoDir); if (!g) { g = resolveGit({ forbiddenRoots: [repoDir] }); TRUSTED.set(repoDir, g) } if (!g.ok) throw new Error(g.code); return g.exe }
 const EXTRA = ['-c', 'diff.context=3', '-c', 'diff.interHunkContext=0', '-c', 'diff.algorithm=default', '-c', 'diff.noprefix=false', '-c', 'diff.mnemonicPrefix=false']

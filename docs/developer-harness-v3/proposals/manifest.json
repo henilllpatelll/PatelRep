@@ -18,7 +18,8 @@
       "verified": "applied in a scratch worktree: scripts/developer-harness-v3/tests git-facts.test.mjs + security.test.mjs + d34-issuer.test.mjs = 41/41; `git apply --check` clean on the branch; the new orchestrator/trusted-git.mjs it imports is part of THIS PR.",
       "effects": "authority/** changes the dh3 closure digests; the owner re-pins from the reviewed commit (14-v2 §4).",
       "superseded_by": "P1v2",
-      "superseded_note": "D3.5: kept byte-for-byte as reviewed in D3.4. P1v2 = P1 PLUS moving orchestrator/trusted-git.mjs into authority/ (21 §6 amendment, review F12), so development scopes can never edit the git hardening that authority code imports. Apply P1v2 INSTEAD of P1."
+      "superseded_note": "D3.5: kept byte-for-byte as reviewed in D3.4. P1v2 = P1 PLUS moving orchestrator/trusted-git.mjs into authority/ (21 §6 amendment, review F12), so development scopes can never edit the git hardening that authority code imports. Apply P1v2 INSTEAD of P1.",
+      "status": "superseded"
     },
     {
       "id": "P2",
@@ -36,7 +37,9 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-V3-CI and G-V2-PROVENANCE-FETCH",
       "verified": "applied in a scratch worktree: the re-pinned guard scripts/developer-harness-v2-ci-workflow.test.mjs and the Phase-2 identity test openwolf-hooks.test.mjs (which pins bypass-hook.test.mjs by sha256 — the FIRST version of this patch missed that pin and broke it; found by running the V2 runner, fixed) = 14/14 together (with Git bash on PATH; the guard executes `bash`). Full V2 runner there: the failures also present on the UNMODIFIED branch on this host remain; two further policy tests (New-Item/mkdir, junction) fail only in the scratch-worktree LOCATION and pass on the real branch with the same V2 files — location-dependent, not caused by the patch, but not proven by an unpatched scratch run; the pin method was first validated by reproducing the baseline pins; `git apply --check` clean on the branch. The Linux execution of the full V3 suite is NOT verified here (see 22).",
-      "new_pins": "workflow sha256 and release-workflow-contract block sha256 are inside the patch (BASELINE_WORKFLOW_SHA256, BASELINE_RELEASE_BLOCK_SHA256)"
+      "new_pins": "workflow sha256 and release-workflow-contract block sha256 are inside the patch (BASELINE_WORKFLOW_SHA256, BASELINE_RELEASE_BLOCK_SHA256)",
+      "status": "integrated",
+      "integration_order": 4
     },
     {
       "id": "P5",
@@ -52,7 +55,8 @@
       "verified": "tests/d34-proposals.test.mjs applies the patch to a COPY of the lifecycle contract and drives the REAL reducer: entry from implementing, testing, independent_review, remediation and publishing; the only exit is the recorded resume target (remediation resumes to implementing); an owner_action_id is not required; it is not a blocked state; a wrong resume target and an unknown reason are refused. `git apply --check` is clean on the branch. NOT applied here: task-lifecycle.json is root of trust.",
       "effects": "changes the lifecycle contract digest the policy bootstrap pins; after the owner applies and re-pins it, `suspendTechnically` (orchestrator/suspension.mjs) gains one extra line — a reducer transition into technical_suspension with the same reason code — and the ledger `suspensions` row stays the scheduling source of truth. Until then the ledger-level suspension is the INACTIVE conservative solution and the reducer is untouched.",
       "superseded_by": "P6",
-      "superseded_note": "D3.5: P6 contains P5 unchanged in substance (plus two reasons) together with the other lifecycle changes. Apply P6 INSTEAD of P5, never both (they touch the same lines)."
+      "superseded_note": "D3.5: P6 contains P5 unchanged in substance (plus two reasons) together with the other lifecycle changes. Apply P6 INSTEAD of P5, never both (they touch the same lines).",
+      "status": "superseded"
     },
     {
       "id": "P1v2",
@@ -69,7 +73,9 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TRUSTED-GIT",
       "verified": "D3.5: applied in a throwaway worktree of the branch (removed afterwards): git-facts.test.mjs + security.test.mjs + d34-issuer.test.mjs = 44/44. `git apply --check` clean on the branch.",
-      "effects": "authority/** changes the dh3 closure digests; re-pin once from the reviewed commit (21 §2 step 5)."
+      "effects": "authority/** changes the dh3 closure digests; re-pin once from the reviewed commit (21 §2 step 5).",
+      "status": "integrated",
+      "integration_order": 1
     },
     {
       "id": "P6",
@@ -86,7 +92,8 @@
       "verified": "tests/d35-lifecycle-proposal.test.mjs applies P6 to a DISPOSABLE copy of the real reducer + contract and drives it: every direct/indirect/paused/recovery/suspension/fenced hop out of blocked is refused without an owner action; cancellation, re-verification and the new reasons; and the ENGINE end to end in a labelled proposal configuration (proposalReducer, temp ledgers only). The authoritative reducer is unchanged (a test proves the old loophole is still there and that the controller never uses it).",
       "effects": "changes the lifecycle contract digest the policy bootstrap pins AND the reducer code (authority-adjacent, pinned in the dh3 closure); after the owner applies it and re-pins, the D3.5 engine paths that are gated on the contract (technical_suspension state, reverification, explicit cancellation) activate with no further code change. Owner-action AUTHENTICITY is a separate gate (G-OWNER-ACTION-EVIDENCE): the reducer can only require that an owner_action_id is present.",
       "superseded_by": "P6v2",
-      "superseded_note": "D3.6: kept byte-for-byte as reviewed in D3.5. P6v2 = P6 PLUS the delivery states in reverification.from and dependency_rebuild.from (with the delivery evidence invalidated) and the new base_conflict_rebuild edge. Apply P6v2 INSTEAD of P6, never both (same lines)."
+      "superseded_note": "D3.6: kept byte-for-byte as reviewed in D3.5. P6v2 = P6 PLUS the delivery states in reverification.from and dependency_rebuild.from (with the delivery evidence invalidated) and the new base_conflict_rebuild edge. Apply P6v2 INSTEAD of P6, never both (same lines).",
+      "status": "superseded"
     },
     {
       "id": "P6v2",
@@ -103,7 +110,8 @@
       "verified": "tests/d36-lifecycle.test.mjs drives the patched reducer on a DISPOSABLE copy (every new edge, reasons, invalidations; sticky owner hold and owner-only cancellation from delivery states) and the engine + delivery controller end to end (stale upstream rebuilt from ci_running; base conflict rebuilt on the new base); tests/d36-e2e.test.mjs under P7 + P6v2. `git apply --check` clean on the branch. NOT applied here.",
       "effects": "changes the lifecycle contract digest and the reducer (re-pin as for P6). Without it the authoritative lifecycle FAILS CLOSED for these cases (terminal technical suspension), which is tested.",
       "superseded_by": "P6v3",
-      "superseded_note": "D3.6 independent-verification remediation: P6v3 contains P6v2 UNCHANGED in substance (this patch file and its digest are kept byte-for-byte as reviewed) plus the two delivery-regression back-edges. Apply P6v3 INSTEAD of P6v2, never both (they touch the same lines)."
+      "superseded_note": "D3.6 independent-verification remediation: P6v3 contains P6v2 UNCHANGED in substance (this patch file and its digest are kept byte-for-byte as reviewed) plus the two delivery-regression back-edges. Apply P6v3 INSTEAD of P6v2, never both (they touch the same lines).",
+      "status": "superseded"
     },
     {
       "id": "P6v3",
@@ -118,7 +126,9 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
       "verified": "tests/d36-proposals.test.mjs (digest pinned, LF-only, applies to the current tree, every P6v2 edge preserved byte-for-byte, the two new edges present); tests/d36-rem-stale-eligibility.test.mjs drives the patched reducer + engine + delivery controller on a DISPOSABLE copy (labelled PROPOSAL_UNDER_TEST): CI rerun and staging rerun after merge eligibility step the task back, the reducer invalidates the dependent evidence, and the task recovers to a fresh package. `git apply --check` clean on the branch. NOT applied here.",
-      "effects": "changes the lifecycle contract digest and the reducer (re-pin as for P6/P6v2). Without it the authoritative lifecycle FAILS CLOSED for these cases: the task keeps its state with NO valid evidence, deliveryEligibility() is false, and the controller re-verifies the latest results into a fresh package (tested)."
+      "effects": "changes the lifecycle contract digest and the reducer (re-pin as for P6/P6v2). Without it the authoritative lifecycle FAILS CLOSED for these cases: the task keeps its state with NO valid evidence, deliveryEligibility() is false, and the controller re-verifies the latest results into a fresh package (tested).",
+      "status": "integrated",
+      "integration_order": 2
     },
     {
       "id": "P7",
@@ -135,7 +145,9 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-DELIVERY-AUTHORITY and G-OWNER-ACTION-EVIDENCE",
       "verified": "tests/d36-proposals.test.mjs applies P7 to a DISPOSABLE copy and runs the D3.2 authority suites (evaluator, security, promotion, foundation) against the patched authority; tests/d36-authority.test.mjs and every D3.6 delivery test run the PATCHED evaluator in the labelled PROPOSAL_UNDER_TEST configuration. The authoritative contract activates nothing and still refuses every delivery effect (tested). `git apply --check` clean on the branch. NOT applied here.",
-      "effects": "authority/** and the contract change the policy revision and the dh3 closure digests: re-pin once from the reviewed commit. Activating any delivery action is a SEPARATE owner ceremony."
+      "effects": "authority/** and the contract change the policy revision and the dh3 closure digests: re-pin once from the reviewed commit. Activating any delivery action is a SEPARATE owner ceremony.",
+      "status": "integrated",
+      "integration_order": 3
     }
   ],
   "not_patches": [
@@ -155,5 +167,43 @@
     }
   ],
   "d35_note": "D3.5 added P1v2 and P6 (each supersedes an earlier proposal that is kept byte-for-byte). base_main_sha stays the D3.4 baseline the original patches were cut from; every patch is re-checked to apply cleanly against the current tree by d34-proposals.test.mjs.",
-  "d36_note": "D3.6 added P6v2 (supersedes P6, kept byte-for-byte) and P7. D3.6 independent-verification remediation added P6v3 (supersedes P6v2, which is kept byte-for-byte with its digest 8a25be45...). P1v2 and P2 are unchanged (digests re-verified against main; both apply). Apply order for the owner integration: P1v2, P6v3, P7, P2 (doc 39)."
+  "d36_note": "D3.6 added P6v2 (supersedes P6, kept byte-for-byte) and P7. D3.6 independent-verification remediation added P6v3 (supersedes P6v2, which is kept byte-for-byte with its digest 8a25be45...). P1v2 and P2 are unchanged (digests re-verified against main; both apply). Apply order for the owner integration: P1v2, P6v3, P7, P2 (doc 39).",
+  "integration": {
+    "$comment": "D3.6 Workstream B (owner-controlled control-plane integration, branch control-plane/dh3-d36-integration). Integrated proposals are applied byte-for-byte, in integration_order, each as its own commit; integration corrections are SEPARATE digest-pinned patches applied after them. Superseded proposals are historical: never applied, kept byte-for-byte; they apply to the pre-integration base reconstructed by reverse-applying the integrated chain (tests/d34-proposals.test.mjs).",
+    "base_main_sha": "c557c5b05d480f0e2f29a2a2a1701842300b58aa",
+    "integrated_chain": [
+      "P1v2",
+      "P6v3",
+      "P7",
+      "P2"
+    ],
+    "corrections": [
+      {
+        "id": "C1",
+        "file": "C1-authority-integration-corrections.patch",
+        "sha256": "5254b815e90499d7d003bf6a5abe457b71aca86a71c5e1cf2eb47021e51163f0",
+        "touches": [
+          "scripts/developer-harness-v3/authority/evaluator.mjs",
+          "scripts/developer-harness-v3/authority/git-facts.mjs",
+          "scripts/developer-harness-v3/authority/trusted-git.mjs"
+        ],
+        "status": "integrated_correction",
+        "applies_after": "P2",
+        "protected_class": "V3 authority code (owner-only): integration correction, separately reviewed",
+        "purpose": "R-25 / exact delivery bindings: the evaluator delivery_target check REQUIRES the target fields each P7 delivery effect must name (dispatch_staging_candidate: pr_number + head_sha; rerun_ci_jobs: run_id + attempt + head_sha; open_draft_pull_request: base + head_sha; update_pull_request_metadata: pr_number). An omitted field is DELIVERY.TARGET_FIELD_MISSING, never a wildcard. Plus two stale comments (trusted-git.mjs is no longer a proposal; git-facts.mjs points at authority/trusted-git.mjs). No existing check is removed or relaxed."
+      },
+      {
+        "id": "C2",
+        "file": "C2-staging-exact-head-dispatch.patch",
+        "sha256": "617a3102a98cbd69f0280006973c70ba246998fb483ce0a5a70bdb8c40863cf4",
+        "touches": [
+          ".github/workflows/staging-candidate.yml"
+        ],
+        "status": "integrated_correction",
+        "applies_after": "P2",
+        "protected_class": "control plane (.github/**): integration correction, separately reviewed; runs from main only after merge",
+        "purpose": "R-25: optional workflow_dispatch input head_sha (full lowercase 40-hex), refused before any staging work unless it equals the PR head; existing manual callers without it keep their behaviour. Exact-source check selection: the dispatch path uses the LATEST run of .github/workflows/ci.yml for the exact head and repository (an older success never masks a newer failure; another workflow named CI never counts); both paths require the CI run to be the repository CI workflow for that head and bind CI Gate to the github-actions check in THAT run's check suite (newest attempt). The Staging Gate check reused is the newest github-actions one."
+      }
+    ]
+  }
 }

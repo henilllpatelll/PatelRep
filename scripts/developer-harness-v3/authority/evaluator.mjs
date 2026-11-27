@@ -34,6 +34,10 @@ const PARAMS_SPEC = {
     delivery: (d) => isPlainObject(d) && checkShape(d, { required: { repository: v.repo, branch: v.str }, optional: { base: v.str, pr_number: v.int, run_id: v.int, attempt: v.int, head_sha: v.sha40 } }, 'delivery').length === 0 },
 }
 const TRUSTED_DELIVERY_SPEC = { required: { repository: v.repo, task_branch: v.str }, optional: { owned_pr_number: (x) => x === null || v.int(x), owned_run_ids: v.arrayOf(v.int, 200) } }
+// D3.6 integration (R-25, exact delivery bindings): the target fields each delivery effect MUST name at the authorization boundary. An omitted field is a refusal, never a
+// wildcard — in particular a staging dispatch is always bound to the exact candidate head and PR it intends (the workflow re-checks that head before any staging work).
+const DELIVERY_TARGET_REQUIRES = Object.freeze({ open_draft_pull_request: Object.freeze(['base', 'head_sha']), update_pull_request_metadata: Object.freeze(['pr_number']),
+  rerun_ci_jobs: Object.freeze(['run_id', 'attempt', 'head_sha']), dispatch_staging_candidate: Object.freeze(['pr_number', 'head_sha']) })
 const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
   optional: { env_value_origins: isPlainObject, ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
 const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
@@ -241,6 +245,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger = 
         // The requester can only NAME the remote target; ownership comes from the controller's trusted delivery record and the trusted candidate facts.
         const want = trusted.delivery; const got = params.delivery
         if (!want || !got) { codes.push('DELIVERY.TARGET_FACTS_MISSING'); break }
+        for (const k of (Object.hasOwn(DELIVERY_TARGET_REQUIRES, request.action) ? DELIVERY_TARGET_REQUIRES[request.action] : [])) if (got[k] === undefined) codes.push(`DELIVERY.TARGET_FIELD_MISSING:${k}`)
         if (got.repository !== want.repository || (candidate && got.repository !== candidate.repository)) codes.push('DELIVERY.WRONG_REPOSITORY')
         if (got.branch !== want.task_branch || !/^dh3\/[a-z0-9-]{1,80}$/.test(got.branch)) codes.push('DELIVERY.BRANCH_NOT_TASK_OWNED')
         if (got.base !== undefined && got.base !== 'main') codes.push('DELIVERY.BASE_NOT_MAIN')
