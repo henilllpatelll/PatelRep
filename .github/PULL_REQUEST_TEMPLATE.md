@@ -2,6 +2,28 @@
 
 ## Why?
 
+## Strategy fit
+
+<!-- Strategy Fit Record: docs/patelrep-strategy/14-development-and-acceptance-standards.md §3.2.
+     Keep it proportionate: one line per field, or "n/a, because ...". Never invent measurements or customer
+     outcomes; write NOT MEASURED when there is no measurement. Not checked by CI. -->
+
+- Change type (product / bug fix / security patch / dependency update / documentation / infrastructure maintenance):
+- Abbreviated justification (non-product changes only; then skip the product fields):
+
+Product changes (features, agents, metrics, predictions, workflows, integrations, automation):
+
+- Customer problem:
+- Roles that benefit:
+- Roadmap workstream (W1–W16):
+- Intended measurable outcome (metric and evidence class, or NOT MEASURED):
+- Data and integration dependencies:
+- Missing-data and fallback behavior:
+- Employee protection and quality:
+- Security and authorization:
+- Cost implications:
+- Validation, rollout and rollback:
+
 ## Affected areas
 
 ## Verification
