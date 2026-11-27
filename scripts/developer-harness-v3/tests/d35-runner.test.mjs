@@ -35,7 +35,26 @@ const unitRow = (f, unit) => { if (!existsSync(f.state)) return null; const db =
 async function waitFor(fn, ms = 60_000) { const t = Date.now(); for (;;) { const v = fn(); if (v) return v; if (Date.now() - t > ms) throw new Error('timeout'); await sleep(50) } }
 const killTree = (pid) => { try { process.kill(pid) } catch { /* already gone */ } }
 
-test('REAL processes: the test-file child is killed by the "reaper" while memory is below the floor → verified resource kill, automatic wait, re-run FIRST, no repeats, exit 0', { timeout: 120_000 }, async () => {
+// ── D3.6 Linux compatibility: process facts (workload identity) are WINDOWS-only (ci/process-facts.mjs). Off Windows an interrupted unit can never be proven stopped, so the
+// two "re-run after a verified resource kill" tests below assert the documented FAIL-CLOSED outcome instead: the unit is HELD (exit 75), never re-run on an assumption,
+// nothing is killed by the runner. (Never a skip.) The other REAL tests here do not depend on process facts and run unchanged on every platform.
+const PROCESS_FACTS_SUPPORTED = process.platform === 'win32'
+async function reaperFailsClosedWithoutProcessFacts({ runnerDies }) {
+  const f = fixture(); writeFileSync(f.marker, 'hold')
+  const r1 = startRunner(f, 'a,b,c', ['--workload-wait-min', '0.02'])
+  const running = await waitFor(() => { const u = unitRow(f, 'b.test.mjs'); return u?.status === 'running' && JSON.parse(u.result_json).pid ? JSON.parse(u.result_json) : null })
+  await sleep(1500)
+  assert.ok(running.workload === undefined || running.workload === null, 'off Windows no workload identity is recorded'); assert.ok(!unitRow(f, 'b.test.mjs').result_json.includes('"workload":{'), 'still none after several snapshots')
+  writeFileSync(f.mem, JSON.stringify({ free_mb: 1400 })); writeFileSync(f.reaper, JSON.stringify({ kind: 'low_memory_reaper', at: Date.now() }))
+  if (runnerDies) { killTree(r1.p.pid); killTree(running.pid); await r1.done } else killTree(running.pid)
+  rmSync(f.marker); writeFileSync(f.mem, JSON.stringify({ free_mb: 4000 }))
+  const res = runnerDies ? await startRunner(f, 'a,b,c', ['--workload-wait-min', '0.02']).done : await r1.done
+  assert.equal(res.code, 75, res.out); assert.match(res.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.doesNotMatch(res.out, /verified_resource_kill|observed_stopped|\(rerun\)/, 'no recovery is ever claimed without process facts')
+  assert.equal(unitRow(f, 'b.test.mjs').attempts, 1, 'the interrupted unit was NOT re-run'); assert.equal(unitRow(f, 'c.test.mjs')?.status ?? 'pending', 'pending', 'and nothing after it ran')
+  rmSync(f.root, { recursive: true, force: true })
+}
+
+test('REAL processes: the test-file child is killed by the "reaper" while memory is below the floor → verified resource kill, automatic wait, re-run FIRST, no repeats, exit 0', { timeout: 120_000 }, !PROCESS_FACTS_SUPPORTED ? () => reaperFailsClosedWithoutProcessFacts({ runnerDies: false }) : async () => {
   const f = fixture(); writeFileSync(f.marker, 'hold')
   const r = startRunner(f, 'a,b,c')
   // D3.5 second-round (intentional expectation change, same reason as the next test): an interrupted unit whose workload identity was never recorded is HELD, not re-run on the assumption that nothing
@@ -56,7 +75,7 @@ test('REAL processes: the test-file child is killed by the "reaper" while memory
   rmSync(f.root, { recursive: true, force: true })
 })
 
-test('REAL processes: the RUNNER itself is reaped mid-unit (whole tree killed) → the next invocation finds the unit lost, re-runs it first, and reuses the completed unit', { timeout: 120_000 }, async () => {
+test('REAL processes: the RUNNER itself is reaped mid-unit (whole tree killed) → the next invocation finds the unit lost, re-runs it first, and reuses the completed unit', { timeout: 120_000 }, !PROCESS_FACTS_SUPPORTED ? () => reaperFailsClosedWithoutProcessFacts({ runnerDies: true }) : async () => {
   const f = fixture(); writeFileSync(f.marker, 'hold')
   const r1 = startRunner(f, 'a,b,c')
   // D3.5 F3 (intentional expectation change): the reaper must strike AFTER the workload's identity was recorded — an unrecorded workload can never be proven stopped, so a runner killed in the first
