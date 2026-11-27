@@ -9,13 +9,25 @@
 // checks and trusts caller-supplied reconciliation observations. D3.6 must call authority evaluate() before every dispatch/retry and use an AUTHENTICATED reconciliation source (doc 18 §8, gate G-INTENT-EVALUATOR).
 // Remediation F3: an intent's authorization is re-validated at DISPATCH and at RETRY (not only at creation); reconciliation accepts only explicit, validated, authoritative observations;
 // a retry never reuses expired or invalid authorization; a NEW authorized intent supersedes an old PROVEN-absent one without re-consuming single-use evidence.
-import { digestOf } from '../../lib/canonical.mjs'
+//
+// D3.6 (G-INTENT-EVALUATOR integration; the authority evaluator itself is called by delivery/authorize.mjs BEFORE this layer, which stays the second, durable gate):
+//   * consumption: an intent created with `consume` consumes EXACTLY those ids (the evaluator's `consumes`: the single-use evidence it accepted) and only CITES the rest; a cited,
+//     unconsumed, multi-use artifact may authorize several intents, a consumed one authorizes ONLY the intent that consumed it (`consumed_by` = `intent:<idempotency_key>`).
+//     Without `consume` the D3.4 rule is kept (every cited id is consumed).
+//   * outcomes: a failure is `failed` (retryable) ONLY with an authenticated rejection-before-effect observation; any other failure — a timeout, a lost response, an exception,
+//     an unclassified error status — is UNCERTAIN, because it does not prove the effect is absent.
+//   * reconciliation: ONLY a verified, signed observation (delivery/observation.mjs) bound to THIS intent is accepted; `present` reconciles at once, `absent` only once
+//     absenceProven() holds over the durably recorded reads. A caller-supplied object is inconclusive, whatever it says about itself.
+import { canonicalize, digestOf } from '../../lib/canonical.mjs'
 import { isSatisfying } from '../../authority/evidence.mjs'
-import { consumeAll } from './evidence-store.mjs'
+import { consumeAll, isSingleUse } from './evidence-store.mjs'
+import { ABSENCE_RULE_NO_CAS, NO_CAS_ACTIONS, OBSERVATION_DEFAULTS, absenceProven, isVerifiedObservation } from '../delivery/observation.mjs'
+import { effectSubject } from '../delivery/effect-subjects.mjs'
 
 const RETRYABLE = new Set(['failed', 'reconciled_absent'])
 const TERMINAL_OK = new Set(['succeeded', 'reconciled_succeeded'])
-const consumerOf = (key) => `intent:${key}`
+export const consumerOf = (key) => `intent:${key}`
+const MAX_PARAMS_BYTES = 16 * 1024
 
 /** The signed payload as stored at acceptance, only if the row is readable and consistent with it; otherwise null (a corrupted record is never trusted). */
 function storedPayload(row) {
@@ -49,11 +61,15 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
     if (dup) return 'INTENT.EFFECT_NOT_UNIQUE'
   }
   const have = new Set(); const now = ledger.now(); const reviewContexts = { independent_review: new Set(), security_review: new Set() }
+  const consumed = intent.consumed_ids_json == null ? null : JSON.parse(intent.consumed_ids_json) // null = D3.4 rule (every cited id consumed by this intent)
+  const own = consumerOf(intent.idempotency_key)
   for (const id of JSON.parse(intent.evidence_ids_json)) {
     const e = ledger.db.prepare('SELECT * FROM evidence WHERE evidence_id=? AND task_id=?').get(id, intent.task_id)
     if (!e) return 'EVIDENCE.UNKNOWN'
     if (e.invalidated_at !== null) return 'EVIDENCE.INVALIDATED'
-    if (atCreation) { if (e.consumed_at !== null) return 'EVIDENCE.ALREADY_CONSUMED' } else if (e.consumed_by !== consumerOf(intent.idempotency_key)) return 'EVIDENCE.NOT_CONSUMED_BY_THIS_INTENT'
+    if (atCreation) { if (e.consumed_at !== null) return 'EVIDENCE.ALREADY_CONSUMED' }
+    else if (consumed === null || consumed.includes(id)) { if (e.consumed_by !== own) return 'EVIDENCE.NOT_CONSUMED_BY_THIS_INTENT' } // held by THIS intent, never by another
+    else if (e.consumed_at !== null || isSingleUse(policy, e.evidence_type)) return 'EVIDENCE.NOT_CONSUMED_BY_THIS_INTENT' // cited-only: still unconsumed, and never single-use
     if (e.expires_at <= now) return 'EVIDENCE.EXPIRED'
     if (e.policy_revision !== policy.revision) return 'EVIDENCE.STALE_POLICY_REVISION'
     if (e.fencing_token !== t.fencing_token) return 'EVIDENCE.STALE_FENCING_TOKEN'
@@ -76,8 +92,11 @@ function bindingProblem(ledger, intent, { policy, lease = null, atCreation = fal
  * Record an intent (and consume its single-use evidence) in ONE transaction. `supersedes` names an earlier intent of this task whose effect is PROVEN absent (failed / reconciled_absent): the new
  * intent needs its OWN fresh, valid evidence (consumed evidence is never re-consumed), and the old intent becomes permanently non-retryable.
  */
-export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds: rawEvidenceIds = [], lease = null, policy, policyRevision = policy?.revision, candidateSha = null, supersedes = null }) {
+export function beginIntent(ledger, { taskId, action, idempotencyKey, params, evidenceIds: rawEvidenceIds = [], lease = null, policy, policyRevision = policy?.revision, candidateSha = null, supersedes = null, consume = null, requestDigest = null }) {
   const evidenceIds = [...new Set(rawEvidenceIds)] // a repeated id is one authorization, not a consumption race
+  const toConsume = consume === null ? evidenceIds : [...new Set(consume)]
+  if (toConsume.some((id) => !evidenceIds.includes(id))) return { ok: false, code: 'INTENT.CONSUMES_UNCITED_EVIDENCE' }
+  let paramsJson; try { paramsJson = canonicalize(params); if (Buffer.byteLength(paramsJson) > MAX_PARAMS_BYTES) return { ok: false, code: 'INTENT.PARAMS_TOO_LARGE' } } catch { return { ok: false, code: 'INTENT.PARAMS_UNCANONICAL' } }
   return ledger.tx(() => {
     const t = ledger.getTask(taskId)
     if (!t) return { ok: false, code: 'TASK.UNKNOWN' }
@@ -110,10 +129,14 @@ export function beginIntent(ledger, { taskId, action, idempotencyKey, params, ev
       lease_id: lease?.lease_id ?? null, evidence_ids_json: JSON.stringify(evidenceIds) }
     const problem = bindingProblem(ledger, draft, { policy, lease, atCreation: true })
     if (problem) return { ok: false, code: problem }
-    const c = consumeAll(ledger, evidenceIds, consumerOf(idempotencyKey)) // one transaction with the intent row below
+    if (consume !== null) { // the evaluator's consumption set: every cited SINGLE-USE artifact must be consumed here, so it can never also authorize another intent
+      for (const id of evidenceIds) { const e = ledger.db.prepare('SELECT evidence_type FROM evidence WHERE evidence_id=?').get(id); if (isSingleUse(policy, e.evidence_type) && !toConsume.includes(id)) return { ok: false, code: 'INTENT.SINGLE_USE_NOT_CONSUMED' } }
+    }
+    const c = consumeAll(ledger, toConsume, consumerOf(idempotencyKey)) // one transaction with the intent row below
     if (!c.ok) return c
-    ledger.db.prepare('INSERT INTO action_intents(intent_id,task_id,action,idempotency_key,params_digest,candidate_sha,tree_digest,policy_revision,fencing_token,lease_id,supersedes,evidence_ids_json,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .run(intentId, taskId, action, idempotencyKey, params_digest, candidateSha, draft.tree_digest, policyRevision, t.fencing_token, draft.lease_id, old?.intent_id ?? null, draft.evidence_ids_json, 'intended', now, now)
+    ledger.db.prepare('INSERT INTO action_intents(intent_id,task_id,action,idempotency_key,params_digest,candidate_sha,tree_digest,policy_revision,fencing_token,lease_id,supersedes,evidence_ids_json,status,created_at,updated_at,consumed_ids_json,authorized_request_digest,params_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .run(intentId, taskId, action, idempotencyKey, params_digest, candidateSha, draft.tree_digest, policyRevision, t.fencing_token, draft.lease_id, old?.intent_id ?? null, draft.evidence_ids_json, 'intended', now, now,
+        consume === null ? null : JSON.stringify(toConsume), requestDigest, paramsJson)
     if (old) ledger.db.prepare('UPDATE action_intents SET superseded_by=? WHERE intent_id=?').run(intentId, old.intent_id)
     return { ok: true, duplicate: false, intent: { ...ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(intentId) } }
   })
@@ -133,33 +156,84 @@ const revalidate = (ledger, id, { policy, lease }) => {
 /** DISPATCH gate: the task, candidate + tree, policy, fencing epoch, lease, evidence (validity AND expiry) and the action's own authorization are all re-validated NOW. A refusal changes nothing. */
 export const markDispatched = (ledger, id, { policy, lease = null } = {}) => ledger.tx(() => {
   const v = revalidate(ledger, id, { policy, lease }); if (!v.ok) return v
-  return setStatus(ledger, id, ['intended'], 'dispatched')
+  const r = setStatus(ledger, id, ['intended'], 'dispatched'); if (r.ok) ledger.db.prepare('UPDATE action_intents SET dispatched_at=? WHERE intent_id=?').run(ledger.now(), id)
+  return r
 })
-export const recordOutcome = (ledger, id, { success, outcome }) => setStatus(ledger, id, ['dispatched'], success ? 'succeeded' : 'failed', outcome)
-export const markUncertain = (ledger, id) => setStatus(ledger, id, ['dispatched'], 'uncertain')
-
-const OBS_KEYS = new Set(['state', 'authoritative', 'observed_at', 'params_digest', 'candidate_sha', 'source', 'ref'])
 /**
- * Only an EXPLICIT, VALIDATED, AUTHORITATIVE remote observation reconciles an uncertain intent: { state:'present'|'absent', authoritative:true, observed_at, params_digest, candidate_sha, source }.
- * Anything else — missing, unknown state, non-authoritative, stale, about another effect, unknown fields — is INCONCLUSIVE: the intent stays uncertain and nothing may be retried.
+ * Binding of a verified observation to THIS intent at the reconciliation boundary (D3.6 remediation F2): identity (task, intent), the expected REPOSITORY, the EXACT effect subject derived from
+ * the recorded parameters, the parameter digest, the candidate, the ACTIVE policy revision (when `policy` is given — reconcileIntent always requires it), freshness, and a read made after the dispatch.
  */
-export function reconcileIntent(ledger, id, { observation, outcome = null } = {}) {
+function observationProblems(ledger, i, o, { policy = null } = {}) {
+  if (!isVerifiedObservation(o)) return ['OBSERVATION.UNAUTHENTICATED'] // a caller-supplied object is never an observation, whatever fields it carries
+  const p = []
+  if (o.task_id !== i.task_id) p.push('OBSERVATION.WRONG_TASK')
+  if (o.intent_id !== i.intent_id) p.push('OBSERVATION.WRONG_SUBJECT')
+  if (o.params_digest !== i.params_digest) p.push('OBSERVATION.WRONG_SUBJECT')
+  if ((o.candidate_sha ?? null) !== (i.candidate_sha ?? null)) p.push('OBSERVATION.WRONG_CANDIDATE')
+  if (o.policy_revision !== i.policy_revision) p.push('OBSERVATION.WRONG_POLICY_REVISION')
+  if (policy && o.policy_revision !== policy.revision) p.push('OBSERVATION.WRONG_POLICY_REVISION') // the ACTIVE policy, not only the one the intent was written under
+  const t = ledger.getTask(i.task_id)
+  if (!t || o.repository !== t.repository) p.push('OBSERVATION.WRONG_REPOSITORY')
+  try { const want = effectSubject(i.action, JSON.parse(i.params_json ?? 'null')); if (want !== null && o.subject !== want) p.push('OBSERVATION.WRONG_SUBJECT') } catch { p.push('OBSERVATION.SUBJECT_UNDERIVABLE') } // a delivery effect whose object cannot be named is never reconciled
+  const since = i.dispatched_at ?? i.updated_at
+  if (o.observed_at > ledger.now() + OBSERVATION_DEFAULTS.skewMs || o.observed_at < since || (o.state === 'absent' && o.observed_at > ledger.now())) p.push('OBSERVATION.TIME_INVALID') // a read made BEFORE the dispatch says nothing about its effect
+  if (ledger.now() - o.observed_at > OBSERVATION_DEFAULTS.maxAgeMs) p.push('OBSERVATION.STALE') // freshness is enforced HERE too, not only when the envelope was verified
+  return [...new Set(p)]
+}
+const recordObservation = (ledger, i, o) => ledger.db.prepare('INSERT OR IGNORE INTO remote_observations(observation_id,intent_id,task_id,subject,state,read_id,observed_at,remote_version,digest,recorded_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+  .run(o.observation_id, i.intent_id, i.task_id, o.subject, o.state, o.read_id, o.observed_at, o.remote_version ?? null, digestOf({ ...o }), ledger.now())
+
+/**
+ * The outcome of a DIRECT response. success -> succeeded. A failure is `failed` (retryable) ONLY when `rejection` is a verified observation, bound to this intent, of the remote having
+ * REJECTED the request before any effect (state 'rejected'); every other failure becomes `uncertain` and must be reconciled before anything is retried.
+ */
+export function recordOutcome(ledger, id, { success, outcome = null, rejection = null, policy = null }) {
   return ledger.tx(() => {
     const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
     if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
-    const o = observation; const problems = []
-    if (!o || typeof o !== 'object' || Array.isArray(o)) problems.push('OBSERVATION.MALFORMED')
-    else {
-      for (const k of Object.keys(o)) if (!OBS_KEYS.has(k)) problems.push(`OBSERVATION.UNKNOWN_FIELD:${k}`)
-      if (o.state !== 'present' && o.state !== 'absent') problems.push('OBSERVATION.STATE_NOT_EXPLICIT')
-      if (o.authoritative !== true) problems.push('OBSERVATION.NOT_AUTHORITATIVE')
-      if (!Number.isFinite(o.observed_at) || o.observed_at > ledger.now() || o.observed_at < i.updated_at) problems.push('OBSERVATION.TIME_INVALID')
-      if (o.params_digest !== i.params_digest) problems.push('OBSERVATION.WRONG_SUBJECT')
-      if (i.candidate_sha !== null && o.candidate_sha !== i.candidate_sha) problems.push('OBSERVATION.WRONG_CANDIDATE')
-      if (typeof o.source !== 'string' || !o.source.trim() || o.source.length > 200) problems.push('OBSERVATION.SOURCE_MISSING')
+    if (success === true) { const r = setStatus(ledger, id, ['dispatched'], 'succeeded', outcome); return r.ok ? { ...r, status: 'succeeded' } : r }
+    // the `failed` (retryable) conclusion needs the SAME boundary as reconciliation: ACTIVE policy named, a read counted once, no request of ours still in flight
+    const pr = rejection ? observationProblems(ledger, i, rejection, { policy }) : ['OBSERVATION.NONE']
+    if (rejection && !pr.length) {
+      if (!policy?.revision) pr.push('OBSERVATION.ACTIVE_POLICY_REQUIRED')
+      if (ledger.db.prepare('SELECT 1 FROM remote_observations WHERE observation_id=?').get(rejection.observation_id)) pr.push('OBSERVATION.REPLAYED')
+      if (ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)) pr.push('OBSERVATION.EFFECT_STILL_IN_FLIGHT')
     }
+    if (!pr.length && rejection.state === 'rejected') { recordObservation(ledger, i, rejection); const r = setStatus(ledger, id, ['dispatched'], 'failed', outcome); return r.ok ? { ...r, status: 'failed' } : r }
+    const r = setStatus(ledger, id, ['dispatched'], 'uncertain', outcome) // NOT proof of absence: a timeout or a lost response may have had its effect
+    return r.ok ? { ...r, status: 'uncertain', problems: pr } : r
+  })
+}
+export const markUncertain = (ledger, id) => setStatus(ledger, id, ['dispatched'], 'uncertain')
+
+/**
+ * Reconcile an UNCERTAIN intent from an AUTHENTICATED observation (verifyRemoteObservation). Every accepted observation is recorded durably (so the absence rule spans restarts).
+ * present -> reconciled_succeeded (conclusive). absent -> reconciled_absent only when absenceProven() holds over every recorded read. conflict -> stays uncertain (escalated by the caller).
+ * Anything unauthenticated or bound to another effect is INCONCLUSIVE and changes nothing.
+ */
+export function reconcileIntent(ledger, id, { observation, policy = null, outcome = null } = {}) {
+  return ledger.tx(() => {
+    const i = ledger.db.prepare('SELECT * FROM action_intents WHERE intent_id=?').get(id)
+    if (!i) return { ok: false, code: 'INTENT.UNKNOWN' }
+    const problems = observationProblems(ledger, i, observation, { policy })
+    if (isVerifiedObservation(observation) && !policy?.revision) problems.push('OBSERVATION.ACTIVE_POLICY_REQUIRED') // fail closed: the ACTIVE policy must be named at the boundary
+    if (!problems.length && !['present', 'absent', 'conflict'].includes(observation.state)) problems.push('OBSERVATION.STATE_NOT_RECONCILING')
     if (problems.length) return { ok: false, code: 'INTENT.RECONCILIATION_INCONCLUSIVE', problems }
-    return setStatus(ledger, id, ['uncertain'], o.state === 'present' ? 'reconciled_succeeded' : 'reconciled_absent', outcome)
+    if (i.status !== 'uncertain') return { ok: false, code: 'INTENT.BAD_TRANSITION' }
+    if (ledger.db.prepare('SELECT 1 FROM remote_observations WHERE observation_id=?').get(observation.observation_id)) return { ok: false, code: 'INTENT.RECONCILIATION_INCONCLUSIVE', problems: ['OBSERVATION.REPLAYED'] } // each signed read counts ONCE
+    recordObservation(ledger, i, observation)
+    if (observation.state === 'conflict') return { ok: false, code: 'INTENT.RECONCILIATION_CONFLICT', problems: ['OBSERVATION.REMOTE_INCONSISTENT'] }
+    const rows = ledger.db.prepare('SELECT state, read_id, observed_at FROM remote_observations WHERE intent_id=?').all(i.intent_id)
+    if (rows.some((r) => r.state === 'present')) return setStatus(ledger, id, ['uncertain'], 'reconciled_succeeded', outcome)
+    // security review MAND-1: no read can prove absence while THIS process's own request for the effect may still land (its deadline passed but the call never settled)
+    const live = ledger.db.prepare("SELECT 1 FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('running','unresolved')").get(`effect:${i.intent_id}:%`)
+    if (live) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: ['OBSERVATION.EFFECT_STILL_IN_FLIGHT'] }
+    // the settle window starts at the LATER of the dispatch and the END OF OUR OWN REQUEST — ordinary settlement, late settlement, or the end of the process that made it. No ABSENT read taken before
+    // that counts. (The end of a CLIENT never proves the server-side operation cannot still complete: it only starts the window, and the reads that follow decide.)
+    const ended = ledger.db.prepare("SELECT MAX(settled_at) m FROM operation_deadlines WHERE op_id LIKE ? AND state IN ('settled','settled_late','process_ended')").get(`effect:${i.intent_id}:%`)?.m ?? 0
+    const a = absenceProven(rows, Math.max(i.dispatched_at ?? i.updated_at, ended), NO_CAS_ACTIONS.includes(i.action) ? ABSENCE_RULE_NO_CAS : undefined)
+    if (!a.proven) return { ok: false, code: 'INTENT.RECONCILIATION_PENDING', problems: [a.code] }
+    return setStatus(ledger, id, ['uncertain'], 'reconciled_absent', outcome)
   })
 }
 /** A retry of the SAME intent: only for a proven-absent/failed effect, only while EVERY binding and the original authorization are still valid (expired or invalidated authorization is never reused). */

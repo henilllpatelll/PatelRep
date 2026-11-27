@@ -1,0 +1,113 @@
+diff --git a/docs/developer-harness-v3/authority-contract.json b/docs/developer-harness-v3/authority-contract.json
+index 297d817..556337b 100644
+--- a/docs/developer-harness-v3/authority-contract.json
++++ b/docs/developer-harness-v3/authority-contract.json
+@@ -39,7 +39,11 @@
+ 
+     "start_bypass_permissions_session": { "class": "safeguarded", "identities": ["orchestrator"], "required_evidence": ["isolation_attestation"], "checks": ["spend", "launch_environment", "credentials_env", "environment_isolation"], "requires_activation": true },
+     "publish_candidate_branch": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change", "credentials_env"], "requires_activation": true },
++    "open_draft_pull_request": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change", "delivery_target"], "requires_activation": true },
++    "update_pull_request_metadata": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "publication_receipt"], "checks": ["candidate_binding", "delivery_target"], "requires_activation": true },
+     "mark_pull_request_ready": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
++    "rerun_ci_jobs": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["publication_receipt", "ci_failure_diagnosis"], "checks": ["candidate_binding", "delivery_target"], "requires_activation": true },
++    "dispatch_staging_candidate": { "class": "safeguarded", "identities": ["trusted_publisher"], "required_evidence": ["publication_receipt", "ci_gate", "staging_admission"], "checks": ["candidate_binding", "migrations", "customer_agent", "delivery_target"], "requires_activation": true },
+     "verify_delivery_eligibility": { "class": "safeguarded", "identities": ["delivery_verifier"], "required_evidence": ["task_authority", "test_results", "independent_review", "publication_receipt", "ci_gate", "staging_gate"], "checks": ["candidate_binding", "path_validity", "scope", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
+     "merge_pull_request": { "class": "safeguarded", "identities": ["merger"], "required_evidence": ["delivery_verification", "independent_review", "ci_gate", "staging_gate"], "checks": ["candidate_binding", "protected_paths", "migrations", "customer_agent", "control_plane_self_change"], "requires_activation": true },
+     "production_release": { "class": "safeguarded", "identities": ["production_releaser"], "required_evidence": ["merge_receipt", "delivery_verification"], "checks": ["candidate_binding", "credential_scope"], "requires_activation": true },
+@@ -82,7 +86,10 @@
+     "merge_receipt": { "issuers": ["merger"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
+     "production_verification": { "issuers": ["delivery_verifier"], "binds": ["repository", "candidate_sha", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true },
+     "isolation_attestation": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "environment_id"], "max_ttl_seconds": 3600, "single_use": false, "approval": true },
+-    "policy_promotion_approval": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "subject_policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true }
++    "policy_promotion_approval": { "issuers": ["delivery_verifier"], "binds": ["repository", "policy_revision", "subject_policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
++    "ci_failure_diagnosis": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true },
++    "staging_admission": { "issuers": ["delivery_verifier"], "binds": ["repository", "base_sha", "candidate_sha", "tree_digest", "policy_revision"], "max_ttl_seconds": 900, "single_use": true, "approval": true },
++    "owner_decision": { "issuers": ["task_ingress"], "binds": ["repository", "policy_revision"], "max_ttl_seconds": 3600, "single_use": true, "approval": true }
+   },
+   "protected_paths": [
+     ".github/**", "supabase/migrations/**", "scripts/**", ".githooks/**", ".claude/**", ".mcp.json", ".wolf/hooks/**",
+diff --git a/scripts/developer-harness-v3/authority/contract.mjs b/scripts/developer-harness-v3/authority/contract.mjs
+index bf802fd..fc16016 100644
+--- a/scripts/developer-harness-v3/authority/contract.mjs
++++ b/scripts/developer-harness-v3/authority/contract.mjs
+@@ -18,7 +18,7 @@ export const IDENTITIES = Object.freeze(['task_ingress', 'orchestrator', 'implem
+   'delivery_verifier', 'merger', 'production_releaser', 'recovery', 'notifier', 'policy_promoter'])
+ export const CLASSES = Object.freeze(['allowed', 'safeguarded', 'prohibited'])
+ export const CHECKS = Object.freeze(['path_validity', 'scope', 'resource_ownership', 'evidence_validity', 'spend', 'launch_environment', 'environment_isolation',
+-  'candidate_binding', 'protected_paths', 'migrations', 'customer_agent', 'control_plane_self_change', 'credentials_env', 'credential_scope', 'promotion'])
++  'candidate_binding', 'protected_paths', 'migrations', 'customer_agent', 'control_plane_self_change', 'credentials_env', 'credential_scope', 'promotion', 'delivery_target'])
+ export const BINDINGS = Object.freeze(['repository', 'base_sha', 'candidate_sha', 'tree_digest', 'policy_revision', 'environment_id', 'subject_policy_revision', 'authority_digest'])
+ /** Actions that MUST stay prohibited in every contract version; a contract that downgrades one is invalid, not merely "weaker". */
+ export const REQUIRED_PROHIBITED = Object.freeze(['push_to_main_directly', 'force_push_protected_branch', 'modify_historical_migration', 'supabase_migration_repair',
+diff --git a/scripts/developer-harness-v3/authority/evaluator.mjs b/scripts/developer-harness-v3/authority/evaluator.mjs
+index 6c2dac6..1acfa96 100644
+--- a/scripts/developer-harness-v3/authority/evaluator.mjs
++++ b/scripts/developer-harness-v3/authority/evaluator.mjs
+@@ -29,8 +29,11 @@ const REQUEST_SPEC = {
+ const PARAMS_SPEC = {
+   optional: { paths: v.arrayOf(v.str, 2000), permission_mode: v.oneOf('default', 'bypass'), incremental_usd: (x) => Number.isFinite(x), purchase: v.bool,
+     credential_scope: v.str, customer_agent_effect: v.bool,
+-    resource_id: v.id },
++    resource_id: v.id,
++    // the exact remote target of a delivery effect (a NAME of a target; ownership is judged from trusted.delivery by the delivery_target check)
++    delivery: (d) => isPlainObject(d) && checkShape(d, { required: { repository: v.repo, branch: v.str }, optional: { base: v.str, pr_number: v.int, run_id: v.int, attempt: v.int, head_sha: v.sha40 } }, 'delivery').length === 0 },
+ }
++const TRUSTED_DELIVERY_SPEC = { required: { repository: v.repo, task_branch: v.str }, optional: { owned_pr_number: (x) => x === null || v.int(x), owned_run_ids: v.arrayOf(v.int, 200) } }
+ const TRUSTED_ENV_SPEC = { required: { id: v.id, kind: v.oneOf('isolated_vm', 'windows_host', 'github_hosted', 'unknown'), worker_env_names: v.arrayOf(v.str, 2000) },
+   optional: { env_value_origins: isPlainObject, ...Object.fromEntries(Object.keys(ISOLATION_PROPERTIES).map((k) => [k, v.bool])) } }
+ const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo, base_sha: v.sha40, candidate_sha: v.sha40, tree_digest: v.sha40, patch_digest: v.sha64,
+@@ -39,7 +42,7 @@ const CANDIDATE_SPEC = { required: { source: v.oneOf('git'), repository: v.repo,
+ const TRUSTED_LAUNCH_SPEC = { required: { env_names: v.arrayOf((x) => typeof x === 'string', 2000), settings: isPlainObject },
+   optional: { auth: (x) => x === null || isPlainObject(x), env_value_origins: (x) => isPlainObject(x) && Object.values(x).every((o) => typeof o === 'string') } }
+ const RESOURCE_SPEC = (r) => isPlainObject(r) && v.id(r.owner_task_id) && v.oneOf('process', 'container', 'cache', 'migration')(r.kind) && v.oneOf('idle', 'stale', 'exited', 'running')(r.lifecycle)
+-const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id } }
++const TASK_SPEC = { required: { task_id: v.id, fencing_token: v.int, state_revision: v.int, authority: isPlainObject }, optional: { author_context_id: v.id, security_review_required: v.bool } }
+ 
+ const deny = (codes, extra = {}) => decision('deny', codes, extra)
+ function decision(kind, codes, extra = {}) {
+@@ -68,6 +71,7 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger =
+   if (trusted.candidate != null && checkShape(trusted.candidate, CANDIDATE_SPEC, 'candidate').length) return bad(['INPUT.MALFORMED:candidate'])
+   if (trusted.launch !== undefined && (checkShape(trusted.launch, TRUSTED_LAUNCH_SPEC, 'launch').length || (trusted.launch.settings.env !== undefined && !isPlainObject(trusted.launch.settings.env)))) return bad(['INPUT.MALFORMED:launch'])
+   if (trusted.resources !== undefined && !(isPlainObject(trusted.resources) && Object.values(trusted.resources).every(RESOURCE_SPEC))) return bad(['INPUT.MALFORMED:resources'])
++  if (trusted.delivery !== undefined && checkShape(trusted.delivery, TRUSTED_DELIVERY_SPEC, 'delivery').length) return bad(['INPUT.MALFORMED:delivery'])
+   if (!Array.isArray(evidence) || evidence.length > 64) return bad(['INPUT.MALFORMED:evidence'])
+   const codes = []
+   const requestDigest = digestOf(request)
+@@ -233,10 +237,24 @@ function evaluateInner({ policy, request, trusted, evidence = [], now, ledger =
+         if (!candidate || trusted.proposed_policy_source_tree !== candidate.tree_digest) codes.push('PROMOTION.PROPOSAL_NOT_FROM_CANDIDATE')
+         break
+       }
++      case 'delivery_target': {
++        // The requester can only NAME the remote target; ownership comes from the controller's trusted delivery record and the trusted candidate facts.
++        const want = trusted.delivery; const got = params.delivery
++        if (!want || !got) { codes.push('DELIVERY.TARGET_FACTS_MISSING'); break }
++        if (got.repository !== want.repository || (candidate && got.repository !== candidate.repository)) codes.push('DELIVERY.WRONG_REPOSITORY')
++        if (got.branch !== want.task_branch || !/^dh3\/[a-z0-9-]{1,80}$/.test(got.branch)) codes.push('DELIVERY.BRANCH_NOT_TASK_OWNED')
++        if (got.base !== undefined && got.base !== 'main') codes.push('DELIVERY.BASE_NOT_MAIN')
++        if (got.pr_number !== undefined && got.pr_number !== want.owned_pr_number) codes.push('DELIVERY.PR_NOT_OWNED')
++        if (got.run_id !== undefined && !(want.owned_run_ids ?? []).includes(got.run_id)) codes.push('DELIVERY.RUN_NOT_OWNED')
++        if (got.head_sha !== undefined && got.head_sha !== candidate?.candidate_sha) codes.push('DELIVERY.HEAD_NOT_CANDIDATE')
++        break
++      }
+       case 'evidence_validity': break
+       default: codes.push('CHECK.UNKNOWN')
+     }
+   }
++  // A task whose risk class requires a security review never has a candidate-bound safeguarded action authorized without one (in addition to the per-check rules above).
++  if (trusted.task.security_review_required === true && action.class === 'safeguarded' && (action.checks ?? []).includes('candidate_binding')) extraEvidence.add('security_review')
+ 
+   // ── evidence ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   const required = [...new Set([...(action.required_evidence ?? []), ...extraEvidence])]
+diff --git a/scripts/developer-harness-v3/authority/evidence.mjs b/scripts/developer-harness-v3/authority/evidence.mjs
+index f431602..5fe9f33 100644
+--- a/scripts/developer-harness-v3/authority/evidence.mjs
++++ b/scripts/developer-harness-v3/authority/evidence.mjs
+@@ -22,6 +22,8 @@ const PAYLOAD_SPEC = {
+     context_id: v.id,
+     findings: v.arrayOf((f) => isPlainObject(f) && v.id(f.id) && v.oneOf('critical', 'high', 'medium', 'low', 'info')(f.severity) && typeof f.resolved === 'boolean', 200),
+     results: (r) => isPlainObject(r) && Object.values(r).every((n) => Number.isSafeInteger(n) && n >= 0),
++    // an AUTHENTICATED owner decision (evidence type owner_decision): the exact disposition and the owner_action_id it authorizes; a bare owner_action_id string authorizes nothing
++    decision: (d) => isPlainObject(d) && v.oneOf('unblock', 'cancel', 'resume_suspended')(d.action) && v.id(d.owner_action_id) && Object.keys(d).length === 2,
+   },
+ }
+ const ENVELOPE_SPEC = { required: { schema: v.oneOf(EVIDENCE_SCHEMA), version: v.oneOf(1), payload: isPlainObject,

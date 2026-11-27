@@ -62,7 +62,8 @@ export function trustedFor(identity, over = {}) {
 
 const ISSUER = { task_authority: 'task_ingress', test_results: 'orchestrator', independent_review: 'independent_reviewer', security_review: 'security_reviewer',
   publication_receipt: 'trusted_publisher', ci_gate: 'delivery_verifier', staging_gate: 'delivery_verifier', delivery_verification: 'delivery_verifier', merge_receipt: 'merger',
-  production_verification: 'delivery_verifier', isolation_attestation: 'delivery_verifier', policy_promotion_approval: 'delivery_verifier' }
+  production_verification: 'delivery_verifier', isolation_attestation: 'delivery_verifier', policy_promotion_approval: 'delivery_verifier',
+  ci_failure_diagnosis: 'delivery_verifier', staging_admission: 'delivery_verifier', owner_decision: 'task_ingress' } // D3.6 (proposal P7 types; unused until P7 is applied)
 let counter = 0
 
 /** A VALID signed envelope for `type` under `policy`, bound to the default fixtures; `over` patches the payload (it is signed AFTER patching). */
@@ -79,3 +80,24 @@ export function evidence(type, { policy, keys, over = {}, keyId = null, signWith
 }
 
 export const request = (action, over = {}) => ({ action, task_id: 'task-1', ...over })
+
+// D3.6: reconciliation accepts ONLY verified observations signed by the policy-pinned reader (delivery_verifier). Test-only signing of such observations:
+import { OBSERVATION_DOMAIN, OBSERVATION_SCHEMA, verifyRemoteObservation } from '../orchestrator/delivery/observation.mjs'
+import { canonicalize } from '../lib/canonical.mjs'
+import { effectSubject } from '../orchestrator/delivery/effect-subjects.mjs'
+let obsCounter = 0
+/** A VERIFIED (branded) observation of intent row `i`, signed with the test delivery_verifier key of `pol` ({policy, keys}). */
+export function signedObservation(pol, i, { state = 'present', observed_at, read_id = null }) {
+  obsCounter += 1
+  const payload = { observation_id: `obs-t-${obsCounter}`, reader_identity: 'delivery_verifier', repository: REPO, task_id: i.task_id, intent_id: i.intent_id, params_digest: i.params_digest, subject: effectSubject(i.action, JSON.parse(i.params_json ?? 'null')) ?? 'ref:test', state, observed_at, read_id: read_id ?? `read-t-${obsCounter}`, policy_revision: pol.policy.revision, ...(i.candidate_sha ? { candidate_sha: i.candidate_sha } : {}), details: {} }
+  const value = sign(null, Buffer.from(`${OBSERVATION_DOMAIN}${canonicalize(payload)}`, 'utf8'), pol.keys.privateKeys['k-delivery_verifier']).toString('base64')
+  const v = verifyRemoteObservation({ schema: OBSERVATION_SCHEMA, version: 1, payload, signature: { alg: 'ed25519', key_id: 'k-delivery_verifier', value } }, { policy: pol.policy, now: observed_at })
+  if (!v.ok) throw new Error(`test observation invalid: ${v.problems.join(',')}`)
+  return v.observation
+}
+/** Prove an uncertain intent ABSENT the only way D3.6 accepts: two distinct authenticated reads after the dispatch + settle window, spread apart. Moves the TEST ledger's clock. */
+export function proveAbsent(L, pol, intentId, { reconcileIntent, getIntent }) {
+  const i = getIntent(L, intentId); const base = i.dispatched_at ?? i.updated_at; let r
+  for (const k of [0, 1]) { const at = Math.max(L.now(), base + 60_000 + k * 30_000); L.clock = () => at; r = reconcileIntent(L, intentId, { observation: signedObservation(pol, getIntent(L, intentId), { state: 'absent', observed_at: at }), policy: pol.policy }) }
+  return r
+}

@@ -132,7 +132,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         writeFileTree(root, committed)
         let snapshot_digest = null
         if (snapshotDir && !readonly) { const r = restoreSnapshot(snapshotDir, root, { scope: task.scope }); if (!r.ok) return { ok: false, code: r.problems[0] }; snapshot_digest = r.digest }
-        return { ok: true, head_sha: v ? candidateShaFor(task.task_id, v) : null, base_sha: task.base_sha, tree_digest: v ? treeOf(committed) : null, snapshot_digest }
+        return { ok: true, head_sha: v ? candidateShaFor(task.task_id, v) : null, base_sha: L.currentBase(task.task_id), tree_digest: v ? treeOf(committed) : null, snapshot_digest }
       },
       async worktreeState(task) { return existsSync(wtDir(dir, task.task_id)) ? 'present' : 'missing' },
       async workerHead(task) { const v = loadWorld(dir).versions[task.task_id] ?? 0; return { head_sha: v ? candidateShaFor(task.task_id, v) : null } },
@@ -145,7 +145,7 @@ export function createSimAdapters({ dir, clock, scenario = {}, ledger }) {
         const w = loadWorld(dir); const v = w.versions[task.task_id] ?? 0
         if (!v) return { ok: false, code: 'CANDIDATE.NOT_DERIVABLE' }
         const files = readTree(commitDir(dir, task.task_id, v))
-        return { ok: true, base_sha: task.base_sha, candidate_sha: candidateShaFor(task.task_id, v), tree_digest: treeOf(files), patch_digest: patchOf(files), changed_paths: files.map((f) => f.path), changes: files.map((f) => ({ status: (sc.modified ?? []).includes(f.path) ? 'M' : 'A', path: f.path })) }
+        return { ok: true, base_sha: L.currentBase(task.task_id), candidate_sha: candidateShaFor(task.task_id, v), tree_digest: treeOf(files), patch_digest: patchOf(files), changed_paths: files.map((f) => f.path), changes: files.map((f) => ({ status: (sc.modified ?? []).includes(f.path) ? 'M' : 'A', path: f.path })) }
       },
       async treeDigestAfterReview(task) {
         const w = loadWorld(dir); const files = readTree(commitDir(dir, task.task_id, w.versions[task.task_id] ?? 0))

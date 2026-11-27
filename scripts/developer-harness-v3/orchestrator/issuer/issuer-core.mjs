@@ -69,7 +69,7 @@ export class IssuerCore {
   }
 
   #independentCandidate(t, c) {
-    const f = this.facts.candidate({ repository: t.repository, base_sha: t.base_sha, candidate_sha: c.candidate_sha })
+    const f = this.facts.candidate({ repository: t.repository, base_sha: this.ledger.currentBase(t.task_id), candidate_sha: c.candidate_sha })
     if (!f?.ok || f.candidate_sha !== c.candidate_sha || f.tree_digest !== c.tree_digest || f.patch_digest !== c.patch_digest) return refuse('ISSUER.CANDIDATE_FACTS_DISAGREE')
     return { ok: true }
   }
@@ -112,7 +112,8 @@ export class IssuerCore {
     const { t, c } = pf
     if (!idOf(run_id)) return refuse('ISSUER.BAD_REQUEST')
     // `testing` for the first issuance; later states only to RE-ATTEST the same run for the same candidate under a newer recovery epoch (see below)
-    if (!['testing', 'independent_review', 'security_review', 'publishing'].includes(t.lifecycle.state)) return refuse('ISSUER.TASK_NOT_IN_TESTING')
+    // D3.6: the delivery states only RE-ATTEST the same passing run for the same, unchanged candidate (a head change always returns the task to `testing`)
+    if (!['testing', 'independent_review', 'security_review', 'publishing', 'ci_running', 'staging_verification', 'merge_eligible'].includes(t.lifecycle.state)) return refuse('ISSUER.TASK_NOT_IN_TESTING')
     const run = this.ledger.db.prepare('SELECT * FROM test_runs WHERE run_id=? AND task_id=?').get(run_id, task_id)
     if (!run) return refuse('ISSUER.UNKNOWN_RUN')
     if (run.candidate_sha !== c.candidate_sha || run.tree_digest !== c.tree_digest) return refuse('ISSUER.RUN_FOR_ANOTHER_CANDIDATE')
@@ -124,7 +125,7 @@ export class IssuerCore {
     const results = JSON.parse(run.results_json)
     const clean = Object.fromEntries(Object.entries(results).filter(([, n]) => Number.isSafeInteger(n) && n >= 0).slice(0, 20))
     const pass = run.passed === 1 && (clean.failed ?? 0) === 0 && (clean.passed ?? 0) > 0
-    return this.#emit('test_results', `test_results:${task_id}:${run_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest,
+    return this.#emit('test_results', `test_results:${task_id}:${run_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: this.ledger.currentBase(task_id), candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest,
       environment_id: t.environment_id, results: clean, verdict: pass ? 'pass' : 'fail' }, t)
   }
 
@@ -166,7 +167,7 @@ export class IssuerCore {
     const blocking = rows.filter((f) => (f.mandatory === 1 || f.severity === 'critical' || f.severity === 'high') && f.status === 'open').concat(carried)
     const seen = new Set(rows.map((f) => f.finding_id))
     const findings = [...rows.map((f) => ({ id: f.finding_id, severity: f.severity, resolved: f.status !== 'open' })), ...carried.filter((f) => !seen.has(f.finding_id)).map((f) => ({ id: f.finding_id, severity: f.severity, resolved: false }))]
-    return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: t.base_sha, candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
+    return this.#emit(kind, `${kind}:${review_id}:${c.candidate_sha}:e${t.fencing_token}`, { base_sha: this.ledger.currentBase(task_id), candidate_sha: c.candidate_sha, tree_digest: c.tree_digest, patch_digest: c.patch_digest, context_id: r.context_id,
       findings, verdict: blocking.length || this.#coverageOpen(kind, t, review_id) ? 'findings_open' : 'pass' }, t)
   }
 

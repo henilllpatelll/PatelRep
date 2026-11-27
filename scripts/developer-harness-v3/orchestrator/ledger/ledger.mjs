@@ -17,7 +17,8 @@ export const MAX_JSON_BYTES = 1024 * 1024
 export const MAX_EVENTS_PER_TASK = 20000
 
 const SUBMIT_SPEC = { required: { repository: v.repo, base_sha: v.sha40, requirements: isPlainObject, scope: isPlainObject, acceptance: isPlainObject, risk_class: v.oneOf('routine', 'complex', 'security_sensitive') },
-  optional: { task_id: v.id, priority: v.int, security_review_required: v.bool, policy_revision: v.sha64, environment_id: v.id, depends_on: v.arrayOf(v.id, 50) } }
+  optional: { task_id: v.id, priority: v.int, security_review_required: v.bool, policy_revision: v.sha64, environment_id: v.id, depends_on: v.arrayOf(v.id, 50),
+    dependencies: v.arrayOf((d) => isPlainObject(d) && v.id(d.task_id) && ['locally_verified', 'merged'].includes(d.requires) && Object.keys(d).length === 2, 50) } }
 
 const plain = (r) => (r ? { ...r } : null)
 const json = (x) => { const s = canonicalize(x); if (Buffer.byteLength(s) > MAX_JSON_BYTES) throw new Error('LEDGER.JSON_TOO_LARGE'); return s }
@@ -111,6 +112,7 @@ export class Ledger {
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(taskId, submitKey, input.repository, input.base_sha, json(input.requirements), digestOf(input.requirements), json(input.scope), json(input.acceptance), input.risk_class,
         input.priority ?? 100, json(lc), lc.state, lc.state_revision, lc.fencing_token, null, input.policy_revision ?? null, input.environment_id ?? null, now, now)
       for (const dep of input.depends_on ?? []) { const r = this.addDependency(taskId, dep); if (!r.ok) throw new Error(r.code) }
+      for (const dep of input.dependencies ?? []) { const r = this.addDependency(taskId, dep.task_id, { requires: dep.requires }); if (!r.ok) throw new Error(r.code) }
       return { ok: true, duplicate: false, task: this.getTask(taskId) }
     })
   }
@@ -187,7 +189,7 @@ export class Ledger {
     return this.tx(() => {
       const t = this.getTask(taskId)
       if (!t) return { ok: false, problems: ['TASK.UNKNOWN'] }
-      if (base_sha !== t.base_sha) return { ok: false, problems: ['CANDIDATE.WRONG_BASE'] }
+      if (base_sha !== this.currentBase(taskId)) return { ok: false, problems: ['CANDIDATE.WRONG_BASE'] } // D3.6: the CURRENT delivery base (generation 0 = the submitted base)
       const now = this.now()
       const same = this.db.prepare('SELECT 1 FROM candidates WHERE task_id=? AND candidate_sha=? AND tree_digest=?').get(taskId, candidate_sha, tree_digest)
       const r = this.applyLifecycleEvent(taskId, this.eventFor(taskId, 'head_changed', { head_sha: candidate_sha }))
@@ -200,6 +202,12 @@ export class Ledger {
     })
   }
   currentCandidate(taskId) { return plain(this.db.prepare('SELECT * FROM candidates WHERE task_id=? AND superseded=0 ORDER BY candidate_id DESC LIMIT 1').get(taskId)) }
+  /**
+   * D3.6: the base the task's candidates are CURRENTLY built and verified on. The submitted base is immutable task identity (and stays the AUTHORITY base inside `authorityOf`); a delivery
+   * base update (main advanced) records a new generation here, and from then on candidates, evidence bindings and issuers use it. Generation 0 = the submitted base.
+   */
+  currentBase(taskId) { const d = this.db.prepare('SELECT base_sha FROM deliveries WHERE task_id=?').get(taskId); return d?.base_sha ?? this.db.prepare('SELECT base_sha FROM tasks WHERE task_id=?').get(taskId)?.base_sha ?? null }
+  delivery(taskId) { return plain(this.db.prepare('SELECT * FROM deliveries WHERE task_id=?').get(taskId)) }
 
   // ---------------------------------------------------------------- pause / resume / cancel / dependencies
   pause(taskId) { return this.transition(taskId, 'paused', { reason_code: 'OWNER_PAUSED' }) }
@@ -223,19 +231,30 @@ export class Ledger {
       return { ok: true, task: this.getTask(taskId) }
     })
   }
-  addDependency(taskId, dependsOn) {
+  addDependency(taskId, dependsOn, { requires = 'locally_verified' } = {}) {
     return this.tx(() => {
       if (taskId === dependsOn) return { ok: false, code: 'DEPENDENCY.SELF' }
+      if (!['locally_verified', 'merged'].includes(requires)) return { ok: false, code: 'DEPENDENCY.UNKNOWN_REQUIREMENT' }
       if (!this.getTask(taskId) || !this.getTask(dependsOn)) return { ok: false, code: 'DEPENDENCY.UNKNOWN_TASK' }
       // cycle: can dependsOn already reach taskId?
       const seen = new Set(); const stack = [dependsOn]
       while (stack.length) { const x = stack.pop(); if (x === taskId) return { ok: false, code: 'DEPENDENCY.CYCLE' }; if (seen.has(x)) continue; seen.add(x); for (const d of this.db.prepare('SELECT depends_on FROM task_dependencies WHERE task_id=?').all(x)) stack.push(d.depends_on) }
-      this.db.prepare('INSERT OR IGNORE INTO task_dependencies(task_id,depends_on) VALUES (?,?)').run(taskId, dependsOn)
+      const prior = this.db.prepare('SELECT requires FROM task_dependencies WHERE task_id=? AND depends_on=?').get(taskId, dependsOn)
+      if (prior && prior.requires !== requires) return { ok: false, code: 'DEPENDENCY.REQUIREMENT_CONFLICT' } // a requirement is never silently weakened or strengthened
+      this.db.prepare('INSERT OR IGNORE INTO task_dependencies(task_id,depends_on,requires) VALUES (?,?,?)').run(taskId, dependsOn, requires)
       return { ok: true }
     })
   }
-  /** A dependency is satisfied when it completed or reached a verified delivery handoff (D3.4 never publishes, so handoff is the practical end). */
-  openDependencies(taskId) { return this.db.prepare('SELECT d.depends_on id FROM task_dependencies d JOIN tasks t ON t.task_id=d.depends_on WHERE d.task_id=? AND t.state<>\'completed\' AND t.handoff_ready=0 AND t.cancelled=0').all(taskId).map((r) => r.id) }
+  /**
+   * D3.6 explicit milestones. `locally_verified` (the D3.4/D3.5 boundary, an ORDERING dependency: the dependent's worktree is built on its own base and does NOT contain the upstream code) is
+   * satisfied by a verified local handoff or completion. `merged` (a CODE dependency) is satisfied ONLY by an authenticated merge milestone — which D3.6 can never record (D3.7 supplies merge
+   * evidence; the schema refuses a `merged` milestone), so such a dependent stays waiting: tasks with a code dependency are SERIALIZED, never built on an unmerged upstream candidate.
+   */
+  openDependencies(taskId) {
+    return this.db.prepare(`SELECT d.depends_on id FROM task_dependencies d JOIN tasks t ON t.task_id=d.depends_on WHERE d.task_id=? AND t.cancelled=0 AND (
+      (d.requires='locally_verified' AND t.state<>'completed' AND t.handoff_ready=0) OR
+      (d.requires='merged' AND NOT EXISTS (SELECT 1 FROM delivery_milestones m WHERE m.task_id=t.task_id AND m.milestone='merged' AND m.invalidated_at IS NULL)))`).all(taskId).map((r) => r.id)
+  }
   deadDependencies(taskId) { return this.db.prepare('SELECT d.depends_on id FROM task_dependencies d JOIN tasks t ON t.task_id=d.depends_on WHERE d.task_id=? AND t.cancelled=1').all(taskId).map((r) => r.id) }
 
   // ---------------------------------------------------------------- executions and leases

@@ -33,12 +33,12 @@ test('D3.5 changed NO protected file: authority code, contracts and the lifecycl
   for (const [f, d] of Object.entries(PROTECTED)) assert.equal(createHash('sha256').update(readFileSync(path.join(ROOT, f))).digest('hex'), d, f)
 })
 
-test('inactive: live execution is refused; 28 activation gates, none closed; the D3.5 gates exist; simulation alone closes nothing', () => {
-  const g = liveExecutionAllowed(); assert.equal(g.allowed, false); assert.equal(g.open.length, GATES.length); assert.equal(GATES.length, 28)
+test('inactive: live execution is refused; 31 activation gates (D3.6 added 3), none closed; the D3.5 and D3.6 gates exist; simulation alone closes nothing', () => {
+  const g = liveExecutionAllowed(); assert.equal(g.allowed, false); assert.equal(g.open.length, GATES.length); assert.equal(GATES.length, 31) // D3.6: +G-DELIVERY-AUTHORITY, G-REMOTE-READER, G-PUBLISHER-CREDENTIAL (intentional, doc 40)
   assert.equal(GATES.filter((x) => x.status === 'closed').length, 0)
   for (const id of ['G-LIFECYCLE-P6', 'G-OWNER-ACTION-EVIDENCE', 'G-LEDGER-FRESHNESS-WITNESS', 'G-PARALLEL-REASONING', 'G-LIVE-RECOVERY-ADAPTERS', 'G-INTENT-EVALUATOR', 'G-ISSUER-INDEPENDENT-FACTS', 'G-LIVE-ADAPTER', 'G-TECH-SUSPENSION-STATE', 'G-UNATTENDED-LONG-WAIT', 'G-FULL-WORKER', 'G-WORKER-ACCOUNT', 'G-CRED-ISOLATION', 'G-EGRESS-FIREWALL', 'G-PROVIDER-AUTH', 'G-OWNER-AUTH', 'G-ISSUER-ACCOUNTS', 'G-ISSUER-KEYS', 'G-V3-CI', 'G-NEIGHBOR-TEST']) assert.ok(GATES.some((x) => x.id === id), id)
   const h = H(); try {
-    assert.throws(() => new Engine({ ledger: h.ledger, policy: h.policy, adapters: h.adapters, mode: 'live', snapshotRoot: h.dirs.snapshots }), /LIVE_EXECUTION_DISABLED:28 activation gates open/)
+    assert.throws(() => new Engine({ ledger: h.ledger, policy: h.policy, adapters: h.adapters, mode: 'live', snapshotRoot: h.dirs.snapshots }), /LIVE_EXECUTION_DISABLED:31 activation gates open/)
     assert.throws(() => new Engine({ ledger: h.ledger, policy: h.policy, adapters: { ...h.adapters, simulated: false }, snapshotRoot: h.dirs.snapshots }), /SIMULATED_MODE_REQUIRES_SIMULATED_ADAPTERS/)
   } finally { h.close() }
 })

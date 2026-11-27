@@ -9,7 +9,7 @@ import path from 'node:path'
 import { Ledger } from '../orchestrator/ledger/ledger.mjs'
 import { acceptEvidence, consumeAll, satisfyingEvidence, usableEvidence } from '../orchestrator/ledger/evidence-store.mjs'
 import { beginIntent, getIntent, markDispatched, markDispatchedAsUncertain, markUncertain, reconcileIntent, recordOutcome, retryIntent } from '../orchestrator/ledger/intents.mjs'
-import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW } from './helpers.mjs'
+import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW, signedObservation, proveAbsent } from './helpers.mjs'
 
 const AUTH = { allowed_paths: ['apps/mobile/**', 'supabase/migrations/**'], denied_paths: [] }
 function setup({ activate = [] } = {}) {
@@ -116,8 +116,9 @@ test('action intents: idempotency, stale policy/candidate, evidence consumption 
   const second = intent(L, pol, authz(S), { idempotencyKey: 'pub-2' }); assert.equal(second.code, 'INTENT.UNRECONCILED_PRIOR', 'a new attempt is refused until the prior effect is reconciled')
   assert.ok(intent(L, pol, [], { idempotencyKey: 'pub-1' }).must_reconcile)
   assert.equal(reconcileIntent(L, iid, { observation: 'absent' }).code, 'INTENT.RECONCILIATION_INCONCLUSIVE', 'a bare string is not an observation')
-  assert.ok(reconcileIntent(L, iid, { observation: obs(L, iid) }).ok); assert.equal(getIntent(L, iid).status, 'reconciled_absent')
-  assert.ok(retryIntent(L, iid, D).ok); assert.ok(markDispatched(L, iid, D).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observation: obs(L, iid, { state: 'present' }), outcome: { pr: 1 } }).ok)
+  assert.equal(reconcileIntent(L, iid, { observation: obs(L, iid) }).code, 'INTENT.RECONCILIATION_INCONCLUSIVE', 'D3.6: a caller-supplied object with authoritative:true is NOT an observation')
+  assert.ok(proveAbsent(L, pol, iid, { reconcileIntent, getIntent }).ok); assert.equal(getIntent(L, iid).status, 'reconciled_absent') // D3.6: absence = two authenticated reads
+  assert.ok(retryIntent(L, iid, D).ok); assert.ok(markDispatched(L, iid, D).ok); assert.ok(markUncertain(L, iid).ok); assert.ok(reconcileIntent(L, iid, { observation: signedObservation(pol, getIntent(L, iid), { state: 'present', observed_at: L.now() }), policy: pol.policy, outcome: { pr: 1 } }).ok)
   assert.equal(getIntent(L, iid).status, 'reconciled_succeeded'); assert.equal(retryIntent(L, iid, D).code, 'INTENT.NOT_RETRYABLE', 'a reconciled success is never retried')
   L.close()
 })

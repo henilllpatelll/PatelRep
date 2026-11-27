@@ -7,7 +7,9 @@
 //   * one action intent per idempotency key,
 //   * original requirements are immutable and digest-bound.
 // Migrations are explicit, ordered and each runs in its own transaction; a database newer than this code is refused (never downgraded).
-export const SCHEMA_VERSION = 3
+import { V4 } from './schema-v4.mjs'
+
+export const SCHEMA_VERSION = 4
 export const LEDGER_APPLICATION_ID = 0x44483334 // 'DH34'
 
 const V1 = `
@@ -561,4 +563,4 @@ CREATE TRIGGER al_cleanup AFTER UPDATE OF status ON cleanup_intents WHEN NEW.sta
 INSERT INTO authority_log(kind,ref,at) VALUES ('schema_v3_baseline', 'migration', 0);
 `
 
-export const MIGRATIONS = Object.freeze([{ version: 1, sql: V1 }, { version: 2, sql: V2 }, { version: 3, sql: V3 }])
+export const MIGRATIONS = Object.freeze([{ version: 1, sql: V1 }, { version: 2, sql: V2 }, { version: 3, sql: V3 }, { version: 4, sql: V4 }])

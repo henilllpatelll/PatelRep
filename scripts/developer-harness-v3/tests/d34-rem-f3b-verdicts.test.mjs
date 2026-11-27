@@ -11,7 +11,7 @@ import { Ledger } from '../orchestrator/ledger/ledger.mjs'
 import { acceptEvidence } from '../orchestrator/ledger/evidence-store.mjs'
 import { beginIntent, getIntent, markDispatched, recordOutcome, reconcileIntent, markUncertain, retryIntent } from '../orchestrator/ledger/intents.mjs'
 import { isSatisfying } from '../authority/evidence.mjs'
-import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW } from './helpers.mjs'
+import { BASE, ENV_ID, HEAD, PATCH, REPO, TREE, buildPolicy, evidence, NOW, proveAbsent } from './helpers.mjs'
 
 const AUTH = { allowed_paths: ['apps/mobile/**', 'supabase/migrations/**'], denied_paths: [] }
 const PUBLISH = 'publish_candidate_branch' // requires task_authority + test_results
@@ -96,12 +96,12 @@ test('F3b: DISPATCH re-checks satisfaction from the current ledger — a legacy/
 
 test('F3b: RETRY re-checks satisfaction — a failed effect is never retried on evidence that no longer satisfies', () => {
   const S = setup(); const { ids } = publishIds(S); const i = begin(S, ids); const iid = i.intent.intent_id
-  assert.ok(markDispatched(S.L, iid, { policy: S.policy }).ok); assert.ok(recordOutcome(S.L, iid, { success: false, outcome: { error: 'timeout' } }).ok)
+  assert.ok(markDispatched(S.L, iid, { policy: S.policy }).ok); assert.ok(recordOutcome(S.L, iid, { success: false, outcome: { error: 'timeout' } }).ok); assert.ok(proveAbsent(S.L, S.pol, iid, { reconcileIntent, getIntent }).ok) // D3.6: timeout = uncertain; absence proven by authenticated reads
   downgrade(S, ids[1], { verdict: 'findings_open' })
-  const r = retryIntent(S.L, iid, { policy: S.policy }); assert.equal(r.ok, false); assert.equal(r.code, 'INTENT.EVIDENCE_NOT_SATISFYING'); assert.equal(getIntent(S.L, iid).status, 'failed', 'a refused retry changes nothing')
+  const r = retryIntent(S.L, iid, { policy: S.policy }); assert.equal(r.ok, false); assert.equal(r.code, 'INTENT.EVIDENCE_NOT_SATISFYING'); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent', 'a refused retry changes nothing')
   // reconcile-then-retry path
   downgrade(S, ids[1], { verdict: 'pass' }); assert.ok(retryIntent(S.L, iid, { policy: S.policy }).ok); assert.ok(markDispatched(S.L, iid, { policy: S.policy }).ok); assert.ok(markUncertain(S.L, iid).ok)
-  const row = getIntent(S.L, iid); assert.ok(reconcileIntent(S.L, iid, { observation: { state: 'absent', authoritative: true, observed_at: NOW, params_digest: row.params_digest, candidate_sha: row.candidate_sha, source: 'github.list_branches' } }).ok)
+  const row = getIntent(S.L, iid); void row; assert.ok(proveAbsent(S.L, S.pol, iid, { reconcileIntent, getIntent }).ok)
   downgrade(S, ids[0], { verdict: 'fail' }); assert.equal(retryIntent(S.L, iid, { policy: S.policy }).code, 'INTENT.EVIDENCE_NOT_SATISFYING'); assert.equal(getIntent(S.L, iid).status, 'reconciled_absent'); S.L.close()
 })
 

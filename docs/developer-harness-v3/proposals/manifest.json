@@ -84,7 +84,58 @@
       "mandatory_for_d34_completion": false,
       "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
       "verified": "tests/d35-lifecycle-proposal.test.mjs applies P6 to a DISPOSABLE copy of the real reducer + contract and drives it: every direct/indirect/paused/recovery/suspension/fenced hop out of blocked is refused without an owner action; cancellation, re-verification and the new reasons; and the ENGINE end to end in a labelled proposal configuration (proposalReducer, temp ledgers only). The authoritative reducer is unchanged (a test proves the old loophole is still there and that the controller never uses it).",
-      "effects": "changes the lifecycle contract digest the policy bootstrap pins AND the reducer code (authority-adjacent, pinned in the dh3 closure); after the owner applies it and re-pins, the D3.5 engine paths that are gated on the contract (technical_suspension state, reverification, explicit cancellation) activate with no further code change. Owner-action AUTHENTICITY is a separate gate (G-OWNER-ACTION-EVIDENCE): the reducer can only require that an owner_action_id is present."
+      "effects": "changes the lifecycle contract digest the policy bootstrap pins AND the reducer code (authority-adjacent, pinned in the dh3 closure); after the owner applies it and re-pins, the D3.5 engine paths that are gated on the contract (technical_suspension state, reverification, explicit cancellation) activate with no further code change. Owner-action AUTHENTICITY is a separate gate (G-OWNER-ACTION-EVIDENCE): the reducer can only require that an owner_action_id is present.",
+      "superseded_by": "P6v2",
+      "superseded_note": "D3.6: kept byte-for-byte as reviewed in D3.5. P6v2 = P6 PLUS the delivery states in reverification.from and dependency_rebuild.from (with the delivery evidence invalidated) and the new base_conflict_rebuild edge. Apply P6v2 INSTEAD of P6, never both (same lines)."
+    },
+    {
+      "id": "P6v2",
+      "file": "P6v2-lifecycle-consolidated-delivery.patch",
+      "sha256": "8a25be45eee6a121d281fb80c872b7cbb57f7c7272185f5d50e96f9503df84f8",
+      "touches": [
+        "docs/developer-harness-v3/task-lifecycle.json",
+        "scripts/developer-harness-v3/lifecycle/lifecycle.mjs"
+      ],
+      "protected_class": "V3 lifecycle contract + reducer (root of trust; owner-only)",
+      "purpose": "P6 unchanged in substance PLUS the D3.6 delivery recovery edges: (1) reverification.from = [publishing, ci_running, staging_verification, merge_eligible] (approvals that outlive a long CI/staging wait are replaced by new verification); (2) dependency_rebuild.from adds the delivery states and its invalidation adds publication_receipt, ci_gate, staging_gate, delivery_verification; (3) base_conflict_rebuild: delivery states -> implementing, reason BASE_UPDATE_CONFLICT, invalidating every approval and delivery result of the old base. The reducer matches the rebuild edges by reason (two edges share the target).",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
+      "verified": "tests/d36-lifecycle.test.mjs drives the patched reducer on a DISPOSABLE copy (every new edge, reasons, invalidations; sticky owner hold and owner-only cancellation from delivery states) and the engine + delivery controller end to end (stale upstream rebuilt from ci_running; base conflict rebuilt on the new base); tests/d36-e2e.test.mjs under P7 + P6v2. `git apply --check` clean on the branch. NOT applied here.",
+      "effects": "changes the lifecycle contract digest and the reducer (re-pin as for P6). Without it the authoritative lifecycle FAILS CLOSED for these cases (terminal technical suspension), which is tested.",
+      "superseded_by": "P6v3",
+      "superseded_note": "D3.6 independent-verification remediation: P6v3 contains P6v2 UNCHANGED in substance (this patch file and its digest are kept byte-for-byte as reviewed) plus the two delivery-regression back-edges. Apply P6v3 INSTEAD of P6v2, never both (they touch the same lines)."
+    },
+    {
+      "id": "P6v3",
+      "file": "P6v3-lifecycle-consolidated-delivery-regression.patch",
+      "sha256": "57679d68a39291a5a5976d8e3e30a900c195b6d7d7cd32b18f762c002cc1a1cb",
+      "touches": [
+        "docs/developer-harness-v3/task-lifecycle.json",
+        "scripts/developer-harness-v3/lifecycle/lifecycle.mjs"
+      ],
+      "protected_class": "V3 lifecycle contract + reducer (root of trust; owner-only)",
+      "purpose": "P6v2 PLUS two delivery-regression back-edges (D3.6 independent-verification F1): ci_regression (staging_verification | merge_eligible -> ci_running, reason CI_RESULT_SUPERSEDED, invalidating ci_gate, staging_gate, delivery_verification) and staging_regression (merge_eligible -> staging_verification, reason STAGING_RESULT_SUPERSEDED, invalidating staging_gate, delivery_verification). They fire when a NEWER applicable CI / staging run of the SAME head is pending, failed, cancelled or a different run than the one the approvals rest on, so the lifecycle state tells the truth. The reducer matches them in the same rebuild-edge list (by from-state, target and reason).",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-TECH-SUSPENSION-STATE and G-LIFECYCLE-P6",
+      "verified": "tests/d36-proposals.test.mjs (digest pinned, LF-only, applies to the current tree, every P6v2 edge preserved byte-for-byte, the two new edges present); tests/d36-rem-stale-eligibility.test.mjs drives the patched reducer + engine + delivery controller on a DISPOSABLE copy (labelled PROPOSAL_UNDER_TEST): CI rerun and staging rerun after merge eligibility step the task back, the reducer invalidates the dependent evidence, and the task recovers to a fresh package. `git apply --check` clean on the branch. NOT applied here.",
+      "effects": "changes the lifecycle contract digest and the reducer (re-pin as for P6/P6v2). Without it the authoritative lifecycle FAILS CLOSED for these cases: the task keeps its state with NO valid evidence, deliveryEligibility() is false, and the controller re-verifies the latest results into a fresh package (tested)."
+    },
+    {
+      "id": "P7",
+      "file": "P7-delivery-authority.patch",
+      "sha256": "c0f997a0f8c3ed2f4f0c5881629b031c6590f911c2678aec7f027ab25117a065",
+      "touches": [
+        "docs/developer-harness-v3/authority-contract.json",
+        "scripts/developer-harness-v3/authority/contract.mjs",
+        "scripts/developer-harness-v3/authority/evaluator.mjs",
+        "scripts/developer-harness-v3/authority/evidence.mjs"
+      ],
+      "protected_class": "V3 authority contract + evaluator (root of trust; owner-only)",
+      "purpose": "ONE consolidated delivery-authority change. Contract: safeguarded, requires_activation, NOT active actions open_draft_pull_request, update_pull_request_metadata, rerun_ci_jobs, dispatch_staging_candidate (identity trusted_publisher), each with the delivery_target check; the three EXISTING D3.2 actions (publish_candidate_branch, mark_pull_request_ready, verify_delivery_eligibility) are byte-for-byte UNCHANGED, so every D3.2 authority test keeps its meaning (their delivery-target binding and publish's independent-review requirement stay in the delivery layer until a follow-up changes them together with their tests, residual R-31); new single-use approval evidence ci_failure_diagnosis and staging_admission (issued by delivery_verifier, so no action approves itself) and owner_decision (task_ingress). Evaluator: params.delivery + trusted.delivery and the delivery_target check (the requester only NAMES a branch/PR/run/head; ownership from the trusted delivery record); trusted.task.security_review_required adds security_review to every candidate-bound safeguarded action. Evidence: an optional signed `decision` {action, owner_action_id} for owner_decision (G-OWNER-ACTION-EVIDENCE).",
+      "mandatory_for_d34_completion": false,
+      "activation_prerequisite": "G-DELIVERY-AUTHORITY and G-OWNER-ACTION-EVIDENCE",
+      "verified": "tests/d36-proposals.test.mjs applies P7 to a DISPOSABLE copy and runs the D3.2 authority suites (evaluator, security, promotion, foundation) against the patched authority; tests/d36-authority.test.mjs and every D3.6 delivery test run the PATCHED evaluator in the labelled PROPOSAL_UNDER_TEST configuration. The authoritative contract activates nothing and still refuses every delivery effect (tested). `git apply --check` clean on the branch. NOT applied here.",
+      "effects": "authority/** and the contract change the policy revision and the dh3 closure digests: re-pin once from the reviewed commit. Activating any delivery action is a SEPARATE owner ceremony."
     }
   ],
   "not_patches": [
@@ -103,5 +154,6 @@
       "detail": "owner-controlled"
     }
   ],
-  "d35_note": "D3.5 added P1v2 and P6 (each supersedes an earlier proposal that is kept byte-for-byte). base_main_sha stays the D3.4 baseline the original patches were cut from; every patch is re-checked to apply cleanly against the current tree by d34-proposals.test.mjs."
+  "d35_note": "D3.5 added P1v2 and P6 (each supersedes an earlier proposal that is kept byte-for-byte). base_main_sha stays the D3.4 baseline the original patches were cut from; every patch is re-checked to apply cleanly against the current tree by d34-proposals.test.mjs.",
+  "d36_note": "D3.6 added P6v2 (supersedes P6, kept byte-for-byte) and P7. D3.6 independent-verification remediation added P6v3 (supersedes P6v2, which is kept byte-for-byte with its digest 8a25be45...). P1v2 and P2 are unchanged (digests re-verified against main; both apply). Apply order for the owner integration: P1v2, P6v3, P7, P2 (doc 39)."
 }

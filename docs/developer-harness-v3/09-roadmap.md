@@ -30,3 +30,5 @@ Wiring the V3 test suite into CI is a **mandatory protected control-plane follow
 ## Gates between phases
 
 Each phase ends with an owner review. No phase activates a safeguarded action until D3.9 proves the system end to end; until then V2 plus the existing gates and rulesets remain in force.
+
+**D3.6 status (2026-11-26):** delivery architecture implemented and tested in SIMULATION to `merge_eligible` (docs 31-34, 40); protected integration prepared as ONE owner package (doc 39: P1v2, P6v2, P7, P2). V3 is NOT yet in protected CI and the Linux run has NOT happened, so D3.6 is not complete as a phase. Nothing is active; no merge or release path exists.

@@ -1,0 +1,119 @@
+diff --git a/docs/developer-harness-v3/task-lifecycle.json b/docs/developer-harness-v3/task-lifecycle.json
+index 1da2ee8..a9074b8 100644
+--- a/docs/developer-harness-v3/task-lifecycle.json
++++ b/docs/developer-harness-v3/task-lifecycle.json
+@@ -5,17 +5,26 @@
+   "main_flow": ["submitted", "queued", "planning", "implementing", "testing", "independent_review", "security_review", "publishing", "ci_running", "staging_verification", "merge_eligible", "merged", "production_release", "production_verification", "completed"],
+   "recoverable_states": {
+     "waiting_resources": { "reasons": ["MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "HOST_UNRESPONSIVE"] },
+-    "waiting_subscription": { "reasons": ["SUBSCRIPTION_LIMIT"] },
+-    "waiting_external": { "reasons": ["CI_PENDING", "STAGING_PENDING", "GITHUB_UNAVAILABLE", "NETWORK_UNAVAILABLE"] },
++    "waiting_subscription": { "reasons": ["SUBSCRIPTION_LIMIT", "BILLING_REVERIFICATION_REQUIRED"] },
++    "waiting_external": { "reasons": ["CI_PENDING", "STAGING_PENDING", "GITHUB_UNAVAILABLE", "NETWORK_UNAVAILABLE", "PROVIDER_UNAVAILABLE"] },
+     "remediation": { "reasons": ["TEST_FAILED", "REVIEW_FINDINGS_OPEN", "CI_FAILED", "STAGING_FAILED"] },
+     "context_recovery": { "reasons": ["CONTEXT_LOST", "SESSION_ENDED_EARLY", "CONTEXT_RENEWAL"] },
+     "worker_recovery": { "reasons": ["WORKER_TERMINATED", "HOST_RESTARTED", "POWER_LOSS"] },
+     "dependency_waiting": { "reasons": ["DEPENDENCY_TASK_OPEN"] },
++    "technical_suspension": { "reasons": ["RETRY_BUDGET_EXHAUSTED", "SESSION_BUDGET_EXHAUSTED", "REVIEW_BUDGET_EXHAUSTED", "REMEDIATION_BUDGET_EXHAUSTED", "HANDOFF_EVIDENCE_UNOBTAINABLE", "RECOVERY_EXHAUSTED", "RESOURCE_WAIT_EXCEEDED"] },
+     "paused": { "reasons": ["OWNER_PAUSED"] },
+     "blocked": { "reasons": ["OWNER_AUTH_EXPIRED", "OWNER_ROOT_OF_TRUST_CEREMONY", "OWNER_DECISION_REQUIRED", "PROHIBITED_ACTION_REQUIRED", "ISOLATION_UNPROVEN", "UNRESOLVABLE_REQUIREMENT_CONFLICT"] },
+     "production_incident": { "reasons": ["PRODUCTION_HEALTH_FAILED", "WATCHDOG_ALERT"] }
+   },
+-  "never_blocked_reasons": ["CONTEXT_RENEWAL", "SUBSCRIPTION_LIMIT", "MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "WORKER_TERMINATED", "CONTEXT_LOST", "CI_FAILED", "TEST_FAILED"],
++  "never_blocked_reasons": ["CONTEXT_RENEWAL", "SUBSCRIPTION_LIMIT", "MEMORY_PRESSURE", "DISK_PRESSURE", "CPU_PRESSURE", "WORKER_TERMINATED", "CONTEXT_LOST", "CI_FAILED", "TEST_FAILED", "BILLING_REVERIFICATION_REQUIRED", "PROVIDER_UNAVAILABLE"],
++  "terminal_states": ["completed", "cancelled"],
++  "cancellation": { "$comment": "P6: explicit, terminal, owner-only cancellation. Never after merge (a merged change is reverted by a NEW task, not cancelled).", "requires_owner_action": true, "not_from_effective": ["merged", "production_release", "production_verification"] },
++  "reverification": { "$comment": "P6 (P3(c)): approvals that expired beyond the bounded re-attestation window are REPLACED by new verification work on the SAME candidate; old approvals are never extended. P6v2 (D3.6): also from the delivery states, where a long CI or staging wait can outlive the approvals.", "from": ["publishing", "ci_running", "staging_verification", "merge_eligible"], "to": "testing", "reason": "APPROVALS_EXPIRED", "invalidates": ["test_results", "independent_review", "security_review"] },
++  "dependency_rebuild": { "$comment": "P6 (D3.5 independent verification F2): a task built and verified on a dependency basis that CHANGED is REBUILT, never re-attested: back to `implementing` with the declared reason; every approval it holds is invalidated. Without this edge the authoritative lifecycle fails closed (terminal technical suspension). P6v2 (D3.6): also from the delivery states, and the delivery evidence of the old build is invalidated with it.", "from": ["testing", "independent_review", "security_review", "publishing", "ci_running", "staging_verification", "merge_eligible"], "to": "implementing", "reason": "DEPENDENCY_CHANGED", "invalidates": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"] },
++  "base_conflict_rebuild": { "$comment": "P6v2 (D3.6-F): main advanced and the trusted merge of the new base into the task branch CONFLICTS in task-owned (never protected) files. The task returns to `implementing` to resolve the conflict inside its scope; every approval and every delivery result of the old base is invalidated; the resolved candidate is a NEW candidate. Without this edge the authoritative lifecycle fails closed (terminal technical suspension).", "from": ["publishing", "ci_running", "staging_verification", "merge_eligible"], "to": "implementing", "reason": "BASE_UPDATE_CONFLICT", "invalidates": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"] },
++  "ci_regression": { "$comment": "P6v3 (D3.6 independent-verification F1): a NEWER applicable CI run of the SAME head SHA is pending, failed, cancelled or simply a different run than the one the approvals rest on. The task steps BACK to `ci_running` so the lifecycle state tells the truth; the CI gate, staging gate and delivery verification it held are invalidated by the reducer (never reused). Without this edge the authoritative lifecycle fails closed: the task keeps its state with NO valid evidence and deliveryEligibility() is false until the latest results are re-verified.", "from": ["staging_verification", "merge_eligible"], "to": "ci_running", "reason": "CI_RESULT_SUPERSEDED", "invalidates": ["ci_gate", "staging_gate", "delivery_verification"] },
++  "staging_regression": { "$comment": "P6v3 (D3.6 independent-verification F1): a NEWER applicable staging run of the same head and PR is pending, failed, cancelled or a different run than the one the delivery verification rests on. The task steps BACK to `staging_verification`; the staging gate and the delivery verification are invalidated.", "from": ["merge_eligible"], "to": "staging_verification", "reason": "STAGING_RESULT_SUPERSEDED", "invalidates": ["staging_gate", "delivery_verification"] },
++  "owner_hold": { "$comment": "P6 (P3(g)): entering `blocked` sets a sticky owner hold. While it is set, moving between recoverable states (waiting_*, paused, recovery, technical_suspension) KEEPS it, and every exit to a main-flow state requires owner_action_id. Only an owner action (or an owner cancellation) clears it.", "enabled": true },
+   "forward": {
+     "submitted": ["queued"],
+     "queued": ["planning"],
+@@ -35,7 +44,7 @@
+   },
+   "remediation_from": ["testing", "independent_review", "security_review", "ci_running", "staging_verification"],
+   "incident_from": ["merged", "production_release", "production_verification"],
+-  "recoverable_entry_from": "any non-terminal state; the state left is recorded as resume_to and is the only legal exit target (blocked additionally requires an owner action recorded as evidence in a later phase)",
++  "recoverable_entry_from": "any non-terminal state; the state left is recorded as resume_to and is the only legal exit target (blocked — and any state entered while the owner hold is set — additionally requires an owner action recorded as evidence in a later phase)",
+   "completion_rule": "completed is reachable only from production_verification, or from merged when acceptance.production_required is false. A session_completed event never changes state.",
+   "evidence_invalidation": {
+     "head_change": ["test_results", "independent_review", "security_review", "publication_receipt", "ci_gate", "staging_gate", "delivery_verification"],
+diff --git a/scripts/developer-harness-v3/lifecycle/lifecycle.mjs b/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
+index 0ce756b..d5ae7af 100644
+--- a/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
++++ b/scripts/developer-harness-v3/lifecycle/lifecycle.mjs
+@@ -19,15 +19,15 @@ const MAX_REMEMBERED = 256
+ const has = Object.hasOwn
+ 
+ export function createTask({ task_id, production_required = true, security_review_required = true, fencing_token = 1, policy_revision = null }) {
+-  return Object.freeze({ task_id, state: 'submitted', resume_to: null, via_remediation: false, blocker_reason: null, state_revision: 0, fencing_token, head_sha: null, policy_revision,
++  return Object.freeze({ task_id, state: 'submitted', resume_to: null, via_remediation: false, blocker_reason: null, owner_hold: false, state_revision: 0, fencing_token, head_sha: null, policy_revision,
+     production_required, security_review_required, idempotency: Object.freeze([]), invalidated_evidence: Object.freeze([]) })
+ }
+ 
+-const isTerminal = (s) => s === 'completed'
+ 
+ /** @returns {{ok:boolean, task:object, problems:string[], duplicate:boolean, invalidated:string[]}} (the input task is returned unchanged unless ok) */
+ export function applyEvent(lc, task, event) {
+   const fail = (...problems) => ({ ok: false, task, problems, duplicate: false, invalidated: [] })
++  const isTerminal = (s) => (Array.isArray(lc.terminal_states) ? lc.terminal_states.includes(s) : s === 'completed')
+   try {
+     if (checkShape(event, EVENT_SPEC, 'event').length) return fail('EVENT.MALFORMED')
+     if (event.task_id !== task.task_id) return fail('EVENT.WRONG_TASK')
+@@ -72,24 +72,47 @@ export function applyEvent(lc, task, event) {
+ 
+     // transition
+     const to = event.to
+-    if (!to || (!lc.main_flow.includes(to) && !has(lc.recoverable_states, to))) return fail('TRANSITION.UNKNOWN_STATE')
++    const cancelling = to === 'cancelled' && isTerminal('cancelled')
++    if (!to || (!cancelling && !lc.main_flow.includes(to) && !has(lc.recoverable_states, to))) return fail('TRANSITION.UNKNOWN_STATE')
+     if (isTerminal(task.state)) return fail('TRANSITION.FROM_TERMINAL')
++    const held = lc.owner_hold?.enabled === true && (task.owner_hold === true || task.state === 'blocked')
++    if (cancelling) {
++      if (lc.cancellation?.requires_owner_action !== false && !event.owner_action_id) return fail('TRANSITION.OWNER_ACTION_REQUIRED')
++      if ((lc.cancellation?.not_from_effective ?? []).includes(effective)) return fail('TRANSITION.CANCEL_AFTER_MERGE')
++      return next({ state: 'cancelled', resume_to: null, via_remediation: false, blocker_reason: null, owner_hold: false })
++    }
+     if (has(lc.recoverable_states, to)) {
+       const spec = lc.recoverable_states[to]
+       if (!event.reason_code || !spec.reasons.includes(event.reason_code)) return fail('TRANSITION.REASON_NOT_ALLOWED_FOR_STATE')
+       if (to === 'blocked' && lc.never_blocked_reasons.includes(event.reason_code)) return fail('TRANSITION.NEVER_A_GENUINE_BLOCKER')
+       if (to === 'remediation' && (recoverable || !lc.remediation_from.includes(task.state))) return fail('TRANSITION.ILLEGAL')
+       if (to === 'production_incident' && !lc.incident_from.includes(effective)) return fail('TRANSITION.ILLEGAL')
+-      const blockerReason = to === 'blocked' ? event.reason_code : null
+-      if (recoverable) return next({ state: to, blocker_reason: blockerReason }) // moving between waiting states keeps the original resume target
+-      return next({ state: to, resume_to: task.state, via_remediation: to === 'remediation', blocker_reason: blockerReason })
++      // the owner hold is STICKY: a blocked task that moves to another recoverable state keeps it (and its blocker reason), so no hop can escape an owner-only blocker
++      const hold = lc.owner_hold?.enabled === true ? (held || to === 'blocked') : false
++      const blockerReason = to === 'blocked' ? event.reason_code : (hold ? task.blocker_reason : null)
++      if (recoverable) return next({ state: to, blocker_reason: blockerReason, owner_hold: hold }) // moving between waiting states keeps the original resume target
++      return next({ state: to, resume_to: task.state, via_remediation: to === 'remediation', blocker_reason: blockerReason, owner_hold: hold })
+     }
+     if (recoverable) {
+       // The only legal exit: back to the recorded state, or to `implementing` when the wait began as remediation.
+       const target = task.via_remediation ? 'implementing' : task.resume_to
+       if (to !== target) return fail('TRANSITION.MUST_RESUME_TO_RECORDED_STATE')
+-      if (task.state === 'blocked' && !event.owner_action_id) return fail('TRANSITION.OWNER_ACTION_REQUIRED')
+-      return next({ state: to, resume_to: null, via_remediation: false, blocker_reason: null })
++      if ((task.state === 'blocked' || held) && !event.owner_action_id) return fail('TRANSITION.OWNER_ACTION_REQUIRED')
++      return next({ state: to, resume_to: null, via_remediation: false, blocker_reason: null, owner_hold: false })
++    }
++    // re-verification back-edge (expired approvals): only from the declared state, only with the declared reason; the approvals it replaces are invalidated, never extended
++    const rv = lc.reverification
++    if (rv && (Array.isArray(rv.from) ? rv.from : [rv.from]).includes(task.state) && to === rv.to) {
++      if (event.reason_code !== rv.reason) return fail('TRANSITION.REASON_NOT_ALLOWED_FOR_STATE')
++      return next({ state: to, invalidated_evidence: rv.invalidates })
++    }
++    // back-edges — ci_regression / staging_regression (P6v3: a newer CI / staging run of the same head superseded the delivery results), dependency_rebuild (a dependency's candidate changed after this task was built on it) and, P6v2, base_conflict_rebuild (the new main conflicts with the task
++    // branch): only from the declared states, only with the declared reason; the approvals and delivery results they replace are invalidated, never re-attested
++    const rebuilds = [lc.dependency_rebuild, lc.base_conflict_rebuild, lc.ci_regression, lc.staging_regression].filter((e) => e && e.from.includes(task.state) && to === e.to)
++    if (rebuilds.length) {
++      const edge = rebuilds.find((e) => event.reason_code === e.reason)
++      if (!edge) return fail('TRANSITION.REASON_NOT_ALLOWED_FOR_STATE')
++      return next({ state: to, invalidated_evidence: edge.invalidates })
+     }
+     if (!lc.forward[task.state].includes(to)) return fail('TRANSITION.ILLEGAL')
+     if (task.state === 'independent_review' && to === 'publishing' && task.security_review_required) return fail('TRANSITION.SECURITY_REVIEW_REQUIRED')
