@@ -129,6 +129,6 @@ test('intents refuse stale leases, cancelled tasks and unknown tasks', () => {
   assert.equal(intent(L, pol, authz(S), { lease: { ...lease, fencing_token: 9 }, idempotencyKey: 'a' }).code, 'LEASE.STALE_FENCING_TOKEN')
   assert.ok(intent(L, pol, authz(S), { lease, idempotencyKey: 'b' }).ok)
   assert.equal(beginIntent(L, { taskId: 'ghost', action: 'x', idempotencyKey: 'c', params: {}, policy: pol.policy, candidateSha: null }).code, 'TASK.UNKNOWN')
-  L.closeLease(lease, { terminationVerified: true, endReason: 'x' }); L.cancel('task-1')
+  L.closeLease(lease, { terminationVerified: true, endReason: 'x' }); L.cancel('task-1', { ownerActionId: 'owner-cancel-evidence-1' }) /* D3.6 integration (P6v3): cancellation is owner-only */
   assert.equal(intent(L, pol, [], { idempotencyKey: 'd' }).code, 'TASK.CANCELLED'); L.close()
 })

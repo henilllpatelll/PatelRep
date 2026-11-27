@@ -25,6 +25,18 @@ test('the child environment is rebuilt: no secrets, proxies or tokens are inheri
   try { assert.equal(runAll({ files: discover(), spawn: bad }).ok, false) } finally { process.stdout.write = w }
 })
 
+test('D3.6 (G-V3-CI negative fixture): the REAL runner CLI exits 0 only when every registered file passes, and NON-ZERO when one registered file fails — so the CI step, and with it Release Workflow Contract and CI Gate, fail', async () => {
+  // A DISPOSABLE tree: the unmodified runner copied next to the full registry, every file a trivial passing test. Nothing in the repository is changed or run.
+  const { copyFileSync, mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path'); const { spawnSync } = await import('node:child_process'); const { fileURLToPath } = await import('node:url')
+  const root = mkdtempSync(path.join(os.tmpdir(), 'dh36-ci-neg-')); const ci = path.join(root, 'scripts/developer-harness-v3/ci'); const d = path.join(root, 'scripts/developer-harness-v3/tests'); mkdirSync(ci, { recursive: true }); mkdirSync(d, { recursive: true })
+  copyFileSync(fileURLToPath(new URL('../ci/run-v3-suites.mjs', import.meta.url)), path.join(ci, 'run-v3-suites.mjs'))
+  for (const f of EXPECTED_FILES) writeFileSync(path.join(d, f), "import {test} from 'node:test'; test('fixture', () => {})")
+  const cli = () => spawnSync(process.execPath, [path.join(ci, 'run-v3-suites.mjs')], { cwd: root, encoding: 'utf8', env: { PATH: process.env.PATH, SYSTEMROOT: process.env.SYSTEMROOT, TEMP: os.tmpdir(), TMP: os.tmpdir() }, maxBuffer: 16 * 1024 * 1024, timeout: 600_000 })
+  const control = cli(); assert.equal(control.status, 0, `control: every registered file passes -> exit 0\n${control.stdout.slice(-400)}`); assert.match(control.stdout, new RegExp(`"ok":true,"total_tests":${EXPECTED_FILES.length},"files":${EXPECTED_FILES.length}`))
+  writeFileSync(path.join(d, EXPECTED_FILES[7]), "import {test} from 'node:test'; import assert from 'node:assert/strict'; test('fixture', () => assert.equal(1, 2))")
+  const failing = cli(); assert.equal(failing.status, 1, 'ONE failing registered file -> non-zero exit (a GitHub Actions step failure)'); assert.match(failing.stdout, new RegExp(`FAIL ${EXPECTED_FILES[7].replace(/\./g, '\\.')}`)); assert.match(failing.stdout, /"ok":false/)
+})
+
 test('REAL spawn on tiny fixture files: the spec-reporter output is parsed, a passing file is judged ok, a failing and a skipping file are judged bad', async () => {
   const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path')
   const root = mkdtempSync(path.join(os.tmpdir(), 'dh34-ci-')); const d = path.join(root, 'scripts/developer-harness-v3/tests'); mkdirSync(d, { recursive: true })

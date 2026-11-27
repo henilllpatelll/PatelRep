@@ -6,6 +6,7 @@
 // descendant (a server, browser or helper a test launches): the fixture's test file starts one. On POSIX hosts ordinary children survive too (the same code path proves them).
 // Pre-fix behaviour (the same scenario against the previous runner): the unit was marked lost and RE-RUN while its old test process tree was still executing (`overlap` non-empty).
 // SECOND-ROUND REMEDIATION (this file, honestly changed): the runner no longer TERMINATES any recovered process. A survivor HOLDS the unit (exit 75); the test plays the operator and stops the survivor itself.
+// D3.6 LINUX: the REAL recovery tests run as written on Windows; elsewhere each asserts the documented fail-closed behaviour (see realTest below) — process facts are Windows-only.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
@@ -74,7 +75,59 @@ async function interrupted(f) {
   return { r1, tree, rec }
 }
 
-test('F3 / second-round: the runner dies but its workload survives (parent-only termination) — the unit is HELD, NOTHING is terminated, nothing re-runs; once the OPERATOR stops the survivor the unit resumes with no overlap', { timeout: 180_000 }, async () => {
+// ── D3.6 Linux compatibility (the first protected CI run executes V3 on ubuntu-latest) ─────────────────────────────────────────────────────────────────
+// Process facts are WINDOWS-ONLY (process-facts.mjs). On any other platform no workload identity can be recorded, so the recovery these REAL tests prove on Windows is NOT
+// supported and must FAIL CLOSED: an interrupted unit is HELD (exit 75), nothing is re-run, nothing is killed; the only way out is the explicit operator ATTESTATION, which is
+// reported as containment NOT verified. Off Windows every REAL recovery test asserts exactly that (one real scenario, run once per file) — never a skip, never a pretend recovery.
+const PROCESS_FACTS_SUPPORTED = process.platform === 'win32'
+let FAIL_CLOSED = null
+function failClosedScenario() {
+  return (FAIL_CLOSED ??= (async () => {
+    const f = fixture(); let tree = null
+    try {
+      const facts = { async: await readProcessTable(), sync: readProcessTableSync(), self: FACTS.selfIdentity() }
+      const r1 = startRunner(f, 'a,b')
+      const u1 = await waitFor(() => { const u = unit(f, 'b.test.mjs'); const g = existsSync(f.gc) ? Number(readFileSync(f.gc, 'utf8')) : null; return u?.status === 'running' && g && runs(f).length === 1 ? u : null }, 90_000)
+      tree = { root: u1.result.pid, grandchild: Number(readFileSync(f.gc, 'utf8')), runner: r1.p.pid, test: runs(f)[0].pid }
+      await sleep(2000) // several snapshot intervals (--snap-ms 500): without facts none can record an identity
+      const whileRunning = unit(f, 'b.test.mjs').result
+      kill(tree.runner); await r1.done // ONLY the runner dies
+      const survivedRunner = alive(tree.grandchild)
+      const held = await startRunner(f, 'a,b', ['--workload-wait-min', '0.02']).done
+      const afterHold = { runs: runs(f).length, grandchildAlive: alive(tree.grandchild), status: unit(f, 'b.test.mjs').status }
+      kill(tree.grandchild); kill(tree.test); await waitFor(() => !alive(tree.grandchild) && !alive(tree.test) && !alive(tree.root)) // the OPERATOR stops the survivors
+      const released = await startRunner(f, 'a,b', ['--release-unproven-unit', 'b.test.mjs']).done
+      return { facts, whileRunning, survivedRunner, held, afterHold, released, runsAfterRelease: runs(f).length }
+    } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
+  })())
+}
+async function assertFailsClosedWithoutProcessFacts(label) {
+  const r = await failClosedScenario()
+  assert.equal(r.facts.async.code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM', label); assert.equal(r.facts.sync.code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM'); assert.equal(r.facts.self, null, 'no runner identity off Windows')
+  assert.ok(r.whileRunning.workload === undefined || r.whileRunning.workload === null, `${label}: no workload identity is ever recorded without process facts`)
+  assert.equal(r.survivedRunner, true, 'the detached workload really outlived the runner')
+  assert.equal(r.held.code, 75, `${label}: an interrupted unit is HELD\n${r.held.out}`); assert.match(r.held.out, /UNIT_WORKLOAD_NOT_PROVEN_STOPPED/); assert.match(r.held.out, /"why":"(RECORDED_RUNNER_NOT_DEAD|WORKLOAD_IDENTITY_UNKNOWN)"/)
+  assert.doesNotMatch(r.held.out, /observed_stopped|terminated_task_owned|task-owned process/, `${label}: recovery is never claimed as proven, nothing is terminated`)
+  assert.deepEqual(r.afterHold, { runs: 1, grandchildAlive: true, status: 'running' }, `${label}: nothing re-run, nothing killed`)
+  assert.equal(r.released.code, 0, r.released.out); assert.match(r.released.out, /OPERATOR ATTESTATION/); assert.match(r.released.out, /containment NOT verified/); assert.doesNotMatch(r.released.out, /observed_stopped/)
+  assert.equal(JSON.parse(r.released.out.trim().split('\n').at(-1)).containment, 'NOT_VERIFIED'); assert.equal(r.runsAfterRelease, 2, 'the attested unit re-ran exactly once')
+}
+async function assertLockFailsClosedWithoutProcessFacts() {
+  // Off Windows a lock holder is judged by pid liveness ONLY: a dead pid is a dead holder; a live pid holds; a live pid whose recorded start time cannot be checked is UNKNOWABLE (never broken)
+  const gone = spawn(process.execPath, ['-e', '0'], { stdio: 'ignore' }); await new Promise((res) => gone.on('exit', res)); await waitFor(() => !alive(gone.pid))
+  assert.equal(holderAlive({ pid: gone.pid, start: '1' }), false); assert.equal(holderAlive({ pid: process.pid }), true)
+  assert.equal(holderAlive({ pid: process.pid, start: '1' }), null, 'pid reuse cannot be detected without facts: an unknowable holder is never broken'); assert.equal(holderAlive({ pid: 'x' }), null)
+  const f = fixture(); rmSync(f.hold)
+  try {
+    writeFileSync(`${f.state}.lock`, JSON.stringify({ execution_id: 'runner-maybe', pid: process.pid, start: '1', acquired_at: 'x', nonce: 'n' }))
+    const refused = await startRunner(f, 'a').done; assert.equal(refused.code, 75, refused.out); assert.match(refused.out, /RUNNER_ALREADY_ACTIVE/); assert.equal(runs(f).length, 0, 'no workload started')
+  } finally { cleanup(f) }
+}
+/** A REAL Windows recovery test; off Windows the same scenario class is asserted to FAIL CLOSED (never skipped). */
+const realTest = (name, opts, body) => test(name, opts, PROCESS_FACTS_SUPPORTED ? body : () => assertFailsClosedWithoutProcessFacts(name))
+const realLockTest = (name, opts, body) => test(name, opts, PROCESS_FACTS_SUPPORTED ? body : () => assertLockFailsClosedWithoutProcessFacts())
+
+realTest('F3 / second-round: the runner dies but its workload survives (parent-only termination) — the unit is HELD, NOTHING is terminated, nothing re-runs; once the OPERATOR stops the survivor the unit resumes with no overlap', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -96,7 +149,7 @@ test('F3 / second-round: the runner dies but its workload survives (parent-only 
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
-test('F3: a recorded pid that is now held by an UNRELATED process (pid reuse) is never touched; the genuinely stopped workload is verified and the unit re-runs', { timeout: 180_000 }, async () => {
+realTest('F3: a recorded pid that is now held by an UNRELATED process (pid reuse) is never touched; the genuinely stopped workload is verified and the unit re-runs', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree; const stranger = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
   try {
     const x = await interrupted(f); tree = x.tree
@@ -111,7 +164,7 @@ test('F3: a recorded pid that is now held by an UNRELATED process (pid reuse) is
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []); kill(stranger.pid) }
 })
 
-test('F3: a surviving descendant whose ownership cannot be PROVEN holds the state — no duplicate execution, nothing killed, the unit stays running (exit 75)', { timeout: 180_000 }, async () => {
+realTest('F3: a surviving descendant whose ownership cannot be PROVEN holds the state — no duplicate execution, nothing killed, the unit stays running (exit 75)', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -127,7 +180,7 @@ test('F3: a surviving descendant whose ownership cannot be PROVEN holds the stat
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
-test('F3: a unit whose workload identity was never recorded cannot be proven stopped — fail closed (exit 75), nothing re-run, nothing killed', { timeout: 180_000 }, async () => {
+realTest('F3: a unit whose workload identity was never recorded cannot be proven stopped — fail closed (exit 75), nothing re-run, nothing killed', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -139,7 +192,7 @@ test('F3: a unit whose workload identity was never recorded cannot be proven sto
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
-test('review N3: the operator release of a unit whose identity was never recorded works ONLY when its recorded runner and root pid are both gone', { timeout: 180_000 }, async () => {
+realTest('review N3: the operator release of a unit whose identity was never recorded works ONLY when its recorded runner and root pid are both gone', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -158,7 +211,7 @@ test('review N3: the operator release of a unit whose identity was never recorde
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
-test('F3: lock holders are judged by IDENTITY — a dead runner whose pid was reused is a dead holder (lock broken); a live runner is never displaced; an unknowable holder is never broken', { timeout: 120_000 }, async () => {
+realLockTest('F3: lock holders are judged by IDENTITY — a dead runner whose pid was reused is a dead holder (lock broken); a live runner is never displaced; an unknowable holder is never broken', { timeout: 120_000 }, async () => {
   const stranger = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
   try {
     await waitFor(() => readProcessTableSync().procs.some((p) => p.pid === stranger.pid))
@@ -240,7 +293,7 @@ test('second-round: there is NO kill primitive for recovered processes (killVeri
   assert.equal((await verifyWorkloadStopped({ recorded: forged, read: async () => { throw new Error('must not read') } })).code, 'WORKLOAD_RECORD_INVALID')
 })
 
-test('security review S-7: a recorded runner that is still alive (or unknowable) keeps the unit HELD — nothing is touched, no kill, exit 75', { timeout: 180_000 }, async () => {
+realTest('security review S-7: a recorded runner that is still alive (or unknowable) keeps the unit HELD — nothing is touched, no kill, exit 75', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree; const stranger = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
   try {
     const x = await interrupted(f); tree = x.tree
@@ -265,7 +318,7 @@ test('verifyWorkloadStopped (second-round): OBSERVATION only — a live recorded
   assert.equal((await verifyWorkloadStopped({ recorded: rec, lastSeenMs: 5000, read: async () => ({ ok: false, code: 'PROCESS_FACTS.UNAVAILABLE' }) })).code, 'PROCESS_FACTS.UNAVAILABLE', 'no facts, no proof')
   assert.equal((await verifyWorkloadStopped({ recorded: null, read: async () => ({ ok: true, procs: [] }) })).code, 'WORKLOAD_IDENTITY_UNKNOWN')
   assert.equal((await verifyWorkloadStopped({ recorded: { ...rec, truncated: true }, read: async () => ({ ok: true, procs: [] }) })).code, 'WORKLOAD_RECORD_TRUNCATED')
-  const real = await readProcessTable(); assert.ok(real.ok && real.procs.some((p) => p.pid === process.pid && p.start && p.name), 'the real process table is readable and includes this process with its creation time')
+  const real = await readProcessTable(); if (!PROCESS_FACTS_SUPPORTED) assert.equal(real.code, 'PROCESS_FACTS.UNSUPPORTED_PLATFORM', 'off Windows the real table is explicitly unsupported'); else assert.ok(real.ok && real.procs.some((p) => p.pid === process.pid && p.start && p.name), 'the real process table is readable and includes this process with its creation time')
 })
 
 // ------------------------------------------------------------------------------------------------------- second-round remediation (ChatGPT review of b712f17f)
@@ -305,7 +358,7 @@ test('REPRODUCTION + FIX (temp ledger): an interrupted unit KEEPS its workload i
   } finally { L.close(); rmSync(dir, { recursive: true, force: true }) }
 })
 
-test('REAL processes, ORDINARY interrupted-child path: the runner is alive, its test child is interrupted while a DETACHED workload process survives — the unit is HELD (nothing killed, not re-run); once the survivor is stopped the unit re-runs first', { timeout: 180_000 }, async () => {
+realTest('REAL processes, ORDINARY interrupted-child path: the runner is alive, its test child is interrupted while a DETACHED workload process survives — the unit is HELD (nothing killed, not re-run); once the survivor is stopped the unit re-runs first', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const r1 = startRunner(f, 'a,b', ['--workload-wait-min', '0.02'])
@@ -354,7 +407,7 @@ test('review r7-1 (injected tables): a recorded pid that appears TWICE (a dead r
   j = judgeWorkload([P2(30, 1, 9000, 'stranger.exe', 'x'), P2(33, 30, 9500)], rec, { lastSeenMs: 4600 }); assert.deepEqual(j.unproven, [], 'a child created after the live stranger started is the stranger\'s own')
 })
 
-test('review r7-2 (REAL): the operator release is consumed ONCE and never replayed onto an interruption this invocation caused itself (a fast-dying unit is HELD, never auto-attested)', { timeout: 180_000 }, async () => {
+realTest('review r7-2 (REAL): the operator release is consumed ONCE and never replayed onto an interruption this invocation caused itself (a fast-dying unit is HELD, never auto-attested)', { timeout: 180_000 }, async () => {
   const f = fixture(); rmSync(f.hold)
   try {
     writeFileSync(path.join(f.root, 'tests', 'e.test.mjs'), "process.kill(process.ppid)\n") // kills its own `node --test` parent at once: no test counts, an ambiguous interruption, before any workload identity can be read
@@ -365,7 +418,7 @@ test('review r7-2 (REAL): the operator release is consumed ONCE and never replay
   } finally { cleanup(f) }
 })
 
-test('review r7-3 (REAL): the release flag does not cover an INVALID or forged workload record — it is held, with an honest hint, and not attested', { timeout: 180_000 }, async () => {
+realTest('review r7-3 (REAL): the release flag does not cover an INVALID or forged workload record — it is held, with an honest hint, and not attested', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree
@@ -376,7 +429,7 @@ test('review r7-3 (REAL): the release flag does not cover an INVALID or forged w
   } finally { cleanup(f, tree ? [tree.root, tree.test, tree.grandchild, tree.runner] : []) }
 })
 
-test('review r7-M1 (REAL, simulates a host without process facts): a unit with NO recorded runner is releasable only if an EARLIER invocation started it — a start time at or after this invocation (its own interruption) is never attested', { timeout: 180_000 }, async () => {
+realTest('review r7-M1 (REAL, simulates a host without process facts): a unit with NO recorded runner is releasable only if an EARLIER invocation started it — a start time at or after this invocation (its own interruption) is never attested', { timeout: 180_000 }, async () => {
   const f = fixture(); let tree
   try {
     const x = await interrupted(f); tree = x.tree

@@ -134,7 +134,9 @@ test('pause / resume / cancel and dependencies: cancel is terminal for schedulin
   const dir = tmp(); const L = open(dir)
   const a = L.submitTask(TASK()).task.task_id; const b = L.submitTask(TASK({ requirements: { text: 'b' } })).task.task_id; const c = L.submitTask(TASK({ requirements: { text: 'c' } })).task.task_id
   go(L, a, 'queued', 'planning'); assert.ok(L.pause(a).ok); assert.equal(L.getTask(a).state, 'paused'); assert.ok(L.resume(a).ok); assert.equal(L.getTask(a).state, 'planning')
-  assert.ok(L.cancel(a).ok); assert.equal(L.getTask(a).cancelled, 1); assert.equal(L.resume(a).problems[0], 'TASK.CANCELLED')
+  // D3.6 integration (P6v3): cancellation is owner-only: a bare cancel is refused and changes nothing; the owner cancellation is terminal
+  assert.equal(L.cancel(a).problems[0], 'TASK.OWNER_ACTION_REQUIRED'); assert.equal(L.getTask(a).cancelled, 0)
+  assert.ok(L.cancel(a, { ownerActionId: 'owner-cancel-ledger-a' }).ok); assert.equal(L.getTask(a).cancelled, 1); assert.equal(L.getTask(a).state, 'cancelled'); assert.equal(L.resume(a).problems[0], 'TASK.CANCELLED')
   assert.equal(L.acquireLease({ taskId: a, role: 'planner', stage: 'planning', model: 'sonnet', effort: 'medium' }).code, 'TASK.CANCELLED')
   assert.ok(L.addDependency(b, c).ok); assert.equal(L.addDependency(c, b).code, 'DEPENDENCY.CYCLE'); assert.equal(L.addDependency(b, b).code, 'DEPENDENCY.SELF'); assert.equal(L.addDependency(b, 'ghost').code, 'DEPENDENCY.UNKNOWN_TASK')
   assert.deepEqual(L.openDependencies(b), [c]); assert.deepEqual(L.deadDependencies(b), [])

@@ -145,7 +145,7 @@ test('unauthorized billing, unverified extra usage and an expired login are GENU
 
 test('one reasoning session at a time across tasks; duplicate submissions are one task; dependencies wait; cancellation is final', async () => {
   const h = H(); const a = h.submit(); const dup = h.ledger.submitTask(defaultTask(h.policy)); assert.ok(dup.duplicate && dup.task.task_id === a)
-  const b = h.submit({ requirements: { text: 'second task' }, depends_on: [a] }); const c = h.submit({ requirements: { text: 'third task' } }); h.ledger.cancel(c)
+  const b = h.submit({ requirements: { text: 'second task' }, depends_on: [a] }); const c = h.submit({ requirements: { text: 'third task' } }); h.ledger.cancel(c, { ownerActionId: 'owner-cancel-engine-c' }) /* D3.6 integration (P6v3): cancellation is owner-only */
   await drive(h)
   assert.equal(h.ledger.getTask(a).handoff_ready, 1); assert.equal(h.ledger.getTask(b).handoff_ready, 1); assert.equal(h.ledger.getTask(c).cancelled, 1); assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(c).c, 0)
   const ea = execs(h, a); const eb = execs(h, b); assert.ok(Math.max(...ea.map((e) => e.ended_at)) <= Math.min(...eb.map((e) => e.started_at)), 'the dependent task started only after its dependency reached handoff')

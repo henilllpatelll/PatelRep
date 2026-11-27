@@ -62,6 +62,8 @@ export function runAll({ root = ROOT, files = discover(root), spawn = spawnSync 
     const counts = parseCounts(`${r.stdout ?? ''}\n${r.stderr ?? ''}`); const why = judge(counts, r.status ?? -1)
     results.push({ file: f, ...counts, status: r.status, problems: why }); if (why.length) problems.push(...why.map((x) => `${f}:${x}`))
     process.stdout.write(`${why.length ? 'FAIL' : 'ok  '} ${f} tests=${counts.tests} pass=${counts.pass} fail=${counts.fail} skipped=${counts.skipped}\n`)
+    // D3.6 integration: a failing file's own output (bounded tail) so a CI failure is diagnosable from the job log. The child env is the rebuilt minimal one (no secrets).
+    if (why.length) process.stdout.write(`${`${r.stdout ?? ''}\n${r.stderr ?? ''}`.split('\n').slice(-120).join('\n').slice(-12_000).split('\n').map((l) => `  | ${l}`).join('\n')}\n`)
   }
   return { ok: problems.length === 0, problems, results, total: results.reduce((s, r) => s + (Number.isFinite(r.tests) ? r.tests : 0), 0) }
 }

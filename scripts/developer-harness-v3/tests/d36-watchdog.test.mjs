@@ -50,7 +50,9 @@ test('a hung NETWORK call is aborted at its deadline and left UNCERTAIN (never a
 test('cancellation during a remote operation: no NEW effect ever, the uncertain one is still reconciled, and the shared-staging hold is released only after observation proves it idle', async () => {
   const h = await harness(); const id = h.submit(); h.github.inject('push_ref', 'lose_response')
   await h.drive({ until: () => intents(h, id).some((i) => i.action === 'publish_candidate_branch' && i.status === 'uncertain'), maxRounds: 100 })
-  assert.equal(stagingOwner(h.ledger)?.task_id, id); h.ledger.cancel(id)
+  assert.equal(stagingOwner(h.ledger)?.task_id, id)
+  // D3.6 integration (P6v3): cancellation is an owner-only terminal transition — a bare cancel is refused; the owner cancellation then stops every new effect
+  assert.equal(h.ledger.cancel(id).problems[0], 'TASK.OWNER_ACTION_REQUIRED'); assert.ok(h.ledger.cancel(id, { ownerActionId: 'owner-cancel-watchdog-1' }).ok); assert.equal(h.ledger.getTask(id).state, 'cancelled')
   await h.drive({ until: () => !stagingOwner(h.ledger), maxRounds: 60 })
   assert.equal(intents(h, id).find((i) => i.action === 'publish_candidate_branch').status, 'reconciled_succeeded', 'reconciliation is read-only and still settles it')
   assert.equal(ops(h, 'create_pull').length, 0, 'no PR for a cancelled task'); assert.equal(stagingOwner(h.ledger), null); h.close()

@@ -3,7 +3,7 @@
 // by the issuer. Isolation facts come from a record the OWNER's attestation ceremony maintains, never from the controller's request.
 import { createHash } from 'node:crypto'
 import { v } from '../../lib/canonical.mjs'
-import { resolveGit, trustedGit } from '../trusted-git.mjs'
+import { resolveGit, trustedGit } from '../../authority/trusted-git.mjs'
 
 export function createFacts({ verifier_repo_dir, git_candidates, git_sha256 = null, isolation_record_file = null }) {
   const g = resolveGit({ candidates: git_candidates, pinSha256: git_sha256, forbiddenRoots: [verifier_repo_dir] })

@@ -357,7 +357,16 @@ test('evidence identity: the closure digest uses the pin tool\'s exact rule and 
   } finally { rmSync(d, { recursive: true, force: true }) }
 })
 
-test('PE fixture positive control: Windows itself runs the fixture and it exits 0', { skip: process.platform !== 'win32' && 'Windows host only' }, () => {
+test('PE fixture positive control: Windows itself runs the fixture and it exits 0 — off Windows the host CANNOT provide the control, so isolation acceptance fails closed (never skipped)', () => {
+  // D3.6 Linux compatibility: before, this test was SKIPPED off Windows (the V3 runner forbids skips). The positive control is a WINDOWS-host fact: elsewhere the fixture
+  // cannot run natively, acceptance records host_run as NOT_WINDOWS, and the S2 rule refuses isolation acceptance (S2.FIXTURE_NOT_RUNNABLE_ON_HOST).
+  assert.deepEqual(validatePeFixture(PE), [], 'the fixture is a structurally valid PE image on every platform')
+  if (process.platform !== 'win32') {
+    // review O5: no attempt to execute the PE image off Windows (glibc's execvp would hand it to /bin/sh); the control is simply not available here
+    assert.equal(PE.toString('latin1', 0, 2), 'MZ')
+    assert.ok(R.evalS2(goodProbe(), ctx2({ hostRun: { rc: null, error: 'NOT_WINDOWS' } })).problems.includes('S2.FIXTURE_NOT_RUNNABLE_ON_HOST'), 'without the host control, isolation acceptance is refused')
+    return
+  }
   const d = mkdtempSync(path.join(os.tmpdir(), 'dh3-pe-test-'))
   try {
     const f = path.join(d, 'dh3fixture.exe'); writeFileSync(f, PE)

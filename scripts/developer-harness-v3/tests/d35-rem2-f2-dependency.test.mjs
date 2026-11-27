@@ -1,30 +1,19 @@
 // D3.5 independent-verification remediation, F2 — dependency-basis invalidation AND actual re-verification.
 // The pre-fix scheduler withdrew a downstream task's evidence when an upstream candidate changed but then recorded the NEW upstream state as the dependency basis, after which the engine
 // re-attested the downstream's OLD test run and OLD reviews and handed it off again — "validated" against a configuration nobody had built or verified. These tests drive the whole recovery:
-//   * AUTHORITATIVE lifecycle (no rebuild transition exists): the downstream FAILS CLOSED (terminal technical suspension, evidence and handoff withdrawn, never re-handed-off);
-//   * PROPOSAL lifecycle (P6 + the dependency-rebuild edge, labelled test configuration only): the downstream is REBUILT and RE-VERIFIED (new session, new test run, new reviews, new handoff).
+//   * AUTHORITATIVE lifecycle (P6v3 integrated in D3.6: the dependency-rebuild edge exists): the downstream is REBUILT and RE-VERIFIED (new session, new test run, new reviews, new handoff);
+//   * PRE-INTEGRATION lifecycle (labelled, temp-only: the integrated chain reversed on a disposable copy — no rebuild transition): the downstream FAILS CLOSED (terminal technical
+//     suspension, evidence and handoff withdrawn, never re-handed-off). Before the integration these were the AUTHORITATIVE and the P6 PROPOSAL configurations respectively.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Scheduler } from '../orchestrator/scheduler.mjs'
+import { proposalReducer } from '../orchestrator/sim/delivery-harness.mjs'
 import { H, owner } from './d34-rem-helpers.mjs'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
-const PROPOSALS = path.join(ROOT, 'docs/developer-harness-v3/proposals')
 const spec = (letter, over = {}) => ({ requirements: { text: `Task ${letter}: add the ${letter} indicator.`, sim_path: `apps/mobile/${letter}/feature.txt` }, scope: { allowed_paths: [`apps/mobile/${letter}/**`], denied_paths: [] }, ...over })
 
-/** The labelled PROPOSAL reducer: P6 (which now includes the dependency-rebuild edge) applied to a disposable copy. Nothing is applied to the repository. */
-export async function proposalReducer() {
-  const t = mkdtempSync(path.join(os.tmpdir(), 'dh35-p6f2-'))
-  for (const rel of ['scripts/developer-harness-v3/lifecycle/lifecycle.mjs', 'scripts/developer-harness-v3/lib/canonical.mjs', 'docs/developer-harness-v3/task-lifecycle.json']) { mkdirSync(path.dirname(path.join(t, rel)), { recursive: true }); copyFileSync(path.join(ROOT, rel), path.join(t, rel)) }
-  const ap = spawnSync('git', ['apply', '-p1', path.join(PROPOSALS, 'P6-lifecycle-consolidated.patch')], { cwd: t, encoding: 'utf8' }); assert.equal(ap.status, 0, ap.stderr)
-  const mod = await import(pathToFileURL(path.join(t, 'scripts/developer-harness-v3/lifecycle/lifecycle.mjs')).href)
-  return { label: 'PROPOSAL_UNDER_TEST', applyEvent: mod.applyEvent, createTask: mod.createTask, lc: mod.loadLifecycle() }
-}
+/** The labelled PRE-INTEGRATION reducer (no dependency-rebuild edge): the D3.6 integrated chain reversed on a disposable copy. Nothing is applied to the repository. */
+const historical = () => proposalReducer([], { preIntegration: true })
 
 async function drive(h, s) {
   for (let k = 0; k < 300; k += 1) {
@@ -41,7 +30,7 @@ const handoffDigest = (L, id) => JSON.parse(L.meta(`handoff:${id}`) ?? 'null')?.
 const swapCandidate = (L, id, ch = 'f') => { const c = L.currentCandidate(id); assert.ok(L.submitCandidate(id, { base_sha: c.base_sha, candidate_sha: ch.repeat(40), tree_digest: 'e'.repeat(40), patch_digest: 'd'.repeat(64) }).ok) }
 
 test('REPRODUCTION (pre-fix defect, now refused): an upstream candidate change must never end with the downstream re-handed-off on its OLD, re-attested evidence', async () => {
-  const h = H()
+  const h = H({ ledgerOptions: { proposalReducer: await historical() } }) // fail-closed reproduction: the lifecycle WITHOUT the rebuild edge
   try {
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] }))
@@ -58,8 +47,8 @@ test('REPRODUCTION (pre-fix defect, now refused): an upstream candidate change m
   } finally { h.close() }
 })
 
-test('AUTHORITATIVE lifecycle, three-task chain B -> D -> G: an upstream candidate change withdraws D and (transitively) G and FAILS CLOSED — nothing is re-authorized, no handoff, one explicit suspension each', async () => {
-  const h = H()
+test('PRE-INTEGRATION lifecycle (no rebuild edge), three-task chain B -> D -> G: an upstream candidate change withdraws D and (transitively) G and FAILS CLOSED — nothing is re-authorized, no handoff, one explicit suspension each', async () => {
+  const h = H({ ledgerOptions: { proposalReducer: await historical() } })
   try {
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] })); const G = h.submit(spec('g', { depends_on: [D] }))
@@ -89,7 +78,7 @@ test('AUTHORITATIVE lifecycle: upstream CANCELLATION withdraws the downstream ha
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] }))
     await drive(h, s); assert.equal(L.getTask(D).handoff_ready, 1)
-    L.cancel(B)
+    L.cancel(B, { ownerActionId: 'owner-cancel-upstream-b' }) // D3.6 integration (P6v3): cancellation is owner-only
     s.checkDependencyBasis(); await drive(h, s)
     assert.equal(L.getTask(D).handoff_ready, 0, 'handoff withdrawn'); assert.equal(live(L, D), 0)
     assert.equal(L.getTask(D).state, 'blocked'); assert.ok(L.getWait(D)?.detail?.codes?.some((c) => /DEPENDENCY_CANCELLED/.test(c)))
@@ -116,9 +105,8 @@ test('a dependency that is merely NOT READY (rebuilding) withdraws the downstrea
   } finally { h.close() }
 })
 
-test('PROPOSAL lifecycle, chain B -> D -> G: B is rebuilt; D and G are REBUILT and RE-VERIFIED (new sessions, new test runs, new reviews, new handoffs) — and each is bound to the new basis', async () => {
-  const R = await proposalReducer()
-  const h = H({ ledgerOptions: { proposalReducer: R } })
+test('AUTHORITATIVE lifecycle (P6v3 integrated), chain B -> D -> G: B is rebuilt; D and G are REBUILT and RE-VERIFIED (new sessions, new test runs, new reviews, new handoffs) — and each is bound to the new basis', async () => {
+  const h = H()
   try {
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] })); const G = h.submit(spec('g', { depends_on: [D] }))
@@ -127,7 +115,7 @@ test('PROPOSAL lifecycle, chain B -> D -> G: B is rebuilt; D and G are REBUILT a
     const old = Object.fromEntries([B, D, G].map((id) => [id, { cand: L.currentCandidate(id).candidate_sha, digest: handoffDigest(L, id), runs: L.db.prepare('SELECT COUNT(*) c FROM test_runs WHERE task_id=?').get(id).c, reviews: L.db.prepare('SELECT COUNT(*) c FROM reviews WHERE task_id=?').get(id).c, execs: L.db.prepare('SELECT COUNT(*) c FROM executions WHERE task_id=?').get(id).c }]))
     // B is changed upstream: an explicit rebuild of B (the declared back-edge), not a hand-edit of the ledger
     L.db.prepare('UPDATE tasks SET handoff_ready=0 WHERE task_id=?').run(B)
-    const t = L.transition(B, 'implementing', { reason_code: R.lc.dependency_rebuild.reason }); assert.ok(t.ok, t.problems?.join())
+    const t = L.transition(B, 'implementing', { reason_code: L.lc.dependency_rebuild.reason }); assert.ok(t.ok, t.problems?.join())
     L.setMeta(`remediation:${B}`, 'Upstream requirement changed: rebuild.'); L.setMeta(`dep_rebuild:${B}`, '1')
     await drive(h, s)
     for (const id of [B, D, G]) assert.equal(L.getTask(id).handoff_ready, 1, `${id} handed off again`)
@@ -147,9 +135,8 @@ test('PROPOSAL lifecycle, chain B -> D -> G: B is rebuilt; D and G are REBUILT a
   } finally { h.close() }
 })
 
-test('PROPOSAL lifecycle: a dependency basis that changes DURING the downstream\'s own build (interrupted work) is discarded — the session result is never recorded as verified against the new basis', async () => {
-  const R = await proposalReducer()
-  const h = H({ ledgerOptions: { proposalReducer: R } })
+test('AUTHORITATIVE lifecycle (P6v3 integrated): a dependency basis that changes DURING the downstream\'s own build (interrupted work) is discarded — the session result is never recorded as verified against the new basis', async () => {
+  const h = H()
   try {
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] }))
@@ -181,7 +168,7 @@ test('security review S-4: a same-candidate dependency REBUILD is a NEW test epo
 })
 
 test('idempotent and crash-safe: the sweep and the recovery can be repeated or interrupted at any point without changing the outcome', async () => {
-  const h = H()
+  const h = H({ ledgerOptions: { proposalReducer: await historical() } }) // the fail-closed outcome is the one that must be idempotent here
   try {
     const L = h.ledger; const s = new Scheduler(h.engine)
     const B = h.submit(spec('b')); const D = h.submit(spec('d', { depends_on: [B] })); const G = h.submit(spec('g', { depends_on: [D] }))

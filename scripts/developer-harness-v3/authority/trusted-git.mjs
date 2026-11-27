@@ -8,7 +8,7 @@
 //   * hostile REPOSITORY configuration cannot run code: `-c` overrides outrank repo config, and every command-executing config key Git documents for read-only
 //     plumbing is neutralised (hooks, fsmonitor, external diff, textconv, pager, ssh/proxy/askpass/credential helpers, filters via --no-ext-diff/--no-textconv);
 //   * output is bounded; stderr is never echoed (it would carry local paths).
-// The same helper is what the PROPOSED patch to authority/git-facts.mjs imports (docs/developer-harness-v3/proposals/).
+// authority/git-facts.mjs imports this helper (P1v2, integrated in D3.6): it lives inside the owner-only authority boundary, so no development scope can edit the git hardening.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'

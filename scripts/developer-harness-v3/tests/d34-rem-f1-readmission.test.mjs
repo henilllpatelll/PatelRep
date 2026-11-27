@@ -90,7 +90,7 @@ test('F1: admission of an EXISTING lease is not "an unrelated occupied slot" —
 
 test('F1: cancellation at a unit boundary stops the session with a verified checkpoint and no failure/backoff/escalation', async () => {
   const scenario = impl(); let h
-  h = H({ scenario }); afterImplementingUnit(h, 2, () => h.ledger.cancel(h.ledger.listTasks()[0].task_id)); const calls = spy(h); const id = h.submit()
+  h = H({ scenario }); afterImplementingUnit(h, 2, () => h.ledger.cancel(h.ledger.listTasks()[0].task_id, { ownerActionId: 'owner-cancel-f1' })); const calls = spy(h); const id = h.submit()
   await settle(h); const t = h.ledger.getTask(id)
   assert.equal(calls.filter((c) => c.stage === 'implementing').length, 2, 'no unit after the cancellation'); assert.equal(t.cancelled, 1); slotFree(h); assert.deepEqual(live(h), []); assert.ok(h.ledger.latestCheckpoint(id)?.verified === 1, 'work preserved')
   assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM retry_budgets WHERE task_id=?').get(id).c, 0, 'a cancellation is not a failure'); h.close()

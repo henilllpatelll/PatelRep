@@ -16,7 +16,7 @@ import { OPS } from '../orchestrator/issuer/issuer-core.mjs'
 import { aclPlan, assertOutside, emergencyDeactivate, generateIssuerKey, loadSigningKey, proposeKeyRegistration, proposeKeyRevocation, proposeKeyRotation } from '../orchestrator/issuer/key-custody.mjs'
 import { callIssuer, ipcPath, startIssuerServer } from '../orchestrator/issuer/ipc.mjs'
 import { createIssuerClient } from '../orchestrator/issuer/issuer-client.mjs'
-import { DEFAULT_GIT_CANDIDATES, minimalEnv, resolveGit, trustedGit } from '../orchestrator/trusted-git.mjs'
+import { DEFAULT_GIT_CANDIDATES, minimalEnv, resolveGit, trustedGit } from '../authority/trusted-git.mjs'
 import { createFacts as createGitFacts } from '../orchestrator/issuer/facts-git.mjs'
 import { gatherCandidateFacts } from '../authority/git-facts.mjs'
 import { loadContractFile, loadPolicy, policyRevision } from '../authority/contract.mjs'
@@ -62,7 +62,11 @@ test('test_results issuer: derives facts itself, ignores request-supplied facts,
   y.h.ledger.db.prepare('UPDATE test_runs SET fencing_token=1, candidate_sha=? WHERE task_id=?').run('9'.repeat(40), y.id); assert.equal(orch(y.h).handle('issue_test_results', { task_id: y.id, run_id: run3.run_id }).code, 'ISSUER.RUN_FOR_ANOTHER_CANDIDATE')
   y.h.ledger.db.prepare('UPDATE test_runs SET candidate_sha=(SELECT head_sha FROM tasks WHERE task_id=?) WHERE task_id=?').run(y.id, y.id); y.h.ledger.db.prepare("UPDATE test_runs SET passed=0, results_json='{\"passed\":3,\"failed\":1}' WHERE task_id=?").run(y.id)
   assert.equal(orch(y.h).handle('issue_test_results', { task_id: y.id, run_id: run3.run_id }).envelope.payload.verdict, 'fail', 'a failing run is signed as fail, never as pass'); y.h.close()
-  const z = await runUntil('after_test_run_recorded'); const run4 = z.h.ledger.latestTestRun(z.id); z.h.ledger.cancel(z.id); assert.equal(orch(z.h).handle('issue_test_results', { task_id: z.id, run_id: run4.run_id }).code, 'ISSUER.TASK_CANCELLED'); z.h.close()
+  // D3.6 integration (P6v3 authoritative): cancellation is an owner-only terminal transition — a bare cancel is refused and leaves the task issuable; an owner-cancelled task gets no evidence
+  const z = await runUntil('after_test_run_recorded'); const run4 = z.h.ledger.latestTestRun(z.id)
+  assert.equal(z.h.ledger.cancel(z.id).problems[0], 'TASK.OWNER_ACTION_REQUIRED'); assert.equal(z.h.ledger.getTask(z.id).cancelled, 0, 'a cancel without an owner action changes nothing')
+  assert.ok(z.h.ledger.cancel(z.id, { ownerActionId: 'owner-cancel-issuer-1' }).ok); assert.equal(z.h.ledger.getTask(z.id).state, 'cancelled')
+  assert.equal(orch(z.h).handle('issue_test_results', { task_id: z.id, run_id: run4.run_id }).code, 'ISSUER.TASK_CANCELLED'); z.h.close()
 })
 
 test('policy substitution: an issuer pinned to a different policy refuses every task bound to the active one', async () => {

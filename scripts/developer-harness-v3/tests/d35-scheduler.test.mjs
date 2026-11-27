@@ -89,7 +89,7 @@ test('SIMULATED seven-task run: resource admission, correct serialization, a dep
     const origRun = h.adapters.session.runUnit.bind(h.adapters.session)
     h.adapters.session.runUnit = async (a) => {
       maxLeases = Math.max(maxLeases, L.liveLeases().length)
-      if (a.task.task_id === ids.E && a.stage === 'implementing' && cancelledAt === null) { L.cancel(ids.E); cancelledAt = h.clock.now() } // cancelled DURING its own session
+      if (a.task.task_id === ids.E && a.stage === 'implementing' && cancelledAt === null) { L.cancel(ids.E, { ownerActionId: 'owner-cancel-e' }); cancelledAt = h.clock.now() } // cancelled DURING its own session
       return origRun(a)
     }
     await driveSched(h, s, (r) => {
@@ -116,7 +116,10 @@ test('SIMULATED seven-task run: resource admission, correct serialization, a dep
     const claimedAt = (k) => L.db.prepare("SELECT MIN(rowid) r FROM recovery_history WHERE task_id=? AND kind='scope_claimed'").get(ids[k]).r
     assert.ok(claimedAt('A') > claimedAt('C') || claimedAt('C') > claimedAt('A'))
     // unaffected tasks kept progressing while E was cancelled and while others waited on scope
-    assert.deepEqual(owner(h), { blockedEvents: 0, ownerActions: 0, blockerRows: 0 }, 'zero owner interventions')
+    // D3.6 integration (P6v3): the test's own cancellation of E is an owner decision (cancellation is owner-only) — it is the ONLY owner action; the system itself never
+    // asked for one (no blocked event, no blocker row)
+    assert.deepEqual(owner(h), { blockedEvents: 0, ownerActions: 1, blockerRows: 0 }, 'zero owner interventions requested by the system')
+    assert.deepEqual(L.db.prepare("SELECT task_id, to_state FROM task_events WHERE event_json LIKE '%owner_action_id%'").all().map((r) => ({ ...r })), [{ task_id: ids.E, to_state: 'cancelled' }], 'the one owner action is the cancellation of E')
     assert.ok(L.db.prepare("SELECT COUNT(*) c FROM schedule_state WHERE passes>0 OR last_admitted_at IS NOT NULL").get().c >= 6, 'scheduling decisions are durable')
   } finally { h.close() }
 })

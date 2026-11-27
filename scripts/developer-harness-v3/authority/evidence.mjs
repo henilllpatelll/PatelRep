@@ -22,6 +22,8 @@ const PAYLOAD_SPEC = {
     context_id: v.id,
     findings: v.arrayOf((f) => isPlainObject(f) && v.id(f.id) && v.oneOf('critical', 'high', 'medium', 'low', 'info')(f.severity) && typeof f.resolved === 'boolean', 200),
     results: (r) => isPlainObject(r) && Object.values(r).every((n) => Number.isSafeInteger(n) && n >= 0),
+    // an AUTHENTICATED owner decision (evidence type owner_decision): the exact disposition and the owner_action_id it authorizes; a bare owner_action_id string authorizes nothing
+    decision: (d) => isPlainObject(d) && v.oneOf('unblock', 'cancel', 'resume_suspended')(d.action) && v.id(d.owner_action_id) && Object.keys(d).length === 2,
   },
 }
 const ENVELOPE_SPEC = { required: { schema: v.oneOf(EVIDENCE_SCHEMA), version: v.oneOf(1), payload: isPlainObject,

@@ -48,7 +48,7 @@ test('F3: a policy-revision change makes pending intents undispatchable (and inv
 })
 
 test('F3: cancellation after intent creation blocks dispatch; a duplicate begin of a cancelled task is not "ok" either', () => {
-  const S = setup(); const i = begin(S, S.fresh()); assert.ok(i.ok); S.L.cancel('task-1')
+  const S = setup(); const i = begin(S, S.fresh()); assert.ok(i.ok); S.L.cancel('task-1', { ownerActionId: 'owner-cancel-f3' }) /* D3.6 integration (P6v3): cancellation is owner-only */
   assert.equal(dispatch(S, i.intent.intent_id).code, 'TASK.CANCELLED'); assert.equal(begin(S, [], { idempotencyKey: 'pub-1' }).code, 'TASK.CANCELLED', 'a replay of the creation call does not smuggle a cancelled task through'); S.L.close()
 })
 

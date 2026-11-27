@@ -1,5 +1,6 @@
-// D3.6 end-to-end acceptance (SIMULATED, PROPOSAL_UNDER_TEST: P7 + P6v2 on disposable copies, delivery actions activated in a TEST policy). Under the AUTHORITATIVE lifecycle the
-// dependent task FAILS CLOSED when its upstream is rebuilt (no rebuild edge; d36-lifecycle proves it); P6v2 rebuilds it. From task submission to merge_eligible for two
+// D3.6 end-to-end acceptance (SIMULATED, INTEGRATED_TEST_ACTIVATION: the repository's own P7 authority and P6v3 lifecycle, delivery actions activated in a temp-only TEST policy).
+// D3.6 integration: before, this ran P7 + P6v2 from disposable copies because the authoritative lifecycle had no rebuild edge; the AUTHORITATIVE lifecycle now rebuilds the
+// dependent itself (d36-lifecycle keeps the fail-closed path covered on the pre-integration reducer). From task submission to merge_eligible for two
 // concurrent tasks (one an ordering dependency of the other) through: an implementation failure, a transient CI failure, a genuine CI failure, a candidate head replacement, a lost
 // publication response, a controller restart, staging contention (a foreign PR on shared staging) — with ZERO owner interventions, and no merge or production release.
 import { test } from 'node:test'
@@ -14,7 +15,7 @@ test('E2E: two tasks, every failure class, a restart and staging contention -> b
   const root = tmp('dh36-e2e-')
   const gh = { ci: { default: ['fail_transient', 'pass'] }, logs: { fail_transient: 'npm ERR! network socket hang up', fail_genuine: 'AssertionError: expected the indicator to be visible' } }
   const scenario = { tests: [{ passed: false, fingerprint: 'unit:indicator' }, { passed: true }] } // the FIRST local test run of each task fails: an implementation failure
-  let h = await harness({ root, gh, scenario, lifecycle: 'P6v2' })
+  let h = await harness({ root, gh, scenario })
   const a = h.submit({ requirements: { text: 'A: offline queue indicator', sim_path: 'apps/mobile/a/indicator.ts' }, scope: { allowed_paths: ['apps/mobile/a/**'], denied_paths: [] } })
   const b = h.submit({ requirements: { text: 'B: indicator copy', sim_path: 'apps/mobile/b/copy.ts' }, scope: { allowed_paths: ['apps/mobile/b/**'], denied_paths: [] }, depends_on: [a] })
   h.github.inject('push_ref', 'lose_response') // A's first publication: the push happens, the response is lost
@@ -27,7 +28,7 @@ test('E2E: two tasks, every failure class, a restart and staging contention -> b
   await h.drive({ until: () => genuine && state(h, a) === 'ci_running' && h.ledger.getTask(a).head_sha !== headA1, maxRounds: 900, onRound })
   assert.notEqual(h.ledger.getTask(a).head_sha, headA1, 'A was rebuilt after the genuine CI failure (a NEW candidate)')
   const clock = h.clock; h.close()
-  h = await harness({ root, clock, gh, scenario, lifecycle: 'P6v2' })
+  h = await harness({ root, clock, gh, scenario })
   const r = await h.drive({ until: () => state(h, a) === 'merge_eligible' && state(h, b) === 'merge_eligible', maxRounds: 1500, onRound })
   assert.ok(r.done, `A=${state(h, a)} B=${state(h, b)} ${JSON.stringify(h.ledger.getSuspension(a) ?? h.ledger.getSuspension(b))}`)
 

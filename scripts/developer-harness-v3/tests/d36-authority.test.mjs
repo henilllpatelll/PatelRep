@@ -37,7 +37,8 @@ test('creation: the EVALUATOR decides BEFORE anything is consumed; multi-use app
 test('single-use evidence: consumed ONLY on allow, atomically with the intent; a refusal consumes NOTHING; the same intent re-validates with it held; another intent can never reuse it (replay)', async () => {
   const S = await ready({ gh: { ci: { default: ['fail_transient', 'pass'] }, logs: { fail_transient: 'npm ERR! network request failed: ETIMEDOUT registry.npmjs.org' } }, dcfg: { maxCiRerunsPerCandidate: 0 } })
   const r0 = await S.h.drive({ until: () => !!S.h.ledger.getSuspension(S.id), maxRounds: 120 }); assert.ok(r0.done, 'drove to the transient CI failure (re-runs disabled for this test)')
-  assert.equal(state(S.h, S.id), 'ci_running'); await S.h.delivery.observeDelivery(S.id)
+  // D3.6 integration (P6v3): the exhausted re-run budget is a VISIBLE technical_suspension that resumes only to ci_running (before: a ledger-only suspension in ci_running)
+  assert.equal(state(S.h, S.id), 'technical_suspension'); assert.equal(S.h.ledger.getTask(S.id).lifecycle.resume_to, 'ci_running'); await S.h.delivery.observeDelivery(S.id)
   const fail = S.h.delivery.obsCache.get(S.id).details.ci.checks.find((c) => c.state === 'failed'); assert.ok(fail)
   const dg = await S.h.delivery.accept(S.h.issuers.delivery_verifier, 'issue_ci_failure_diagnosis', { task_id: S.id, run_id: fail.run_id, attempt: fail.attempt }); assert.ok(dg.ok, dg.code)
   const params = { repository: S.t().repository, branch: S.d.branch, run_id: fail.run_id, attempt: fail.attempt, head_sha: S.t().head_sha }
@@ -82,14 +83,21 @@ test('unknown actions, prototype keys, forged and wrong identities are refused b
 })
 
 test('AUTHORITATIVE policy: every delivery effect is refused (inactive or unknown), ONE terminal explained suspension, and nothing ever reaches the remote', async () => {
-  const h = await harness({ proposal: false }); const id = h.submit()
+  const h = await harness({ testActivation: false }); const id = h.submit()
   const r = await h.drive({ until: untilState(h, id, []), maxRounds: 200 }); assert.ok(r.done)
   const s = h.ledger.getSuspension(id); assert.equal(s.cause, 'DELIVERY_NOT_ACTIVATED'); assert.equal(s.disposition, 'terminal'); assert.ok(s.diagnostics.codes.includes('ACTIVATION.NOT_ACTIVE:publish_candidate_branch'))
   assert.equal(ops(h).length, 0, 'no push, no PR, no rerun, no dispatch'); assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM action_intents').get().c, 0, 'no intent is even created: creation requires an evaluator ALLOW')
   ensureDelivery(h.ledger, id)
+  // D3.6 integration (P7 applied): the four delivery actions are KNOWN to the authoritative contract — safeguarded, trusted_publisher only, requires_activation — and NONE is active.
+  // (Before the integration they were ACTION.UNKNOWN.) Each is still refused, creates no intent and reaches nothing.
   for (const action of ['open_draft_pull_request', 'update_pull_request_metadata', 'rerun_ci_jobs', 'dispatch_staging_candidate']) {
-    const x = await authorizeIntent(h.delivery.ctx(), { taskId: id, action, idempotencyKey: `a-${action}`, params: {} }); assert.equal(x.ok, false); assert.ok(x.decision.reason_codes.includes('ACTION.UNKNOWN'), `${action} is not in the authoritative contract (P7)`)
+    const spec = h.policy.contract.actions[action]; assert.ok(spec, `${action} is in the authoritative contract (P7 integrated)`)
+    assert.equal(spec.class, 'safeguarded'); assert.deepEqual(spec.identities, ['trusted_publisher']); assert.equal(spec.requires_activation, true); assert.ok(spec.checks.includes('delivery_target'), `${action} binds its delivery target`)
+    assert.ok(!h.policy.contract.activation.active_actions.includes(action), `${action} is NOT active`)
+    const x = await authorizeIntent(h.delivery.ctx(), { taskId: id, action, idempotencyKey: `a-${action}`, params: {} }); assert.equal(x.ok, false); assert.equal(x.decision.decision, 'deny')
+    assert.ok(!x.decision.reason_codes.includes('ACTION.UNKNOWN'), `${action}: refused as a known, inactive action — not as an unknown one`)
   }
+  assert.equal(h.ledger.db.prepare('SELECT COUNT(*) c FROM action_intents').get().c, 0, 'still no intent'); assert.equal(ops(h).length, 0, 'still nothing at the remote')
   assert.deepEqual(h.policy.contract.activation.active_actions, [], 'the authoritative contract activates nothing'); h.close()
 })
 
@@ -123,13 +131,14 @@ test('approvals: a failing review never authorizes; an expired approval blocks d
   assert.equal(d2.decision, 'deny'); assert.ok(d2.rejected_evidence.some((x) => x.codes.includes('EVIDENCE.UNKNOWN_KEY')) && d2.rejected_evidence.some((x) => x.codes.includes('EVIDENCE.WRONG_POLICY_REVISION'))); S.h.close()
 })
 
-test('risk class: a task that requires a security review never publishes without one — in the delivery layer under the AUTHORITATIVE evaluator, and in the evaluator itself under P7', async () => {
-  for (const proposal of [false, true]) {
-    const S = await ready({ proposal, activate: ['publish_candidate_branch'] })
+test('risk class: a task that requires a security review never publishes without one — the AUTHORITATIVE evaluator itself requires it (P7 integrated), in both configurations', async () => {
+  // D3.6 integration: before, only the delivery layer added the security review under the authoritative evaluator (the evaluator alone allowed). Now the risk class reaches the
+  // repository evaluator in every configuration and the EVALUATOR refuses — the delivery-layer requirement stays as a second, independent layer.
+  for (const testActivation of [false, true]) {
+    const S = await ready({ testActivation, activate: ['publish_candidate_branch'] })
     for (const e of usableEvidence(S.h.ledger, S.id, S.h.policy, { types: ['security_review'] })) S.h.ledger.invalidateEvidence(e.evidence_id)
-    const r = await S.create(`sec-${proposal}`); assert.equal(r.ok, false)
-    if (proposal) assert.ok(r.decision.reason_codes.includes('EVIDENCE.MISSING:security_review'), 'P7: the evaluator adds the security review for the risk class')
-    else { assert.equal(r.decision.decision, 'allow', 'the authoritative contract alone would allow publish on task_authority + test_results'); assert.equal(r.code, 'DELIVERY.REQUIRED_EVIDENCE_MISSING:security_review') }
+    const r = await S.create(`sec-${testActivation}`); assert.equal(r.ok, false)
+    assert.equal(r.decision.decision, 'deny'); assert.ok(r.decision.reason_codes.includes('EVIDENCE.MISSING:security_review'), `${testActivation}: the evaluator adds the security review for the risk class`)
     S.h.close()
   }
 })
@@ -165,7 +174,17 @@ test('P7 delivery_target (on the NEW delivery actions): the requester can only N
     assert.ok(ev({ ...good, ...patch }).reason_codes.includes(code), `${JSON.stringify(patch)} -> ${code}`)
   }
   const noFacts = A.evaluate({ policy: S.h.policy, request: { action: 'update_pull_request_metadata', task_id: S.id, params: { delivery: good } }, trusted: { ...tf.trusted, delivery: undefined }, evidence: pool, now: S.h.ledger.now(), ledger: new View(S.h.ledger, 'x') })
-  assert.ok(noFacts.reason_codes.includes('DELIVERY.TARGET_FACTS_MISSING')); S.h.close()
+  assert.ok(noFacts.reason_codes.includes('DELIVERY.TARGET_FACTS_MISSING'))
+  // D3.6 integration correction IC-2 (R-25): every delivery effect must NAME its exact target — an omitted field is a refusal at the authorization boundary, never a wildcard.
+  // A staging dispatch without the intended head (or PR) can never be authorized; neither can a re-run without its run, attempt and head.
+  const evA = (action, delivery) => A.evaluate({ policy: S.h.policy, request: { action, task_id: S.id, params: { delivery } }, trusted: tf.trusted, evidence: pool, now: S.h.ledger.now(), ledger: new View(S.h.ledger, 'x') })
+  for (const [action, fields] of [['dispatch_staging_candidate', ['pr_number', 'head_sha']], ['rerun_ci_jobs', ['run_id', 'attempt', 'head_sha']], ['open_draft_pull_request', ['base', 'head_sha']], ['update_pull_request_metadata', ['pr_number']]]) {
+    const full = { ...good, base: 'main', run_id: 7, attempt: 1 }
+    for (const f of fields) { const { [f]: _omit, ...partial } = full; const d = evA(action, partial); assert.equal(d.decision, 'deny'); assert.ok(d.reason_codes.includes(`DELIVERY.TARGET_FIELD_MISSING:${f}`), `${action} without ${f}: ${d.reason_codes}`) }
+  }
+  const wrongHead = evA('dispatch_staging_candidate', { ...good, head_sha: 'b'.repeat(40) }); assert.ok(wrongHead.reason_codes.includes('DELIVERY.HEAD_NOT_CANDIDATE'), 'a dispatch naming any head other than the candidate is refused')
+  assert.ok(!evA('dispatch_staging_candidate', good).reason_codes.some((c) => c.startsWith('DELIVERY.')), 'the exact candidate head + owned PR passes every delivery-target rule')
+  S.h.close()
 })
 
 test('before dispatch: a candidate change, a policy change, a cancellation or a changed request each refuse, and a refusal changes nothing', async () => {
@@ -178,15 +197,18 @@ test('before dispatch: a candidate change, a policy change, a cancellation or a 
   assert.ok(S.h.ledger.submitCandidate(S.id, { base_sha: S.h.ledger.currentBase(S.id), candidate_sha: '9'.repeat(40), tree_digest: '8'.repeat(40), patch_digest: '7'.repeat(64) }).ok) // head changed
   const d = await S.again(a.intent.intent_id); assert.equal(d.ok, false); assert.ok(['DELIVERY.HEAD_NOT_CANDIDATE', 'FACTS.UNKNOWN_CANDIDATE'].includes(d.code), d.code)
   assert.equal(getIntent(S.h.ledger, a.intent.intent_id).status, 'intended'); assert.equal(S.h.ledger.db.prepare('SELECT COUNT(*) c FROM action_intents').get().c, b)
-  S.h.ledger.cancel(S.id); assert.equal((await S.again(a.intent.intent_id)).code, 'TASK.CANCELLED'); S.h.close()
+  // D3.6 integration (P6v3): cancellation is owner-only — a bare cancel is refused and changes nothing; the owner-cancelled task can never dispatch
+  assert.equal(S.h.ledger.cancel(S.id).problems[0], 'TASK.OWNER_ACTION_REQUIRED'); assert.equal(getIntent(S.h.ledger, a.intent.intent_id).status, 'intended')
+  assert.ok(S.h.ledger.cancel(S.id, { ownerActionId: 'owner-cancel-d36-1' }).ok); assert.equal((await S.again(a.intent.intent_id)).code, 'TASK.CANCELLED'); S.h.close()
   const T = await ready(); const x = await T.create('pol'); assert.ok(x.ok)
   assert.ok(T.h.ledger.applyLifecycleEvent(T.id, T.h.ledger.eventFor(T.id, 'policy_changed', { policy_revision: 'e'.repeat(64) })).ok)
   const y = await T.again(x.intent.intent_id); assert.equal(y.ok, false, 'a task whose policy revision moved can never dispatch under the old authorization'); T.h.close()
 })
 
-test('the authoritative D3.2 evaluator is UNCHANGED and still the one used outside the labelled proposal configuration', async () => {
-  const S = await ready({ proposal: false, activate: ['publish_candidate_branch'] })
+test('both configurations run the REPOSITORY evaluator (never a patched copy); the D3.2 publish action is unchanged and allowed once activated in a test policy', async () => {
+  const S = await ready({ testActivation: false, activate: ['publish_candidate_branch'] })
   assert.equal(S.h.delivery.evaluateFn, realEvaluate); assert.equal(S.h.label, 'AUTHORITATIVE')
-  const r = await S.create('auth-pub'); assert.ok(r.ok, 'with publish ACTIVATED in a test policy the authoritative evaluator allows it (task_authority + test_results), and the delivery layer adds the reviews')
+  const T = await ready(); assert.equal(T.h.delivery.evaluateFn, realEvaluate, 'test activation uses the same evaluator'); assert.equal(T.h.label, 'INTEGRATED_TEST_ACTIVATION'); T.h.close()
+  const r = await S.create('auth-pub'); assert.ok(r.ok, 'with publish ACTIVATED in a test policy the authoritative evaluator allows it (task_authority + test_results + the risk-class security review), and the delivery layer adds the reviews')
   assert.equal(r.decision.decision, 'allow'); S.h.close()
 })

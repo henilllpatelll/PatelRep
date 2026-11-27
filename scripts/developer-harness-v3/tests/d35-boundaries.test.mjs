@@ -4,7 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GATES, liveExecutionAllowed } from '../orchestrator/activation-gates.mjs'
@@ -13,6 +13,7 @@ import { Scheduler } from '../orchestrator/scheduler.mjs'
 import { D33_THRESHOLDS } from '../runtime/resource-governor.mjs'
 import { loadLifecycle } from '../lifecycle/lifecycle.mjs'
 import { H } from './d34-rem-helpers.mjs'
+import { disposableCopy, integratedChain } from '../orchestrator/sim/delivery-harness.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const PROTECTED = {
@@ -29,8 +30,20 @@ const PROTECTED = {
   'scripts/developer-harness-v3/lifecycle/resource-admission.mjs': 'a9e73e5114f12fbf8d6ad421f6585f5c5abb0d10c8e2cfa58b5a967259377416',
 }
 
-test('D3.5 changed NO protected file: authority code, contracts and the lifecycle reducer are byte-identical to verified main (they change only through the owner-only proposals P1v2/P6)', () => {
-  for (const [f, d] of Object.entries(PROTECTED)) assert.equal(createHash('sha256').update(readFileSync(path.join(ROOT, f))).digest('hex'), d, f)
+test('protected files change ONLY through the reviewed, digest-pinned integration chain: untouched ones are byte-identical to verified main; reversing the chain reproduces EVERY pinned D3.5 digest', () => {
+  // D3.6 integration: before, every PROTECTED file had to equal its D3.5 digest (nothing was applied). Now the owner integration applied P1v2, P6v3, P7, P2 and the separately
+  // reviewed corrections C1/C2. The stronger statement: a protected file the chain does not touch is UNCHANGED, and the chain reversed on a disposable copy gives back exactly
+  // the pinned bytes of every file it does touch — so no protected byte changed outside a reviewed patch.
+  const sha = (b) => createHash('sha256').update(b).digest('hex')
+  const chain = integratedChain(); const touched = new Set(chain.flatMap((c) => c.touches))
+  assert.deepEqual(chain.map((c) => c.id), ['P1v2', 'P6v3', 'P7', 'P2', 'C1', 'C2'])
+  for (const [f, d] of Object.entries(PROTECTED)) if (!touched.has(f)) assert.equal(sha(readFileSync(path.join(ROOT, f))), d, `${f} is untouched by the integration`)
+  const base = disposableCopy([], Object.keys(PROTECTED), 'dh35-boundaries-', { preIntegration: true })
+  for (const [f, d] of Object.entries(PROTECTED)) assert.equal(sha(readFileSync(path.join(base, f))), d, `${f}: the pre-integration bytes are exactly the pinned D3.5 bytes`)
+  // every authority file is either pinned above or ADDED by the chain (P1v2 moved trusted-git.mjs in): nothing appeared in authority/ outside a reviewed patch
+  for (const f of readdirSync(path.join(ROOT, 'scripts/developer-harness-v3/authority')).map((n) => `scripts/developer-harness-v3/authority/${n}`)) {
+    assert.ok(Object.hasOwn(PROTECTED, f) || (touched.has(f) && !existsSync(path.join(base, f))), `${f} is pinned or added by the reviewed chain`)
+  }
 })
 
 test('inactive: live execution is refused; 31 activation gates (D3.6 added 3), none closed; the D3.5 and D3.6 gates exist; simulation alone closes nothing', () => {

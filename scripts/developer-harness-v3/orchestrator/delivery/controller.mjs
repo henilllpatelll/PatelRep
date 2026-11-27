@@ -92,6 +92,8 @@ export class DeliveryController {
       if (['update_pull_request_metadata', 'mark_pull_request_ready'].includes(action) && (p.number !== d.pr_number || d.pr_number === null)) return { ok: false, code: 'DELIVERY.PR_NOT_OWNED' }
       if (['rerun_ci_jobs', 'dispatch_staging_candidate'].includes(action)) { const f = await this.observeDelivery(t.task_id); if (!f.ok) return { ok: false, code: f.code } } // review M3: remote-state preconditions from a FRESH read, at creation and again right before dispatch
       if (action === 'rerun_ci_jobs') { const o = this.obsCache?.get(t.task_id); const ours = o?.details?.ci?.checks?.some((c) => c.run_id === p.run_id && c.attempt === p.attempt); if (!ours || p.head_sha !== t.head_sha) return { ok: false, code: 'DELIVERY.RUN_NOT_OWNED' } }
+      // R-25: a V3 staging dispatch ALWAYS names the exact full candidate head it intends (the workflow refuses a different PR head before any staging work)
+      if (action === 'dispatch_staging_candidate' && (typeof p.head_sha !== 'string' || !/^[0-9a-f]{40}$/.test(p.head_sha))) return { ok: false, code: 'DELIVERY.STAGING_HEAD_REQUIRED' }
       if (action === 'dispatch_staging_candidate') { const o = this.obsCache?.get(t.task_id); if (p.pr_number !== d.pr_number || p.head_sha !== t.head_sha || o?.details?.staging_busy !== false) return { ok: false, code: 'DELIVERY.STAGING_DISPATCH_UNSAFE' } } // never displace anyone's pending run
       return { ok: true }
     }
@@ -486,7 +488,7 @@ function apiArgs(action, p) {
     case 'update_pull_request_metadata': return { number: p.number, title: p.title, body_digest: p.body_digest }
     case 'mark_pull_request_ready': return { number: p.number }
     case 'rerun_ci_jobs': return { run_id: p.run_id, attempt: p.attempt }
-    case 'dispatch_staging_candidate': return { pr_number: p.pr_number }
+    case 'dispatch_staging_candidate': return { pr_number: p.pr_number, head_sha: p.head_sha } // R-25: the workflow_dispatch `head_sha` input — never omitted for a V3 dispatch
     default: return {}
   }
 }

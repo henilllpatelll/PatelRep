@@ -8,6 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { run } from './vm-controller.mjs'
+import { DEFAULT_GIT_CANDIDATES, resolveGit } from '../authority/trusted-git.mjs'
 
 export const MAX_BUNDLE_BYTES = 512 * 1024 * 1024
 export const BUNDLE_HEADER_RE = /^# v[23] git bundle\n/
@@ -20,16 +21,22 @@ export function checkBundleBytes(buf) {
   return null
 }
 
-const GIT = 'C:\\Program Files\\Git\\cmd\\git.exe'
+// D3.6 Linux compatibility: the host git is resolved from the platform's ABSOLUTE allow-list (authority/trusted-git.mjs: never PATH, never inside the cwd). On Windows
+// the D3.3 executable stays first, so the Windows host behaviour is unchanged; elsewhere /usr/bin/git or /usr/local/bin/git. No trusted git = a refusal, never a bare `git`.
+const WINDOWS_GIT = 'C:\\Program Files\\Git\\cmd\\git.exe'
+const hostGit = () => { const g = resolveGit({ candidates: process.platform === 'win32' ? [WINDOWS_GIT, ...DEFAULT_GIT_CANDIDATES] : DEFAULT_GIT_CANDIDATES }); return g.ok ? g.exe : null }
 const HARDEN = ['-c', 'core.hooksPath=', '-c', 'core.fsmonitor=false', '-c', 'transfer.fsckObjects=true', '-c', 'fetch.fsckObjects=true', '-c', 'protocol.allow=never', '-c', 'protocol.file.allow=always', '-c', 'core.symlinks=false']
 
 /** @returns {{ok:true, tree:string, commit:string}|{ok:false, code:string}} */
-export function importBundle(buf, { git = GIT } = {}) {
+export function importBundle(buf, { git = hostGit() } = {}) {
   const bad = checkBundleBytes(buf)
   if (bad) return { ok: false, code: bad }
+  if (!git || !path.isAbsolute(git)) return { ok: false, code: 'BUNDLE.NO_TRUSTED_GIT' }
   const tmp = mkdtempSync(path.join(os.tmpdir(), 'dh3-bundle-'))
   try {
-    const env = { SYSTEMROOT: process.env.SYSTEMROOT, SYSTEMDRIVE: process.env.SYSTEMDRIVE, PATH: `${path.dirname(git)};${process.env.SYSTEMROOT}\\System32`, HOME: tmp, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(tmp, 'no-global-config'), GIT_TERMINAL_PROMPT: '0', GIT_ATTR_NOSYSTEM: '1' }
+    const sysPath = process.platform === 'win32' ? [`${process.env.SYSTEMROOT}\\System32`] : []
+    const env = { SYSTEMROOT: process.env.SYSTEMROOT, SYSTEMDRIVE: process.env.SYSTEMDRIVE, PATH: [path.dirname(git), ...sysPath].join(path.delimiter), HOME: tmp, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(tmp, 'no-global-config'), GIT_TERMINAL_PROMPT: '0', GIT_ATTR_NOSYSTEM: '1' }
+    for (const k of Object.keys(env)) if (env[k] === undefined) delete env[k] // e.g. SYSTEMROOT off Windows
     const file = path.join(tmp, 'candidate.bundle'); const repo = path.join(tmp, 'r.git')
     writeFileSync(file, buf)
     if (run(git, ['init', '-q', '--bare', repo], { env }).code !== 0) return { ok: false, code: 'BUNDLE.INIT_FAILED' }

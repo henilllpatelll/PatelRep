@@ -28,7 +28,7 @@ test('backups: consistent copy + atomic manifest (the commit point); a data file
     assert.ok(verifyBackup(dirs.backups, b1.manifest).ok)
     assert.equal(createBackup(L, dirs.backups, { freeMb: BIG, hook: (n) => { if (n === 'after_backup_data_published') throw new Error('CRASH_BEFORE_MANIFEST') } }).code, 'BACKUP.FAILED', 'a failure between data and manifest publishes NO backup')
     const l1 = listBackups(dirs.backups); assert.equal(l1.manifests.length, 1); assert.equal(l1.orphans.length, 1, 'the uncommitted data file is an orphan, never a backup')
-    for (let i = 0; i < 6; i += 1) { L.cancel(h.submit({ requirements: { text: `filler ${i}` } })); assert.ok(createBackup(L, dirs.backups, { freeMb: BIG, retain: 3 }).ok) }
+    for (let i = 0; i < 6; i += 1) { L.cancel(h.submit({ requirements: { text: `filler ${i}` } }), { ownerActionId: `owner-cancel-filler-${i}` }); assert.ok(createBackup(L, dirs.backups, { freeMb: BIG, retain: 3 }).ok) }
     const l2 = listBackups(dirs.backups); assert.equal(l2.manifests.length, 3); assert.equal(l2.orphans.length, 0, 'the partial publication was collected')
     assert.ok(l2.manifests[0].authority_seq > l2.manifests[2].authority_seq, 'newest authority first')
     assert.equal(createBackup(L, dirs.backups, { freeMb: () => 100 }).code, 'BACKUP.STORAGE_INSUFFICIENT')
@@ -60,7 +60,7 @@ test('STALE backup after authority moved on (consumed evidence, intents, cancell
   const live = h.dirs.ledger
   const witness = fileWitness(dirs.witness, { simulationTrusted: true })
   createBackup(L, dirs.backups, { freeMb: BIG })
-  addIntent(L, id, 'after-backup-1'); L.cancel(h.submit({ requirements: { text: 'cancelled after the backup' } })) // authority moves on
+  addIntent(L, id, 'after-backup-1'); L.cancel(h.submit({ requirements: { text: 'cancelled after the backup' } }), { ownerActionId: 'owner-cancel-after-backup' }) // authority moves on
   const newest = createBackup(L, dirs.backups, { freeMb: BIG }).manifest
   addIntent(L, id, 'after-backup-2'); witness.publish(L) // the witness has seen MORE authority than any backup
   const liveSeq = authoritySeq(L); h.close()
