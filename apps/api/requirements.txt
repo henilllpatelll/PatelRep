@@ -11,7 +11,7 @@ httpx2==2.16.0
 openai==3.46.0
 anthropic==2.6.0
 openai-agents==0.24.0
-stripe==16.1.0
+stripe==17.0.0
 twilio==9.13.0
 python-multipart==0.0.33
 slowapi==0.1.10
