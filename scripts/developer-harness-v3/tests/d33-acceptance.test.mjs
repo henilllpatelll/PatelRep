@@ -362,11 +362,8 @@ test('PE fixture positive control: Windows itself runs the fixture and it exits 
   // cannot run natively, acceptance records host_run as NOT_WINDOWS, and the S2 rule refuses isolation acceptance (S2.FIXTURE_NOT_RUNNABLE_ON_HOST).
   assert.deepEqual(validatePeFixture(PE), [], 'the fixture is a structurally valid PE image on every platform')
   if (process.platform !== 'win32') {
-    const d = mkdtempSync(path.join(os.tmpdir(), 'dh3-pe-test-'))
-    try {
-      const f = path.join(d, 'dh3fixture.exe'); writeFileSync(f, PE, { mode: 0o755 })
-      const r = spawnSync(f, [], { timeout: 15000, env: {} }); assert.ok(r.error || r.status !== 0, `a ${process.platform} host does not run a PE image natively`)
-    } finally { rmSync(d, { recursive: true, force: true }) }
+    // review O5: no attempt to execute the PE image off Windows (glibc's execvp would hand it to /bin/sh); the control is simply not available here
+    assert.equal(PE.toString('latin1', 0, 2), 'MZ')
     assert.ok(R.evalS2(goodProbe(), ctx2({ hostRun: { rc: null, error: 'NOT_WINDOWS' } })).problems.includes('S2.FIXTURE_NOT_RUNNABLE_ON_HOST'), 'without the host control, isolation acceptance is refused')
     return
   }

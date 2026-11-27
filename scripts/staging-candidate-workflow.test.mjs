@@ -281,6 +281,11 @@ test('R-25: CI selection is exact-source — the LATEST ci.yml run for the head 
   assert.equal((await resolve({ runs: [older, newerPending] })).outputs.eligible, 'false', 'a newer run still running is not a success yet')
   assert.equal((await resolve({ runs: [ciRun({ path: '.github/workflows/other.yml', run_number: 99 }), older], checks: [gate({ check_suite: { id: SUITE } })] })).outputs.ci_run_id, '400', 'a run of any other workflow file is ignored')
   assert.equal((await resolve({ runs: [ciRun({ head_repository: { full_name: 'evil/PatelRep' } })] })).outputs.eligible, 'false', 'a fork run never counts')
+  // review M2: a run path carrying an '@<ref>' suffix is still the ci.yml workflow (both paths); another file with a suffix is still refused
+  assert.equal((await resolve({ runs: [ciRun({ path: '.github/workflows/ci.yml@refs/pull/42/merge' })] })).outputs.eligible, 'true')
+  assert.equal((await resolve({ event: 'workflow_run', workflowRun: ciRun({ path: '.github/workflows/ci.yml@refs/heads/feat/x' }) })).outputs.eligible, 'true')
+  assert.equal((await resolve({ event: 'workflow_run', workflowRun: ciRun({ path: '.github/workflows/fake.yml@refs/heads/x' }) })).outputs.eligible, 'false')
+  assert.equal((await resolve({ event: 'workflow_run', workflowRun: ciRun({ path: undefined }) })).outputs.eligible, 'false', 'no path = not the CI workflow')
   assert.equal((await resolve({ runs: [] })).outputs.eligible, 'false')
 })
 

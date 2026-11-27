@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GATES } from '../orchestrator/activation-gates.mjs'
@@ -41,6 +41,10 @@ test('the integrated chain is applied EXACTLY to the V3 root of trust: reversed 
   const chain = integratedChain(); const files = [...new Set(chain.flatMap((c) => c.touches))].filter(inReconstructionScope)
   assert.ok(files.includes('scripts/developer-harness-v3/authority/evaluator.mjs') && files.includes('docs/developer-harness-v3/task-lifecycle.json') && files.includes('scripts/developer-harness-v3/authority/trusted-git.mjs'), 'the scope covers the root of trust')
   assert.ok(!files.some((f) => /^\.github\/|developer-harness-v2|\/tests\/|\/orchestrator\/issuer\//.test(f)), 'review M1: no control-plane, V2, test or development-scope file is ever reverse-applied (later ordinary edits there cannot break the reconstruction)')
+  // review O1: base + chain == repository is circular on its own (the base is derived FROM the repository); the post-chain bytes are therefore ALSO pinned independently
+  const post = manifest.integration.post_chain_sha256; assert.ok(Object.keys(post).length >= 11)
+  for (const [f, d] of Object.entries(post)) assert.equal(sha(Buffer.from(readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n'))), d, `${f} equals its pinned post-integration digest`)
+  for (const n of readdirSync(path.join(ROOT, 'scripts/developer-harness-v3/authority'))) assert.ok(Object.hasOwn(post, `scripts/developer-harness-v3/authority/${n}`), `authority/${n} is pinned`)
   const base = disposableCopy([], [], 'dh34-integration-base-', { preIntegration: true }) // throws unless EVERY reverse step applies
   const replay = disposableCopy([], [], 'dh34-integration-replay-', { preIntegration: true })
   for (const c of chain) { const inc = c.touches.filter(inReconstructionScope); if (!inc.length) continue; const r = spawnSync('git', ['-c', 'core.autocrlf=false', 'apply', '-p1', ...inc.map((f) => `--include=${f}`), path.join(DIR, c.file)], { cwd: replay, encoding: 'utf8' }); assert.equal(r.status, 0, `${c.id} replays on the base: ${r.stderr}`) }

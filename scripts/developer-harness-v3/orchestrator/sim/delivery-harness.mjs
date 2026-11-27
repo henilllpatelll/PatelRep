@@ -6,7 +6,7 @@
 //   * INTEGRATED_TEST_ACTIVATION: the SAME repository authority, evaluator and (P6v3) lifecycle, with the delivery actions activated in a generated TEST policy whose keys and
 //     ledgers live only under the OS temp directory. This is how the inactive delivery architecture is demonstrated end to end. Before the integration this configuration ran
 //     the protected proposals from patched disposable copies (PROPOSAL_UNDER_TEST); now that P7 and P6v3 ARE the repository's code, no patched copy is used.
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -55,7 +55,8 @@ export function disposableCopy(patches, files, prefix = 'dh36-proposal-', { preI
   const t = mkdtempSync(path.join(os.tmpdir(), prefix))
   const chain = preIntegration ? integratedChain().map((c) => ({ ...c, scoped: c.touches.filter(inReconstructionScope) })).filter((c) => c.scoped.length) : []
   const all = new Set(files); for (const c of chain) for (const f of c.scoped) all.add(f)
-  for (const rel of all) { if (!existsSync(path.join(ROOT, rel))) continue; mkdirSync(path.dirname(path.join(t, rel)), { recursive: true }); copyFileSync(path.join(ROOT, rel), path.join(t, rel)) }
+  // review O4: copies are LF-normalized (a Windows checkout with core.autocrlf=true has CRLF files; the patches are LF-exact)
+  for (const rel of all) { if (!existsSync(path.join(ROOT, rel))) continue; mkdirSync(path.dirname(path.join(t, rel)), { recursive: true }); writeFileSync(path.join(t, rel), readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) }
   const g = resolveGit(); if (!g.ok) throw new Error(`proposal copy: ${g.code}`) // the hardened, absolute, allow-listed git (never a bare `git` from PATH)
   for (const c of [...chain].reverse()) { try { trustedGit(g.exe, t, ['-c', 'core.autocrlf=false', 'apply', '--reverse', '-p1', ...c.scoped.map((f) => `--include=${f}`), path.join(PROPOSALS, c.file)]) } catch (e) { throw new Error(`integrated ${c.id} does not reverse-apply: ${e.message}`) } }
   for (const p of patches) { try { trustedGit(g.exe, t, ['-c', 'core.autocrlf=false', 'apply', '-p1', path.join(PROPOSALS, p)]) } catch (e) { throw new Error(`proposal ${p} does not apply: ${e.message}`) } }
